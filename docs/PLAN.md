@@ -261,6 +261,11 @@ Ramp and back-off rows carry as logged when the top held.
 An increase is offered (opening plus one stepper increment on full success, or a
 heavier set that made its reps; the larger, never stacked) and applied only when
 the lifter accepts; §11 numbers do not move.
+On screen the heading is built from the working rows, 'Repeat' or a '+5 lb' chip
+sits beside the weight, the Today preview's Last is the same plan, day and slot
+(falling back to the exercise anywhere, labeled with its day), and the Next time
+control reads Progress / Plan with the disclosure 'Planned reps; increases need
+your approval.'
 
 ## Architecture
 

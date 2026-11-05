@@ -289,6 +289,13 @@ sealed interface HeaderTarget {
     ) : HeaderTarget
 }
 
+/** Derived every build; accepting an offer writes the working rows. */
+@Immutable
+sealed interface NextTime {
+    data object Repeat : NextTime
+    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double) : NextTime
+}
+
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
  *  carries it: this is the type the set screen compares between updates. */
 @Immutable
@@ -343,6 +350,10 @@ data class ExerciseCardState(
     val exerciseId: String = "",
     val timedRepDurationSeconds: Int? = null,
     val timedRepAim: Int? = null,
+    val workingHeading: String? = null,
+    val partnerWorkingHeading: String? = null,
+    val nextTime: NextTime? = null,
+    val partnerNextTime: NextTime? = null,
 )
 
 /**

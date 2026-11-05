@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -43,7 +46,7 @@ class LiftSheetTest {
             Triple(PrescribedTarget.Hold(45), "Target 3 × 0:45", "Target 3 × 0:45"),
             Triple(PrescribedTarget.Hold(45, 25.0), "Target 3 × 0:45 · 25 lb", "Target 3 × 0:45 · 11.34 kg"),
             Triple(PrescribedTarget.RepsInTime(120), "Target 2:00", "Target 2:00"),
-            Triple(PrescribedTarget.RepsInTime(120, 40), "Target 2:00 · aim 40", "Target 2:00 · aim 40"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), "Target 2:00", "Target 2:00"),
         )
         val base = workoutLiftSheetFixture().exercises.single().copy(lastTimeDisplay = "3 × 12", lastTimeDate = null)
         var card by mutableStateOf(base)
@@ -53,11 +56,30 @@ class LiftSheetTest {
         for ((target, lb, kg) in cases) {
             for ((unit, label) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
                 rule.runOnIdle {
-                    card = base.copy(headerTarget = DayScreenBuilder.headerTarget(
+                    val header = DayScreenBuilder.headerTarget(
                         ProgramExercise("weighted_plank", targetSets = 3,
                             prescription = Prescription(target, eachSide = true, resistance = "Red band")),
                         GoalTarget.Weight(235.0, perHand = false), unit,
-                    ))
+                    )
+                    val sets = List(3) {
+                        when (target) {
+                            is PrescribedTarget.LoadReps -> LoggedSet(target.lb, target.reps, SetKind.WORK)
+                            is PrescribedTarget.Reps -> LoggedSet(0.0, target.reps, SetKind.WORK)
+                            is PrescribedTarget.Hold -> LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds)
+                            is PrescribedTarget.RepsInTime -> LoggedSet(0.0, 0, SetKind.WORK)
+                        }
+                    }
+                    val tracking = when (target) {
+                        is PrescribedTarget.LoadReps -> TrackingType.WEIGHTED
+                        is PrescribedTarget.Hold -> TrackingType.TIMED
+                        else -> TrackingType.REPS
+                    }
+                    card = base.copy(headerTarget = header, tracking = tracking,
+                        rows = sets.mapIndexed { i, set ->
+                            SetRowState(i, "${i + 1}", false, unit.fromLb(set.weightLb), set.reps, false, seconds = set.seconds)
+                        },
+                        workingHeading = if (target is PrescribedTarget.RepsInTime) header.display
+                            else DayScreenBuilder.workingHeading(sets, tracking, unit))
                 }
                 val support = "$label. Last time 3 × 12. Each side · Red band"
                 rule.onNodeWithText(support).assertIsDisplayed()
@@ -68,7 +90,7 @@ class LiftSheetTest {
 
     @Test fun squatShowsHistoryNotationFocusAndIndependentRowActions() {
         val state = workoutLiftSheetFixture()
-        val card = state.exercises.single().copy(rows = state.exercises.single().rows.map {
+        val card = state.exercises.single().copy(workingHeading = "TOP × 5 · 235 lb", rows = state.exercises.single().rows.map {
             if (it.index == 1) it.copy(done = false) else it
         })
         var tick: List<Any>? = null
@@ -82,7 +104,7 @@ class LiftSheetTest {
             ), true, null, {}, {}, {})
         } }
         rule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
-        rule.onNodeWithText("Goal 235. Last time 235 × 5, Oct 21.").assertIsDisplayed()
+        rule.onNodeWithText("Target TOP × 5 · 235 lb. Goal 235. Last time 235 × 5, Oct 21.").assertIsDisplayed()
         listOf("R1", "R2", "R3", "R4", "TOP", "B/O").forEach { label ->
             rule.onNodeWithText(label, substring = true).performScrollTo().assertIsDisplayed()
         }
@@ -96,6 +118,59 @@ class LiftSheetTest {
             assertEquals(1L to 3, edited)
             assertEquals(0 to Slot.MAIN, swapped)
         }
+    }
+
+    @Test fun headingReadsWorkingRowsWhenThePrescriptionIsStale() {
+        val rows = List(3) { LoggedSet(80.0, 10, SetKind.WORK) }
+        val card = workoutLiftSheetFixture().exercises.single().copy(
+            headerTarget = HeaderTarget.Prescribed("3 × 10 · 60 lb"),
+            workingHeading = DayScreenBuilder.workingHeading(rows, TrackingType.WEIGHTED, WeightUnit.LB),
+            rows = rows.mapIndexed { i, set -> SetRowState(i, "${i + 1}", false, set.weightLb, set.reps, false) },
+            lastTimeDisplay = null, lastTimeDate = null,
+        )
+        rule.setContent { AppTheme { LiftSheet(card, Slot.MAIN, null, workoutActions(), false, null, {}, {}, {}) } }
+        rule.onNodeWithText("Target 3 × 10 · 80 lb.").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Target 3 × 10 · 80 lb.").assertIsDisplayed()
+        rule.onNodeWithText("60 lb", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun offerAppliesAndUndoesTheWorkingWeightAndRepeatHasNoChip() {
+        val base = workoutLiftSheetFixture().exercises.single()
+        val offer = NextTime.Offer("+5 lb", false, 75.0, 70.0)
+        var card by mutableStateOf(base.copy(nextTime = offer))
+        var written: List<Any>? = null
+        rule.setContent { AppTheme { LiftSheet(card, Slot.MAIN, null, workoutActions().copy(
+            onNextTime = { id, slot, weight -> written = listOf(id, slot, weight) },
+        ), false, null, {}, {}, {}) } }
+        rule.onNodeWithText("+5 lb").assertIsDisplayed()
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}").assertIsNotSelected().performClick()
+        rule.runOnIdle {
+            assertEquals(listOf(base.programExerciseId, Slot.MAIN, 75.0), written)
+            card = base.copy(nextTime = offer.copy(applied = true))
+        }
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}").assertIsSelected().performClick()
+        rule.runOnIdle {
+            assertEquals(listOf(base.programExerciseId, Slot.MAIN, 70.0), written)
+            card = base.copy(nextTime = NextTime.Repeat)
+        }
+        rule.onNodeWithText("Repeat").assertIsDisplayed()
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}").assertDoesNotExist()
+    }
+
+    @Test fun partnerUsesItsOwnWorkingHeadingAndOffer() {
+        val base = workoutSetSupersetFixture().exercises.single().copy(
+            workingHeading = "3 × 10 · 80 lb", partnerWorkingHeading = "3 × 12 · 70 lb",
+            nextTime = NextTime.Repeat, partnerNextTime = NextTime.Offer("+5 lb", false, 75.0, 70.0),
+        )
+        var written: List<Any>? = null
+        rule.setContent { AppTheme { LiftSheet(base, Slot.SS, null, workoutActions().copy(
+            onNextTime = { id, slot, weight -> written = listOf(id, slot, weight) },
+        ), false, null, {}, {}, {}) } }
+        rule.onNodeWithText("Target 3 × 12 · 70 lb.", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Target 3 × 10 · 80 lb.", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Repeat").assertDoesNotExist()
+        rule.onNodeWithTag("next-time-offer-${Slot.SS}").performClick()
+        rule.runOnIdle { assertEquals(listOf(base.programExerciseId, Slot.SS, 75.0), written) }
     }
 
     @Test fun partnerHasOwnRowsCheckboxAndSwapHalf() {

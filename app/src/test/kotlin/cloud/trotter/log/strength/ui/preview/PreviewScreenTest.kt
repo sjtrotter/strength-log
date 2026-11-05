@@ -18,16 +18,43 @@ import org.robolectric.annotation.Config
 class PreviewScreenTest {
     @get:Rule val rule = createComposeRule()
 
-    @Test fun absentAndIncomparableHistoryHaveDistinctMessages() {
+    @Test fun noHistoryOmitsTheLastLine() {
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
+            loading = false, lifts = listOf(PreviewLift("Plank", "3 × 0:45", listOf(PreviewPreviousResult(null)))),
+        ), PreviewActions({}, {}, {})) } }
+        rule.onNodeWithText("Today 3 × 0:45").assertExists()
+        rule.onNodeWithText("Last", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("No previous result").assertDoesNotExist()
+    }
+
+    @Test fun fallbackLabelsTheDayAndPlanAndNextTimeSitsBesideToday() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, lifts = listOf(
-                PreviewLift("Plank", "45 s", listOf(PreviewPreviousResult("45 s"))),
-                PreviewLift("Push-up", "12 reps", listOf(PreviewPreviousResult(null))),
-                PreviewLift("Side plank", "30 s", listOf(PreviewPreviousResult(null, comparable = false))),
+                PreviewLift("Squat", "TOP × 5 · 235 lb", listOf(
+                    PreviewPreviousResult("235 lb × 5", source = "B"),
+                ), nextTime = "+5 lb"),
+                PreviewLift("Bench", "3 × 5 · 70 lb", listOf(
+                    PreviewPreviousResult("70 lb × 5", source = "C", sourcePlanName = "Strength"),
+                ), nextTime = "Repeat"),
+            ),
+        ), PreviewActions({}, {}, {})) } }
+        rule.onNodeWithText("Today TOP × 5 · 235 lb").assertExists()
+        rule.onNodeWithText("+5 lb").assertExists()
+        rule.onNodeWithText("Repeat").assertExists()
+        rule.onNodeWithText("Last 235 lb × 5 · Day B").assertExists()
+        rule.onNodeWithText("Last 70 lb × 5 · Strength · Day C").assertExists()
+    }
+
+    @Test fun absentHistoryHasNoLastLineAndIncomparableHistoryKeepsItsMessage() {
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
+            loading = false, lifts = listOf(
+                PreviewLift("Plank", "3 × 0:45", listOf(PreviewPreviousResult("45 s"))),
+                PreviewLift("Push-up", "3 × 12", listOf(PreviewPreviousResult(null))),
+                PreviewLift("Side plank", "3 × 0:30", listOf(PreviewPreviousResult(null, comparable = false))),
             ),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Last 45 s").assertExists()
-        rule.onNodeWithText("No previous result").assertExists()
+        rule.onNodeWithText("No previous result").assertDoesNotExist()
         rule.onNodeWithText("No comparable previous result").assertExists()
     }
 
@@ -49,12 +76,12 @@ class PreviewScreenTest {
     @Test fun liftsShowPerformedNamesWorkingLoadLastAndSuperset() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "A"), planName = "Strength", title = "Upper",
-            lifts = listOf(PreviewLift("Bench + Row", "135 lb × 5 + 95 lb × 8", listOf(
+            lifts = listOf(PreviewLift("Bench + Row", "3 × 5 · 135 lb + 3 × 8 · 95 lb", listOf(
                 PreviewPreviousResult("130 lb × 5", exerciseName = "Bench"), PreviewPreviousResult("90 lb × 8", exerciseName = "Row"),
             ))),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Bench + Row").assertExists()
-        rule.onNodeWithText("Today 135 lb × 5 + 95 lb × 8").assertExists()
+        rule.onNodeWithText("Today 3 × 5 · 135 lb + 3 × 8 · 95 lb").assertExists()
         rule.onNodeWithText("Bench: Last 130 lb × 5").assertExists()
         rule.onNodeWithText("Row: Last 90 lb × 8").assertExists()
     }
@@ -66,7 +93,7 @@ class PreviewScreenTest {
             ))),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Bench: Last 130 lb × 5").assertExists()
-        rule.onNodeWithText("Row: No previous result").assertExists()
+        rule.onNodeWithText("Row:", substring = true).assertDoesNotExist()
     }
 
     @Test fun supersetKeepsComparableHistoryBesideAMismatchedPartner() {
@@ -95,7 +122,7 @@ class PreviewScreenTest {
         var edited = false
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "B"), title = "Upper",
-            lifts = listOf(PreviewLift("Bench", "135 lb × 5", listOf(PreviewPreviousResult(null)))),
+            lifts = listOf(PreviewLift("Bench", "3 × 5 · 135 lb", listOf(PreviewPreviousResult(null)))),
         ), PreviewActions({}, { edited = true }, { started = true })) } }
         rule.onNodeWithText("Edit").performClick()
         rule.onNodeWithText("Start day B").performClick()

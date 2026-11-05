@@ -16,6 +16,8 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -36,6 +38,81 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun previewShowsAnOfferAfterSuccessAndRepeatAfterAMissAndHidesItInPlanMode() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().nextTime)
+        val success = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            List(3) { LoggedSet(70.0, 5, SetKind.WORK, done = true, plannedIndex = it) }, success.runId)
+        repo.finishRun(success.runId)
+        advanceUntilIdle()
+        assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
+        assertEquals("+5 lb", vm.uiState.value.lifts.single().nextTime)
+
+        val miss = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            List(3) { LoggedSet(70.0, if (it == 2) 4 else 5, SetKind.WORK, done = true, plannedIndex = it) }, miss.runId)
+        repo.finishRun(miss.runId)
+        advanceUntilIdle()
+        assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
+        assertEquals("Repeat", vm.uiState.value.lifts.single().nextTime)
+        repo.setKeepToPlan(id, true)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().nextTime)
+    }
+
+    @Test fun lastPrefersTheSamePlanDayAndSlotAndLabelsTheFallbackDay() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val own = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235.0, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, own, "bb_back_squat", "Squat", Slot.MAIN, 0,
+            SetKind.TOP.name, 235.0, 5, true)))
+        val elsewhere = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Other day", null, 2000, 235.0, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, elsewhere, "bb_back_squat", "Squat", Slot.MAIN, 0,
+            SetKind.TOP.name, 225.0, 6, true)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals("235 lb × 5", vm.uiState.value.lifts.single().previous.single().last)
+        assertNull(vm.uiState.value.lifts.single().previous.single().source)
+
+        repo.history.deleteSession(own)
+        advanceUntilIdle()
+        val fallback = vm.uiState.value.lifts.single().previous.single()
+        assertEquals("225 lb × 6", fallback.last)
+        assertEquals("B", fallback.source)
+        assertNull(fallback.sourcePlanName)
+    }
+
+    @Test fun lastLabelsAnotherPlanAndDoesNotTreatAnotherSlotAsItsOwn() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Other day", null, 1000, 235.0,
+            planId = other, planName = "Other plan"))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "bb_back_squat", "Squat", Slot.MAIN, 0,
+            SetKind.TOP.name, 225.0, 5, true)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        val fallback = vm.uiState.value.lifts.single().previous.single()
+        assertEquals("B", fallback.source)
+        assertEquals("Other plan", fallback.sourcePlanName)
+
+        val ownPartner = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 2000, 235.0, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, ownPartner, "bb_back_squat", "Squat", Slot.SS, 0,
+            SetKind.WORK.name, 230.0, 5, true)))
+        advanceUntilIdle()
+        val otherSlot = vm.uiState.value.lifts.single().previous.single()
+        assertEquals("230 lb × 5", otherSlot.last)
+        assertEquals("A", otherSlot.source)
+        assertNull(otherSlot.sourcePlanName)
+    }
+
     @Test fun lastHoldUsesSecondsAndSuppressesMismatchedLegacyHistory() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("plank"))))))
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -76,7 +153,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("235 lb × 5", vm.uiState.value.lifts.single().working)
+        assertEquals("TOP × 5 · 235 lb", vm.uiState.value.lifts.single().working)
         assertEquals("Barbell Back Squat", vm.uiState.value.lifts.single().name)
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.isEmpty())
@@ -85,7 +162,7 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(vm.uiState.value.lifts.single().working,
             workout.uiState.value.exercises.single().rows.first { it.kind == SetKind.TOP }.let {
-                "${it.weightDisplay.toInt()} lb × ${it.reps}"
+                "TOP × ${it.reps} · ${it.weightDisplay.toInt()} lb"
             })
     }
 
@@ -115,7 +192,7 @@ class PreviewViewModelTest : OverviewFixture() {
         db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("8 reps", vm.uiState.value.lifts.single().working)
+        assertEquals("1 × 8", vm.uiState.value.lifts.single().working)
     }
 
     @Test fun previewUsesStoredFirstWorkingValuesRatherThanTheGoalOrRamp() = runTest(dispatcher) {
@@ -127,7 +204,7 @@ class PreviewViewModelTest : OverviewFixture() {
         ))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("225 lb × 7", vm.uiState.value.lifts.single().working)
+        assertEquals("TOP × 7 · 225 lb", vm.uiState.value.lifts.single().working)
         vm.start()
         advanceUntilIdle()
         val track = repo.openRunFlow.first()!!.tracks.single()
@@ -145,7 +222,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("Hack Squat", vm.uiState.value.lifts.single().name)
-        assertEquals("180 lb × 8", vm.uiState.value.lifts.single().working)
+        assertEquals("1 × 8 · 180 lb", vm.uiState.value.lifts.single().working)
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "hack_squat", "Hack Squat", Slot.MAIN, 0,

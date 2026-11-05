@@ -17,11 +17,15 @@ data class PreviewLift(
     val name: String,
     val working: String?,
     val previous: List<PreviewPreviousResult>,
+    val nextTime: String? = null,
 )
 data class PreviewPreviousResult(
     val last: String?,
     val comparable: Boolean = true,
     val exerciseName: String = "",
+    /** Fallback day id; the screen supplies the localized label. */
+    val source: String? = null,
+    val sourcePlanName: String? = null,
 )
 data class PreviewCardio(val activity: String, val time: String)
 data class PreviewActions(val onBack: () -> Unit, val onEdit: () -> Unit, val onStart: () -> Unit)

@@ -497,10 +497,12 @@ private fun SlotOptionsScreen(
                     selected = slot.keepToPlan == keep,
                     onClick = { onKeepToPlanChange(keep) },
                     shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_last)) },
+                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
                 )
             }
         }
+        Text(stringResource(R.string.day_edit_next_time_disclosure), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         if (!slot.keepToPlan && !runOpen) {
             TextButton(onClick = { confirmingReset = true }) {
                 Text(stringResource(R.string.day_edit_reset_to_plan))

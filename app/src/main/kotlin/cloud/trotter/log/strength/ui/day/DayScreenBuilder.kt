@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
+import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -12,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -134,6 +136,45 @@ object DayScreenBuilder {
     ): String = main.indices.joinToString(", ") { index ->
         val mainText = setSummary(main[index], tracking, unit)
         partner?.getOrNull(index)?.let { "$mainText(${setSummary(it, partnerTracking, unit)})" } ?: mainText
+    }
+
+    fun workingHeading(rows: List<LoggedSet>, tracking: TrackingType, unit: WeightUnit): String? {
+        val working = CarryForward.workingIndices(rows).map(rows::get)
+        val first = working.firstOrNull() ?: return null
+        val uniform = when (tracking) {
+            TrackingType.WEIGHTED -> working.all { it.weightLb == first.weightLb && it.reps == first.reps }
+            TrackingType.REPS -> working.all { it.reps == first.reps }
+            TrackingType.TIMED -> working.all { it.seconds == first.seconds && it.weightLb == first.weightLb }
+        }
+        if (!uniform) return working.joinToString(", ") {
+            SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, unit, spaced = true)
+        }
+        return when (tracking) {
+            TrackingType.WEIGHTED -> {
+                val count = if (first.kind == SetKind.TOP) "TOP" else "${working.size}"
+                "$count × ${first.reps} · ${SetFormatter.weight(first.weightLb, unit)}"
+            }
+            TrackingType.REPS -> "${working.size} × ${first.reps}"
+            TrackingType.TIMED -> "${working.size} × ${ClockText.minutesSeconds(first.seconds)}" +
+                if (first.weightLb > 0.0) " · ${SetFormatter.weight(first.weightLb, unit)}" else ""
+        }
+    }
+
+    fun nextTime(rows: List<LoggedSet>, history: SlotSession?, keepToPlan: Boolean, unit: WeightUnit): NextTime? {
+        if (keepToPlan || history == null || history.retired || rows.any { it.done }) return null
+        val carried = CarryForward.next(history.planned, history.actual)
+        val opening = CarryForward.workingWeight(carried) ?: return null
+        val current = CarryForward.workingWeight(rows) ?: return null
+        fun display(lb: Double) = WeightStepper.toDisplayPrecision(unit.fromLb(lb))
+        val offer = CarryForward.offer(history.planned, history.actual, unit)
+            ?: return NextTime.Repeat.takeIf { display(current) == display(opening) }
+        val applied = when (display(current)) {
+            display(opening) -> false
+            display(offer) -> true
+            else -> return null
+        }
+        val delta = display(offer) - display(opening)
+        return NextTime.Offer("+${WeightStepper.format(delta)} ${unit.name.lowercase(Locale.ROOT)}", applied, offer, opening)
     }
 
     /**

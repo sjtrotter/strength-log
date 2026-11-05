@@ -478,6 +478,7 @@ data class DayActions(
     val onCreateExercise: (MovementPattern) -> Unit,
     /** The recovery out of the no-program state: back into the wizard. */
     val onSetUpProgram: () -> Unit,
+    val onNextTime: (programExerciseId: Long, slot: String, weightLb: Double) -> Unit = { _, _, _ -> },
     val onStartCardio: () -> Unit = {},
     val onStopCardio: (CardioSetAction) -> Unit = {},
     val onReachCardioTarget: (CardioSetAction) -> Unit = {},

@@ -281,7 +281,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -454,7 +454,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 8"
+        "text": "Log 20 lb × 8"
       }
     },
     {
@@ -484,7 +484,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 8"
+        "text": "Log 20 lb × 8"
       }
     },
     {
@@ -590,7 +590,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -699,7 +699,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -729,7 +729,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 6"
+        "text": "Log 30 lb × 6"
       }
     },
     {
@@ -759,7 +759,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -907,7 +907,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb \u00d7 10"
+        "text": "Log 100 lb × 10"
       }
     },
     {
@@ -937,7 +937,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb \u00d7 10"
+        "text": "Log 100 lb × 10"
       }
     },
     {
@@ -967,7 +967,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb \u00d7 10"
+        "text": "Log 100 lb × 10"
       }
     },
     {
@@ -1287,7 +1287,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb \u00d7 12"
+        "text": "Log 70 lb × 12"
       }
     },
     {
@@ -1317,7 +1317,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb \u00d7 12"
+        "text": "Log 70 lb × 12"
       }
     },
     {
@@ -1455,7 +1455,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1485,7 +1485,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1515,7 +1515,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1697,12 +1697,14 @@
     },
     {
       "scrollTo": {
-        "text": "Leg Press"
+        "text": "Leg Press",
+        "index": 1
       }
     },
     {
       "tap": {
-        "text": "Leg Press"
+        "text": "Leg Press",
+        "index": 1
       }
     },
     {
@@ -1761,7 +1763,7 @@
     },
     {
       "tap": {
-        "text": "Intervals 5 \u00d7 2:00"
+        "text": "Intervals 5 × 2:00"
       }
     },
     {
@@ -1779,7 +1781,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -1988,9 +1990,7 @@
       }
     },
     {
-      "tap": {
-        "text": "Add a set"
-      }
+      "checkpoint": "second-monday-existing-extra-row-before-edit"
     },
     {
       "tap": {
@@ -2125,7 +2125,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 9"
+        "text": "Log 105 lb × 9"
       }
     },
     {
@@ -2155,7 +2155,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -2185,7 +2185,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -2236,7 +2236,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 11"
+        "text": "Log 90 lb × 11"
       }
     },
     {
@@ -2266,7 +2266,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 11"
+        "text": "Log 90 lb × 11"
       }
     },
     {
@@ -2296,7 +2296,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -2347,7 +2347,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -2377,7 +2377,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -2390,12 +2390,14 @@
     },
     {
       "scrollTo": {
-        "text": "Romanian Deadlift"
+        "text": "Romanian Deadlift",
+        "index": 1
       }
     },
     {
       "tap": {
-        "text": "Romanian Deadlift"
+        "text": "Romanian Deadlift",
+        "index": 1
       }
     },
     {
@@ -2496,6 +2498,488 @@
     },
     {
       "checkpoint": "second-wednesday-targets-after-shoulder-miss"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "second-wednesday-existing-extra-row-before-edit"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "second-wednesday-read-nov11-shoulder-note"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 9"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 9"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 9"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 6 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 11"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 11"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 9 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 9"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 9"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov18: Split 20 EACH, 9/9 each leg. Rower 12min, 2280m, effort6/10. Shoulder25x9/9/9 felt right. Visit72min."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "advance": "54m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "second-wednesday-saved72min-five-visits"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d22h48m"
+    },
+    {
+      "checkpoint": "friday-nov20-skipped-work-late-pickup-and-dinner"
     }
   ]
 }

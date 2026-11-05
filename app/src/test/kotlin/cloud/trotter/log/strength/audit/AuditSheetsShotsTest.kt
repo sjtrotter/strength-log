@@ -204,6 +204,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot17SheetLiftFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         val state = workoutLiftSheetFixture()
@@ -356,5 +357,21 @@ class AuditSheetsShotsTest : UiAuditTest() {
                 state.value = state.value.copy(openSheet = null)
             }))
         }
+    }
+
+    @Config(fontScale = 2f)
+    @Test fun shot35SheetEditorFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = workoutSetSingleFixture()
+        rule.auditShot("sheets/35-sheet-editor-font2", fontScale = 2f) {
+            AuditDay(state.copy(openSheet = OpenSheet(state.viewDayId.orEmpty(), OpenSheet.Kind.EDITOR, 1, 0)))
+        }
+    }
+
+    @Config(fontScale = 2f)
+    @Test fun shot36DayEditFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = workoutDaySheetFixture()
+        rule.auditShot("sheets/36-day-edit-font2", fontScale = 2f) { AuditDay(state, edit = auditEditFixture(state).copy(editorOpen = true)) }
     }
 }

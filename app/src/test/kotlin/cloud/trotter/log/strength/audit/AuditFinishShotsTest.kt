@@ -92,6 +92,7 @@ class AuditFinishShotsTest : UiAuditTest() {
         rule.auditShot("finish/10-receipt-long") { AuditDay(finishingFixture(), receipt = receiptFixture().let { it.copy(planName = LONG_PLAN, dayTitle = LONG_DAY, groups = it.groups.map { group -> group.copy(rows = group.rows.map { row -> row.copy(name = longestExercise.name) }) }) }) }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot11ReceiptStrengthFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("finish/11-receipt-strength-font2", fontScale = 2f) { AuditDay(finishingFixture(), receipt = receiptFixture()) }

@@ -68,6 +68,7 @@ class AuditOnboardingShotsTest : UiAuditTest() {
             onCreateCustomExercise = {}, onOpenBackup = {}, onOpenLicenses = {}, onBack = {})) }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot10WizardEmphasisFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("onboarding/10-wizard-emphasis-font2", fontScale = 2f) { WizardScreen(auditWizardFixture(WizardStep.EMPHASIS), wizardActions()) }

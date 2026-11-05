@@ -100,6 +100,7 @@ class AuditSettingsShotsTest : UiAuditTest() {
         rule.auditShot("settings/11-you-light", theme = ThemePreference.LIGHT) { YouScreen(YouUiState(), YouActions({}, {}, {}, {})) }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot12YouFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("settings/12-you-font2", fontScale = 2f) { YouScreen(YouUiState(), YouActions({}, {}, {}, {})) }

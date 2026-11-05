@@ -535,6 +535,78 @@
       "checkpoint": "goblet-squat-selected-check-swap-scope-and-set-count"
     },
     {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "confirmed-plan-swap-to-goblet-squat"
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "day-editor-before-logging-find-own-exercises-sets-and-loads"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "checkpoint": "resume-confirmed-goblet-workout-after-viewing-day-editor"
+    },
+    {
+      "note": "Goblet squat uses one dumbbell. Plan swap is intentional: this belongs in my normal A, not merely today."
+    },
+    {
       "note": "These are my actual Monday goblet squat sets, using one dumbbell. If the swap retained ramp labels, that is a classification problem to fix in the day editor; do not mistake the inherited targets for lifts I performed."
     },
     {
@@ -543,10 +615,20 @@
       }
     },
     {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "goblet-set-menu-find-working-set-classification"
+    },
+    {
+      "back": true
+    },
+    {
       "type": {
         "text": "Weight (lb)",
-        "value": "350",
-        "ime": "done"
+        "value": "350"
       }
     },
     {
@@ -555,15 +637,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
+        "value": "35"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
-        "ime": "done"
+        "value": "8"
       }
     },
     {
@@ -601,15 +681,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
+        "value": "35"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "6",
-        "ime": "done"
+        "value": "6"
       }
     },
     {
@@ -644,15 +722,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
+        "value": "30"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
-        "ime": "done"
+        "value": "8"
       }
     },
     {

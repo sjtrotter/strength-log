@@ -52,7 +52,7 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
 
     init {
         check(directory.mkdirs() || directory.isDirectory)
-        listOf("summary.json", "error.json", "backup.json", "log.jsonl").forEach { File(directory, it).delete() }
+        listOf("summary.json", "error.json", "backup.json", "backup.json.tmp", "log.jsonl").forEach { File(directory, it).delete() }
         File(directory, "steps").deleteRecursively()
         File(directory, "log.jsonl").writeText("")
     }
@@ -74,9 +74,13 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
         // leaves a truncated backup.json behind.
         val json = waitForStorage(60_000) { backup.export() }
         val partial = File(directory, "backup.json.tmp")
-        partial.writeText(json)
-        Files.move(partial.toPath(), File(directory, "backup.json").toPath(),
-            StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        try {
+            partial.writeText(json)
+            Files.move(partial.toPath(), File(directory, "backup.json").toPath(),
+                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        } finally {
+            partial.delete()
+        }
     }
 
     fun backupFailure(error: PlaytestError) {

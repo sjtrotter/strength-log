@@ -49,7 +49,7 @@ class PlaytestReplayTest {
         var failure: Throwable? = null
         var launchAttempted = false
         var backupAttempted = false
-        startRunWatchdog(artifacts)
+        val watchdog = startRunWatchdog(artifacts)
         fun writeBackup() {
             backupAttempted = true
             artifacts.writeSummary(if (this::time.isInitialized) time else null)
@@ -134,6 +134,7 @@ class PlaytestReplayTest {
                 try {
                     artifacts.writeSummary(if (this::time.isInitialized) time else null)
                 } finally {
+                    watchdog.interrupt()
                     Locale.setDefault(originalLocale)
                     TimeZone.setDefault(originalTimeZone)
                 }
@@ -143,7 +144,7 @@ class PlaytestReplayTest {
 
     /** Any wait that cannot be interrupted (a looper drain that never empties, a blocked callback)
      *  still ends with a summary before the workflow kills the job. */
-    private fun startRunWatchdog(artifacts: RunArtifacts) {
+    private fun startRunWatchdog(artifacts: RunArtifacts): Thread =
         Thread({
             try {
                 Thread.sleep(RUN_LIMIT_MS)
@@ -156,8 +157,7 @@ class PlaytestReplayTest {
             } finally {
                 Runtime.getRuntime().halt(1)
             }
-        }, "playtest-run-watchdog").apply { isDaemon = true }.start()
-    }
+        }, "playtest-run-watchdog").apply { isDaemon = true; start() }
 }
 
 /** Below the workflow's 25-minute job timeout, after setup and compilation, leaving time to upload. */

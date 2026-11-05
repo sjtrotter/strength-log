@@ -349,6 +349,7 @@ fun DayScreen(
             cardioTitle = if (state.exercises.all { card -> card.rows.all { it.complete } }) {
                 state.cardio?.takeIf { it.loggedSeconds == null }?.block?.activity?.let { cardioActivityName(it) }
             } else null,
+            cardioStarted = state.cardio?.run?.startedAt != null,
             onConfirm = {
                 confirmingPartialFinish = false
                 AppHaptics.perform(view, AppHaptics.Cue.FINISH)
@@ -407,6 +408,7 @@ private fun FinishDayConfirmDialog(
     doneSets: Int,
     totalSets: Int,
     cardioTitle: String?,
+    cardioStarted: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -414,7 +416,10 @@ private fun FinishDayConfirmDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (cardioTitle != null) stringResource(R.string.day_finish_without_cardio_title, cardioTitle)
+                if (cardioTitle != null) stringResource(
+                    if (cardioStarted) R.string.day_finish_save_cardio_title else R.string.day_finish_without_cardio_title,
+                    cardioTitle,
+                )
                 else if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
                 else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
             )

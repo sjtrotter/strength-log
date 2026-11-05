@@ -1032,6 +1032,17 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(1, finishes) }
     }
 
+    @Test fun finishWithStartedCardioConfirmsSavingTheActivity() {
+        var finishes = 0
+        show(workoutSetCardioRunningFixture(), workoutActions().copy(onDone = { finishes++ }))
+        rule.onNodeWithText("Finish").performClick()
+        rule.onNodeWithText("Finish and save Road run?").assertIsDisplayed()
+        rule.onNodeWithText("Finish without Road run?").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
+    }
+
     @Test fun cardioSheetShowsStatusesAndUnsavedDistanceIdentity() {
         val base = workoutSetCardioFixture()
         val block = CardioBlock(CardioActivity.ROAD_RUN, List(4) { CardioSetSpec(CardioRole.WORK, Measure.Time(300)) })

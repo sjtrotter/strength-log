@@ -796,6 +796,7 @@
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
+    <string name="day_finish_save_cardio_title">Finish and save %1$s?</string>
     <string name="workout_plates_with_unit">%1$s %2$s a side</string>
     <string name="workout_log_measurement">Log %1$s</string>
     <string name="workout_clock_remaining">Remaining</string>

@@ -1438,9 +1438,11 @@ class DayViewModel @Inject constructor(
         val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
         val planId = state.planId ?: return
         val runId = state.runId ?: return
-        // Rounds already ridden are logged before the strength finish reads the day's cardio.
         reconcileCardio()?.takeIf { it.dayId == day && !it.complete }?.let(::endCardioRun)
-        finisher.start(runId, planId, day, Program.accentIndex(day), dayState.value.dayTitle)
+        mutate {
+            if (cardioRun.value != null) return@mutate
+            finisher.start(runId, planId, day, Program.accentIndex(day), state.dayTitle)
+        }
     }
 
     fun skipLift(programExerciseId: Long, half: String) {

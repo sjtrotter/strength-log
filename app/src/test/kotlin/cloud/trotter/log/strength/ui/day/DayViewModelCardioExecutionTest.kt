@@ -230,6 +230,66 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun finishingMidIntervalWithAFailedCardioSaveKeepsStrengthOpenUntilRetrySucceeds() = test {
+        prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        val runId = requireNotNull(repo.openRunFlow.first()).id
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val slotId = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        vm.toggleDone(slotId, 0, true, Slot.MAIN)
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.startCardio()
+        runCurrent()
+        tick(5_000)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+
+        vm.completeDay()
+        runCurrent()
+
+        val failed = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(failed.complete)
+        assertTrue(failed.saveFailed)
+        assertEquals(failed, handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(listOf(SavedCardioResult("FINISHED", 10), SavedCardioResult("SHORTENED", 5),
+            SavedCardioResult("SKIPPED", 0)), failed.results)
+        assertTrue(vm.uiState.value.runOpen)
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+        assertTrue(requireNotNull(repo.openRunFlow.first()).tracks.single().sets.first().done)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        assertTrue(publishedCardio.isEmpty())
+        assertNull(vm.finisher.receipt.value)
+        assertNull(vm.finisher.attempt.value)
+        assertNull(alarm.deadline)
+
+        vm.completeDay()
+        runCurrent()
+        assertNull(vm.finisher.receipt.value)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        vm.retryCardioSave()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(listOf(10, 5, 0), repo.history.cardioSetsFor(session.id).map { it.elapsedSeconds })
+        assertEquals(listOf(session.id), publishedCardio)
+        assertFalse(vm.executionActive)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+
+        vm.completeDay()
+        runCurrent()
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardioRows.isNotEmpty())
+        assertTrue(vm.finisher.dismissReceipt())
+    }
+
+    @Test
     fun finishingWithAnUnstartedCardioRunLogsNothingAndStillCloses() = test {
         prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY),
             time(CardioRole.WORK), time(CardioRole.RECOVERY))

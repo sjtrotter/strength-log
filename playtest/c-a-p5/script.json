@@ -242,7 +242,8 @@
     },
     {
       "tap": {
-        "text": "Road run"
+        "text": "Road run",
+        "index": 1
       }
     },
     {
@@ -321,6 +322,143 @@
     },
     {
       "checkpoint": "tuesday-note-draft-check-save-control"
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-note-saved-summary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h17m50s"
+    },
+    {
+      "checkpoint": "thursday-nov12-morning-no-catchup-lift"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day C1"
+      }
+    },
+    {
+      "checkpoint": "second-run-preview-last-result-and-offered-target"
+    },
+    {
+      "tap": {
+        "text": "Start day C1"
+      }
+    },
+    {
+      "checkpoint": "second-run-started-core-left-unlogged"
+    },
+    {
+      "tap": {
+        "desc": "Day C1 lifts, 0 of 3 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "second-run-carried-forward-prescription"
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "41:35"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C1 lifts, 0 of 3 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "thursday-7000m-4135-before-recording"
+    },
+    {
+      "note": "Thursday Nov12: actual 7.00km in41:35 with2km easy then3x5min efforts/2min jogs and easy finish. Using whole-run timer here; intervals still need a separate timing test. Last effort8/10; do not chase uphill pace."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "41m35s"
+    },
+    {
+      "checkpoint": "thursday-timer-end-and-completion-controls"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "thursday-actual-run-values-before-finish"
+    },
+    {
+      "back": true
     }
   ]
 }

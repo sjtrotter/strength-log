@@ -33,7 +33,11 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 
-/** Real phone windows, including the content behind a modal's scrim. */
+/**
+ * Real phone windows, including the content behind a modal's scrim. A font2 shot also carries
+ * `@Config(fontScale = 2f)`: sheets and dialogs are separate windows that take their density from the
+ * configuration, so the [LocalDensity] override alone never reached them.
+ */
 @OptIn(ExperimentalRoborazziApi::class)
 fun ComposeContentTestRule.auditShot(
     name: String,

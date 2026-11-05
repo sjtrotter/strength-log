@@ -135,6 +135,7 @@ class AuditWorkoutShotsTest : UiAuditTest() {
         rule.auditShot("workout/13-workout-long") { AuditDay(auditLongWorkoutFixture().withWorkoutSelection()) }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot14WorkoutRampFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("workout/14-workout-ramp-font2", fontScale = 2f) { AuditDay(rampFixture(0)) }

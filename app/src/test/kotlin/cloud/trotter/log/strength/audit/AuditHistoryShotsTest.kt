@@ -75,6 +75,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
         rule.auditShot("history/07-history-full-light", theme = ThemePreference.LIGHT) { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture(), logActions()) } }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot08HistoryFullFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/08-history-full-font2", fontScale = 2f) { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture(), logActions()) } }

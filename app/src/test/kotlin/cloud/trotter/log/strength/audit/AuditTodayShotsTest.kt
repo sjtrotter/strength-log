@@ -56,6 +56,7 @@ class AuditTodayShotsTest : UiAuditTest() {
         rule.auditShot("today/07-today-ready-light", theme = ThemePreference.LIGHT) { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(auditTodayFixture(), TodayActions({}, {}, {})) } }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot08TodayReadyFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("today/08-today-ready-font2", fontScale = 2f) { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(auditTodayFixture(), TodayActions({}, {}, {})) } }

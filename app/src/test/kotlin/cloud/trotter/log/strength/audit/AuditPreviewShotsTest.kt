@@ -38,6 +38,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
         rule.auditShot("preview/04-preview-long") { PreviewScreen(auditPreviewFixture().copy(planName = LONG_PLAN, title = LONG_DAY, lifts = listOf(PreviewLift(longestExercise.name, "35 × 10", null))), PreviewActions({}, {}, {})) }
     }
 
+    @Config(fontScale = 2f)
     @Test fun shot05PreviewNormalFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("preview/05-preview-normal-font2", fontScale = 2f) { PreviewScreen(auditPreviewFixture(), PreviewActions({}, {}, {})) }

@@ -584,6 +584,16 @@
     },
     {
       "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
         "text": "Machine Chest Press"
       }
     },
@@ -627,6 +637,16 @@
     },
     {
       "checkpoint": "selected-machine-row"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
     },
     {
       "tap": {
@@ -706,6 +726,16 @@
     },
     {
       "checkpoint": "leg-press-replaces-squat"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
     },
     {
       "tap": {
@@ -812,6 +842,113 @@
     },
     {
       "checkpoint": "next-leg-press-set-editor"
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "60"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "three-leg-press-sets-before-chest"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 30 lb \u00d7 6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 6"
+      }
+    },
+    {
+      "checkpoint": "first-chest-attempt-six-reps-at-thirty"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "chest-weight-lowered-for-second-set"
     }
   ]
 }

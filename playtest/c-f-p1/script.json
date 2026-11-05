@@ -1225,18 +1225,7 @@
    }
   },
   {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "wed18-cardio-7m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
+   "advance": "4m"
   },
   {
    "checkpoint": "wed18-cardio-9m"
@@ -1305,6 +1294,111 @@
   },
   {
    "checkpoint": "sat21-dl-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "rack had a wait. Deadlift 105, one set this time."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "105"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "sat21-dl-logged"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Next:",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "sat21-dbbench"
+  },
+  {
+   "note": "every bench is taken. Twenty minutes. Swapping for something I can get to."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   }
+  },
+  {
+   "checkpoint": "sat21-swap-picker"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "machine"
+   }
+  },
+  {
+   "checkpoint": "sat21-swap-search"
+  },
+  {
+   "tap": {
+    "textContains": "Machine Chest Press"
+   }
+  },
+  {
+   "checkpoint": "sat21-swap-chosen"
+  },
+  {
+   "tap": {
+    "text": "This workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "sat21-swapped"
   },
   {
    "back": true

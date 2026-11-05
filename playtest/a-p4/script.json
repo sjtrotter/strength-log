@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -828,6 +828,11 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
         "tag": "lift-check-main-4"
       }
     },
@@ -835,7 +840,7 @@
       "checkpoint": "monday-first-squat-work-set-logged"
     },
     {
-      "note": "I tapped this check once before I meant to. Uncheck it, then check it when the set is actually done; the result should still be one set."
+      "note": "Correct a premature check: undo it and check again after the actual set. This must still count as one work set."
     },
     {
       "tap": {
@@ -893,14 +898,58 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
         "tag": "lift-check-main-5"
       }
+    },
+    {
+      "checkpoint": "monday-two-squat-work-sets-plus-warmup"
+    },
+    {
+      "back": true
     },
     {
       "advance": "120s"
     },
     {
-      "checkpoint": "monday-two-squat-work-sets-plus-warmup"
+      "note": "I still owe my third squat set. First locate the bike entry in this same visit so I know where my twelve-minute finisher belongs."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 15 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-actual-entry-controls"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 15 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {

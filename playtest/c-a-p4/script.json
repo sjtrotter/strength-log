@@ -1075,7 +1075,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 0 of 24 sets"
+        "desc": "Day B lifts, 0 of 21 sets"
       }
     },
     {
@@ -1090,6 +1090,11 @@
     },
     {
       "checkpoint": "friday-native-day-editor"
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
     },
     {
       "tap": {
@@ -1138,7 +1143,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 0 of 27 sets"
+        "desc": "Day B lifts, 0 of 24 sets"
       }
     },
     {
@@ -1175,7 +1180,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 3 of 27 sets"
+        "desc": "Day B lifts, 3 of 24 sets"
       }
     },
     {
@@ -1189,7 +1194,7 @@
       }
     },
     {
-      "checkpoint": "friday-legcurl-before-my-actual70x12"
+      "checkpoint": "friday-legcurl-before-actual70x12"
     },
     {
       "tap": {
@@ -1256,7 +1261,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 5 of 27 sets"
+        "desc": "Day B lifts, 5 of 24 sets"
       }
     },
     {
@@ -1267,6 +1272,245 @@
     {
       "tap": {
         "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "H pull"
+      }
+    },
+    {
+      "tap": {
+        "text": "H pull"
+      }
+    },
+    {
+      "checkpoint": "horizontal-pull-add-choices"
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 5 of 27 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "busy-cables-friday-swap-options"
+    },
+    {
+      "scrollTo": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "checkpoint": "friday-swap-scope-before-this-workout"
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "friday-temporary-dumbbell-row"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 8 of 27 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 13: Cables busy. Chest-supported DB rows 30 lb EACH, 10/10/10. Swap today only. Incline DBs 35 EACH."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "friday-temporary-row-actuals-and-note"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 8 of 27 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
       }
     },
     {
@@ -1281,9 +1525,6 @@
     },
     {
       "checkpoint": "friday-legpress-catalog-choices"
-    },
-    {
-      "note": "Next: finish Nov13 with leg press180x10x3, temporary chest-supported DB rows30x10x3, six bike intervals17min. Incline DBs35EACH and curls70x12x2 are pending this replay. Native surplus exercises remain unperformed; inspect editor before removing them."
     }
   ]
 }

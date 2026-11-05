@@ -3145,6 +3145,155 @@
     },
     {
       "checkpoint": "dec4-looking-inside-the-short-nov25-visit"
+    },
+    {
+      "tap": {
+        "text": "Share"
+      }
+    },
+    {
+      "checkpoint": "dec4-share-short-history-entry-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "dec4-short-visit-editor-check-which-sets-were-completed"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "dec4-short-history-after-leaving-editor-unchanged"
+    },
+    {
+      "tap": {
+        "text": "Nov 25, 2026"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 16, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 16, 2026",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "dec4-history-first-chest25-misses"
+    },
+    {
+      "tap": {
+        "text": "Nov 16, 2026",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 18, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 18, 2026",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "dec4-history-temporary-dumbbell-row"
+    },
+    {
+      "tap": {
+        "text": "Nov 18, 2026",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 30, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 30, 2026",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "dec4-history-tired-day-misses"
+    },
+    {
+      "tap": {
+        "text": "Nov 30, 2026",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Dec 2, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Dec 2, 2026",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "dec4-history-second-chest25-attempt"
+    },
+    {
+      "tap": {
+        "text": "Dec 2, 2026",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Dec 4, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Dec 4, 2026",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "dec4-history-all-tens-final-visit"
+    },
+    {
+      "tap": {
+        "text": "Dec 4, 2026",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "dec4-plans-before-searching-options-for-export"
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "dec4-plan-options-looking-for-a-copy-off-phone"
     }
   ]
 }

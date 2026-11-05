@@ -7,6 +7,87 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open-before-setup" }
+    {
+      "checkpoint": "first-open-before-setup"
+    },
+    {
+      "note": "Running is my priority. First screen only offers lifting goals. Try the visible restore entry to understand the no-account backup route."
+    },
+    {
+      "tap": {
+        "text": "Have a backup? Restore it"
+      }
+    },
+    {
+      "checkpoint": "restore-entry-before-setup"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "strength-closest-available-goal"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-2"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-3"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-4"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-5"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-page-8"
+    },
+    {
+      "note": "Preview only: inspect setup answers and plan before accepting. Revise defaults to my two short lifts, equipment and running schedule wherever the captured screens permit."
+    }
   ]
 }

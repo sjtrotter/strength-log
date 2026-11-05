@@ -706,7 +706,7 @@
    "checkpoint": "edit-day-b"
   },
   {
-   "note": "Wed Nov 11: bench is the main lift on day B here; 130 is not happening, I want 65"
+   "note": "Wed Nov 11: bench is the main lift on day B here; 130 is not happening, I want 65. Six lifts is too many, cutting it to what I know."
   },
   {
    "tap": {
@@ -725,7 +725,85 @@
    }
   },
   {
-   "checkpoint": "edit-day-b-2"
+   "tap": {
+    "desc": "More options for Bulgarian Split Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Seated Leg Curl"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for EZ-Bar Curl"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Pallof Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "day-b-trimmed"
+  },
+  {
+   "tap": {
+    "desc": "More options for Pull-Up / Chin-Up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "pulldown"
+   }
+  },
+  {
+   "checkpoint": "swap-search"
+  },
+  {
+   "tap": {
+    "textContains": "Pulldown"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "day-b-swapped"
   },
   {
    "back": true
@@ -806,9 +884,6 @@
    }
   },
   {
-   "checkpoint": "wed-bench-3"
-  },
-  {
    "advance": "2m"
   },
   {
@@ -840,9 +915,6 @@
    "tap": {
     "text": "Skip this set"
    }
-  },
-  {
-   "checkpoint": "wed-bench-done"
   },
   {
    "tap": {
@@ -851,18 +923,474 @@
    }
   },
   {
-   "checkpoint": "wed-acc1"
+   "checkpoint": "wed-pulldown"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed-cardio"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "note": "treadmill, 10 minutes, then I'm done"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "cardio-running"
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "checkpoint": "cardio-10m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "End cardio"
+   }
+  },
+  {
+   "checkpoint": "cardio-ended"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "wed-finish-tap"
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed-summary"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Bench Press",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "summary-row-tap"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "after-wed"
+  },
+  {
+   "advance": "47h"
+  },
+  {
+   "note": "Fri Nov 13"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "checkpoint": "fri-start"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "checkpoint": "edit-day-c"
+  },
+  {
+   "tap": {
+    "textContains": "Ramp to"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "fri-deadlift"
+  },
+  {
+   "note": "deadlift: one set of 95 like the plan, then one extra I should not have done"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
   },
   {
    "advance": "2m"
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "desc": "Edit set 2"
    }
   },
   {
-   "checkpoint": "wed-acc1-log1"
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "fri-deadlift-done"
+  },
+  {
+   "tap": {
+    "textContains": "Next:",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-acc1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-acc1-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "fri-skip1"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "fri-cardio"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "checkpoint": "summary-note"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "stick to one deadlift set like the plan says, back felt it"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "summary-note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-3"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Nov 9"
+   }
+  },
+  {
+   "checkpoint": "history-entry"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
   }
  ]
 }

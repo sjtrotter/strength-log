@@ -1185,8 +1185,8 @@
       "checkpoint": "resume-after-own-a-prescriptions"
     },
     {
-      "expect": {
-        "text": "DB Romanian Deadlift"
+      "tap": {
+        "text": "Next: DB Romanian Deadlift"
       }
     },
     {
@@ -1232,14 +1232,142 @@
     },
     {
       "tap": {
+        "desc": "Day A lifts, 6 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "lunge-each-side-and-before-planks"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next: Reverse Lunge"
+      }
+    },
+    {
+      "checkpoint": "lunge-actual-eight-each-side-display"
+    },
+    {
+      "expect": {
+        "textContains": "Log 15 lb"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "expect": {
+        "textContains": "Log 15 lb"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "checkpoint": "two-actual-lunge-sets-complete"
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },
     {
-      "checkpoint": "side-plank-sets-and-per-side-display"
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "left-side-wobbly-exercise-note-entry"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Left side wobbly. 8 reps per leg; 15 lb dumbbell in each hand."
+      }
+    },
+    {
+      "checkpoint": "lunge-note-typed-check-save-control"
     },
     {
       "back": true
+    },
+    {
+      "checkpoint": "lunge-note-dismissal-result"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "return-from-lunge-note"
+    },
+    {
+      "tap": {
+        "text": "Next: Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "side-plank-each-side-actual-controls"
     },
     {
       "tap": {
@@ -1254,7 +1382,7 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 6 of 10 sets"
+        "desc": "Day A lifts, 8 of 10 sets"
       }
     },
     {

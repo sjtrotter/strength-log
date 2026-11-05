@@ -192,7 +192,7 @@
   },
   {
    "tap": {
-    "text": "Barbell Back Squat"
+    "textContains": "Ramp to 190 lb"
    }
   },
   {
@@ -222,6 +222,25 @@
   },
   {
    "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-lift-options-back"
   },
   {
    "back": true

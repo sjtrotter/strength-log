@@ -451,7 +451,8 @@
   },
   {
    "tap": {
-    "textContains": "3 \u00d7 10 at 60 lb"
+    "textContains": "3 \u00d7 10 at 60 lb",
+    "index": 0
    },
    "timeoutMs": 20000
   },
@@ -474,6 +475,147 @@
   },
   {
    "checkpoint": "row-saved"
+  },
+  {
+   "note": "Bench: I do 3x5 at 175, not a ramp to a triple at 180."
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-straight"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-prescription"
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "175",
+    "ime": "done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-prescription-saved"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "editday-after-bench"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Lateral Raise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "lateral-removed"
+  },
+  {
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Pullover"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "pull"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "swap-search-pull"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plan-detail"
   }
  ]
 }

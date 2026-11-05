@@ -454,11 +454,11 @@ class LogViewModelTest {
 
         val volume = journal.volume
         assertNotNull(volume)
-        assertEquals(2, volume!!.bars.count { it.trained })
+        assertEquals(2, volume!!.weeks.count { it.trained })
 
         val calendar = journal.calendar
         assertNotNull(calendar)
-        assertEquals("JULY 2026", calendar!!.title)
+        assertEquals("July 2026", calendar!!.title)
         assertEquals("A", calendar.days.single { it.dayOfMonth == 8 }.dayLetter)
         collect.cancel()
     }
@@ -487,12 +487,12 @@ class LogViewModelTest {
 
         vm.pageCalendar(-1)
         advanceUntilIdle()
-        assertEquals("JUNE 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("June 2026", vm.uiState.value.journal.calendar?.title)
 
         vm.pageCalendar(1)
         vm.pageCalendar(1)
         advanceUntilIdle()
-        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("July 2026", vm.uiState.value.journal.calendar?.title)
         collect.cancel()
     }
 
@@ -504,7 +504,7 @@ class LogViewModelTest {
         val collect = launch { restored.uiState.collect {} }
         advanceUntilIdle()
 
-        assertEquals("JUNE 2026", restored.uiState.value.journal.calendar?.title)
+        assertEquals("June 2026", restored.uiState.value.journal.calendar?.title)
         collect.cancel()
     }
 
@@ -524,7 +524,7 @@ class LogViewModelTest {
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("July 2026", vm.uiState.value.journal.calendar?.title)
         assertEquals(31, vm.uiState.value.journal.calendar?.days?.single { it.isToday }?.dayOfMonth)
 
         civilTime.set(Instant.parse("2026-08-01T00:00:00Z"))
@@ -532,7 +532,7 @@ class LogViewModelTest {
         advanceUntilIdle()
 
         val calendar = vm.uiState.value.journal.calendar
-        assertEquals("AUGUST 2026", calendar?.title)
+        assertEquals("August 2026", calendar?.title)
         assertEquals(1, calendar?.days?.single { it.isToday }?.dayOfMonth)
         collect.cancel()
     }
@@ -550,14 +550,14 @@ class LogViewModelTest {
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("July 2026", vm.uiState.value.journal.calendar?.title)
 
         civilTime.set(instant, ZoneId.of("Pacific/Auckland"))
         civilTime.tick()
         advanceUntilIdle()
 
         val calendar = vm.uiState.value.journal.calendar
-        assertEquals("AUGUST 2026", calendar?.title)
+        assertEquals("August 2026", calendar?.title)
         assertEquals(1, calendar?.days?.single { it.isToday }?.dayOfMonth)
         collect.cancel()
     }
@@ -579,12 +579,12 @@ class LogViewModelTest {
 
         civilTime.set(Instant.parse("2026-08-01T00:00:30Z"))
         advanceUntilIdle()
-        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("July 2026", vm.uiState.value.journal.calendar?.title)
 
         vm.onResumed()
         advanceUntilIdle()
 
-        assertEquals("AUGUST 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals("August 2026", vm.uiState.value.journal.calendar?.title)
         collect.cancel()
     }
 

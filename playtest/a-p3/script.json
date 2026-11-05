@@ -10,6 +10,103 @@
   "steps": [
     {
       "checkpoint": "first-open-before-setup"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 2 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-2-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 3 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-3-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 4 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-4-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 5 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-5-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 6 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-6-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 7 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-7-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step 8 of 8"
+      }
+    },
+    {
+      "checkpoint": "setup-step-8-before-accepting"
     }
   ]
 }

@@ -126,6 +126,8 @@ class DayViewModel @Inject constructor(
     private val historyRepository: HistoryRepository,
 ) : ViewModel() {
 
+    val nowMillis: () -> Long = clock::millis
+
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
         KEY_VIEW_SELECTION,
         savedState.get<String>(KEY_VIEW_DAY)?.let { DaySelection(null, it) }

@@ -16,22 +16,10 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.time.CivilTimeSource
-import cloud.trotter.log.strength.time.SystemCivilTimeSource
-import cloud.trotter.log.strength.ui.day.AndroidCardioAlarm
-import cloud.trotter.log.strength.ui.day.CardioAlarm
-import cloud.trotter.log.strength.ui.day.CardioClock
-import cloud.trotter.log.strength.ui.day.SystemCardioClock
 import cloud.trotter.log.strength.rest.PhoneRestRuntime
 import cloud.trotter.log.strength.rest.RestRuntime
 import java.time.Clock
-import java.time.LocalDate
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
 
 /**
  * The data layer's object graph — the one place the Room DB and Preferences
@@ -42,14 +30,6 @@ import kotlinx.coroutines.flow.shareIn
 @InstallIn(SingletonComponent::class)
 object DataModule {
     @Provides @Singleton fun restRuntime(runtime: PhoneRestRuntime): RestRuntime = runtime
-
-    @Provides
-    @Singleton
-    fun cardioClock(clock: SystemCardioClock): CardioClock = clock
-
-    @Provides
-    @Singleton
-    fun cardioAlarm(alarm: AndroidCardioAlarm): CardioAlarm = alarm
 
     private const val SETTINGS_FILE = "strength_settings"
 
@@ -80,34 +60,6 @@ object DataModule {
                 produceFile = { context.preferencesDataStoreFile(RESTORE_JOURNAL_FILE) },
             ),
             settings,
-        )
-
-    /** Write stamps and legacy restore dates must use the same clock.
-     *  Its zone is frozen at construction; live screen dates require [CivilTimeSource]. */
-    @Provides
-    @Singleton
-    fun clock(): Clock = Clock.systemDefaultZone()
-
-    /** The read-path counterpart to [clock]: a civil day that re-reads the zone
-     *  and re-emits when the day turns. */
-    @Provides
-    @Singleton
-    fun civilTimeSource(source: SystemCivilTimeSource): CivilTimeSource = source
-
-    @Provides
-    @Singleton
-    @CivilDay
-    fun civilDay(
-        source: CivilTimeSource,
-        @ApplicationScope scope: CoroutineScope,
-    ): Flow<LocalDate> = source.civilTime
-        .map { it.date }
-        // Drop replay when the last consumer leaves. A later one must take a
-        // fresh CivilTime reading, never briefly observe the date it left behind.
-        .shareIn(
-            scope,
-            SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
-            replay = 1,
         )
 
     @Provides

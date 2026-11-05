@@ -1,0 +1,108 @@
+{
+  "seat": "wizard-dialog-capture",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Keep going",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "finish-dialog"
+    }
+  ]
+}

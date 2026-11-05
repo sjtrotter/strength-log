@@ -576,6 +576,7 @@ internal fun DayRoute(
             if (viewModel.finisher.dismissReceipt()) onFinishSession()
         },
         onBack = onBack,
+        nowMillis = viewModel.nowMillis,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )

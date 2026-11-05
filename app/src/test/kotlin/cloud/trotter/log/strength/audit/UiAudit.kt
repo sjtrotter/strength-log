@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -38,7 +39,6 @@ import org.junit.Rule
  * `@Config(fontScale = 2f)`: sheets and dialogs are separate windows that take their density from the
  * configuration, so the [LocalDensity] override alone never reached them.
  */
-@OptIn(ExperimentalRoborazziApi::class)
 fun ComposeContentTestRule.auditShot(
     name: String,
     theme: ThemePreference = ThemePreference.DARK,
@@ -56,27 +56,33 @@ fun ComposeContentTestRule.auditShot(
     waitForIdle()
     beforeCapture()
     waitForIdle()
+    writeShot(File(requireNotNull(System.getProperty("uiAudit.dir")), "$name.png"), density.density)
+}
+
+@OptIn(ExperimentalRoborazziApi::class)
+internal fun SemanticsNodeInteractionsProvider.writeShot(file: File, density: Float) {
     val roots = onAllNodes(isRoot())
     val root = roots.onLast()
     root.assertExists()
-    val file = File(requireNotNull(System.getProperty("uiAudit.dir")), "$name.png")
     check(file.parentFile.mkdirs() || file.parentFile.isDirectory)
     if (roots.fetchSemanticsNodes().size > 1) {
         captureScreenRoboImage(file.absolutePath)
     } else {
         root.captureRoboImage(file)
     }
+    File(file.parentFile, "${file.nameWithoutExtension}.json").writeText(dumpSemantics(density))
+}
+
+internal fun SemanticsNodeInteractionsProvider.dumpSemantics(density: Float): String {
     val nodes = onAllNodes(isRoot(), useUnmergedTree = true).fetchSemanticsNodes()
         .flatMap { it.auditDescendants() }
         .filter { node ->
             val config = node.config
             config.contains(SemanticsProperties.Text) || config.contains(SemanticsProperties.EditableText) ||
-                config.contains(SemanticsProperties.ContentDescription) ||
+                config.contains(SemanticsProperties.ContentDescription) || config.contains(SemanticsProperties.TestTag) ||
                 config.contains(SemanticsActions.OnClick) || config.contains(SemanticsActions.OnLongClick)
         }
-    File(file.parentFile, "${file.nameWithoutExtension}.json").writeText(
-        nodes.joinToString(prefix = "[\n", separator = ",\n", postfix = "\n]\n") { it.auditJson(density.density) },
-    )
+    return nodes.joinToString(prefix = "[\n", separator = ",\n", postfix = "\n]\n") { it.auditJson(density) }
 }
 
 private fun SemanticsNode.auditDescendants(): List<SemanticsNode> =
@@ -96,6 +102,7 @@ private fun SemanticsNode.auditJson(density: Float): String {
         "\"text\":${text.jsonString()}",
         "\"contentDescription\":${description.jsonString()}",
         "\"role\":${role?.jsonString() ?: "null"}",
+        "\"testTag\":${config.getOrNull(SemanticsProperties.TestTag)?.jsonString() ?: "null"}",
         "\"clickable\":$clickable",
         "\"left\":${bounds.left / density}",
         "\"top\":${bounds.top / density}",
@@ -117,7 +124,6 @@ private fun SemanticsNode.touchBounds(): Rect? =
 
 private val touchBoundsGetter = SemanticsNode::class.java.methods.firstOrNull { it.name.startsWith("getTouchBoundsInRoot") }
 
-// No serialization runtime is exposed on the app test compile classpath.
 private fun String.jsonString(): String = buildString {
     append('"')
     for (character in this@jsonString) {

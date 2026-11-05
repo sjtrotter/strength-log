@@ -176,7 +176,7 @@
   },
   {
    "tap": {
-    "textContains": "Ramp to 160"
+    "textContains": "Ramp to"
    }
   },
   {
@@ -282,7 +282,7 @@
   },
   {
    "tap": {
-    "textContains": "3 \u00d7 10 at 50"
+    "textContains": "DB Bench Press"
    }
   },
   {
@@ -709,7 +709,7 @@
   },
   {
    "tap": {
-    "textContains": "Ramp to 130"
+    "textContains": "Ramp to"
    }
   },
   {

@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb × 5"
+        "text": "165 lb \u00d7 5"
       }
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "expect": {
-        "text": "10 lb × 12"
+        "text": "10 lb \u00d7 12"
       }
     },
     {
@@ -359,7 +359,7 @@
     },
     {
       "expect": {
-        "text": "115 lb × 8"
+        "text": "115 lb \u00d7 8"
       }
     },
     {
@@ -438,7 +438,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -533,7 +533,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -546,7 +546,7 @@
     },
     {
       "expect": {
-        "text": "265 lb × 5"
+        "text": "265 lb \u00d7 5"
       }
     },
     {
@@ -557,7 +557,7 @@
     },
     {
       "tap": {
-        "text": "Log 265 lb × 5"
+        "text": "Log 265 lb \u00d7 5"
       }
     },
     {
@@ -718,7 +718,7 @@
     },
     {
       "expect": {
-        "text": "185 lb × 6"
+        "text": "185 lb \u00d7 6"
       }
     },
     {
@@ -726,7 +726,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -734,7 +734,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -742,7 +742,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -750,7 +750,7 @@
     },
     {
       "expect": {
-        "text": "40 lb × 15"
+        "text": "40 lb \u00d7 15"
       }
     },
     {
@@ -761,7 +761,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -769,7 +769,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -811,115 +811,32 @@
       }
     },
     {
-      "type": {
-        "text": "Search exercises",
-        "value": "plank"
-      }
+      "back": true
     },
     {
-      "checkpoint": "thursday-plank-search-with-equipment-filters-cleared"
+      "checkpoint": "thursday-return-from-unsuccessful-carry-swap"
     },
     {
       "tap": {
-        "text": "Plank / Side Plank"
+        "desc": "More options for Suitcase Carry"
       }
     },
     {
       "tap": {
-        "text": "The plan"
+        "text": "Remove"
       }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "thursday-side-plank-replaces-carry"
-    },
-    {
-      "tap": {
-        "text": "Plank / Side Plank",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "thursday-side-plank-prescription-fields"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "4"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "0"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "thursday-four-unloaded-thirty-second-side-holds"
     },
     {
       "back": true
     },
     {
-      "expect": {
-        "text": "30 s"
-      }
+      "note": "Side planks performed off-screen: two 30-second holds per side. No suitcase carries. Save the actual holds in the session note."
     },
     {
-      "note": "Two 30-second side planks per side: four separate holds, left/right/left/right. No suitcase carries performed."
+      "advance": "11m"
     },
     {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Log 30 s"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Log 30 s"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Log 30 s"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "text": "Log 30 s"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "checkpoint": "thursday-all-ten-entries-logged"
+      "checkpoint": "thursday-six-weighted-sets-and-side-planks-in-note"
     },
     {
       "tap": {
@@ -937,7 +854,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Deadlift harder than warmups. Calves: 40 per hand. Side planks: 30s L/R twice. Short day is enough."
+        "value": "DL265x5 hard. Calves40 per hand. Side planks30s L/R twice, recorded here: no plank match in carry swap."
       }
     },
     {
@@ -964,7 +881,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day C"
+        "text": "4-day upper/lower \u00b7 Day C"
       }
     },
     {
@@ -1041,7 +958,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day C"
+        "text": "4-day upper/lower \u00b7 Day C"
       }
     },
     {
@@ -1054,7 +971,7 @@
     },
     {
       "expect": {
-        "text": "145 lb × 8"
+        "text": "145 lb \u00d7 8"
       }
     },
     {
@@ -1065,7 +982,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1073,7 +990,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1081,7 +998,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1097,6 +1014,337 @@
     },
     {
       "checkpoint": "saturday-remaining-exercises-to-configure"
+    },
+    {
+      "note": "Saturday remaining work: barbell press85x5x3, DB rows50x10x3 each arm, curls25x10x2. Jog20min including4min walking."
+    },
+    {
+      "tap": {
+        "desc": "More options for Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "checkpoint": "saturday-only-four-intended-lifts"
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "85"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "saturday-press-replacement-options"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "press"
+      }
+    },
+    {
+      "checkpoint": "saturday-search-barbell-press"
+    },
+    {
+      "tap": {
+        "text": "Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "saturday-regular-barbell-press-configured"
+    },
+    {
+      "tap": {
+        "text": "Incline DB Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "saturday-final-exercise-targets"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "saturday-row-selected-after-bench"
+    },
+    {
+      "expect": {
+        "text": "50 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "saturday-rows-three-tens"
+    },
+    {
+      "expect": {
+        "text": "85 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 85 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 85 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 85 lb \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "saturday-press-three-fives"
+    },
+    {
+      "expect": {
+        "text": "25 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "checkpoint": "saturday-all-lifting-plus-twenty-minute-jog"
+    },
+    {
+      "tap": {
+        "text": "Finish day C"
+      }
+    },
+    {
+      "checkpoint": "saturday-first-upper-b-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Jog20min:16 jogging,4 walking. Started too fast; slower next time. DB weights per hand; rows each arm."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "saturday-jog-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "saturday-finished-next-day"
+    },
+    {
+      "advance": "46h59m"
+    },
+    {
+      "checkpoint": "monday-november16-week-two"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day D"
+      }
+    },
+    {
+      "checkpoint": "second-lower-a-offered-targets-and-last-results"
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "checkpoint": "second-lower-a-squat-initial-target"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "second-lower-a-all-set-slots-and-previous-results"
     }
   ]
 }

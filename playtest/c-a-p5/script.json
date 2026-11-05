@@ -84,7 +84,7 @@
     },
     {
       "tap": {
-        "text": "Intervals 5 \u00d7 2:00"
+        "text": "Intervals 5 × 2:00"
       }
     },
     {
@@ -106,7 +106,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -548,7 +548,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -556,7 +556,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -566,41 +566,10 @@
       "checkpoint": "two-step-up-sets-logged"
     },
     {
-      "tap": {
-        "desc": "Day B lifts, 2 of 25 sets"
-      }
+      "note": "Single-Leg RDL is already selected automatically after both step-up sets. Avoid selecting the duplicate heading behind the day list."
     },
     {
-      "scrollTo": {
-        "text": "Single-Leg RDL"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-Leg RDL"
-      }
-    },
-    {
-      "checkpoint": "friday-single-leg-rdl-before-actual-sets"
-    },
-    {
-      "tap": {
-        "text": "Log 20 lb \u00d7 8"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "text": "Log 20 lb \u00d7 8"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "friday-four-actual-sets-logged"
+      "checkpoint": "single-leg-rdl-auto-selected-before-logging"
     },
     {
       "tap": {
@@ -621,11 +590,8 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "One 20 lb dumbbell in the opposite hand. Touched the rack a couple of times for balance."
+        "value": "Nov13: one 20 lb dumbbell opposite hand; touched rack for balance. Seated calf raises 45 lb x 12 x 3 also done, not entered as sets here. Keep hamstring curls at 40 lb and target 10 next time."
       }
-    },
-    {
-      "checkpoint": "friday-single-leg-balance-note-draft"
     },
     {
       "tap": {
@@ -633,7 +599,26 @@
       }
     },
     {
-      "checkpoint": "friday-balance-note-saved"
+      "recreate": true
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "four-actual-friday-sets"
     },
     {
       "tap": {
@@ -651,51 +636,8 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
       "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Knee flexion"
-      }
-    },
-    {
-      "checkpoint": "knee-flexion-catalog-for-seated-hamstring-curl"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Seated"
-      }
-    },
-    {
-      "checkpoint": "seated-hamstring-curl-search-results"
-    },
-    {
-      "tap": {
-        "textContains": "Seated ",
-        "index": 0
-      }
-    },
-    {
-      "checkpoint": "seated-hamstring-curl-added-to-friday"
-    },
-    {
-      "scrollTo": {
-        "textContains": "Seated ",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Seated ",
-        "index": 0
+        "text": "Seated Leg Curl"
       }
     },
     {
@@ -717,7 +659,48 @@
       }
     },
     {
-      "checkpoint": "curl-prescription-three-by-ten-at-forty"
+      "checkpoint": "existing-curl-corrected-from-ninety-to-forty"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15"
+      }
+    },
+    {
+      "checkpoint": "pallof-prescription-before-each-side"
+    },
+    {
+      "tap": {
+        "desc": "Each side"
+      }
     },
     {
       "tap": {
@@ -729,27 +712,20 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 4 of 28 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Seated ",
-        "index": 0
+        "desc": "Day B lifts, 4 of 24 sets"
       }
     },
     {
       "tap": {
-        "textContains": "Seated ",
-        "index": 0
+        "text": "Seated Leg Curl"
       }
     },
     {
-      "checkpoint": "first-curl-target-forty-by-ten"
+      "checkpoint": "friday-first-curl-actual-target"
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -757,7 +733,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -780,22 +756,183 @@
       }
     },
     {
-      "checkpoint": "curl-last-set-actual-eight-of-ten"
+      "checkpoint": "friday-curl-miss-eight-of-ten"
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 8"
+        "text": "Log 40 lb × 8"
       }
     },
     {
       "advance": "90s"
     },
     {
-      "checkpoint": "friday-curl-ten-ten-eight-saved"
+      "checkpoint": "friday-curl-three-actual-sets"
     },
     {
       "tap": {
-        "desc": "Day B lifts, 7 of 28 sets"
+        "desc": "Day B lifts, 7 of 24 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "checkpoint": "pallof-before-first-set"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "17m30s"
+    },
+    {
+      "checkpoint": "friday-thirty-six-minutes-partial-app-entry"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "friday-finish-keeps-only-actual-sets"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "friday-saved-review"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "37h54m"
+    },
+    {
+      "checkpoint": "sunday-nov15-long-run-outside-app"
+    },
+    {
+      "note": "Nov15 diary: 11.00 km in 1:09:20, effort4, crossing stop included. Running retained outside app after confirmed standalone Finish obstacle; not an app-saved run."
+    },
+    {
+      "advance": "34h"
+    },
+    {
+      "checkpoint": "monday-nov16-postponed-no-late-lift"
+    },
+    {
+      "note": "Nov16 19:00: work late, not eaten. Move A to Tuesday evening; do not start workout tonight."
+    },
+    {
+      "advance": "12h"
+    },
+    {
+      "checkpoint": "tuesday-nov17-morning-run-separate"
+    },
+    {
+      "note": "Nov17 morning diary: 7.00 km 43:05 effort3, cold first ten minutes. External record, no fabricated in-app run."
+    },
+    {
+      "advance": "11h30m"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "second-strength-a-preview-after-squat-miss-and-weight-drop"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "second-a-first-squat-offer"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "second-a-actual-last-time-and-goal"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov17-squats-three-clean-sets-at-thirty"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -810,31 +947,38 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "DB Romanian Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "nov17-editor-rdl-needs-nine-reps-next"
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "text": "Save"
       }
     },
     {
-      "swipe": {
-        "text": "Single leg",
-        "direction": "up"
-      }
+      "back": true
     },
     {
-      "swipe": {
-        "text": "Hinge",
-        "direction": "up"
-      }
+      "checkpoint": "nov17-rdl-new-nine-rep-target"
     },
     {
-      "checkpoint": "friday-movement-groups-for-calf-and-pallof"
-    },
-    {
-      "note": "Nov13 workout remains OPEN after step-ups, single-leg RDL and curl actual40x10,10,8 if these steps succeed. Need calf45x12x3 and Pallof15x10x2, remove generated exercises from normal B, finish36min total. Curl machine search is an unverified UI branch: inspect catalog/results if selector fails. No calf or Pallof logged by this script; do not imply complete diary entry."
+      "note": "Nov17 A remains open. RDL target changed to30x9 if preceding actions succeed; next log all3 sets, lunge15x8x2, calves20x12x3 (not yet added), paired planks30s x2, finish40min total. Inspect automatic next hero before duplicate-name selectors. Friday calf actuals were noted, not logged as sets; never claim complete Friday app entry."
     }
   ]
 }

@@ -1,17 +1,17 @@
 package cloud.trotter.log.strength.ui.plan
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.MoreVert
-import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +33,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanSummary
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.setup.SectionHeader
 import java.time.Instant
 import java.time.ZoneId
@@ -57,12 +60,32 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = actions.onShowNewPlan) {
-                Text(stringResource(R.string.plans_new))
+            if (state.plans.isNotEmpty()) {
+                ExtendedFloatingActionButton(onClick = actions.onShowNewPlan) {
+                    Text(stringResource(R.string.plans_new))
+                }
             }
         },
     ) { padding ->
-        LazyColumn(contentPadding = padding) {
+        if (state.plans.isEmpty()) {
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                state.you?.let { you ->
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.you_title)) },
+                        supportingContent = { Text(stringResource(R.string.plans_you_summary, you.bodyweightDisplay, you.age, you.level)) },
+                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = actions.onOpenYou),
+                    )
+                    HorizontalDivider()
+                }
+                EmptyState(
+                    title = stringResource(R.string.screen_no_plans_title),
+                    body = stringResource(R.string.screen_no_plans_body),
+                    action = ScreenStateAction(stringResource(R.string.screen_new_plan), actions.onShowNewPlan),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else LazyColumn(contentPadding = padding) {
             state.you?.let { you ->
                 item(key = "you") {
                     ListItem(

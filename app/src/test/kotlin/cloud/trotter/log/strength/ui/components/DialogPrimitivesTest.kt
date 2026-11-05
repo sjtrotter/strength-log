@@ -48,14 +48,14 @@ class DialogPrimitivesTest {
     }
 
     @Test
-    fun authoredStateActionKeepsItsButtonContractAfterTheOutlinedButtonRebuild() {
+    fun emptyStateActionKeepsItsButtonContract() {
         var clicks = 0
         composeTestRule.setContent {
             AppTheme { NoProgramState(onSetUpProgram = { clicks++ }) }
         }
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
 
-        val node = composeTestRule.onNodeWithText("Set up a program")
+        val node = composeTestRule.onNodeWithText("Set up a plan")
         node.performClick()
         assertEquals(1, clicks)
 

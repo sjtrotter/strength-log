@@ -281,9 +281,11 @@ class SessionLifecycleScreenTest {
 
     @Test
     fun finishingReplacesTheWorkoutAndSwallowsBack() {
+        composeTestRule.mainClock.autoAdvance = false
         var backs = 0
         setDayContent(dayState(done = 3), finish = attempt(), onBackToWorkout = { backs++ })
-        composeTestRule.onNodeWithContentDescription("Finishing workout").assertExists()
+        composeTestRule.mainClock.advanceTimeBy(300)
+        composeTestRule.onNodeWithText("Saving your workout…").assertIsDisplayed()
         composeTestRule.onNodeWithText("Finish", useUnmergedTree = true).assertDoesNotExist()
         composeTestRule.onNodeWithContentDescription("Day A lifts, 3 of 3 sets").assertDoesNotExist()
         pressBack()

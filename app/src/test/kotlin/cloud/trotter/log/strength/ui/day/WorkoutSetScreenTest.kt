@@ -953,7 +953,7 @@ class WorkoutSetScreenTest {
         var editing = false
         rule.setContent { AppTheme { WorkoutSetHost(workoutSetEmptyFixture(),
             dayEditActions = workoutEditActions().copy(onEditorOpen = { editing = it })) } }
-        rule.onNodeWithText("No lifts in day A yet.").assertIsDisplayed()
+        rule.onNodeWithText("No lifts in day A yet").assertIsDisplayed()
         rule.onNodeWithText("Edit day").performClick()
         rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
         rule.runOnIdle { assertTrue(editing) }

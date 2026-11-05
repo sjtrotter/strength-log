@@ -93,6 +93,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertEquals(1, vm.uiState.value.resume?.dayIndex)
         assertTrue(vm.uiState.value.hasProgram)
         assertTrue(vm.uiState.value.nothingOnToday)
+        assertTrue(vm.uiState.value.plansPaused)
         assertTrue(vm.uiState.value.upNext.isEmpty())
     }
 
@@ -121,10 +122,12 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertFalse(vm.uiState.value.hasProgram)
         assertFalse(vm.uiState.value.nothingOnToday)
+        assertFalse(vm.uiState.value.plansPaused)
         insertProgram()
         repo.plans.pause(repo.plans.selectedPlanIdFlow.first()!!)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.nothingOnToday)
+        assertTrue(vm.uiState.value.plansPaused)
         assertTrue(vm.uiState.value.upNext.isEmpty())
     }
 
@@ -137,6 +140,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         val vm = today()
         advanceUntilIdle()
         assertEquals(other, vm.uiState.value.upNext.single().planId)
+        assertFalse(vm.uiState.value.plansPaused)
         assertEquals(DaySelection(other, "A"), vm.uiState.value.upNext.first().selection)
         vm.workoutStart.start(vm.uiState.value.upNext.first().selection)
         advanceUntilIdle()

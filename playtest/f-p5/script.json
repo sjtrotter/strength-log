@@ -302,6 +302,83 @@
    "back": true
   },
   {
+   "note": "Edit opened the workout screen with an Edit day sheet on top. Strange place for an editor but the sheet has Add exercise and Add cardio. Poking at it."
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
+   }
+  },
+  {
+   "checkpoint": "exercise-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "DB Bench Press"
+   }
+  },
+  {
+   "checkpoint": "exercise-row-tapped"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "edit-day-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-exercise"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add cardio"
+   }
+  },
+  {
+   "checkpoint": "add-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
    "tap": {
     "text": "New plan"
    }
@@ -332,27 +409,7 @@
    }
   },
   {
-   "tap": {
-    "desc": "Settings"
-   }
-  },
-  {
-   "swipe": {
-    "text": "Rest timer on phone",
-    "direction": "up"
-   }
-  },
-  {
-   "swipe": {
-    "text": "Rest timer on phone",
-    "direction": "up"
-   }
-  },
-  {
-   "checkpoint": "settings-swiped"
-  },
-  {
-   "back": true
+   "checkpoint": "today-after-poking"
   }
  ]
 }

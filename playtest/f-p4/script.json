@@ -192,39 +192,6 @@
   },
   {
    "tap": {
-    "textContains": "Ramp to 190 lb"
-   }
-  },
-  {
-   "checkpoint": "squat-row-tap"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Edit cardio"
-   }
-  },
-  {
-   "checkpoint": "edit-cardio"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "checkpoint": "add-exercise"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "desc": "More options for Barbell Back Squat"
    }
   },
@@ -234,19 +201,61 @@
    }
   },
   {
-   "checkpoint": "lift-options"
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "checkpoint": "lift-options-straight"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "prescription"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-presc-save"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-lift-options-back"
+   "checkpoint": "after-back"
   },
   {
-   "back": true
+   "tap": {
+    "text": "Edit cardio"
+   }
   },
   {
-   "checkpoint": "after-sheet-closed"
+   "tap": {
+    "text": "Set 1 \u00b7 Work"
+   }
+  },
+  {
+   "checkpoint": "cardio-set-edit"
   }
  ]
 }

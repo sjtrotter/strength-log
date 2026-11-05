@@ -763,6 +763,12 @@
     },
     {
       "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
         "text": "Reps",
         "value": "10"
       }
@@ -782,9 +788,10 @@
       "checkpoint": "leg-press-starting-prescription-saved"
     },
     {
-      "tap": {
-        "desc": "Close sheet"
-      }
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "checkpoint": "machine-workout-ready-to-train"
@@ -813,6 +820,38 @@
     },
     {
       "tap": {
+        "text": "Undo 60 \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "undo-first-set-to-check-correction"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "first-set-restored-after-correction-check"
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "rest-extended-to-two-minutes"
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },
@@ -835,7 +874,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 2"
       }
     },
     {
@@ -887,7 +926,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 1"
       }
     },
     {
@@ -921,11 +960,38 @@
       "checkpoint": "first-chest-attempt-six-reps-at-thirty"
     },
     {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "chest-note-entry-looking-for-seat-four"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "back-from-note-to-workout"
+    },
+    {
       "advance": "90s"
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 2"
       }
     },
     {
@@ -961,7 +1027,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 3"
       }
     },
     {
@@ -1033,6 +1099,17 @@
       "tap": {
         "text": "Log 20 lb \u00d7 10"
       }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "review-first-curl-actual-set-before-last-set"
+    },
+    {
+      "back": true
     },
     {
       "advance": "90s"

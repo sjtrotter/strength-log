@@ -1,0 +1,86 @@
+{
+ "seat": "c-f-p4",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-11",
+  "time": "18:27",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "today-restored"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-with-data"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "swipe": {
+    "text": "Trends and calendar",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "settings-scrolled"
+  },
+  {
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "today-again"
+  },
+  {
+   "tap": {
+    "text": "3-day full body · Day B"
+   }
+  },
+  {
+   "checkpoint": "day-b-tapped"
+  }
+ ]
+}

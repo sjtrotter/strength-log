@@ -636,6 +636,9 @@
    }
   },
   {
+   "advance": "3m"
+  },
+  {
    "tap": {
     "desc": "Edit set 3"
    }
@@ -661,6 +664,9 @@
    "tap": {
     "tag": "workout-action-filled"
    }
+  },
+  {
+   "advance": "3m"
   },
   {
    "tap": {
@@ -690,6 +696,9 @@
    }
   },
   {
+   "advance": "3m"
+  },
+  {
    "checkpoint": "squat-4x5-logged"
   },
   {
@@ -698,7 +707,12 @@
    }
   },
   {
-   "checkpoint": "all-sets-after-4"
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-5"
   },
   {
    "tap": {
@@ -706,7 +720,25 @@
    }
   },
   {
-   "checkpoint": "after-skip-5"
+   "checkpoint": "after-skip-6"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   }
+  },
+  {
+   "checkpoint": "swap-sheet"
   }
  ]
 }

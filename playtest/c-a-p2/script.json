@@ -2626,7 +2626,7 @@
       "checkpoint": "second-saturday-temporary-db-press-before-changing-set-values"
     },
     {
-      "back": true
+      "checkpoint": "temporary-swap-already-closed-sheet-stay-in-workout"
     },
     {
       "tap": {
@@ -2941,6 +2941,423 @@
     },
     {
       "checkpoint": "third-lower-a-set-by-set-previous-miss-and-offered-targets"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "third-monday-editor-after-last-weeks-miss"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "220"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "0"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "third-monday-repeat220-and-accessory-progression"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "220 lb × 5"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Back Squat, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Back Squat, set 3 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "checkpoint": "third-monday-squat-repeat220-success"
+    },
+    {
+      "expect": {
+        "text": "135 lb × 10"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Romanian Deadlift, set 2 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Romanian Deadlift, set 3 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "25 lb × 10"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Reverse Lunge, set 2 of 2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "40 s"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 s"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Plank / Side Plank, set 2 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 s"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Plank / Side Plank, set 3 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 s"
+      }
+    },
+    {
+      "advance": "13m"
+    },
+    {
+      "tap": {
+        "text": "Finish day D"
+      }
+    },
+    {
+      "checkpoint": "third-monday-recap220-five-five-five-after-last-weeks-four"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Squat220:5,5,5; lighter than last week. Next225; RDL140x8 after135x10x3. Lunges25 per hand,10 each leg. Planks40s x3."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "third-monday-next-week-reminder-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "nine-sessions-history-after-third-monday"
+    },
+    {
+      "tap": {
+        "text": "Nov 16, 2026"
+      }
+    },
+    {
+      "checkpoint": "reopen-last-monday-missed-rep-and-bad-sleep-note"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "third-week-trends-with-nine-sessions"
+    },
+    {
+      "swipe": {
+        "text": "Weekly volume",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "third-week-trends-after-scroll-for-lift-results-and-calendar"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-looking-for-backup-and-export"
+    },
+    {
+      "scrollTo": {
+        "text": "Reset to defaults"
+      }
+    },
+    {
+      "checkpoint": "settings-bottom-for-backup-and-export"
+    },
+    {
+      "swipe": {
+        "text": "Reset to defaults",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-after-further-scroll"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "You"
+      }
+    },
+    {
+      "checkpoint": "profile-looking-for-backup-and-export"
     }
   ]
 }

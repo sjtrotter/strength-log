@@ -46,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -77,6 +78,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -98,6 +100,7 @@ import kotlinx.coroutines.delay
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
 private const val HERO_MIN_SP = 48
+private const val ACTION_MIN_SP = 14
 
 @Composable
 fun WorkoutSetScreen(
@@ -798,7 +801,16 @@ private fun WorkoutAction(
         val modifier = Modifier.weight(1f).heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
         val content: @Composable () -> Unit = {
             Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
-                Text(it, style = MaterialTheme.typography.titleLarge)
+                // The action row's height is bounded by the non-scrolling page, so a long label at a
+                // large font scale wraps and then shrinks to fit rather than clipping or ellipsizing.
+                BasicText(
+                    it,
+                    style = MaterialTheme.typography.titleLarge.copy(color = LocalContentColor.current, textAlign = TextAlign.Center),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = ACTION_MIN_SP.sp,
+                        maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    ),
+                )
             }
         }
         if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }

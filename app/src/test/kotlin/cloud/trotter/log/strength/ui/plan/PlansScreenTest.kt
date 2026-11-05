@@ -1,14 +1,16 @@
 package cloud.trotter.log.strength.ui.plan
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.PlanSummary
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +28,19 @@ class PlansScreenTest {
         onRename = {}, onRenameDraft = {}, onSaveRename = {}, onDismissRename = {},
         onDuplicate = {}, onArchive = {}, onRestore = {},
     )
+
+    @Test
+    fun emptyPlansHaveOneNewPlanActionUsingTheExistingHandler() {
+        var opened = 0
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(), actions().copy(onShowNewPlan = { opened++ }))
+        } }
+        composeTestRule.onNodeWithText("No plans yet").assertExists()
+        composeTestRule.onNodeWithText("A plan holds your days and their lifts.").assertExists()
+        composeTestRule.onAllNodesWithText("New plan").assertCountEquals(1)
+        composeTestRule.onNodeWithText("New plan").performClick()
+        assertEquals(1, opened)
+    }
 
     @Test
     fun youRowShowsTheLifterAndOpensYou() {

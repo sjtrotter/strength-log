@@ -253,7 +253,7 @@ class OverviewNavigationTest {
 
     @Test fun todayStartCreatesRunThenNavigatesToDay() {
         render()
-        rule.onNodeWithText("Start").performClick()
+        rule.onNodeWithText("Start day", substring = true).performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.uiState.value.runOpen } }
         rule.runOnIdle { assertEquals(Routes.DAY_IN_PLAN, nav.currentDestination?.route) }
         assertEquals(preferred, runBlocking { repo.openRunFlow.first()!!.planId })
@@ -325,7 +325,7 @@ class OverviewNavigationTest {
     @Test fun pausedPreferredPlanStartStartsTheFirstPlanOnToday() {
         runBlocking { repo.plans.pause(preferred) }
         render(expectedRow = "Other · Day A")
-        rule.onNodeWithText("Start").performClick()
+        rule.onNodeWithText("Start day", substring = true).performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.uiState.value.runOpen } }
         assertEquals(other, runBlocking { repo.openRunFlow.first()!!.planId })
         assertEquals(preferred, runBlocking { repo.plans.selectedPlanIdFlow.first() })
@@ -333,7 +333,7 @@ class OverviewNavigationTest {
 
     @Test fun todayStartReceiptReturnsToToday() {
         render()
-        rule.onNodeWithText("Start").performClick()
+        rule.onNodeWithText("Start day", substring = true).performClick()
         finishAndReturnToToday()
     }
 

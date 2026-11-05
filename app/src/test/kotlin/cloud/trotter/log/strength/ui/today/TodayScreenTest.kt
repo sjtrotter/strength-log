@@ -2,6 +2,10 @@ package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,57 +30,85 @@ class TodayScreenTest {
     private val second = todaySecondFixture()
     private fun actions() = TodayActions(onStart = {}, onOpenSettings = {}, onSetUpProgram = {})
 
-    @Test fun nothingOnTodayOpensPlans() {
+    @Test fun doneForTodayShowsItsReasonFactAndPlansAction() {
         var opened = false
         rule.setContent { AppTheme {
-            TodayScreen(TodayUiState(nothingOnToday = true), actions().copy(onOpenPlans = { opened = true }))
+            TodayScreen(TodayUiState(nothingOnToday = true, fact = "Oct 28"),
+                actions().copy(onOpenPlans = { opened = true }))
         } }
-        rule.onNodeWithText("Nothing on Today").assertExists()
-        rule.onNodeWithText("Plans").performClick()
+        rule.onNodeWithText("Done for today").assertIsDisplayed()
+        rule.onNodeWithText("Your next workout shows here tomorrow.").assertIsDisplayed()
+        rule.onNodeWithText("Last trained Oct 28").assertIsDisplayed()
+        rule.onNodeWithText("Your plans are paused").assertDoesNotExist()
+        rule.onNodeWithText("Open plans").performClick()
         assertTrue(opened)
     }
 
-    @Test fun upNextRowsOpenPreviewAndOnlyDisplayRowHasStart() {
+    @Test fun pausedPlansShowTheirReasonAndOpenPlans() {
+        var opened = false
+        rule.setContent { AppTheme {
+            TodayScreen(TodayUiState(nothingOnToday = true, plansPaused = true),
+                actions().copy(onOpenPlans = { opened = true }))
+        } }
+        rule.onNodeWithText("Your plans are paused").assertIsDisplayed()
+        rule.onNodeWithText("Resume one from Plans.").assertIsDisplayed()
+        rule.onNodeWithText("Done for today").assertDoesNotExist()
+        rule.onNodeWithText("Open plans").performClick()
+        assertTrue(opened)
+    }
+
+    @Test fun readyStateHasOneStartDayAOutsideTheListAndRowsOpenPreview() {
+        val dayA = first.copy(dayId = "A", dayIndex = 0)
+        val dayB = second.copy(dayId = "B", dayIndex = 1)
         val previews = mutableListOf<DaySelection>()
         val starts = mutableListOf<DaySelection>()
         rule.setContent { AppTheme { TodayScreen(
-            TodayUiState(hasProgram = true, upNext = listOf(first, second)),
+            TodayUiState(hasProgram = true, upNext = listOf(dayA, dayB)),
             actions().copy(onOpenPreview = { previews += it }, onStart = { starts += it }),
         ) } }
-        val firstRow = rule.onNodeWithText("Strength · Day B").fetchSemanticsNode().boundsInRoot
-        val secondRow = rule.onNodeWithText("Prep · Day A").fetchSemanticsNode().boundsInRoot
+        val firstRow = rule.onNodeWithText("Strength · Day A").fetchSemanticsNode().boundsInRoot
+        val secondRow = rule.onNodeWithText("Prep · Day B").fetchSemanticsNode().boundsInRoot
         assertTrue(firstRow.top < secondRow.top)
-        rule.onAllNodes(androidx.compose.ui.test.hasText("Start")).assertCountEquals(1)
-        rule.onNodeWithText("Prep · Day A").performClick()
-        rule.onNodeWithText("Start").performClick()
-        assertEquals(listOf(second.selection), previews)
-        assertEquals(listOf(first.selection), starts)
+        rule.onAllNodes(hasText("Start day A")).assertCountEquals(1)
+        rule.onNode(hasText("Start day A") and hasAnyAncestor(hasScrollAction())).assertDoesNotExist()
+        rule.onNodeWithText("Start").assertDoesNotExist()
+        rule.onNodeWithText("Prep · Day B").performClick()
+        rule.onNodeWithText("Start day A").assertIsDisplayed().performClick()
+        assertEquals(listOf(dayB.selection), previews)
+        assertEquals(listOf(dayA.selection), starts)
     }
 
-    @Test fun resumeIsFirstAndOpensTheRunPlanAndDay() {
+    @Test fun resumeDayAUsesTheBottomSlotAndTheNextDayStillStarts() {
         var resumed: DaySelection? = null
+        var started: DaySelection? = null
+        val previews = mutableListOf<DaySelection>()
         rule.setContent { AppTheme { TodayScreen(
             TodayUiState(hasProgram = true, resume = second, upNext = listOf(first)),
-            actions().copy(onResume = { resumed = it }),
+            actions().copy(onResume = { resumed = it }, onStart = { started = it }, onOpenPreview = { previews += it }),
         ) } }
-        val resume = rule.onNodeWithText("Resume").fetchSemanticsNode().boundsInRoot
-        val upNext = rule.onNodeWithText("Up next").fetchSemanticsNode().boundsInRoot
-        assertTrue(resume.top < upNext.top)
-        rule.onNodeWithText("Resume").performClick()
+        rule.onAllNodes(hasText("Resume day A")).assertCountEquals(1)
+        rule.onNode(hasText("Resume day A") and hasAnyAncestor(hasScrollAction())).assertDoesNotExist()
+        rule.onNodeWithText("Prep · Day A").performClick()
+        rule.onNodeWithText("Strength · Day B").performClick()
+        rule.onNodeWithText("Resume day A").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Start").performClick()
+        assertEquals(listOf(second.selection, first.selection), previews)
         assertEquals(second.selection, resumed)
+        assertEquals(first.selection, started)
     }
 
-    @Test fun pausedOpenRunKeepsNothingOnTodayAndPlansBelowResumeWithoutUpNextHeader() {
+    @Test fun pausedOpenRunKeepsResumeAndPlansWithoutAnUpNextHeader() {
         var opened = false
+        var resumed: DaySelection? = null
         rule.setContent { AppTheme { TodayScreen(
-            TodayUiState(hasProgram = true, nothingOnToday = true, resume = second),
-            actions().copy(onOpenPlans = { opened = true }),
+            TodayUiState(hasProgram = true, nothingOnToday = true, plansPaused = true, resume = second),
+            actions().copy(onOpenPlans = { opened = true }, onResume = { resumed = it }),
         ) } }
-        val resume = rule.onNodeWithText("Resume").fetchSemanticsNode().boundsInRoot
-        val nothing = rule.onNodeWithText("Nothing on Today").fetchSemanticsNode().boundsInRoot
-        assertTrue(resume.top < nothing.top)
+        rule.onNodeWithText("Resume day A").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Your plans are paused").assertIsDisplayed()
         rule.onNodeWithText("Up next").assertDoesNotExist()
-        rule.onNodeWithText("Plans").performClick()
+        rule.onNodeWithText("Open plans").performClick()
+        assertEquals(second.selection, resumed)
         assertTrue(opened)
     }
 

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -31,6 +32,40 @@ class PlanScreenTest {
     @get:Rule val rule = createComposeRule()
 
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
+
+    @Test
+    fun emptyPlanOffersAddDayEvenWhenHasProgramIsFalse() {
+        var added = 0
+        rule.setContent { AppTheme {
+            PlanScreen(PlanUiState(planId = 7L, name = "Rehab"), actions().copy(onAddDay = { added++ }))
+        } }
+        rule.onNodeWithText("No days yet").assertExists()
+        rule.onNodeWithText("Add a day, then its lifts.").assertExists()
+        rule.onNodeWithText("Add day").performClick()
+        assertEquals(1, added)
+    }
+
+    @Test
+    fun missingPlanOffersSetup() {
+        var opened = 0
+        rule.setContent { AppTheme {
+            PlanScreen(PlanUiState(), actions().copy(onSetUpProgram = { opened++ }))
+        } }
+        rule.onNodeWithText("No plan yet").assertExists()
+        rule.onNodeWithText("Set up a plan").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun loadingRevealsTheSharedLabelAndKeepsSetupHidden() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { AppTheme { PlanScreen(PlanUiState(loading = true), actions()) } }
+        rule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
+        rule.onNodeWithText("Loading…").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(120)
+        rule.onNodeWithText("Loading…").assertExists()
+        rule.onNodeWithText("Set up a plan").assertDoesNotExist()
+    }
 
     @Test
     fun generatedGoalsAndEmphasisAreVisibleAndTheWholeRowSelects() {

@@ -13,6 +13,7 @@ data class TodayUiState(
     val otherDays: List<TodayDay> = emptyList(),
     val otherDaysExpanded: Boolean = false,
     val fact: String? = null,
+    val plansPaused: Boolean = false,
 )
 
 data class TodayDay(

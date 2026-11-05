@@ -368,6 +368,7 @@ class ReceiptScreenTest {
 
     @Test
     fun finishingDelaysSevenGhostsDisablesActionsAndSwallowsBack() {
+        rule.mainClock.autoAdvance = false
         var backs = 0
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
@@ -378,9 +379,10 @@ class ReceiptScreenTest {
         rule.onAllNodesWithTag("ghost", useUnmergedTree = true).assertCountEquals(0)
         rule.onNodeWithText("Done").assertIsNotEnabled()
         rule.onNodeWithContentDescription("Share").assertIsNotEnabled()
-        rule.onNodeWithContentDescription("Finishing workout")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        rule.onNodeWithText("Saving your workout…").assertDoesNotExist()
         rule.mainClock.advanceTimeBy(200)
+        rule.onNodeWithText("Saving your workout…").assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         rule.onAllNodesWithTag("ghost", useUnmergedTree = true).assertCountEquals(7)
         rule.onNodeWithText("Superset, 3 rounds").assertExists()
         pressBack()
@@ -388,15 +390,18 @@ class ReceiptScreenTest {
     }
 
     @Test
-    fun finishingLoadingStateKeepsOnlyTheHeader() {
+    fun finishingLoadingStateShowsSavingUnderTheHeader() {
+        rule.mainClock.autoAdvance = false
         rule.setContent { AppTheme { FinishingScreen(attemptFixture(), DayUiState(loading = true)) } }
         rule.mainClock.advanceTimeBy(300)
         rule.onNodeWithText("Squat focus").assertExists()
+        rule.onNodeWithText("Saving your workout…").assertIsDisplayed()
         rule.onAllNodesWithTag("ghost", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test
     fun finishingShowsSkippedLiftsAfterTheReveal() {
+        rule.mainClock.autoAdvance = false
         rule.setContent {
             AppTheme { FinishingScreen(attemptFixture(), DayUiState(skippedLifts = listOf(SkippedLift(1, 0, "Face Pull")))) }
         }

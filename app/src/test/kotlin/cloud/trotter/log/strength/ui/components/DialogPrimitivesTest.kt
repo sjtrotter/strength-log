@@ -48,7 +48,7 @@ class DialogPrimitivesTest {
     }
 
     @Test
-    fun authoredStateActionKeepsItsButtonContractAfterTheOutlinedButtonRebuild() {
+    fun emptyStateActionKeepsItsButtonContract() {
         var clicks = 0
         composeTestRule.setContent {
             AppTheme { NoProgramState(onSetUpProgram = { clicks++ }) }

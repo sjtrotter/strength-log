@@ -43,7 +43,7 @@ class AuditTodayShotsTest : UiAuditTest() {
 
     @Test fun shot05TodayAllPlansDone() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("today/05-today-all-plans-done") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(auditTodayFixture().copy(upNext = emptyList(), fact = "Nov 3"), TodayActions({}, {}, {})) } }
+        rule.auditShot("today/05-today-all-plans-done") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(auditTodayFixture().copy(upNext = emptyList(), nothingOnToday = true, fact = "Nov 3"), TodayActions({}, {}, {})) } }
     }
 
     @Test fun shot06TodayLong() {
@@ -69,12 +69,12 @@ class AuditTodayShotsTest : UiAuditTest() {
 
     @Test fun shot10TodayPaused() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("today/10-today-paused") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(TodayUiState(hasProgram = true, nothingOnToday = true), TodayActions({}, {}, {})) } }
+        rule.auditShot("today/10-today-paused") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(TodayUiState(hasProgram = true, nothingOnToday = true, plansPaused = true), TodayActions({}, {}, {})) } }
     }
 
     @Test fun shot11TodayPausedResume() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("today/11-today-paused-resume") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(TodayUiState(hasProgram = true, nothingOnToday = true, resume = todaySecondFixture()), TodayActions({}, {}, {})) } }
+        rule.auditShot("today/11-today-paused-resume") { AuditDestination(TopLevelDestination.TODAY) { TodayScreen(TodayUiState(hasProgram = true, nothingOnToday = true, plansPaused = true, resume = todaySecondFixture()), TodayActions({}, {}, {})) } }
     }
 
     @Test fun shot12TodayOtherDays() {

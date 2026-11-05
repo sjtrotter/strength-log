@@ -1,11 +1,19 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditUiState
@@ -34,17 +42,60 @@ import org.robolectric.annotation.Config
  * reveal delay is pinned too — it is the whole reason the loading treatment
  * doesn't flash on a fast open.
  *
- * [cloud.trotter.log.strength.ui.components.ProgramLoadingState]'s rule animates
- * forever, so every test that renders it turns the test clock's auto-advance
- * off first; left on, the rule's next frame is always pending and the test
- * would wait for an idle that never comes.
+ * Loading tests control the main clock to pin the reveal delay and the
+ * indeterminate Material indicator's animation.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
-class AuthoredStatesTest {
+class ScreenStatesTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @Test
+    fun loadingDrawsNothingBeforeTheDelayThenShowsProgressAndAPoliteLabel() {
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent { AppTheme { LoadingState("Loading…") } }
+        composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
+        composeTestRule.onNodeWithText("Loading…").assertDoesNotExist()
+        val indicator = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)
+        composeTestRule.onNode(indicator).assertDoesNotExist()
+
+        composeTestRule.mainClock.advanceTimeBy(120)
+        composeTestRule.onNode(indicator).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Loading…").assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    fun journalWithAKnownDayNamesItsStartAction() {
+        var starts = 0
+        composeTestRule.setContent { AppTheme {
+            EmptyJournalState(true, { starts++ }, {}, dayId = "B")
+        } }
+        composeTestRule.onNodeWithText("No sessions yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Finished workouts show up here.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Start day B").performClick()
+        assertEquals(1, starts)
+    }
+
+    @Test
+    fun emptyWorkoutDayOffersItsExistingEditor() {
+        var edited = false
+        var opened = false
+        composeTestRule.setContent { AppTheme {
+            DayScreen(
+                DayUiState(hasProgram = true, viewDayId = "A"),
+                dayActions().copy(onOpenDaySheet = { opened = true }), DayEditUiState(),
+                dayEditActions().copy(onEditorOpen = { edited = it }),
+            )
+        } }
+        composeTestRule.onNodeWithText("No lifts in day A yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Edit day").performClick()
+        assertEquals(true, edited)
+        composeTestRule.onNodeWithContentDescription("Day A lifts, 0 of 0 sets").performClick()
+        assertEquals(true, opened)
+    }
 
     // --- program loading ----------------------------------------------------
 
@@ -54,11 +105,11 @@ class AuthoredStatesTest {
         setDayContent(DayUiState(loading = true))
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
-        composeTestRule.onNodeWithText("Preparing your plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Loading…").assertDoesNotExist()
         composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
-        composeTestRule.onNodeWithText("Preparing your plan").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Loading…").assertIsDisplayed()
         composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
     }
 
@@ -70,11 +121,11 @@ class AuthoredStatesTest {
         }
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
-        composeTestRule.onNodeWithText("Preparing your plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Loading…").assertDoesNotExist()
         composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
-        composeTestRule.onNodeWithText("Preparing your plan").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Loading…").assertIsDisplayed()
         composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
     }
 

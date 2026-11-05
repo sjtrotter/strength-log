@@ -648,6 +648,56 @@
   },
   {
    "checkpoint": "finish-tapped"
+  },
+  {
+   "tap": {
+    "text": "Keep going"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "bike-running"
+  },
+  {
+   "advance": "15m"
+  },
+  {
+   "checkpoint": "bike-after-15m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bike-after-action"
+  },
+  {
+   "tap": {
+    "text": "Finish"
+   }
+  },
+  {
+   "checkpoint": "finish-2"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-summary-back"
   }
  ]
 }

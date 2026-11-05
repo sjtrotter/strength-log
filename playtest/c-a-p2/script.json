@@ -145,7 +145,8 @@
     {
       "type": {
         "text": "Reps",
-        "value": "6"
+        "value": "6",
+        "editable": true
       }
     },
     {
@@ -155,6 +156,127 @@
     },
     {
       "checkpoint": "tuesday-pullups-target-six-actual-final-set-will-be-five"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "checkpoint": "tuesday-pullups-before-first-set"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "editable": true,
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "tuesday-last-pullup-set-five-not-six"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-pullups-six-six-five-logged"
+    },
+    {
+      "expect": {
+        "text": "10 lb \u00d7 12"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-pullups-raises-done-rows-remain"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "tuesday-cardio-editor-before-walk"
+    },
+    {
+      "tap": {
+        "text": "Road run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "tuesday-cardio-activity-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "tuesday-edit-day-return-from-cardio"
     },
     {
       "tap": {
@@ -196,6 +318,15 @@
     },
     {
       "checkpoint": "choose-barbell-row-before-logging-any-rows"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "row-replacements-search-results"
     }
   ]
 }

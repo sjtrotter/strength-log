@@ -138,7 +138,7 @@ class AuditPlanShotsTest : UiAuditTest() {
 
     @Test fun shot22PlanStrengthLight() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/22-plan-strength-light", theme = ThemePreference.LIGHT) { PlanScreen(planScreenFixture(4), PlanActions({}, {}, {})) }
+        rule.auditShot("plan/22-plan-strength-light", theme = ThemePreference.LIGHT) { PlanScreen(planScreenFixture(4).let { it.copy(name = "Four-day strength", days = it.days.map { day -> day.copy(liftCount = 4, setCount = 18) }) }, PlanActions({}, {}, {})) }
     }
 
     @Test fun shot23PlanGeneratedGoals() {

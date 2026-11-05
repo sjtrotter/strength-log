@@ -117,12 +117,12 @@ class AuditHistoryShotsTest : UiAuditTest() {
 
     @Test fun shot16HistoryRowEditing() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("history/16-history-row-editing") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(sessions = listOf(logSessionFixture(true).copy(editing = true))), logActions()) } }
+        rule.auditShot("history/16-history-row-editing") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(sessions = listOf(editableSession().copy(editing = true))), logActions()) } }
     }
 
     @Test fun shot17HistoryRowUndo() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("history/17-history-row-undo") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(sessions = listOf(logSessionFixture(true).copy(editing = true, undoPending = true))), logActions()) } }
+        rule.auditShot("history/17-history-row-undo") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(sessions = listOf(editableSession().copy(editing = true, undoPending = true))), logActions()) } }
     }
 
     @Test fun shot18HistoryVolume() {
@@ -155,7 +155,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
             rule.onNodeWithText("DELETE SESSION").performScrollTo().performClick()
             rule.mainClock.advanceTimeBy(300)
         }) { AuditDestination(TopLevelDestination.LOG) {
-            LogScreen(LogUiState(sessions = listOf(logSessionFixture(true).copy(editing = true))), logActions())
+            LogScreen(LogUiState(sessions = listOf(editableSession().copy(editing = true))), logActions())
         } }
     }
 
@@ -173,4 +173,10 @@ class AuditHistoryShotsTest : UiAuditTest() {
         onPublishPastWorkouts = {}, onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
         onStartSession = {}, onSetUpProgram = {})
 
+    /** The moved fixture carries display text only; editing reads the canonical fields. */
+    private fun editableSession() = logSessionFixture(true).let { session ->
+        session.copy(exerciseGroups = session.exerciseGroups?.map { group ->
+            group.copy(sets = group.sets.map { set -> set.copy(id = 1L, weightLb = 225.0, reps = 5, done = true) })
+        })
+    }
 }

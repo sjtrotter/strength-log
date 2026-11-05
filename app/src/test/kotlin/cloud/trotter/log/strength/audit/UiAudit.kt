@@ -41,8 +41,6 @@ fun ComposeContentTestRule.auditShot(
     beforeCapture: () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    // Loading indicators animate forever; the audit owns time explicitly.
-    mainClock.autoAdvance = false
     setContent {
         val base = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale)) {

@@ -417,6 +417,88 @@
     },
     {
       "note": "Inspect these actual screens before choosing an editor or logging any sets. I still intend to train Lower A on Monday: squat215, RDL135, reverse lunge25 per hand, plank30seconds. No diary training has been claimed yet."
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "day-editor-can-i-set-my-own-sets-and-weights"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-progression-schedule-and-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-find-custom-routine"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day D"
+      }
+    },
+    {
+      "checkpoint": "lower-squat-day-before-monday"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "lower-day-editor-for-monday-routine"
+    },
+    {
+      "note": "Monday is still unlogged. Use the editor controls shown here to enter squat215 3x5, RDL135 3x8, reverse lunges25 2x8 per leg, plank30s x3. If this editor cannot do that, inspect the New plan screen before choosing the nearest honest logging workaround."
     }
   ],
   "capture": "checkpoints"

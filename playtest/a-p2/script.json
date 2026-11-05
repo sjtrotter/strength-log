@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -935,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb \u00d7 8"
+        "text": "135 lb × 8"
       }
     },
     {
@@ -1096,6 +1096,128 @@
     },
     {
       "checkpoint": "monday-find-dumbbell-reverse-lunge"
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "checkpoint": "monday-reverse-lunge-swap-result"
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-reverse-lunge-two-sets-of-eight-with25s"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "note": "Monday: doing planks before lunges while the floor space is clear. Each lunge set is eight on each leg with a 25 in each hand. Remaining elapsed time includes equipment changes and breaks."
+    },
+    {
+      "advance": "881s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "checkpoint": "monday-three-thirty-second-planks-recorded"
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 13 of 15 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "expect": {
+        "text": "25 lb × 8"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "4s"
+    },
+    {
+      "checkpoint": "monday-all-diary-work-logged-at52minutes"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-recap-and-note-controls"
     }
   ],
   "capture": "checkpoints"

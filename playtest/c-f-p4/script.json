@@ -589,11 +589,11 @@
   },
   {
    "tap": {
-    "text": "Stop"
+    "text": "Reached 2000 m"
    }
   },
   {
-   "checkpoint": "bike-c-stopped"
+   "checkpoint": "bike-c-reached"
   },
   {
    "tap": {
@@ -859,6 +859,285 @@
   },
   {
    "checkpoint": "plank-after-1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "bike-a2-before"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "14m50s"
+  },
+  {
+   "checkpoint": "bike-a2-14m50"
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "bike-a2-stop-sheet"
+  },
+  {
+   "type": {
+    "text": "Distance (m)",
+    "value": "3470"
+   }
+  },
+  {
+   "checkpoint": "bike-a2-distance-typed"
+  },
+  {
+   "tap": {
+    "textContains": "Save"
+   }
+  },
+  {
+   "checkpoint": "bike-a2-logged"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   }
+  },
+  {
+   "checkpoint": "receipt-a2"
+  },
+  {
+   "scrollTo": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Squat 195, all there. Bench 65s again after the 9, got 10/10/10. Rower 15 min at 2:09.5, 3,470 m. Progress."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-a2"
+  },
+  {
+   "advance": "46h45m"
+  },
+  {
+   "checkpoint": "today-wed18"
+  },
+  {
+   "tap": {
+    "text": "3-day full body · Day B"
+   }
+  },
+  {
+   "checkpoint": "day-b-detail-2"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase weight"
+   }
+  },
+  {
+   "checkpoint": "bench-prescription-160"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-b-edit-2"
+  },
+  {
+   "tap": {
+    "desc": "More options for Pull-Up / Chin-Up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Move up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Move up"
+   }
+  },
+  {
+   "checkpoint": "after-move-up"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-b-edit-after-move"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-b2"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "bench-top-b2"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-bench-b2"
   }
  ]
 }

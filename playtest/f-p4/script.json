@@ -342,15 +342,57 @@
    }
   },
   {
-   "checkpoint": "cardio-duration-minus10"
-  },
-  {
    "tap": {
-    "desc": "Aim"
+    "desc": "Decrease duration"
    }
   },
   {
-   "checkpoint": "cardio-aim-on"
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "checkpoint": "cardio-duration-15"
   },
   {
    "tap": {
@@ -412,11 +454,151 @@
   },
   {
    "tap": {
-    "desc": "Edit set 1"
+    "tag": "workout-action-filled"
    }
   },
   {
-   "checkpoint": "edit-set-sheet"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "bench-set3-edited"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-bench"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-rdl"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-row"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-latraise"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "plank-screen"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 15 of 18 sets"
+   }
+  },
+  {
+   "checkpoint": "lifts-list"
   }
  ]
 }

@@ -1519,6 +1519,253 @@
     },
     {
       "checkpoint": "custom-paused-deadlift-form"
+    },
+    {
+      "note": "Tuesday Nov10: create my actual paused-deadlift variation. The per-hand toggle is correctly off for a barbell. Do not log conventional pulls as a substitute identity."
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Paused Deadlift - pause off floor"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "custom-paused-deadlift-after-save"
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-custom-swap-confirmed"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-four-work-sets-configured"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Pause just off floor. First set rushed; hold the pause on the remaining sets."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "note": "Log only the four actual work sets. The generated ramp rows are not performed records and remain unchecked. Checkboxes allow selecting work out of order."
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "swipe": {
+        "tag": "lift-set-6",
+        "direction": "up"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "checkpoint": "tuesday-four-paused-deadlift-sets-completed"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 23 sets"
+      }
+    },
+    {
+      "checkpoint": "tuesday-order-selection-for-row-and-bike"
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported Row"
+      }
+    },
+    {
+      "checkpoint": "tuesday-row-before-today-only-substitution"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "tuesday-row-swap-options"
     }
   ]
 }

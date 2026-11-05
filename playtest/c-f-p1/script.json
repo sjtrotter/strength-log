@@ -265,19 +265,393 @@
   },
   {
    "tap": {
-    "text": "Add exercise"
+    "desc": "More options for Hack Squat"
    }
   },
   {
-   "checkpoint": "add-exercise"
-  },
-  {
-   "scrollTo": {
-    "textContains": "url"
+   "tap": {
+    "text": "Remove"
    }
   },
   {
-   "checkpoint": "add-exercise-curl"
+   "tap": {
+    "desc": "More options for Standing Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Crunch"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "edit-day-c-trimmed"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "fri-deadlift"
+  },
+  {
+   "note": "it wants 50 on the bar for a deadlift. The plates would be floating. 95, one set like the plan."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "fri-dl-set1"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-dl-logged1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "note": "felt too easy, doing one more. Should not have."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "fri-dl-done"
+  },
+  {
+   "tap": {
+    "textContains": "Next:",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-dbbench"
+  },
+  {
+   "note": "50s? no. 30s."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "fri-row"
+  },
+  {
+   "note": "row at 60 on the stack"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "fri-cardio-before-edit"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 8 of 8 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "checkpoint": "edit-day-c-2"
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "cardio-editor"
+  },
+  {
+   "tap": {
+    "role": "DropdownList"
+   }
+  },
+  {
+   "checkpoint": "cardio-activity-options"
+  },
+  {
+   "tap": {
+    "textContains": "ike"
+   }
+  },
+  {
+   "checkpoint": "cardio-bike"
+  },
+  {
+   "tap": {
+    "textContains": "Work 25:00"
+   }
+  },
+  {
+   "checkpoint": "cardio-set-editor"
+  },
+  {
+   "type": {
+    "text": "Duration",
+    "value": "10:00"
+   }
+  },
+  {
+   "checkpoint": "cardio-duration-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "cardio-after-set-save"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "edit-day-after-cardio"
   }
  ]
 }

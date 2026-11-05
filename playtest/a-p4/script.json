@@ -599,41 +599,6 @@
       "back": true
     },
     {
-      "tap": {
-        "text": "Day B"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "checkpoint": "actual-wednesday-day-editor"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Day C"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "checkpoint": "actual-friday-day-editor"
-    },
-    {
-      "back": true
-    },
-    {
       "back": true
     },
     {
@@ -648,7 +613,83 @@
       }
     },
     {
-      "checkpoint": "name-monday-dialog"
+      "checkpoint": "monday-name-field"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "replace-dumbbell-bench-with-barbell-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "rdl-dumbbell-replacement-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "checkpoint": "remove-extra-exercise-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-save-scope-and-order-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Ramp to 235 lb, then 1 back-off"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-fields"
     }
   ]
 }

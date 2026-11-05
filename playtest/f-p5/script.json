@@ -1,23 +1,175 @@
 {
-  "seat": "f-p5",
-  "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
-  "steps": [
-    { "checkpoint": "first-open" },
-    { "note": "No account, good. But step 1 asks what I'm training for and the three answers are all lifting. Picking Strength-leaning, closest to 3x5." },
-    { "tap": { "text": "Strength-leaning" } },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-2" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-3" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-4" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-5" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-6" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-7" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wizard-8" }
-  ]
+ "seat": "f-p5",
+ "start": {
+  "date": "2026-11-09",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "first-open"
+  },
+  {
+   "note": "No account, good. But step 1 asks what I'm training for and the three answers are all lifting. Picking Strength-leaning, closest to 3x5."
+  },
+  {
+   "tap": {
+    "text": "Strength-leaning"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "note": "Step 2 asks how many days I can commit before anything about running. Two lifts."
+  },
+  {
+   "type": {
+    "text": "Days per week"
+   },
+   "value": "2",
+   "ime": "done"
+  },
+  {
+   "checkpoint": "days-2"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "split-for-2"
+  },
+  {
+   "tap": {
+    "text": "Full-body rotation"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "note": "Main lifts: every option is squat/bench/deadlift. None of these is my program. Taking Big 4 with trap bar because at least the trap bar is real."
+  },
+  {
+   "tap": {
+    "text": "Squat / Bench / Deadlift / Row (Big 4)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Outdoor run"
+   }
+  },
+  {
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Keep me 5k-ready"
+   }
+  },
+  {
+   "checkpoint": "cardio-5k-switch"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)"
+   },
+   "value": "150",
+   "ime": "done"
+  },
+  {
+   "type": {
+    "text": "Age"
+   },
+   "value": "29",
+   "ime": "done"
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "about-you"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Machine"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "checkpoint": "equipment"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "rotation-2day"
+  },
+  {
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
+   }
+  },
+  {
+   "checkpoint": "rotation-2day-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today-first"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-first"
+  }
+ ]
 }

@@ -658,6 +658,12 @@
    "note": "Goals aren't tappable. Squat 215, bench 180, deadlift 285, press 115. It guessed from my bodyweight. Two of four are wrong and I can't fix them here. Fine, I'll set each lift myself."
   },
   {
+   "scrollTo": {
+    "text": "5 lifts, 18 sets"
+   },
+   "timeoutMs": 30000
+  },
+  {
    "tap": {
     "text": "5 lifts, 18 sets"
    },

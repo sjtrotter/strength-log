@@ -293,7 +293,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -365,7 +365,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -382,7 +382,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -503,15 +503,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "60",
-        "ime": "done"
+        "value": "60"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5",
-        "ime": "done"
+        "value": "5"
       }
     },
     {
@@ -521,7 +519,7 @@
     },
     {
       "expect": {
-        "text": "Log 60 kg × 5"
+        "text": "Log 60 kg \u00d7 5"
       }
     },
     {
@@ -571,15 +569,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "190",
-        "ime": "done"
+        "value": "190"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "1",
-        "ime": "done"
+        "value": "1"
       }
     },
     {
@@ -589,6 +585,154 @@
     },
     {
       "checkpoint": "monday-top-single-edited-to-190-for-one"
+    },
+    {
+      "note": "The replay keyboard action was unsupported on these fields. Use text entry and Save set. Complete ordinary squat warmups at 100 x 5, 140 x 3, 170 x 1 before the diary single; these warmup choices were not specified in phase A."
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "140"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "squat-warmups-single-and-first-backoff-configured"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "monday-squat-single-and-first-backoff-logged"
+    },
+    {
+      "note": "Single was 190 x 1 at RPE 7; first backoff 165 x 5. Need three additional 165 x 5 backoffs, then bench. The side video shows depth is there. These script notes are not saved app notes; still need an in-app place for RPE and video reference."
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "adding-second-squat-backoff"
     }
   ]
 }

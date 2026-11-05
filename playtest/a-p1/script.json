@@ -70,6 +70,26 @@
     },
     {
       "checkpoint": "setup-question-five"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-six"
     }
   ]
 }

@@ -233,25 +233,67 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Rack"
-      },
-      "timeoutMs": 30000
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
     },
     {
-      "tap": {
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "role": "Checkbox",
+        "index": 6,
+        "direction": "up"
+      }
+    },
+    {
+      "expect": {
         "text": "Rack"
       }
     },
     {
-      "scrollTo": {
+      "tap": {
+        "role": "Checkbox",
+        "index": 7
+      }
+    },
+    {
+      "expect": {
         "text": "Pullup Bar"
-      },
-      "timeoutMs": 30000
+      }
     },
     {
       "tap": {
-        "text": "Pullup Bar"
+        "role": "Checkbox",
+        "index": 8
       }
     },
     {
@@ -266,16 +308,25 @@
       "checkpoint": "revised-plan-preview-top"
     },
     {
-      "scrollTo": {
+      "expect": {
+        "text": "Day A"
+      }
+    },
+    {
+      "expect": {
         "text": "Day D"
-      },
-      "timeoutMs": 30000
+      }
     },
     {
-      "checkpoint": "revised-plan-preview-bottom"
+      "note": "The preview describes a rotation, but I still need to inspect and edit actual workouts. The automatic scroll command has stalled twice; defer the lower preview until a working scrolling method is established. An offscreen Day D in the tree is not a visibly reviewed card."
     },
     {
-      "note": "I want my own Lower A / Upper A / Lower B / Upper B routine. Enter the app to find plan editing before logging any training."
+      "expect": {
+        "text": "Start"
+      }
+    },
+    {
+      "note": "I want my own Lower A / Upper A / Lower B / Upper B routine. Enter the app to find plan editing before logging training."
     },
     {
       "tap": {

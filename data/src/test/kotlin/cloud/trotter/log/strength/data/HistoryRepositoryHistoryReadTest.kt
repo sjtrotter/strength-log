@@ -14,6 +14,8 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -191,12 +193,12 @@ class HistoryRepositoryHistoryReadTest {
         repo.importSessionHistory(listOf(
             ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = encoded), emptyList()),
             ImportedSession(session(2_000L).copy(planId = 10L, plannedJson = encoded), listOf(
-                set("bb_back_squat", "Squat", SetKind.EXTRA, 75.0, 6, false).copy(setIndex = 1, plannedIndex = 1),
+                set("bb_back_squat", "Squat", SetKind.EXTRA, 75.0, 6, false).copy(setIndex = 1, plannedIndex = 1, trackPosition = 0),
                 set("bb_back_squat", "Squat", SetKind.WORK, 70.0, 4, true).copy(
-                    setIndex = 0, plannedIndex = 0, seconds = 30, startedAtMillis = 100L, completedAtMillis = 200L, kind = "FUTURE",
+                    setIndex = 0, plannedIndex = 0, trackPosition = 0, seconds = 30, startedAtMillis = 100L, completedAtMillis = 200L, kind = "FUTURE",
                 ),
-                set("bb_back_squat", "Squat", SetKind.EXTRA, 80.0, 2, true).copy(setIndex = 2),
-                set("ez_curl", "Curl", SetKind.WORK, 50.0, 10, true).copy(slot = Slot.SS, plannedIndex = 0),
+                set("bb_back_squat", "Squat", SetKind.EXTRA, 80.0, 2, true).copy(setIndex = 2, trackPosition = 0),
+                set("ez_curl", "Curl", SetKind.WORK, 50.0, 10, true).copy(slot = Slot.SS, plannedIndex = 0, trackPosition = 1),
             )),
             ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), emptyList()),
             ImportedSession(session(4_000L).copy(planId = 20L, plannedJson = encoded), emptyList()),
@@ -214,6 +216,29 @@ class HistoryRepositoryHistoryReadTest {
         // A tied completion uses the newer session id, even when that archive has no prescription.
         repo.importSessionHistory(listOf(ImportedSession(session(2_000L).copy(planId = 10L), emptyList())), emptyList())
         assertTrue(repo.slotSessions(10L, "A").isEmpty())
+    }
+
+    @Test
+    fun `slotSessions keeps the last duplicate track and its own actuals so a miss earns no offer`() = runTest {
+        val first = listOf(LoggedSet(100.0, 5, SetKind.WORK))
+        val second = listOf(LoggedSet(50.0, 5, SetKind.WORK))
+        val encoded = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = first.map(SetDto::of)),
+            PlannedTrackDto(1, "bb_back_squat", Slot.MAIN, sets = second.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 100.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+                set("bb_back_squat", "Squat", SetKind.WORK, 50.0, 4, true).copy(trackPosition = 1, plannedIndex = 0),
+            )),
+        ), emptyList())
+
+        val result = repo.slotSessions(10L, "A")
+
+        assertEquals(setOf("bb_back_squat" to Slot.MAIN), result.keys)
+        val track = result.getValue("bb_back_squat" to Slot.MAIN)
+        assertEquals(SlotSession(second, listOf(LoggedSet(50.0, 4, SetKind.WORK, done = true, plannedIndex = 0)), false), track)
+        assertNull(CarryForward.offer(track.planned, track.actual, WeightUnit.LB))
     }
 
     @Test

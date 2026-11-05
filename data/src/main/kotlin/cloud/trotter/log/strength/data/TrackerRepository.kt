@@ -1082,6 +1082,7 @@ class TrackerRepository(
                 if (rows.any { it.done }) return@withTransaction RunWriteResult.Unchanged
                 val equipment = catalog.snapshot().find(track.exerciseId)?.equipment.orEmpty()
                 val next = CarryForward.withWorkingWeight(rows, weightLb, unit, equipment)
+                    .mapIndexed { i, row -> row.copy(plannedIndex = i) }
                 runDao.updateTrack(track.copy(
                     setsJson = SetJson.encodeSets(next),
                     plannedJson = SetJson.encodeSets(CarryForward.cleared(next)),

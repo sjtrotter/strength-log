@@ -894,6 +894,56 @@ class TrackerRepositoryRunTest {
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 
+    @Test fun `setWorkingWeight after removing a row matches the new opening and earns the next offer`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        val runId = day(plan).nextRunId
+        assertEquals(RunStartResult.Started(runId), repo.startRun(plan, "A"))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot, Slot.MAIN) { SetEditor.removeSet(it, 0) },
+        )))
+        assertEquals(listOf(1, 2), repo.openRunFlow.first()!!.tracks.single().sets.map { it.plannedIndex })
+
+        assertEquals(RunWriteResult.InRun(runId, false), repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+
+        val track = repo.openRunFlow.first()!!.tracks.single()
+        assertEquals(listOf(0, 1), track.sets.map { it.plannedIndex })
+        assertEquals(List(2) { LoggedSet(55.0, 10, SetKind.WORK) }, track.planned)
+        assertEquals(track.planned, CarryForward.cleared(track.sets))
+        repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
+        repo.finishRun(runId)
+        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        assertEquals(listOf(0, 1), archived.actual.map { it.plannedIndex })
+        assertEquals(60.0, CarryForward.offer(archived.planned, archived.actual, WeightUnit.LB)!!, 0.0)
+    }
+
+    @Test fun `setWorkingWeight after adding an extra matches the new opening and earns the next offer`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        val runId = day(plan).nextRunId
+        assertEquals(RunStartResult.Started(runId), repo.startRun(plan, "A"))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot, Slot.MAIN) { SetEditor.addSet(it) },
+        )))
+        assertEquals(listOf(0, 1, 2, null), repo.openRunFlow.first()!!.tracks.single().sets.map { it.plannedIndex })
+
+        assertEquals(RunWriteResult.InRun(runId, false), repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+
+        val track = repo.openRunFlow.first()!!.tracks.single()
+        assertEquals(listOf(0, 1, 2, 3), track.sets.map { it.plannedIndex })
+        assertEquals(work().map { it.copy(weightLb = 55.0) } + LoggedSet(55.0, 10, SetKind.EXTRA), track.planned)
+        assertEquals(track.planned, CarryForward.cleared(track.sets))
+        repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
+        repo.finishRun(runId)
+        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        assertEquals(listOf(0, 1, 2, 3), archived.actual.map { it.plannedIndex })
+        assertEquals(60.0, CarryForward.offer(archived.planned, archived.actual, WeightUnit.LB)!!, 0.0)
+    }
+
     @Test fun `setWorkingWeight rejects stale runs mismatched days and missing or retired tracks`() = runTest {
         val plan = authored()
         val slot = slot(plan)

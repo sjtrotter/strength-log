@@ -238,15 +238,16 @@ class HistoryRepository(
         return sessionDao.lastPerformedRows(exerciseIds).toLastPerformedByExercise()
     }
 
-    /** Archived tracks of the newest session for this plan and day, keyed by exercise and slot. */
+    /** Archived tracks of the newest session for this plan and day, keyed by exercise and slot.
+     *  For duplicate keys, the last archived track wins. */
     suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
         val plannedJson = session.plannedJson ?: return@withTransaction emptyMap()
         val sets = sessionDao.setsForSession(session.id)
-        SessionPlanJson.decode(plannedJson).associate { dto ->
-            (dto.exerciseId to dto.slot) to SlotSession(
+        SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
+            SlotSession(
                 dto.sets.map(SetDto::toDomain),
-                sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot }
+                sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot && it.trackPosition == dto.position }
                     .sortedBy { it.setIndex }.map { it.toLoggedSet() },
                 dto.retired,
             )

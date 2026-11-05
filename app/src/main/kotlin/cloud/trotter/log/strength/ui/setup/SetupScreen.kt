@@ -2,8 +2,6 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -259,7 +257,7 @@ private fun RestDurationDialog(label: String, initialSeconds: Int, onSave: (Int)
         onDismissRequest = onDismiss,
         title = { Text(label) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = minutes, onValueChange = { minutes = it },
                     label = { Text(stringResource(R.string.form_minutes_label)) },

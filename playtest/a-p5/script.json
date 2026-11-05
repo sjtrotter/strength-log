@@ -245,6 +245,84 @@
     },
     {
       "checkpoint": "setup-survives-reopening-app"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-find-my-own-two-strength-days-and-three-runs"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-look-for-combined-calendar-before-training"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-look-for-distance-units-watch-export-and-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "other-days-look-for-separate-runs-and-day-selection"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "first-strength-session-before-any-sets"
+    },
+    {
+      "note": "Monday November 9: five minutes walking and unweighted squats. Look for a warm-up option; do not log these as working sets. Opening the generated workout does not mean I performed its barbell lifts."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "after-five-minute-warmup-look-for-own-exercises"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "active-workout-after-answering-message-proxy"
+    },
+    {
+      "note": "Inspect plan editing and workout controls before recording goblet squat 35x8,35x6,30x8 and the rest of my actual A. Recreate is only a saved-state proxy, not proof of screen-lock or offline behavior."
     }
   ]
 }

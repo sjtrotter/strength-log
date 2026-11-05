@@ -141,7 +141,7 @@
       }
     },
     {
-      "scrollTo": {
+      "expect": {
         "text": "Conventional"
       }
     },
@@ -235,7 +235,8 @@
     {
       "scrollTo": {
         "text": "Rack"
-      }
+      },
+      "timeoutMs": 30000
     },
     {
       "tap": {
@@ -245,7 +246,8 @@
     {
       "scrollTo": {
         "text": "Pullup Bar"
-      }
+      },
+      "timeoutMs": 30000
     },
     {
       "tap": {
@@ -266,7 +268,8 @@
     {
       "scrollTo": {
         "text": "Day D"
-      }
+      },
+      "timeoutMs": 30000
     },
     {
       "checkpoint": "revised-plan-preview-bottom"

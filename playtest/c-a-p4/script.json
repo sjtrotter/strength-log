@@ -132,12 +132,152 @@
       "checkpoint": "wednesday-shoulder-replacement-picker"
     },
     {
-      "tap": {
-        "text": "Search exercises"
+      "type": {
+        "text": "Search exercises",
+        "value": "shoulder"
       }
     },
     {
-      "checkpoint": "search-for-my-seated-dumbbell-shoulder-press"
+      "checkpoint": "search-shoulder-results"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "press"
+      }
+    },
+    {
+      "checkpoint": "catalog-search-press"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pulldown"
+      }
+    },
+    {
+      "checkpoint": "catalog-search-pulldown"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "split"
+      }
+    },
+    {
+      "checkpoint": "catalog-search-split"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "catalog-search-row"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "checkpoint": "monday-history-detail-and-earlier-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day C"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 22 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "reopen-dated-deadlift-note"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 22 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "shoulder"
+      }
+    },
+    {
+      "checkpoint": "shoulder-search-ready-to-select"
     }
   ]
 }

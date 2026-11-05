@@ -3002,16 +3002,7 @@
    }
   },
   {
-   "tap": {
-    "text": "Stationary bike",
-    "role": "DropdownList"
-   }
-  },
-  {
-   "checkpoint": "cardio-activity-options"
-  },
-  {
-   "back": true
+   "checkpoint": "cardio-sheet-a4"
   },
   {
    "tap": {
@@ -3370,6 +3361,26 @@
   },
   {
    "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
     "textContains": "Log ",
     "role": "Button"
    }
@@ -3614,14 +3625,6 @@
    "checkpoint": "receipt-c4"
   },
   {
-   "tap": {
-    "desc": "Share"
-   }
-  },
-  {
-   "checkpoint": "share-tapped"
-  },
-  {
    "scrollTo": {
     "text": "Add a note"
    }
@@ -3756,6 +3759,34 @@
   },
   {
    "checkpoint": "today-final"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "Dec 4, 2026"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Dec 4, 2026",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "session-dec4"
+  },
+  {
+   "tap": {
+    "desc": "Share"
+   }
+  },
+  {
+   "checkpoint": "share-tapped"
   }
  ]
 }

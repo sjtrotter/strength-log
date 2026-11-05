@@ -91,7 +91,7 @@
   },
   {
    "tap": {
-    "text": "Save"
+    "textContains": "Save"
    },
    "timeoutMs": 20000
   },

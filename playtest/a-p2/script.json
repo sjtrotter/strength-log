@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -935,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb × 8"
+        "text": "135 lb \u00d7 8"
       }
     },
     {
@@ -972,6 +972,130 @@
     },
     {
       "checkpoint": "monday-lift-list-find-lunges-plank-and-day-edit"
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "monday-plank-selected-out-of-order"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "monday-timed-plank-logging-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "monday-edit-day-after-logged-squats-and-rdls"
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "monday-remove-unwanted-leg-curl"
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "monday-remove-unwanted-calves"
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "checkpoint": "monday-no-cardio-in-lower-a"
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "monday-single-leg-lift-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-single-leg-prescription-before-swap"
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "monday-find-dumbbell-reverse-lunge"
     }
   ],
   "capture": "checkpoints"

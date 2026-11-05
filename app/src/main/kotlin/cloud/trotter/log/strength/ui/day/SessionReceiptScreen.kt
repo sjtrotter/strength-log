@@ -131,18 +131,7 @@ internal fun SessionReceiptScreen(
         if (!receipt.recordsChecked) Text(stringResource(R.string.receipt_records_not_checked),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
-        if (receipt.cardio) {
-            receipt.activity?.let {
-                Text(cardioActivityName(it), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp))
-            }
-            receipt.cardioRows.forEachIndexed { index, row ->
-                key(receipt.sessionId, index) {
-                    CardioReceiptRowItem(if (receipt.recordsChecked) row else row.copy(record = null), receipt.dayIndex,
-                        "${receipt.sessionId}:cardio:$index", { roll.value })
-                }
-            }
-        } else {
+        if (receipt.groups.isNotEmpty()) {
             receipt.groups.forEachIndexed { groupIndex, group ->
                 val rows: @Composable ColumnScope.() -> Unit = {
                     group.rows.forEachIndexed { rowIndex, row ->
@@ -155,6 +144,20 @@ internal fun SessionReceiptScreen(
                 }
                 if (group.rounds == null) rows() else SupersetGroup(group.rounds, rows)
             }
+        }
+        if (receipt.cardioRows.isNotEmpty()) {
+            receipt.activity?.let {
+                Text(cardioActivityName(it), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp))
+            }
+            receipt.cardioRows.forEachIndexed { index, row ->
+                key(receipt.sessionId, index) {
+                    CardioReceiptRowItem(if (receipt.recordsChecked) row else row.copy(record = null), receipt.dayIndex,
+                        "${receipt.sessionId}:cardio:$index", { roll.value })
+                }
+            }
+        }
+        if (!receipt.cardio) {
             if (receipt.note.isNotBlank()) Text(receipt.note, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 16.dp))

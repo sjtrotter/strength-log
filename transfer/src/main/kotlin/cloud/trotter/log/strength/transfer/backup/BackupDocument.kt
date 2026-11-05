@@ -20,8 +20,9 @@ import kotlinx.serialization.Serializable
  * v14 carries each slot's next-time choice and each session's note.
  * v15 adds each plan’s onToday membership.
  * v16 replaces legacy slot flags with a named set structure.
+ * v17 adds bodyweight at tenths-of-a-pound precision.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 16
+const val CURRENT_SCHEMA_VERSION: Int = 17
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -146,6 +147,7 @@ data class SettingsBackup(
     val sessionNotes: Map<Long, String> = emptyMap(),
     /** Theme preference. Defaulted so pre-light-theme backups follow SYSTEM. */
     val theme: String = "SYSTEM",
+    val bodyweightLbPrecise: Double? = null,
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking
@@ -250,6 +252,7 @@ data class SessionBackup(
     @OptIn(ExperimentalSerializationApi::class)
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val note: String = "",
+    val bodyweightLbPrecise: Double? = null,
 )
 
 @Serializable

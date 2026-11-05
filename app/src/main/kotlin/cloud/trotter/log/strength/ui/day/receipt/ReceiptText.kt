@@ -153,8 +153,13 @@ internal fun cardioRowName(row: CardioReceiptRow): String = when (row.role) {
     CardioRole.COOLDOWN -> stringResource(R.string.cardio_cooldown)
     CardioRole.RECOVERY -> stringResource(R.string.cardio_recovery)
     else -> {
-        val measure = row.endSeconds?.let(ClockText::minutesSeconds)
-            ?: stringResource(R.string.cardio_metres, requireNotNull(row.endMetres))
+        val finishedAlone = row.count == 1 && row.endSeconds != null &&
+            row.intervals.singleOrNull()?.status == CardioSetStatus.FINISHED
+        val measure = when {
+            finishedAlone -> ClockText.minutesSeconds(row.intervals.single().elapsedSeconds)
+            row.endSeconds != null -> ClockText.minutesSeconds(row.endSeconds)
+            else -> stringResource(R.string.cardio_metres, requireNotNull(row.endMetres))
+        }
         if (row.count > 1) stringResource(R.string.receipt_cardio_work_count, row.count, measure) else measure
     }
 }
@@ -207,7 +212,13 @@ internal fun spokenCardioRow(row: CardioReceiptRow): String {
     }
     if (row.role != CardioRole.WORK) return stringResource(R.string.receipt_say_cardio_value,
         cardioRowName(row), spokenDuration(row.intervals.sumOf { it.elapsedSeconds }))
-    val measure = row.endSeconds?.let { spokenDuration(it) } ?: spokenMetres(requireNotNull(row.endMetres))
+    val finishedAlone = row.count == 1 && row.endSeconds != null &&
+        row.intervals.singleOrNull()?.status == CardioSetStatus.FINISHED
+    val measure = when {
+        finishedAlone -> spokenDuration(row.intervals.single().elapsedSeconds)
+        row.endSeconds != null -> spokenDuration(row.endSeconds)
+        else -> spokenMetres(requireNotNull(row.endMetres))
+    }
     val name = if (row.count > 1) stringResource(R.string.receipt_say_cardio_by, row.count, measure) else measure
     val best = bestInterval(row)
     val value = if (best == null) {

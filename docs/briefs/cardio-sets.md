@@ -2,11 +2,22 @@
 
 Design by Astra (gpt-6-astra), approved by the owner 2026-10-21 with three decisions: recovery and cool-down sets start by themselves when the set before them ends (warm-up and work wait for Start); the block ends when its last timed set reaches zero (no silent overrun; to run longer, add a set); the 60-second discard rule is dropped (any started set counts; a block with nothing started logs nothing).
 
+## Amendments (2026-11-05, #469)
+
+A logged cardio block counts toward Finish. A mixed day’s receipt lists its lifts, then its cardio under the activity name. Finish ends an open cardio run first and logs the rounds already done using the End-cardio rules. Discard keeps saved cardio and says so. Cancel on a set page reverts that set.
+
+- **§1, running screen.** On the phone, a block of one timed set shows elapsed time from zero, “Aim {time}”, and a “Distance (m)” field while running. The Easy and Tempo template times name the aim.
+- **§2, boundaries.** A block of one timed set is open-ended: it counts up, never finishes by itself, and Stop records FINISHED at the actual elapsed time. Metres come from the running field or, when blank, the existing distance-entry sheet. End and log also records the active lone timed set as FINISHED with any typed metres. Blocks with two or more sets keep their countdowns, boundaries, alarms, and SHORTENED status on Stop.
+- **§6, receipt.** A lone finished timed work set names its actual elapsed time on the receipt, including the spoken description.
+- **§8, watch.** The watch keeps its countdown for now; a watch-started lone set still ends at its deadline. Matching the phone’s open-ended behavior is a follow-up.
+
 **Use one cardio page, one focused set, and the existing dial.** [A13](../../docs/PLAN.md:209) governs scope: manual distance before production; GPS later, watch first.
 
 1. **Focus and controls.** Title is the activity name. Copy: “Warm-up”, “Work”, “Recovery”, “Cool-down”; “Set {i} of {n}”; “{end} · aim {aim}” (omit aim when absent). Time: full duration before “Start”, then a large countdown and “Stop”. Distance: large, static “400 m”, explicitly labelled “Target”, with “Elapsed {time}” underneath. “Start” begins elapsed timing; “Reached 400 m” confirms the target, records FINISHED and 400 m/MANUAL. Never infer distance from elapsed time or display fictitious progress.
 
 2. **Boundaries.** Time reaches 0:00, records FINISHED at its deadline and buzzes once. Focus moves forward. Recovery and cool-down auto-start after normal completion; warm-up and work wait for “Start”. The first set always waits. Recovery is a real set, never the lift rest timer. No countdown flashes or extra buzzes. Passing a distance set’s time aim changes nothing: completion still needs its tap. The final timed set closes the block at zero; there is no silent overrun. More work requires “Add set” before completion: work plus recovery before an unstarted cool-down, otherwise appended. Preserve the legacy mapping, including its final recovery.
+
+   Work waits for Start: a 10-minute treadmill run with intervals can log only its warm-up when the next work set has not been started (C4). The owner kept this rule.
 
 3. **Aims and entry.** Results show “Finished · 2:07 / 1:45 · Aim missed”, or “380 / 400 m · Aim missed”; alternatives are “Aim met” and “Aim unmeasured”. Meeting an aim never determines completion. A timed set with a distance aim automatically opens “Time’s up” distance entry; recovery continues behind it. Identify “{activity} · Set {i}”, label “Distance (m)”, initially blank; “Done” saves optional metres as MANUAL. Blank means unknown, never zero. Dismissal preserves the draft; “Enter distance” reopens it. Final-set entry amends the already-logged session and appears before its receipt. Follow the [approved sheet pattern](../../docs/briefs/timed-rep-events.md): queue through the existing host, once per set; never steal keyboard focus.
 

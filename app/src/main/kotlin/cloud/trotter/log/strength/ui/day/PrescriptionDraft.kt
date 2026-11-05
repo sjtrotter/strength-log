@@ -3,10 +3,11 @@ package cloud.trotter.log.strength.ui.day
 import android.os.Parcelable
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import kotlinx.parcelize.Parcelize
 
 enum class PrescriptionKind { LOAD_REPS, REPS, HOLD, REPS_IN_TIME }
@@ -41,11 +42,12 @@ data class PrescriptionDraft(
             val prescription = slot.prescription
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
+                reps = if (slot.structure.hasTopSet) StrengthStandards.topSetReps(config.emphasis) else 10,
                 eachSide = prescription?.eachSide ?: false, resistance = prescription?.resistance.orEmpty(),
             )
             val target = prescription?.target ?: catalog.find(slot.exerciseId)?.let { entry ->
                 when (val goal = GoalCalculator.targetFor(entry, config)) {
-                    is GoalTarget.Weight -> PrescribedTarget.LoadReps(goal.lb, 10)
+                    is GoalTarget.Weight -> PrescribedTarget.LoadReps(goal.lb, draft.reps)
                     is GoalTarget.Reps -> PrescribedTarget.Reps(goal.reps)
                     is GoalTarget.Time -> PrescribedTarget.Hold(goal.seconds, goal.addedLb)
                 }

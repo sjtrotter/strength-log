@@ -31,7 +31,9 @@ they can own, balanced development, and honest logging of what actually happened
    pinned to weekdays. Missing days shifts the plan; it never skips a muscle.
 2. **GOAL vs ACTUAL.** Every exercise shows a calculated, read-only GOAL (target
    maintenance weight). The ACTUAL log is seeded from it once, then persists as
-   the lifter's living record. GOALs change only via Setup inputs.
+   the lifter's living record: next time keeps the plan's shape and opening
+   weight, and an increase is offered, never applied (PLAN.md A14). GOALs change
+   only via Setup inputs.
 3. **Top set is the anchor.** Main lifts use a Madcow-style ramp → top set →
    back-off. Changing the top-set weight recalculates the ramp and back-off.
    Editing any other set changes only that set.

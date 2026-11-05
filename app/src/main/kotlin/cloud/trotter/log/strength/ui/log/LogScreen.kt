@@ -29,15 +29,21 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -113,7 +119,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
     var noteSessionId by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
-            LogHeader()
+            LogHeader(actions.onOpenBackup)
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -292,16 +298,30 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long, trendsExpanded: 
     return index + position
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LogHeader() {
+private fun LogHeader(onOpenBackup: () -> Unit) {
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(stringResource(R.string.log_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-        }
+        TopAppBar(
+            title = { Text(stringResource(R.string.log_title)) },
+            actions = {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings_backup)) },
+                            onClick = {
+                                menuOpen = false
+                                onOpenBackup()
+                            },
+                        )
+                    }
+                }
+            },
+        )
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
@@ -655,6 +675,7 @@ data class LogActions(
     val onStartSession: () -> Unit,
     /** The same slot's way out when there is no program to start. */
     val onSetUpProgram: () -> Unit,
+    val onOpenBackup: () -> Unit = {},
 )
 
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)

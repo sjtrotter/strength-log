@@ -219,7 +219,7 @@ internal fun BackupDocument.withoutV16Fields(): BackupDocument {
             )
         })
     }
-    return copy(
+    return withoutV17Fields().copy(
         program = program.legacyDays(),
         plans = plans.map { it.copy(days = it.days.legacyDays()) },
     )

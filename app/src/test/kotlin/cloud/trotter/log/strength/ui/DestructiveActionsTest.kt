@@ -24,6 +24,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayActions
+import cloud.trotter.log.strength.ui.day.CardioCardState
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
@@ -82,6 +83,24 @@ class DestructiveActionsTest {
         composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals("the menu tap must only open the dialog", 0, cleared)
 
+        composeTestRule.onNodeWithText("Discard").performClick()
+        assertEquals(1, cleared)
+    }
+
+    @Test
+    fun discardingWithSavedCardioSaysTheCardioStays() {
+        var cleared = 0
+        setDayContent(cardio = CardioCardState("Road run", "", false, loggedSeconds = 300),
+            onDiscardWorkout = { cleared++ })
+        openDayMenu()
+        composeTestRule.onNodeWithText(discardAction).performClick()
+        composeTestRule.onNodeWithText(
+            "The lifts you logged in this workout are dropped, including weight and rep changes. Your saved cardio stays in History.",
+        ).assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            "Everything you logged in this workout is dropped, including weight and rep changes.",
+        ).assertDoesNotExist()
+        assertEquals(0, cleared)
         composeTestRule.onNodeWithText("Discard").performClick()
         assertEquals(1, cleared)
     }
@@ -263,12 +282,13 @@ class DestructiveActionsTest {
 
     private fun setDayContent(
         runOpen: Boolean = true,
+        cardio: CardioCardState? = null,
         removedSets: List<RemovedSet> = emptyList(),
         onDiscardWorkout: () -> Unit = {},
         onRemoveSet: () -> Unit = {},
         onUndoRemoveSet: () -> Unit = {},
     ) {
-        var state by mutableStateOf(dayState().copy(runOpen = runOpen).withWorkoutSelection())
+        var state by mutableStateOf(dayState().copy(runOpen = runOpen, cardio = cardio).withWorkoutSelection())
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(

@@ -1038,6 +1038,7 @@ class DayViewModelReceiptTest {
             repo, repo.history, repo.plans, repo.catalog, settings, publisher, shareCardService,
             SavedStateHandle(), backgroundScope, kotlinx.coroutines.sync.Mutex(), java.time.Clock.systemUTC(),
             afterCommit = { _, _ -> }, executionActive = { executionActive },
+            loggedCardio = { _, _ -> null },
         )
         beforeSessionsRead = { executionActive = true }
         finisher.showCardio(run, emptyMap(), session.copy(id = id))

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.BodyweightInput
 import cloud.trotter.log.strength.ui.components.NumberField
@@ -77,14 +78,14 @@ fun YouScreen(state: YouUiState, actions: YouActions) {
 }
 
 @Composable
-private fun BodyweightCard(canonicalLb: Int, unit: WeightUnit, onChange: (Double) -> Unit) {
+private fun BodyweightCard(canonicalLb: Double, unit: WeightUnit, onChange: (Double) -> Unit) {
     NumberField(
         value = BodyweightInput.display(canonicalLb, unit),
-        onValueChange = { onChange(BodyweightInput.display(BodyweightInput.canonicalLb(it, unit), unit)) },
+        onValueChange = onChange,
         label = stringResource(R.string.form_bodyweight_label, unit.name.lowercase()),
         minValue = 1.0,
         format = WeightStepper::format,
-        round = { WeightStepper.round(it, unit) },
+        round = Bodyweight::round,
         decimalInput = true,
         weightInput = true,
         modifier = Modifier.padding(horizontal = 16.dp),

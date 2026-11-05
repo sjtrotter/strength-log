@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,6 +50,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,6 +61,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -67,7 +70,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -78,6 +82,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -364,7 +369,19 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
         } else if (spec != null) {
             Text(position.orEmpty(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when (val end = spec.end) {
-                is Measure.Time -> {
+                is Measure.Time -> if (block.openEnded) {
+                    WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.elapsedSeconds else 0))
+                    Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.workout_cardio_aim, measureText(end)), style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (run?.running == true) OutlinedTextField(
+                        value = cardio.runDistanceText, onValueChange = actions.onCardioRunDistanceChange,
+                        label = { Text(stringResource(R.string.cardio_distance_label)) }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth().testTag("workout-cardio-distance"),
+                    )
+                } else {
                     WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.stepSecondsLeft else end.seconds))
                     Text(stringResource(R.string.workout_clock_remaining), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -745,8 +762,9 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     val rest = state.rest?.takeUnless { it.over }
     val undo = state.workout?.undo
     if (rest == null && undo == null) return
+    val resources = LocalResources.current
     val announcement = rest?.let {
-        stringResource(R.string.workout_rest_remaining_clock, formatCardioTime(it.remainingSeconds))
+        formatRestAnnouncement(resources, it.remainingSeconds)
     }
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
@@ -756,14 +774,23 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
         }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
-                val minutes = (rest.remainingSeconds + 59) / 60
-                val minuteAnnouncement = pluralStringResource(R.plurals.workout_rest_remaining_minutes, minutes, minutes)
-                Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("workout-rest-announcement").semantics {
-                        liveRegion = LiveRegionMode.Polite
-                        contentDescription = minuteAnnouncement
-                    })
+                val view = LocalView.current
+                LaunchedEffect(rest.rest) {
+                    // Equal-duration rests need separate events even when their descriptions match.
+                    @Suppress("DEPRECATION")
+                    view.announceForAccessibility(formatRestAnnouncement(resources, rest.remainingSeconds))
+                }
+                // A fresh live region leaves each start announcement to the identity-keyed event.
+                key(rest.rest) {
+                    val announcedSeconds = remember((rest.remainingSeconds - 1) / 60) { rest.remainingSeconds }
+                    val minuteAnnouncement = formatRestAnnouncement(resources, announcedSeconds)
+                    Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("workout-rest-announcement").semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = minuteAnnouncement
+                        })
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.clearAndSetSemantics { })

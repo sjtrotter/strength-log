@@ -54,6 +54,7 @@ import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CloseAction
 import cloud.trotter.log.strength.ui.components.NumberField
+import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -394,29 +395,6 @@ private fun FooterButtonLabel(label: String) {
         modifier = Modifier.heightIn(min = FooterLabelMinHeight),
     )
 }
-
-@Composable
-private fun patternLabel(pattern: MovementPattern): String = stringResource(when (pattern) {
-    MovementPattern.SQUAT_BILATERAL -> R.string.custom_exercise_pattern_squat_bilateral
-    MovementPattern.SINGLE_LEG -> R.string.custom_exercise_pattern_single_leg
-    MovementPattern.HINGE -> R.string.custom_exercise_pattern_hinge
-    MovementPattern.KNEE_FLEXION -> R.string.custom_exercise_pattern_knee_flexion
-    MovementPattern.KNEE_EXTENSION -> R.string.custom_exercise_pattern_knee_extension
-    MovementPattern.H_PUSH -> R.string.custom_exercise_pattern_horizontal_push
-    MovementPattern.V_PUSH -> R.string.custom_exercise_pattern_vertical_push
-    MovementPattern.H_PULL -> R.string.custom_exercise_pattern_horizontal_pull
-    MovementPattern.V_PULL -> R.string.custom_exercise_pattern_vertical_pull
-    MovementPattern.SIDE_DELT -> R.string.custom_exercise_pattern_side_delt
-    MovementPattern.REAR_DELT -> R.string.custom_exercise_pattern_rear_delt
-    MovementPattern.BICEPS -> R.string.custom_exercise_pattern_biceps
-    MovementPattern.TRICEPS -> R.string.custom_exercise_pattern_triceps
-    MovementPattern.CALF_GASTROC -> R.string.custom_exercise_pattern_calf_gastroc
-    MovementPattern.CALF_SOLEUS -> R.string.custom_exercise_pattern_calf_soleus
-    MovementPattern.CORE_ANTI_EXT -> R.string.custom_exercise_pattern_core_anti_extension
-    MovementPattern.CORE_ANTI_ROT -> R.string.custom_exercise_pattern_core_anti_rotation
-    MovementPattern.CORE_FLEX -> R.string.custom_exercise_pattern_core_flexion
-    MovementPattern.CARDIO -> R.string.custom_exercise_pattern_cardio
-})
 
 private fun equipmentLabel(equipment: Equipment): String = equipment.name
     .split("_")

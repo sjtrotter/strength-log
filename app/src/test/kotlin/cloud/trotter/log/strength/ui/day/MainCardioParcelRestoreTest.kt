@@ -56,6 +56,31 @@ class MainCardioParcelRestoreTest {
     }
 
     @Test
+    fun runDistanceRoundTripsThroughParcelAndSavedStateWithFollowingValue() {
+        val distance = CardioRunDistance("r", 0, "5000")
+        val handle = SavedStateHandle(mapOf(
+            "day_cardio_run_distance" to distance,
+            "following_value" to "still saved",
+        ))
+        val parcel = Parcel.obtain()
+        try {
+            distance.writeToParcel(parcel, 0)
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.writeInt(417)
+            parcel.setDataPosition(0)
+
+            assertEquals(distance, parcelableCreator<CardioRunDistance>().createFromParcel(parcel))
+            val restored = SavedStateHandle.createHandle(parcel.readBundle(CardioRunDistance::class.java.classLoader), null)
+            assertEquals(distance, restored.get<CardioRunDistance>("day_cardio_run_distance"))
+            assertEquals("still saved", restored.get<String>("following_value"))
+            assertEquals(417, parcel.readInt())
+            assertEquals(parcel.dataSize(), parcel.dataPosition())
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
     fun mainSavedStateBundleRestoresReceiptAndMultiplePendingRunsWithFollowingValue() {
         val handle = SavedStateHandle(mapOf(
             "day_cardio_run" to MainCardioRunParcel(second),

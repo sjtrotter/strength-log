@@ -88,7 +88,7 @@ class HealthConnectPublisherTest {
     private fun session(
         startedAt: Long? = null,
         completedAt: Long = 10_000L,
-        bodyweightLb: Int? = 180,
+        bodyweightLb: Double? = 180.0,
     ) = WorkoutSessionEntity(
         id = 0, dayId = "A", dayTitle = "Lower", startedAt = startedAt, completedAt = completedAt, bodyweightLb = bodyweightLb,
     )
@@ -170,7 +170,7 @@ class HealthConnectPublisherTest {
     fun caloriesGranted_withRealStartInWindow_insertsBothRecords() = runTest {
         val id = seedSession(
             listOf(set("bb_back_squat")),
-            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L, bodyweightLb = 200), // 30 minutes
+            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L, bodyweightLb = 200.0), // 30 minutes
         )
         val client = FakeHealthConnectClient(
             grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),

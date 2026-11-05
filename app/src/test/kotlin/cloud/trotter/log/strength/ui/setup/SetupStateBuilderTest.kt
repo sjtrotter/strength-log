@@ -78,7 +78,7 @@ class SetupStateBuilderTest {
         val base = LifterConfig(bodyweightLb = 200, age = 30, level = ExperienceLevel.INTERMEDIATE, emphasis = GoalEmphasis.BALANCED)
         val basePreview = SetupStateBuilder.goalPreview(base, WizardAnswers(), WeightUnit.LB)
 
-        val heavier = SetupStateBuilder.goalPreview(base.copy(bodyweightLb = 260), WizardAnswers(), WeightUnit.LB)
+        val heavier = SetupStateBuilder.goalPreview(base.copy(bodyweightLb = 260.0), WizardAnswers(), WeightUnit.LB)
         val older = SetupStateBuilder.goalPreview(base.copy(age = 60), WizardAnswers(), WeightUnit.LB)
         val advanced = SetupStateBuilder.goalPreview(base.copy(level = ExperienceLevel.ADVANCED), WizardAnswers(), WeightUnit.LB)
         val physique = SetupStateBuilder.goalPreview(base.copy(emphasis = GoalEmphasis.PHYSIQUE), WizardAnswers(), WeightUnit.LB)
@@ -95,14 +95,14 @@ class SetupStateBuilderTest {
     fun bodyweightDisplay_delegates_to_WeightUnit_conversion() {
         val cfg = LifterConfig(bodyweightLb = 220)
         assertEquals(220.0, SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.LB))
-        assertEquals(WeightUnit.KG.fromLb(220.0), SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.KG))
+        assertEquals(99.8, SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.KG))
     }
 
     @Test
     fun bodyweightLb_round_trips_through_WeightUnit_conversion() {
-        assertEquals(220, SetupStateBuilder.bodyweightLb(220.0, WeightUnit.LB))
+        assertEquals(220.0, SetupStateBuilder.bodyweightLb(220.0, WeightUnit.LB))
         val kgDisplay = WeightUnit.KG.fromLb(220.0)
-        assertEquals(220, SetupStateBuilder.bodyweightLb(kgDisplay, WeightUnit.KG))
+        assertEquals(220.0, SetupStateBuilder.bodyweightLb(kgDisplay, WeightUnit.KG))
     }
 
     @Test

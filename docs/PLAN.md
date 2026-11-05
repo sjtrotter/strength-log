@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A13)
+## Amendments (A1–A14)
 
 ### A1. Session history is now required (biggest change)
 
@@ -229,6 +229,7 @@ strength day; the shipped cardio vectors stay pinned.
   unless it has a cardio block, and rotation visits strength days (all days
   when none are strength).
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
+- **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
@@ -251,6 +252,15 @@ strength day; the shipped cardio vectors stay pinned.
   if a screen ever needs it); alternating plans by weekday is the lifter
   switching, not a calendar.
 - §11 numbers and the shipped cardio vectors do not move.
+
+### A14. Next time carries the plan, not the result (owner council, 2026-11-05, #467)
+
+Next time keeps the prescription's shape and holds the opening working weight.
+A miss never lowers it and never pre-fills a lighter number.
+Ramp and back-off rows carry as logged when the top held.
+An increase is offered (opening plus one stepper increment on full success, or a
+heavier set that made its reps; the larger, never stacked) and applied only when
+the lifter accepts; §11 numbers do not move.
 
 ## Architecture
 

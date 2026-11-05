@@ -1,6 +1,10 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
 import android.view.View
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -30,11 +34,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -57,6 +63,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -706,8 +713,31 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Undo Bench Press 165 × 5").assertIsDisplayed()
     }
 
-    @Test fun restDescriptionMatchesSecondsWhileLiveRegionChangesOnlyAtMinuteBoundaries() {
-        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 64)))
+    @Test fun restStartAnnouncesExactMinutesAndSeconds() {
+        var state by mutableStateOf(workoutSetSingleFixture())
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true).assertDoesNotExist()
+        listOf(
+            90 to "Rest 1 minute 30 seconds",
+            60 to "Rest 1 minute",
+            150 to "Rest 2 minutes 30 seconds",
+        ).forEach { (seconds, announcement) ->
+            rule.runOnIdle {
+                val rest = workoutRest()
+                state = state.copy(rest = rest.copy(
+                    rest = rest.rest.copy(deadlineEpochMillis = seconds * 1_000L, totalSeconds = seconds),
+                    remainingSeconds = seconds,
+                ))
+            }
+            rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+                .assertContentDescriptionEquals(announcement)
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            rule.onNodeWithTag("workout-rest").assertIsDisplayed().assertContentDescriptionEquals(announcement)
+        }
+    }
+
+    @Test fun restDescriptionTracksSecondsWhileLiveRegionChangesAtMinuteBoundaries() {
+        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest()))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         fun description() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
         fun announced() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
@@ -721,24 +751,65 @@ class WorkoutSetScreenTest {
         }
         rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-        assertEquals(listOf("Rest remaining: 1:04"), description())
-        assertEquals(listOf("Rest remaining: 2 minutes"), announced())
-        val minuteAnnouncement = announced()
-        val minuteText = announcementText()
-        rule.onNodeWithContentDescription("Rest remaining: 1:04").assertIsDisplayed()
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 63)) }
-        assertEquals(listOf("Rest remaining: 1:03"), description())
-        assertEquals(minuteAnnouncement, announced())
-        assertEquals(minuteText, announcementText())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 61)) }
-        assertEquals(listOf("Rest remaining: 1:01"), description())
-        assertEquals(minuteAnnouncement, announced())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 60)) }
-        assertEquals(listOf("Rest remaining: 1:00"), description())
-        assertEquals(listOf("Rest remaining: 1 minute"), announced())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 59)) }
-        assertEquals(listOf("Rest remaining: 0:59"), description())
-        assertEquals(listOf("Rest remaining: 1 minute"), announced())
+        assertEquals(listOf("Rest 1 minute 30 seconds"), description())
+        assertEquals(listOf("Rest 1 minute 30 seconds"), announced())
+        val startText = announcementText()
+        listOf(
+            Triple(89, "Rest 1 minute 29 seconds", "Rest 1 minute 30 seconds"),
+            Triple(61, "Rest 1 minute 1 second", "Rest 1 minute 30 seconds"),
+            Triple(60, "Rest 1 minute", "Rest 1 minute"),
+            Triple(59, "Rest 59 seconds", "Rest 1 minute"),
+            Triple(45, "Rest 45 seconds", "Rest 1 minute"),
+        ).forEach { (seconds, expected, minuteAnnouncement) ->
+            rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = seconds)) }
+            assertEquals(listOf(expected), description())
+            assertEquals(listOf(minuteAnnouncement), announced())
+            assertEquals(startText, announcementText())
+        }
+        rule.runOnIdle {
+            val rest = requireNotNull(state.rest)
+            state = state.copy(rest = rest.copy(
+                rest = rest.rest.copy(deadlineEpochMillis = rest.rest.deadlineEpochMillis + 15_000, totalSeconds = 60),
+                remainingSeconds = 60,
+            ))
+        }
+        assertEquals(listOf("Rest 1 minute"), description())
+        assertEquals(listOf("Rest 1 minute"), announced())
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun consecutiveEqualDurationRestsDeliverSeparateStartAnnouncements() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val accessibility = shadowOf(context.getSystemService(AccessibilityManager::class.java))
+        accessibility.setEnabledAccessibilityServiceList(listOf(AccessibilityServiceInfo().apply {
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN
+        }))
+        accessibility.setEnabled(true)
+        var state by mutableStateOf(workoutSetSingleFixture())
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        fun deliveredAnnouncements() = rule.runOnIdle {
+            accessibility.sentAccessibilityEvents
+                .filter { it.eventType == AccessibilityEvent.TYPE_ANNOUNCEMENT }
+                .flatMap { event -> event.text.map { it.toString() } }
+        }
+
+        rule.runOnIdle { state = state.copy(rest = workoutRest()) }
+        assertEquals(listOf("Rest 1 minute 30 seconds"), deliveredAnnouncements())
+        listOf(89, 61, 60, 59, 45).forEach { seconds ->
+            rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = seconds)) }
+            assertEquals(listOf("Rest 1 minute 30 seconds"), deliveredAnnouncements())
+        }
+        rule.runOnIdle {
+            val rest = workoutRest()
+            state = state.copy(rest = rest.copy(rest = rest.rest.copy(
+                deadlineEpochMillis = rest.rest.deadlineEpochMillis + 45_000L,
+                nextSetLabel = "Ramp set 3",
+            )))
+        }
+        rule.onNodeWithTag("workout-rest").assertIsDisplayed()
+            .assertContentDescriptionEquals("Rest 1 minute 30 seconds")
+        assertEquals(listOf("Rest 1 minute 30 seconds", "Rest 1 minute 30 seconds"), deliveredAnnouncements())
     }
 
     @Test
@@ -844,21 +915,37 @@ class WorkoutSetScreenTest {
         show(workoutSetCardioFixture(), workoutActions().copy(onStartCardio = { starts++ }, onOpenCardioSets = { sheets++ }))
         rule.onNodeWithText("Road run").assertIsDisplayed()
         rule.onNodeWithText("Work, set 1 of 1").assertIsDisplayed()
-        rule.onNodeWithText("5:00").assertIsDisplayed()
-        rule.onNodeWithText("Remaining").assertIsDisplayed()
+        rule.onNodeWithText("0:00").assertIsDisplayed()
+        rule.onNodeWithText("Elapsed").assertIsDisplayed()
+        rule.onNodeWithText("Aim 5:00").assertIsDisplayed()
+        rule.onNodeWithTag("workout-cardio-distance").assertDoesNotExist()
         rule.onNodeWithText("All sets").performClick()
         rule.onNodeWithText("Start").performClick()
         rule.runOnIdle { assertEquals(1, starts); assertEquals(1, sheets) }
     }
 
-    @Test fun cardioRunningTimeShowsCountdownAndStopsItsOwnInterval() {
+    @Test fun loneTimedRunShowsElapsedAimAndDistanceFieldAndStops() {
         val state = workoutSetCardioRunningFixture()
         var stopped: CardioSetAction? = null
-        show(state, workoutActions().copy(onStopCardio = { stopped = it }))
-        rule.onNodeWithText("1:00").assertIsDisplayed()
+        var distance = ""
+        show(state, workoutActions().copy(onStopCardio = { stopped = it }, onCardioRunDistanceChange = { distance = it }))
+        rule.onNodeWithText("4:00").assertIsDisplayed()
+        rule.onNodeWithText("Elapsed").assertIsDisplayed()
+        rule.onNodeWithText("Aim 5:00").assertIsDisplayed()
+        rule.onNodeWithText("Distance (m)").assertIsDisplayed()
+        rule.onNodeWithTag("workout-cardio-distance").performTextInput("5000")
+        rule.onNodeWithText("Stop").performClick()
+        rule.runOnIdle {
+            assertEquals("5000", distance)
+            assertEquals(state.cardio?.run?.action(), stopped)
+        }
+    }
+
+    @Test fun intervalTimeShowsCountdownAndRemaining() {
+        show(workoutSetCardioRecoveryFixture())
+        rule.onNodeWithText("0:42").assertIsDisplayed()
         rule.onNodeWithText("Remaining").assertIsDisplayed()
-        rule.onNodeWithTag("workout-action-tonal").performClick()
-        rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
+        rule.onNodeWithTag("workout-cardio-distance").assertDoesNotExist()
     }
 
     @Test fun cardioDistanceShowsElapsedAimReachedAndOutlinedStopWithSharedGuard() {
@@ -1033,7 +1120,7 @@ class WorkoutSetScreenTest {
         val state = timed.copy(cardio = runningCardioFixture(), cardioRunning = true)
         var selected: String? = null
         show(state, workoutActions().copy(onSelectWorkoutLift = { selected = it }))
-        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.onNodeWithText("Road run 4:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected) }
     }
 
@@ -1042,7 +1129,7 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(base.copy(workout = workoutSetSingleFixture().workout))
         var selected: String? = null
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onSelectWorkoutLift = { selected = it })) } }
-        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.onNodeWithText("Road run 4:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected)
             state = workoutSetCardioDistanceFixture().copy(workout = workoutSetSingleFixture().workout) }
         rule.onNodeWithText("Road run 0:27").assertIsDisplayed()
@@ -1067,6 +1154,54 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Finish without Road run?").assertIsDisplayed()
         rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
         rule.runOnIdle { assertEquals(1, finishes) }
+    }
+
+    @Test fun finishWithStartedCardioConfirmsSavingTheActivity() {
+        var finishes = 0
+        show(workoutSetCardioRunningFixture(), workoutActions().copy(onDone = { finishes++ }))
+        rule.onNodeWithText("Finish").performClick()
+        rule.onNodeWithText("Finish and save Road run?").assertIsDisplayed()
+        rule.onNodeWithText("Finish without Road run?").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
+    }
+
+    @Test fun retiredWorkKeepsCardioFinishPromptsWhenLiveLiftsAreDone() {
+        var state by mutableStateOf(workoutSetCardioFixture())
+        var finishes = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onDone = { finishes++ })) } }
+
+        for ((fixture, prompt) in listOf(
+            workoutSetCardioFixture() to "Finish without Road run?",
+            workoutSetCardioRunningFixture() to "Finish and save Road run?",
+        )) {
+            rule.runOnIdle {
+                state = fixture.copy(runOpen = true, runSetCounts = RunSetCounts(8, 6, 0),
+                    retiredTracks = listOf(RetiredTrackLine("DB Bench Press", 2)))
+            }
+            rule.onNodeWithText("Finish").performClick()
+            rule.onNodeWithText(prompt).assertIsDisplayed()
+            rule.onNodeWithText("Finish with partner sets open?").assertDoesNotExist()
+            rule.onNodeWithText("Finish with 8 of 6 sets?").assertDoesNotExist()
+            rule.onNodeWithText("Keep going").performClick()
+        }
+        rule.runOnIdle { assertEquals(0, finishes) }
+    }
+
+    @Test fun openPartnerSetsKeepTheirPromptWithCardioRunning() {
+        val base = workoutSetSupersetFixture()
+        val card = base.exercises.single().copy(rows = base.exercises.single().rows.map {
+            it.copy(done = true, partner = it.partner?.copy(done = it.index < 2))
+        })
+        show(base.copy(exercises = listOf(card), runOpen = true, runSetCounts = RunSetCounts(6, 6, 1),
+            retiredTracks = listOf(RetiredTrackLine("DB Bench Press", 1)),
+            cardio = runningCardioFixture(), cardioRunning = true, executionBusy = true))
+
+        rule.onNodeWithText("Finish").performClick()
+        rule.onNodeWithText("Finish with partner sets open?").assertIsDisplayed()
+        rule.onNodeWithText("Finish and save Road run?").assertDoesNotExist()
+        rule.onNodeWithText("Finish with 6 of 6 sets?").assertDoesNotExist()
     }
 
     @Test fun cardioSheetShowsStatusesAndUnsavedDistanceIdentity() {

@@ -64,6 +64,7 @@ class SetEditApplier(
 
         val catalog = this.catalog.catalogFlow.first()
         val tracks = dayTracks.tracks
+        val cfg = plans.wizardAnswersFor(planId).first().config
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
         fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(
@@ -92,7 +93,7 @@ class SetEditApplier(
                     startedAtMillis = delta.startedAtMillis,
                     completedAtMillis = delta.completedAtMillis,
                     watchEditedAt = delta.editedAtMillis.takeIf { values },
-                ))
+                ), cfg.weightUnit, performed.entry?.equipment.orEmpty())
             }
         }
         edits.add(edit(delta.slot, true))
@@ -100,7 +101,6 @@ class SetEditApplier(
             val seeds = if (delta.runId == null) emptyMap() else {
                 val existing = tracks
                     .associate { (it.programExerciseId to it.slot) to it.sets.size }
-                val cfg = plans.wizardAnswersFor(planId).first().config
                 DaySeeds.plan(slots, existing, cfg, catalog)
             }
             val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN

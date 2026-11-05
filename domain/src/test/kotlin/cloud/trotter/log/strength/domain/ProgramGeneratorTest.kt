@@ -367,7 +367,7 @@ class ProgramGeneratorTest {
         val answers = WizardAnswers(
             config = LifterConfig(bodyweightLb = 200, age = 45),
         )
-        assertEquals(200, answers.config.bodyweightLb)
+        assertEquals(200.0, answers.config.bodyweightLb)
         assertEquals(answers.config.emphasis, answers.emphasis)
     }
 }

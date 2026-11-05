@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.playtest
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import cloud.trotter.log.strength.MainActivity
-import cloud.trotter.log.strength.audit.writeShot
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -14,6 +13,7 @@ import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineExceptionHandler
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -26,11 +26,13 @@ import org.robolectric.annotation.GraphicsMode
 
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w360dp-h720dp-night-xxhdpi", application = HiltTestApplication::class)
+@Config(sdk = [35], qualifiers = "w360dp-h720dp-night-xxhdpi", application = HiltTestApplication::class,
+    shadows = [PlaytestHandler::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaytestReplayTest {
     private val hilt = HiltAndroidRule(this)
-    private val compose = createEmptyComposeRule()
+    private lateinit var crashes: AppCrashes
+    private val compose = createEmptyComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val rules: RuleChain = RuleChain.outerRule(hilt).around(compose)
 
     @Inject internal lateinit var time: PlaytestTime
@@ -92,21 +94,24 @@ class PlaytestReplayTest {
             System.setProperty(REQUESTED_WINDOW_SIZE, "true")
             compose.mainClock.autoAdvance = false
             launchAttempted = true
-            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-                var replayFailure: Throwable? = null
-                try {
-                    Replay(compose, scenario, time, cardioAlarm, settings, database, artifacts).run(script)
-                } catch (error: Throwable) {
-                    replayFailure = error
-                    artifacts.failure(error.playtestError(), null)
-                    throw error
-                } finally {
-                    // Export while the foreground graph is still alive, including on a failed step.
+            AppCrashes().use { crashes ->
+                this.crashes = crashes
+                crashes.step { ActivityScenario.launch(MainActivity::class.java) }.use { scenario ->
+                    var replayFailure: Throwable? = null
                     try {
-                        writeBackup()
-                    } catch (exportError: Throwable) {
-                        val original = replayFailure
-                        if (original != null) original.addSuppressed(exportError) else throw exportError
+                        Replay(compose, scenario, time, cardioAlarm, settings, database, artifacts, crashes).run(script)
+                    } catch (error: Throwable) {
+                        replayFailure = error
+                        artifacts.failure(error.playtestError(), null)
+                        throw error
+                    } finally {
+                        // Export while the foreground graph is still alive, including on a failed step.
+                        try {
+                            writeBackup()
+                        } catch (exportError: Throwable) {
+                            val original = replayFailure
+                            if (original != null) original.addSuppressed(exportError) else throw exportError
+                        }
                     }
                 }
             }
@@ -115,7 +120,7 @@ class PlaytestReplayTest {
             if (launchAttempted && artifacts.stepsRun == 0) {
                 try {
                     StepDeadline(1_000).run(compose) {
-                        compose.writeShot(File(artifacts.directory, "steps/000-FAILED-launch.png"), compose.density.density)
+                        compose.writePlaytestShot(File(artifacts.directory, "steps/000-FAILED-launch.png"), compose.density.density)
                     }
                 } catch (captureError: Throwable) {
                     error.addSuppressed(captureError)

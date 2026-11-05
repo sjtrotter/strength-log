@@ -43,10 +43,10 @@ class BackupV12Test {
     private fun decode(document: BackupDocument) = codec.decode(codec.encode(document))
 
     @Test fun `v12 round trip preserves ordered specs actuals sources ids and activity`() {
-        val before = document()
+        val before = document().copy(schemaVersion = 12)
         val text = codec.encode(before)
         val decoded = codec.decode(text)
-        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
+        assertEquals(12, decoded.schemaVersion)
         assertEquals(before, decoded)
         val snapshot = decoded.toSnapshot()
         assertEquals("TRACK_RUN", snapshot.cardioSessions.single().activity)
@@ -62,8 +62,9 @@ class BackupV12Test {
         assertEquals(CardioSetStatus.SKIPPED, results.last().status)
         assertNull(results.last().metres)
         assertNull(results.last().distanceSource)
-        assertEquals(before, snapshot.toDocument())
-        assertEquals(text, codec.encode(snapshot.toDocument()))
+        val reexported = snapshot.toDocument().withoutV17Fields().copy(schemaVersion = 12)
+        assertEquals(before, reexported)
+        assertEquals(text, codec.encode(reexported))
     }
 
     @Test fun `v12 restores a twenty second session with one shortened set`() {

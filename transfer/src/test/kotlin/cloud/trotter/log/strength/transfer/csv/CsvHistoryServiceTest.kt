@@ -192,7 +192,7 @@ class CsvHistoryServiceTest {
                 dayTitle = "Day A",
                 startedAt = 1_720_000_000_123L,
                 completedAt = 1_720_000_900_789L,
-                bodyweightLb = 180,
+                bodyweightLb = 180.0,
             ),
             sets = listOf(
                 SessionSetEntity(
@@ -233,7 +233,7 @@ class CsvHistoryServiceTest {
             first.copy(setIndex = 2, weightLb = 235.0, reps = 3),
         )
         repo.history.importSessionHistory(
-            listOf(ImportedSession(WorkoutSessionEntity(0, "A", "Day A", null, 1_720_000_900_789L, 180), sets)),
+            listOf(ImportedSession(WorkoutSessionEntity(0, "A", "Day A", null, 1_720_000_900_789L, 180.0), sets)),
             emptyList(),
         )
         val before = repo.history.exportSessionHistory()

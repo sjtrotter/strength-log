@@ -9,7 +9,13 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,7 +76,7 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     private fun session(completedAt: Long, dayTitle: String = "Lower") =
-        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
+        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180.0)
 
     private fun set(exerciseId: String, name: String, kind: SetKind, weightLb: Double, reps: Int, done: Boolean) =
         SessionSetEntity(
@@ -188,6 +194,88 @@ class HistoryRepositoryHistoryReadTest {
     @Test
     fun lastPerformedOfAnEmptyIdListIsAnEmptyMapWithoutQuerying() = runTest {
         assertEquals(emptyMap<String, LastPerformed>(), repo.lastPerformed(emptyList()))
+    }
+
+    @Test
+    fun `slotSessions returns planned and actual rows for the newest session of the day and nothing without plannedJson`() = runTest {
+        assertTrue(repo.slotSessions(10L, "A").isEmpty())
+        val planned = listOf(LoggedSet(70.0, 5, SetKind.WORK), LoggedSet(70.0, 5, SetKind.EXTRA))
+        val encoded = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = planned.map(SetDto::of)),
+            PlannedTrackDto(1, "ez_curl", Slot.SS, retired = true, sets = planned.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = encoded), emptyList()),
+            ImportedSession(session(2_000L).copy(planId = 10L, plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.EXTRA, 75.0, 6, false).copy(setIndex = 1, plannedIndex = 1, trackPosition = 0),
+                set("bb_back_squat", "Squat", SetKind.WORK, 70.0, 4, true).copy(
+                    setIndex = 0, plannedIndex = 0, trackPosition = 0, seconds = 30, startedAtMillis = 100L, completedAtMillis = 200L, kind = "FUTURE",
+                ),
+                set("bb_back_squat", "Squat", SetKind.EXTRA, 80.0, 2, true).copy(setIndex = 2, trackPosition = 0),
+                set("ez_curl", "Curl", SetKind.WORK, 50.0, 10, true).copy(slot = Slot.SS, plannedIndex = 0, trackPosition = 1),
+            )),
+            ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), emptyList()),
+            ImportedSession(session(4_000L).copy(planId = 20L, plannedJson = encoded), emptyList()),
+        ), emptyList())
+
+        val result = repo.slotSessions(10L, "A")
+        assertEquals(setOf("bb_back_squat" to Slot.MAIN, "ez_curl" to Slot.SS), result.keys)
+        assertEquals(SlotSession(planned, listOf(
+            LoggedSet(70.0, 4, SetKind.WORK, done = true, seconds = 30, startedAtMillis = 100L, completedAtMillis = 200L, plannedIndex = 0),
+            LoggedSet(75.0, 6, SetKind.EXTRA, plannedIndex = 1),
+            LoggedSet(80.0, 2, SetKind.EXTRA, done = true),
+        ), false), result["bb_back_squat" to Slot.MAIN])
+        assertEquals(SlotSession(planned, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = true, plannedIndex = 0)), true), result["ez_curl" to Slot.SS])
+
+        // A tied completion uses the newer session id, even when that archive has no prescription.
+        repo.importSessionHistory(listOf(ImportedSession(session(2_000L).copy(planId = 10L), emptyList())), emptyList())
+        assertTrue(repo.slotSessions(10L, "A").isEmpty())
+    }
+
+    @Test
+    fun `slotSessions keeps the last duplicate track and its own actuals so a miss earns no offer`() = runTest {
+        val first = listOf(LoggedSet(100.0, 5, SetKind.WORK))
+        val second = listOf(LoggedSet(50.0, 5, SetKind.WORK))
+        val encoded = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = first.map(SetDto::of)),
+            PlannedTrackDto(1, "bb_back_squat", Slot.MAIN, sets = second.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 100.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+                set("bb_back_squat", "Squat", SetKind.WORK, 50.0, 4, true).copy(trackPosition = 1, plannedIndex = 0),
+            )),
+        ), emptyList())
+
+        val result = repo.slotSessions(10L, "A")
+
+        assertEquals(setOf("bb_back_squat" to Slot.MAIN), result.keys)
+        val track = result.getValue("bb_back_squat" to Slot.MAIN)
+        assertEquals(SlotSession(second, listOf(LoggedSet(50.0, 4, SetKind.WORK, done = true, plannedIndex = 0)), false), track)
+        assertNull(CarryForward.offer(track.planned, track.actual, WeightUnit.LB))
+    }
+
+    @Test
+    fun `lastPerformedForSlots prefers the same plan day and slot and labels the fallback`() = runTest {
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, planName = "Own"), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 70.0, 5, true),
+                set("bb_back_squat", "Squat", SetKind.WORK, 65.0, 8, true),
+            )),
+            ImportedSession(session(2_000L).copy(planId = 10L, planName = "Own", dayId = "B"), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 80.0, 5, true),
+                set("ez_curl", "Curl", SetKind.WORK, 50.0, 10, true).copy(slot = Slot.SS, seconds = 20),
+                set("ez_curl", "Curl", SetKind.WORK, 100.0, 10, false),
+            )),
+        ), emptyList())
+        val result = repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat", "ez_curl", "unknown"))
+        assertEquals(4, result.size)
+        assertEquals(SlotLast(LastPerformed(70.0, 5), true, 10L, "Own", "A"), result["bb_back_squat" to Slot.MAIN])
+        assertEquals(SlotLast(LastPerformed(80.0, 5), false, 10L, "Own", "B"), result["bb_back_squat" to Slot.SS])
+        for (slot in listOf(Slot.MAIN, Slot.SS)) {
+            assertEquals(SlotLast(LastPerformed(50.0, 10, 20), false, 10L, "Own", "B"), result["ez_curl" to slot])
+        }
+        assertTrue(repo.lastPerformedForSlots(10L, "A", emptyList()).isEmpty())
     }
 
     @Test

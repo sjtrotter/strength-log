@@ -357,6 +357,7 @@ fun DayScreen(
             cardioTitle = if (!hasUnloggedSets) {
                 state.cardio?.takeIf { it.loggedSeconds == null }?.block?.activity?.let { cardioActivityName(it) }
             } else null,
+            cardioStarted = state.cardio?.run?.startedAt != null,
             onConfirm = {
                 confirmingPartialFinish = false
                 AppHaptics.perform(view, AppHaptics.Cue.FINISH)
@@ -393,6 +394,7 @@ fun DayScreen(
 
     if (confirmingClearChecks && state.runOpen) {
         ClearChecksConfirmDialog(
+            cardioSaved = state.cardio?.loggedSeconds != null,
             onConfirm = {
                 confirmingClearChecks = false
                 actions.onDiscardWorkout()
@@ -415,6 +417,7 @@ private fun FinishDayConfirmDialog(
     totalSets: Int,
     onlyPartnerSetsOpen: Boolean,
     cardioTitle: String?,
+    cardioStarted: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -422,7 +425,10 @@ private fun FinishDayConfirmDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (cardioTitle != null) stringResource(R.string.day_finish_without_cardio_title, cardioTitle)
+                if (cardioTitle != null) stringResource(
+                    if (cardioStarted) R.string.day_finish_save_cardio_title else R.string.day_finish_without_cardio_title,
+                    cardioTitle,
+                )
                 else if (onlyPartnerSetsOpen) stringResource(R.string.day_finish_partner_open_confirm_title)
                 else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
             )
@@ -446,11 +452,11 @@ private fun FinishDayConfirmDialog(
 }
 
 @Composable
-private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun ClearChecksConfirmDialog(cardioSaved: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.day_clear_checks_confirm_title)) },
-        text = { Text(stringResource(R.string.day_clear_checks_confirm_body)) },
+        text = { Text(stringResource(if (cardioSaved) R.string.day_clear_checks_confirm_body_cardio_saved else R.string.day_clear_checks_confirm_body)) },
         confirmButton = {
             DialogAction(
                 label = stringResource(R.string.day_clear_checks_confirm_button),
@@ -491,6 +497,7 @@ data class DayActions(
     val onOpenCardioDistance: () -> Unit = {},
     val onRequestCardioDistance: (CardioSetAction) -> Unit = {},
     val onCardioDistanceChange: (String) -> Unit = {},
+    val onCardioRunDistanceChange: (String) -> Unit = {},
     val onSaveCardioDistance: (CardioSetAction) -> Unit = {},
     val onRetryCardioSave: () -> Unit = {},
     val onCardioScreenLive: (Boolean) -> Unit = {},

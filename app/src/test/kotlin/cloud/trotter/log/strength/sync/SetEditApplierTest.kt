@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.seeding.SetEdit
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.data.writeTestRowsPaired
@@ -64,6 +65,7 @@ class SetEditApplierTest {
     private lateinit var db: StrengthDatabase
     private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
+    private lateinit var settings: SettingsStore
     private lateinit var storeScope: CoroutineScope
     private lateinit var markers: RecordingMarkers
     private lateinit var applier: SetEditApplier
@@ -87,7 +89,7 @@ class SetEditApplierTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-settings", ".preferences_pb")
         }
-        val settings = SettingsStore(dataStore)
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -203,6 +205,28 @@ class SetEditApplierTest {
     private suspend fun seedOpenProgram() {
         seedProgram()
         startRun()
+    }
+
+    @Test fun `watch weight edit passes kg unit and performed equipment to cascade`() = runTest {
+        settings.setUnit(WeightUnit.KG)
+        seedProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val runId = db.programDao().day(plan, "A")!!.nextRunId
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = squatId(), slot = Slot.MAIN, setIndex = 4,
+            weightLb = WeightUnit.KG.toLb(20.0), editedAtMillis = 1L, planId = plan, runId = runId,
+            exerciseId = "bb_back_squat",
+        )))
+        track(squatId(), Slot.MAIN)!!.forEach { assertEquals(20.0, WeightUnit.KG.fromLb(it.weightLb), 1e-9) }
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = squatId(), slot = Slot.MAIN, setIndex = 4,
+            weightLb = WeightUnit.KG.toLb(42.5), editedAtMillis = 2L, planId = plan, runId = runId,
+            exerciseId = "bb_back_squat",
+        )))
+        val expected = listOf(22.5, 30.0, 35.0, 37.5, 42.5, 32.5)
+        track(squatId(), Slot.MAIN)!!.zip(expected).forEach { (row, kg) ->
+            assertEquals(kg, WeightUnit.KG.fromLb(row.weightLb), 1e-9)
+        }
     }
 
     /** [F] */
@@ -1095,7 +1119,7 @@ class SetEditApplierTest {
         repo.plans.selectPlan(planQ)
         db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
-            completedAt = 200L, bodyweightLb = 180, planId = planQ,
+            completedAt = 200L, bodyweightLb = 180.0, planId = planQ,
         ))
         val qLogs = db.programDao().logsForPlan(planQ)
         val delta = SetEditDelta(
@@ -1139,7 +1163,7 @@ class SetEditApplierTest {
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = false) })
         db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
-            completedAt = 200L, bodyweightLb = 180, planId = planP,
+            completedAt = 200L, bodyweightLb = 180.0, planId = planP,
         ))
         val planQ = repo.plans.duplicatePlan(planP, "Running")
         db.planDao().updateRecipe(planQ, PlanRecipeJson.encode(WizardAnswers(equipment = emptySet())))

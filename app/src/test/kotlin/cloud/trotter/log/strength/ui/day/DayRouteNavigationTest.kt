@@ -120,6 +120,14 @@ class DayRouteNavigationTest {
     fun topBarBackPopsDuringCardio() = assertBackPops(timedReps = false, systemBack = false)
 
     @Test
+    fun systemBackPopsDuringCardioIntervals() =
+        assertBackPops(timedReps = false, systemBack = true, intervals = true)
+
+    @Test
+    fun topBarBackPopsDuringCardioIntervals() =
+        assertBackPops(timedReps = false, systemBack = false, intervals = true)
+
+    @Test
     fun systemBackPopsDuringTimedReps() = assertBackPops(timedReps = true, systemBack = true)
 
     @Test
@@ -217,16 +225,17 @@ class DayRouteNavigationTest {
         }
     }
 
-    private fun assertBackPops(timedReps: Boolean, systemBack: Boolean) {
+    private fun assertBackPops(timedReps: Boolean, systemBack: Boolean, intervals: Boolean = false) {
         runBlocking {
             repo.replaceProgram(Program(listOf(ProgramDay(
                 "A", "Workout", "",
                 exercises = if (timedReps) listOf(ProgramExercise(
                     "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
                 )) else emptyList(),
-                cardioBlock = if (timedReps) null else CardioBlock(CardioActivity.TRACK_RUN, listOf(
-                    CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
-                )),
+                cardioBlock = if (timedReps) null else CardioBlock(CardioActivity.TRACK_RUN, buildList {
+                    add(CardioSetSpec(CardioRole.WORK, Measure.Time(120)))
+                    if (intervals) add(CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120)))
+                }),
             ))))
         }
         rule.runOnUiThread {
@@ -282,7 +291,8 @@ class DayRouteNavigationTest {
             assertNull(viewModel.finisher.receipt.value)
             assertNull(viewModel.uiState.value.openSheet)
             assertTrue(view.keepScreenOn)
-            assertNotNull(alarm.deadline)
+            if (timedReps || intervals) assertNotNull(alarm.deadline)
+            else assertNull(alarm.deadline)
         }
 
         if (systemBack) rule.runOnUiThread { backDispatcher.onBackPressed() }

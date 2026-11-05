@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb \u00d7 5"
+        "text": "165 lb × 5"
       }
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "expect": {
-        "text": "10 lb \u00d7 12"
+        "text": "10 lb × 12"
       }
     },
     {
@@ -359,7 +359,7 @@
     },
     {
       "expect": {
-        "text": "115 lb \u00d7 8"
+        "text": "115 lb × 8"
       }
     },
     {
@@ -411,7 +411,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Bench 165: 5, 5, 5, about two reps left on the last set. Rows 115: 8, 8, 8. Pull-ups 6, 6, 5. Raises with 10s: 12, 12. Brisk walk outside afterward: 15 minutes, distance unknown. Walk recorded here because I could not change the cardio activity. Dumbbell numbers are per hand."
+        "value": "Bench felt good, 2 reps left. Brisk walk outside: 15 min, distance unknown. DB weights per hand."
       }
     },
     {
@@ -438,7 +438,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day B"
+        "text": "4-day upper/lower · Day B"
       }
     },
     {
@@ -533,7 +533,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day B"
+        "text": "4-day upper/lower · Day B"
       }
     },
     {
@@ -546,7 +546,7 @@
     },
     {
       "expect": {
-        "text": "265 lb \u00d7 5"
+        "text": "265 lb × 5"
       }
     },
     {
@@ -557,7 +557,7 @@
     },
     {
       "tap": {
-        "text": "Log 265 lb \u00d7 5"
+        "text": "Log 265 lb × 5"
       }
     },
     {
@@ -583,14 +583,254 @@
       "checkpoint": "thursday-add-exercise-chooser"
     },
     {
-      "type": {
-        "text": "Search exercises",
-        "value": "squat",
-        "ime": "done"
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-return-to-editor-use-existing-squat-slot"
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat",
+        "index": 1
       }
     },
     {
-      "checkpoint": "thursday-squat-search-options"
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "thursday-squat-replacement-options"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "thursday-light-back-squat-plan-target"
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Single-Leg Calf Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "15"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "thursday-calves-two-fifteens-forty-per-hand"
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-back-squat-before-working-sets"
+    },
+    {
+      "expect": {
+        "text": "185 lb × 6"
+      }
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "checkpoint": "thursday-three-easy-squat-sets-logged"
+    },
+    {
+      "expect": {
+        "text": "40 lb × 15"
+      }
+    },
+    {
+      "note": "Standing dumbbell calf raises with 40s, two sets of 15 each side. Using the available DB Single-Leg Calf Raise entry; weights are per hand."
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 15"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 15"
+      }
+    },
+    {
+      "checkpoint": "thursday-calves-logged-side-planks-remain"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Suitcase Carry"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "thursday-core-replacement-options"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "plank"
+      }
+    },
+    {
+      "checkpoint": "thursday-search-side-plank-replacement"
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "thursday-side-plank-replaces-carry"
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "thursday-side-plank-prescription-fields"
     }
   ]
 }

@@ -165,7 +165,7 @@ class JournalBuilderTest {
             WeightUnit.LB,
             zone,
         ).single()
-        assertEquals("GOAL 235", below.goalLabel)
+        assertEquals("235", below.goalLabel)
         assertFalse(below.goalMet)
 
         val met = JournalBuilder.trajectories(
@@ -188,18 +188,21 @@ class JournalBuilderTest {
 
         assertFalse(card.plotted)
         assertEquals("190", card.latestLabel)
-        assertEquals("1 SESSION · SINCE MAY 4", card.caption)
+        assertEquals(LocalDate.of(2026, 5, 4), card.points.single().date)
     }
 
     @Test
-    fun trajectory_caption_counts_sessions_and_dates_the_first_one() {
+    fun trajectory_points_carry_each_sessions_date() {
         val rows = listOf(
             top("bb_back_squat", LocalDate.of(2026, 5, 4), 190.0),
             top("bb_back_squat", LocalDate.of(2026, 6, 1), 200.0),
             top("bb_back_squat", LocalDate.of(2026, 7, 1), 205.0),
         )
         val card = JournalBuilder.trajectories(listOf(squat), rows, WeightUnit.LB, zone).single()
-        assertEquals("3 SESSIONS · SINCE MAY 4", card.caption)
+        assertEquals(
+            listOf(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 1)),
+            card.points.map { it.date },
+        )
     }
 
     @Test
@@ -212,12 +215,10 @@ class JournalBuilderTest {
 
         assertTrue(card.axisMin < 180f, "the lightest top set has headroom below it")
         assertTrue(card.axisMax > 235f, "the goal line above every point is still on screen")
-        assertEquals(listOf(180f, 200f), card.gridlines.map { it.value })
-        assertEquals(listOf("180", "200"), card.gridlines.map { it.label })
     }
 
     @Test
-    fun trajectory_flat_series_still_has_a_usable_axis_and_one_gridline() {
+    fun trajectory_flat_series_still_has_a_usable_axis() {
         val rows = listOf(
             top("bb_back_squat", today.minusDays(5), 235.0),
             top("bb_back_squat", today, 235.0),
@@ -225,7 +226,6 @@ class JournalBuilderTest {
         val card = JournalBuilder.trajectories(listOf(squat), rows, WeightUnit.LB, zone).single()
 
         assertTrue(card.axisMax > card.axisMin)
-        assertEquals(1, card.gridlines.size)
     }
 
     @Test
@@ -241,7 +241,8 @@ class JournalBuilderTest {
         ).single()
 
         assertEquals(100f, card.points.last().value, 0.01f)
-        assertEquals("GOAL 106.59", card.goalLabel)
+        assertEquals("106.59", card.goalLabel)
+        assertEquals(WeightUnit.KG, card.unit)
     }
 
     @Test
@@ -270,33 +271,47 @@ class JournalBuilderTest {
             ),
         )
 
-        assertEquals(JournalBuilder.VOLUME_WEEKS, chart.bars.size)
-        assertTrue(chart.bars.last().trained, "this week is the last bar")
-        assertFalse(chart.bars[JournalBuilder.VOLUME_WEEKS - 2].trained, "last week had no session")
-        assertEquals(0f, chart.bars[JournalBuilder.VOLUME_WEEKS - 2].fraction)
-        assertEquals(1f, chart.bars.last().fraction, "12,000 lb is the peak week")
-        assertEquals(0.5f, chart.bars[JournalBuilder.VOLUME_WEEKS - 3].fraction)
+        assertEquals(JournalBuilder.VOLUME_WEEKS, chart.weeks.size)
+        assertEquals(LocalDate.of(2026, 7, 13), chart.weeks.first().startDate)
+        assertEquals(LocalDate.of(2026, 4, 27), chart.weeks.last().startDate)
+        assertTrue(chart.weeks.first().trained)
+        assertEquals(12_000.0, chart.weeks.first().total)
+        assertFalse(chart.weeks[1].trained, "last week is verified to have no sessions")
+        assertEquals(0.0, chart.weeks[1].total)
+        assertEquals(6_000.0, chart.weeks[2].total)
+        assertTrue(chart.weeks.all { it.unit == WeightUnit.LB })
     }
 
     @Test
-    fun volume_labels_only_the_peak_week_and_the_current_one() {
-        val chart = assertNotNull(
-            JournalBuilder.volume(
-                listOf(
-                    tonnage(today.minusWeeks(4), 20_000.0),
-                    tonnage(today.minusWeeks(2), 6_000.0),
-                    tonnage(today, 12_400.0),
-                ),
-                WeightUnit.LB,
-                today,
-                zone,
-            ),
-        )
+    fun volume_keeps_exact_totals_for_two_sessions_of_three_sets_of_five_at_100_lb() {
+        val chart = assertNotNull(JournalBuilder.volume(
+            listOf(tonnage(today, 3 * 5 * 100.0), tonnage(today.minusDays(1), 3 * 5 * 100.0)),
+            WeightUnit.LB, today, zone,
+        ))
 
-        assertEquals(2, chart.bars.count { it.label != null })
-        assertEquals("20.0K", chart.bars[JournalBuilder.VOLUME_WEEKS - 5].label)
-        assertEquals("12.4K", chart.bars.last().label)
-        assertNull(chart.bars[JournalBuilder.VOLUME_WEEKS - 3].label)
+        assertEquals(3_000.0, chart.weeks.first().total)
+        assertEquals(WeightUnit.LB, chart.weeks.first().unit)
+    }
+
+    @Test
+    fun volume_sums_three_sets_across_two_sessions_to_exactly_1500_lb() {
+        val chart = assertNotNull(JournalBuilder.volume(
+            listOf(tonnage(today, 2 * 5 * 100.0), tonnage(today.minusDays(1), 1 * 5 * 100.0)),
+            WeightUnit.LB, today, zone,
+        ))
+
+        assertEquals(1_500.0, chart.weeks.first().total)
+    }
+
+    @Test
+    fun volume_converts_totals_to_the_display_unit_without_changing_week_boundaries() {
+        val chart = assertNotNull(JournalBuilder.volume(
+            listOf(tonnage(today, WeightUnit.KG.toLb(1500.0))), WeightUnit.KG, today, zone,
+        ))
+
+        assertEquals(1500.0, assertNotNull(chart.weeks.first().total), 0.00001)
+        assertEquals(WeightUnit.KG, chart.weeks.first().unit)
+        assertEquals(LocalDate.of(2026, 7, 13), chart.weeks.first().startDate)
     }
 
     @Test
@@ -307,13 +322,6 @@ class JournalBuilderTest {
         assertNull(JournalBuilder.volume(emptyList(), WeightUnit.LB, today, zone))
     }
 
-    @Test
-    fun tonnageLabel_stays_one_glanceable_token_wide() {
-        assertEquals("840", JournalBuilder.tonnageLabel(840.0))
-        assertEquals("12.4K", JournalBuilder.tonnageLabel(12_400.0))
-        assertEquals("124K", JournalBuilder.tonnageLabel(124_000.0))
-    }
-
     // --- calendar -------------------------------------------------------------
 
     @Test
@@ -322,7 +330,7 @@ class JournalBuilderTest {
             JournalBuilder.calendar(listOf(summary(1, "A", today)), monthOffset = 0, today = today, zone = zone),
         )
 
-        assertEquals("JULY 2026", month.title)
+        assertEquals("July 2026", month.title)
         assertEquals(31, month.days.size)
         // 2026-07-01 is a Wednesday: Monday and Tuesday lead the grid.
         assertEquals(2, month.leadingBlanks)
@@ -416,16 +424,16 @@ class JournalBuilderTest {
         assertFalse(current.canPageForward)
 
         val june = assertNotNull(JournalBuilder.calendar(sessions, -1, today, zone))
-        assertEquals("JUNE 2026", june.title)
+        assertEquals("June 2026", june.title)
         assertTrue(june.canPageBack, "May still has a session")
         assertTrue(june.canPageForward)
 
         val may = assertNotNull(JournalBuilder.calendar(sessions, -2, today, zone))
-        assertEquals("MAY 2026", may.title)
+        assertEquals("May 2026", may.title)
         assertFalse(may.canPageBack, "the first session's month is the floor")
 
         // A positive offset can never produce a future month.
-        assertEquals("JULY 2026", assertNotNull(JournalBuilder.calendar(sessions, 3, today, zone)).title)
+        assertEquals("July 2026", assertNotNull(JournalBuilder.calendar(sessions, 3, today, zone)).title)
     }
 
     @Test

@@ -64,23 +64,20 @@ class A11ySemanticsTest {
     }
 
     @Test
-    fun stepperSegmentsExposeTheirDecreaseAndIncreaseLabels() {
+    fun numberFieldExposesItsVisibleLabel() {
         composeTestRule.setContent {
             AppTheme {
-                Stepper(
+                NumberField(
                     value = 135.0,
                     onValueChange = {},
-                    step = { WeightStepper.increment(it, WeightUnit.LB) },
                     format = WeightStepper::format,
                     round = { WeightStepper.round(it, WeightUnit.LB) },
-                    decreaseDescription = "Decrease weight",
-                    increaseDescription = "Increase weight",
+                    label = "Weight (lb)",
                 )
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Decrease weight").assertExists()
-        composeTestRule.onNodeWithContentDescription("Increase weight").assertExists()
+        composeTestRule.onNodeWithText("Weight (lb)").assertExists()
     }
 
     @Test
@@ -167,34 +164,6 @@ class A11ySemanticsTest {
         toggle.assertIsOff()
         toggle.performClick()
         toggle.assertIsOn()
-    }
-
-    @Test
-    fun selectionCardExposesSelectedRadioButtonContract() {
-        composeTestRule.setContent {
-            AppTheme {
-                SelectionCard(title = "Balanced", selected = true, onClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText("Balanced")
-            .assertIsSelected()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-    }
-
-    @Test
-    fun multiChoiceSelectionCardIsACheckboxNotARadioButton() {
-        // Equipment lists toggle several of many; announcing exclusivity there
-        // would promise behavior the control doesn't have.
-        composeTestRule.setContent {
-            AppTheme {
-                SelectionCard(title = "Barbell", selected = true, onClick = {}, mode = SelectionMode.Check)
-            }
-        }
-
-        composeTestRule.onNodeWithText("Barbell")
-            .assertIsOn()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
     }
 
     @Test

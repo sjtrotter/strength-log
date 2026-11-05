@@ -21,7 +21,7 @@ class YouViewModel @Inject constructor(
     private val repo: PlanRepository,
     private val settings: SettingsStore,
 ) : ViewModel() {
-    // Steppers send absolute values; a fair lock keeps two quick taps committing in tap order.
+    // Absolute edits commit in order, including quick focus changes between fields.
     private val writeOrder = Mutex()
 
     val uiState = combine(repo.configFlow, settings.unitFlow) { config, unit ->

@@ -14,8 +14,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.audit.AuditDestination
 import cloud.trotter.log.strength.audit.auditHistoryFixture
@@ -80,6 +82,33 @@ class LogScreenInteractionTest {
             }
         }
         if (restoration == null) composeTestRule.setContent(content) else restoration.setContent(content)
+    }
+
+    @Test
+    fun editingUsesLabeledWeightAndRepsFieldsAndRejectsBlankWeight() {
+        val weights = mutableListOf<Double>()
+        val reps = mutableListOf<Int>()
+        val session = logSessionFixture(true).copy(editing = true, exerciseGroups = listOf(
+            SessionExerciseGroup("Back Squat", listOf(SessionSetSummary("TOP", "225×5", id = 1,
+                weightLb = 225.0, reps = 5, done = true))),
+        ))
+        composeTestRule.setContent { AppTheme {
+            LogScreen(LogUiState(sessions = listOf(session)), LogActions(
+                onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onWeightChange = { _, id, value -> assertEquals(1L, id); weights += value },
+                onRepsChange = { _, id, value -> assertEquals(1L, id); reps += value },
+                onStartSession = {}, onSetUpProgram = {},
+            ))
+        } }
+        composeTestRule.onNodeWithText("Weight (lb)").performScrollTo().performClick().performTextReplacement("232")
+        composeTestRule.onNodeWithText("Weight (lb)").performImeAction()
+        composeTestRule.onNodeWithText("Reps").performClick().performTextReplacement("8")
+        composeTestRule.onNodeWithText("Reps").performImeAction()
+        composeTestRule.onNodeWithText("Weight (lb)").performClick().performTextReplacement("")
+        composeTestRule.onNodeWithText("Weight (lb)").performImeAction()
+        assertEquals(listOf(230.0), weights)
+        assertEquals(listOf(8), reps)
     }
 
     @Test

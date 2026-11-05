@@ -32,7 +32,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
 
     @Test fun shot01HistoryEmpty() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("history/01-history-empty") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(), logActions()) } }
+        rule.auditShot("history/01-history-empty") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(nextDayId = "B"), logActions()) } }
     }
 
     @Test fun shot02HistoryOne() {
@@ -149,7 +149,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
 
     @Test fun shot21HistoryExternal() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("history/21-history-external") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(health = HealthSectionUi(available = true, externalSessions = listOf(ExternalSessionRow("Afternoon strength", "Nov 3, 2026", "Training app")))), logActions()) } }
+        rule.auditShot("history/21-history-external") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(nextDayId = "B", health = HealthSectionUi(available = true, externalSessions = listOf(ExternalSessionRow("Afternoon strength", "Nov 3, 2026", "Training app")))), logActions()) } }
     }
 
     @Test fun shot22HistoryDeleteConfirm() {

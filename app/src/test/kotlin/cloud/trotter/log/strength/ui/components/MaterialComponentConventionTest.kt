@@ -18,7 +18,6 @@ class MaterialComponentConventionTest {
             .filter { it.isFile && it.extension == "kt" }
             .flatMap { file -> declarations(file).asSequence() }
             .filter { declaration -> declaration.looksHandRolled() }
-            .filterNot { declaration -> declaration.name in standingExceptions }
             .filterNot { declaration -> declaration.hasMaterialGapKDoc() }
             .map { declaration -> "${declaration.file.relativeTo(sourceRoot)}: ${declaration.name}" }
             .toList()
@@ -27,6 +26,17 @@ class MaterialComponentConventionTest {
             violations.isEmpty(),
             "Hand-rolled conventional UI must use M3 or carry KDoc explaining what M3 lacks:\n${violations.joinToString("\n")}",
         )
+    }
+
+    @Test
+    fun `retired form presentations stay deleted`() {
+        val components = sequenceOf(
+            File(System.getProperty("user.dir"), "app/src/main/kotlin/cloud/trotter/log/strength/ui/components"),
+            File(System.getProperty("user.dir"), "src/main/kotlin/cloud/trotter/log/strength/ui/components"),
+        ).first(File::isDirectory)
+        listOf("SwitchToggle.kt", "Stepper.kt").forEach {
+            assertTrue(!File(components, it).exists(), "$it is retired; use M3 rows, switches and number fields")
+        }
     }
 
     private fun declarations(file: File): List<Declaration> {
@@ -88,12 +98,5 @@ class MaterialComponentConventionTest {
         val thinRulePattern = Regex("""\.(?:height|width)\s*\(\s*1\.dp\s*\)""")
         val materialPattern = Regex("""\b(?:M3|Material 3)\b""", RegexOption.IGNORE_CASE)
         val gapPattern = Regex("""\b(?:lacks?|does not|cannot|no)\b""", RegexOption.IGNORE_CASE)
-
-        // Bespoke components with a what-M3-lacks KDoc
-        // (docs/briefs/material-migration.md). Wear/dial code is excluded by
-        // sourceRoot.
-        val standingExceptions = setOf(
-            "SelectionCard",
-        )
     }
 }

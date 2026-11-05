@@ -5,10 +5,11 @@ import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
@@ -24,7 +25,11 @@ import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,14 +37,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.launch
 
 /**
  * The Log screen ViewModel (PLAN.md A1; Health Connect read path; journal
@@ -70,6 +75,7 @@ import kotlinx.coroutines.launch
  * "Today" comes from [CivilTimeSource], not from a `Clock` read when some other
  * flow happens to emit — see [journal].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LogViewModel @Inject constructor(
     private val repo: HistoryRepository,
@@ -81,6 +87,7 @@ class LogViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
+    tracker: TrackerRepository,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
@@ -182,9 +189,13 @@ class LogViewModel @Inject constructor(
         bodyweightDismissed,
     ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
 
-    /** Only the empty state reads this, so it is the one bit of the
-     *  program the journal needs — not the program itself. */
-    private val hasProgram = plans.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
+    private val nextDay = tracker.todayTargetFlow.flatMapLatest { target ->
+        if (target is TodayTarget.Day) plans.programFor(target.plan.id).map { it.dayToShow(target.dayId)?.id }
+        else flowOf(null)
+    }.distinctUntilChanged()
+    private val programState = combine(plans.programFlow, nextDay) { program, dayId ->
+        (program.days.isNotEmpty() || dayId != null) to dayId
+    }
 
     private val backfillState = combine(settings.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
 
@@ -192,16 +203,17 @@ class LogViewModel @Inject constructor(
         historyItems,
         journal,
         healthUi,
-        hasProgram,
+        programState,
         backfillState,
-    ) { sessions, journalState, health, programExists, backfill ->
+    ) { sessions, journalState, health, program, backfill ->
         LogUiState(
             sessions = sessions,
             journal = journalState,
             // The offer counts the sessions this screen is already showing, so it
             // needs no query of its own and can't disagree with the list.
             health = health.copy(backfill = backfillOffer(health.publishing, backfill, sessions.size)),
-            hasProgram = programExists,
+            hasProgram = program.first,
+            nextDayId = program.second,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 

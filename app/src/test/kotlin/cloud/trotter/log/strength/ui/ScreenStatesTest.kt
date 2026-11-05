@@ -6,6 +6,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -158,12 +161,13 @@ class ScreenStatesTest {
     // --- empty journal ------------------------------------------------------
 
     @Test
-    fun emptyLogOffersToStartASession() {
+    fun emptyLogOffersTheNextDayInTheBottomSlot() {
         var started = 0
-        setLogContent(LogUiState(), onStartSession = { started++ })
+        setLogContent(LogUiState(nextDayId = "B"), onStartSession = { started++ })
 
         composeTestRule.onNodeWithText("No sessions yet").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Start a session").performClick()
+        composeTestRule.onNode(hasText("Start day B") and hasAnyAncestor(hasScrollAction())).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Start day B").assertIsDisplayed().performClick()
 
         assertEquals(1, started)
     }

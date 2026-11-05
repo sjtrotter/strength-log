@@ -4,8 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.HistoryRepository
-import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -70,6 +70,7 @@ class PreviewViewModel @Inject constructor(
                             SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
                         },
                         comparable = comparable,
+                        exerciseName = track.performed.entry?.name ?: track.performed.exerciseId,
                     )
                 }
                 PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },

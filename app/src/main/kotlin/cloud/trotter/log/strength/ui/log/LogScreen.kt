@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -64,26 +65,26 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.theme.ThemePreference
-import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CheckmarkToggle
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoteSheet
-import cloud.trotter.log.strength.ui.components.Stepper
+import cloud.trotter.log.strength.ui.components.NumberField
+import cloud.trotter.log.strength.ui.components.ScreenStateButton
+import cloud.trotter.log.strength.ui.components.emptyJournalAction
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.BorderStrong
-import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.theme.SummaryLine
 import cloud.trotter.log.strength.ui.theme.Surface3
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -172,27 +173,28 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     item(key = "empty") {
                         EmptyJournalState(
                             hasProgram = state.hasProgram,
+                            dayId = state.nextDayId,
                             onStartSession = actions.onStartSession,
                             onSetUpProgram = actions.onSetUpProgram,
+                            showAction = false,
                         )
                     }
-                } else {
-                    items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
-                        if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session, showPlanNames) else
-                            SessionCard(
-                                session,
-                                showPlanNames = showPlanNames,
-                                onToggle = { actions.onToggleExpanded(session.sessionId) },
-                                onShare = { actions.onShare(session.sessionId) },
-                                onToggleEdit = { actions.onToggleEdit(session.sessionId) },
-                                onWeightChange = { setId, value -> actions.onWeightChange(session.sessionId, setId, value) },
-                                onRepsChange = { setId, value -> actions.onRepsChange(session.sessionId, setId, value) },
-                                onSecondsChange = { setId, value -> actions.onSecondsChange(session.sessionId, setId, value) },
-                                onDoneChange = { setId, value -> actions.onDoneChange(session.sessionId, setId, value) },
-                                onDelete = { deleteConfirmation = session.sessionId },
-                                onEditNote = { noteSessionId = session.sessionId },
-                            )
-                    }
+                }
+                items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
+                    if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session, showPlanNames) else
+                        SessionCard(
+                            session,
+                            showPlanNames = showPlanNames,
+                            onToggle = { actions.onToggleExpanded(session.sessionId) },
+                            onShare = { actions.onShare(session.sessionId) },
+                            onToggleEdit = { actions.onToggleEdit(session.sessionId) },
+                            onWeightChange = { setId, value -> actions.onWeightChange(session.sessionId, setId, value) },
+                            onRepsChange = { setId, value -> actions.onRepsChange(session.sessionId, setId, value) },
+                            onSecondsChange = { setId, value -> actions.onSecondsChange(session.sessionId, setId, value) },
+                            onDoneChange = { setId, value -> actions.onDoneChange(session.sessionId, setId, value) },
+                            onDelete = { deleteConfirmation = session.sessionId },
+                            onEditNote = { noteSessionId = session.sessionId },
+                        )
                 }
 
                 if (state.health.externalSessions.isNotEmpty()) {
@@ -208,6 +210,11 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     }
                 }
                 item { Spacer(Modifier.size(8.dp)) }
+            }
+            if (state.sessions.isEmpty()) {
+                emptyJournalAction(state.hasProgram, state.nextDayId, actions.onStartSession, actions.onSetUpProgram)?.let {
+                    ScreenStateButton(it, Modifier.padding(16.dp))
+                }
             }
         }
         deleteConfirmation?.let { sessionId ->
@@ -403,43 +410,40 @@ private fun EditableExerciseGroupRow(
     Column(Modifier.padding(vertical = 4.dp)) {
         Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
         group.sets.forEach { set ->
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(set.kindLabel, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                 if (set.tracking == TrackingType.WEIGHTED ||
                     (set.tracking == TrackingType.TIMED && set.weightLb > 0.0)
                 ) {
-                    Stepper(
+                    NumberField(
+                        label = stringResource(R.string.form_weight_label, unit.name.lowercase()),
+                        decimalInput = true,
+                        weightInput = true,
                         value = unit.fromLb(set.weightLb),
                         onValueChange = { onWeightChange(set.id, it) },
-                        step = { WeightStepper.increment(it, unit) },
                         round = { WeightStepper.round(it, unit) },
                         format = WeightStepper::format,
                     )
                 }
                 if (set.tracking == TrackingType.TIMED) {
-                    Stepper(
+                    NumberField(
+                        label = stringResource(R.string.form_seconds_label),
                         value = set.seconds.toDouble(),
                         onValueChange = { onSecondsChange(set.id, it.toInt()) },
-                        step = { SecondsStepper.increment(it.toInt()).toDouble() },
-                        format = { SecondsStepper.format(it.toInt()) },
-                        valueTextStyle = StepperRepsValue,
+                        format = { it.toInt().toString() },
                     )
                 } else {
-                    Stepper(
+                    NumberField(
+                        label = stringResource(R.string.form_reps_label),
                         value = set.reps.toDouble(),
                         onValueChange = { onRepsChange(set.id, it.toInt()) },
-                        step = { 1.0 },
                         minValue = 1.0,
                         format = { it.toInt().toString() },
-                        valueTextStyle = StepperRepsValue,
-                        valueMinWidth = 36.dp,
                     )
                 }
-                Spacer(Modifier.weight(1f))
                 CheckmarkToggle(checked = set.done, onCheckedChange = { onDoneChange(set.id, it) })
             }
         }
@@ -448,6 +452,7 @@ private fun EditableExerciseGroupRow(
 
 @Composable
 private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEdit: () -> Unit, onDelete: () -> Unit, onEditNote: () -> Unit) {
+    val focusManager = LocalFocusManager.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (item.editing) {
             TextButton(onClick = onEditNote) {
@@ -461,7 +466,7 @@ private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEd
         }
         Spacer(Modifier.weight(1f))
         if (!item.editing) ShareButton(dayIndex = item.dayIndex, onClick = onShare)
-        TextButton(onClick = onToggleEdit) {
+        TextButton(onClick = { focusManager.clearFocus(); onToggleEdit() }) {
             Text(stringResource(if (item.editing) R.string.log_edit_done else R.string.log_edit), style = MaterialTheme.typography.labelLarge)
         }
     }

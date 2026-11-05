@@ -1,10 +1,11 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,26 +15,33 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cloud.trotter.log.strength.ui.day.activityLabel
-import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -47,28 +55,28 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.components.EmptyState
-import cloud.trotter.log.strength.ui.components.LoadingState
-import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.BodyweightStepper
+import cloud.trotter.log.strength.ui.components.BodyweightInput
+import cloud.trotter.log.strength.ui.components.EmptyState
 import cloud.trotter.log.strength.ui.components.LiftListItem
-import cloud.trotter.log.strength.ui.components.SelectionCard
-import cloud.trotter.log.strength.ui.components.SelectionMode
-import cloud.trotter.log.strength.ui.components.Stepper
-import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.wizardStepTransition
+import cloud.trotter.log.strength.ui.components.LoadingState
+import cloud.trotter.log.strength.ui.components.NumberField
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
+import cloud.trotter.log.strength.ui.day.activityLabel
+import cloud.trotter.log.strength.ui.day.plannedTimeDetail
+import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.readableWidth
-import cloud.trotter.log.strength.ui.text.resolve
+import cloud.trotter.log.strength.ui.wizardStepTransition
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
@@ -166,11 +174,12 @@ private fun EmphasisStep(state: WizardUiState, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         options.forEach { (value, copy) ->
-            SelectionCard(
-                title = copy.first,
-                subtitle = copy.second,
-                selected = state.answers.config.emphasis == value,
-                onClick = { actions.onEmphasisChange(value) },
+            ListItem(
+                headlineContent = { Text(copy.first) },
+                supportingContent = { Text(copy.second) },
+                leadingContent = { RadioButton(selected = state.answers.config.emphasis == value, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (state.answers.config.emphasis == value) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = state.answers.config.emphasis == value, role = Role.RadioButton, onClick = { actions.onEmphasisChange(value) }),
             )
         }
     }
@@ -211,17 +220,14 @@ private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> U
 private fun DaysPerWeekStep(answers: WizardAnswers, actions: WizardActions) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.wizard_days_per_week_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(10.dp))
-            Stepper(
+            NumberField(
+                label = stringResource(R.string.wizard_days_per_week_label),
+                maxValue = 6.0,
                 value = answers.daysPerWeek.toDouble(),
                 onValueChange = { actions.onDaysPerWeekChange(it.toInt()) },
-                step = { 1.0 },
                 minValue = 2.0,
                 format = { it.toInt().toString() },
                 round = { it.coerceIn(2.0, 6.0) },
-                decreaseDescription = stringResource(R.string.wizard_decrease_days_description),
-                increaseDescription = stringResource(R.string.wizard_increase_days_description),
             )
         }
     }
@@ -242,15 +248,16 @@ private fun SplitStep(state: WizardUiState, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         options.forEach { split ->
-            SelectionCard(
-                title = splitLabel(split),
-                subtitle = if (split == state.splitOptions.default) {
+            ListItem(
+                headlineContent = { Text(splitLabel(split)) },
+                supportingContent = { Text(if (split == state.splitOptions.default) {
                     stringResource(R.string.wizard_split_suggested, state.answers.daysPerWeek)
                 } else {
                     stringResource(R.string.wizard_split_alternative)
-                },
-                selected = state.answers.split == split,
-                onClick = { actions.onSplitChange(split) },
+                }) },
+                leadingContent = { RadioButton(selected = state.answers.split == split, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (state.answers.split == split) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = state.answers.split == split, role = Role.RadioButton, onClick = { actions.onSplitChange(split) }),
             )
         }
     }
@@ -275,11 +282,12 @@ private fun AnchorsStep(state: WizardUiState, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         AnchorScheme.entries.forEach { scheme ->
-            SelectionCard(
-                title = anchorSchemeLabel(scheme),
-                subtitle = anchorNames(scheme, answers.deadliftVariant),
-                selected = answers.anchorScheme == scheme,
-                onClick = { actions.onAnchorSchemeChange(scheme) },
+            ListItem(
+                headlineContent = { Text(anchorSchemeLabel(scheme)) },
+                supportingContent = { Text(anchorNames(scheme, answers.deadliftVariant)) },
+                leadingContent = { RadioButton(selected = answers.anchorScheme == scheme, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (answers.anchorScheme == scheme) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = answers.anchorScheme == scheme, role = Role.RadioButton, onClick = { actions.onAnchorSchemeChange(scheme) }),
             )
         }
     }
@@ -290,10 +298,11 @@ private fun AnchorsStep(state: WizardUiState, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         DeadliftVariant.entries.forEach { variant ->
-            SelectionCard(
-                title = deadliftLabel(variant),
-                selected = answers.deadliftVariant == variant,
-                onClick = { actions.onDeadliftVariantChange(variant) },
+            ListItem(
+                headlineContent = { Text(deadliftLabel(variant)) },
+                leadingContent = { RadioButton(selected = answers.deadliftVariant == variant, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (answers.deadliftVariant == variant) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = answers.deadliftVariant == variant, role = Role.RadioButton, onClick = { actions.onDeadliftVariantChange(variant) }),
             )
         }
     }
@@ -348,10 +357,11 @@ private fun CardioStep(answers: WizardAnswers, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         CardioMode.entries.forEach { mode ->
-            SelectionCard(
-                title = cardioModeLabel(mode),
-                selected = answers.cardio.mode == mode,
-                onClick = { actions.onCardioModeChange(mode) },
+            ListItem(
+                headlineContent = { Text(cardioModeLabel(mode)) },
+                leadingContent = { RadioButton(selected = answers.cardio.mode == mode, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (answers.cardio.mode == mode) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = answers.cardio.mode == mode, role = Role.RadioButton, onClick = { actions.onCardioModeChange(mode) }),
             )
         }
     }
@@ -363,19 +373,20 @@ private fun CardioStep(answers: WizardAnswers, actions: WizardActions) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
-                SelectionCard(
-                    title = cardioPlacementLabel(placement),
-                    selected = answers.cardio.placement == placement,
-                    onClick = { actions.onCardioPlacementChange(placement) },
+                ListItem(
+                    headlineContent = { Text(cardioPlacementLabel(placement)) },
+                    leadingContent = { RadioButton(selected = answers.cardio.placement == placement, onClick = null) },
+                    colors = ListItemDefaults.colors(containerColor = if (answers.cardio.placement == placement) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = answers.cardio.placement == placement, role = Role.RadioButton, onClick = { actions.onCardioPlacementChange(placement) }),
                 )
             }
         }
         Spacer(Modifier.size(4.dp))
         AppCard {
-            SwitchToggle(
-                label = stringResource(R.string.wizard_cardio_five_k_toggle),
-                checked = answers.cardio.fiveKGoal,
-                onCheckedChange = actions.onFiveKChange,
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.wizard_cardio_five_k_toggle)) },
+                trailingContent = { Switch(checked = answers.cardio.fiveKGoal, onCheckedChange = null) },
+                modifier = Modifier.fillMaxWidth().toggleable(value = answers.cardio.fiveKGoal, role = Role.Switch, onValueChange = actions.onFiveKChange),
             )
         }
     }
@@ -404,27 +415,25 @@ private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
     val answers = state.answers
     UnitChoice(unit = state.unit, onChange = actions.onUnitChange)
     AppCard {
-        BodyweightStepper(
-            canonicalLb = answers.config.bodyweightLb,
-            unit = state.unit,
-            label = stringResource(R.string.wizard_bodyweight_label, state.unit.name.lowercase()),
-            decreaseDescription = stringResource(R.string.wizard_decrease_bodyweight_description),
-            increaseDescription = stringResource(R.string.wizard_increase_bodyweight_description),
-            onCanonicalLbChange = actions.onBodyweightChange,
+        NumberField(
+            value = BodyweightInput.display(answers.config.bodyweightLb, state.unit),
+            onValueChange = { actions.onBodyweightChange(BodyweightInput.canonicalLb(it, state.unit)) },
+            label = stringResource(R.string.form_bodyweight_label, state.unit.name.lowercase()),
+            minValue = 1.0,
+            format = WeightStepper::format,
+            round = { WeightStepper.round(it, state.unit) },
+            decimalInput = true,
+            weightInput = true,
         )
     }
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.wizard_age_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
-            Stepper(
+            NumberField(
+                label = stringResource(R.string.form_age_label),
                 value = answers.config.age.toDouble(),
                 onValueChange = { actions.onAgeChange(it.toInt()) },
-                step = { 1.0 },
                 minValue = 1.0,
                 format = { it.toInt().toString() },
-                decreaseDescription = stringResource(R.string.wizard_decrease_age_description),
-                increaseDescription = stringResource(R.string.wizard_increase_age_description),
             )
         }
     }
@@ -434,10 +443,11 @@ private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ExperienceLevel.entries.forEach { level ->
-            SelectionCard(
-                title = levelLabel(level),
-                selected = answers.config.level == level,
-                onClick = { actions.onLevelChange(level) },
+            ListItem(
+                headlineContent = { Text(levelLabel(level)) },
+                leadingContent = { RadioButton(selected = answers.config.level == level, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (answers.config.level == level) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = answers.config.level == level, role = Role.RadioButton, onClick = { actions.onLevelChange(level) }),
             )
         }
     }
@@ -445,11 +455,12 @@ private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
 
 @Composable
 private fun UnitChoice(unit: WeightUnit, onChange: (WeightUnit) -> Unit) {
+    val focusManager = LocalFocusManager.current
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         WeightUnit.entries.forEachIndexed { index, option ->
             SegmentedButton(
                 selected = unit == option,
-                onClick = { onChange(option) },
+                onClick = { focusManager.clearFocus(); onChange(option) },
                 shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
                 label = { Text(option.name) },
             )
@@ -473,12 +484,20 @@ private fun EquipmentStep(answers: WizardAnswers, actions: WizardActions) {
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall,
     )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(onClick = {
+            Equipment.entries.filterNot { it in answers.equipment }.forEach(actions.onEquipmentToggle)
+        }) { Text(stringResource(R.string.form_select_all)) }
+        TextButton(onClick = {
+            Equipment.entries.filter { it in answers.equipment }.forEach(actions.onEquipmentToggle)
+        }) { Text(stringResource(R.string.form_clear_all)) }
+    }
     Equipment.entries.forEach { equip ->
-        SelectionCard(
-            title = equipmentLabel(equip),
-            selected = equip in answers.equipment,
-            onClick = { actions.onEquipmentToggle(equip) },
-            mode = SelectionMode.Check,
+        ListItem(
+            headlineContent = { Text(equipmentLabel(equip)) },
+            leadingContent = { Checkbox(checked = equip in answers.equipment, onCheckedChange = null) },
+            colors = ListItemDefaults.colors(containerColor = if (equip in answers.equipment) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(value = equip in answers.equipment, role = Role.Checkbox, onValueChange = { actions.onEquipmentToggle(equip) }),
         )
     }
 }
@@ -555,6 +574,7 @@ private fun WizardFooter(
     state: WizardUiState,
     actions: WizardActions,
 ) {
+    val focusManager = LocalFocusManager.current
     Column(Modifier.fillMaxWidth().background(Background)) {
         HorizontalDivider(thickness = 1.dp, color = Border)
         if (state.finishInFlight) LoadingState(stringResource(R.string.operation_wizard_creating))
@@ -576,7 +596,7 @@ private fun WizardFooter(
             // A restore rewrites the answers this footer navigates.
             if (!state.isFirstStep) {
                 OutlinedButton(
-                    onClick = actions.onBack,
+                    onClick = { focusManager.clearFocus(); actions.onBack() },
                     enabled = !state.restore.inFlight,
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                     shape = MaterialTheme.shapes.large,
@@ -586,7 +606,7 @@ private fun WizardFooter(
                 }
             }
             Button(
-                onClick = actions.onNext,
+                onClick = { focusManager.clearFocus(); actions.onNext() },
                 enabled = !state.restore.inFlight && !state.finishInFlight && !state.emptyRotation,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f).heightIn(min = 52.dp),
                 shape = MaterialTheme.shapes.large,

@@ -137,8 +137,14 @@ header, scrolling body and optional footer; commits are filled M3 buttons at lea
 buttons that move below the field at narrow widths or large font scales. Durations
 use m:ss and 30-second steps. Lift and day utilities live in header overflow menus.
 Edit day and picker results are `ListItem` rows; equipment filters are `FilterChip`s.
-The compact `SheetButton` is retired. The capsule `Stepper` remains only outside
-these workout sheets until the other caller migrations.
+The compact `SheetButton`, bespoke `SelectionCard` presentation, `SwitchToggle`
+and capsule `Stepper` are retired. A small M3 `SelectionCard` wrapper remains
+for Backup's CSV picker until that caller's owning slice inlines it. Choices use M3 `ListItem` rows with leading radio buttons or
+checkboxes, one row interaction and `surfaceContainerHighest` for selection.
+Only short choices such as units and theme use segmented buttons. Settings,
+You, wizard, custom exercise and History corrections use labeled M3
+`OutlinedTextField`s; rest durations open a minutes/seconds dialog. Custom
+exercises require a name and an explicit movement-pattern choice.
 
 ### Watch
 

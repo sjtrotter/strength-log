@@ -18,13 +18,12 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * tracking types never carries a stale "45 lb barbell" default into "optional
  * added load", which should start at none.
  *
- * [canSave] is the one validation rule the form has (name required, trimmed,
- * non-blank) — [CustomExerciseScreen] disables the save action on it so a
+ * [canSave] requires a non-blank name and an explicit movement pattern — [CustomExerciseScreen] disables the save action on it so a
  * blank/whitespace name can never reach [cloud.trotter.log.strength.data.CatalogRepository.addCustomExercise].
  */
 data class CustomExerciseUiState(
     val name: String = "",
-    val pattern: MovementPattern = MovementPattern.entries.first(),
+    val pattern: MovementPattern? = null,
     val equipment: Set<Equipment> = emptySet(),
     val perHand: Boolean = false,
     val tracking: TrackingType = TrackingType.WEIGHTED,
@@ -35,7 +34,7 @@ data class CustomExerciseUiState(
     val unit: WeightUnit = WeightUnit.LB,
     val saved: Boolean = false,
 ) {
-    val canSave: Boolean get() = name.trim().isNotEmpty()
+    val canSave: Boolean get() = name.trim().isNotEmpty() && pattern != null
 }
 
 /** Callbacks the screen forwards to [CustomExerciseViewModel] — mirrors

@@ -176,7 +176,8 @@ class StoreScreenshotsTest {
                     name = listOfNotNull(card.title, card.partnerTitle).joinToString(" + "),
                     working = listOfNotNull(working, partner).joinToString(" + "),
                     previous = listOfNotNull(card.exerciseId, card.partnerExerciseId).map { exerciseId ->
-                        PreviewPreviousResult(if (exerciseId == "bb_back_squat") "230 × 5" else null)
+                        PreviewPreviousResult(if (exerciseId == "bb_back_squat") "230 × 5" else null,
+                            exerciseName = if (exerciseId == card.exerciseId) card.title else card.partnerTitle.orEmpty())
                     },
                 )
             },

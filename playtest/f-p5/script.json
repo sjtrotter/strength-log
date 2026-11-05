@@ -27,10 +27,10 @@
   },
   {
    "type": {
-    "text": "Days per week"
-   },
-   "value": "2",
-   "ime": "done"
+    "text": "Days per week",
+    "value": "2",
+    "ime": "done"
+   }
   },
   {
    "checkpoint": "days-2"
@@ -96,17 +96,17 @@
   },
   {
    "type": {
-    "text": "Bodyweight (lb)"
-   },
-   "value": "150",
-   "ime": "done"
+    "text": "Bodyweight (lb)",
+    "value": "150",
+    "ime": "done"
+   }
   },
   {
    "type": {
-    "text": "Age"
-   },
-   "value": "29",
-   "ime": "done"
+    "text": "Age",
+    "value": "29",
+    "ime": "done"
+   }
   },
   {
    "tap": {

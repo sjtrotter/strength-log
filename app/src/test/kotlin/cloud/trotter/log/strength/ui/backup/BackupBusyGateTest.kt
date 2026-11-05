@@ -2,9 +2,15 @@ package cloud.trotter.log.strength.ui.backup
 
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -81,6 +87,20 @@ class BackupBusyGateTest {
             composeTestRule.activity.onBackPressedDispatcher.onBackPressed()
         }
         composeTestRule.waitForIdle()
+    }
+
+    @Test
+    fun idleScreenOffersExportBackupAndAllThreeSecondaryActions() {
+        setContent(BackupUiState())
+
+        // M3 button colors are not exposed in semantics. Keep the four
+        // operations reachable without introducing test-only UI properties.
+        listOf("Export backup", "Restore from backup", "Export CSV", "Import CSV").forEach { label ->
+            composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
+            composeTestRule.onNodeWithText(label)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+        }
     }
 
     @Test

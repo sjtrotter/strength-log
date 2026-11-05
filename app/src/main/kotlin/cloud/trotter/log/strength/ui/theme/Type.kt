@@ -152,13 +152,13 @@ val CardTitleSmall = TextStyle(
     lineHeight = 27.sp,
 )
 
-/** DONE button label — `.donebtn` in the reference. */
+/** Done button label — `.donebtn` in the reference. */
 val DoneButtonLabel = TextStyle(
     fontFamily = Condensed,
     fontWeight = FontWeight.Bold,
     fontSize = 18.sp,
     lineHeight = 18.sp,
-    letterSpacing = 1.5.sp,
+    letterSpacing = 0.5.sp,
 )
 
 /**
@@ -248,14 +248,14 @@ val AppTypography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 15.sp,
-        letterSpacing = 1.0.sp,
+        letterSpacing = 0.5.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = Condensed,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 14.sp,
-        letterSpacing = 1.2.sp,
+        letterSpacing = 0.5.sp,
     ),
     bodyLarge = TextStyle(
         fontFamily = Sans,

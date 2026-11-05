@@ -174,7 +174,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         rule.auditShot("sheets/13-note-save-failed", beforeCapture = {
             rule.onNodeWithText("Edit note").performScrollTo().performClick()
             rule.mainClock.advanceTimeBy(500)
-            rule.onNodeWithText("DONE").performClick()
+            rule.onNodeWithText("Done").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             DayScreen(state, workoutActions().copy(onSetSessionNote = { save.value = NoteSave.Failed(it) }),

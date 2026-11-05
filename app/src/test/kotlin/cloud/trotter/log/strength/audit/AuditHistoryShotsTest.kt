@@ -129,7 +129,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
     @Test fun shot18HistoryVolume() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/18-history-volume", beforeCapture = {
-            rule.onNode(hasScrollAction()).performScrollToNode(hasText("VOLUME"))
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Volume"))
         }) { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture(), logActions()) } }
     }
 
@@ -153,7 +153,7 @@ class AuditHistoryShotsTest : UiAuditTest() {
     @Test fun shot22HistoryDeleteConfirm() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/22-history-delete-confirm", beforeCapture = {
-            rule.onNodeWithText("DELETE SESSION").performScrollTo().performClick()
+            rule.onNodeWithText("Delete session").performScrollTo().performClick()
             rule.mainClock.advanceTimeBy(300)
         }) { AuditDestination(TopLevelDestination.LOG) {
             LogScreen(LogUiState(sessions = listOf(editableSession().copy(editing = true))), logActions())

@@ -55,7 +55,7 @@ class DialogPrimitivesTest {
         }
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
 
-        val node = composeTestRule.onNodeWithText("Set up a program")
+        val node = composeTestRule.onNodeWithText("Set up a plan")
         node.performClick()
         assertEquals(1, clicks)
 

@@ -6,10 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -68,15 +68,18 @@ private fun AppNavigationBar(
                 icon = {
                     Icon(
                         painter = painterResource(if (selected) destination.selectedIcon else destination.icon),
-                        contentDescription = stringResource(destination.label),
-                        modifier = Modifier.size(30.dp),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
                     )
                 },
+                label = { Text(stringResource(destination.label)) },
+                alwaysShowLabel = true,
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colorScheme.onSurface,
-                    // The pill cannot hold a 30 dp icon; the filled glyph marks the selected tab.
-                    indicatorColor = Color.Transparent,
+                    selectedIconColor = colorScheme.onSecondaryContainer,
+                    selectedTextColor = colorScheme.onSurface,
+                    indicatorColor = colorScheme.secondaryContainer,
                     unselectedIconColor = colorScheme.onSurfaceVariant,
+                    unselectedTextColor = colorScheme.onSurfaceVariant,
                 ),
             )
         }

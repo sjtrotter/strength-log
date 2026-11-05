@@ -51,14 +51,14 @@ class CustomExerciseFooterTest {
     @Test
     fun saveIsDisabledUntilTheExerciseHasAName() {
         setContent(CustomExerciseUiState(name = "  "))
-        composeTestRule.onNodeWithText("SAVE").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test
     fun saveFiresOnceNamed() {
         var saves = 0
         setContent(CustomExerciseUiState(name = "Zercher Squat"), onSave = { saves++ })
-        composeTestRule.onNodeWithText("SAVE").assertIsEnabled().performClick()
+        composeTestRule.onNodeWithText("Save").assertIsEnabled().performClick()
         assertEquals(1, saves)
     }
 
@@ -66,7 +66,7 @@ class CustomExerciseFooterTest {
     fun cancelAlwaysFires() {
         var cancels = 0
         setContent(CustomExerciseUiState(), onCancel = { cancels++ })
-        composeTestRule.onNodeWithText("CANCEL").performClick()
+        composeTestRule.onNodeWithText("Cancel").performClick()
         assertEquals(1, cancels)
     }
 

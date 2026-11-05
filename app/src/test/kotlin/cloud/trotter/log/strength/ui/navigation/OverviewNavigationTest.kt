@@ -9,12 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -216,7 +216,7 @@ class OverviewNavigationTest {
     }
 
     private fun openOtherPreview() {
-        rule.onNodeWithContentDescription("Plans").performClick()
+        rule.onNode(hasText("Plans") and isSelectable()).performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Other")).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Other").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Rehab")).fetchSemanticsNodes().isNotEmpty() }
@@ -226,9 +226,9 @@ class OverviewNavigationTest {
 
     @Test fun tabsShowTodayHistoryPlansAndPlanDayOpensThatPlansPreview() {
         render()
-        rule.onNodeWithContentDescription("Today").assertExists()
-        rule.onNodeWithContentDescription("History").assertExists()
-        rule.onNodeWithContentDescription("Plans").assertExists()
+        rule.onNode(hasText("Today") and isSelectable()).assertIsDisplayed()
+        rule.onNode(hasText("History") and isSelectable()).assertIsDisplayed()
+        rule.onNode(hasText("Plans") and isSelectable()).assertIsDisplayed()
         rule.onNodeWithContentDescription("Plan").assertDoesNotExist()
         assertNotEquals(TopLevelDestination.LOG.icon, TopLevelDestination.PLANS.icon)
         openOtherPreview()
@@ -241,13 +241,13 @@ class OverviewNavigationTest {
         assertEquals(preferred, runBlocking { repo.plans.selectedPlanIdFlow.first() })
     }
 
-    @Test fun tabsHaveContentDescriptionsAndNoText() {
+    @Test fun tabsDisplayAllThreeLabelsWithoutDuplicateIconDescriptions() {
         rule.setContent { AppTheme {
             AppNavigationBar(selectedRoute = Routes.TODAY, onSelect = {})
         } }
         listOf("Today", "History", "Plans").forEach { label ->
-            rule.onNodeWithContentDescription(label).assertExists()
-            rule.onAllNodesWithText(label, useUnmergedTree = true).assertCountEquals(0)
+            rule.onNodeWithText(label).assertIsDisplayed()
+            rule.onNodeWithContentDescription(label, useUnmergedTree = true).assertDoesNotExist()
         }
     }
 

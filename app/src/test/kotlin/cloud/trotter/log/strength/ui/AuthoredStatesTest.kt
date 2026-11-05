@@ -54,12 +54,12 @@ class AuthoredStatesTest {
         setDayContent(DayUiState(loading = true))
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
-        composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertDoesNotExist()
-        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Preparing your plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
-        composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertIsDisplayed()
-        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Preparing your plan").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
     }
 
     @Test
@@ -70,12 +70,12 @@ class AuthoredStatesTest {
         }
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
-        composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertDoesNotExist()
-        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Preparing your plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
-        composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertIsDisplayed()
-        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Preparing your plan").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No plan yet").assertDoesNotExist()
     }
 
     // --- no program ---------------------------------------------------------
@@ -85,8 +85,8 @@ class AuthoredStatesTest {
         var opened = 0
         setDayContent(DayUiState(hasProgram = false, loading = false), onSetUpProgram = { opened++ })
 
-        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Set up a program").performClick()
+        composeTestRule.onNodeWithText("No plan yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a plan").performClick()
 
         assertEquals(1, opened)
     }
@@ -98,8 +98,8 @@ class AuthoredStatesTest {
             AppTheme { TodayScreen(TodayUiState(), todayActions(onSetUpProgram = { opened++ })) }
         }
 
-        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Set up a program").performClick()
+        composeTestRule.onNodeWithText("No plan yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a plan").performClick()
 
         assertEquals(1, opened)
     }
@@ -111,8 +111,8 @@ class AuthoredStatesTest {
         var started = 0
         setLogContent(LogUiState(), onStartSession = { started++ })
 
-        composeTestRule.onNodeWithText("YOUR FIRST SESSION WILL LAND HERE").assertIsDisplayed()
-        composeTestRule.onNodeWithText("START A SESSION").performClick()
+        composeTestRule.onNodeWithText("No sessions yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Start a session").performClick()
 
         assertEquals(1, started)
     }
@@ -122,9 +122,9 @@ class AuthoredStatesTest {
         var opened = 0
         setLogContent(LogUiState(hasProgram = false), onSetUpProgram = { opened++ })
 
-        composeTestRule.onNodeWithText("START A SESSION").assertDoesNotExist()
-        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Set up a program").performClick()
+        composeTestRule.onNodeWithText("Start a session").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No plan yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a plan").performClick()
 
         assertEquals(1, opened)
     }
@@ -148,7 +148,7 @@ class AuthoredStatesTest {
             ),
         )
 
-        composeTestRule.onNodeWithText("YOUR FIRST SESSION WILL LAND HERE").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No sessions yet").assertDoesNotExist()
     }
 
     // --- fixtures -----------------------------------------------------------

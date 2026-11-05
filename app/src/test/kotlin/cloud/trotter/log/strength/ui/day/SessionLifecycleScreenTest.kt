@@ -11,6 +11,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -233,10 +236,10 @@ class SessionLifecycleScreenTest {
             }
         }
         composeTestRule.onNodeWithText("Add a note").performClick()
-        composeTestRule.onNodeWithText("NOTE").performTextReplacement("Felt steady")
-        composeTestRule.onNodeWithText("DONE").performClick()
+        composeTestRule.onNodeWithText("Note").performTextReplacement("Felt steady")
+        composeTestRule.onNode(hasText("Done") and hasAnyAncestor(isDialog())).performClick()
         assertEquals("Felt steady", savedNote)
-        composeTestRule.onNodeWithText("NOTE").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Note").assertDoesNotExist()
     }
 
     @Test

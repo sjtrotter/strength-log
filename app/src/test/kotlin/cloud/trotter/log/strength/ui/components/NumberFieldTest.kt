@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.requestFocus
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -69,7 +70,9 @@ class NumberFieldTest {
         } }
         rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("250")
         rule.onNodeWithText("Bodyweight (lb)").performImeAction()
-        rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("260")
+        // Focus without a second tap: tapping the same field again reads as a double tap, starts text
+        // selection and its magnifier, which Robolectric cannot draw.
+        rule.onNodeWithText("Bodyweight (lb)").requestFocus().performTextReplacement("260")
 
         rule.runOnIdle { persisted.value = 250.0 }
 
@@ -111,11 +114,11 @@ class NumberFieldTest {
             focusManager = LocalFocusManager.current
             NumberField(persisted.value, {}, "Weight (lb)")
         } }
-        rule.onNodeWithText("Weight (lb)").performClick()
+        rule.onNodeWithText("Weight (lb)").requestFocus()
         rule.runOnIdle { persisted.value = 250.0 }
         rule.onNodeWithText("135").assertExists()
 
-        rule.runOnIdle { focusManager.clearFocus() }
+        rule.runOnIdle { focusManager.clearFocus(force = true) }
 
         rule.onNodeWithText("250").assertExists()
     }

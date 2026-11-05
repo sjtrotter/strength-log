@@ -1,0 +1,7 @@
+{
+  "seat": "f-p1",
+  "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
+  "steps": [
+    { "checkpoint": "first-open" }
+  ]
+}

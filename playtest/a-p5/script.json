@@ -410,6 +410,97 @@
     },
     {
       "checkpoint": "open-plan-to-replace-barbell-prescription-with-my-lifts"
+    },
+    {
+      "tap": {
+        "desc": "Day options",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "day-a-options-find-edit-skip-or-move"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "day-a-editor-for-my-five-strength-exercises"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day C1"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-editor-for-easy-quicker-and-long-runs"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "add-day-for-third-weekly-run"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "exercise-menu-find-swap-notes-or-set-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "session-menu-find-add-exercise-and-overall-notes"
     }
   ]
 }

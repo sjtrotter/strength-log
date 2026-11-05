@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,7 +93,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                             ListItem(
                                 headlineContent = { Text(stringResource(R.string.today_other_days)) },
                                 trailingContent = { Icon(
-                                    if (state.otherDaysExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                    if (state.otherDaysExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                                     contentDescription = null,
                                 ) },
                                 modifier = Modifier.clickable(onClick = actions.onToggleOtherDays)

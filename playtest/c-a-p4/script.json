@@ -281,29 +281,163 @@
     },
     {
       "tap": {
-        "text": "Stationary bike"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
-      "checkpoint": "cardio-activity-options-for-rower"
+      "type": {
+        "text": "Duration",
+        "value": "12:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "wednesday-cardio-duration-twelve-minutes"
+    },
+    {
+      "tap": {
+        "text": "Ramp to 315 lb, then 1 back-off"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "deadlift-plan185x5-after-actual185x5x3"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "wednesday-only-actual-deadlifts-before-adding-accessories"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "unrestricted-add-exercise-picker"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "shoulder"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-shoulder"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "press"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-press"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "pulldown"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-pulldown"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "split"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-split"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-row"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "overhead"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-overhead"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "seated"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-search-seated"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "text": "Cancel"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "wednesday-after-removing-unperformed-extras"
+      "checkpoint": "workout-after-add-catalog-discovery"
     },
     {
       "tap": {
-        "desc": "Day C lifts, 4 of 13 sets"
+        "desc": "Day C lifts, 4 of 7 sets"
       }
     },
     {
@@ -318,102 +452,22 @@
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "text": "Edit cardio"
       }
     },
     {
-      "checkpoint": "add-exercise-catalog-for-wednesday"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "shoulder"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-shoulder-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "press"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-press-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "pulldown"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-pulldown-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "split"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-split-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "row"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-row-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "overhead"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-overhead-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "seated"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-seated-results"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "shoulder"
-      }
-    },
-    {
-      "checkpoint": "add-catalog-back-to-shoulder"
+      "checkpoint": "cardio-activity-before-label-probe"
     },
     {
       "tap": {
-        "text": "Create exercise"
+        "text": "Activity"
       }
     },
     {
-      "checkpoint": "create-exercise-fields-if-shoulder-needs-own-entry"
+      "checkpoint": "activity-menu-via-label"
     },
     {
-      "note": "I need seated dumbbell shoulder press, 30 lb EACH for 8 then 6, then 25 lb EACH for 8; lat pulldown 100 for three tens; split squat 20 each for two eights per leg; and 12 minutes rowing, 2220 meters, effort 6/10. Inspect the catalog results before deciding whether a custom entry is needed; do not save an incorrect movement or log generated targets."
+      "note": "Next choose native Wednesday shoulder press, lat pulldown and split squat from these Add exercise results. Do not log the removed bench or chest-supported row as those movements. Rowing activity selection remains pending until this menu is observed; twelve minutes alone is not a completed row."
     }
   ]
 }

@@ -6,8 +6,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -182,7 +187,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val start = destination
     if (start == null) {
         // Fast destination reads stay blank for the shared reveal delay.
-        LoadingState(stringResource(R.string.screen_loading))
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            LoadingState(
+                stringResource(R.string.screen_loading),
+                Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+            )
+        }
         return
     }
 

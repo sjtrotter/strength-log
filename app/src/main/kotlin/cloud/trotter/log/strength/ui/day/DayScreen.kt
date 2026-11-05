@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -227,7 +228,7 @@ fun DayScreen(
                     )
                 },
             ) { padding ->
-                Box(Modifier.fillMaxSize().padding(padding)) {
+                Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                     EmptyState(
                         title = stringResource(R.string.screen_no_lifts_title, state.viewDayId.orEmpty()),
                         action = ScreenStateAction(stringResource(R.string.screen_edit_day), { dayEditActions.onEditorOpen(true) }),

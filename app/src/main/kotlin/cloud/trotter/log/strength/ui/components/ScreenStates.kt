@@ -2,11 +2,14 @@ package cloud.trotter.log.strength.ui.components
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -63,7 +66,9 @@ fun EmptyState(
                 }
                 messageContent()
             }
-            action?.let { ScreenStateButton(it, Modifier.padding(16.dp)) }
+            action?.let {
+                ScreenStateButton(it, Modifier.windowInsetsPadding(WindowInsets.navigationBars).padding(16.dp))
+            }
         }
     }
 }

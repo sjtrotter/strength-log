@@ -52,6 +52,7 @@ class CustomExerciseFooterTest {
     fun saveIsDisabledUntilTheExerciseHasAName() {
         setContent(CustomExerciseUiState(name = "  "))
         composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Name the exercise to save it.").assertExists()
     }
 
     @Test

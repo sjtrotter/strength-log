@@ -121,7 +121,8 @@ class SessionLifecycleScreenTest {
         val partial = curl.copy(sets = curl.sets.take(2), lines = listOf(ValueLine(35.0, listOf(0, 1))))
         setDayContent(dayState(done = 2), receipt = receipt.copy(minutes = 31,
             groups = listOf(curlGroup.copy(rows = listOf(partial)))))
-        composeTestRule.onNodeWithText("Squat focus, done.").assertExists()
+        composeTestRule.onNodeWithText("Squat focus, saved.").assertExists()
+        composeTestRule.onNodeWithText("2 of 3 sets logged").assertExists()
         composeTestRule.onNodeWithText("Tuesday, Nov 3, 31 min").assertExists()
         composeTestRule.onNodeWithText("35 lb × 10, 10", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Dumbbell Curl. 35 pounds: 10 and 10 reps. Rep record on set 1, up from 35 pounds for 9 reps.").performClick()
@@ -131,7 +132,7 @@ class SessionLifecycleScreenTest {
     @Test
     fun unknownStartShowsTheDateWithoutInventingMinutes() {
         setDayContent(dayState(done = 3), receipt = receipt.copy(minutes = null, groups = receipt.groups.map { group -> group.copy(rows = group.rows.map { it.copy(record = null) }) }))
-        composeTestRule.onNodeWithText("Tuesday, Nov 3").assertExists()
+        composeTestRule.onNodeWithText("Tuesday, Nov 3, Duration not recorded").assertExists()
         composeTestRule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertDoesNotExist()
     }

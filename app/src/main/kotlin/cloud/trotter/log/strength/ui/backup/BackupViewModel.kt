@@ -84,12 +84,9 @@ class BackupViewModel @Inject constructor(
                         enabled = automatic.enabled,
                         folderName = automatic.folderName,
                         detailLine = automatic.folderName?.let { "Daily · $it" },
-                        resultLine = automaticBackupResultLine(
-                            automatic.lastSuccessAtMillis,
-                            automatic.lastAttemptFailed,
-                            automatic.permissionLost,
-                            System.currentTimeMillis(),
-                        ),
+                        permissionLost = automatic.permissionLost,
+                        lastAttemptFailed = automatic.lastAttemptFailed,
+                        lastSuccessAtMillis = automatic.lastSuccessAtMillis,
                     ))
                 }
             }
@@ -131,25 +128,25 @@ class BackupViewModel @Inject constructor(
 
     // --- JSON backup -----------------------------------------------------
 
-    fun exportBackup(uri: Uri) = runBusy {
+    fun exportBackup(uri: Uri) = runBusy(BackupOperation.ExportBackup) {
         openOutput(uri) { out -> backupService.exportTo(out) }
         postMessage(UiText.BackupStatus(BackupStatusKind.BACKUP_EXPORTED), isError = false)
     }
 
     /** Reads and validates the picked file; only on success does the confirm-
      *  overwrite dialog appear ([BackupUiState.pendingRestoreConfirm]). */
-    fun beginImportBackup(uri: Uri) = runBusy {
+    fun beginImportBackup(uri: Uri) = runBusy(BackupOperation.Restore) {
         val text = openInput(uri) { input -> codec.readCapped(input) }
         codec.decode(text) // validates end-to-end; throws before anything is written
         pendingRestoreText = text
-        _uiState.update { it.copy(isBusy = false, pendingRestoreConfirm = true) }
+        _uiState.update { it.copy(operation = BackupOperation.None, automaticChangeInFlight = false, pendingRestoreConfirm = true) }
     }
 
     fun confirmRestore() {
         val text = pendingRestoreText ?: return
         pendingRestoreText = null
         _uiState.update { it.copy(pendingRestoreConfirm = false) }
-        runBusy(isRestore = true) {
+        runBusy(BackupOperation.Restore, isRestore = true) {
             // Awaited, not owned: cancelling this await (the screen going away)
             // leaves the import running to completion on the app scope. The
             // screen holds its exits shut while restoreInFlight — see
@@ -173,14 +170,14 @@ class BackupViewModel @Inject constructor(
 
     // --- CSV history -------------------------------------------------------
 
-    fun exportCsv(uri: Uri) = runBusy {
+    fun exportCsv(uri: Uri) = runBusy(BackupOperation.ExportCsv) {
         openOutput(uri) { out -> csvHistoryService.exportTo(out) }
         postMessage(UiText.BackupStatus(BackupStatusKind.HISTORY_EXPORTED), isError = false)
     }
 
-    fun beginImportCsv(uri: Uri) = runBusy {
+    fun beginImportCsv(uri: Uri) = runBusy(BackupOperation.ImportCsv) {
         val preview = openInput(uri) { input -> csvHistoryService.preview(input) }
-        _uiState.update { it.copy(isBusy = false, csvImport = CsvImportUiState.of(preview)) }
+        _uiState.update { it.copy(operation = BackupOperation.None, automaticChangeInFlight = false, csvImport = CsvImportUiState.of(preview)) }
     }
 
     fun setUnmatchedPattern(name: String, pattern: MovementPattern) {
@@ -194,7 +191,7 @@ class BackupViewModel @Inject constructor(
         val csvImport = _uiState.value.csvImport ?: return
         if (!csvImport.canCommit) return
         _uiState.update { it.copy(csvImport = null) }
-        runBusy {
+        runBusy(BackupOperation.ImportCsv) {
             csvHistoryService.commit(csvImport.preview, csvImport.approvedPatterns)
             postMessage(UiText.BackupStatus(BackupStatusKind.HISTORY_IMPORTED, csvImport.sessionCount, csvImport.matchedSetCount), isError = false)
         }
@@ -212,7 +209,7 @@ class BackupViewModel @Inject constructor(
 
     private fun postMessage(text: UiText, isError: Boolean) {
         _uiState.update {
-            it.copy(isBusy = false, restoreInFlight = false, message = StatusMessage(text, isError))
+            it.copy(operation = BackupOperation.None, automaticChangeInFlight = false, restoreInFlight = false, message = StatusMessage(text, isError))
         }
     }
 
@@ -235,9 +232,9 @@ class BackupViewModel @Inject constructor(
      *  coroutine instead would let two overlapping SAF results race: the first
      *  result's `finally` could clear the flag while the second was still
      *  running. */
-    private fun runBusy(isRestore: Boolean = false, block: suspend () -> Unit) {
+    private fun runBusy(operation: BackupOperation = BackupOperation.None, isRestore: Boolean = false, block: suspend () -> Unit) {
         if (_uiState.value.isBusy) return
-        _uiState.update { it.copy(isBusy = true, restoreInFlight = isRestore, message = null) }
+        _uiState.update { it.copy(operation = operation, automaticChangeInFlight = operation == BackupOperation.None, restoreInFlight = isRestore, message = null) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 block()
@@ -256,7 +253,7 @@ class BackupViewModel @Inject constructor(
                 // A revoked/expired SAF grant surfaces here, not as a crash.
                 postMessage(UiText.FilePermissionLost, isError = true)
             } finally {
-                _uiState.update { it.copy(isBusy = false, restoreInFlight = false) }
+                _uiState.update { it.copy(operation = BackupOperation.None, automaticChangeInFlight = false, restoreInFlight = false) }
             }
         }
     }

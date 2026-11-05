@@ -343,7 +343,7 @@ class WizardViewModel @Inject constructor(
      * publish it, the unit and completion.
      */
     private fun finish() {
-        if (finishProgress.value.inFlight || isComplete.value) return
+        if (finishProgress.value.inFlight || isComplete.value || previewProgram.value?.days.isNullOrEmpty()) return
         finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
             try {

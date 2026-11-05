@@ -8,50 +8,39 @@ import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
 import cloud.trotter.log.strength.ui.text.BackupErrorKind
 import cloud.trotter.log.strength.ui.text.UiText
 
-/**
- * Everything the Data/Backup screen (PLAN.md A2, D9) renders.
- * [pendingRestoreConfirm] gates the confirm-overwrite dialog for a JSON
- * restore that has already been read and validated (never a raw exception the
- * user has to interpret); [csvImport] gates the CSV preview/confirm screen
- * once a file has been parsed into a preview model. Both are mutually
- * exclusive with an in-flight [isBusy] operation.
- *
- * [isBusy] and [restoreInFlight] are different questions and the screen asks
- * them separately. [isBusy] means "an operation is running": it disables the
- * action buttons so a second file picker can't stack on the first. Only
- * [restoreInFlight] shuts the *exits*, and only a confirmed full restore sets it
- * — that is the one operation whose two stores can end up disagreeing if the
- * screen goes away, and gating back on every export would be a regression for
- * operations that can't hurt anything.
- */
+/** The operation labels busy controls; only [BackupUiState.restoreInFlight] locks screen exits.
+ * Reading a restore file uses [BackupOperation.Restore] without locking exits;
+ * only a confirmed restore writes both stores and raises that separate lock. */
+enum class BackupOperation { None, ExportBackup, ExportCsv, Restore, ImportCsv }
+
 data class BackupUiState(
-    val isBusy: Boolean = false,
+    val operation: BackupOperation = BackupOperation.None,
     val restoreInFlight: Boolean = false,
+    val automaticChangeInFlight: Boolean = false,
     val message: StatusMessage? = null,
     val pendingRestoreConfirm: Boolean = false,
     val csvImport: CsvImportUiState? = null,
     val automatic: AutomaticBackupUiState = AutomaticBackupUiState(),
-)
+) {
+    val isBusy: Boolean get() = operation != BackupOperation.None || automaticChangeInFlight
+}
 
 data class AutomaticBackupUiState(
     val enabled: Boolean = false,
     val folderName: String? = null,
     val detailLine: String? = null,
-    val resultLine: String? = null,
+    val permissionLost: Boolean = false,
+    val lastAttemptFailed: Boolean = false,
+    val lastSuccessAtMillis: Long? = null,
 )
 
 /** A one-shot status line (export/import result or failure); [isError] picks
  *  the accent the screen renders it in. */
 data class StatusMessage(val text: UiText, val isError: Boolean)
 
-/**
- * The CSV import preview/confirm screen's state (docs/briefs/m4-transfer.md,
- * "#16 CSV history export/import"). [approvedPatterns] starts pre-filled with
- * each [cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName]'s
- * suggested pattern so confirming without edits is a deliberate accept of the
- * suggestion, not a silent guess — the user always sees and confirms the
- * screen first (PLAN.md A2: "never silent guessing").
- */
+/** CSV preview suggestions remain unapproved until the user explicitly confirms
+ * each unmatched exercise. [approvedPatterns] starts empty; choosing a pattern
+ * or confirming the displayed suggestion approves that row. */
 data class CsvImportUiState(
     val preview: CsvImportPreview,
     val approvedPatterns: Map<String, MovementPattern>,
@@ -65,9 +54,9 @@ data class CsvImportUiState(
     val canCommit: Boolean get() = preview.unmatchedNames.all { it.name in approvedPatterns }
 
     companion object {
-        /** Seeds [approvedPatterns] with every unmatched name's suggestion. */
+        /** Shows suggestions without approving any unmatched name. */
         fun of(preview: CsvImportPreview): CsvImportUiState =
-            CsvImportUiState(preview, preview.unmatchedNames.associate { it.name to it.suggestedPattern })
+            CsvImportUiState(preview, emptyMap())
     }
 }
 
@@ -87,23 +76,6 @@ data class BackupActions(
     val onDismissMessage: () -> Unit,
     val onBack: () -> Unit,
 )
-
-internal fun automaticBackupResultLine(
-    lastSuccessAtMillis: Long?,
-    lastAttemptFailed: Boolean,
-    permissionLost: Boolean,
-    nowMillis: Long,
-): String? {
-    if (permissionLost) return "Folder unavailable — choose it again"
-    if (lastAttemptFailed) return "Last attempt failed — will retry"
-    val success = lastSuccessAtMillis ?: return null
-    val days = ((nowMillis - success).coerceAtLeast(0) / 86_400_000L).toInt()
-    return when (days) {
-        0 -> "Last backup: today"
-        1 -> "Last backup: yesterday"
-        else -> "Last backup: $days days ago"
-    }
-}
 
 /**
  * Maps the typed core errors to plain user-facing copy (PLAN.md A2: "surface

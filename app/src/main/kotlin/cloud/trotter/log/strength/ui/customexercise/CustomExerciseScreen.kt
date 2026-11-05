@@ -307,6 +307,9 @@ private fun Footer(
                 FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))
             }
         }
+        if (!state.canSave) Text(stringResource(R.string.operation_custom_exercise_name_required),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

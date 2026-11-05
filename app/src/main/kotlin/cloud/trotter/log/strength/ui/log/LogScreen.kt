@@ -69,6 +69,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CheckmarkToggle
 import cloud.trotter.log.strength.ui.components.DayIndex
@@ -373,6 +374,10 @@ private fun SessionCard(
                 if (item.exerciseGroups == null) {
                     Text(stringResource(R.string.log_session_loading), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 } else {
+                    if (item.exerciseGroups.all { it.sets.isEmpty() }) {
+                        Text(stringResource(R.string.operation_session_no_details), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     item.exerciseGroups.forEach { group ->
                         if (item.editing) EditableExerciseGroupRow(
                             group, item.unit, onWeightChange, onRepsChange, onSecondsChange, onDoneChange,
@@ -579,7 +584,8 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
     Column {
         Text(stringResource(R.string.log_health_connected), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         section.backfill?.let { offer ->
-            TextButton(
+            if (offer.label.running) LoadingState(stringResource(R.string.operation_health_publishing, offer.label.count))
+            else TextButton(
                 onClick = onPublishPast,
                 enabled = offer.enabled,
                 colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),

@@ -47,7 +47,7 @@ data class ReceiptRow(
     val lines: List<ValueLine>,
     /** When three or more weights were used: [lines] holds the heaviest set only, this is the rest. */
     val lighterSets: Int,
-    /** The plan, shown as the last gray line of an open row. Null when the row never opens. */
+    /** The captured plan supplies completion counts, including closed and skipped rows. */
     val planned: PlannedSets?,
     val record: RecordMark?,
 ) : Parcelable {
@@ -75,10 +75,10 @@ data class ReceiptRow(
 
 @Parcelize
 data class CardioReceiptRow(
-    val role: CardioRole,                 // WARMUP, WORK or COOLDOWN; RECOVERY folds into recoverySeconds
+    val role: CardioRole,                 // Partial RECOVERY gets its own row; finished recovery folds into recoverySeconds
     val count: Int,                       // WORK intervals in this row; 1 for warm-up and cool-down
-    val endSeconds: Int?,                 // the planned Measure.Time, WORK rows only
-    val endMetres: Int?,                  // the planned Measure.Distance, WORK rows only
+    val endSeconds: Int?,                 // the planned Measure.Time
+    val endMetres: Int?,                  // the planned Measure.Distance
     val intervals: List<CardioInterval>,  // results in order
     val recoverySeconds: List<Int>,       // elapsed of the RECOVERY sets that followed this row's intervals
     val record: CardioRecordMark?,
@@ -101,3 +101,25 @@ data class FinishAttempt(
     val tappedAt: Long,
     val failed: Boolean = false,
 ) : Parcelable
+
+/** Completion is presentation only; the recorded session and rotation stay unchanged.
+ * These derived values add no fields to the SavedStateHandle parcel. */
+internal val WorkoutReceipt.loggedSetCount: Int get() = if (cardio) {
+    cardioRows.sumOf { row -> row.intervals.count { it.status != CardioSetStatus.SKIPPED } + row.recoverySeconds.size }
+} else groups.sumOf { group -> group.rows.sumOf { it.sets.size } }
+
+internal val WorkoutReceipt.plannedSetCount: Int get() = if (cardio) {
+    cardioRows.sumOf { it.intervals.size + it.recoverySeconds.size }
+} else groups.sumOf { group -> group.rows.sumOf { row ->
+    row.planned?.count ?: row.sets.size
+} }
+
+internal val WorkoutReceipt.isPartial: Boolean get() = if (cardio) {
+    cardioRows.any { row -> row.intervals.any { it.status != CardioSetStatus.FINISHED } }
+} else groups.any { group -> group.rows.any { row ->
+    row.shape == ReceiptRow.Shape.SKIPPED || row.sets.size < (row.planned?.count ?: row.sets.size)
+} }
+
+/** Older receipt bundles omitted plans on closed and skipped rows. */
+internal val WorkoutReceipt.hasPlannedSetCount: Boolean get() = cardio ||
+    groups.all { group -> group.rows.all { it.planned != null } }

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
@@ -320,6 +321,12 @@ class LogScreenInteractionTest {
         composeTestRule.onNodeWithText("0 lb").assertDoesNotExist()
     }
 
+    @Test
+    fun expandedSessionWithoutDetailsSaysSo() {
+        setContent(true, sessions = listOf(logSessionFixture(true).copy(exerciseGroups = emptyList())))
+        composeTestRule.onNodeWithText("No set details saved for this session.").assertIsDisplayed()
+    }
+
     // --- Health Connect status and backfill offer -----------------------------
     //
     // The copy is the feature: "nothing appeared in the Health app" was
@@ -380,7 +387,12 @@ class LogScreenInteractionTest {
             onPublishPast = { taps += 1 },
         )
 
-        composeTestRule.onNodeWithText("Publishing…").performClick()
+        composeTestRule.mainClock.advanceTimeBy(400)
+        composeTestRule.onNodeWithText("Publishing 12 workouts to Health Connect…").assertIsDisplayed().assertHasNoClickAction()
+        composeTestRule.onNode(androidx.compose.ui.test.SemanticsMatcher.expectValue(
+            androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo,
+            androidx.compose.ui.semantics.ProgressBarRangeInfo.Indeterminate,
+        )).assertIsDisplayed()
         assertEquals(0, taps)
     }
 }

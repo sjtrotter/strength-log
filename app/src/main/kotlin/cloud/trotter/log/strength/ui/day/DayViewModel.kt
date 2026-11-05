@@ -346,6 +346,13 @@ class DayViewModel @Inject constructor(
                 cardio = cardio,
                 timedRep = timedRep,
                 executionBusy = cardioRun.value != null || timedRep?.event?.awaitingCount == false,
+                executionBlockedReason = when {
+                    timedRep?.event?.awaitingCount == false || run?.running == true -> WorkoutBlockedReason.TIMER_RUNNING
+                    run?.saveFailed == true -> WorkoutBlockedReason.CARDIO_NOT_SAVED
+                    run?.complete == true -> WorkoutBlockedReason.CARDIO_SAVING
+                    run != null -> WorkoutBlockedReason.CARDIO_IN_PROGRESS
+                    else -> null
+                },
                 cardioRunning = cardioRun.value?.running == true,
                 rest = rest,
             )

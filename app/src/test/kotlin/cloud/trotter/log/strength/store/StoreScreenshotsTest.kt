@@ -243,7 +243,7 @@ class StoreScreenshotsTest {
             receiptFixture(),
             // render() advances 2 s, past the 300 ms delay and 400 ms roll.
             beforeCapture = {
-                composeTestRule.onNodeWithText("Squat focus, done.").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Squat focus, saved.").assertIsDisplayed()
                 composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertIsDisplayed()
                 composeTestRule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
             },

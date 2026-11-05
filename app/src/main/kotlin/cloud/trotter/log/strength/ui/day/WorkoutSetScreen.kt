@@ -137,12 +137,6 @@ private fun WorkoutSetContent(
     val workout = state.workout ?: return
     val nextTitle = state.workoutNextPage?.title
     val allLogged = state.workoutAllLogged
-    var finishArmed by remember(workout.lastCompletionMillis) { mutableStateOf(false) }
-    LaunchedEffect(workout.lastCompletionMillis) {
-        val remaining = workout.lastCompletionMillis?.let { it + 3_000L - nowMillis() } ?: 0L
-        delay(remaining.coerceAtLeast(0L))
-        finishArmed = true
-    }
     val reducedMotion = !ValueAnimator.areAnimatorsEnabled()
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -163,9 +157,12 @@ private fun WorkoutSetContent(
                         ))
                     }
                     if (!allLogged) {
-                        TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors(),
-                            modifier = Modifier.testTag("workout-finish")) {
-                            Text(stringResource(R.string.day_finish_partial_confirm_button))
+                        Column {
+                            TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors(),
+                                modifier = Modifier.testTag("workout-finish")) {
+                                Text(stringResource(R.string.day_finish_partial_confirm_button))
+                            }
+                            WorkoutBlockedReasonText(state.finishBlockedReason)
                         }
                     }
                 },
@@ -198,7 +195,7 @@ private fun WorkoutSetContent(
                     val action = when {
                         allLogged -> if (state.workoutCardioOnlyDone) null else WorkoutActionSpec(
                             stringResource(R.string.day_finish_button, state.viewDayId.orEmpty()), resting,
-                            state.canFinish && finishArmed, onFinish)
+                            state.canFinish, onFinish, guardKey = "finish")
                         workout.shown == WorkoutSelection.Shown.Empty -> null
                         cardioShown && cardio != null -> {
                             val run = cardio.run
@@ -239,8 +236,18 @@ private fun WorkoutSetContent(
                             actions.onLogFocusedSet)
                         else -> null
                     }
-                    if (action != null) WorkoutAction(action.label, action.tonal, action.enabled, reducedMotion,
-                        action.onClick, action.secondary, action.guardKey)
+                    if (action != null) {
+                        WorkoutAction(action.label, action.tonal, action.enabled, reducedMotion,
+                            action.onClick, action.secondary, action.guardKey, tapAllowed = {
+                                !allLogged || workout.lastCompletionMillis?.let { nowMillis() - it >= 3_000L } != false
+                            })
+                        if (!action.enabled) WorkoutBlockedReasonText(when {
+                            allLogged -> state.finishBlockedReason
+                            cardioShown -> state.cardioStartBlockedReason
+                            state.timedRepRunning || state.cardioRunning -> WorkoutBlockedReason.TIMER_RUNNING
+                            else -> null
+                        })
+                    }
                 }
             }
         },
@@ -341,7 +348,10 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             Text(cardioActivityName(block.activity), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             TextButton(onClick = actions.onOpenCardioSets, colors = neutralTextButtonColors()) { Text(stringResource(R.string.day_all_sets)) }
         }
-        if (done) {
+        if (cardio.hasSaveFailure) {
+            Text(stringResource(R.string.operation_cardio_recorded_time, formatCardioTime(cardio.retainedSeconds)),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else if (done) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Check, null)
                 Text(stringResource(R.string.set_edit_done), style = MaterialTheme.typography.titleMedium)
@@ -377,17 +387,37 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
 @Composable
 private fun WorkoutCardioFailedBand(state: DayUiState, actions: DayActions) {
     val cardio = state.cardio ?: return
-    if (cardio.run?.saveFailed != true && cardio.distanceRuns.none { it.sessionId != null && it.saveFailed }) return
+    if (!cardio.hasSaveFailure) return
     Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
         shape = WorkoutRestShape, modifier = Modifier.fillMaxWidth().testTag("workout-cardio-failed")) {
         Column(Modifier.padding(12.dp)) {
-            Text(stringResource(R.string.workout_cardio_save_failed))
+            Text(stringResource(R.string.operation_cardio_not_saved), color = MaterialTheme.colorScheme.error)
             TextButton(onClick = actions.onRetryCardioSave,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) {
-                Text(stringResource(R.string.cardio_retry))
+                Text(stringResource(R.string.receipt_try_again))
             }
         }
     }
+}
+
+private val CardioCardState.hasSaveFailure: Boolean get() =
+    run?.saveFailed == true || distanceRuns.any { it.sessionId != null && it.saveFailed }
+
+private val CardioCardState.retainedSeconds: Int get() =
+    run?.takeIf { it.saveFailed }?.results?.sumOf { it.seconds }
+        ?: distanceRuns.firstOrNull { it.sessionId != null && it.saveFailed }?.results?.sumOf { it.seconds }
+        ?: loggedSeconds ?: 0
+
+@Composable
+private fun WorkoutBlockedReasonText(reason: WorkoutBlockedReason?) {
+    if (reason == null) return
+    Text(stringResource(when (reason) {
+        WorkoutBlockedReason.NO_LOGGED_SETS -> R.string.operation_finish_log_set
+        WorkoutBlockedReason.TIMER_RUNNING -> R.string.operation_stop_timer
+        WorkoutBlockedReason.CARDIO_NOT_SAVED -> R.string.operation_cardio_retry_before_start
+        WorkoutBlockedReason.CARDIO_SAVING -> R.string.operation_cardio_saving
+        WorkoutBlockedReason.CARDIO_IN_PROGRESS -> R.string.operation_cardio_in_progress
+    }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -776,7 +806,7 @@ private data class WorkoutActionSpec(
 @Composable
 private fun WorkoutAction(
     label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit,
-    secondary: Pair<String, () -> Unit>? = null, guardKey: Any? = null,
+    secondary: Pair<String, () -> Unit>? = null, guardKey: Any? = null, tapAllowed: () -> Boolean = { true },
 ) {
     var guarded by remember { mutableStateOf(false) }
     var previousKey by remember { mutableStateOf(guardKey) }
@@ -792,7 +822,7 @@ private fun WorkoutAction(
         }
     }
     fun guardedTap(action: () -> Unit) {
-        if (!guarded) {
+        if (!guarded && tapAllowed()) {
             guarded = true
             action()
         }

@@ -22,7 +22,7 @@ internal fun receiptFixture(): WorkoutReceipt {
     fun single(row: ReceiptRow) = ReceiptGroup(null, listOf(row))
     fun top(name: String, weight: Double, reps: Int, kind: PrKind, previous: ReceiptSet) = single(ReceiptRow(
         name, TrackingType.WEIGHTED, ReceiptRow.Shape.TOP_SET, listOf(ReceiptSet(weight, reps, 0)), listOf(ValueLine(weight, listOf(0))),
-        0, null, RecordMark(kind, null, 0, previous),
+        0, PlannedSets(1, weight, reps, 0), RecordMark(kind, null, 0, previous),
     ))
     return WorkoutReceipt(
         sessionId = 1, cardio = false, dayId = "A", dayIndex = 0, dayTitle = "Squat focus", planName = "Four-day strength",
@@ -42,7 +42,7 @@ internal fun receiptFixture(): WorkoutReceipt {
                 listOf(ValueLine(null, listOf(0, 1, 2))), 0, PlannedSets(3, 0.0, 10, 0), null)),
             single(ReceiptRow("Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT, listOf(75, 70).map { ReceiptSet(0.0, 0, it) },
                 listOf(ValueLine(null, listOf(0, 1))), 0, PlannedSets(2, 0.0, 0, 60), RecordMark(PrKind.HOLD, null, 0, ReceiptSet(0.0, 0, 70)))),
-            single(ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, null, null)),
+            single(ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, PlannedSets(3, 40.0, 12, 0), null)),
         ), activity = null, cardioRows = emptyList(),
     )
 }

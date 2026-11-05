@@ -70,6 +70,72 @@ class DayEditLogicTest {
         assertEquals(candidates, result)
     }
 
+    @Test
+    fun filter_finds_dumbbell_rows() {
+        val result = ExercisePicker.filter(catalog.byPattern(MovementPattern.H_PULL),
+            query = "dumbbell row", equipment = Equipment.entries.toSet())
+
+        assertEquals(listOf("db_row", "db_cs_row"), result.map { it.id })
+    }
+
+    @Test
+    fun filter_finds_shoulder_presses() {
+        val result = ExercisePicker.filter(catalog.byPattern(MovementPattern.V_PUSH),
+            query = "shoulder press", equipment = Equipment.entries.toSet())
+
+        assertEquals(listOf("db_shoulder", "machine_shoulder", "smith_shoulder"), result.map { it.id })
+    }
+
+    @Test
+    fun filter_finds_db_curls() {
+        val result = ExercisePicker.filter(catalog.byPattern(MovementPattern.BICEPS),
+            query = "db curl", equipment = Equipment.entries.toSet())
+
+        assertEquals(listOf("incline_curl"), result.map { it.id })
+    }
+
+    @Test
+    fun filter_finds_glute_bridge() {
+        val result = ExercisePicker.filter(catalog.entries,
+            query = "bridge", equipment = Equipment.entries.toSet())
+
+        assertEquals(listOf("glute_bridge"), result.map { it.id })
+    }
+
+    @Test
+    fun filter_normalizes_both_sides_and_ignores_word_order_case_and_hyphens() {
+        val expected = mapOf(
+            "  ROW   DuMbBeLl  " to listOf("db_row", "db_cs_row", "db_upright_row", "rear_delt_row"),
+            "BB row" to listOf("bb_row", "bb_upright_row"),
+            "kettlebell row" to listOf("kb_row"),
+            "SL extension" to listOf("sl_leg_ext"),
+            "single leg rdl" to listOf("sl_rdl"),
+            "press DB shoulder" to listOf("db_shoulder"),
+            "dumb row" to listOf("db_row", "db_cs_row", "db_upright_row", "rear_delt_row"),
+        )
+        for ((query, ids) in expected) {
+            assertEquals(ids, ExercisePicker.filter(catalog.entries, query, Equipment.entries.toSet()).map { it.id }, query)
+        }
+    }
+
+    @Test
+    fun filter_finds_every_curl_across_patterns() {
+        val result = ExercisePicker.filter(catalog.entries,
+            query = "curl", equipment = Equipment.entries.toSet())
+
+        assertEquals(listOf("seated_curl", "lying_curl", "ball_curl", "nordic", "standing_leg_curl", "slider_curl",
+            "ez_curl", "incline_curl", "hammer_curl", "cable_curl", "bb_curl", "preacher_curl", "machine_curl",
+            "rope_hammer_curl", "concentration_curl", "spider_curl", "bayesian_curl", "reverse_curl"), result.map { it.id })
+    }
+
+    @Test
+    fun filter_requires_every_query_word_and_keeps_equipment_restrictions() {
+        assertTrue(ExercisePicker.filter(catalog.entries,
+            query = "dumbbell row missing", equipment = Equipment.entries.toSet()).isEmpty())
+        assertTrue(ExercisePicker.filter(catalog.entries,
+            query = "dumbbell row", equipment = setOf(Equipment.CABLE)).isEmpty())
+    }
+
     // --- equipment filter (PLAN.md A4) -----------------------------------------
 
     @Test

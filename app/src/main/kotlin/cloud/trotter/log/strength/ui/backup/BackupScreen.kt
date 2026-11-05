@@ -60,6 +60,7 @@ import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -455,37 +456,6 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
-
-/**
- * A friendlier label than the generic enum-name formatting used elsewhere in
- * the app: here the user is guessing a pattern for a name they may not
- * recognize (an imported CSV's exercise name), not picking from a familiar
- * list, so the extra context in each label earns its keep.
- */
-@Composable
-private fun patternLabel(pattern: MovementPattern): String = stringResource(
-    when (pattern) {
-        MovementPattern.SQUAT_BILATERAL -> R.string.backup_pattern_squat_bilateral
-        MovementPattern.SINGLE_LEG -> R.string.backup_pattern_single_leg
-        MovementPattern.HINGE -> R.string.backup_pattern_hinge
-        MovementPattern.KNEE_FLEXION -> R.string.backup_pattern_knee_flexion
-        MovementPattern.KNEE_EXTENSION -> R.string.backup_pattern_knee_extension
-        MovementPattern.H_PUSH -> R.string.backup_pattern_horizontal_push
-        MovementPattern.V_PUSH -> R.string.backup_pattern_vertical_push
-        MovementPattern.H_PULL -> R.string.backup_pattern_horizontal_pull
-        MovementPattern.V_PULL -> R.string.backup_pattern_vertical_pull
-        MovementPattern.SIDE_DELT -> R.string.backup_pattern_side_delt
-        MovementPattern.REAR_DELT -> R.string.backup_pattern_rear_delt
-        MovementPattern.BICEPS -> R.string.backup_pattern_biceps
-        MovementPattern.TRICEPS -> R.string.backup_pattern_triceps
-        MovementPattern.CALF_GASTROC -> R.string.backup_pattern_calf_gastroc
-        MovementPattern.CALF_SOLEUS -> R.string.backup_pattern_calf_soleus
-        MovementPattern.CORE_ANTI_EXT -> R.string.backup_pattern_core_anti_extension
-        MovementPattern.CORE_ANTI_ROT -> R.string.backup_pattern_core_anti_rotation
-        MovementPattern.CORE_FLEX -> R.string.backup_pattern_core_flexion
-        MovementPattern.CARDIO -> R.string.backup_pattern_cardio
-    },
-)
 
 @Preview(showBackground = true, heightDp = 900, backgroundColor = 0xFF0D0D0F)
 @Composable

@@ -281,8 +281,13 @@ internal class Replay(
             val container = compose.onNode(SemanticsMatcher("node $id") { it.id == id })
             fun current() = deadline.call { container.fetchSemanticsNode() }
             if (current().containsMatch(matcher)) return
-            deadline.call { compose.runOnUiThread { current().config[SemanticsActions.ScrollToIndex].action?.invoke(0) } }
-            settleScroll(deadline)
+            val start = current().let { it.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+                ?: it.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange) }
+            // ScrollToIndex(0) throws on an empty list, which is also already at its start.
+            if (start == null || start.value() > 0f) {
+                deadline.call { compose.runOnUiThread { current().config[SemanticsActions.ScrollToIndex].action?.invoke(0) } }
+                settleScroll(deadline)
+            }
             repeat(MAX_LAZY_PAGES) {
                 val node = current()
                 if (node.containsMatch(matcher)) return

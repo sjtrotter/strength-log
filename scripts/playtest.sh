@@ -57,11 +57,16 @@ git -C "$worktree" add -f "playtest/$seat/script.json"
 # A relative start.restore travels with the script; CI cannot see the host's files.
 restore=$(jq -r '.start.restore // empty' "$script")
 if [[ -n "$restore" && "$restore" != /* ]]; then
-    [[ $restore =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ ]] || { echo 'start.restore must be a file name next to the script' >&2; exit 2; }
-    source_backup="$(dirname "$script")/$restore"
-    [[ -f "$source_backup" ]] || { echo "restore backup not found: $source_backup" >&2; exit 2; }
-    if [[ "$source_backup" != "$worktree/playtest/$seat/$restore" ]]; then cp "$source_backup" "$worktree/playtest/$seat/$restore"; fi
-    git -C "$worktree" add -f "playtest/$seat/$restore"
+    [[ $restore =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ && $restore != script.json && $restore != summary.json ]] || {
+        echo 'start.restore must be a file name next to the script, other than script.json or summary.json' >&2; exit 2;
+    }
+    source_dir=$(dirname "$script")
+    [[ -f "$source_dir/$restore" ]] || { echo "restore backup not found: $source_dir/$restore" >&2; exit 2; }
+    for file in "$restore" summary.json; do
+        [[ -f "$source_dir/$file" ]] || continue
+        if [[ "$source_dir/$file" != "$worktree/playtest/$seat/$file" ]]; then cp "$source_dir/$file" "$worktree/playtest/$seat/$file"; fi
+        git -C "$worktree" add -f "playtest/$seat/$file"
+    done
 fi
 if ! git -C "$worktree" diff --cached --quiet; then
     git -C "$worktree" commit -q -m "playtest($seat): $steps steps"

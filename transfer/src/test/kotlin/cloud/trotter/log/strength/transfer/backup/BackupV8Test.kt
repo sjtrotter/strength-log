@@ -54,7 +54,7 @@ class BackupV8Test {
             ExerciseLogEntity(2, "A", 21, "main", "[]", 4_000),
         ),
         sessions = listOf(
-            WorkoutSessionEntity(7, "A", "Test A", 5_000, 65_000, 210, planId = 2, planName = "Test prep"),
+            WorkoutSessionEntity(7, "A", "Test A", 5_000, 65_000, 210.0, planId = 2, planName = "Test prep"),
         ),
         sessionSets = listOf(
             SessionSetEntity(71, 7, "bb_bench", "Barbell Bench Press", "main", 0, "WORK", 135.0, 8, true),

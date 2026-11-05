@@ -208,7 +208,7 @@ class LogViewModelTest {
         LogViewModel(repo.history, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog, tracker = repo).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
-        WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
+        WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180.0)
 
     private fun set(exerciseId: String, name: String) = SessionSetEntity(
         id = 0, sessionId = 0, exerciseId = exerciseId, exerciseName = name, slot = Slot.MAIN,

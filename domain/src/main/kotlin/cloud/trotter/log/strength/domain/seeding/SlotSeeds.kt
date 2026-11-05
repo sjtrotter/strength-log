@@ -14,12 +14,14 @@ import cloud.trotter.log.strength.domain.standards.GoalCalculator
  */
 object SlotSeeds {
     fun main(exercise: ProgramExercise, entry: ExerciseEntry?, config: LifterConfig): List<LoggedSet>? =
-        exercise.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it, exercise.structure) }
-            ?: entry?.let { SetSeeder.seed(exercise, GoalCalculator.targetFor(it, config), config) }
+        exercise.prescription?.let {
+            SetSeeder.seedPrescribed(exercise.targetSets, it, exercise.structure, config.weightUnit, entry?.equipment.orEmpty())
+        }
+            ?: entry?.let { SetSeeder.seed(exercise, GoalCalculator.targetFor(it, config), config, it.equipment) }
 
     fun prescribed(rows: Int, prescription: Prescription): List<LoggedSet> =
         SetSeeder.seedPrescribed(rows, prescription)
 
     fun partner(partnerEntry: ExerciseEntry?, mainRows: Int, config: LifterConfig): List<LoggedSet>? =
-        partnerEntry?.let { SetSeeder.seedPartner(mainRows, GoalCalculator.targetFor(it, config)) }
+        partnerEntry?.let { SetSeeder.seedPartner(mainRows, GoalCalculator.targetFor(it, config), config.weightUnit) }
 }

@@ -50,7 +50,7 @@ class SetupSectionsTest {
         }
 
         listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer",
-            "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup", "Licenses").forEach { label ->
+            "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
         }
@@ -69,8 +69,8 @@ class SetupSectionsTest {
         } }
         composeTestRule.onNodeWithText("kg").performClick()
         assertEquals(WeightUnit.KG, unit)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Backup"))
-        composeTestRule.onNodeWithText("Backup").performClick()
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Backup and export"))
+        composeTestRule.onNodeWithText("Backup and export").performClick()
         assertEquals(1, backups)
     }
 

@@ -228,7 +228,7 @@ class PersistenceProcessDeathTest {
         val session = repository.history.sessionsFlow.first().single()
         assertEquals("A", session.dayId)
         assertEquals("Day A", session.dayTitle)
-        assertEquals(210, session.bodyweightLb) // from the wizard answers' config
+        assertEquals(210.0, session.bodyweightLb ?: Double.NaN, 0.0) // from the wizard answers' config
         assertTrue(session.completedAt > 0)
         val sessionSets = db.sessionDao().setsForSession(session.id)
         assertEquals(
@@ -243,7 +243,10 @@ class PersistenceProcessDeathTest {
 
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
-        assertEquals(wizardAnswers, repository.plans.wizardAnswersFlow.first())
+        assertEquals(
+            wizardAnswers.copy(config = wizardAnswers.config.copy(weightUnit = WeightUnit.KG)),
+            repository.plans.wizardAnswersFlow.first(),
+        )
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalog.catalogFlow.first().get(customId)

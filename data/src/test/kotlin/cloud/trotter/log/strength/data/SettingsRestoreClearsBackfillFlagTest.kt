@@ -56,7 +56,7 @@ class SettingsRestoreClearsBackfillFlagTest {
         assertTrue(settings.healthBackfillDoneFlow.first())
 
         settings.restore(
-            global = GlobalLifter(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED),
+            global = GlobalLifter(bodyweightLb = 210.0, age = 33, level = ExperienceLevel.ADVANCED),
             unit = WeightUnit.LB,
             wizardComplete = true,
             restSettings = RestSettings(),

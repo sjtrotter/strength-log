@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.StandardLift
+import cloud.trotter.log.strength.domain.units.GeneratedLoad
 
 /**
  * The one display-target shape every surface formats a GOAL from (§2.2). Which
@@ -31,7 +32,7 @@ object GoalCalculator {
         val oneRm = cfg.bodyweightLb * ratio * tune * StrengthStandards.ageDerate(cfg.age)
         var top = oneRm * StrengthStandards.maintenanceFactor(cfg.emphasis)
         if (perHand) top /= 2.0
-        return round5(top)
+        return GeneratedLoad.round(top, cfg.weightUnit)
     }
 
     /** Read-only GOAL for a program slot, resolved via the exercise library. */
@@ -47,8 +48,8 @@ object GoalCalculator {
                 if (src.tune != null) goalForMain(src.lift, entry.perHand, cfg, src.tune)
                 else goalForMain(src.lift, entry.perHand, cfg)
             is GoalSource.FracOfStd ->
-                round5(src.fraction * goalForMain(src.lift, perHand = false, cfg))
-            is GoalSource.Flat -> src.weightLb
+                GeneratedLoad.round(src.fraction * goalForMain(src.lift, perHand = false, cfg), cfg.weightUnit)
+            is GoalSource.Flat -> GeneratedLoad.snap(src.weightLb, cfg.weightUnit)
             // targetFor is the router for these; goalFor is never called on them.
             is GoalSource.Reps -> error("goalFor called on a REPS entry: ${entry.id}")
             is GoalSource.Time -> error("goalFor called on a TIMED entry: ${entry.id}")
@@ -65,6 +66,6 @@ object GoalCalculator {
             is GoalSource.Std, is GoalSource.FracOfStd, is GoalSource.Flat ->
                 GoalTarget.Weight(goalFor(entry, cfg), entry.perHand)
             is GoalSource.Reps -> GoalTarget.Reps(src.targetReps)
-            is GoalSource.Time -> GoalTarget.Time(src.targetSeconds, src.addedWeightLb)
+            is GoalSource.Time -> GoalTarget.Time(src.targetSeconds, GeneratedLoad.snap(src.addedWeightLb, cfg.weightUnit))
         }
 }

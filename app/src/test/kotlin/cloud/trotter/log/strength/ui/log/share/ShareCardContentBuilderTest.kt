@@ -26,7 +26,7 @@ class ShareCardContentBuilderTest {
         dayTitle: String = "Lower",
         startedAt: Long? = 1_783_500_000_000L,
         completedAt: Long = 1_783_502_280_000L, // startedAt + 38 min
-        bodyweightLb: Int = 182,
+        bodyweightLb: Double = 182.0,
     ) = WorkoutSessionEntity(
         id = 1, dayId = dayId, dayTitle = dayTitle, startedAt = startedAt, completedAt = completedAt,
         bodyweightLb = bodyweightLb,
@@ -242,7 +242,7 @@ class ShareCardContentBuilderTest {
             repsSet("pushup", "Push-Up", 12),
         )
         // A distinctive bodyweight value that would stand out if it leaked in.
-        val content = ShareCardContentBuilder.build(session(bodyweightLb = 999), sets, WeightUnit.LB, ZoneOffset.UTC)
+        val content = ShareCardContentBuilder.build(session(bodyweightLb = 999.0), sets, WeightUnit.LB, ZoneOffset.UTC)
 
         val allText = listOf(content.dateLine, content.dayLine, content.footerLine) +
             content.liftLines.flatMap { listOf(it.name, it.value) } +

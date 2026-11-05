@@ -134,7 +134,7 @@ class TypedCardioMigrationTest {
     @Test
     fun `programFor converts a recipe-less plan with outdoor fiveK defaults on its first collection`() = runTest {
         seed()
-        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185, age = 52))
+        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185.0, age = 52))
         val expected = CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN)
 
         assertEquals(expected, repo.plans.programFor(1).first().days.single().cardioBlock)
@@ -273,7 +273,7 @@ class TypedCardioMigrationTest {
         val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history)
         val exported = failingBackup.exportSnapshot()
         val snapshot = exported.copy(days = listOf(legacyDay), answers = exported.answers.copy(
-            config = exported.answers.config.copy(bodyweightLb = 190, age = 28),
+            config = exported.answers.config.copy(bodyweightLb = 190.0, age = 28),
         ))
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")

@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
 import cloud.trotter.log.strength.data.db.MIGRATION_17_18
+import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -40,7 +41,7 @@ class Migration12To13Test {
     private val plan = PlanEntity(1, "My plan", "GENERATED", 0, 1000, suggestedDayId = "A")
     private val slot = ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, null, "old note")
     private val log = ExerciseLogEntity(1, "A", 1, "main", "[]", 1000)
-    private val session = WorkoutSessionEntity(7, "A", "Day A", 1000, 2000, 235, 1, "My plan")
+    private val session = WorkoutSessionEntity(7, "A", "Day A", 1000, 2000, 235.0, 1, "My plan")
     private val set = SessionSetEntity(9, 7, "bb_back_squat", "Squat", "main", 0, "TOP", 235.0, 5, true)
 
     @After fun cleanup() { context.deleteDatabase(name) }
@@ -84,7 +85,7 @@ class Migration12To13Test {
     }
 
     private fun open(): StrengthDatabase = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-        .addMigrations(MIGRATION_12_13).addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries().build()
+        .addMigrations(MIGRATION_12_13).addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries().build()
 
     private fun createV12(): SupportSQLiteOpenHelper {
         val callback = object : SupportSQLiteOpenHelper.Callback(12) {

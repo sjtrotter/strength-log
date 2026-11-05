@@ -1,9 +1,11 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.StrengthStandards
+import cloud.trotter.log.strength.domain.units.GeneratedLoad
+import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
  * Pure set-list edits for a single track (spec §4). The cascade rule is the
@@ -11,9 +13,15 @@ import cloud.trotter.log.strength.domain.standards.StrengthStandards
  */
 object SetEditor {
 
-    fun edit(sets: List<LoggedSet>, index: Int, edit: SetEdit): List<LoggedSet> {
+    fun edit(
+        sets: List<LoggedSet>,
+        index: Int,
+        edit: SetEdit,
+        unit: WeightUnit = WeightUnit.LB,
+        equipment: Collection<Equipment> = emptyList(),
+    ): List<LoggedSet> {
         var updated = sets
-        edit.weightLb?.let { updated = editWeight(updated, index, it) }
+        edit.weightLb?.let { updated = editWeight(updated, index, it, unit, equipment) }
         edit.reps?.let { updated = editReps(updated, index, it) }
         edit.seconds?.let { updated = editSeconds(updated, index, it) }
         return updated.mapIndexed { i, row ->
@@ -41,11 +49,18 @@ object SetEditor {
     /**
      * Edit one row's weight. Editing a TOP row re-derives every
      * RAMP row (from [StrengthStandards.RAMP_PCTS], in order) and the BACKOFF
-     * row (× [StrengthStandards.BACKOFF]) off the new top weight, rounded to 5.
+     * row (× [StrengthStandards.BACKOFF]) off the new top weight, rounded for
+     * the unit and equipment.
      * Reps, WORK/EXTRA rows, and every non-TOP edit are left untouched.
      * Rows already done keep their weight.
      */
-    fun editWeight(sets: List<LoggedSet>, index: Int, newWeightLb: Double): List<LoggedSet> {
+    fun editWeight(
+        sets: List<LoggedSet>,
+        index: Int,
+        newWeightLb: Double,
+        unit: WeightUnit = WeightUnit.LB,
+        equipment: Collection<Equipment> = emptyList(),
+    ): List<LoggedSet> {
         if (sets[index].kind != SetKind.TOP) {
             return sets.mapIndexed { i, s -> if (i == index) s.copy(weightLb = newWeightLb) else s }
         }
@@ -54,10 +69,10 @@ object SetEditor {
             when (s.kind) {
                 SetKind.RAMP -> {
                     val pct = StrengthStandards.RAMP_PCTS[rampSeen++]
-                    if (s.done) s else s.copy(weightLb = GoalCalculator.round5(newWeightLb * pct))
+                    if (s.done) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * pct, unit, equipment))
                 }
                 SetKind.TOP -> if (s.done && i != index) s else s.copy(weightLb = newWeightLb)
-                SetKind.BACKOFF -> if (s.done) s else s.copy(weightLb = GoalCalculator.round5(newWeightLb * StrengthStandards.BACKOFF))
+                SetKind.BACKOFF -> if (s.done) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * StrengthStandards.BACKOFF, unit, equipment))
                 SetKind.WORK, SetKind.EXTRA -> s
             }
         }

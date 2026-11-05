@@ -53,7 +53,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
         settings = SettingsBackup(
-            bodyweightLb = answers.config.bodyweightLb,
+            bodyweightLb = Math.round(answers.config.bodyweightLb).toInt(),
+            bodyweightLbPrecise = answers.config.bodyweightLb,
             age = answers.config.age,
             level = answers.config.level.name,
             weightUnit = unit.name,
@@ -146,7 +147,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 dayTitle = s.dayTitle,
                 startedAt = s.startedAt,
                 completedAt = s.completedAt,
-                bodyweightLb = s.bodyweightLb,
+                bodyweightLb = s.bodyweightLb?.let { Math.round(it).toInt() },
+                bodyweightLbPrecise = s.bodyweightLb,
                 note = s.note,
                 sets = setsBySession[s.id].orEmpty().map { set ->
                     SessionSetBackup(
@@ -192,9 +194,10 @@ fun FullSnapshot.toDocument(): BackupDocument {
 
 fun BackupDocument.toSnapshot(): FullSnapshot {
     val config = LifterConfig(
-        bodyweightLb = settings.bodyweightLb,
+        bodyweightLb = settings.bodyweightLbPrecise ?: settings.bodyweightLb.toDouble(),
         age = settings.age,
         level = enumOrDefault(settings.level, ExperienceLevel.INTERMEDIATE),
+        weightUnit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         emphasis = if (schemaVersion >= 9) {
             WizardAnswers().config.emphasis
         } else {
@@ -282,7 +285,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             dayTitle = it.dayTitle,
             startedAt = it.startedAt,
             completedAt = it.completedAt,
-            bodyweightLb = it.bodyweightLb,
+            bodyweightLb = it.bodyweightLbPrecise ?: it.bodyweightLb?.toDouble(),
             note = it.note.ifEmpty { settings.sessionNotes[it.id].orEmpty() }.trim().take(120),
             planId = it.planId,
             planName = it.planName,

@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
 import cloud.trotter.log.strength.data.db.MIGRATION_17_18
+import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import kotlinx.coroutines.test.runTest
@@ -66,14 +67,14 @@ class Migration3To4Test {
                 MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                 MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             )
-            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries()
+            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries()
             .build()
         try {
             val sessions = db.sessionDao().allSessions()
             assertEquals(2, sessions.size)
 
             val logged = sessions.first { it.id == 1L }
-            assertEquals(235, logged.bodyweightLb)
+            assertEquals(235.0, logged.bodyweightLb ?: Double.NaN, 0.0)
             assertEquals("A", logged.dayId)
             assertEquals("Day A", logged.dayTitle)
             assertEquals(900L, logged.startedAt)
@@ -128,7 +129,7 @@ class Migration3To4Test {
                 MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                 MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             )
-            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries()
+            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries()
             .build()
         try {
             val newId = db.sessionDao().insertSession(

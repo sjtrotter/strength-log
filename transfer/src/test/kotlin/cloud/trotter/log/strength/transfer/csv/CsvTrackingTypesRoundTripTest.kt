@@ -44,7 +44,7 @@ class CsvTrackingTypesRoundTripTest {
     fun `a completed two minute rep window round trips as 42 reps`() {
         val completed = SetSeeder.seedPrescribed(1, Prescription(PrescribedTarget.RepsInTime(120, 50)))
             .single().copy(reps = 42, done = true)
-        val session = WorkoutSessionEntity(1, "A", "Rep window", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Rep window", null, 1_720_000_000_000L, 235.0)
         val row = set(1, "bb_back_squat", "Barbell Back Squat", completed.weightLb, completed.reps, completed.seconds)
 
         val csv = HistoryCsvWriter.export(listOf(session), listOf(row), WeightUnit.LB, zone)
@@ -60,7 +60,7 @@ class CsvTrackingTypesRoundTripTest {
 
     @Test
     fun `timed and reps sets survive an export then import`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(
             set(1, "bb_back_squat", "Barbell Back Squat", 225.0, 5, 0), // WEIGHTED
             set(2, "pushup", "Push-Up", 0.0, 20, 0),                   // REPS

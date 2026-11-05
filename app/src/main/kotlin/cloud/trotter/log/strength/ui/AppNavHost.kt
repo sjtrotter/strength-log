@@ -309,6 +309,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                     navController.navigate(Routes.DAY) { popUpTo(Routes.TODAY) }
                 },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+                onOpenBackup = { navController.navigate(Routes.BACKUP) },
             )
         }
         legacyPlanDestination(navController)
@@ -708,6 +709,7 @@ private fun LicensesRoute(onBack: () -> Unit) {
 private fun LogRoute(
     onStartSession: () -> Unit,
     onSetUpProgram: () -> Unit,
+    onOpenBackup: () -> Unit,
     viewModel: LogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -756,6 +758,7 @@ private fun LogRoute(
             onSetSessionNote = viewModel::setSessionNote,
             onStartSession = onStartSession,
             onSetUpProgram = onSetUpProgram,
+            onOpenBackup = onOpenBackup,
         ),
     )
 }

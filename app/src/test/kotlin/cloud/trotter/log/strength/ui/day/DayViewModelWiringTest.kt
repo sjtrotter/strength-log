@@ -353,7 +353,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"),
         )))))
-        repo.plans.updateLifter { it.copy(bodyweightLb = 185, age = 45) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 185.0, age = 45) }
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val config = repo.plans.wizardAnswersFor(plan).first().config
         val catalog = repo.catalog.catalogFlow.first()
@@ -645,7 +645,7 @@ class DayViewModelWiringTest {
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
             assertEquals(
-                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "106.59"),
+                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "105"),
                 cards.first().headerTarget,
             )
             assertEquals(displays.mapIndexed { index, display ->
@@ -2983,7 +2983,7 @@ class DayViewModelWiringTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "History", startedAt = null, completedAt = 100L,
-            bodyweightLb = 180, planId = plan,
+            bodyweightLb = 180.0, planId = plan,
         ))
         db.sessionDao().insertSets(listOf(SessionSetEntity(
             id = 0, sessionId = session, exerciseId = "db_bench", exerciseName = "DB Bench Press",
@@ -2991,7 +2991,7 @@ class DayViewModelWiringTest {
         )))
         val recent = db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Recent", startedAt = null, completedAt = 200L,
-            bodyweightLb = 180, planId = plan,
+            bodyweightLb = 180.0, planId = plan,
         ))
         db.sessionDao().insertSets(listOf(SessionSetEntity(
             id = 0, sessionId = recent, exerciseId = "db_bench", exerciseName = "DB Bench Press",

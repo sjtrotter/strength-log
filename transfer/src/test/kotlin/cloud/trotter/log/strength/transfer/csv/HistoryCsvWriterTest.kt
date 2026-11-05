@@ -31,7 +31,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `only performed sets export with their original Set Order`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(
             set(1, 3, "Barbell Back Squat", 2, 235.0, 3),
             set(1, 2, "Barbell Back Squat", 1, 230.0, 4).copy(done = false),
@@ -47,7 +47,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `a session with no performed sets writes no rows`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5).copy(done = false))
 
         val rows = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))
@@ -67,7 +67,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `strength rows keep the copied plan name in column sixteen`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planId = 2, planName = "Test prep")
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0, planId = 2, planName = "Test prep")
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 
@@ -77,7 +77,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `strength plan names are formula-neutralized`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planName = "=SUM(A1)")
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0, planName = "=SUM(A1)")
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 
@@ -103,7 +103,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `one row per set with Strong's column values`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
 
         val csv = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone)
@@ -126,7 +126,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `weight is converted to the display unit and unit column reflects it`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 220.462262, 5)) // ~100 kg
 
         val csv = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.KG, zone)
@@ -140,7 +140,7 @@ class HistoryCsvWriterTest {
     fun `Duration is H-MM-SS of the session's real start when one was recorded`() {
         val startedAt = 1_720_000_000_000L
         val completedAt = startedAt + 3_665_000L // 1h 1m 5s
-        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
 
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
@@ -150,7 +150,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `Duration is empty when the session carries no recorded start`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
 
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
@@ -162,7 +162,7 @@ class HistoryCsvWriterTest {
     fun `Duration is empty when the span exceeds a sane session (stale stamp)`() {
         val startedAt = 1_720_000_000_000L
         val completedAt = startedAt + 7L * 60 * 60_000L // 7 hours — past the 6h ceiling
-        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
 
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
@@ -172,8 +172,8 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `sessions are ordered by completedAt then id, sets by id within a session`() {
-        val earlier = WorkoutSessionEntity(2, "A", "Second Inserted But Earlier", null, 1_000L, 235)
-        val later = WorkoutSessionEntity(1, "A", "First Inserted But Later", null, 2_000L, 235)
+        val earlier = WorkoutSessionEntity(2, "A", "Second Inserted But Earlier", null, 1_000L, 235.0)
+        val later = WorkoutSessionEntity(1, "A", "First Inserted But Later", null, 2_000L, 235.0)
         val sets = listOf(
             set(1, 20, "Second", 0, 100.0, 5),
             set(1, 10, "First", 0, 100.0, 5),
@@ -189,7 +189,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `strength and cardio rows are globally interleaved by completion time`() {
-        val strength = WorkoutSessionEntity(2, "A", "Strength", null, 2_000L, 235)
+        val strength = WorkoutSessionEntity(2, "A", "Strength", null, 2_000L, 235.0)
         val cardio = CardioSessionEntity(
             id = 1, dayId = "A", mode = "TREADMILL", hard = false, label = "Earlier cardio",
             startedAt = -59_000, completedAt = 1_000, seconds = 60, stepsCompleted = 1,
@@ -203,7 +203,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `exporting the same state twice is byte-identical`() {
-        val session = WorkoutSessionEntity(1, "A", "Day, \"A\"", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day, \"A\"", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val first = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone)
         val second = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone)
@@ -216,7 +216,7 @@ class HistoryCsvWriterTest {
         val dangerous = listOf("=SUM(A1:A2)", "+cmd", "-2+3", "@name", "  \t=SUM(A1:A2)", "\u0001@name", "＝式", "＋式", "－式", "＠式")
 
         dangerous.forEachIndexed { index, name ->
-            val session = WorkoutSessionEntity(index + 1L, "A", name, null, 1_720_000_000_000L + index, 235)
+            val session = WorkoutSessionEntity(index + 1L, "A", name, null, 1_720_000_000_000L + index, 235.0)
             val sets = listOf(set(index + 1L, index + 1L, name, 0, 225.0, 5))
             val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 
@@ -230,7 +230,7 @@ class HistoryCsvWriterTest {
     @Test
     fun `neutralization composes with quotes commas and newlines`() {
         val name = "\t=SUM(\"A,1\")\r\nnext"
-        val session = WorkoutSessionEntity(1, "A", name, null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", name, null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, name, 0, 225.0, 5))
 
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
@@ -241,7 +241,7 @@ class HistoryCsvWriterTest {
 
     @Test
     fun `clean Strong-compatible names are unchanged`() {
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 

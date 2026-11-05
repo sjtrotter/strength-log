@@ -209,7 +209,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null,
-            java.time.Instant.parse("2026-10-28T18:00:00Z").toEpochMilli(), 180, planId = plan))
+            java.time.Instant.parse("2026-10-28T18:00:00Z").toEpochMilli(), 180.0, planId = plan))
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 28", vm.uiState.value.fact)
@@ -327,7 +327,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
     }
 
     private fun historySession(planId: Long?, date: String) = WorkoutSessionEntity(
-        0, "A", "Day A", null, completionAt(date), 180, planId = planId,
+        0, "A", "Day A", null, completionAt(date), 180.0, planId = planId,
     )
 
     private fun cardioSession(planId: Long?, date: String) = CardioSessionEntity(

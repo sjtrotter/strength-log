@@ -33,7 +33,7 @@ class CsvHistoryImporterTest {
     @Test
     fun `own export matches existing done sets in id order with unchecked sets omitted`() {
         val zone = ZoneId.of("UTC")
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0)
         val first = SessionSetEntity(1, 1, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, 0, "WORK", 225.0, 5, true)
         val sets = listOf(
             first.copy(id = 3, setIndex = 2, weightLb = 235.0, reps = 3),
@@ -53,7 +53,7 @@ class CsvHistoryImporterTest {
     @Test
     fun `imports with and without Plan leave strength and cardio plan fields null`() {
         val zone = ZoneId.of("UTC")
-        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planId = 2, planName = "Test prep")
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235.0, planId = 2, planName = "Test prep")
         val set = SessionSetEntity(1, 1, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, 0, "WORK", 225.0, 5, true)
         val cardio = CardioSessionEntity(
             id = 2, dayId = "A", mode = "TREADMILL", hard = false, label = "Easy",

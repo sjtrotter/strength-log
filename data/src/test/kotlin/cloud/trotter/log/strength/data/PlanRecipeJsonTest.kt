@@ -13,7 +13,7 @@ class PlanRecipeJsonTest {
     fun `recipe omits global lifter and decodes with the current globals`() {
         val answers = WizardAnswers()
         val encoded = PlanRecipeJson.encode(answers)
-        val global = GlobalLifter(210, 55, ExperienceLevel.ADVANCED)
+        val global = GlobalLifter(210.0, 55, ExperienceLevel.ADVANCED)
 
         assertFalse(encoded.contains("bodyweight"))
         assertFalse(encoded.contains("age"))

@@ -65,7 +65,7 @@ class ChromeTouchTargetTest {
 
         listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
-            "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup", "Licenses").forEach { label ->
+            "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
             composeTestRule.assertNoOverlappingTouchTargets()

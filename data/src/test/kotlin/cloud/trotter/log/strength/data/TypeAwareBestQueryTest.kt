@@ -44,7 +44,7 @@ class TypeAwareBestQueryTest {
 
     @Test
     fun `best picks max reps for REPS, max seconds for TIMED, heaviest for WEIGHTED`() = runTest {
-        db.sessionDao().insertSession(WorkoutSessionEntity(1, "A", "Day A", null, 1_000, 235))
+        db.sessionDao().insertSession(WorkoutSessionEntity(1, "A", "Day A", null, 1_000, 235.0))
         db.sessionDao().insertSets(
             listOf(
                 set("pushup", 0.0, 12, 0),
@@ -78,8 +78,8 @@ class TypeAwareBestQueryTest {
     @Test
     fun `personalRecordRows excludes only the requested run and retains null run ids`() = runTest {
         val dao = db.sessionDao()
-        dao.insertSession(WorkoutSessionEntity(1, "A", "Day A", null, 1_000, 235, runId = "r1"))
-        dao.insertSession(WorkoutSessionEntity(2, "A", "Day A", null, 2_000, 235, runId = "r2"))
+        dao.insertSession(WorkoutSessionEntity(1, "A", "Day A", null, 1_000, 235.0, runId = "r1"))
+        dao.insertSession(WorkoutSessionEntity(2, "A", "Day A", null, 2_000, 235.0, runId = "r2"))
         dao.insertSets(listOf(
             set("bb_back_squat", 235.0, 5, 0),
             set("bb_back_squat", 245.0, 5, 0).copy(sessionId = 2),
@@ -89,7 +89,7 @@ class TypeAwareBestQueryTest {
         assertEquals(listOf(235.0), dao.personalRecordRows(ids, excludedRunId = "r2").map { it.weightLb })
         assertEquals(listOf(235.0, 245.0), dao.personalRecordRows(ids, excludedRunId = null).map { it.weightLb })
 
-        dao.insertSession(WorkoutSessionEntity(3, "A", "Day A", null, 3_000, 235, runId = null))
+        dao.insertSession(WorkoutSessionEntity(3, "A", "Day A", null, 3_000, 235.0, runId = null))
         dao.insertSets(listOf(set("bb_back_squat", 225.0, 5, 0).copy(sessionId = 3)))
 
         assertEquals(listOf(235.0, 225.0), dao.personalRecordRows(ids, excludedRunId = "r2").map { it.weightLb })

@@ -262,7 +262,7 @@ class PlanSettingsTest {
     @Test
     fun `first wizard write seeds a recipe for either origin`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2).copy(origin = PlanOrigin.AUTHORED.name)))
-        val global = GlobalLifter(bodyweightLb = 205, age = 41, level = ExperienceLevel.ADVANCED)
+        val global = GlobalLifter(bodyweightLb = 205.0, age = 41, level = ExperienceLevel.ADVANCED)
         settings.setGlobalLifter(global)
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
@@ -299,7 +299,7 @@ class PlanSettingsTest {
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two)))
-        val changed = one.config.copy(bodyweightLb = 210, age = 31, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.BALANCED)
+        val changed = one.config.copy(bodyweightLb = 210.0, age = 31, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.BALANCED)
 
         repo.plans.updateLifter { it.copy(bodyweightLb = changed.bodyweightLb, age = changed.age, level = changed.level) }
         repo.plans.setPlanEmphasis(repo.plans.selectedPlanFlow.first()!!.id, changed.emphasis)
@@ -320,10 +320,10 @@ class PlanSettingsTest {
         repo.plans.setPlanEmphasis(1, GoalEmphasis.STRENGTH)
         val recipeBefore = db.planDao().plan(1)!!.recipeJson!!
 
-        repo.plans.updateLifter { it.copy(bodyweightLb = 205) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 205.0) }
 
         assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(1).first().config.emphasis)
-        assertEquals(205, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(205.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(recipeBefore, db.planDao().plan(1)!!.recipeJson)
     }
 
@@ -339,17 +339,17 @@ class PlanSettingsTest {
         assertEquals(one.copy(cardio = prefs), repo.plans.wizardAnswersFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         settings.setSelectedPlanId(3)
-        repo.plans.updateLifter { it.copy(bodyweightLb = 205) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 205.0) }
         repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = prefs))
         repo.plans.setPlanEmphasis(3, one.config.emphasis)
-        assertEquals(one.config.copy(bodyweightLb = 205), repo.plans.configFlow.first())
+        assertEquals(one.config.copy(bodyweightLb = 205.0), repo.plans.configFlow.first())
         assertEquals(prefs, answersFor(3).cardio)
-        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
-        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), answersFor(3))
-        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.plans.wizardAnswersFlow.first())
+        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215.0)))
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215.0)), answersFor(3))
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215.0)), repo.plans.wizardAnswersFlow.first())
         settings.setSelectedPlanId(2)
-        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
-        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.plans.wizardAnswersFlow.first())
+        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215.0)))
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215.0)), repo.plans.wizardAnswersFlow.first())
         assertLegacyKeysGone()
     }
 
@@ -538,7 +538,7 @@ class PlanSettingsTest {
     fun `setPlanEmphasis changes only the viewed recipe and preserves global lifter`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, WizardAnswers()), plan(2, WizardAnswers())))
         settings.setSelectedPlanId(1)
-        val global = GlobalLifter(210, 42, ExperienceLevel.ADVANCED)
+        val global = GlobalLifter(210.0, 42, ExperienceLevel.ADVANCED)
         settings.setGlobalLifter(global)
         repo.plans.runPlanSettingsFixupIfNeeded()
         val one = db.planDao().plan(1)
@@ -593,7 +593,7 @@ class PlanSettingsTest {
     }
 
     private suspend fun writeLegacy(answers: WizardAnswers, suggestedDay: String) = store.edit { prefs ->
-        prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb
+        prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb.toInt()
         prefs[intPreferencesKey("age")] = answers.config.age
         prefs[stringPreferencesKey("level")] = answers.config.level.name
         prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name

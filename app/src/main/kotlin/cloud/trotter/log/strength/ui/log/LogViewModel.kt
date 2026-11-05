@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.BodyweightPrompt
@@ -423,7 +424,7 @@ class LogViewModel @Inject constructor(
 
     private fun buildHealthUi(
         data: HealthData,
-        configBodyweightLb: Int,
+        configBodyweightLb: Double,
         unit: WeightUnit,
         dismissed: Boolean,
     ): HealthSectionUi {
@@ -438,8 +439,8 @@ class LogViewModel @Inject constructor(
             externalSessions = data.externalSessions,
             bodyweightPrompt = promptData?.let {
                 BodyweightPromptUi(
-                    currentDisplay = WeightStepper.format(unit.fromLb(it.currentConfigLb.toDouble())),
-                    healthConnectDisplay = WeightStepper.format(unit.fromLb(it.healthConnectLb)),
+                    currentDisplay = WeightStepper.format(Bodyweight.display(it.currentConfigLb, unit)),
+                    healthConnectDisplay = WeightStepper.format(Bodyweight.display(it.healthConnectLb, unit)),
                 )
             },
         )

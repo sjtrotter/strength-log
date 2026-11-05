@@ -28,7 +28,7 @@ class SessionRecordMapperTest {
 
     private fun session(startedAt: Long?, completedAt: Long) = WorkoutSessionEntity(
         id = 1, dayId = "A", dayTitle = "Lower — squat focus",
-        startedAt = startedAt, completedAt = completedAt, bodyweightLb = 180,
+        startedAt = startedAt, completedAt = completedAt, bodyweightLb = 180.0,
     )
 
     private fun set(exerciseId: String, reps: Int, slot: String = Slot.MAIN, done: Boolean = true) = SessionSetEntity(

@@ -55,6 +55,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
@@ -80,9 +81,7 @@ import cloud.trotter.log.strength.ui.wizardStepTransition
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
- * forwards every intent to [WizardActions]; every default already matches the
- * spec's next-next-next program, so a lifter can finish without touching
- * anything but the Finish button.
+ * forwards every intent to [WizardActions].
  */
 @Composable
 fun WizardScreen(state: WizardUiState, actions: WizardActions) {
@@ -94,7 +93,7 @@ fun WizardScreen(state: WizardUiState, actions: WizardActions) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
-                item { StepContent(state, actions) }
+                item { if (state.initialized) StepContent(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
             WizardFooter(state, actions)
@@ -416,12 +415,13 @@ private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
     UnitChoice(unit = state.unit, onChange = actions.onUnitChange)
     AppCard {
         NumberField(
-            value = BodyweightInput.display(answers.config.bodyweightLb, state.unit),
+            value = state.bodyweightLb?.let { BodyweightInput.display(it, state.unit) },
             onValueChange = { actions.onBodyweightChange(BodyweightInput.canonicalLb(it, state.unit)) },
             label = stringResource(R.string.form_bodyweight_label, state.unit.name.lowercase()),
             minValue = 1.0,
             format = WeightStepper::format,
-            round = { WeightStepper.round(it, state.unit) },
+            round = Bodyweight::round,
+            onDraftChange = { value -> actions.onBodyweightChange(value?.let { BodyweightInput.canonicalLb(it, state.unit) }) },
             decimalInput = true,
             weightInput = true,
         )
@@ -430,7 +430,8 @@ private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             NumberField(
                 label = stringResource(R.string.form_age_label),
-                value = answers.config.age.toDouble(),
+                value = state.age?.toDouble(),
+                onDraftChange = { actions.onAgeChange(it?.toInt()) },
                 onValueChange = { actions.onAgeChange(it.toInt()) },
                 minValue = 1.0,
                 format = { it.toInt().toString() },
@@ -597,7 +598,7 @@ private fun WizardFooter(
             if (!state.isFirstStep) {
                 OutlinedButton(
                     onClick = { focusManager.clearFocus(); actions.onBack() },
-                    enabled = !state.restore.inFlight,
+                    enabled = state.initialized && !state.restore.inFlight,
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                     shape = MaterialTheme.shapes.large,
                     contentPadding = PaddingValues(vertical = 8.dp),
@@ -607,7 +608,7 @@ private fun WizardFooter(
             }
             Button(
                 onClick = { focusManager.clearFocus(); actions.onNext() },
-                enabled = !state.restore.inFlight && !state.finishInFlight && !state.emptyRotation,
+                enabled = state.canContinue && !state.restore.inFlight && !state.finishInFlight && !state.emptyRotation,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f).heightIn(min = 52.dp),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(vertical = 8.dp),

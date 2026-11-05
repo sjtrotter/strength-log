@@ -120,7 +120,7 @@ class DayViewModelPersonalRecordTest {
         repo.plans.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
 
     private fun session(completedAt: Long, dayTitle: String = "Test") =
-        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
+        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180.0)
 
     private fun set(exerciseId: String, name: String, kind: SetKind, weightLb: Double, reps: Int) =
         SessionSetEntity(

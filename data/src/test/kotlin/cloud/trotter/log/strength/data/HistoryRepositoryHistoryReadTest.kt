@@ -70,7 +70,7 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     private fun session(completedAt: Long, dayTitle: String = "Lower") =
-        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
+        WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180.0)
 
     private fun set(exerciseId: String, name: String, kind: SetKind, weightLb: Double, reps: Int, done: Boolean) =
         SessionSetEntity(

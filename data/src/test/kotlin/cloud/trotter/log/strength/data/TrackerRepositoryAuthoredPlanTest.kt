@@ -145,7 +145,7 @@ class TrackerRepositoryAuthoredPlanTest {
     @Test
     fun `create and publish an empty authored plan preserve the global lifter and existing selection`() = runTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
-        repo.plans.updateLifter { it.copy(bodyweightLb = 193, age = 47) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 193.0, age = 47) }
         val global = settings.globalLifterFlow.first()
         val selected = settings.selectedPlanIdFlow.first()
         val id = repo.plans.createAuthoredPlan("  Physio  ", "Day A")

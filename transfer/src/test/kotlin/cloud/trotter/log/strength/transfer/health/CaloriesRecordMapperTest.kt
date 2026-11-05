@@ -23,7 +23,7 @@ class CaloriesRecordMapperTest {
 
     private val zone = ZoneId.of("America/New_York")
 
-    private fun session(startedAt: Long?, completedAt: Long, bodyweightLb: Int? = 200) = WorkoutSessionEntity(
+    private fun session(startedAt: Long?, completedAt: Long, bodyweightLb: Double? = 200.0) = WorkoutSessionEntity(
         id = 7, dayId = "A", dayTitle = "Lower", startedAt = startedAt, completedAt = completedAt, bodyweightLb = bodyweightLb,
     )
 
@@ -72,7 +72,7 @@ class CaloriesRecordMapperTest {
     fun `kcal is MET times bodyweight in kg times duration in hours`() {
         val start = 0L
         val end = start + 3_600_000L // exactly 1 hour
-        val record = CaloriesRecordMapper.toActiveCalories(session(start, end, bodyweightLb = 200), zone)!!
+        val record = CaloriesRecordMapper.toActiveCalories(session(start, end, bodyweightLb = 200.0), zone)!!
         // 200 lb ~= 90.7185 kg; 5.0 MET * 90.7185 kg * 1 h ~= 453.59 kcal.
         assertEquals(453.59, record.energy.inKilocalories, 0.5)
     }

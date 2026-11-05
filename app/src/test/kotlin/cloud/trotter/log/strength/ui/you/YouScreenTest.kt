@@ -23,6 +23,20 @@ class YouScreenTest {
     @get:Rule val rule = createComposeRule()
 
     @Test
+    fun metricBodyweightKeepsTenthsWithoutPlateRounding() {
+        val bodyweights = mutableListOf<Double>()
+        rule.setContent { AppTheme {
+            YouScreen(
+                YouUiState(unit = WeightUnit.KG),
+                YouActions(onBodyweightChange = { bodyweights += it }, onAgeChange = {}, onLevelChange = {}, onBack = {}),
+            )
+        } }
+        rule.onNodeWithText("Bodyweight (kg)").performClick().performTextReplacement("95.5")
+        rule.onNodeWithText("Bodyweight (kg)").performImeAction()
+        assertEquals(listOf(95.5), bodyweights)
+    }
+
+    @Test
     fun lifterFactsShowDefaultsAndForwardLevelAndBodyweightChanges() {
         var level: ExperienceLevel? = null
         val bodyweights = mutableListOf<Double>()

@@ -101,7 +101,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -157,7 +157,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             )))
         } else withSlotAndNoteFields
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedStructures(versioned, version))
+            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedStructures(versioned, version), version))
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -165,6 +165,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withVersionedBodyweights(root: JsonObject, version: Int): JsonObject {
+        if (version >= 17) return root
+        return JsonObject(root.toMutableMap().apply {
+            (get("settings") as? JsonObject)?.let { put("settings", JsonObject(it - "bodyweightLbPrecise")) }
+            (get("sessions") as? JsonArray)?.let { sessions ->
+                put("sessions", JsonArray(sessions.map {
+                    if (it is JsonObject) JsonObject(it - "bodyweightLbPrecise") else it
+                }))
+            }
+        })
     }
 
     private fun withVersionedStructures(root: JsonObject, version: Int): JsonObject {
@@ -448,6 +460,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         if (settings.bodyweightLb <= 0) {
             throw BackupError.Inconsistent("bodyweightLb must be positive: ${settings.bodyweightLb}")
         }
+        validatePreciseBodyweight(settings.bodyweightLbPrecise)
         if (settings.age < 0) throw BackupError.Inconsistent("age must not be negative: ${settings.age}")
         settings.restOverrides().forEach { (category, seconds) ->
             if (seconds !in 0..RestPolicy.MAX_REST_SECONDS) {
@@ -546,6 +559,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
     }
 
+    private fun validatePreciseBodyweight(value: Double?) {
+        if (value != null && (!value.isFinite() || value <= 0 || value > Int.MAX_VALUE.toDouble() ||
+                kotlin.math.abs(value * 10 - Math.round(value * 10)) > 0.000001)) {
+            throw BackupError.Inconsistent("bodyweightLbPrecise must be positive tenths of a pound: $value")
+        }
+    }
+
     private fun validateSessions(sessions: List<SessionBackup>) {
         val sessionIds = HashSet<Long>()
         val setIds = HashSet<Long>()
@@ -556,6 +576,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if (s.bodyweightLb != null && s.bodyweightLb <= 0) {
                 throw BackupError.Inconsistent("session ${s.id} bodyweightLb must be positive: ${s.bodyweightLb}")
             }
+            validatePreciseBodyweight(s.bodyweightLbPrecise)
             for (set in s.sets) {
                 if (!setIds.add(set.id)) throw BackupError.Inconsistent("duplicate session set id ${set.id}")
                 if (set.slot != Slot.MAIN && set.slot != Slot.SS) {

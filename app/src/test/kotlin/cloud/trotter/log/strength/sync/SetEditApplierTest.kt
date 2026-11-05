@@ -1095,7 +1095,7 @@ class SetEditApplierTest {
         repo.plans.selectPlan(planQ)
         db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
-            completedAt = 200L, bodyweightLb = 180, planId = planQ,
+            completedAt = 200L, bodyweightLb = 180.0, planId = planQ,
         ))
         val qLogs = db.programDao().logsForPlan(planQ)
         val delta = SetEditDelta(
@@ -1139,7 +1139,7 @@ class SetEditApplierTest {
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = false) })
         db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
-            completedAt = 200L, bodyweightLb = 180, planId = planP,
+            completedAt = 200L, bodyweightLb = 180.0, planId = planP,
         ))
         val planQ = repo.plans.duplicatePlan(planP, "Running")
         db.planDao().updateRecipe(planQ, PlanRecipeJson.encode(WizardAnswers(equipment = emptySet())))

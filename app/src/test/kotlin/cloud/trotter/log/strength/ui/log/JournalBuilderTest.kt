@@ -51,7 +51,7 @@ class JournalBuilderTest {
             dayTitle = "Day $dayId",
             startedAt = null,
             completedAt = date.atTime(atHour, 0).toInstant(zone).toEpochMilli(),
-            bodyweightLb = 200,
+            bodyweightLb = 200.0,
         ),
         setCount = 8,
     )

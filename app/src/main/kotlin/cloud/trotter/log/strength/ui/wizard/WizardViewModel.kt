@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -89,7 +90,9 @@ class WizardViewModel @Inject constructor(
         const val CARDIO_MODE = "wizard_cardio_mode"
         const val CARDIO_PLACEMENT = "wizard_cardio_placement"
         const val FIVE_K = "wizard_five_k"
-        const val BODYWEIGHT = "wizard_bodyweight"
+        const val BODYWEIGHT = "wizard_bodyweight_lb"
+        const val LEGACY_BODYWEIGHT = "wizard_bodyweight"
+        const val EDITED_ANSWERS = "wizard_edited_answers"
         const val AGE = "wizard_age"
         const val LEVEL = "wizard_level"
         const val EMPHASIS = "wizard_emphasis"
@@ -101,6 +104,7 @@ class WizardViewModel @Inject constructor(
 
     private val defaults = WizardAnswers()
 
+    private val initialized = savedState.getStateFlow(Keys.INITIALIZED, false)
     private val stepIndex: StateFlow<Int> = savedState.getStateFlow(Keys.STEP, 0)
     private val daysPerWeek: StateFlow<Int> = savedState.getStateFlow(Keys.DAYS, defaults.daysPerWeek)
     private val split: StateFlow<String> = savedState.getStateFlow(Keys.SPLIT, defaults.split.name)
@@ -112,8 +116,10 @@ class WizardViewModel @Inject constructor(
     private val cardioPlacement: StateFlow<String> =
         savedState.getStateFlow(Keys.CARDIO_PLACEMENT, defaults.cardio.placement.name)
     private val fiveK: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIVE_K, defaults.cardio.fiveKGoal)
-    private val bodyweight: StateFlow<Int> = savedState.getStateFlow(Keys.BODYWEIGHT, defaults.config.bodyweightLb)
-    private val age: StateFlow<Int> = savedState.getStateFlow(Keys.AGE, defaults.config.age)
+    private val bodyweight: StateFlow<Double?> = savedState.getStateFlow(
+        Keys.BODYWEIGHT, savedState.get<Int>(Keys.LEGACY_BODYWEIGHT)?.toDouble(),
+    )
+    private val age: StateFlow<Int?> = savedState.getStateFlow(Keys.AGE, null)
     private val level: StateFlow<String> = savedState.getStateFlow(Keys.LEVEL, defaults.config.level.name)
     private val emphasis: StateFlow<String> = savedState.getStateFlow(Keys.EMPHASIS, defaults.config.emphasis.name)
     private val equipment: StateFlow<List<String>> =
@@ -139,7 +145,7 @@ class WizardViewModel @Inject constructor(
 
     private data class SplitGroup(val days: Int, val split: SplitTemplate, val anchors: AnchorScheme, val deadlift: DeadliftVariant)
     private data class CardioGroup(val mode: CardioMode, val placement: CardioPlacement, val fiveK: Boolean)
-    private data class AboutGroup(val bodyweight: Int, val age: Int, val level: ExperienceLevel, val emphasis: GoalEmphasis)
+    private data class AboutGroup(val bodyweight: Double?, val age: Int?, val level: ExperienceLevel, val emphasis: GoalEmphasis)
 
     private val splitGroup =
         combine(daysPerWeek, split, anchorScheme, deadliftVariant) { d, s, a, dl ->
@@ -161,7 +167,7 @@ class WizardViewModel @Inject constructor(
             anchorScheme = sg.anchors,
             deadliftVariant = sg.deadlift,
             cardio = CardioPrefs(mode = cg.mode, placement = cg.placement, fiveKGoal = cg.fiveK),
-            config = LifterConfig(bodyweightLb = ag.bodyweight, age = ag.age, level = ag.level, emphasis = ag.emphasis),
+            config = LifterConfig(bodyweightLb = ag.bodyweight ?: defaults.config.bodyweightLb, age = ag.age ?: defaults.config.age, level = ag.level, emphasis = ag.emphasis),
             equipment = equip.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
         )
 
@@ -196,7 +202,7 @@ class WizardViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<WizardUiState> =
-        combine(stepIndex, answersFlow, unit, completionGroup) { step, answers, unitName, completion ->
+        combine(stepIndex, answersFlow, unit, completionGroup, initialized) { step, answers, unitName, completion, loaded ->
             WizardStateBuilder.buildUiState(
                 stepIndex = step,
                 answers = answers,
@@ -206,16 +212,20 @@ class WizardViewModel @Inject constructor(
                 previewProgram = completion.preview,
                 finishError = completion.finish.error,
                 finishInFlight = completion.finish.inFlight,
+                initialized = loaded,
+                bodyweightLb = bodyweight.value,
+                age = age.value,
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState(initialized = initialized.value))
 
     init {
         if (savedState.get<Boolean>(Keys.INITIALIZED) != true) {
             viewModelScope.launch {
-                applyAnswers(repo.wizardAnswersFlow.first())
+                val answers = repo.wizardAnswersFlow.first()
                 val isFirstRun = !settings.wizardCompleteFlow.first()
+                applyAnswers(answers, prefillAboutYou = !isFirstRun || settings.hasLifterAnswersFlow.first())
                 savedState[Keys.FIRST_RUN] = isFirstRun
-                savedState[Keys.UNIT] = if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else settings.unitFlow.first().name
+                applyAnswer(Keys.UNIT, if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else settings.unitFlow.first().name)
                 if (stepIndex.value == WizardStep.ROTATION.ordinal) {
                     previewProgram.value = generatePreview(currentAnswers())
                 }
@@ -237,7 +247,9 @@ class WizardViewModel @Inject constructor(
     // to the very next read.
 
     fun onNext() {
+        if (!initialized.value) return
         val current = stepIndex.value
+        if (current == WizardStep.ABOUT_YOU.ordinal && !hasValidAboutYouAnswers()) return
         if (current >= WizardStep.entries.lastIndex) {
             finish()
         } else {
@@ -259,59 +271,59 @@ class WizardViewModel @Inject constructor(
     // --- field setters -----------------------------------------------------------
 
     fun setEmphasis(value: GoalEmphasis) {
-        savedState[Keys.EMPHASIS] = value.name
+        setAnswer(Keys.EMPHASIS, value.name)
     }
 
     fun setDaysPerWeek(value: Int) {
         val clamped = value.coerceIn(2, 6)
-        savedState[Keys.DAYS] = clamped
+        setAnswer(Keys.DAYS, clamped)
         val currentSplit = enumOf(split.value, defaults.split)
-        savedState[Keys.SPLIT] = WizardStateBuilder.splitForDays(currentSplit, clamped).name
+        setAnswer(Keys.SPLIT, WizardStateBuilder.splitForDays(currentSplit, clamped).name)
     }
 
     fun setSplit(value: SplitTemplate) {
-        savedState[Keys.SPLIT] = value.name
+        setAnswer(Keys.SPLIT, value.name)
     }
 
     fun setAnchorScheme(value: AnchorScheme) {
-        savedState[Keys.ANCHOR_SCHEME] = value.name
+        setAnswer(Keys.ANCHOR_SCHEME, value.name)
     }
 
     fun setDeadliftVariant(value: DeadliftVariant) {
-        savedState[Keys.DEADLIFT] = value.name
+        setAnswer(Keys.DEADLIFT, value.name)
     }
 
     fun setCardioMode(value: CardioMode) {
-        savedState[Keys.CARDIO_MODE] = value.name
+        setAnswer(Keys.CARDIO_MODE, value.name)
     }
 
     fun setCardioPlacement(value: CardioPlacement) {
-        savedState[Keys.CARDIO_PLACEMENT] = value.name
+        setAnswer(Keys.CARDIO_PLACEMENT, value.name)
     }
 
     fun setFiveK(value: Boolean) {
-        savedState[Keys.FIVE_K] = value
+        setAnswer(Keys.FIVE_K, value)
     }
 
-    fun setBodyweight(value: Int) {
-        savedState[Keys.BODYWEIGHT] = value.coerceAtLeast(1)
+    fun setBodyweight(value: Double?) {
+        setAnswer(Keys.BODYWEIGHT, value?.takeIf { it.isFinite() && it >= 1.0 }?.let(Bodyweight::round))
     }
 
     fun setUnit(value: WeightUnit) {
-        savedState[Keys.UNIT] = value.name
+        setAnswer(Keys.UNIT, value.name)
     }
 
-    fun setAge(value: Int) {
-        savedState[Keys.AGE] = value.coerceAtLeast(1)
+    fun setAge(value: Int?) {
+        setAnswer(Keys.AGE, value?.takeIf { it >= 1 })
     }
 
     fun setLevel(value: ExperienceLevel) {
-        savedState[Keys.LEVEL] = value.name
+        setAnswer(Keys.LEVEL, value.name)
     }
 
     fun toggleEquipment(value: Equipment) {
         val current = equipment.value
-        savedState[Keys.EQUIPMENT] = if (value.name in current) current - value.name else current + value.name
+        setAnswer(Keys.EQUIPMENT, if (value.name in current) current - value.name else current + value.name)
     }
 
     // --- finish --------------------------------------------------------------
@@ -343,6 +355,7 @@ class WizardViewModel @Inject constructor(
      * publish it, the unit and completion.
      */
     private fun finish() {
+        if (!hasValidAboutYouAnswers()) return
         if (finishProgress.value.inFlight || isComplete.value || previewProgram.value?.days.isNullOrEmpty()) return
         finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
@@ -424,7 +437,7 @@ class WizardViewModel @Inject constructor(
                 }
                 // Discard the retry id only once Room has been replaced.
                 savedState.remove<Long>(Keys.CREATED_PLAN_ID)
-                applyAnswers(repo.wizardAnswersFlow.first())
+                applyAnswers(repo.wizardAnswersFlow.first(), prefillAboutYou = true)
                 if (settings.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
                     // with it. Nothing is owed the user — the app finishes the
@@ -453,19 +466,36 @@ class WizardViewModel @Inject constructor(
 
     // --- helpers ---------------------------------------------------------------
 
-    private fun applyAnswers(answers: WizardAnswers) {
-        savedState[Keys.DAYS] = answers.daysPerWeek
-        savedState[Keys.SPLIT] = answers.split.name
-        savedState[Keys.ANCHOR_SCHEME] = answers.anchorScheme.name
-        savedState[Keys.DEADLIFT] = answers.deadliftVariant.name
-        savedState[Keys.CARDIO_MODE] = answers.cardio.mode.name
-        savedState[Keys.CARDIO_PLACEMENT] = answers.cardio.placement.name
-        savedState[Keys.FIVE_K] = answers.cardio.fiveKGoal
-        savedState[Keys.BODYWEIGHT] = answers.config.bodyweightLb
-        savedState[Keys.AGE] = answers.config.age
-        savedState[Keys.LEVEL] = answers.config.level.name
-        savedState[Keys.EMPHASIS] = answers.config.emphasis.name
-        savedState[Keys.EQUIPMENT] = answers.equipment.map { it.name }
+    private fun hasValidAboutYouAnswers(): Boolean =
+        bodyweight.value?.let { it.isFinite() && it >= 1.0 } == true && (age.value ?: 0) >= 1
+
+    private fun <T> setAnswer(key: String, value: T) {
+        if (!initialized.value) {
+            val edited = savedState.get<List<String>>(Keys.EDITED_ANSWERS).orEmpty()
+            if (key !in edited) savedState[Keys.EDITED_ANSWERS] = edited + key
+        }
+        savedState[key] = value
+    }
+
+    private fun <T> applyAnswer(key: String, value: T) {
+        if (key !in savedState.get<List<String>>(Keys.EDITED_ANSWERS).orEmpty()) savedState[key] = value
+    }
+
+    private fun applyAnswers(answers: WizardAnswers, prefillAboutYou: Boolean) {
+        applyAnswer(Keys.DAYS, answers.daysPerWeek)
+        applyAnswer(Keys.SPLIT, answers.split.name)
+        applyAnswer(Keys.ANCHOR_SCHEME, answers.anchorScheme.name)
+        applyAnswer(Keys.DEADLIFT, answers.deadliftVariant.name)
+        applyAnswer(Keys.CARDIO_MODE, answers.cardio.mode.name)
+        applyAnswer(Keys.CARDIO_PLACEMENT, answers.cardio.placement.name)
+        applyAnswer(Keys.FIVE_K, answers.cardio.fiveKGoal)
+        if (prefillAboutYou) {
+            applyAnswer(Keys.BODYWEIGHT, answers.config.bodyweightLb)
+            applyAnswer(Keys.AGE, answers.config.age)
+        }
+        applyAnswer(Keys.LEVEL, answers.config.level.name)
+        applyAnswer(Keys.EMPHASIS, answers.config.emphasis.name)
+        applyAnswer(Keys.EQUIPMENT, answers.equipment.map { it.name })
     }
 
     private inline fun <reified E : Enum<E>> enumOf(name: String, default: E): E =

@@ -476,6 +476,25 @@
    "checkpoint": "custom-filled"
   },
   {
+   "swipe": {
+    "text": "Per hand (dumbbell/unilateral)",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "custom-pattern-list"
+  },
+  {
+   "scrollTo": {
+    "text": "Squat bilateral"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat bilateral"
+   }
+  },
+  {
    "tap": {
     "text": "Save"
    }

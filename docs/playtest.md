@@ -53,6 +53,7 @@ real time so Room and DataStore can finish. A still screen alone does not make
 a missing selector fail. Only the deadline produces `not-found` or `ambiguous`,
 using candidates or matches from the final attempt. Espresso and Compose idling
 timeouts are reported as `timeout`, with the failing step index.
+If a step remains stuck 30 seconds past its deadline, the harness writes `error.json` and `summary.json` and halts the JVM without attempting a screen capture or backup.
 
 | Action | Payload and behavior |
 | --- | --- |

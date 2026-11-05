@@ -31,6 +31,31 @@ internal class StepDeadline(private val timeoutMs: Long, private val index: Int?
         cause = cause,
     )
 
+    fun <T> withWatchdog(onTimeout: (PlaytestError) -> Unit, block: () -> T): T {
+        val lock = Any()
+        var finished = false
+        val watchdog = Executors.newSingleThreadScheduledExecutor { task ->
+            Thread(task, "playtest-watchdog").apply { isDaemon = true }
+        }
+        watchdog.schedule({
+            synchronized(lock) {
+                if (!finished) {
+                    try {
+                        onTimeout(timeout())
+                    } finally {
+                        Runtime.getRuntime().halt(1)
+                    }
+                }
+            }
+        }, TimeUnit.NANOSECONDS.toMillis(remainingNanos.coerceAtLeast(0)) + HANG_GRACE_MS, TimeUnit.MILLISECONDS)
+        try {
+            return block()
+        } finally {
+            synchronized(lock) { finished = true }
+            watchdog.shutdownNow()
+        }
+    }
+
     fun <T> run(compose: ComposeTestRule, block: () -> T): T {
         val master = IdlingPolicies.getMasterIdlingPolicy()
         val resource = IdlingPolicies.getDynamicIdlingResourceErrorPolicy()
@@ -118,3 +143,7 @@ internal fun Throwable.isWaitTimeout(): Boolean = generateSequence(this) { it.ca
         it is androidx.compose.ui.test.ComposeTimeoutException ||
         it is androidx.compose.ui.test.junit4.android.ComposeNotIdleException
 }
+
+/** The watchdog only catches a step that cannot return. A slow but progressing slice of an
+ *  advance can overrun the deadline by seconds, so the grace is generous. */
+private const val HANG_GRACE_MS = 30_000L

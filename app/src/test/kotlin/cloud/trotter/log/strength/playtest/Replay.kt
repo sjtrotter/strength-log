@@ -59,8 +59,9 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
         File(directory, "log.jsonl").appendText("$line\n")
     }
 
-    fun failure(error: PlaytestError, index: Int?, step: JsonElement? = null) {
-        if (errorClass != null) return
+    @Synchronized
+    fun failure(error: PlaytestError, index: Int?, step: JsonElement? = null, replace: Boolean = false) {
+        if (errorClass != null && !replace) return
         failedStep = index ?: (error.details["i"] as? JsonPrimitive)?.intOrNull
         errorClass = error.kind
         File(directory, "error.json").writeText(failureJson(error, index, step).toString() + "\n")
@@ -111,26 +112,34 @@ internal class Replay(
             val started = System.nanoTime()
             artifacts.stepsRun++
             selectors.clear()
-            try {
-                if (step.action != "note") {
-                    val deadline = StepDeadline(step.timeoutMs, index)
-                    deadline.run(compose) {
-                        perform(step, deadline)
-                        settle(deadline)
-                        if (index >= artifacts.captureFrom || step.action == "checkpoint") {
-                            deadline.call {
-                                capture("%03d-%s".format(index, step.slug),
-                                    png = !script.checkpointsOnly || step.action == "checkpoint")
+            val deadline = StepDeadline(step.timeoutMs, index)
+            deadline.withWatchdog(onTimeout = { error ->
+                try {
+                    artifacts.failure(error, index, step.json, replace = true)
+                } finally {
+                    artifacts.writeSummary(time)
+                }
+            }) {
+                try {
+                    if (step.action != "note") {
+                        deadline.run(compose) {
+                            perform(step, deadline)
+                            settle(deadline)
+                            if (index >= artifacts.captureFrom || step.action == "checkpoint") {
+                                deadline.call {
+                                    capture("%03d-%s".format(index, step.slug),
+                                        png = !script.checkpointsOnly || step.action == "checkpoint")
+                                }
                             }
                         }
                     }
+                    log(index, step, started, ok = true)
+                } catch (error: Throwable) {
+                    artifacts.failure(error.playtestError(), index, step.json)
+                    captureFailure("%03d-FAILED-%s".format(index, step.slug), error)
+                    log(index, step, started, ok = false)
+                    throw error
                 }
-                log(index, step, started, ok = true)
-            } catch (error: Throwable) {
-                artifacts.failure(error.playtestError(), index, step.json)
-                captureFailure("%03d-FAILED-%s".format(index, step.slug), error)
-                log(index, step, started, ok = false)
-                throw error
             }
         }
     }
@@ -252,7 +261,7 @@ internal class Replay(
         time.advance(duration)
         var remaining = duration
         while (!remaining.isZero) {
-            val chunk = remaining.coerceAtMost(Duration.ofHours(1))
+            val chunk = remaining.coerceAtMost(Duration.ofSeconds(1))
             deadline.call { shadowOf(Looper.getMainLooper()).idleFor(chunk) }
             remaining = remaining.minus(chunk)
         }

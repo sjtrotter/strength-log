@@ -233,20 +233,19 @@ internal class Replay(
         deadline.call { target.interaction.performScrollTo() }
     }
 
+    /** Scrolls every lazy container on screen in turn until one brings the target into the tree.
+     *  A screen can hold several (a lazy list with a pager inside), so none is assumed. */
     private fun searchLazy(selector: Selector, deadline: StepDeadline) {
         val containers = compose.onAllNodes(hasScrollAction())
-        val containerIndex = selector.index ?: 0
         val nodes = deadline.call { containers.fetchSemanticsNodes(atLeastOneRootRequired = false) }
-        if (containerIndex >= nodes.size) return
-        val node = nodes[containerIndex]
-        if (!node.config.contains(SemanticsActions.ScrollToIndex)) return
-        val container = containers[containerIndex]
-        enabled(node)
-        try {
-            deadline.call { container.performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
-        } catch (error: AssertionError) {
-            if (error.isWaitTimeout()) throw deadline.timeout(error)
-            // A lazy list can be populated by storage after this search. Retry the selector.
+        nodes.indices.filter { nodes[it].config.contains(SemanticsActions.ScrollToIndex) }.forEach { index ->
+            try {
+                deadline.call { containers[index].performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
+                return
+            } catch (error: AssertionError) {
+                if (error.isWaitTimeout()) throw deadline.timeout(error)
+                // Not in this container, or storage has not filled it yet; the selector retry loop runs again.
+            }
         }
     }
 

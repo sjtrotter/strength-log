@@ -8,6 +8,87 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open" }
+    {
+      "checkpoint": "first-open"
+    },
+    {
+      "note": "I want general fitness, with lifting and cardio inside a 75-minute visit. Balanced strength + muscle is the closest opening choice."
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Balanced strength + muscle"
+      }
+    },
+    {
+      "checkpoint": "balanced-goal-choice"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-2"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-3"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-4"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-5"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-screen-8"
+    },
+    {
+      "note": "Review the captured setup choices and suggested plan before committing; defaults are provisional until I can inspect the screens."
+    },
+    {
+      "checkpoint": "setup-review-before-accepting"
+    }
   ]
 }

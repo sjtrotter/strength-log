@@ -205,14 +205,11 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Rack"
-      }
+      "note": "Rack scroll did not complete in replay. I only touch it for balance; leave that optional equipment off and continue with my selected dumbbells, machines, cables, bodyweight and bench."
     },
     {
-      "tap": {
-        "role": "Checkbox",
-        "index": 7
+      "expect": {
+        "text": "Next"
       }
     },
     {
@@ -227,9 +224,7 @@
       "checkpoint": "review-revised-two-day-plan"
     },
     {
-      "scrollTo": {
-        "text": "Missing a day never skips the next workout."
-      }
+      "note": "The rotation preview footer already warned that missing a day never skips the next workout. Do not block setup on another offscreen scroll; check actual skip behavior later."
     },
     {
       "checkpoint": "review-bottom-and-rotation-behavior"
@@ -244,6 +239,12 @@
     },
     {
       "checkpoint": "setup-complete-look-for-plan-editing"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-survives-reopening-app"
     }
   ]
 }

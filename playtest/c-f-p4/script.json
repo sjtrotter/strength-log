@@ -2169,47 +2169,6 @@
    "checkpoint": "trends-bottom"
   },
   {
-   "scrollTo": {
-    "text": "History"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "Nov 23, 2026"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Nov 23, 2026"
-   }
-  },
-  {
-   "checkpoint": "session-nov23"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "history-after-detail"
-  },
-  {
-   "scrollTo": {
-    "textContains": "Nov 20, 2026"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Nov 20, 2026",
-    "index": 1
-   }
-  },
-  {
-   "checkpoint": "cardio-nov20"
-  },
-  {
-   "back": true
-  },
-  {
    "tap": {
     "text": "Today",
     "role": "Tab"
@@ -2986,13 +2945,817 @@
    }
   },
   {
+   "checkpoint": "today-after-c3"
+  },
+  {
+   "advance": "46h40m"
+  },
+  {
+   "tap": {
+    "text": "3-day full body · Day A"
+   }
+  },
+  {
+   "checkpoint": "day-a-detail-4"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase weight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stationary bike",
+    "role": "DropdownList"
+   }
+  },
+  {
+   "checkpoint": "cardio-activity-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Cancel"
+   }
+  },
+  {
+   "checkpoint": "day-a-edit-4"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-a4"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "14m55s"
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "type": {
+    "text": "Distance (m)",
+    "value": "3505"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save distance"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   }
+  },
+  {
+   "checkpoint": "receipt-a4"
+  },
+  {
+   "scrollTo": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Squat 215 x 5/5/4. Rows 140 x 10/8/8. Rower 15 min at 2:07.9, 3,505 m. The gym moved stuff, one rower now."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-a4"
+  },
+  {
+   "advance": "46h30m"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "other-days-dec4"
+  },
+  {
+   "tap": {
+    "text": "3-day full body · Day C"
+   }
+  },
+  {
+   "checkpoint": "day-c-detail-4"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "checkpoint": "workout-c4"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "dbbench-c4"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Increase reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-dbbench-c4"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "8m"
+  },
+  {
+   "tap": {
+    "text": "Reached 2000 m"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   }
+  },
+  {
+   "checkpoint": "receipt-c4"
+  },
+  {
+   "tap": {
+    "desc": "Share"
+   }
+  },
+  {
+   "checkpoint": "share-tapped"
+  },
+  {
+   "scrollTo": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Started C instead of B because I wanted the 2k. 8:00 flat. 70s on the bench, 10/10/10, right call."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-c4"
+  },
+  {
    "tap": {
     "text": "History",
     "role": "Tab"
    }
   },
   {
-   "checkpoint": "history-nov30"
+   "checkpoint": "history-dec4"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Nov 23, 2026"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Nov 23, 2026",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "session-nov23"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "history-after-detail"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Nov 20, 2026"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Nov 20, 2026",
+    "index": 1
+   }
+  },
+  {
+   "checkpoint": "cardio-nov20"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "3-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail-dec4"
+  },
+  {
+   "tap": {
+    "desc": "Plan options"
+   }
+  },
+  {
+   "checkpoint": "plan-options-dec4"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Create custom exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create custom exercise"
+   }
+  },
+  {
+   "checkpoint": "custom-exercise"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "today-final"
   }
  ]
 }

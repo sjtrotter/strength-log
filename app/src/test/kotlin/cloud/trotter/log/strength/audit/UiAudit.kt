@@ -8,6 +8,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -86,6 +87,7 @@ private fun SemanticsNode.auditJson(density: Float): String {
     val role = config.getOrNull(SemanticsProperties.Role)?.toString()
     val clickable = config.contains(SemanticsActions.OnClick) || config.contains(SemanticsActions.OnLongClick)
     val bounds = boundsInRoot
+    val touch = touchBounds()
     return listOf(
         "\"text\":${text.jsonString()}",
         "\"contentDescription\":${description.jsonString()}",
@@ -95,9 +97,21 @@ private fun SemanticsNode.auditJson(density: Float): String {
         "\"top\":${bounds.top / density}",
         "\"width\":${bounds.width / density}",
         "\"height\":${bounds.height / density}",
+        "\"touchWidth\":${touch?.let { it.width / density }}",
+        "\"touchHeight\":${touch?.let { it.height / density }}",
         "\"disabled\":${config.contains(SemanticsProperties.Disabled)}",
     ).joinToString(prefix = "  {", postfix = "}")
 }
+
+/**
+ * The area Compose accepts taps in: a clickable node smaller than the 48 dp minimum touch target gets its
+ * hit area widened to it. Compose keeps this as an internal property, so it is read reflectively; null if
+ * a Compose update renames it, and the JSON then says so rather than guessing.
+ */
+private fun SemanticsNode.touchBounds(): Rect? =
+    runCatching { touchBoundsGetter?.invoke(this) as? Rect }.getOrNull()
+
+private val touchBoundsGetter = SemanticsNode::class.java.methods.firstOrNull { it.name.startsWith("getTouchBoundsInRoot") }
 
 // No serialization runtime is exposed on the app test compile classpath.
 private fun String.jsonString(): String = buildString {

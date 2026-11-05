@@ -1251,7 +1251,18 @@
       "checkpoint": "saved-session-note-editor"
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "Nov9: leg curl 3x12 RPE8; ab wheel 3x8. Squat side video: depth good. Bench stiff first set, then fine."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "monday-short-session-note-saved"
     },
     {
       "tap": {
@@ -1326,25 +1337,30 @@
     },
     {
       "tap": {
-        "text": "Add a note"
+        "text": "Edit"
       }
     },
     {
-      "type": {
-        "text": "Note",
-        "value": "Nov9: leg curl 3x12 RPE8; ab wheel 3x8. Squat side video: depth good. Bench stiff first set, then fine."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "monday-short-session-note-saved"
+      "checkpoint": "history-edit-looking-for-date-notes-and-skipped-status"
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "history-calendar-looking-for-skip-move-and-variation-trends"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "note": "Expanded Monday history listed untouched generated accessories with weights and reps and no skipped label. The saved summary called these skipped. Readable history must distinguish actual work. Monday accessory/video context was saved earlier through the summary note field."
     },
     {
       "tap": {

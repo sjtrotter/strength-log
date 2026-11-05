@@ -150,6 +150,17 @@
    "checkpoint": "all-sets"
   },
   {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "sets-more"
+  },
+  {
+   "back": true
+  },
+  {
    "back": true
   },
   {
@@ -161,6 +172,17 @@
    "checkpoint": "day-list"
   },
   {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "day-more"
+  },
+  {
+   "back": true
+  },
+  {
    "back": true
   },
   {
@@ -170,6 +192,17 @@
   },
   {
    "checkpoint": "edit-set"
+  },
+  {
+   "tap": {
+    "desc": "Set menu"
+   }
+  },
+  {
+   "checkpoint": "set-menu"
+  },
+  {
+   "back": true
   },
   {
    "back": true
@@ -184,27 +217,27 @@
   },
   {
    "tap": {
-    "text": "Other days"
-   }
-  },
-  {
-   "checkpoint": "other-days"
-  },
-  {
-   "tap": {
     "text": "Plans"
    }
   },
   {
-   "checkpoint": "plans"
-  },
-  {
    "tap": {
-    "text": "Day A"
+    "desc": "Plan options"
    }
   },
   {
-   "checkpoint": "plans-day-a"
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "On Today"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
   }
  ]
 }

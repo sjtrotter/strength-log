@@ -173,6 +173,67 @@
   },
   {
    "checkpoint": "c1-after-40m"
+  },
+  {
+   "note": "The run day loaded this time. It wants planks first, then a 25:00 'Road run'. I did neither tonight, I ran 7.1 km. Getting through the planks to see where the run lives."
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-planks"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "checkpoint": "c1-run-segment"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-run-after-tap"
+  },
+  {
+   "advance": "40m"
+  },
+  {
+   "checkpoint": "c1-run-after-40m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-run-after-tap-2"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "checkpoint": "c1-run-after-tap-2-5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "c1-finish-dialog"
   }
  ]
 }

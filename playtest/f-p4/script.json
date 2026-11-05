@@ -1021,6 +1021,135 @@
   },
   {
    "checkpoint": "after-superset-3"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-superset-all"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "5m"
+  },
+  {
+   "checkpoint": "intervals-after-warmup"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "intervals-after-work1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "intervals-after-24m"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   }
+  },
+  {
+   "checkpoint": "receipt-b"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Veterans Day, gym packed. Bike 8 rounds, 290-310 W, faded to 270 on the last two."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "receipt-b-noted"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-b"
+  },
+  {
+   "advance": "46h"
+  },
+  {
+   "advance": "30m"
+  },
+  {
+   "checkpoint": "today-fri"
+  },
+  {
+   "tap": {
+    "text": "3-day full body \u00b7 Day C"
+   }
+  },
+  {
+   "checkpoint": "day-c-detail"
   }
  ]
 }

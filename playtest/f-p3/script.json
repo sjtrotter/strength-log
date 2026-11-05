@@ -426,6 +426,9 @@
    "back": true
   },
   {
+   "back": true
+  },
+  {
    "tap": {
     "desc": "Settings"
    }

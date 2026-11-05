@@ -51,6 +51,8 @@ data class CardioExecution(
     val anchor: BootAnchor? = null,
     val completedAt: Long? = null,
     val distanceEntries: List<Int> = emptyList(),
+    /** The phone opts in while the watch retains deadline execution. */
+    val allowOpenEnded: Boolean = false,
 ) {
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
@@ -76,7 +78,8 @@ data class CardioExecution(
     ): CardioExecution {
         val spec = block.sets[position]
         val needsEntry = requestDistance && (status == CardioSetStatus.SHORTENED ||
-            (status == CardioSetStatus.FINISHED && spec.end is Measure.Time && spec.aim is Measure.Distance))
+            (status == CardioSetStatus.FINISHED && spec.end is Measure.Time &&
+                (spec.aim is Measure.Distance || (allowOpenEnded && block.openEnded))))
         val nextResults = results + CardioSetResult(spec, status, seconds, metres, metres?.let { DistanceSource.MANUAL })
         val next = copy(
             results = nextResults,
@@ -93,6 +96,7 @@ data class CardioExecution(
     fun reconcile(now: Clocks): CardioExecution {
         var run = this
         while (run.running && !run.complete) {
+            if (run.allowOpenEnded && run.block.openEnded) break
             val seconds = (run.block.sets[run.position].end as? Measure.Time)?.seconds ?: break
             if (run.elapsedMillis(now) < seconds * 1_000L) break
             val active = requireNotNull(run.anchor)

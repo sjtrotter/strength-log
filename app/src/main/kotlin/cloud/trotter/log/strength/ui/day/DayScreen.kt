@@ -488,6 +488,7 @@ data class DayActions(
     val onOpenCardioDistance: () -> Unit = {},
     val onRequestCardioDistance: (CardioSetAction) -> Unit = {},
     val onCardioDistanceChange: (String) -> Unit = {},
+    val onCardioRunDistanceChange: (String) -> Unit = {},
     val onSaveCardioDistance: (CardioSetAction) -> Unit = {},
     val onRetryCardioSave: () -> Unit = {},
     val onCardioScreenLive: (Boolean) -> Unit = {},

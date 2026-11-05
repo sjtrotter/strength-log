@@ -6,6 +6,11 @@ Design by Astra (gpt-6-astra), approved by the owner 2026-10-21 with three decis
 
 A logged cardio block counts toward Finish. A mixed day’s receipt lists its lifts, then its cardio under the activity name. Finish ends an open cardio run first and logs the rounds already done using the End-cardio rules. Discard keeps saved cardio and says so. Cancel on a set page reverts that set.
 
+- **§1, running screen.** On the phone, a block of one timed set shows elapsed time from zero, “Aim {time}”, and a “Distance (m)” field while running. The Easy and Tempo template times name the aim.
+- **§2, boundaries.** A block of one timed set is open-ended: it counts up, never finishes by itself, and Stop records FINISHED at the actual elapsed time. Metres come from the running field or, when blank, the existing distance-entry sheet. End and log also records the active lone timed set as FINISHED with any typed metres. Blocks with two or more sets keep their countdowns, boundaries, alarms, and SHORTENED status on Stop.
+- **§6, receipt.** A lone finished timed work set names its actual elapsed time on the receipt, including the spoken description.
+- **§8, watch.** The watch keeps its countdown for now; a watch-started lone set still ends at its deadline. Matching the phone’s open-ended behavior is a follow-up.
+
 **Use one cardio page, one focused set, and the existing dial.** [A13](../../docs/PLAN.md:209) governs scope: manual distance before production; GPS later, watch first.
 
 1. **Focus and controls.** Title is the activity name. Copy: “Warm-up”, “Work”, “Recovery”, “Cool-down”; “Set {i} of {n}”; “{end} · aim {aim}” (omit aim when absent). Time: full duration before “Start”, then a large countdown and “Stop”. Distance: large, static “400 m”, explicitly labelled “Target”, with “Elapsed {time}” underneath. “Start” begins elapsed timing; “Reached 400 m” confirms the target, records FINISHED and 400 m/MANUAL. Never infer distance from elapsed time or display fictitious progress.

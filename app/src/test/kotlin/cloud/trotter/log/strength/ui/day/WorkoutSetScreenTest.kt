@@ -34,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
@@ -877,21 +878,37 @@ class WorkoutSetScreenTest {
         show(workoutSetCardioFixture(), workoutActions().copy(onStartCardio = { starts++ }, onOpenCardioSets = { sheets++ }))
         rule.onNodeWithText("Road run").assertIsDisplayed()
         rule.onNodeWithText("Work, set 1 of 1").assertIsDisplayed()
-        rule.onNodeWithText("5:00").assertIsDisplayed()
-        rule.onNodeWithText("Remaining").assertIsDisplayed()
+        rule.onNodeWithText("0:00").assertIsDisplayed()
+        rule.onNodeWithText("Elapsed").assertIsDisplayed()
+        rule.onNodeWithText("Aim 5:00").assertIsDisplayed()
+        rule.onNodeWithTag("workout-cardio-distance").assertDoesNotExist()
         rule.onNodeWithText("All sets").performClick()
         rule.onNodeWithText("Start").performClick()
         rule.runOnIdle { assertEquals(1, starts); assertEquals(1, sheets) }
     }
 
-    @Test fun cardioRunningTimeShowsCountdownAndStopsItsOwnInterval() {
+    @Test fun loneTimedRunShowsElapsedAimAndDistanceFieldAndStops() {
         val state = workoutSetCardioRunningFixture()
         var stopped: CardioSetAction? = null
-        show(state, workoutActions().copy(onStopCardio = { stopped = it }))
-        rule.onNodeWithText("1:00").assertIsDisplayed()
+        var distance = ""
+        show(state, workoutActions().copy(onStopCardio = { stopped = it }, onCardioRunDistanceChange = { distance = it }))
+        rule.onNodeWithText("4:00").assertIsDisplayed()
+        rule.onNodeWithText("Elapsed").assertIsDisplayed()
+        rule.onNodeWithText("Aim 5:00").assertIsDisplayed()
+        rule.onNodeWithText("Distance (m)").assertIsDisplayed()
+        rule.onNodeWithTag("workout-cardio-distance").performTextInput("5000")
+        rule.onNodeWithText("Stop").performClick()
+        rule.runOnIdle {
+            assertEquals("5000", distance)
+            assertEquals(state.cardio?.run?.action(), stopped)
+        }
+    }
+
+    @Test fun intervalTimeShowsCountdownAndRemaining() {
+        show(workoutSetCardioRecoveryFixture())
+        rule.onNodeWithText("0:42").assertIsDisplayed()
         rule.onNodeWithText("Remaining").assertIsDisplayed()
-        rule.onNodeWithTag("workout-action-tonal").performClick()
-        rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
+        rule.onNodeWithTag("workout-cardio-distance").assertDoesNotExist()
     }
 
     @Test fun cardioDistanceShowsElapsedAimReachedAndOutlinedStopWithSharedGuard() {
@@ -1066,7 +1083,7 @@ class WorkoutSetScreenTest {
         val state = timed.copy(cardio = runningCardioFixture(), cardioRunning = true)
         var selected: String? = null
         show(state, workoutActions().copy(onSelectWorkoutLift = { selected = it }))
-        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.onNodeWithText("Road run 4:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected) }
     }
 
@@ -1075,7 +1092,7 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(base.copy(workout = workoutSetSingleFixture().workout))
         var selected: String? = null
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onSelectWorkoutLift = { selected = it })) } }
-        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.onNodeWithText("Road run 4:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected)
             state = workoutSetCardioDistanceFixture().copy(workout = workoutSetSingleFixture().workout) }
         rule.onNodeWithText("Road run 0:27").assertIsDisplayed()

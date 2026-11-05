@@ -322,6 +322,19 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun aLoneTimedRunNamesItsActualTime() {
+        val base = timeTargetFixture()
+        val row = base.cardioRows.single()
+        setReceipt(base.copy(cardioRows = listOf(row.copy(
+            intervals = listOf(row.intervals.single().copy(elapsedSeconds = 1690)),
+        ))))
+        rule.onNodeWithText("28:10", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("30:00", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("28 minutes 10 seconds. Distance, 5,210 meters. Farther record, up from 4,980 meters.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
     fun blankCardioDistanceIsNeverZeroAndHasNoRecord() {
         val base = timeTargetFixture()
         val row = base.cardioRows.single()

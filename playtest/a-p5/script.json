@@ -650,12 +650,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb × 8"
+        "text": "Log 35 lb \u00d7 8"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "Log 35 lb \u00d7 8"
       }
     },
     {
@@ -694,12 +694,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb × 6"
+        "text": "Log 35 lb \u00d7 6"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb × 6"
+        "text": "Log 35 lb \u00d7 6"
       }
     },
     {
@@ -735,12 +735,12 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1191,7 +1191,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1207,7 +1207,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1218,7 +1218,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1330,7 +1330,8 @@
     },
     {
       "tap": {
-        "text": "Plank / Side Plank"
+        "text": "Plank / Side Plank",
+        "index": 1
       }
     },
     {
@@ -1523,7 +1524,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {

@@ -525,15 +525,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "95",
-        "ime": "done"
+        "value": "95"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5",
-        "ime": "done"
+        "value": "5"
       }
     },
     {
@@ -549,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -563,6 +561,94 @@
     },
     {
       "checkpoint": "warmup-and-session-persist-after-recreation"
+    },
+    {
+      "note": "The number fields do not support keyboard Done in this replay. Enter the values and use Save set. After my warm-up, open the actual day editors to put in my intended routine."
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "actual-monday-day-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "actual-wednesday-day-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "actual-friday-day-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day options",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Rename"
+      }
+    },
+    {
+      "checkpoint": "name-monday-dialog"
     }
   ]
 }

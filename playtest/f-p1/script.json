@@ -549,15 +549,6 @@
   },
   {
    "tap": {
-    "textContains": "Next:",
-    "role": "Button"
-   }
-  },
-  {
-   "checkpoint": "row-start"
-  },
-  {
-   "tap": {
     "textContains": "Log ",
     "role": "Button"
    }
@@ -585,12 +576,6 @@
   },
   {
    "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Next:",
-    "role": "Button"
-   }
   },
   {
    "checkpoint": "cardio-screen"

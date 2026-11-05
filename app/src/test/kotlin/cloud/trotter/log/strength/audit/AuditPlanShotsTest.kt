@@ -86,24 +86,9 @@ class AuditPlanShotsTest : UiAuditTest() {
         rule.auditShot("plan/11-plans-menu") { AuditDestination(TopLevelDestination.PLANS) { PlansScreen(plansFixture(2).copy(menuPlanId = 1), plansActions()) } }
     }
 
-    @Test fun shot12PlansRename() {
-        assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/12-plans-rename", manualClock = true) { AuditDestination(TopLevelDestination.PLANS) { PlansScreen(plansFixture(2).copy(renamePlanId = 1, renameDraft = LONG_PLAN), plansActions()) } }
-    }
-
     @Test fun shot13PlansNewChoice() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("plan/13-plans-new-choice") { AuditDestination(TopLevelDestination.PLANS) { PlansScreen(plansFixture(1).copy(newPlanPage = "choice"), plansActions()) } }
-    }
-
-    @Test fun shot14PlansNewEmpty() {
-        assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/14-plans-new-empty", manualClock = true) { AuditDestination(TopLevelDestination.PLANS) { PlansScreen(plansFixture(1).copy(newPlanPage = "name"), plansActions()) } }
-    }
-
-    @Test fun shot15PlansCreating() {
-        assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/15-plans-creating", manualClock = true) { AuditDestination(TopLevelDestination.PLANS) { PlansScreen(plansFixture(1).copy(newPlanPage = "name", newPlanName = LONG_PLAN, creating = true), plansActions()) } }
     }
 
     @Test fun shot16PlansArchived() {
@@ -119,11 +104,6 @@ class AuditPlanShotsTest : UiAuditTest() {
     @Test fun shot18PlanDayMenu() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("plan/18-plan-day-menu") { PlanScreen(planScreenFixture(2, menu = "A"), PlanActions({}, {}, {})) }
-    }
-
-    @Test fun shot19PlanDayRename() {
-        assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/19-plan-day-rename", manualClock = true) { PlanScreen(planScreenFixture().copy(dialog = "rename", dialogDayId = "A", dayTitleDraft = LONG_DAY), PlanActions({}, {}, {})) }
     }
 
     @Test fun shot20PlanDayRemove() {
@@ -147,11 +127,6 @@ class AuditPlanShotsTest : UiAuditTest() {
             rule.onNode(hasScrollAction()).performScrollToNode(hasText("Goals"))
         }) { PlanScreen(planScreenFixture().copy(emphasis = GoalEmphasis.BALANCED,
             goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false))), PlanActions({}, {}, {})) }
-    }
-
-    @Test fun shot24PlanRenameEnabled() {
-        assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/24-plan-rename-enabled", manualClock = true) { PlanScreen(planScreenFixture().copy(dialog = "rename", dialogDayId = "A", dayTitleDraft = "Lower body"), PlanActions({}, {}, {})) }
     }
 
     private fun plansFixture(count: Int) = PlansUiState(

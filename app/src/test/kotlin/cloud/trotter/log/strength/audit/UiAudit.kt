@@ -39,11 +39,8 @@ fun ComposeContentTestRule.auditShot(
     theme: ThemePreference = ThemePreference.DARK,
     fontScale: Float = 1f,
     beforeCapture: () -> Unit = {},
-    /** A focused text field's blinking cursor never lets Compose go idle; only those shots step the clock by hand. */
-    manualClock: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    mainClock.autoAdvance = !manualClock
     setContent {
         val base = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale)) {

@@ -737,6 +737,32 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 11: DBs EACH. 30x8, 30x6, then 25x8. Too heavy; start with 25s next Wednesday."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
         "desc": "Edit set 3"
       }
     },
@@ -776,32 +802,6 @@
     {
       "tap": {
         "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Nov 11: DBs EACH. 30x8, 30x6, then 25x8. Too heavy; start with 25s next Wednesday."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
       }
     },
     {
@@ -945,6 +945,32 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 11: Rower 12min, 2220m, effort 6/10. No bike today. Whole visit 76min; split squats took longer."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
         "desc": "Edit set 3"
       }
     },
@@ -984,32 +1010,6 @@
     {
       "tap": {
         "text": "Lat Pulldown (wide)"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Nov 11: Rower 12min, 2220m, effort 6/10. No bike today. Whole visit 76min; split squats took longer."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
       }
     },
     {
@@ -1493,6 +1493,32 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 13: Cables busy. Chest-supported DB rows 30 lb EACH, 10/10/10. Swap today only. Incline DBs 35 EACH."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
         "desc": "Edit set 3"
       }
     },
@@ -1529,32 +1555,6 @@
     {
       "tap": {
         "text": "Chest-Supported DB Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Nov 13: Cables busy. Chest-supported DB rows 30 lb EACH, 10/10/10. Swap today only. Incline DBs 35 EACH."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
       }
     },
     {
@@ -1681,6 +1681,32 @@
     },
     {
       "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov13: Leg press 180 plates, no sled. Bike 17min: 3easy,6x(30s hard/90s easy),2easy. 210W->170W; start180 next."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
         "tag": "lift-check-main-2"
       }
     },
@@ -1705,32 +1731,6 @@
       "tap": {
         "text": "Leg Press",
         "index": 1
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Nov13: Leg press 180 plates, no sled. Bike 17min: 3easy,6x(30s hard/90s easy),2easy. 210W->170W; start180 next."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
       }
     },
     {
@@ -2980,6 +2980,496 @@
     },
     {
       "checkpoint": "friday-nov20-skipped-work-late-pickup-and-dinner"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "week-two-history-five-visits-one-missed-friday"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "week-two-trends-after-squat-miss-and-shoulder-correction"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "advance": "3d"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "third-monday-targets-after135x9-8-7-and-skipped-friday"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "6m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 9"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 9"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 9"
+      }
+    },
+    {
+      "advance": "4m30s"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 6 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 11"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 11"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 11"
+      }
+    },
+    {
+      "advance": "4m30s"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 11"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 11"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov23: RDL40 EACH,11/11. Bike14min,112W,effort6/10. Felt good. Kept lifting weights; not ready to add yet."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 · Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "14:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "advance": "43m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "14m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "third-monday-saved75min-six-visits"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

@@ -1,0 +1,178 @@
+{
+ "seat": "c-f-p5",
+ "capture": "checkpoints",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-10",
+  "time": "18:05",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "tue-today"
+  },
+  {
+   "note": "Tuesday evening, easy run done, 7.1 km in 40:12. Before I try the run day again, checking what the app kept from Monday."
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "Nov 9, 2026"
+   }
+  },
+  {
+   "checkpoint": "session-detail-nov9"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Week of Oct 12",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Week of Oct 12",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-lower"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Backup"
+   }
+  },
+  {
+   "tap": {
+    "text": "Backup"
+   }
+  },
+  {
+   "checkpoint": "backup-screen"
+  },
+  {
+   "back": true
+  },
+  {
+   "scrollTo": {
+    "text": "Create custom exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create custom exercise"
+   }
+  },
+  {
+   "checkpoint": "create-from-settings"
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Copenhagen Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Timed"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Movement pattern"
+   }
+  },
+  {
+   "tap": {
+    "text": "Movement pattern"
+   }
+  },
+  {
+   "checkpoint": "pattern-picker"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-picker-back"
+  },
+  {
+   "tap": {
+    "desc": "Cancel"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body"
+   }
+  },
+  {
+   "tap": {
+    "text": "Day C1"
+   }
+  },
+  {
+   "checkpoint": "c1-day-page"
+  },
+  {
+   "tap": {
+    "text": "Start day C1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "c1-started"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-1"
+  },
+  {
+   "advance": "40m"
+  },
+  {
+   "checkpoint": "c1-after-40m"
+  }
+ ]
+}

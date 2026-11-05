@@ -91,6 +91,7 @@ android {
             it.systemProperty("playtest.captureFrom", providers.gradleProperty("playtestCaptureFrom").orNull ?: "0")
             it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit || playtestScript != null).toString())
             if (playtestScript != null) {
+                it.maxHeapSize = "2g"
                 it.outputs.dir(playtestDir)
                 it.outputs.upToDateWhen { false }
                 it.outputs.cacheIf { false }

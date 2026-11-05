@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,14 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
@@ -41,8 +37,8 @@ import cloud.trotter.log.strength.ui.day.receipt.receiptMeta
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
-import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun FinishingScreen(attempt: FinishAttempt, state: DayUiState, modifier: Modifier = Modifier) {
@@ -52,7 +48,6 @@ internal fun FinishingScreen(attempt: FinishAttempt, state: DayUiState, modifier
         delay(LOADING_REVEAL_DELAY_MS)
         revealed = true
     }
-    val announcement = stringResource(R.string.receipt_finishing)
     ReceiptScaffold(
         title = attempt.dayTitle,
         planLine = attempt.planName,
@@ -63,7 +58,7 @@ internal fun FinishingScreen(attempt: FinishAttempt, state: DayUiState, modifier
         modifier = modifier,
         bottomBar = { ReceiptDoneButton(attempt.dayIndex, {}, enabled = false) },
     ) {
-        Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement })
+        LoadingState(stringResource(R.string.screen_saving_workout))
         if (revealed && !state.loading) {
             state.exercises.forEachIndexed { index, card ->
                 if (card.isSuperset) {

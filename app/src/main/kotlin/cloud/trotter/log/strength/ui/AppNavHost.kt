@@ -6,8 +6,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.os.Build
 import android.content.pm.PackageManager
@@ -31,12 +37,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupViewModel
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
@@ -145,7 +152,7 @@ object Routes {
  * Resolves whether the app opens on [Routes.WIZARD] or [Routes.TODAY] from
  * [SettingsStore.wizardCompleteFlow] (D1). `null` means "not resolved
  * yet" — [AppNavHost] draws
- * [cloud.trotter.log.strength.ui.components.ProgramLoadingState] until then, so
+ * [cloud.trotter.log.strength.ui.components.LoadingState] until then, so
  * the graph is never built with the wrong start destination and then
  * re-navigated (no flicker-navigation after compose).
  *
@@ -179,10 +186,13 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val destination by startViewModel.startDestination.collectAsStateWithLifecycle()
     val start = destination
     if (start == null) {
-        // Authored rather than blank — and it stays blank anyway on the ~100ms
-        // resolve this normally takes, because the treatment holds itself back
-        // for longer than that (see ProgramLoadingState).
-        ProgramLoadingState()
+        // Fast destination reads stay blank for the shared reveal delay.
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            LoadingState(
+                stringResource(R.string.screen_loading),
+                Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+            )
+        }
         return
     }
 

@@ -44,8 +44,10 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoProgramState
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.cardioActivityName
 import cloud.trotter.log.strength.ui.setup.SectionHeader
@@ -68,10 +70,16 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         },
     ) { innerPadding ->
         when {
-            state.loading -> ProgramLoadingState(Modifier.fillMaxSize().padding(innerPadding))
-            !state.hasProgram -> NoProgramState(
+            state.loading -> LoadingState(stringResource(R.string.screen_loading), Modifier.padding(innerPadding))
+            !state.hasProgram && state.planId == null -> NoProgramState(
                 actions.onSetUpProgram,
                 Modifier.fillMaxSize().padding(innerPadding),
+            )
+            state.days.isEmpty() -> EmptyState(
+                title = stringResource(R.string.screen_no_days_title),
+                body = stringResource(R.string.screen_no_days_body),
+                action = ScreenStateAction(stringResource(R.string.screen_add_day), actions.onAddDay),
+                modifier = Modifier.padding(innerPadding),
             )
             else -> LazyColumn(contentPadding = innerPadding) {
                 itemsIndexed(state.days, key = { _, day -> day.dayId }) { index, day ->

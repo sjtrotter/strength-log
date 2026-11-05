@@ -809,6 +809,31 @@
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
+    <!-- Round 1 screen states and Today action slot. -->
+    <string name="screen_no_plan_title">No plan yet</string>
+    <string name="screen_no_plan_body">Answer a few questions and the app builds one.</string>
+    <string name="screen_set_up_plan">Set up a plan</string>
+    <string name="screen_loading">Loading…</string>
+    <string name="screen_saving_workout">Saving your workout…</string>
+    <string name="screen_done_today_title">Done for today</string>
+    <string name="screen_done_today_body">Your next workout shows here tomorrow.</string>
+    <string name="screen_plans_paused_title">Your plans are paused</string>
+    <string name="screen_plans_paused_body">Resume one from Plans.</string>
+    <string name="screen_open_plans">Open plans</string>
+    <string name="screen_no_plans_title">No plans yet</string>
+    <string name="screen_no_plans_body">A plan holds your days and their lifts.</string>
+    <string name="screen_new_plan">New plan</string>
+    <string name="screen_no_days_title">No days yet</string>
+    <string name="screen_no_days_body">Add a day, then its lifts.</string>
+    <string name="screen_add_day">Add day</string>
+    <string name="screen_no_lifts_title">No lifts in day %1$s yet</string>
+    <string name="screen_preview_no_lifts_title">No lifts in this day yet</string>
+    <string name="screen_edit_day">Edit day</string>
+    <string name="screen_no_sessions_title">No sessions yet</string>
+    <string name="screen_no_sessions_body">Finished workouts show up here.</string>
+    <string name="screen_start_day">Start day %1$s</string>
+    <string name="screen_resume_day">Resume day %1$s</string>
+    <string name="screen_start_session">Start a session</string>
 
     <string name="log_trends_and_calendar">Trends and calendar</string>
     <string name="log_weekly_volume">Weekly volume</string>

@@ -33,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.LoadingState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
@@ -51,7 +53,20 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
         ) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            if (state.loading) ProgramLoadingState() else Column(
+            if (state.loading) LoadingState(stringResource(R.string.screen_loading))
+            else if (state.lifts.isEmpty() && state.cardio == null) EmptyState(
+                title = stringResource(R.string.screen_preview_no_lifts_title),
+                action = ScreenStateAction(stringResource(R.string.screen_edit_day), actions.onEdit),
+                modifier = Modifier.widthIn(max = ReadableWidth),
+            ) {
+                Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    DayIndex(state.dayIndex, state.selection.dayId, DayIndexSize.Large)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(state.title, style = MaterialTheme.typography.headlineLarge)
+                        if (state.emphasis.isNotBlank()) Text(state.emphasis, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            } else Column(
                 Modifier.widthIn(max = ReadableWidth).fillMaxSize(),
             ) {
                 LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
@@ -71,20 +86,16 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                         headlineContent = { Text(cardio.activity) },
                         supportingContent = { Text(cardio.time) },
                     ) } }
-                    if (state.lifts.isEmpty() && state.cardio == null) item {
-                        Text(stringResource(R.string.preview_no_lifts), Modifier.padding(20.dp), style = MaterialTheme.typography.bodyLarge)
-                    }
                 }
-                val empty = state.lifts.isEmpty() && state.cardio == null
-                if (!empty) TextButton(onClick = actions.onEdit, modifier = Modifier.padding(horizontal = 12.dp)) {
+                TextButton(onClick = actions.onEdit, modifier = Modifier.padding(horizontal = 12.dp)) {
                     Text(stringResource(R.string.preview_edit))
                 }
                 Button(
-                    onClick = if (empty) actions.onEdit else actions.onStart,
+                    onClick = actions.onStart,
                     modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = dayAccent(state.dayIndex), contentColor = onDayAccent(state.dayIndex)),
                 ) {
-                    Text(if (empty) stringResource(R.string.preview_edit) else stringResource(R.string.preview_start_day, state.selection.dayId))
+                    Text(stringResource(R.string.preview_start_day, state.selection.dayId))
                 }
             }
         }

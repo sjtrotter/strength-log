@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.preview
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertTrue
@@ -24,7 +25,12 @@ class PreviewScreenTest {
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Start day A").assertDoesNotExist()
         rule.onNodeWithText("Edit").assertDoesNotExist()
-        rule.onNodeWithText("No lifts yet").assertDoesNotExist()
+        rule.onNodeWithText("No lifts in this day yet").assertDoesNotExist()
+        rule.onNodeWithText("Edit day").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
+        rule.onNodeWithText("Loading…").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(120)
+        rule.onNodeWithText("Loading…").assertExists()
     }
 
     @Test fun liftsShowPerformedNamesWorkingLoadLastAndSuperset() {
@@ -42,9 +48,9 @@ class PreviewScreenTest {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "A"), title = "Rehab",
         ), PreviewActions({}, { edited = true }, {})) } }
-        rule.onNodeWithText("No lifts yet").assertExists()
+        rule.onNodeWithText("No lifts in this day yet").assertExists()
         rule.onNodeWithText("Start day A").assertDoesNotExist()
-        rule.onNodeWithText("Edit").performClick()
+        rule.onNodeWithText("Edit day").performClick()
         assertTrue(edited)
     }
 
@@ -69,6 +75,6 @@ class PreviewScreenTest {
         rule.onNodeWithText("Road run").assertExists()
         rule.onNodeWithText("20:00").assertExists()
         rule.onNodeWithText("Start day C1").assertExists()
-        rule.onNodeWithText("No lifts yet").assertDoesNotExist()
+        rule.onNodeWithText("No lifts in this day yet").assertDoesNotExist()
     }
 }

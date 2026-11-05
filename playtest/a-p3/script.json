@@ -293,7 +293,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -365,7 +365,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -382,7 +382,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -519,7 +519,7 @@
     },
     {
       "expect": {
-        "text": "Log 60 kg \u00d7 5"
+        "text": "Log 60 kg × 5"
       }
     },
     {
@@ -621,7 +621,7 @@
     },
     {
       "expect": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -634,7 +634,7 @@
     },
     {
       "tap": {
-        "text": "Undo 100 \u00d7 5"
+        "text": "Undo 100 × 5"
       }
     },
     {
@@ -642,7 +642,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -685,7 +685,7 @@
     },
     {
       "expect": {
-        "text": "Log 140 kg \u00d7 3"
+        "text": "Log 140 kg × 3"
       }
     },
     {
@@ -725,7 +725,7 @@
     },
     {
       "expect": {
-        "text": "Log 170 kg \u00d7 1"
+        "text": "Log 170 kg × 1"
       }
     },
     {
@@ -738,7 +738,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -790,7 +790,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -811,6 +811,118 @@
     },
     {
       "checkpoint": "add-second-backoff-before-finishing-squat"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "squat-note-field-for-rpe-and-video-reference"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "four-squat-backoffs-prescribed-at-165-for-five"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Log 165 kg × 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg × 5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg × 5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg × 5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg × 5"
+      }
+    },
+    {
+      "checkpoint": "monday-all-four-squat-backoffs-complete"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "note": "Monday squat complete: 190 x 1 at RPE 7, then 165 x 5 for four sets, last RPE 7.5. Five minutes before final backoff. Side video from this session shows depth. These remain intent notes until the actual app Note field is filled next run."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 24 sets"
+      }
+    },
+    {
+      "checkpoint": "workout-lift-list-after-squat-for-bench-and-reordering"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "current-lift-after-finishing-squat"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-choices-for-monday-competition-bench"
     }
   ]
 }

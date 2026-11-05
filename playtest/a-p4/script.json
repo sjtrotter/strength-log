@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -1093,7 +1093,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1123,7 +1123,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1153,7 +1153,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1235,7 +1235,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1265,7 +1265,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1295,7 +1295,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1400,11 +1400,36 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
       "checkpoint": "bike-duration-and-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Set 1 · Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "12:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "back": true
@@ -1416,25 +1441,7 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "checkpoint": "review-monday-before-finishing-with-missing-rdl-and-cardio"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 10 of 16 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Stationary bike"
-      }
+      "checkpoint": "monday-bike-plan-now-twelve-minutes"
     },
     {
       "tap": {
@@ -1447,13 +1454,21 @@
       }
     },
     {
-      "checkpoint": "bike-actions-for-actual-results"
+      "tap": {
+        "text": "Note"
+      }
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "Last bench set slowed down, but nothing ugly. Today I used dumbbells for Romanian deadlifts: 40 lb EACH hand, 2 x 10. I could not find that variant in the suggested swaps, so the generic RDL entry needs this qualification. Bike: 12 steady minutes, 111 average watts, effort 6/10.",
+        "ime": "done"
+      }
     },
     {
-      "back": true
+      "tap": {
+        "text": "Save note"
+      }
     },
     {
       "expect": {
@@ -1462,7 +1477,103 @@
       }
     },
     {
-      "note": "Bike: I ride 12 steady minutes at 111 average watts, effort 6/10. The diary still needs two dumbbell RDL sets; do not finish the visit before recording those."
+      "checkpoint": "monday-training-note-saved"
+    },
+    {
+      "note": "I would use the generic Romanian Deadlift entry with a clear dumbbell/per-hand note for now. This is an imperfect workaround; do not treat it as a verified separate dumbbell history."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 10 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "two-actual-dumbbell-rdl-sets-generic-entry"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 12 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "monday-before-twelve-minute-bike"
+    },
+    {
+      "advance": "33m15s"
     },
     {
       "tap": {
@@ -1473,7 +1584,21 @@
       "advance": "12m"
     },
     {
-      "checkpoint": "bike-after-twelve-steady-minutes"
+      "checkpoint": "monday-bike-twelve-minutes-elapsed"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "bike-result-after-recreation"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-review-at-seventy-three-minutes"
     }
   ]
 }

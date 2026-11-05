@@ -1536,25 +1536,59 @@
       }
     },
     {
-      "tap": {
-        "text": "Save"
+      "swipe": {
+        "role": "RadioButton",
+        "index": 2,
+        "direction": "up"
       }
     },
     {
-      "checkpoint": "custom-paused-deadlift-after-save"
+      "checkpoint": "custom-exercise-required-movement-below-fold"
+    },
+    {
+      "note": "Custom Save required a movement pattern below the first viewport. Inspect it, then leave creation unfinished this run. Temporary compromise: log Tuesday paused pulls in the existing deadlift slot with an explicit note. This does not establish separate variation history."
     },
     {
       "tap": {
-        "text": "This workout"
+        "desc": "Cancel"
       }
     },
     {
       "tap": {
-        "text": "Swap"
+        "desc": "Close sheet"
       }
     },
     {
-      "checkpoint": "paused-deadlift-custom-swap-confirmed"
+      "checkpoint": "tuesday-return-from-unfinished-custom-exercise"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "PAUSED deadlift, pause off floor: 170x3x4. First pause rushed. Conventional slot used as workaround."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-paused-identity-in-note-only"
     },
     {
       "tap": {
@@ -1626,44 +1660,7 @@
       }
     },
     {
-      "checkpoint": "paused-deadlift-four-work-sets-configured"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Pause just off floor. First set rushed; hold the pause on the remaining sets."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "note": "Log only the four actual work sets. The generated ramp rows are not performed records and remain unchecked. Checkboxes allow selecting work out of order."
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
+      "checkpoint": "tuesday-four-170x3-work-rows-with-unperformed-ramps"
     },
     {
       "tap": {
@@ -1671,7 +1668,10 @@
       }
     },
     {
-      "back": true
+      "checkpoint": "tuesday-work-set-1-checked"
+    },
+    {
+      "recreate": true
     },
     {
       "advance": "150s"
@@ -1687,7 +1687,10 @@
       }
     },
     {
-      "back": true
+      "checkpoint": "tuesday-work-set-2-checked"
+    },
+    {
+      "recreate": true
     },
     {
       "advance": "150s"
@@ -1703,7 +1706,10 @@
       }
     },
     {
-      "back": true
+      "checkpoint": "tuesday-work-set-3-checked"
+    },
+    {
+      "recreate": true
     },
     {
       "advance": "150s"
@@ -1725,13 +1731,16 @@
       }
     },
     {
-      "back": true
+      "checkpoint": "tuesday-work-set-4-checked"
+    },
+    {
+      "recreate": true
     },
     {
       "advance": "150s"
     },
     {
-      "checkpoint": "tuesday-four-paused-deadlift-sets-completed"
+      "checkpoint": "tuesday-four-paused-work-sets-after-recreation"
     },
     {
       "tap": {
@@ -1739,33 +1748,105 @@
       }
     },
     {
-      "checkpoint": "tuesday-order-selection-for-row-and-bike"
+      "checkpoint": "tuesday-lift-order-with-unperformed-accessories"
     },
     {
       "tap": {
-        "text": "Chest-Supported Row"
+        "text": "Stationary bike"
       }
     },
     {
-      "checkpoint": "tuesday-row-before-today-only-substitution"
+      "checkpoint": "tuesday-bike-time-effort-and-heart-rate-controls"
+    },
+    {
+      "note": "Inspect indoor cardio without checking off a default duration that is not my 20-minute ride. No row, pulldown, rear-delt or bike completion is claimed by this script."
     },
     {
       "tap": {
-        "text": "All sets"
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "tuesday-partial-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "tuesday-paused-work-saved-with-identity-compromise"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov10: paused pulls 170x3x4 logged in conventional slot. First pause rushed. Other work not logged."
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-short-session-note"
+    },
+    {
+      "tap": {
+        "text": "Done"
       }
     },
     {
       "tap": {
-        "text": "Swap exercise"
+        "desc": "Settings"
       }
     },
     {
-      "checkpoint": "tuesday-row-swap-options"
+      "checkpoint": "settings-before-looking-below-timers"
+    },
+    {
+      "swipe": {
+        "text": "Accessory work",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-lower-page-export-backup-attempt-1"
+    },
+    {
+      "swipe": {
+        "text": "Bodyweight and timed",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-lower-page-export-backup-attempt-2"
+    },
+    {
+      "swipe": {
+        "text": "Reset to defaults",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-lower-page-export-backup-attempt-3"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "two-session-history-final-check"
     }
   ]
 }

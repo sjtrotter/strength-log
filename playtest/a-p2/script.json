@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -935,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb × 8"
+        "text": "135 lb \u00d7 8"
       }
     },
     {
@@ -1107,37 +1107,22 @@
     },
     {
       "tap": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25"
+        "text": "The plan"
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Swap"
       }
     },
     {
-      "checkpoint": "monday-reverse-lunge-two-sets-of-eight-with25s"
+      "checkpoint": "monday-reverse-lunge-confirmed-for-plan"
     },
     {
-      "back": true
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
     },
     {
       "expect": {
@@ -1186,7 +1171,7 @@
     },
     {
       "expect": {
-        "text": "25 lb × 8"
+        "text": "25 lb \u00d7 8"
       }
     },
     {

@@ -54,7 +54,7 @@
       "checkpoint": "look-for-prior-plank-note-on-restored-day"
     },
     {
-      "recreate": true
+      "back": true
     },
     {
       "tap": {
@@ -96,16 +96,13 @@
       }
     },
     {
-      "tap": {
-        "text": "Road run",
-        "role": "DropdownList"
-      }
+      "note": "Road run activity is already correct. Do not tap its editable dropdown; last run stopped on the harness text-field safeguard."
     },
     {
-      "checkpoint": "running-activity-choices"
+      "checkpoint": "road-run-activity-retained"
     },
     {
-      "back": true
+      "note": "The blank C1 plank note is not the note saved on Monday. Read the saved Monday session separately."
     },
     {
       "tap": {
@@ -150,32 +147,29 @@
       "checkpoint": "saved-cardio-prescription-not-an-actual-run"
     },
     {
-      "tap": {
-        "desc": "More options for Plank / Side Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "remove-core-to-keep-run-separate"
-    },
-    {
       "back": true
     },
     {
-      "checkpoint": "standalone-run-ready-for-actual-logging"
+      "tap": {
+        "desc": "Day C1 lifts, 0 of 3 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "road-run-selected-from-day-list-actual-controls"
     },
     {
       "recreate": true
     },
     {
-      "checkpoint": "restored-run-after-reopening"
+      "checkpoint": "road-run-selection-after-reopening"
     },
     {
-      "note": "Tuesday Nov 10 diary: 7.00 km in 42:10, RPE3, quads noticeable first kilometer then fine. The duration entered above is a prescription ONLY. Next inspect live controls and record actual time and distance; no completed run is claimed by this batch."
+      "note": "Inspect actual running controls before logging. Target42:10 is not a saved elapsed time, and no7km distance has been entered. Do not fabricate core sets to finish a run."
     },
     {
       "back": true
@@ -187,7 +181,7 @@
       }
     },
     {
-      "checkpoint": "history-after-cardio-edit-no-completed-run-claimed"
+      "checkpoint": "history-before-first-completed-run"
     },
     {
       "tap": {
@@ -195,7 +189,7 @@
       }
     },
     {
-      "checkpoint": "reopen-monday-actual-results-and-notes"
+      "checkpoint": "monday-history-detail-and-notes"
     },
     {
       "tap": {
@@ -203,7 +197,15 @@
       }
     },
     {
-      "checkpoint": "monday-squat-history-actual-and-planned"
+      "checkpoint": "monday-squat-actual-versus-planned"
+    },
+    {
+      "tap": {
+        "desc": "Plank / Side Plank. Holds of 30 seconds."
+      }
+    },
+    {
+      "checkpoint": "look-for-mondays-saved-exercise-note"
     },
     {
       "tap": {
@@ -211,7 +213,75 @@
       }
     },
     {
-      "checkpoint": "overall-workout-note-fields"
+      "checkpoint": "overall-workout-note-entry"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "share-single-workout-system-sheet-limit"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "trends-and-calendar-with-mondays-real-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-look-for-backup-export-and-watch"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Resume day C1"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C1 lifts, 0 of 3 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "ready-to-enter-tuesdays-actual-run-next-batch"
     }
   ]
 }

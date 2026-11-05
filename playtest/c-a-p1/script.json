@@ -534,8 +534,8 @@
       "checkpoint": "monday-november-sixteen-week-two"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "expect": {
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -724,6 +724,268 @@
     },
     {
       "advance": "120s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "7"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 7"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "checkpoint": "monday-row-before-my-increase"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "checkpoint": "monday-curl-before-my-increase"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "monday-missed-chest-reps-lifting-complete"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "monday-increases-and-chest-misses-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h8m30s"
+    },
+    {
+      "checkpoint": "wednesday-november-eighteen-after-mondays-misses"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "checkpoint": "wednesday-offered-targets-after-chest-ten-eight-seven"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "wednesday-opening-after-seventy-leg-press"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "wednesday-lift-list-looking-for-busy-machine-options"
     }
   ]
 }

@@ -601,55 +601,43 @@
    "checkpoint": "search-romanian"
   },
   {
-   "type": {
-    "text": "Search exercises",
-    "value": "calf"
+   "note": "Search only looks inside the category I picked. Single-leg RDL isn't under Single leg. Trying Create exercise."
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
    }
   },
   {
-   "checkpoint": "search-calf"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Copenhagen"
-   }
-  },
-  {
-   "checkpoint": "search-copenhagen"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Nordic"
-   }
-  },
-  {
-   "checkpoint": "search-nordic"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "clam"
-   }
-  },
-  {
-   "checkpoint": "search-clam"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "plank"
-   }
-  },
-  {
-   "checkpoint": "search-plank"
+   "checkpoint": "create-exercise"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back-from-search"
+   "back": true
+  },
+  {
+   "checkpoint": "back-in-editor"
+  },
+  {
+   "tap": {
+    "text": "Trap-Bar Deadlift"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "trap-5-reps"
   },
   {
    "tap": {
@@ -674,22 +662,56 @@
   },
   {
    "tap": {
-    "text": "Single leg"
+    "text": "Hinge"
    }
   },
   {
    "type": {
-    "text": "Search exercises",
-    "value": "Copenhagen plank"
+    "editable": true,
+    "value": "Romanian"
    }
+  },
+  {
+   "checkpoint": "hinge-search-romanian"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "calf"
+   }
+  },
+  {
+   "checkpoint": "hinge-search-calf"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "categories-again"
   },
   {
    "tap": {
-    "text": "Create exercise"
+    "text": "Plank / Side Plank"
    }
   },
   {
-   "checkpoint": "create-exercise"
+   "checkpoint": "plank-row-sheet"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Core"
+   }
+  },
+  {
+   "checkpoint": "categories-scrolled"
   }
  ]
 }

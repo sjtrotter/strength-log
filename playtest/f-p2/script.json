@@ -1235,7 +1235,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1247,7 +1248,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1291,7 +1293,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1353,7 +1356,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1388,7 +1392,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1422,7 +1427,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1450,7 +1456,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1571,7 +1578,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1583,7 +1591,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1592,7 +1601,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1652,7 +1662,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1661,7 +1672,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1692,7 +1704,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1704,7 +1717,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1713,7 +1727,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1722,7 +1737,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1734,7 +1750,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1743,7 +1760,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1771,7 +1789,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1783,7 +1802,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1792,7 +1812,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1801,7 +1822,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1810,7 +1832,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1819,7 +1842,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1828,7 +1852,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1840,7 +1865,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1849,7 +1875,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1858,7 +1885,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1867,7 +1895,8 @@
   },
   {
    "tap": {
-    "textContains": "Log "
+    "textContains": "Log ",
+    "role": "Button"
    },
    "timeoutMs": 20000
   },
@@ -1973,22 +2002,58 @@
    "checkpoint": "today-after-tuesday"
   },
   {
-   "note": "Wednesday, Veterans Day. Easy run, 28 min."
-  },
-  {
-   "advance": "24h"
-  },
-  {
-   "checkpoint": "wednesday"
+   "note": "Tuesday night. Let me see what it kept."
   },
   {
    "tap": {
-    "text": "4-day upper/lower \u00b7 Day C1"
+    "text": "History",
+    "role": "Tab"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "cardio-day-detail"
+   "checkpoint": "history-list"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "trends-calendar"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Nov",
+    "index": 0
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "session-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "Thursday. Skipped Wednesday's run in the app; didn't get to it. Deadlift day."
+  },
+  {
+   "advance": "48h"
+  },
+  {
+   "checkpoint": "thursday-6am"
   },
   {
    "tap": {
@@ -1997,7 +2062,360 @@
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "cardio-start"
+   "checkpoint": "thu-dl-set1"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "thu-dl-top-set"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "thu-dl-backoff"
+  },
+  {
+   "note": "Back-off is one set of 8 at some lighter number. Mine is two fives at 245."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "245"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "thu-after-dl"
+  },
+  {
+   "note": "Goblet squats are not front squats. Trying a swap."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Front"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "swap-search-front"
+  },
+  {
+   "tap": {
+    "textContains": "Front Squat"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "after-front-squat-swap"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "thu-after-front-squat"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Next:"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-all-skipped"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-finish-tap"
   }
  ]
 }

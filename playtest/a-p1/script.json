@@ -339,26 +339,48 @@
       "checkpoint": "edit-day-a-to-match-my-machine-workout"
     },
     {
-      "back": true
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-options-looking-for-machine-replacement"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Resume day A"
+        "text": "Ramp to 215 lb, then 1 back-off"
       }
     },
     {
-      "recreate": true
+      "checkpoint": "exercise-prescription-editor-for-beginner-sets"
     },
     {
-      "checkpoint": "unlogged-workout-after-reopening"
+      "back": true
     },
     {
       "tap": {
-        "text": "All sets"
+        "text": "DB Bench Press"
       }
+    },
+    {
+      "checkpoint": "accessory-prescription-editor-for-three-by-ten"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-editor-for-short-treadmill-walking"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -366,54 +388,29 @@
       }
     },
     {
-      "checkpoint": "exercise-menu-for-replacement-notes-and-help"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 0 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "workout-menu-for-changing-or-abandoning-plan"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "edit-day-options-for-repeating-machine-routine"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "role": "Tab",
-        "index": 2
+        "desc": "More options for Chest-Supported Row"
       }
+    },
+    {
+      "checkpoint": "row-options-for-substitution-and-order"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "New plan"
+        "text": "Add exercise"
       }
     },
     {
-      "tap": {
-        "text": "Start empty"
-      }
-    },
-    {
-      "checkpoint": "empty-plan-builder-for-my-four-machines"
+      "checkpoint": "exercise-picker-for-my-four-machines"
     }
   ]
 }

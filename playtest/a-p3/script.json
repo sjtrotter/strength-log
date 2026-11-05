@@ -323,6 +323,84 @@
     },
     {
       "note": "Next replay: inspect all newly opened screens, prioritize building or editing my own program, then begin Monday training. No workout has been logged by these discovery steps."
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-copy-export-schedule-discovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-own-program-entry"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "5-day full body"
+      }
+    },
+    {
+      "checkpoint": "existing-plan-block-and-week-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Barbell Back Squat",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "day-a-preview-lower-exercises"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "monday-plan-editor-first-look"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "plan-editor-after-recreation"
+    },
+    {
+      "note": "I need Monday squat 190 x 1 at target RPE 7 then four sets 165 x 5, bench five sets 100 x 5, lying leg curl and ab wheel. Inspect the editor before entering actual prescriptions; generated decimal weights are not my program."
     }
   ]
 }

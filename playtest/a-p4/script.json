@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -608,15 +608,10 @@
       }
     },
     {
-      "tap": {
-        "text": "Rename"
-      }
-    },
-    {
-      "checkpoint": "monday-name-field"
-    },
-    {
       "back": true
+    },
+    {
+      "note": "Rename stalled in the replay before a dialog could be captured. Leave the label Day A for now and get my actual Monday prescription entered."
     },
     {
       "tap": {
@@ -630,47 +625,19 @@
     },
     {
       "tap": {
-        "desc": "More options for DB Bench Press"
+        "text": "Ramp to 235 lb, then 1 back-off"
       }
     },
     {
-      "checkpoint": "replace-dumbbell-bench-with-barbell-options"
+      "checkpoint": "monday-squat-prescription-form"
     },
     {
-      "back": true
+      "recreate": true
     },
     {
       "tap": {
-        "desc": "More options for Barbell Back Squat"
+        "desc": "Day A lifts, 1 of 21 sets"
       }
-    },
-    {
-      "checkpoint": "squat-prescription-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Romanian Deadlift"
-      }
-    },
-    {
-      "checkpoint": "rdl-dumbbell-replacement-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "checkpoint": "remove-extra-exercise-options"
-    },
-    {
-      "back": true
     },
     {
       "tap": {
@@ -678,18 +645,124 @@
       }
     },
     {
-      "checkpoint": "day-editor-save-scope-and-order-options"
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "text": "Ramp to 235 lb, then 1 back-off"
+        "text": "Edit day"
       }
     },
     {
-      "checkpoint": "squat-prescription-fields"
+      "tap": {
+        "text": "3 × 10 at 80 lb"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-prescription-form"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "monday-exercise-replacement-menu"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-plan-form"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-options-and-scope"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker-for-my-own-routine"
+    },
+    {
+      "note": "Use the captured prescription forms and exercise picker to enter squat135 3x8, barbell bench105 3x8, cable row90 3x10, dumbbell RDL40 2x10, and12min bike on the next turn. The95x5 warm-up must remain my only logged set until I really log the work sets."
     }
   ]
 }

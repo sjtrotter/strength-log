@@ -624,20 +624,12 @@
   },
   {
    "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "checkpoint": "after-skip-1"
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
+    "desc": "More"
    }
   },
   {
    "tap": {
-    "text": "Skip this set"
+    "text": "Skip for this workout"
    }
   },
   {

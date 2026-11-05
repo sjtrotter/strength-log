@@ -432,73 +432,98 @@
       "checkpoint": "day-editor-can-i-set-my-own-sets-and-weights"
     },
     {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "role": "Tab",
-        "index": 2
+        "desc": "More options for Barbell Bench Press"
       }
     },
     {
-      "tap": {
-        "desc": "Plan options"
-      }
-    },
-    {
-      "checkpoint": "plan-options-progression-schedule-and-backup"
+      "checkpoint": "bench-options-find-replace-remove-and-progression"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "New plan"
+        "desc": "More"
       }
     },
     {
-      "checkpoint": "new-plan-find-custom-routine"
+      "checkpoint": "day-more-find-save-plan-and-scheduling"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "role": "Tab",
-        "index": 0
+        "text": "Ramp to 220 lb, then 1 back-off"
+      }
+    },
+    {
+      "checkpoint": "bench-prescription-editor-for-my-working-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "checkpoint": "dumbbell-prescription-and-per-hand-meaning"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "timed-exercise-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker-find-my-garage-lifts"
+    },
+    {
+      "back": true
+    },
+    {
+      "swipe": {
+        "text": "Add exercise",
+        "direction": "up"
       }
     },
     {
       "tap": {
-        "text": "Other days"
+        "text": "Edit cardio"
       }
+    },
+    {
+      "checkpoint": "cardio-editor-find-duration-only-walking"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "desc": "Edit set 1"
       }
     },
     {
-      "checkpoint": "lower-squat-day-before-monday"
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "checkpoint": "lower-day-editor-for-monday-routine"
-    },
-    {
-      "note": "Monday is still unlogged. Use the editor controls shown here to enter squat215 3x5, RDL135 3x8, reverse lunges25 2x8 per leg, plank30s x3. If this editor cannot do that, inspect the New plan screen before choosing the nearest honest logging workaround."
+      "checkpoint": "individual-set-input-before-any-training"
     }
   ],
   "capture": "checkpoints"

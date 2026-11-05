@@ -39,9 +39,9 @@ widened this user.
 
 ### Phone (`app/src/main/kotlin/cloud/trotter/log/strength/`)
 
-A single activity with a Today / History / Plans `NavigationBar`, icon-only (30 dp Material
-Symbols, filled when selected), with each tab's title in its top bar (`ui/navigation/`,
-`ui/AppNavHost.kt`). The workout, receipt, wizard, Settings and You screens hide the bar.
+A single activity with a labeled Today / History / Plans `NavigationBar` and 24 dp Material
+icons, filled when selected (owner decision, #454), with each tab's title in its top bar
+(`ui/navigation/`, `ui/AppNavHost.kt`). The workout, receipt, wizard, Settings and You screens hide the bar.
 
 | Surface | Code | Moment | One job |
 |---|---|---|---|
@@ -115,8 +115,8 @@ Follow Material 3's guidance and use its library (`androidx.compose.material3`, 
   `ModalBottomSheet`, the `Button` family, `Checkbox`, `FilterChip`, `SegmentedButton`,
   `Snackbar`), styled through the theme rather than per call site.
 - Color roles by meaning: `primary` for the primary action, `error` for errors, `outline` for
-  hairlines. All 48 roles are defined in both schemes (`ThemeCompletenessTest`); what
-  `primary` should hold is open (see "Theme").
+  hairlines. All 48 roles are defined in both schemes (`ThemeCompletenessTest`);
+  `primary` is neutral ink, with day accents applied explicitly (see "Theme").
 - Type and shape: new text picks one of the fifteen roles in `ui/theme/Type.kt`; corners come
   from `ui/theme/Shape.kt`.
 - State layers: one ripple configuration for foundation and stock components
@@ -201,12 +201,9 @@ contrast checked in both expressions. Known gaps: the widget is always dark (fix
 colors), the share card is dark by decision, and the splash follows the system setting
 (`values` vs `values-night`), not the in-app choice.
 
-Known issue: `app/src/main/kotlin/cloud/trotter/log/strength/ui/theme/Theme.kt` sets
-`primary = dayAccent(0)` at line 64 (dark) and line 123 (light); `inversePrimary` and
-`primaryFixed` follow (lines 68, 94, 127, 145). Every stock control reading `primary` is Day A
-terracotta on every day and on admin screens. As text, `#C1440E` is 3.79:1 on `#0D0D0F`,
-3.52:1 on `#16161A` and 4.46:1 on `#F1EFEA`, all under 4.5:1. The 2026-10-30 audit (item 1)
-proposes a day-scoped scheme on the workout and a neutral primary elsewhere.
+`primary` is neutral ink in both schemes (`ui/theme/Theme.kt`). Admin screens use the
+standard M3 button roles. Day identity and its primary action receive `dayAccent(dayIndex)`
+and `onDayAccent(dayIndex)` explicitly; day-colored text uses `accentEmphasis(dayIndex)`.
 
 ### Watch
 
@@ -232,6 +229,7 @@ Both surfaces:
   math says nothing rather than something wrong (`plate-math.md`).
 
 Phone:
+- Each surface has one filled button.
 - One primary action per surface; the rest is tonal, outlined or text.
 - Sentence case. Caps only for set notation (R1, TOP, B/O). No tracked-caps eyebrows, no
   dot-joined meta strings. The same verb runs through a flow: Start day A, Finish day A,
@@ -316,9 +314,8 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 
 1. Phase 2 build: receipt, Log and the wizard reveal have a target in
    `fable-mock.html` but no handoff, and still carry the pre-redesign caps style.
-2. What `primary` holds on the phone: a day-scoped scheme on the workout with a neutral
-   primary elsewhere (the audit's proposal), or a neutral primary everywhere with the accent
-   applied explicitly.
+2. Resolved (#454): neutral `primary` everywhere on the phone, with the accent applied
+   explicitly to the day and its primary action.
 3. Dynamic color would replace the earth palette with the wallpaper's. Opt-in for neutral
    roles only, fully, or not at all?
 4. Light mode gaps: a light widget, a splash that follows the in-app choice, the share card

@@ -2,12 +2,11 @@ package cloud.trotter.log.strength.ui.backup
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,9 +18,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -62,11 +63,8 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.Surface2
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
 
@@ -80,8 +78,6 @@ import cloud.trotter.log.strength.ui.text.resolve
  */
 @Composable
 fun BackupScreen(state: BackupUiState, actions: BackupActions) {
-    val accent = dayAccent(0)
-
     // A restore writes Room and then DataStore with no transaction spanning the
     // two, so walking out mid-write is how they end up disagreeing. The write
     // itself is app-scoped and survives, but the screen still refuses to leave
@@ -103,25 +99,45 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                     SectionCard(
                         title = stringResource(R.string.backup_full_title),
                         body = stringResource(R.string.backup_full_body),
-                        accent = accent,
-                        busy = state.isBusy,
-                        primaryLabel = stringResource(R.string.backup_export_button),
-                        onPrimaryClick = actions.onExportBackupClick,
-                        secondaryLabel = stringResource(R.string.backup_restore_button),
-                        onSecondaryClick = actions.onImportBackupClick,
-                    )
+                    ) {
+                        Button(
+                            onClick = actions.onExportBackupClick,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.backup_export_button))
+                        }
+                        Spacer(Modifier.size(8.dp))
+                        OutlinedButton(
+                            onClick = actions.onImportBackupClick,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.backup_restore_button))
+                        }
+                    }
                 }
                 item {
                     SectionCard(
                         title = stringResource(R.string.backup_csv_title),
                         body = stringResource(R.string.backup_csv_body),
-                        accent = accent,
-                        busy = state.isBusy,
-                        primaryLabel = stringResource(R.string.backup_csv_export_button),
-                        onPrimaryClick = actions.onExportCsvClick,
-                        secondaryLabel = stringResource(R.string.backup_csv_import_button),
-                        onSecondaryClick = actions.onImportCsvClick,
-                    )
+                    ) {
+                        OutlinedButton(
+                            onClick = actions.onExportCsvClick,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.backup_csv_export_button))
+                        }
+                        Spacer(Modifier.size(8.dp))
+                        OutlinedButton(
+                            onClick = actions.onImportCsvClick,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.backup_csv_import_button))
+                        }
+                    }
                 }
                 state.message?.let { message ->
                     item { MessageBanner(message, actions.onDismissMessage) }
@@ -184,71 +200,34 @@ private fun BackupHeader(onBack: () -> Unit, enabled: Boolean = true) {
 private fun SectionCard(
     title: String,
     body: String,
-    accent: androidx.compose.ui.graphics.Color,
-    busy: Boolean,
-    primaryLabel: String,
-    onPrimaryClick: () -> Unit,
-    secondaryLabel: String,
-    onSecondaryClick: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     AppCard {
         Text(title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.size(6.dp))
         Text(body, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.size(14.dp))
-        SectionButton(primaryLabel, accent, enabled = !busy, onClick = onPrimaryClick)
-        Spacer(Modifier.size(8.dp))
-        SectionButton(secondaryLabel, accent, enabled = !busy, outlined = true, onClick = onSecondaryClick)
-    }
-}
-
-@Composable
-private fun SectionButton(
-    label: String,
-    accent: androidx.compose.ui.graphics.Color,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    outlined: Boolean = false,
-) {
-    val modifier = Modifier
-        .fillMaxWidth()
-            // heightIn(min), not height (A7 font-scale): "RESTORE FROM BACKUP"
-            // wraps to two lines at large fontScale instead of overflowing.
-        .heightIn(min = 48.dp)
-    val content: @Composable () -> Unit = {
-        Text(
-            label,
-            style = DoneButtonLabel.copy(fontSize = 14.sp),
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-        )
-    }
-    if (outlined) {
-        OutlinedButton(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
-            border = BorderStroke(1.dp, accent), colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = accent, disabledContentColor = accent),
-            contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
-    } else {
-        Button(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = accent, contentColor = Background,
-                disabledContainerColor = accent, disabledContentColor = Background),
-            contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
+        content()
     }
 }
 
 @Composable
 private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
-    val color = if (message.isError) Error else Done
-    FilledTonalButton(
+    TextButton(
         onClick = onDismiss,
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, color),
-        colors = ButtonDefaults.filledTonalButtonColors(containerColor = color.copy(alpha = 0.12f), contentColor = color),
         contentPadding = PaddingValues(14.dp),
     ) {
-        Text(message.text.resolve(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
+        if (!message.isError) {
+            Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Done)
+            Spacer(Modifier.size(8.dp))
+        }
+        Text(
+            message.text.resolve(),
+            color = if (message.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -265,26 +244,6 @@ private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         confirmButton = { DialogAction(stringResource(R.string.backup_restore_confirm_button), Error, onConfirm) },
         dismissButton = { DialogAction(stringResource(R.string.backup_restore_cancel_button), TextSecondary, onDismiss) },
     )
-}
-
-@Composable
-private fun DialogButton(
-    label: String,
-    fill: androidx.compose.ui.graphics.Color,
-    textColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier,
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .heightIn(min = 48.dp),
-        shape = MaterialTheme.shapes.large,
-        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = textColor),
-        contentPadding = PaddingValues(vertical = 6.dp),
-    ) {
-        Text(label, style = DoneButtonLabel.copy(fontSize = 13.sp), textAlign = TextAlign.Center, maxLines = 2)
-    }
 }
 
 // --- CSV import preview/confirm screen (PLAN.md A2: "never silent guessing") -
@@ -419,7 +378,14 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DialogButton(stringResource(R.string.backup_csv_cancel_button), Surface2, TextPrimary, Modifier.weight(1f), actions.onCancelCsvImport)
+            OutlinedButton(
+                onClick = actions.onCancelCsvImport,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(vertical = 6.dp),
+            ) {
+                Text(stringResource(R.string.backup_csv_cancel_button), style = DoneButtonLabel.copy(fontSize = 13.sp), textAlign = TextAlign.Center, maxLines = 2)
+            }
             Button(
                 onClick = actions.onConfirmCsvImport,
                 enabled = canCommit,
@@ -427,8 +393,6 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
                     .weight(2f)
                     .heightIn(min = 48.dp),
                 shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(containerColor = Done, contentColor = Background,
-                    disabledContainerColor = Surface2, disabledContentColor = TextFaint),
                 contentPadding = PaddingValues(vertical = 6.dp),
             ) {
                 Text(stringResource(R.string.backup_csv_confirm_button), style = DoneButtonLabel.copy(fontSize = 13.sp))

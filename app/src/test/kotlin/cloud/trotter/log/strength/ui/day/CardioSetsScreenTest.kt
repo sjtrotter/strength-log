@@ -63,7 +63,7 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Continue without distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("0")
         rule.onNodeWithText("Save distance").assertIsNotEnabled()
-        rule.onNodeWithText("Enter metres greater than 0").assertExists()
+        rule.onNodeWithText("Enter meters greater than 0").assertExists()
         rule.onNodeWithContentDescription("Increase distance").performClick()
         rule.onNodeWithText("Save distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("")

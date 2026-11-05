@@ -1,15 +1,15 @@
 <resources>
-    <string name="note_label">NOTE</string>
-    <string name="note_done">DONE</string>
+    <string name="note_label">Note</string>
+    <string name="note_done">Done</string>
     <string name="note_add_action">Add a note</string>
-    <string name="note_action">NOTE</string>
+    <string name="note_action">Note</string>
     <string name="app_name">exercise.log</string>
     <string name="stepper_type_action">Type %1$s</string>
     <string name="stepper_value_label">value</string>
     <string name="stepper_valid_range">Valid range: %1$s–%2$s</string>
     <string name="stepper_valid_range_unbounded">Valid range: %1$s or more</string>
-    <string name="stepper_next_button">NEXT</string>
-    <string name="stepper_done_button">DONE</string>
+    <string name="stepper_next_button">Next</string>
+    <string name="stepper_done_button">Done</string>
     <string name="stepper_seconds_unit">sec</string>
     <string name="stepper_bodyweight_label">bodyweight</string>
     <string name="stepper_age_label">age</string>
@@ -125,11 +125,11 @@
 <string name="setup_rest_reset_confirm_button">Reset</string>
 
 <!-- Wizard -->
-<string name="wizard_step_progress">STEP %1$d OF %2$d</string>
+<string name="wizard_step_progress">Step %1$d of %2$d</string>
 <string name="wizard_emphasis_title">What are you training for?</string>
 <string name="wizard_days_per_week_title">How many days a week can you commit?</string>
 <string name="wizard_split_title">Your split</string>
-<string name="wizard_anchors_title">Main-lift anchors</string>
+<string name="wizard_anchors_title">Main lifts</string>
 <string name="wizard_cardio_title">Cardio</string>
 <string name="wizard_about_you_title">About you</string>
 <string name="wizard_equipment_title">What equipment do you have?</string>
@@ -139,8 +139,8 @@
 <string name="wizard_emphasis_balanced_description">The default — even mix of heavy work and volume.</string>
 <string name="wizard_emphasis_physique_title">Physique-leaning</string>
 <string name="wizard_emphasis_physique_description">More volume and isolation work.</string>
-<string name="wizard_restore_in_progress">RESTORING…</string>
-<string name="wizard_restore_button">HAVE A BACKUP? RESTORE IT</string>
+<string name="wizard_restore_in_progress">Restoring…</string>
+<string name="wizard_restore_button">Have a backup? Restore it</string>
 <string name="wizard_days_per_week_label">Days per week</string>
 <string name="wizard_decrease_days_description">Decrease days per week</string>
 <string name="wizard_increase_days_description">Increase days per week</string>
@@ -181,7 +181,7 @@
 <string name="wizard_level_novice">Novice</string>
 <string name="wizard_level_intermediate">Intermediate</string>
 <string name="wizard_level_advanced">Advanced</string>
-<string name="wizard_equipment_description">Optional — defaults to everything. Filters what the program picks and how substitutions are ranked.</string>
+<string name="wizard_equipment_description">Optional. Defaults to everything. Filters what the plan picks and how substitutions are ranked.</string>
 <string name="wizard_equipment_barbell">Barbell</string>
 <string name="wizard_equipment_trap_bar">Trap Bar</string>
 <string name="wizard_equipment_dumbbell">Dumbbell</string>
@@ -194,33 +194,34 @@
 <string name="wizard_equipment_ez_bar">Ez Bar</string>
 <string name="wizard_equipment_kettlebell">Kettlebell</string>
 <string name="wizard_rotation_title">Your rotation</string>
-<string name="wizard_rotation_day">DAY %1$s</string>
-<string name="wizard_rotation_goal_label">GOAL</string>
+<string name="wizard_rotation_day">Day %1$s</string>
+<string name="wizard_rotation_cardio_day">%1$s · Cardio</string>
+<string name="wizard_rotation_goal_label">Goal</string>
 <string name="wizard_rotation_continuity">Missing a day never skips the next workout.</string>
-<string name="wizard_back_button">BACK</string>
-<string name="wizard_start_button">START</string>
-<string name="wizard_next_button">NEXT</string>
+<string name="wizard_back_button">Back</string>
+<string name="wizard_start_button">Start</string>
+<string name="wizard_next_button">Next</string>
 
 <!-- Backup -->
-<string name="backup_title">DATA / BACKUP</string>
+<string name="backup_title">Backup</string>
 <string name="backup_back_label">Back</string>
 <string name="backup_automatic_title">Automatic backup</string>
 <string name="backup_automatic_body">Keep one current backup in a folder you choose. Your folder provider handles any syncing.</string>
 <string name="backup_automatic_toggle">Automatic backup</string>
 <string name="backup_full_title">Full backup</string>
-<string name="backup_full_body">Everything you own — program, logs, custom exercises, and history — as one JSON file.</string>
-<string name="backup_export_button">EXPORT BACKUP</string>
-<string name="backup_restore_button">RESTORE FROM BACKUP</string>
+<string name="backup_full_body">Your plan, logs, custom exercises, and history in one JSON file.</string>
+<string name="backup_export_button">Export backup</string>
+<string name="backup_restore_button">Restore from backup</string>
 <string name="backup_csv_title">CSV history</string>
 <string name="backup_csv_body">Strong-compatible export/import for your workout history — spreadsheets, Hevy, FitNotes.</string>
-<string name="backup_csv_export_button">EXPORT CSV</string>
-<string name="backup_csv_import_button">IMPORT CSV</string>
+<string name="backup_csv_export_button">Export CSV</string>
+<string name="backup_csv_import_button">Import CSV</string>
 <string name="backup_restore_confirm_title">Restore this backup?</string>
-<string name="backup_restore_confirm_body">This replaces everything on this device — program, logs, custom exercises, and history — with what\'s in the file. This can\'t be undone.</string>
+<string name="backup_restore_confirm_body">This replaces everything on this device (plan, logs, custom exercises, and history) with what\'s in the file. This can\'t be undone.</string>
 <string name="backup_restore_confirm_button">Replace all data</string>
 <string name="backup_restore_cancel_button">Cancel</string>
-<string name="backup_csv_unmatched_header">UNMATCHED EXERCISES — CONFIRM A PATTERN</string>
-<string name="backup_csv_preview_label">PREVIEW</string>
+<string name="backup_csv_unmatched_header">Pick a movement for these exercises</string>
+<string name="backup_csv_preview_label">Preview</string>
 <string name="backup_csv_preview_summary">%1$s, %2$s will be added to your history.</string>
 <plurals name="backup_csv_preview_sessions">
     <item quantity="one">%1$d session</item>
@@ -235,8 +236,8 @@
     <item quantity="other">%1$d exercise names below don\'t match your library — confirm (or change) the movement pattern for each so a custom exercise can be created.</item>
 </plurals>
 <string name="backup_csv_pattern_title">Movement pattern</string>
-<string name="backup_csv_cancel_button">CANCEL</string>
-<string name="backup_csv_confirm_button">IMPORT</string>
+<string name="backup_csv_cancel_button">Cancel</string>
+<string name="backup_csv_confirm_button">Import</string>
 <string name="backup_pattern_squat_bilateral">Squat (bilateral)</string>
 <string name="backup_pattern_single_leg">Single-leg</string>
 <string name="backup_pattern_hinge">Hinge</string>
@@ -282,10 +283,10 @@
 
 <!-- Log -->
 <string name="log_title">History</string>
-<string name="log_trajectory_header">TRAJECTORY</string>
-<string name="log_volume_header">VOLUME</string>
-<string name="log_calendar_header">CALENDAR</string>
-<string name="log_external_header">FROM OTHER APPS</string>
+<string name="log_trajectory_header">Top set</string>
+<string name="log_volume_header">Volume</string>
+<string name="log_calendar_header">Calendar</string>
+<string name="log_external_header">From other apps</string>
 <string name="log_expand_label">Expand</string>
 <string name="log_collapse_label">Collapse</string>
 <string name="log_expanded_state">Expanded</string>
@@ -299,20 +300,20 @@
 <string name="log_session_loading">Loading…</string>
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>
-<string name="log_share_button">SHARE</string>
-<string name="log_edit">EDIT</string>
-<string name="log_edit_done">DONE</string>
-<string name="log_delete_session">DELETE SESSION</string>
+<string name="log_share_button">Share</string>
+<string name="log_edit">Edit</string>
+<string name="log_edit_done">Done</string>
+<string name="log_delete_session">Delete session</string>
 <string name="log_delete_dialog_title">Delete this session?</string>
 <string name="log_delete_dialog_body">Its sets leave the log, the trajectories and Health Connect.</string>
-<string name="log_delete_confirm">DELETE</string>
-<string name="log_delete_keep">KEEP</string>
-<string name="log_session_deleted">SESSION DELETED</string>
-<string name="log_undo">UNDO</string>
+<string name="log_delete_confirm">Delete</string>
+<string name="log_delete_keep">Keep</string>
+<string name="log_session_deleted">Session deleted</string>
+<string name="log_undo">Undo</string>
 <string name="log_cardio_semantics">cardio session, %1$s, %2$s</string>
 <string name="log_cardio_summary">%1$s · %2$s</string>
 <string name="log_bodyweight_title">Bodyweight changed</string>
-<string name="log_bodyweight_body">Health Connect has %1$s; your GOALs use %2$s. Update your bodyweight to recompute GOALs?</string>
+<string name="log_bodyweight_body">Health Connect has %1$s; your goals use %2$s. Update your bodyweight to recompute goals?</string>
 <string name="log_bodyweight_update_button">Update</string>
 <string name="log_bodyweight_dismiss_button">Not now</string>
 <string name="log_health_connected">Connected · publishing</string>
@@ -329,8 +330,8 @@
     <item quantity="other">Weekly tonnage, %1$d of %2$d weeks trained</item>
 </plurals>
 <plurals name="log_volume_caption">
-    <item quantity="one">LAST %1$d WEEK</item>
-    <item quantity="other">LAST %1$d WEEKS</item>
+    <item quantity="one">Last %1$d week</item>
+    <item quantity="other">Last %1$d weeks</item>
 </plurals>
 <string name="log_weekday_monday">M</string>
 <string name="log_weekday_tuesday">T</string>
@@ -344,17 +345,17 @@
 <string name="log_calendar_show_session">Show session</string>
 
 <!-- Licenses -->
-<string name="licenses_title">OSS LICENSES</string>
+<string name="licenses_title">Licenses</string>
 <string name="licenses_back_label">Back</string>
 
 <!-- Authored states -->
-<string name="authored_preparing_program">PREPARING YOUR PROGRAM</string>
-<string name="authored_empty_journal_title">YOUR FIRST SESSION WILL LAND HERE</string>
+<string name="authored_preparing_program">Preparing your plan</string>
+<string name="authored_empty_journal_title">No sessions yet</string>
 <string name="authored_empty_journal_body">Finish a workout and it lands in this list — every set, the day it belonged to, and what it added to your trajectory.</string>
-<string name="authored_start_session_button">START A SESSION</string>
-<string name="authored_no_program_title">No program yet</string>
+<string name="authored_start_session_button">Start a session</string>
+<string name="authored_no_program_title">No plan yet</string>
 <string name="authored_no_program_body">The wizard builds your rotation from a few answers — days, emphasis, and the equipment you actually have.</string>
-<string name="authored_run_setup_button">Set up a program</string>
+<string name="authored_run_setup_button">Set up a plan</string>
 
 <!-- Shared set controls -->
 <string name="stepper_decrease_action">decrease</string>
@@ -544,8 +545,8 @@
 <string name="custom_exercise_added_load_label">Added load, optional (%1$s)</string>
 <string name="custom_exercise_decrease_value_action">Decrease %1$s</string>
 <string name="custom_exercise_increase_value_action">Increase %1$s</string>
-<string name="custom_exercise_cancel_button">CANCEL</string>
-<string name="custom_exercise_save_button">SAVE</string>
+<string name="custom_exercise_cancel_button">Cancel</string>
+<string name="custom_exercise_save_button">Save</string>
 <string name="custom_exercise_pattern_squat_bilateral">Squat (bilateral)</string>
 <string name="custom_exercise_pattern_single_leg">Single-leg</string>
 <string name="custom_exercise_pattern_hinge">Hinge</string>
@@ -572,7 +573,7 @@
     <string name="health_rationale_write_workouts_bullet">Write your completed workouts, so other fitness apps can see them.</string>
     <string name="health_rationale_write_calories_bullet">Write an estimate of the calories burned in each strength workout, when your bodyweight is recorded.</string>
     <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your History.</string>
-    <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training GOALs.</string>
+    <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training goals.</string>
     <string name="day_next_exercise">Next: %1$s</string>
     <string name="day_set_of">Set %1$d of %2$d</string>
     <string name="day_target_aim">%1$s · aim %2$d</string>
@@ -678,7 +679,7 @@
 <string name="cardio_enter_distance">Enter distance</string>
 <string name="cardio_decrease_distance">Decrease distance</string>
 <string name="cardio_increase_distance">Increase distance</string>
-<string name="cardio_distance_invalid">Enter metres greater than 0</string>
+<string name="cardio_distance_invalid">Enter meters greater than 0</string>
 <string name="cardio_end_title">End cardio?</string>
 <string name="cardio_end_message">Log completed work and skip remaining sets?</string>
 <string name="cardio_keep_going">Keep going</string>

@@ -187,7 +187,7 @@ class LogScreenInteractionTest {
             composeTestRule.onNodeWithText("DAY A · LOWER")
                 .fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription),
         )
-        composeTestRule.onNodeWithText("SHARE").performClick()
+        composeTestRule.onNodeWithText("Share").performClick()
         assertEquals(listOf(7L), shared)
         assertEquals(emptyList<Long>(), toggled)
     }

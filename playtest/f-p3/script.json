@@ -283,29 +283,6 @@
    "checkpoint": "plan-goals"
   },
   {
-   "tap": {
-    "desc": "Day options",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "day-options"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Day A"
-   }
-  },
-  {
-   "checkpoint": "day-a-detail"
-  },
-  {
-   "back": true
-  },
-  {
    "back": true
   },
   {
@@ -320,6 +297,22 @@
   },
   {
    "checkpoint": "empty-plan"
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "checkpoint": "added-day"
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "checkpoint": "day-a-editor"
   }
  ]
 }

@@ -22,8 +22,8 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class TodayScreenTest {
     @get:Rule val rule = createComposeRule()
-    private val first = TodayDay(1, "Strength", "B", 1, "Squat")
-    private val second = TodayDay(2, "Prep", "A", 0, "Upper")
+    private val first = todayFirstFixture()
+    private val second = todaySecondFixture()
     private fun actions() = TodayActions(onStart = {}, onOpenSettings = {}, onSetUpProgram = {})
 
     @Test fun nothingOnTodayOpensPlans() {

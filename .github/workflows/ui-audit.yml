@@ -1,0 +1,39 @@
+name: UI audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'app/src/test/kotlin/cloud/trotter/log/strength/audit/**'
+      - '.github/workflows/ui-audit.yml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Render UI audit
+        run: ./gradlew :app:testDebugUnitTest --tests 'cloud.trotter.log.strength.audit.*' -PuiAudit=true
+        timeout-minutes: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-audit
+          path: app/build/outputs/ui-audit/
+          if-no-files-found: error
+
+      - name: Keep unit-test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore

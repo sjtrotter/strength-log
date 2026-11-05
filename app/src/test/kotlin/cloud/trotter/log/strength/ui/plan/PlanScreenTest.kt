@@ -30,20 +30,13 @@ import org.robolectric.annotation.Config
 class PlanScreenTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun state(count: Int = 1, menu: String? = null) = PlanUiState(
-        name = "Prep", hasProgram = true, menuDayId = menu,
-        days = (0 until count).map { index ->
-            val letter = ('A' + index).toString()
-            PlanDay(letter, index, "Day $letter", 0, 0, index == 0)
-        },
-    )
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
 
     @Test
     fun generatedGoalsAndEmphasisAreVisibleAndTheWholeRowSelects() {
         var emphasis: GoalEmphasis? = null
         rule.setContent { AppTheme {
-            PlanScreen(state().copy(
+            PlanScreen(planScreenFixture().copy(
                 goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false)),
                 emphasis = GoalEmphasis.BALANCED,
             ), actions().copy(onEmphasisChange = { emphasis = it }))
@@ -62,7 +55,7 @@ class PlanScreenTest {
 
     @Test
     fun authoredPlansHaveNoGoalsOrEmphasis() {
-        rule.setContent { AppTheme { PlanScreen(state(), actions()) } }
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture(), actions()) } }
         rule.onNodeWithText("Goals").assertDoesNotExist()
         rule.onNodeWithText("Emphasis").assertDoesNotExist()
         rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
@@ -72,7 +65,7 @@ class PlanScreenTest {
     fun dayRowCarriesTheDisplayedPlanAndDay() {
         val selected = mutableListOf<DaySelection>()
         rule.setContent { AppTheme {
-            PlanScreen(state().copy(planId = 7L, days = listOf(
+            PlanScreen(planScreenFixture().copy(planId = 7L, days = listOf(
                 PlanDay("A", 0, "Squat", 1, 3, true),
             )), actions().copy(onOpenDay = { selected += it }))
         } }
@@ -84,7 +77,7 @@ class PlanScreenTest {
 
     @Test
     fun cardioOnlyDayShowsTheActivityAndSetCount() {
-        val state = state().copy(days = listOf(
+        val state = planScreenFixture().copy(days = listOf(
             PlanDay("A", 0, "Run", 0, 0, true, cardioActivity = CardioActivity.ROAD_RUN, cardioSetCount = 5),
         ))
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
@@ -96,7 +89,7 @@ class PlanScreenTest {
     fun authoredPlanOffersDayActionsAndHidesRemovalForTheLastDay() {
         val renamed = mutableListOf<String>()
         rule.setContent { AppTheme {
-            PlanScreen(state(menu = "A"), actions().copy(onRenameDay = { renamed += it }))
+            PlanScreen(planScreenFixture(menu = "A"), actions().copy(onRenameDay = { renamed += it }))
         } }
         rule.onNodeWithText("Rename").performClick()
         assertEquals(listOf("A"), renamed)
@@ -107,7 +100,7 @@ class PlanScreenTest {
 
     @Test
     fun generatedPlanOffersDayMenuAndAddAction() {
-        rule.setContent { AppTheme { PlanScreen(state(), actions()) } }
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture(), actions()) } }
         rule.onNodeWithText("Add day").assertExists()
         rule.onNodeWithContentDescription("Day options").assertExists()
         rule.onNodeWithText("Next").assertExists()
@@ -115,7 +108,7 @@ class PlanScreenTest {
 
     @Test
     fun sevenDaysHideAddDay() {
-        rule.setContent { AppTheme { PlanScreen(state(count = 7), actions()) } }
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture(count = 7), actions()) } }
         rule.onNodeWithText("Add day").assertDoesNotExist()
     }
 
@@ -123,7 +116,7 @@ class PlanScreenTest {
     fun authoredPlanOffersRemovalWhenAnotherDayRemains() {
         val removed = mutableListOf<String>()
         rule.setContent { AppTheme {
-            PlanScreen(state(count = 2, menu = "A"), actions().copy(onRemoveDay = { removed += it }))
+            PlanScreen(planScreenFixture(count = 2, menu = "A"), actions().copy(onRemoveDay = { removed += it }))
         } }
         rule.onNodeWithText("Remove").performClick()
         assertEquals(listOf("A"), removed)
@@ -137,7 +130,7 @@ class PlanScreenTest {
         val cardio = listOf("C1", "C2").map { id ->
             ProgramDay(id, "Day $id", "", emptyList(), kind = ProgramDayKind.CARDIO)
         }
-        return state(menu = menu).copy(days = PlanScreenBuilder.days(
+        return planScreenFixture(menu = menu).copy(days = PlanScreenBuilder.days(
             Program(strength + cardio), "A", LifterConfig(), ExerciseCatalog.CODE_ONLY,
         ))
     }
@@ -177,7 +170,7 @@ class PlanScreenTest {
     @Test
     fun removalExplainsWhatIsDeletedAndThatHistoryIsKept() {
         rule.setContent { AppTheme {
-            PlanScreen(state(count = 2).copy(dialog = "remove", dialogDayId = "B", dayTitleDraft = "Day B"), actions())
+            PlanScreen(planScreenFixture(count = 2).copy(dialog = "remove", dialogDayId = "B", dayTitleDraft = "Day B"), actions())
         } }
         rule.onNodeWithText("Remove Day B and its exercises? History is kept.").assertExists()
     }

@@ -3,10 +3,6 @@ package cloud.trotter.log.strength.ui.backup
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.csv.CsvImportError
-import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
-import cloud.trotter.log.strength.transfer.csv.PreviewSession
-import cloud.trotter.log.strength.transfer.csv.PreviewSet
-import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,25 +63,9 @@ class BackupModelsTest {
 
     // --- CsvImportUiState: seeding + commit gate --------------------------------
 
-    private val previewWithUnmatched = CsvImportPreview(
-        sessions = listOf(
-            PreviewSession(
-                dayTitle = "Push Day",
-                completedAt = 0L,
-                sets = listOf(
-                    PreviewSet("Bench Press", "bench_press", 0, 185.0, 8),
-                    PreviewSet("Cable Hack Squat", null, 0, 135.0, 10),
-                ),
-            ),
-        ),
-        unmatchedNames = listOf(
-            UnmatchedExerciseName("Cable Hack Squat", MovementPattern.SQUAT_BILATERAL),
-        ),
-    )
-
     @Test
     fun of_seedsApprovedPatterns_withEveryUnmatchedNamesSuggestion() {
-        val state = CsvImportUiState.of(previewWithUnmatched)
+        val state = CsvImportUiState.of(csvPreviewFixture())
         assertEquals(MovementPattern.SQUAT_BILATERAL, state.approvedPatterns.getValue("Cable Hack Squat"))
     }
 
@@ -94,26 +74,26 @@ class BackupModelsTest {
         // The user still has to view and confirm the screen (never silent-
         // guessing), but the default suggestion alone is enough to enable
         // the confirm button once it's on screen.
-        val state = CsvImportUiState.of(previewWithUnmatched)
+        val state = CsvImportUiState.of(csvPreviewFixture())
         assertTrue(state.canCommit)
     }
 
     @Test
     fun canCommit_isFalse_whenAnUnmatchedNameHasNoApproval() {
-        val state = CsvImportUiState(previewWithUnmatched, approvedPatterns = emptyMap())
+        val state = CsvImportUiState(csvPreviewFixture(), approvedPatterns = emptyMap())
         assertFalse(state.canCommit)
     }
 
     @Test
     fun canCommit_isTrue_whenFullyMatched_noUnmatchedNames() {
-        val fullyMatched = previewWithUnmatched.copy(unmatchedNames = emptyList())
+        val fullyMatched = csvPreviewFixture().copy(unmatchedNames = emptyList())
         val state = CsvImportUiState(fullyMatched, approvedPatterns = emptyMap())
         assertTrue(state.canCommit)
     }
 
     @Test
     fun matchedSetCount_and_sessionCount_countEverySetAcrossSessions() {
-        val state = CsvImportUiState.of(previewWithUnmatched)
+        val state = CsvImportUiState.of(csvPreviewFixture())
         assertEquals(1, state.sessionCount)
         assertEquals(2, state.matchedSetCount)
     }

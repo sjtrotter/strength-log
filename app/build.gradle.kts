@@ -71,6 +71,8 @@ android {
 
     testOptions {
         val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
+        val recordUiAudit = providers.gradleProperty("uiAudit").orNull == "true"
+        val uiAuditDir = layout.buildDirectory.dir("outputs/ui-audit").get().asFile
         val previewShotsDir = layout.buildDirectory.dir("outputs/preview").get().asFile
         val storeShotsDir = layout.buildDirectory.dir("outputs/store").get().asFile
         val listingImagesDir = layout.buildDirectory.dir("outputs/listing").get().asFile
@@ -80,7 +82,14 @@ android {
             it.systemProperty("previewShots.dir", previewShotsDir.absolutePath)
             it.systemProperty("listingImages.dir", listingImagesDir.absolutePath)
             it.systemProperty("listing.dir", rootProject.file("play/listing/en-US").absolutePath)
-            it.systemProperty("roborazzi.test.record", recordStoreShots.toString())
+            it.systemProperty("uiAudit.record", recordUiAudit.toString())
+            it.systemProperty("uiAudit.dir", uiAuditDir.absolutePath)
+            it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit).toString())
+            if (recordUiAudit) {
+                it.outputs.dir(uiAuditDir)
+                it.outputs.upToDateWhen { false }
+                it.outputs.cacheIf { false }
+            }
             if (recordStoreShots) {
                 // A cached test task must never stand in for a render.
                 it.outputs.dir(storeShotsDir)

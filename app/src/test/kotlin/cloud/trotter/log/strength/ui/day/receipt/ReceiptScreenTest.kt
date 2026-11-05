@@ -37,7 +37,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -48,7 +47,6 @@ import cloud.trotter.log.strength.ui.day.FinishFailedScreen
 import cloud.trotter.log.strength.ui.day.FinishingScreen
 import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
 import cloud.trotter.log.strength.ui.day.SkippedLift
-import cloud.trotter.log.strength.ui.day.workoutDayFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import kotlin.math.abs
@@ -531,22 +529,3 @@ class ReceiptScreenTest {
     }
 }
 
-private fun timeTargetFixture(): WorkoutReceipt = cardioReceiptFixture().copy(dayTitle = "Easy run", minutes = 30, activity = CardioActivity.ROAD_RUN,
-    cardioRows = listOf(CardioReceiptRow(CardioRole.WORK, 1, 1800, null, listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 5210)),
-        emptyList(), CardioRecordMark(PrKind.FARTHER, 0, null, 4980))))
-
-private fun attemptFixture(): FinishAttempt {
-    val receipt = receiptFixture()
-    return FinishAttempt("run", 1, receipt.dayId, receipt.dayIndex, receipt.dayTitle, receipt.planName,
-        receipt.completedAt - 58 * 60_000, receipt.completedAt)
-}
-
-private fun finishingFixture(): DayUiState {
-    val base = workoutDayFixture()
-    val source = base.exercises.first()
-    val names = listOf("Barbell Back Squat", "Romanian Deadlift", "Barbell Bench Press", "Dumbbell Curl", "Dumbbell Lateral Raise", "Pull-up")
-    return base.copy(exercises = names.mapIndexed { index, name ->
-        source.copy(programExerciseId = index + 1L, position = index, title = name, isSuperset = index == 2,
-            partnerTitle = if (index == 2) "Barbell Row" else null, rows = source.rows.take(3))
-    })
-}

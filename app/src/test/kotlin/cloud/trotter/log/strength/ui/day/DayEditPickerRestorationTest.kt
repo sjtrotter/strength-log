@@ -1,7 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -58,10 +59,10 @@ class DayEditPickerRestorationTest {
     private fun assertDraftSurvives(restoration: StateRestorationTester) {
         composeTestRule.onNode(hasSetTextAction()).performTextInput("press")
         composeTestRule.onNodeWithText("Barbell").performClick()
-        composeTestRule.onNodeWithText("Barbell").assertIsOn()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
         restoration.emulateSavedInstanceStateRestore()
         composeTestRule.onNode(hasSetTextAction()).assertTextContains("press")
-        composeTestRule.onNodeWithText("Barbell").assertIsOn()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
     }
 
     @Test
@@ -72,4 +73,15 @@ class DayEditPickerRestorationTest {
 
     @Test
     fun supersetPickerDraftSurvivesRestoration() = assertDraftSurvives(show(key = "ss:1"))
+    @Test
+    fun searchStaysDisplayedAndStationaryWhenNothingMatches() {
+        show(key = "empty-results")
+        val search = composeTestRule.onNode(hasSetTextAction())
+        val before = search.fetchSemanticsNode().boundsInRoot.top
+        search.performTextInput("zzzz-no-such-exercise")
+        search.assertIsDisplayed()
+        composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
+        org.junit.Assert.assertEquals(before, search.fetchSemanticsNode().boundsInRoot.top)
+    }
+
 }

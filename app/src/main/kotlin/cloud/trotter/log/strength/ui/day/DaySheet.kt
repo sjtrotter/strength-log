@@ -1,25 +1,36 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -36,19 +47,35 @@ internal fun DaySheet(
     onDiscardWorkout: () -> Unit = {},
 ) {
     val selectedKey = (state.workout?.shown as? WorkoutSelection.Shown.Group)?.key
+    var menuOpen by remember { mutableStateOf(false) }
     AppModalBottomSheet(onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        LazyColumn {
-            item {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        title = {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.today_day_label, state.viewDayId.orEmpty()),
-                        style = MaterialTheme.typography.titleLarge)
-                    Text(listOf(state.dayTitle.takeIf(String::isNotBlank),
-                        stringResource(R.string.day_sheet_progress, state.doneSets, state.totalSets))
-                        .filterNotNull().joinToString(", "), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
+                        DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.day_menu_edit_day)) },
+                                onClick = { menuOpen = false; onDismiss(); onEditDay() })
+                            if (state.runOpen) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.day_sheet_clear_checks)) },
+                                    onClick = { menuOpen = false; onDismiss(); onClearChecks() })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.day_menu_clear_checks)) },
+                                    onClick = { menuOpen = false; onDismiss(); onDiscardWorkout() })
+                            }
+                        }
+                    }
                 }
+                Text(listOf(state.dayTitle.takeIf(String::isNotBlank),
+                    stringResource(R.string.day_sheet_progress, state.doneSets, state.totalSets))
+                    .filterNotNull().joinToString(", "), style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
             val entries = (state.pages.map { it to null } +
                 state.skippedLifts.map { null to it })
                 .sortedBy { (page, skipped) -> skipped?.position ?: page?.exerciseId?.let { id ->
@@ -85,20 +112,11 @@ internal fun DaySheet(
                             else -> pluralStringResource(R.plurals.plan_sets, total, total)
                         }, style = MaterialTheme.typography.bodyMedium)
                     },
-                    modifier = Modifier.clickable { actions.onSelectWorkoutLift(page.key); onDismiss() },
+                    colors = ListItemDefaults.colors(containerColor = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.heightIn(min = 72.dp).clickable { actions.onSelectWorkoutLift(page.key); onDismiss() },
                 )
             }
-            item { HorizontalDivider() }
-            item { ListItem(headlineContent = { Text(stringResource(R.string.day_menu_edit_day)) },
-                modifier = Modifier.clickable { onDismiss(); onEditDay() }) }
-            if (state.runOpen) item {
-                ListItem(headlineContent = { Text(stringResource(R.string.day_sheet_clear_checks)) },
-                    modifier = Modifier.clickable { onDismiss(); onClearChecks() })
-            }
-            if (state.runOpen) item {
-                ListItem(headlineContent = { Text(stringResource(R.string.day_menu_clear_checks)) },
-                    modifier = Modifier.clickable { onDismiss(); onDiscardWorkout() })
-            }
+
         }
     }
 }

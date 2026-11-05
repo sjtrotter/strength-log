@@ -5,15 +5,15 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -153,14 +153,14 @@ class WorkoutSetMigrationTest {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
             AppTheme { DayScreen(state, workoutActions(), DayEditUiState(), workoutEditActions(), onBack = { exits++ }) }
         }
-        rule.onNodeWithText("Weight, lb").assertExists()
+        rule.onNodeWithText("Weight (lb)").assertExists()
         rule.runOnIdle {
             state = state.copy(openSheet = null, exercises = state.exercises.map { card ->
                 if (card.programExerciseId == 2L) card.copy(rows = card.rows.dropLast(1)) else card
             })
         }
         rule.waitForIdle()
-        rule.onNodeWithText("Weight, lb").assertDoesNotExist()
+        rule.onNodeWithText("Weight (lb)").assertDoesNotExist()
         rule.runOnUiThread { requireNotNull(backDispatcher).onBackPressed() }
         rule.waitForIdle()
         assertEquals(1, exits)

@@ -60,14 +60,14 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Set stopped").assertExists()
         rule.onNodeWithText("Track run · Set 1").assertExists()
         rule.onNodeWithText("Distance (m)").assertIsNotFocused()
-        rule.onNodeWithText("Done").assertIsEnabled()
+        rule.onNodeWithText("Continue without distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("0")
-        rule.onNodeWithText("Done").assertIsNotEnabled()
+        rule.onNodeWithText("Save distance").assertIsNotEnabled()
         rule.onNodeWithText("Enter metres greater than 0").assertExists()
         rule.onNodeWithContentDescription("Increase distance").performClick()
-        rule.onNodeWithText("Done").assertIsEnabled()
+        rule.onNodeWithText("Save distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("")
-        rule.onNodeWithText("Done").performClick()
+        rule.onNodeWithText("Continue without distance").performClick()
         rule.runOnIdle {
             assertEquals(1, saved)
             assertEquals(run.action(0), delivered)
@@ -83,6 +83,7 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("400 m · aim 1:45").assertExists()
         rule.onNodeWithText("Recovery").assertExists()
         rule.onNodeWithText("Now").assertExists()
+        rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Add set").assertIsEnabled()
     }
 
@@ -92,6 +93,7 @@ class CardioSetsScreenTest {
         rule.setContent { AppTheme {
             WorkoutCardioSheet(cardio, "D", workoutActions().copy(onAddCardioSet = { additions++ }), {}, false)
         } }
+        rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Add set").assertDoesNotExist()
         rule.runOnIdle { assertEquals(0, additions) }
     }

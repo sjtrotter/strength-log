@@ -1,10 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -38,15 +34,20 @@ class CardioEditPageTest {
         rule.onNodeWithText("Distance").performClick()
         rule.onNodeWithText("400").assertExists()
         rule.onNodeWithContentDescription("Aim").performScrollTo().performClick()
-        val typeAction = rule.onNode(SemanticsMatcher("offers Type Seconds") { node ->
-            node.config.getOrNull(SemanticsActions.CustomActions)?.any { it.label == "Type Seconds" } == true
-        }).performScrollTo().fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Type Seconds" }
-        rule.runOnIdle { typeAction.action() }
-        rule.onNode(hasSetTextAction()).performTextReplacement("105")
-        rule.onNodeWithText("DONE").performClick()
+        rule.onNodeWithText("Duration").performScrollTo().performTextReplacement("1:45")
         rule.onNodeWithContentDescription("Hard").performScrollTo().performClick()
-        rule.onNodeWithText("Save").performScrollTo().performClick()
+        rule.onNodeWithText("Save").performClick()
         assertEquals(CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true), saved)
+    }
+
+    @Test
+    fun durationShowsMinutesAndSecondsAndStepsByThirtySeconds() {
+        val draft = mutableStateOf(CardioSetDraft(seconds = 1500))
+        rule.setContent { AppTheme { CardioSetPage(draft.value, { draft.value = it }, {}, {}) } }
+        rule.onNodeWithText("25:00").performScrollTo().assertExists()
+        rule.onNodeWithContentDescription("Increase duration").performScrollTo().performClick()
+        rule.onNodeWithText("25:30").assertExists()
+        rule.runOnIdle { assertEquals(1530, draft.value.seconds) }
     }
 
     @Test

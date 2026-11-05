@@ -1,16 +1,20 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import androidx.compose.ui.test.performScrollTo
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -28,6 +32,9 @@ class DayEditSheetTest {
 
     private fun show(
         canResetToTemplate: Boolean = false,
+        slotCount: Int = 1,
+        onRemove: (Int) -> Unit = {},
+        onOpenPrescription: (Long) -> Unit = {},
         prescription: Prescription? = null,
         partnerExerciseId: String? = null,
         edit: Boolean = true,
@@ -55,18 +62,26 @@ class DayEditSheetTest {
             weightedTarget = weightedTarget,
             structure = structure,
         )
+        val openedDraft = mutableStateOf<PrescriptionDraft?>(null)
         composeTestRule.setContent {
             AppTheme {
                 DayEditSheet(
                     state = DayEditUiState(
-                        slots = if (hasSlot) listOf(slot) else emptyList(), canResetToTemplate = canResetToTemplate,
+                        slots = if (hasSlot) List(slotCount) { slot.copy(programExerciseId = it + 1L, position = it) } else emptyList(), canResetToTemplate = canResetToTemplate,
                         runOpen = runOpen,
+                        prescriptionDraft = openedDraft.value,
                         cardioBlock = if (hasCardio) cardioFixture().block else null,
                     ),
                     actions = DayEditActions(
                         onSwap = { _, _ -> },
                         onAdd = {},
-                        onRemove = {},
+                        onRemove = onRemove,
+                        onOpenPrescription = { id ->
+                            onOpenPrescription(id)
+                            openedDraft.value = PrescriptionDraft.from(slot,
+                                cloud.trotter.log.strength.data.catalog.ExerciseCatalog.CODE_ONLY,
+                                cloud.trotter.log.strength.domain.model.LifterConfig())
+                        },
                         onSetSuperset = { _, _ -> },
                         onRemoveSuperset = {},
                         onResetToTemplate = {},
@@ -81,7 +96,10 @@ class DayEditSheetTest {
                 )
             }
         }
-        if (edit) composeTestRule.onNodeWithText("Edit").performClick()
+        if (edit) {
+            composeTestRule.onNodeWithContentDescription("More options for Plank").performClick()
+            composeTestRule.onNodeWithText("Lift options").performClick()
+        }
     }
 
     @Test
@@ -95,7 +113,7 @@ class DayEditSheetTest {
         composeTestRule.onNodeWithText("Ramp to a top set").assertIsSelected()
         composeTestRule.onNodeWithText("Four warm-ups, then the top set.").assertExists()
         composeTestRule.onNodeWithText("Four warm-ups, the top set, one lighter set of 8.").assertExists()
-        composeTestRule.onNodeWithText("Ramp, top set, back-off").performClick()
+        composeTestRule.onNodeWithText("Ramp, top set, back-off").performScrollTo().performClick()
         composeTestRule.runOnIdle { assertEquals(1L to SetStructure.RAMP_TOP_BACKOFF, changed) }
     }
 
@@ -156,6 +174,7 @@ class DayEditSheetTest {
     @Test
     fun generatedDayKeepsResetToTemplate() {
         show(canResetToTemplate = true, edit = false)
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Reset day to template").assertExists()
     }
 
@@ -218,4 +237,39 @@ class DayEditSheetTest {
         show(runOpen = true)
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
     }
+    @Test
+    fun tappingLiftOpensItsPrescription() {
+        var opened: Long? = null
+        show(edit = false, onOpenPrescription = { opened = it })
+        composeTestRule.onNodeWithText("Plank").performClick()
+        composeTestRule.runOnIdle { assertEquals(1L, opened) }
+        composeTestRule.onNodeWithText("Tracking").assertExists()
+        composeTestRule.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    @Test
+    fun liftMenuOffersSwapAndRemoveAndRemovesItsPosition() {
+        var removed: Int? = null
+        show(edit = false, hasCardio = true, onRemove = { removed = it })
+        composeTestRule.onNodeWithContentDescription("More options for Plank").performClick()
+        composeTestRule.onNodeWithText("Swap").assertIsEnabled()
+        composeTestRule.onNodeWithText("Remove").assertIsEnabled().performClick()
+        composeTestRule.runOnIdle { assertEquals(0, removed) }
+    }
+
+    @Test
+    fun lastLiftCannotBeRemovedAndExplainsWhy() {
+        show(edit = false)
+        composeTestRule.onNodeWithContentDescription("More options for Plank").performClick()
+        composeTestRule.onNodeWithText("Remove").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("A day keeps at least one lift").assertExists()
+    }
+
+    @Test
+    fun fourLiftsAllowRemovalEvenWhenTheFixtureOmitsCanRemove() {
+        show(edit = false, slotCount = 4)
+        composeTestRule.onAllNodesWithContentDescription("More options for Plank")[0].performClick()
+        composeTestRule.onNodeWithText("Remove").assertIsEnabled()
+    }
+
 }

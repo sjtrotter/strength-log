@@ -4,18 +4,17 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,8 +34,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,12 +44,14 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.units.SecondsStepper
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.components.resolveStepperCommit
 import cloud.trotter.log.strength.ui.text.resolve
+import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 
@@ -69,13 +70,13 @@ internal fun SetEditSheet(
     AppModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        footer = {
+            SheetCommitButton(stringResource(R.string.sheet_save_set), onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = dayAccent(dayIndex), contentColor = onDayAccent(dayIndex)))
+        },
+        title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(setLabel(row).resolve(), style = MaterialTheme.typography.titleLarge)
                     Text(
                         text = card.title,
@@ -98,6 +99,8 @@ internal fun SetEditSheet(
                     }
                 }
             }
+        },
+        body = {
             SetFields(
                 card = card,
                 row = row,
@@ -157,18 +160,8 @@ internal fun SetEditSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = dayAccent(dayIndex),
-                    contentColor = onDayAccent(dayIndex),
-                ),
-            ) {
-                Text(stringResource(R.string.set_edit_done))
-            }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -190,7 +183,7 @@ private fun SetFields(
             NumericSetField(
                 identity = "${card.programExerciseId}:$slot:${row.index}:weight",
                 value = weight,
-                label = stringResource(R.string.set_edit_weight, unit.name.lowercase()),
+                label = stringResource(R.string.sheet_weight, unit.name.lowercase()),
                 field = stringResource(R.string.set_edit_weight_field),
                 partnerName = partnerName,
                 modifier = Modifier.fillMaxWidth(),
@@ -205,16 +198,14 @@ private fun SetFields(
             NumericSetField(
                 identity = "${card.programExerciseId}:$slot:${row.index}:seconds",
                 value = seconds.toDouble(),
-                label = stringResource(R.string.set_edit_seconds),
-                field = stringResource(R.string.set_edit_seconds),
+                label = stringResource(R.string.sheet_duration),
+                field = stringResource(R.string.sheet_duration),
                 partnerName = partnerName,
                 modifier = Modifier.fillMaxWidth(),
                 minimum = 0.0,
-                step = { SecondsStepper.increment(it.toInt()).toDouble() },
-                round = {
-                    val increment = SecondsStepper.increment(it.toInt())
-                    Math.round(it / increment) * increment.toDouble()
-                },
+                step = { 30.0 },
+                duration = true,
+                round = { it },
                 onChange = { actions.onSecondsChange(card.programExerciseId, slot, row.index, it.toInt()) },
             )
         } else {
@@ -233,6 +224,7 @@ private fun SetFields(
     }
 }
 
+/** M3 has no numeric field with bounded stepping and buttons that reflow below large type. */
 @Composable
 internal fun NumericSetField(
     identity: String,
@@ -246,52 +238,87 @@ internal fun NumericSetField(
     step: (Double) -> Double,
     round: (Double) -> Double = { Math.round(it).toDouble() },
     onChange: (Double) -> Unit,
+    maximum: Double = Double.POSITIVE_INFINITY,
+    duration: Boolean = false,
+    isError: Boolean = false,
     textOverride: String? = null,
     onTextChange: ((String) -> Unit)? = null,
 ) {
-    var text by rememberSaveable(identity) { mutableStateOf(WeightStepper.format(value)) }
+    val format: (Double) -> String = if (duration) { { ClockText.minutesSeconds(it.toInt()) } } else WeightStepper::format
+    var text by rememberSaveable(identity) { mutableStateOf(format(value)) }
     val interactionSource = remember(identity) { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
     LaunchedEffect(value, focused) {
-        if (!focused) text = WeightStepper.format(value)
+        if (!focused && text.isNotBlank()) text = format(value)
     }
     val trackField = partnerName?.let { stringResource(R.string.set_edit_partner_field, it, field) } ?: field
-    val amount = if (step(value) == 1.0) stringResource(R.string.set_edit_one) else WeightStepper.format(step(value))
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(
-            onClick = {
-                focusManager.clearFocus()
-                onChange(round(value - step(value)).coerceAtLeast(minimum))
-            },
-            modifier = Modifier.size(48.dp),
-        ) {
-            Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.set_edit_less, trackField, amount))
-        }
+    val decrease = stringResource(R.string.sheet_decrease, trackField.lowercase())
+    val increase = stringResource(R.string.sheet_increase, trackField.lowercase())
+    val fieldContent: @Composable (Modifier) -> Unit = { fieldModifier ->
         OutlinedTextField(
             value = textOverride ?: text,
-            onValueChange = {
-                if (onTextChange != null) onTextChange(it) else {
-                    text = it
-                    resolveStepperCommit(it, minimum, Double.POSITIVE_INFINITY, round)?.let(onChange)
+            onValueChange = { draft ->
+                if (onTextChange != null) onTextChange(draft) else {
+                    text = draft
+                    val parsed = if (duration) parseSheetDuration(draft)?.toString() else draft
+                    parsed?.let { resolveStepperCommit(it, minimum, maximum, round) }?.let(onChange)
                 }
             },
-            label = { Text(label) },
+            label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+            textStyle = DisplayXl,
             singleLine = true,
-            modifier = Modifier.weight(1f),
+            isError = isError,
+            modifier = fieldModifier.heightIn(min = 80.dp),
             interactionSource = interactionSource,
             keyboardOptions = KeyboardOptions(
-                keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
+                keyboardType = when {
+                    duration -> KeyboardType.Ascii
+                    decimal -> KeyboardType.Decimal
+                    else -> KeyboardType.Number
+                },
             ),
         )
+    }
+    val buttons: @Composable (Boolean) -> Unit = { increaseValue ->
         IconButton(
             onClick = {
                 focusManager.clearFocus()
-                onChange(round(value + step(value)).coerceAtLeast(minimum))
+                val next = round(value + if (increaseValue) step(value) else -step(value)).coerceIn(minimum, maximum)
+                text = format(next)
+                onChange(next)
             },
             modifier = Modifier.size(48.dp),
         ) {
-            Icon(Icons.Default.Add, stringResource(R.string.set_edit_more, trackField, amount))
+            Icon(if (increaseValue) Icons.Filled.Add else Icons.Filled.Remove,
+                if (increaseValue) increase else decrease)
         }
     }
+    BoxWithConstraints(modifier) {
+        if (maxWidth < 280.dp || LocalDensity.current.fontScale >= 1.5f) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                fieldContent(Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    buttons(false)
+                    buttons(true)
+                }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                buttons(false)
+                fieldContent(Modifier.weight(1f))
+                buttons(true)
+            }
+        }
+    }
+}
+
+/** Duration drafts use the same canonical seconds as the existing steppers. */
+internal fun parseSheetDuration(text: String): Double? {
+    val parts = text.trim().split(':')
+    if (parts.size != 2) return null
+    val minutes = parts[0].toLongOrNull()?.takeIf { it >= 0 } ?: return null
+    val seconds = parts[1].toIntOrNull()?.takeIf { it in 0..59 } ?: return null
+    return (minutes.toDouble() * 60 + seconds).takeIf { it <= Int.MAX_VALUE }
 }

@@ -434,11 +434,13 @@ class ReceiptScreenTest {
         val saved = mutableListOf<String>()
         var dismissals = 0
         rule.setContent { AppTheme { NoteSheet("x", { saved += it }, save = save.value, onDismiss = { dismissals++ }) } }
-        rule.onNodeWithText("DONE").performClick()
+        rule.onNodeWithText("Save note").performClick()
         assertEquals(listOf("x"), saved)
         assertEquals(0, dismissals)
         rule.runOnIdle { save.value = NoteSave.Failed("x") }
-        rule.onNode(hasText("Couldn't save the note.") and hasAnyAncestor(isDialog())).assertExists()
+        rule.onNode(hasText("Note not saved.") and hasAnyAncestor(isDialog())).assertExists()
+        rule.onNodeWithText("Save note").assertDoesNotExist()
+        rule.onAllNodesWithText("Try again").assertCountEquals(1)
         rule.onNode(hasText("Try again") and hasAnyAncestor(isDialog())).performClick()
         assertEquals(listOf("x", "x"), saved)
         assertEquals(0, dismissals)
@@ -452,8 +454,8 @@ class ReceiptScreenTest {
         var saved = ""
         var dismissals = 0
         rule.setContent { AppTheme { NoteSheet("", { saved = it }) { dismissals++ } } }
-        rule.onNodeWithText("NOTE").performTextReplacement("Felt steady")
-        rule.onNodeWithText("DONE").performClick()
+        rule.onNodeWithText("Note").performTextReplacement("Felt steady")
+        rule.onNodeWithText("Save note").performClick()
         assertEquals("Felt steady", saved)
         assertEquals(1, dismissals)
     }
@@ -470,12 +472,12 @@ class ReceiptScreenTest {
             }
         }
         rule.onNodeWithText("Add a note").performScrollTo().performClick()
-        rule.onNodeWithText("NOTE").performTextReplacement("Felt steady")
-        rule.onNodeWithText("DONE").performClick()
+        rule.onNodeWithText("Note").performTextReplacement("Felt steady")
+        rule.onNodeWithText("Save note").performClick()
         assertEquals(listOf("Felt steady"), saved)
-        rule.onNodeWithText("NOTE").assertExists()
+        rule.onNodeWithText("Note").assertExists()
         rule.runOnIdle { save.value = NoteSave.Saved("Felt steady") }
-        rule.onNodeWithText("NOTE").assertDoesNotExist()
+        rule.onNodeWithText("Note").assertDoesNotExist()
         assertEquals(1, handled)
     }
 
@@ -493,7 +495,7 @@ class ReceiptScreenTest {
         rule.runOnIdle { save.value = NoteSave.Saved("Felt steady") }
         rule.runOnIdle { assertNull(save.value); assertEquals(1, handled) }
         rule.onNodeWithText("Add a note").performScrollTo().performClick()
-        rule.onNodeWithText("NOTE").assertExists()
+        rule.onNodeWithText("Note").assertExists()
     }
 
     @Test

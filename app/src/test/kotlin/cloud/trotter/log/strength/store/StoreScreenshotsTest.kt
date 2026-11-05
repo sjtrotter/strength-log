@@ -26,8 +26,8 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -38,7 +38,6 @@ import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
-import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -46,9 +45,10 @@ import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.PartnerRowState
+import cloud.trotter.log.strength.ui.day.SetRowState
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
-import cloud.trotter.log.strength.ui.day.SetRowState
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.log.JournalUiState
 import cloud.trotter.log.strength.ui.log.LogActions
 import cloud.trotter.log.strength.ui.log.LogScreen
@@ -321,7 +321,8 @@ class StoreScreenshotsTest {
             day,
             edit = edit,
             beforeCapture = {
-                composeTestRule.onNodeWithText("Edit").performClick()
+                composeTestRule.onNodeWithContentDescription("More options for ${edit.slots.single().title}").performClick()
+                composeTestRule.onNodeWithText("Lift options").performClick()
                 composeTestRule.mainClock.advanceTimeBy(2_000)
                 composeTestRule.waitForIdle()
                 composeTestRule.onNodeWithText("Next time").assertIsDisplayed()

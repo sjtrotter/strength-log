@@ -527,26 +527,15 @@
       "checkpoint": "swap-picker-find-goblet-squat-and-today-only-scope"
     },
     {
-      "back": true
-    },
-    {
       "tap": {
-        "desc": "More"
+        "text": "Goblet Squat"
       }
     },
     {
-      "tap": {
-        "text": "Note"
-      }
+      "checkpoint": "goblet-squat-selected-check-swap-scope-and-set-count"
     },
     {
-      "checkpoint": "exercise-note-entry-before-recording-real-lifts"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "note": "These are my actual Monday goblet squat sets, using one dumbbell. If the swap retained ramp labels, that is a classification problem to fix in the day editor; do not mistake the inherited targets for lifts I performed."
     },
     {
       "tap": {
@@ -554,12 +543,146 @@
       }
     },
     {
-      "tap": {
-        "desc": "Set menu"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "350",
+        "ime": "done"
       }
     },
     {
-      "checkpoint": "set-menu-for-working-set-type-and-corrections"
+      "checkpoint": "catch-weight-typing-error-before-saving"
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "monday-goblet-actual-set-1-35lb-8reps"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "logged-first-set-survives-activity-recreation"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 35 lb \u00d7 6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 6"
+      }
+    },
+    {
+      "checkpoint": "monday-goblet-actual-set-2-35lb-6reps"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "checkpoint": "extra-rest-after-six-rep-set"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 30 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "monday-goblet-actual-set-3-30lb-8reps"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "review-three-actual-squat-sets-before-editing-plan"
     },
     {
       "back": true
@@ -569,21 +692,27 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 0 of 21 sets"
+        "role": "Tab",
+        "index": 2
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "2-day full body"
       }
     },
     {
       "tap": {
-        "text": "Edit day"
+        "text": "Day A"
       }
     },
     {
-      "checkpoint": "edit-day-build-my-running-support-strength-a"
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "actual-day-editor-after-recording-goblet-squats"
     }
   ]
 }

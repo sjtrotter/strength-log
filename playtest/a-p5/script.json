@@ -1045,6 +1045,241 @@
     },
     {
       "checkpoint": "day-editor-after-straight-sets"
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "three-squat-working-sets-and-next-time-thirty-pound-target"
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "side-plank-two-thirty-second-holds-each-side"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single leg"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "checkpoint": "reverse-lunge-added"
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15"
+      }
+    },
+    {
+      "checkpoint": "reverse-lunge-prescription-check-side-default"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "rdl-before-plank-in-own-a"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "resume-after-own-a-prescriptions"
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "actual-rdl-set-1-thirty-per-hand-eight-reps"
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "actual-rdl-set-2-thirty-per-hand-eight-reps"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "actual-rdl-set-3-thirty-per-hand-eight-reps"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "three-rdl-sets-complete-next-is-side-plank"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "side-plank-sets-and-per-side-display"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "side-plank-actual-hold-editor-left-versus-right"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 6 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Single leg",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "lower-movement-categories-for-standing-calf-raise"
     }
   ]
 }

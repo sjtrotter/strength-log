@@ -1,5 +1,22 @@
 {
   "seat": "f-p2",
   "start": { "date": "2026-11-08", "time": "20:00", "zone": "America/Chicago" },
-  "steps": []
+  "steps": [
+    { "note": "Sunday night, setting up for tomorrow's squat day. Strength-leaning, that's me." },
+    { "tap": { "role": "RadioButton", "index": 0 } },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-2" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-3" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-4" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-5" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-6" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-7" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-8" }
+  ]
 }

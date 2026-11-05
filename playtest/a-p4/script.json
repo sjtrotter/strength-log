@@ -405,6 +405,164 @@
     },
     {
       "checkpoint": "ready-to-customize-plan"
+    },
+    {
+      "note": "I found the three day rows. Inspect their editing controls before changing prescriptions. The generated squat top set is 235, far above my planned 135x8; I will enter my own loads."
+    },
+    {
+      "tap": {
+        "desc": "Day options",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "day-options-find-name-and-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "monday-plan-edit-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "wednesday-plan-edit-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day C"
+      }
+    },
+    {
+      "checkpoint": "friday-plan-edit-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "squat-menu-find-prescription-and-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "workout-menu-find-swap-and-reorder"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "set-menu-warmup-and-edit-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "95",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "note": "Monday: five minutes easy movement, then a lighter squat warm-up at 95x5. Working sets still need to be 135x8, not the suggested top-set prescription."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 95 lb × 5"
+      }
+    },
+    {
+      "checkpoint": "first-warmup-logged-rest-controls"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "warmup-and-session-persist-after-recreation"
     }
   ]
 }

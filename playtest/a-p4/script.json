@@ -248,6 +248,90 @@
     },
     {
       "checkpoint": "setup-persists-after-reopen"
+    },
+    {
+      "note": "Setup worked without an account. Before lifting I want to find how to edit my plan, how to keep a backup, and how to choose the day I actually intend to do."
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-find-own-days-and-prescriptions"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-find-units-effort-watch-and-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-before-first-visit"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choose-day-without-changing-the-week"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "note": "It is Monday. Open day A to inspect the actual exercise targets and find how to enter my squat, bench, row, RDL, and 12-minute bike visit."
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "monday-first-workout-controls"
+    },
+    {
+      "note": "Inspect the workout before entering sets; the suggested preview had six squat sets and a 25-minute bike ride, which are not my intended prescription."
     }
   ]
 }

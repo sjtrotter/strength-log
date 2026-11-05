@@ -344,6 +344,22 @@
   },
   {
    "checkpoint": "day-a-editor"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "day-a-edit-mode"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "edit-lift-tapped"
   }
  ]
 }

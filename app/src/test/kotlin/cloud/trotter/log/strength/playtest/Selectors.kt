@@ -5,14 +5,22 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal class Selectors(private val nodes: SemanticsNodeInteractionsProvider, private val density: Float) {
-    fun matcher(selector: Selector, typing: Boolean = false): SemanticsMatcher = SemanticsMatcher(selector.json.toString()) { node ->
+internal class Selectors(private val nodes: ComposeTestRule, private val density: Float) {
+    var lastMatches: JsonArray = JsonArray(emptyList())
+        private set
+
+    fun clear() {
+        lastMatches = JsonArray(emptyList())
+    }
+
+    fun matcher(selector: Selector, typing: Boolean = false, deadline: StepDeadline? = null): SemanticsMatcher = SemanticsMatcher(selector.json.toString()) { node ->
+        deadline?.checkTime()
         val texts = node.selectorTexts(typing)
         (selector.text("text")?.let { wanted -> texts.any { it.trim() == wanted.trim() } } ?: true) &&
             (selector.text("textContains")?.let { wanted -> texts.any { wanted in it } } ?: true) &&
@@ -25,23 +33,63 @@ internal class Selectors(private val nodes: SemanticsNodeInteractionsProvider, p
             } ?: true)
     }
 
-    fun matches(selector: Selector, typing: Boolean = false): List<SemanticsNode> =
-        nodes.onAllNodes(matcher(selector, typing), useUnmergedTree = typing).fetchSemanticsNodes()
+    data class Target(val interaction: SemanticsNodeInteraction, val node: SemanticsNode)
 
-    fun resolve(selector: Selector, typing: Boolean = false): SemanticsNodeInteraction {
-        val matches = matches(selector, typing)
-        val index = selector.index ?: 0
-        if (matches.isEmpty() || index >= matches.size) {
-            throw PlaytestError("not-found", "No match at index $index for ${selector.json}", buildJsonObject {
-                put("candidates", candidates(selector, typing))
-            })
+    fun await(
+        selector: Selector,
+        deadline: StepDeadline,
+        typing: Boolean = false,
+        absent: Boolean = false,
+        search: (() -> Unit)? = null,
+    ): Target? {
+        var lastFailure: PlaytestError? = null
+        while (true) {
+            if (deadline.expired) throw lastFailure ?: deadline.timeout()
+            val collection = nodes.onAllNodes(matcher(selector, typing, deadline), useUnmergedTree = typing)
+            val all = try {
+                deadline.call {
+                    nodes.onAllNodes(SemanticsMatcher("all nodes") { true }, useUnmergedTree = typing)
+                        .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                }
+            } catch (error: PlaytestError) {
+                if (error.kind == "timeout" && error.cause == null && lastFailure != null) throw lastFailure
+                throw error
+            }
+            val match = matcher(selector, typing)
+            val matches = all.filter { match.matches(it) }
+            lastMatches = describe(matches)
+            val index = selector.index ?: 0
+            val present = index < matches.size
+            if (absent && !present) return null
+            if (!absent && present && (selector.index != null || matches.size == 1)) {
+                return Target(collection[index], matches[index])
+            }
+            val failure = when {
+                absent -> PlaytestError("ambiguous", "Expected no matches for ${selector.json}", buildJsonObject {
+                    put("matches", lastMatches)
+                })
+                present -> PlaytestError("ambiguous", "${matches.size} matches for ${selector.json}; add index or narrow the selector", buildJsonObject {
+                    put("matches", lastMatches)
+                })
+                else -> {
+                    val nonEditable = typing && all.any { matcher(selector).matches(it) }
+                    if (nonEditable) PlaytestError("not-editable", "Use type on a text field with EditableText semantics")
+                    else PlaytestError("not-found", "No match at index $index for ${selector.json}", buildJsonObject {
+                        put("candidates", candidates(selector, typing, all))
+                    })
+                }
+            }
+            lastFailure = failure
+            try {
+                if (!present && !absent) search?.invoke()
+                if (!deadline.pause(nodes)) throw failure
+            } catch (error: PlaytestError) {
+                // A deadline reached between attempts reports the final selector result.
+                // A timeout inside Compose/Espresso remains a timeout with its original cause.
+                if (error.kind == "timeout" && error.cause == null) throw failure
+                throw error
+            }
         }
-        if (matches.size > 1 && selector.index == null) {
-            throw PlaytestError("ambiguous", "${matches.size} matches for ${selector.json}; add index or narrow the selector", buildJsonObject {
-                put("matches", describe(matches))
-            })
-        }
-        return nodes.onAllNodes(matcher(selector, typing), useUnmergedTree = typing)[index]
     }
 
     fun describe(matches: List<SemanticsNode>): JsonArray = JsonArray(matches.map { node ->
@@ -62,13 +110,10 @@ internal class Selectors(private val nodes: SemanticsNodeInteractionsProvider, p
         }
     })
 
-    private fun candidates(selector: Selector, typing: Boolean): JsonArray {
+    private fun candidates(selector: Selector, typing: Boolean, all: List<SemanticsNode>): JsonArray {
         val words = (selector.text("text") ?: selector.text("textContains") ?: selector.text("desc")).orEmpty()
             .split(Regex("\\s+")).filter { it.isNotBlank() }
-        val all = nodes.onAllNodes(SemanticsMatcher("text candidates") {
-            it.selectorTexts(typing).isNotEmpty()
-        }, useUnmergedTree = typing).fetchSemanticsNodes()
-        return describe(all.sortedByDescending { node ->
+        return describe(all.filter { it.selectorTexts(typing).isNotEmpty() }.sortedByDescending { node ->
             words.count { word -> node.selectorTexts(typing).any { it.contains(word, ignoreCase = true) } }
         }.distinctBy { it.selectorTexts(typing) }.take(15))
     }

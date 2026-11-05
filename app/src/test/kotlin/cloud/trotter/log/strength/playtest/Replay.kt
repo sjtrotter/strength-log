@@ -94,12 +94,15 @@ internal class Replay(
 ) {
     private val selectors = Selectors(compose, compose.density.density)
     private var screen = "launch"
-    private var lastMatches: JsonArray = JsonArray(emptyList())
+    private val lastMatches: JsonArray get() = selectors.lastMatches
 
     fun run(script: Script) {
         try {
-            settle()
-            capture("000-launch", png = true)
+            val deadline = StepDeadline(10_000)
+            deadline.run(compose) {
+                settle(deadline)
+                deadline.call { capture("000-launch", png = true) }
+            }
         } catch (error: Throwable) {
             captureFailure("000-FAILED-launch", error)
             throw error
@@ -107,20 +110,25 @@ internal class Replay(
         script.steps.forEachIndexed { index, step ->
             val started = System.nanoTime()
             artifacts.stepsRun++
-            lastMatches = JsonArray(emptyList())
+            selectors.clear()
             try {
                 if (step.action != "note") {
-                    perform(step)
-                    settle()
-                    if (index >= artifacts.captureFrom || step.action == "checkpoint") {
-                        capture("%03d-%s".format(index, step.slug),
-                            png = !script.checkpointsOnly || step.action == "checkpoint")
+                    val deadline = StepDeadline(step.timeoutMs, index)
+                    deadline.run(compose) {
+                        perform(step, deadline)
+                        settle(deadline)
+                        if (index >= artifacts.captureFrom || step.action == "checkpoint") {
+                            deadline.call {
+                                capture("%03d-%s".format(index, step.slug),
+                                    png = !script.checkpointsOnly || step.action == "checkpoint")
+                            }
+                        }
                     }
                 }
                 log(index, step, started, ok = true)
             } catch (error: Throwable) {
-                captureFailure("%03d-FAILED-%s".format(index, step.slug), error)
                 artifacts.failure(error.playtestError(), index, step.json)
+                captureFailure("%03d-FAILED-%s".format(index, step.slug), error)
                 log(index, step, started, ok = false)
                 throw error
             }
@@ -140,43 +148,30 @@ internal class Replay(
         })
     }
 
-    private fun perform(step: Step) {
+    private fun perform(step: Step, deadline: StepDeadline) {
         when (step.action) {
-            "back" -> scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-            "recreate" -> scenario.recreate()
-            "advance" -> advance(requireNotNull(step.duration))
+            "back" -> deadline.call { scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() } }
+            "recreate" -> deadline.call { scenario.recreate() }
+            "advance" -> advance(requireNotNull(step.duration), deadline)
             "checkpoint" -> Unit
-            "expect" -> expect(step)
-            "scrollTo" -> scrollTo(requireNotNull(step.selector))
-            else -> act(step)
+            "expect" -> expect(step, deadline)
+            "scrollTo" -> scrollTo(requireNotNull(step.selector), deadline)
+            else -> act(step, deadline)
         }
     }
 
-    private fun expect(step: Step) {
+    private fun expect(step: Step, deadline: StepDeadline) {
         val selector = requireNotNull(step.selector)
-        val matches = selectors.matches(selector)
-        lastMatches = selectors.describe(matches)
         val absent = (step.payload as JsonObject)["absent"] == JsonPrimitive(true)
-        if (absent) {
-            val present = selector.index?.let { it < matches.size } ?: matches.isNotEmpty()
-            if (present) throw PlaytestError("ambiguous", "Expected no matches for ${selector.json}", buildJsonObject {
-                put("matches", lastMatches)
-            })
-        } else {
-            selectors.resolve(selector)
-        }
+        selectors.await(selector, deadline, absent = absent)
     }
 
-    private fun act(step: Step) {
+    private fun act(step: Step, deadline: StepDeadline) {
         val selector = requireNotNull(step.selector)
         val typing = step.action == "type"
-        // Report the action-specific error when a selector finds a non-editable node.
-        if (typing && selectors.matches(selector, typing = true).isEmpty() && selectors.matches(selector).isNotEmpty()) {
-            throw PlaytestError("not-editable", "Use type on a text field with EditableText semantics")
-        }
-        lastMatches = selectors.describe(selectors.matches(selector, typing))
-        val target = selectors.resolve(selector, typing)
-        val node = target.fetchSemanticsNode()
+        val resolved = requireNotNull(selectors.await(selector, deadline, typing))
+        val target = resolved.interaction
+        val node = resolved.node
         if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText)) {
             throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
         }
@@ -184,65 +179,58 @@ internal class Replay(
         when (step.action) {
             "tap" -> {
                 requireAction(node.config.contains(SemanticsActions.OnClick), "not-clickable", "Node has no click action")
-                target.performClick()
+                deadline.call { target.performClick() }
             }
             "longPress" -> {
                 requireAction(node.config.contains(SemanticsActions.OnLongClick), "not-clickable", "Node has no long-click action")
-                target.performTouchInput { longClick() }
+                deadline.call { target.performTouchInput { longClick() } }
             }
             "type" -> {
                 requireAction(node.config.contains(SemanticsActions.SetText) && node.config.contains(SemanticsActions.RequestFocus),
                     "not-editable", "Node has no text replacement or focus action")
-                target.requestFocus()
+                deadline.call { target.requestFocus() }
                 val payload = step.payload as JsonObject
-                target.performTextReplacement(payload.string("value"))
+                deadline.call { target.performTextReplacement(payload.string("value")) }
                 if ("ime" in payload) {
                     requireAction(node.config.contains(SemanticsActions.OnImeAction), "not-editable", "Node has no IME action")
-                    target.performImeAction()
+                    deadline.call { target.performImeAction() }
                 }
             }
-            "swipe" -> target.performTouchInput {
-                when ((step.payload as JsonObject).string("direction")) {
-                    "left" -> swipeLeft()
-                    "right" -> swipeRight()
-                    "up" -> swipeUp()
-                    "down" -> swipeDown()
+            "swipe" -> deadline.call {
+                target.performTouchInput {
+                    when ((step.payload as JsonObject).string("direction")) {
+                        "left" -> swipeLeft()
+                        "right" -> swipeRight()
+                        "up" -> swipeUp()
+                        "down" -> swipeDown()
+                    }
                 }
             }
         }
     }
 
-    private fun scrollTo(selector: Selector) {
-        val matches = selectors.matches(selector)
-        lastMatches = selectors.describe(matches)
-        if (matches.isNotEmpty()) {
-            val target = selectors.resolve(selector)
-            val node = target.fetchSemanticsNode()
-            enabled(node)
-            requireAction(generateSequence(node.parent) { it.parent }.any { hasScrollAction().matches(it) },
-                "not-scrollable", "Node has no scrollable ancestor")
-            target.performScrollTo()
-            return
-        }
+    private fun scrollTo(selector: Selector, deadline: StepDeadline) {
+        val target = requireNotNull(selectors.await(selector, deadline, search = { searchLazy(selector, deadline) }))
+        enabled(target.node)
+        requireAction(generateSequence(target.node.parent) { it.parent }.any { hasScrollAction().matches(it) },
+            "not-scrollable", "Node has no scrollable ancestor")
+        deadline.call { target.interaction.performScrollTo() }
+    }
+
+    private fun searchLazy(selector: Selector, deadline: StepDeadline) {
         val containers = compose.onAllNodes(hasScrollAction())
         val containerIndex = selector.index ?: 0
-        requireAction(containerIndex < containers.fetchSemanticsNodes().size, "not-scrollable", "No scroll container at index $containerIndex")
+        val nodes = deadline.call { containers.fetchSemanticsNodes(atLeastOneRootRequired = false) }
+        if (containerIndex >= nodes.size) return
+        val node = nodes[containerIndex]
+        if (!node.config.contains(SemanticsActions.ScrollToIndex)) return
         val container = containers[containerIndex]
-        enabled(container.fetchSemanticsNode())
-        requireAction(container.fetchSemanticsNode().config.contains(SemanticsActions.ScrollToIndex),
-            "not-scrollable", "Uncomposed targets need a lazy scroll container")
+        enabled(node)
         try {
-            container.performScrollToNode(selectors.matcher(selector))
+            deadline.call { container.performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
         } catch (error: AssertionError) {
-            if (selectors.matches(selector).isEmpty()) {
-                try {
-                    selectors.resolve(selector)
-                } catch (missing: PlaytestError) {
-                    missing.addSuppressed(error)
-                    throw missing
-                }
-            }
-            throw error
+            if (error.isWaitTimeout()) throw deadline.timeout(error)
+            // A lazy list can be populated by storage after this search. Retry the selector.
         }
     }
 
@@ -254,27 +242,31 @@ internal class Replay(
         if (!condition) throw PlaytestError(kind, message, buildJsonObject { put("matches", lastMatches) })
     }
 
-    private fun advance(duration: Duration) {
+    private fun advance(duration: Duration, deadline: StepDeadline) {
         if (duration > Duration.ofHours(1)) {
-            val safe = runBlocking(Dispatchers.IO) {
+            val safe = deadline.io {
                 settings.phoneRestFlow.first() == null && database.runDao().openRun() == null
             }
             scriptCheck(safe, "Advances over one hour require no open workout and no armed rest; finish the workout first")
         }
         time.advance(duration)
-        shadowOf(Looper.getMainLooper()).idleFor(duration)
-        compose.runOnUiThread { cardioAlarm.fireDue(SystemClock.elapsedRealtime()) }
-        compose.mainClock.advanceTimeBy(duration.toMillis().coerceAtMost(5_000))
+        var remaining = duration
+        while (!remaining.isZero) {
+            val chunk = remaining.coerceAtMost(Duration.ofHours(1))
+            deadline.call { shadowOf(Looper.getMainLooper()).idleFor(chunk) }
+            remaining = remaining.minus(chunk)
+        }
+        deadline.call { compose.runOnUiThread { cardioAlarm.fireDue(SystemClock.elapsedRealtime()) } }
+        deadline.call { compose.mainClock.advanceTimeBy(duration.toMillis().coerceAtMost(5_000)) }
     }
 
-    private fun settle() {
-        val deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos()
+    private fun settle(deadline: StepDeadline) {
         var last = ""
         var stable = 0
-        while (System.nanoTime() < deadline) {
-            compose.mainClock.advanceTimeByFrame()
-            shadowOf(Looper.getMainLooper()).idle()
-            val now = compose.dumpSemantics(compose.density.density)
+        while (!deadline.expired) {
+            deadline.call { compose.mainClock.advanceTimeByFrame() }
+            deadline.call { shadowOf(Looper.getMainLooper()).idle() }
+            val now = deadline.call { compose.dumpSemantics(compose.density.density) }
             stable = if (now == last) stable + 1 else 0
             last = now
             if (stable >= 6 && now != "[\n\n]\n") {
@@ -283,9 +275,9 @@ internal class Replay(
                     .firstOrNull { it.isNotBlank() } ?: "unknown"
                 return
             }
-            Thread.sleep(5)
+            if (!deadline.pause(compose)) break
         }
-        throw PlaytestError("timeout", "Screen did not settle within 10 seconds", buildJsonObject { put("semantics", last) })
+        throw deadline.timeout()
     }
 
     private fun capture(name: String, png: Boolean) {
@@ -297,12 +289,13 @@ internal class Replay(
     }
 
     private fun captureFailure(name: String, error: Throwable) {
+        val deadline = StepDeadline(1_000)
         try {
-            capture(name, png = true)
+            deadline.run(compose) { capture(name, png = true) }
         } catch (captureError: Throwable) {
             error.addSuppressed(captureError)
             try {
-                capture(name, png = false)
+                deadline.run(compose) { capture(name, png = false) }
             } catch (dumpError: Throwable) {
                 error.addSuppressed(dumpError)
             }

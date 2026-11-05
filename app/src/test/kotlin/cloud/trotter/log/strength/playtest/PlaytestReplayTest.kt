@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = HiltTestApplication::class)
+@Config(sdk = [35], qualifiers = "w360dp-h720dp-xxhdpi-night", application = HiltTestApplication::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaytestReplayTest {
     private val hilt = HiltAndroidRule(this)
@@ -93,7 +93,9 @@ class PlaytestReplayTest {
             failure = error
             if (launchAttempted && artifacts.stepsRun == 0) {
                 try {
-                    compose.writeShot(File(artifacts.directory, "steps/000-FAILED-launch.png"), compose.density.density)
+                    StepDeadline(1_000).run(compose) {
+                        compose.writeShot(File(artifacts.directory, "steps/000-FAILED-launch.png"), compose.density.density)
+                    }
                 } catch (captureError: Throwable) {
                     error.addSuppressed(captureError)
                 }

@@ -1,6 +1,6 @@
 {
   "seat": "day-crossing",
-  "device": "w411dp-h891dp",
+  "device": "w360dp-h720dp-xxhdpi-night",
   "start": {
     "date": "2026-11-09",
     "time": "17:30",
@@ -116,7 +116,61 @@
       }
     },
     {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "November 2026"
+      }
+    },
+    {
+      "expect": {
+        "desc": "November 9, today, day A, 1 session"
+      }
+    },
+    {
+      "checkpoint": "session-on-launch-date"
+    },
+    {
       "advance": "2d"
+    },
+    {
+      "expect": {
+        "desc": "November 11, today, no session"
+      }
+    },
+    {
+      "expect": {
+        "desc": "November 9, day A, 1 session"
+      }
+    },
+    {
+      "expect": {
+        "desc": "November 9, today, day A, 1 session",
+        "absent": true
+      }
+    },
+    {
+      "checkpoint": "history-today-moved-two-days"
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
     },
     {
       "expect": {

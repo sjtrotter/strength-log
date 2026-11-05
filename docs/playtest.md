@@ -9,7 +9,7 @@ to `playtest-runs/<seat>/<run>/`. It stops on dirty worktrees or merge conflicts
 ```json
 {
   "seat": "beginner",
-  "device": "w411dp-h891dp",
+  "device": "w360dp-h720dp-xxhdpi-night",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
   "steps": [
     { "tap": { "text": "Next" } },
@@ -29,14 +29,30 @@ Read `summary.json` first, then `error.json` if present. `log.jsonl` records eac
 attempted step. `backup.json` is the real app backup at exit, including on failure.
 `steps/000-launch.*` shows launch. Other numbered PNG and JSON pairs show the
 screen after that step, using zero-based step numbers. JSON includes text, tags,
-roles, disabled state, and bounds. A zero-step script still captures launch.
+roles, disabled state, and bounds in dp. The default device matches the audit:
+SDK 35, 360 by 720 dp, xxhdpi, night mode, with 1080 px wide PNGs.
+A zero-step script still captures launch.
 Set top-level `"capture": "checkpoints"` for PNGs only at launch, checkpoints,
 and failures. JSON still captures each new non-note step.
 
 ## Actions
 
-Put exactly one action in each step. Unknown keys and malformed payloads fail
-before the activity launches.
+Put exactly one action in each step, plus optional `timeoutMs`. Unknown keys and
+malformed payloads fail before the activity launches. For example:
+
+```json
+{ "expect": { "text": "Start day A" }, "timeoutMs": 20000 }
+```
+
+Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
+a positive integer. Lookup, action, screen settling, and capture share that budget.
+Every selector retries until it resolves to one node (or the requested `index`).
+An absent expectation waits for the node to disappear. Between attempts the
+harness advances a Compose frame, idles the main looper, and briefly sleeps in
+real time so Room and DataStore can finish. A still screen alone does not make
+a missing selector fail. Only the deadline produces `not-found` or `ambiguous`,
+using candidates or matches from the final attempt. Espresso and Compose idling
+timeouts are reported as `timeout`, with the failing step index.
 
 | Action | Payload and behavior |
 | --- | --- |
@@ -55,7 +71,7 @@ before the activity launches.
 Use `type`, never `tap`, for a text field. A second click can start a magnifier
 that Robolectric cannot draw. Number fields commit on Done or when focus leaves.
 Use `"ime": "done"` to commit immediately. Typing also works in dialogs; there
-is no keyboard to dismiss. A screen has 10 seconds to settle. Advances over one
+is no keyboard to dismiss. Advances over one
 hour require no open workout and no armed rest. Finish before jumping to another day.
 
 ## Selectors
@@ -91,7 +107,10 @@ cardio anchors, or watch stamps. A backup from an unfinished workout cannot
 resume those transient states. Named checkpoints are screen captures, not resumable saves.
 
 The five scripts in `playtest/pilot/` cover launch, dialog capture, the wizard to
-Today, rest expiry, and day crossing. The wizard has no dialog in this version;
+Today, rest expiry, the three-second Finish gate after all sets are logged, and
+day crossing. The day-crossing pilot watches History's calendar move its today
+marker from November 9 to November 11 while keeping the session on November 9,
+then checks day B on Today. The wizard has no dialog in this version;
 the dialog pilot opens the workout Finish confirmation after completing it.
 For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/zero-step-launch.json`.
 

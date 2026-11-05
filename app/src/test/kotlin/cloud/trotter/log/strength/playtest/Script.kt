@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 internal class PlaytestError(
@@ -68,6 +69,7 @@ internal data class Step(
     val payload: JsonElement,
     val selector: Selector?,
     val duration: Duration?,
+    val timeoutMs: Long,
     val json: JsonObject,
 ) {
     val slug: String get() {
@@ -85,8 +87,14 @@ internal data class Step(
 
         fun parse(value: JsonElement): Step {
             val step = value.objectValue("step")
-            scriptCheck(step.size == 1 && step.keys.single() in actions, "Each step must contain exactly one known action")
-            val action = step.keys.single()
+            val actionKeys = step.keys - "timeoutMs"
+            scriptCheck(actionKeys.size == 1 && actionKeys.single() in actions, "Each step must contain exactly one known action and optional timeoutMs")
+            val action = actionKeys.single()
+            val timeoutMs = if ("timeoutMs" in step) {
+                (step["timeoutMs"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull
+                    ?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1_000_000 }
+                    ?: throw PlaytestError("script", "timeoutMs must be a positive integer in milliseconds")
+            } else 10_000L
             val payload = step.getValue(action)
             var selector: Selector? = null
             var duration: Duration? = null
@@ -114,7 +122,7 @@ internal data class Step(
                 "checkpoint" -> scriptCheck(step.string(action).isNotBlank(), "Checkpoint name must not be blank")
                 "note" -> step.string(action)
             }
-            return Step(action, payload, selector, duration, step)
+            return Step(action, payload, selector, duration, timeoutMs, step)
         }
 
         private fun parseDuration(text: String): Duration {
@@ -150,7 +158,7 @@ internal data class Script(
             start.keysOnly(setOf("date", "time", "zone", "restore"), "start")
             val capture = root.optionalString("capture")
             scriptCheck(capture == null || capture == "checkpoints", "capture must be checkpoints when supplied")
-            val device = root.optionalString("device") ?: "w411dp-h891dp"
+            val device = root.optionalString("device") ?: "w360dp-h720dp-xxhdpi-night"
             scriptCheck(device.isNotBlank(), "device must not be blank")
             val steps = root["steps"] as? JsonArray ?: throw PlaytestError("script", "steps must be an array")
             val restore = start.optionalString("restore")?.let { path ->
@@ -211,7 +219,8 @@ internal fun JsonObject.boolean(key: String): Boolean =
         ?: throw PlaytestError("script", "$key must be a boolean")
 
 internal fun Throwable.playtestError(): PlaytestError =
-    this as? PlaytestError ?: PlaytestError("crash", message ?: javaClass.name, cause = this)
+    generateSequence(this) { it.cause }.filterIsInstance<PlaytestError>().firstOrNull()
+        ?: PlaytestError(if (isWaitTimeout()) "timeout" else "crash", message ?: javaClass.name, cause = this)
 
 internal fun failureJson(error: PlaytestError, index: Int?, step: JsonElement? = null): JsonObject = buildJsonObject {
     put("i", index?.let(::JsonPrimitive) ?: JsonNull)

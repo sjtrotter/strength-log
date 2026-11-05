@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb × 5"
+        "text": "165 lb \u00d7 5"
       }
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "expect": {
-        "text": "10 lb × 12"
+        "text": "10 lb \u00d7 12"
       }
     },
     {
@@ -352,16 +352,14 @@
       }
     },
     {
-      "tap": {
-        "text": "Barbell Row"
-      }
+      "back": true
     },
     {
       "checkpoint": "tuesday-rows-before-first-set"
     },
     {
       "expect": {
-        "text": "115 lb × 8"
+        "text": "115 lb \u00d7 8"
       }
     },
     {
@@ -440,7 +438,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -453,6 +451,146 @@
     },
     {
       "checkpoint": "thursday-lower-b-edit-exercises"
+    },
+    {
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-original-next-time-and-structure"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-straight-set-selected"
+    },
+    {
+      "tap": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "1",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "265",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-one-work-set-prescription-saved"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-editor-after-deadlift-config"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-focus-after-structure-change"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-preview-after-structure-change"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "thursday-home-before-starting-configured-day"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-first-work-set-target"
+    },
+    {
+      "expect": {
+        "text": "265 lb \u00d7 5"
+      }
+    },
+    {
+      "note": "November 12: warm up progressively, then deadlift 265 for five. Harder than warm-ups suggested; no extra work set."
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 265 lb \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-265-for-five-logged"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "thursday-editor-to-add-lighter-squat"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "thursday-add-exercise-chooser"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "squat",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "thursday-squat-search-options"
     }
   ]
 }

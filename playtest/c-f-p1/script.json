@@ -187,17 +187,11 @@
    }
   },
   {
-   "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "checkpoint": "wed-finish-dialog"
+   "checkpoint": "wed-cardio-ended"
   },
   {
    "tap": {
-    "textContains": "Finish",
-    "inDialog": true,
+    "text": "Finish day B",
     "role": "Button"
    }
   },

@@ -418,6 +418,9 @@
    "checkpoint": "c2-run-done"
   },
   {
+   "advance": "5s"
+  },
+  {
    "note": "Run logged, 25:00 again, and Finish is still grey: 'Log a set to finish this workout.' A run isn't a set to this app. Logging one pallof set I didn't do so I can close the day."
   },
   {

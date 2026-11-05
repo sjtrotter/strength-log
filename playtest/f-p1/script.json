@@ -500,6 +500,41 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "checkpoint": "note-dialog"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "wear flat shoes, running shoes felt squishy on squats"
+   }
+  },
+  {
+   "checkpoint": "note-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
     "textContains": "Log ",
     "role": "Button"
    }
@@ -581,44 +616,6 @@
    "checkpoint": "cardio-screen"
   },
   {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "checkpoint": "cardio-more"
-  },
-  {
-   "tap": {
-    "text": "Note"
-   }
-  },
-  {
-   "checkpoint": "note-dialog"
-  },
-  {
-   "type": {
-    "editable": true,
-    "value": "wear flat shoes, running shoes felt squishy on squats"
-   }
-  },
-  {
-   "checkpoint": "note-typed"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "note-saved"
-  },
-  {
    "note": "7:10, skipping the treadmill, going home"
   },
   {
@@ -633,7 +630,7 @@
   },
   {
    "tap": {
-    "text": "Skip for this workout"
+    "text": "Skip set"
    }
   },
   {

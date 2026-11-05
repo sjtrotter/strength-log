@@ -36,7 +36,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupViewModel
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
@@ -145,7 +145,7 @@ object Routes {
  * Resolves whether the app opens on [Routes.WIZARD] or [Routes.TODAY] from
  * [SettingsStore.wizardCompleteFlow] (D1). `null` means "not resolved
  * yet" — [AppNavHost] draws
- * [cloud.trotter.log.strength.ui.components.ProgramLoadingState] until then, so
+ * [cloud.trotter.log.strength.ui.components.LoadingState] until then, so
  * the graph is never built with the wrong start destination and then
  * re-navigated (no flicker-navigation after compose).
  *
@@ -179,10 +179,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val destination by startViewModel.startDestination.collectAsStateWithLifecycle()
     val start = destination
     if (start == null) {
-        // Authored rather than blank — and it stays blank anyway on the ~100ms
-        // resolve this normally takes, because the treatment holds itself back
-        // for longer than that (see ProgramLoadingState).
-        ProgramLoadingState()
+        // Fast destination reads stay blank for the shared reveal delay.
+        LoadingState(stringResource(R.string.screen_loading))
         return
     }
 

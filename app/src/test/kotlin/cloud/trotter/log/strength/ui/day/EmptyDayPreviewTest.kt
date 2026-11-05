@@ -26,8 +26,8 @@ class EmptyDayPreviewTest {
             )
         } }
         rule.onNodeWithText("Daily rehab").assertExists()
-        rule.onNodeWithText("No lifts yet").assertExists()
-        rule.onNodeWithText("Edit").assertExists()
+        rule.onNodeWithText("No lifts in this day yet").assertExists()
+        rule.onNodeWithText("Edit day").assertExists()
         rule.onNodeWithText("Start day A").assertDoesNotExist()
     }
 }

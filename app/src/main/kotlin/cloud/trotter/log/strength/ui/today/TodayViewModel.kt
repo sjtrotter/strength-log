@@ -39,9 +39,14 @@ class TodayViewModel @Inject constructor(
     // membership switch keeps the previous complete overview until all new data arrives.
     // Set ticks re-emit the open run's tracks; the overview needs only its identity.
     private val openRunIdentity = repo.openRunFlow.map { it?.copy(tracks = emptyList()) }.distinctUntilChanged()
-    private val overview = combine(plans.todayPlans, repo.todayTargetFlow, openRunIdentity) { plans, target, run ->
-        Triple(plans, target, run)
-    }.flatMapLatest { (plans, target, run) ->
+    private val todayMembership = combine(plans.todayPlans, plans.plansFlow) { todayPlans, allPlans ->
+        val allPlansPaused = allPlans.any { !it.archived } && allPlans.none { !it.archived && it.onToday }
+        todayPlans to allPlansPaused
+    }.distinctUntilChanged()
+    private val overview = combine(todayMembership, repo.todayTargetFlow, openRunIdentity) { membership, target, run ->
+        Triple(membership, target, run)
+    }.flatMapLatest { (membership, target, run) ->
+        val (plans, allPlansPaused) = membership
         val planIds = (plans.map { it.id } + listOfNotNull(run?.planId)).distinct()
         val programs = if (planIds.isEmpty()) flowOf(emptyMap<Long, Program>()) else combine(
             planIds.map { id -> this.plans.programFor(id).map { id to it } },
@@ -69,6 +74,7 @@ class TodayViewModel @Inject constructor(
                 loading = target == null,
                 hasProgram = days.isNotEmpty() || openDay != null,
                 nothingOnToday = plans.isEmpty() && target != null && target != TodayTarget.NoPlans,
+                plansPaused = plans.isEmpty() && allPlansPaused,
                 resume = openDay,
                 upNext = days.filter { it.second }.map { it.first },
                 otherDays = days.filterNot { it.second }.map { it.first },

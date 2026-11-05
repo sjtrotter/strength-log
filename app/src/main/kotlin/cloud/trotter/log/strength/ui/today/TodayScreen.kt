@@ -1,9 +1,7 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,9 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,19 +26,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoProgramState
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
+import cloud.trotter.log.strength.ui.components.ScreenStateButton
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
-import cloud.trotter.log.strength.ui.theme.dayAccent
-import cloud.trotter.log.strength.ui.theme.onDayAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(state: TodayUiState, actions: TodayActions) {
+    val primaryDay = state.resume ?: state.upNext.firstOrNull()
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_today)) }, actions = {
@@ -48,51 +50,64 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                 Icon(Icons.Outlined.Settings, stringResource(R.string.today_settings_description))
             }
         }) },
+        bottomBar = {
+            if (!state.loading && primaryDay != null && (state.hasProgram || state.resume != null)) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    ScreenStateButton(
+                        ScreenStateAction(
+                            label = stringResource(
+                                if (state.resume != null) R.string.screen_resume_day else R.string.screen_start_day,
+                                primaryDay.dayId,
+                            ),
+                            onClick = {
+                                if (state.resume != null) actions.onResume(primaryDay.selection)
+                                else actions.onStart(primaryDay.selection)
+                            },
+                            dayIndex = primaryDay.dayIndex,
+                        ),
+                        Modifier.widthIn(max = ReadableWidth).padding(16.dp),
+                    )
+                }
+            }
+        },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             when {
-                state.loading -> ProgramLoadingState()
-                state.nothingOnToday && state.resume == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.nothing_on_today), style = MaterialTheme.typography.headlineSmall)
-                        Button(onClick = actions.onOpenPlans) { Text(stringResource(R.string.plans_title)) }
-                    }
-                }
+                state.loading -> LoadingState(stringResource(R.string.screen_loading))
+                state.nothingOnToday && state.resume == null -> TodayUnavailable(state, actions)
                 !state.hasProgram -> NoProgramState(actions.onSetUpProgram)
                 else -> LazyColumn(Modifier.widthIn(max = ReadableWidth).fillMaxWidth()) {
-                    state.resume?.let { day -> item {
-                        Button(
-                            onClick = { actions.onResume(day.selection) },
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = dayAccent(day.dayIndex), contentColor = onDayAccent(day.dayIndex)),
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(stringResource(R.string.workout_resume))
-                                Text(stringResource(R.string.workout_identity, day.planName, day.dayId, day.title))
-                            }
-                        }
+                    state.resume?.let { day -> item(key = "resume") {
+                        TodayDayItem(day, onClick = { actions.onOpenPreview(day.selection) })
                     } }
                     if (state.upNext.isNotEmpty()) item { Text(stringResource(R.string.today_up_next), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium) }
-                    state.upNext.forEach { day -> item(key = "next:${day.planId}:${day.dayId}") {
+                    state.upNext.forEachIndexed { index, day -> item(key = "next:${day.planId}:${day.dayId}") {
                         TodayDayItem(day, onClick = { actions.onOpenPreview(day.selection) },
-                            start = if (day == state.upNext.firstOrNull()) ({ actions.onStart(day.selection) }) else null,
-                            tonalStart = state.resume != null)
+                            start = if (index == 0 && state.resume != null) ({ actions.onStart(day.selection) }) else null)
                     } }
                     if (state.otherDays.isNotEmpty()) {
-                        item { TextButton(onClick = actions.onToggleOtherDays) { Text(stringResource(R.string.today_other_days)) } }
+                        item {
+                            val expansionState = stringResource(
+                                if (state.otherDaysExpanded) R.string.day_expanded_state else R.string.day_collapsed_state,
+                            )
+                            ListItem(
+                                headlineContent = { Text(stringResource(R.string.today_other_days)) },
+                                trailingContent = { Icon(
+                                    if (state.otherDaysExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                    contentDescription = null,
+                                ) },
+                                modifier = Modifier.clickable(onClick = actions.onToggleOtherDays)
+                                    .semantics { stateDescription = expansionState },
+                            )
+                        }
                         if (state.otherDaysExpanded) state.otherDays.forEach { day -> item(key = "other:${day.planId}:${day.dayId}") {
                             TodayDayItem(day, onClick = {
                                 if (day.cardioOnly) actions.onOpenCardio(day.selection) else actions.onOpenPreview(day.selection)
                             })
                         } }
                     }
-                    if (state.nothingOnToday) item {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(stringResource(R.string.nothing_on_today), style = MaterialTheme.typography.headlineSmall)
-                            TextButton(onClick = actions.onOpenPlans) { Text(stringResource(R.string.plans_title)) }
-                        }
-                    }
-                    state.fact?.let { fact -> item { Text(stringResource(R.string.today_last_trained, fact), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) } }
+                    if (state.nothingOnToday) item { TodayUnavailable(state, actions) }
+                    else state.fact?.let { fact -> item { Text(stringResource(R.string.today_last_trained, fact), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) } }
                 }
             }
         }
@@ -100,18 +115,30 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 }
 
 @Composable
-private fun TodayDayItem(day: TodayDay, onClick: () -> Unit, start: (() -> Unit)? = null, tonalStart: Boolean = false) {
+private fun TodayUnavailable(state: TodayUiState, actions: TodayActions) {
+    val plansActionInSlot = state.plansPaused && state.resume == null
+    EmptyState(
+        title = stringResource(if (state.plansPaused) R.string.screen_plans_paused_title else R.string.screen_done_today_title),
+        body = stringResource(if (state.plansPaused) R.string.screen_plans_paused_body else R.string.screen_done_today_body),
+        action = if (plansActionInSlot) ScreenStateAction(stringResource(R.string.screen_open_plans), actions.onOpenPlans) else null,
+    ) {
+        state.fact?.let { Text(stringResource(R.string.today_last_trained, it), Modifier.padding(top = 8.dp),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (!plansActionInSlot) {
+            TextButton(onClick = actions.onOpenPlans) { Text(stringResource(R.string.screen_open_plans)) }
+        }
+    }
+}
+
+@Composable
+private fun TodayDayItem(day: TodayDay, onClick: () -> Unit, start: (() -> Unit)? = null) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
         headlineContent = { Text(stringResource(R.string.today_plan_day, day.planName, day.dayId)) },
         supportingContent = { Text(day.title) },
         trailingContent = start?.let { onStart -> {
-            if (tonalStart) FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.workout_start)) }
-            else Button(
-                onClick = onStart,
-                colors = ButtonDefaults.buttonColors(containerColor = dayAccent(day.dayIndex), contentColor = onDayAccent(day.dayIndex)),
-            ) { Text(stringResource(R.string.workout_start)) }
+            FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.workout_start)) }
         } },
     )
 }

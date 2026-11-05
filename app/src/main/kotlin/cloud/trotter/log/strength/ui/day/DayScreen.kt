@@ -3,13 +3,22 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,20 +34,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
-import cloud.trotter.log.strength.ui.day.receipt.NoteSave
-import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppHaptics
 import cloud.trotter.log.strength.ui.components.DialogAction
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.NoteSheet
-import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
+import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
+import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import kotlinx.coroutines.launch
@@ -186,13 +197,44 @@ fun DayScreen(
             .backGesturePreview { dayBackProgress.value },
     ) {
         if (state.loading || !state.hasProgram) {
-            // Two different silences: one that ends on its own, and one that
-            // only ends when the lifter does something about it.
-            if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
-            return@Box
-        }
-
-        WorkoutSetScreen(
+            if (state.loading) LoadingState(stringResource(R.string.screen_loading)) else NoProgramState(actions.onSetUpProgram)
+        } else if (state.exercises.isEmpty() && state.cardio == null && !state.workoutAllLogged) {
+            Scaffold(
+                snackbarHost = { SnackbarHost(snackbarHost) },
+                topBar = {
+                    TopAppBar(
+                        title = { state.viewDayId?.let { Text(stringResource(R.string.today_day_label, it)) } },
+                        navigationIcon = {
+                            if (onBack != null) IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_back))
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = actions.onOpenDaySheet) {
+                                Icon(Icons.AutoMirrored.Filled.List, stringResource(
+                                    R.string.workout_exercises, state.viewDayId.orEmpty(), state.doneSets, state.totalSets,
+                                ))
+                            }
+                            if (!state.workoutAllLogged) {
+                                TextButton(onClick = {
+                                    AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+                                    actions.onDone()
+                                }, enabled = state.canFinish) {
+                                    Text(stringResource(R.string.day_finish_partial_confirm_button))
+                                }
+                            }
+                        },
+                    )
+                },
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    EmptyState(
+                        title = stringResource(R.string.screen_no_lifts_title, state.viewDayId.orEmpty()),
+                        action = ScreenStateAction(stringResource(R.string.screen_edit_day), { dayEditActions.onEditorOpen(true) }),
+                    )
+                }
+            }
+        } else WorkoutSetScreen(
             state = state,
             actions = actions,
             catalog = dayEditState.catalog,

@@ -1,13 +1,20 @@
 package cloud.trotter.log.strength.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.testing.TestNavHostController
 import cloud.trotter.log.strength.ui.Routes
+import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,6 +36,28 @@ class AppNavigationBarNavigationTest {
     val composeTestRule = createComposeRule()
 
     private lateinit var navController: TestNavHostController
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun allThreeLabelsAreDisplayedAtDoubleFontScale() {
+        composeTestRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                AppTheme {
+                    AppNavigationBar(selectedRoute = Routes.TODAY, onSelect = {})
+                }
+            }
+        }
+
+        val bar = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        listOf("Today", "History", "Plans").forEach { label ->
+            val bounds = composeTestRule.onNodeWithText(label, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue("$label has height", bounds.height > 0f)
+            assertTrue("$label stays inside the bar at font scale 2", bounds.top >= bar.top && bounds.bottom <= bar.bottom)
+        }
+    }
 
     @Test
     fun firstRunTopLevelTapsKeepTodayAsTheSingleBackStackAnchor() {

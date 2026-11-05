@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
@@ -30,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,14 +57,13 @@ import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.wizardStepTransition
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.dayAccent
-import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
 
@@ -79,12 +75,9 @@ import cloud.trotter.log.strength.ui.text.resolve
  */
 @Composable
 fun WizardScreen(state: WizardUiState, actions: WizardActions) {
-    val accent = dayAccent(0)
-    val onAccent = onDayAccent(0)
-
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
-            WizardHeader(state, accent)
+            WizardHeader(state)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -93,13 +86,13 @@ fun WizardScreen(state: WizardUiState, actions: WizardActions) {
                 item { StepContent(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
-            WizardFooter(state, accent, onAccent, actions)
+            WizardFooter(state, actions)
         }
     }
 }
 
 @Composable
-private fun WizardHeader(state: WizardUiState, accent: Color) {
+private fun WizardHeader(state: WizardUiState) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
         Text(
             stringResource(R.string.wizard_step_progress, state.stepIndex + 1, state.totalSteps),
@@ -115,7 +108,7 @@ private fun WizardHeader(state: WizardUiState, accent: Color) {
                 Modifier
                     .fillMaxWidth(fraction)
                     .height(3.dp)
-                    .background(accent, RoundedCornerShape(2.dp)),
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp)),
             )
         }
     }
@@ -192,18 +185,8 @@ private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> U
     OutlinedButton(
         onClick = onClick,
         enabled = !restore.inFlight,
-        modifier = Modifier
-            // No disabledAlpha: while a restore is in flight this button's own
-            // label becomes the progress message, and fading it to 40% would
-            // dim the one thing the user is reading.
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, Border),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = TextSecondary,
-            disabledContentColor = TextSecondary,
-        ),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
@@ -516,17 +499,17 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
 @Composable
 private fun RotationStep(state: WizardUiState) {
     state.previewProgram?.days.orEmpty().forEach { day ->
-        val accent = dayAccent(Program.accentIndex(day.id))
+        val accent = accentEmphasis(Program.accentIndex(day.id))
         val main = day.exercises.firstOrNull { it.structure.hasTopSet } ?: day.exercises.firstOrNull()
         AppCard(borderColor = accent) {
             Text(
-                if (day.kind == cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) "${day.id} · CARDIO"
+                if (day.kind == cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) stringResource(R.string.wizard_rotation_cardio_day, day.id)
                 else stringResource(R.string.wizard_rotation_day, day.id),
                 color = accent,
                 style = MaterialTheme.typography.labelSmall,
             )
             Spacer(Modifier.size(5.dp))
-            Text(day.title.uppercase(), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text(day.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             day.cardioBlock?.let { block ->
                 Spacer(Modifier.size(4.dp))
                 Text(listOf(activityLabel(block.activity), block.plannedTimeDetail())
@@ -535,7 +518,7 @@ private fun RotationStep(state: WizardUiState) {
             }
             if (day.kind != cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO && day.emphasisLine.isNotBlank()) {
                 Spacer(Modifier.size(4.dp))
-                Text(day.emphasisLine.uppercase(), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(day.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             main?.let { exercise ->
                 val entry = ExerciseLibrary.get(exercise.exerciseId)
@@ -557,8 +540,6 @@ private fun RotationStep(state: WizardUiState) {
 @Composable
 private fun WizardFooter(
     state: WizardUiState,
-    accent: Color,
-    onAccent: Color,
     actions: WizardActions,
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
@@ -575,52 +556,33 @@ private fun WizardFooter(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Both dead while a restore is in flight: it is rewriting the very
-            // answers this footer navigates, and "GENERATE PROGRAM" landing on
-            // top of a just-restored program is the accident.
+            // A restore rewrites the answers this footer navigates.
             if (!state.isFirstStep) {
-                FooterButton(
-                    label = stringResource(R.string.wizard_back_button),
-                    fill = Border,
-                    textColor = TextPrimary,
-                    modifier = Modifier.weight(1f),
-                    enabled = !state.restore.inFlight,
+                OutlinedButton(
                     onClick = actions.onBack,
+                    enabled = !state.restore.inFlight,
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = MaterialTheme.shapes.large,
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    Text(stringResource(R.string.wizard_back_button), style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
+                }
+            }
+            Button(
+                onClick = actions.onNext,
+                enabled = !state.restore.inFlight && !state.finishInFlight,
+                modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f).heightIn(min = 52.dp),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(vertical = 8.dp),
+            ) {
+                Text(
+                    if (state.isLastStep) stringResource(R.string.wizard_start_button) else stringResource(R.string.wizard_next_button),
+                    style = DoneButtonLabel,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
                 )
             }
-            FooterButton(
-                label = if (state.isLastStep) stringResource(R.string.wizard_start_button) else stringResource(R.string.wizard_next_button),
-                fill = accent,
-                textColor = onAccent,
-                modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f),
-                enabled = !state.restore.inFlight && !state.finishInFlight,
-                onClick = actions.onNext,
-            )
         }
-    }
-}
-
-@Composable
-private fun FooterButton(
-    label: String,
-    fill: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier
-            // heightIn(min), not height (A7 font-scale): "GENERATE PROGRAM"
-            // wraps to two lines at large fontScale instead of overflowing.
-            .heightIn(min = 52.dp),
-        shape = MaterialTheme.shapes.large,
-        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = textColor),
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
-        Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

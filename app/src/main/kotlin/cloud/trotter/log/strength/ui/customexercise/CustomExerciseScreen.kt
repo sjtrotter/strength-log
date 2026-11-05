@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +40,6 @@ import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.components.disabledAlpha
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -49,22 +47,15 @@ import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.dayAccent
-import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
  * Custom-exercise creation form (PLAN.md A4). Stateless: renders [state] and
  * forwards every intent to [CustomExerciseActions], same shape as
- * [cloud.trotter.log.strength.ui.wizard.WizardScreen]. Day index 0's accent
- * stands in as the app's one "primary" highlight here too — this screen isn't
- * day-scoped either.
+ * [cloud.trotter.log.strength.ui.wizard.WizardScreen].
  */
 @Composable
 fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseActions) {
-    val accent = dayAccent(0)
-    val onAccent = onDayAccent(0)
-
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
             Header(actions)
@@ -80,7 +71,7 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
                 item { PerHandAndTargetSection(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
-            Footer(state, accent, onAccent, actions)
+            Footer(state, actions)
         }
     }
 }
@@ -290,8 +281,6 @@ private fun TargetStepperCard(
 @Composable
 private fun Footer(
     state: CustomExerciseUiState,
-    accent: androidx.compose.ui.graphics.Color,
-    onAccent: androidx.compose.ui.graphics.Color,
     actions: CustomExerciseActions,
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
@@ -304,28 +293,15 @@ private fun Footer(
                 modifier = Modifier.weight(1f),
                 onClick = actions.onCancel,
                 shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = Border,
-                    contentColor = TextPrimary,
-                ),
                 contentPadding = PaddingValues(vertical = FooterButtonVerticalPadding),
             ) {
                 FooterButtonLabel(stringResource(R.string.custom_exercise_cancel_button))
             }
             Button(
                 enabled = state.canSave,
-                modifier = Modifier.weight(2f).disabledAlpha(state.canSave),
+                modifier = Modifier.weight(2f),
                 onClick = actions.onSave,
                 shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = accent,
-                    contentColor = onAccent,
-                    // Preserve the existing whole-control 40% treatment: M3
-                    // owns the disabled interaction, this modifier owns its
-                    // established rendering.
-                    disabledContainerColor = accent,
-                    disabledContentColor = onAccent,
-                ),
                 contentPadding = PaddingValues(vertical = FooterButtonVerticalPadding),
             ) {
                 FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))

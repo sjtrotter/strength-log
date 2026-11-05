@@ -2,7 +2,10 @@ package cloud.trotter.log.strength.audit
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -174,7 +177,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         rule.auditShot("sheets/13-note-save-failed", beforeCapture = {
             rule.onNodeWithText("Edit note").performScrollTo().performClick()
             rule.mainClock.advanceTimeBy(500)
-            rule.onNodeWithText("DONE").performClick()
+            rule.onNode(hasText("Done") and hasAnyAncestor(isDialog())).performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             DayScreen(state, workoutActions().copy(onSetSessionNote = { save.value = NoteSave.Failed(it) }),

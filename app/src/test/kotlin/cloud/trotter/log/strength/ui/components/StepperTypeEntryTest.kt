@@ -62,7 +62,7 @@ class StepperTypeEntryTest {
         ).fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Type weight" }
         composeTestRule.runOnIdle { typeAction.action() }
         composeTestRule.onNode(hasSetTextAction()).performTextReplacement("137")
-        composeTestRule.onNodeWithText("DONE").performClick()
+        composeTestRule.onNodeWithText("Done").performClick()
 
         assertEquals(135.0, committed, 0.0)
     }

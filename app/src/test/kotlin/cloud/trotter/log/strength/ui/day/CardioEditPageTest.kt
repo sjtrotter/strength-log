@@ -43,7 +43,7 @@ class CardioEditPageTest {
         }).performScrollTo().fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Type Seconds" }
         rule.runOnIdle { typeAction.action() }
         rule.onNode(hasSetTextAction()).performTextReplacement("105")
-        rule.onNodeWithText("DONE").performClick()
+        rule.onNodeWithText("Done").performClick()
         rule.onNodeWithContentDescription("Hard").performScrollTo().performClick()
         rule.onNodeWithText("Save").performScrollTo().performClick()
         assertEquals(CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true), saved)

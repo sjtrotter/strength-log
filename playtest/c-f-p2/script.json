@@ -209,28 +209,37 @@
    "back": true
   },
   {
-   "note": "Not doing planks on a run day. Skipping to see if the run is behind them."
+   "note": "No 'skip for this workout' on the plank. But the overview sheet lists 'Road run, 1 set' under it. Jumping there."
   },
   {
    "tap": {
-    "text": "All sets"
+    "desc": "Day C1 lifts, 0 of 3 sets"
    },
    "timeoutMs": 20000
   },
   {
    "tap": {
-    "desc": "More"
+    "text": "Road run"
    },
    "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "road-run-screen"
   },
   {
    "tap": {
-    "text": "Skip for this workout"
+    "textContains": "Start"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "c1-after-skip-plank"
+   "checkpoint": "road-run-started"
+  },
+  {
+   "advance": "28m"
+  },
+  {
+   "checkpoint": "road-run-28min"
   }
  ]
 }

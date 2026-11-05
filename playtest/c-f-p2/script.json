@@ -240,6 +240,630 @@
   },
   {
    "checkpoint": "road-run-28min"
+  },
+  {
+   "note": "It counted the run down from 25:00 and logged 25:00 when I stopped at 28. 'Distance not entered'. Where do I enter it?"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "run-all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Finish is still greyed out. The run isn't a 'set', apparently. Skipping the planks so I can leave."
+  },
+  {
+   "tap": {
+    "textContains": "Next: Plank"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plank-skip1"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "planks-skipped"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-C1"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "Thursday Nov 12. Deadlift day. The plan still thinks the top set is 275 for ten; I'm pulling five."
+  },
+  {
+   "advance": "23h10m"
+  },
+  {
+   "checkpoint": "thu-6am"
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-dl-set1"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "275"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dl-top-wk1"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Double overhand held through rep 4, mixed grip for rep 5."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "245"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 7"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "245"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dl-backoff2-wk1"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "thu-after-dl"
+  },
+  {
+   "note": "Goblet squats are not front squats. Swap."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Front"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Front Squat"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-front-squat"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "165"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "thu-after-fs"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Next:"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-after-bss"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "thu-all-done"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-B-wk1"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "today-after-thu"
   }
  ]
 }

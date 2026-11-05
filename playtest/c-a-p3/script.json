@@ -1,0 +1,272 @@
+{
+  "seat": "c-a-p3",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-12",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-thursday-before-training"
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Backup"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup"
+      }
+    },
+    {
+      "checkpoint": "backup-options-before-committing-more-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-bench-preview-previous-monday-result"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-starting-prescription"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "thursday-all-bench-sets-before-adjustment"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "125"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "107.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "thursday-single-and-four-fractional-backoffs"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "checkpoint": "thursday-five-bench-work-sets-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "125x1 @7.5; 107.5x4x4. Clean competition pauses."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "thursday-bench-note"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 5 of 24 sets"
+      }
+    },
+    {
+      "checkpoint": "thursday-lineup-before-paused-squats"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "thursday-edit-day-for-actual-assistance"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "thursday-add-paused-squat-picker"
+    }
+  ]
+}

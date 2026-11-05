@@ -243,17 +243,47 @@
    "checkpoint": "swap-picker"
   },
   {
-   "scrollTo": {
-    "textContains": "Pulldown"
-   }
-  },
-  {
    "tap": {
-    "textContains": "Pulldown"
+    "text": "Seated Cable Row"
    }
   },
   {
    "checkpoint": "after-swap"
+  },
+  {
+   "tap": {
+    "textContains": "3 \u00d7 10 at 105"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "3 \u00d7 10 at 50"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "day-a-weights"
   },
   {
    "tap": {
@@ -272,7 +302,12 @@
    "back": true
   },
   {
-   "back": true
+   "checkpoint": "cardio-after-back"
+  },
+  {
+   "tap": {
+    "text": "Cancel"
+   }
   },
   {
    "tap": {
@@ -280,12 +315,33 @@
    }
   },
   {
-   "scrollTo": {
-    "textContains": "url"
+   "swipe": {
+    "textContains": "Knee extension"
+   },
+   "direction": "up"
+  },
+  {
+   "checkpoint": "add-ex-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "add-ex-back1"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "add-ex-back2"
+  },
+  {
+   "tap": {
+    "text": "All sets"
    }
   },
   {
-   "checkpoint": "add-exercise-curl"
+   "checkpoint": "sets-after-edit"
   }
  ]
 }

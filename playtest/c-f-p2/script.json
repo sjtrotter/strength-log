@@ -1,17 +1,168 @@
 {
-  "seat": "c-f-p2",
-  "start": {"restore": "start-backup.json", "date": "2026-11-10", "time": "07:00", "zone": "America/Chicago"},
-  "steps": [
-    {"note": "Tuesday Nov 10, 7 am. Bench day is done, every set logged, I never tapped Finish. Phone's been on the bench. Let's see what it kept."},
-    {"checkpoint": "tue-7am-launch"},
-    {"tap": {"text": "History", "role": "Tab"}, "timeoutMs": 20000},
-    {"checkpoint": "history-tue"},
-    {"tap": {"text": "Trends and calendar"}, "timeoutMs": 20000},
-    {"checkpoint": "trends-tue"},
-    {"back": true},
-    {"tap": {"text": "Today", "role": "Tab"}, "timeoutMs": 20000},
-    {"checkpoint": "today-tue"},
-    {"tap": {"textContains": "day A", "role": "Button"}, "timeoutMs": 20000},
-    {"checkpoint": "dayA-reopened"}
-  ]
+ "seat": "c-f-p2",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-10",
+  "time": "07:00",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "note": "Tuesday Nov 10, 7 am. Bench day is done, every set logged, I never tapped Finish. Phone's been on the bench. Let's see what it kept."
+  },
+  {
+   "checkpoint": "tue-7am-launch"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "history-tue"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "trends-tue"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "today-tue"
+  },
+  {
+   "tap": {
+    "textContains": "day A",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-reopened"
+  },
+  {
+   "note": "It kept all 16 sets and offered Resume. Finishing now."
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-A"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Bench 175: 5/5/4 again, same rep as last time. Rested 2 min and called it 3. Time it next week."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-A-note"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "today-after-tue"
+  },
+  {
+   "note": "What does it think bench is next week after 5/5/4? Let me look at Day A."
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day A",
+    "index": 1
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-after-miss"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "history-two-sessions"
+  },
+  {
+   "tap": {
+    "text": "Nov 10, 2026"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "session-nov10"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "Wednesday Nov 11. Veterans Day, off work. Easy run, 28 min, about 2.9 miles."
+  },
+  {
+   "advance": "23h20m"
+  },
+  {
+   "checkpoint": "wed-6am"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "wed-other-days"
+  }
+ ]
 }

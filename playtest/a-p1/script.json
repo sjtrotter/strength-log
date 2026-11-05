@@ -26,12 +26,22 @@
       "checkpoint": "setup-question-two"
     },
     {
-      "tap": {
-        "text": "4"
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
       }
     },
     {
-      "checkpoint": "choose-three-days"
+      "checkpoint": "three-days-entered"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-three"
     }
   ]
 }

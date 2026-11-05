@@ -3439,8 +3439,8 @@
       "checkpoint": "week2-saturday-nov21"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "scrollTo": {
+        "text": "5-day full body \u00b7 Day D"
       }
     },
     {
@@ -3826,8 +3826,8 @@
       "checkpoint": "week3-monday-nov23-after-weekend"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "scrollTo": {
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -4420,8 +4420,8 @@
       "checkpoint": "week3-tuesday-nov24-return-after-trip"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "scrollTo": {
+        "text": "5-day full body \u00b7 Day C"
       }
     },
     {
@@ -4702,8 +4702,8 @@
       "checkpoint": "thanksgiving-nov26-early-session"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "scrollTo": {
+        "text": "5-day full body \u00b7 Day B"
       }
     },
     {
@@ -4828,6 +4828,496 @@
     },
     {
       "checkpoint": "thanksgiving-130-single-and-first-two-backoffs-edited-not-yet-logged"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "130x1 @8.5. After last miss, planned112.5 to110x4x4; no misses today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 5 of 28 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "thanksgiving-paused-squat-before-two-set-session"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "155"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "155"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "thanksgiving-only-two155x4-done-other-two-unchecked"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "155x4 for TWO sets only. Hard stop; remaining squat sets omitted."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "advance": "21m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "47m Thanksgiving. Bench130@8.5;112.5 to110. Squat2sets. No pressdown/Pallof."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "thanksgiving-saved-47min-with-omitted-work"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d8h13m"
+    },
+    {
+      "scrollTo": {
+        "text": "5-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "checkpoint": "friday-deadlift-offer-after-tuesday-paused180"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday-deadlift-inherited-rows-after-paused-day"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "235"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "205"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "205"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "205"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday235-single205-backoffs-four-four-three-not-yet-logged"
     }
   ]
 }

@@ -153,9 +153,9 @@
   },
   {
    "swipe": {
-    "text": "3-day full body"
-   },
-   "direction": "up"
+    "text": "3-day full body",
+    "direction": "up"
+   }
   },
   {
    "checkpoint": "plan-detail-scrolled"
@@ -176,9 +176,9 @@
   },
   {
    "swipe": {
-    "text": "Barbell Back Squat"
-   },
-   "direction": "up"
+    "text": "Barbell Back Squat",
+    "direction": "up"
+   }
   },
   {
    "checkpoint": "day-a-detail-scrolled"

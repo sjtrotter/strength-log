@@ -213,6 +213,79 @@
   },
   {
    "checkpoint": "plan-open"
+  },
+  {
+   "note": "Plan page: 4 days, goals for 4 barbell lifts I don't do. Opening Day A to see if I can rebuild it as my Lift A."
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "checkpoint": "day-a-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Plan options"
+   }
+  },
+  {
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "checkpoint": "new-plan"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
   }
  ]
 }

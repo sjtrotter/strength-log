@@ -86,6 +86,15 @@ class BackupOperationStatesTest {
         rule.onNodeWithText("No successful backup yet").assertDoesNotExist()
     }
 
+    @Test fun automaticBackupTogglesOnceFromItsWholeRow() {
+        var changes = 0
+        rule.setContent { AppTheme { BackupScreen(BackupUiState(),
+            actions().copy(onAutomaticBackupChange = { changes++ })) } }
+        rule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Switch))
+            .performClick()
+        assertEquals(1, changes)
+    }
+
     @Test fun restoreFreezesAutomaticBackupSwitch() {
         var changes = 0
         rule.setContent { AppTheme { BackupScreen(BackupUiState(operation = BackupOperation.Restore, restoreInFlight = true),

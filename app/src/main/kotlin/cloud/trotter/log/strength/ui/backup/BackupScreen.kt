@@ -4,9 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,18 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.Switch
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,27 +40,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
 import cloud.trotter.log.strength.transfer.csv.PreviewSession
 import cloud.trotter.log.strength.transfer.csv.PreviewSet
 import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.DialogAction
-import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.LoadingState
+import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -69,7 +70,6 @@ import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.readableWidth
-import cloud.trotter.log.strength.ui.text.resolve
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -184,13 +184,13 @@ private fun AutomaticBackupCard(
         Text(stringResource(R.string.backup_automatic_body), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.size(10.dp))
         val toggleLabel = stringResource(R.string.backup_automatic_toggle)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(toggleLabel, modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge)
-            Switch(checked = state.enabled, onCheckedChange = onCheckedChange, enabled = enabled,
-                modifier = Modifier.semantics { contentDescription = toggleLabel })
-        }
+        ListItem(
+            headlineContent = { Text(toggleLabel) },
+            trailingContent = { Switch(checked = state.enabled, onCheckedChange = null, enabled = enabled) },
+            modifier = Modifier.fillMaxWidth().toggleable(value = state.enabled, enabled = enabled,
+                role = Role.Switch, onValueChange = onCheckedChange),
+        )
+
         state.detailLine?.let {
             Spacer(Modifier.size(6.dp))
             Text(it, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)

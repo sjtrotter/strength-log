@@ -933,4 +933,24 @@
         <item quantity="other">%1$s, then %2$d back-offs</item>
     </plurals>
     <string name="sheet_loaded_hold_prescription">%1$d s at %2$s %3$s</string>
+    <!-- Round 1 forms and choice rows (#454). -->
+    <string name="form_bodyweight_label">Bodyweight (%1$s)</string>
+    <string name="form_age_label">Age</string>
+    <string name="form_weight_label">Weight (%1$s)</string>
+    <string name="form_reps_label">Reps</string>
+    <string name="form_minutes_label">Minutes</string>
+    <string name="form_seconds_label">Seconds</string>
+    <string name="form_weight_range">Enter a weight between %1$s and %2$s</string>
+    <string name="form_number_range">Enter a number between %1$s and %2$s</string>
+    <string name="form_weight_minimum">Enter a weight of at least %1$s</string>
+    <string name="form_number_minimum">Enter a number of at least %1$s</string>
+    <string name="form_select_all">Select all</string>
+    <string name="form_clear_all">Clear all</string>
+    <string name="form_rest_duration">%1$d min %2$d s</string>
+    <string name="form_rest_range">Enter a duration between 0 and %1$d seconds, with seconds from 0 to 59</string>
+    <string name="form_save">Save</string>
+    <string name="form_choose_pattern">Choose a movement pattern</string>
+    <string name="form_pattern_required">Choose a movement pattern to save it</string>
+    <string name="form_exercise_name_error">Enter an exercise name.</string>
+    <string name="form_named_previous_result">%1$s: %2$s</string>
 </resources>

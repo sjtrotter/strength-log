@@ -2,15 +2,15 @@ package cloud.trotter.log.strength.ui.you
 
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,8 +40,12 @@ class YouScreenTest {
         rule.onNodeWithText("Generated plans set their goals from these.").assertExists()
         rule.onNodeWithText("Advanced").performClick()
         assertEquals(ExperienceLevel.ADVANCED, level)
-        rule.onNodeWithContentDescription("Increase bodyweight").performClick()
-        assertEquals(1, bodyweights.size)
-        assertTrue(bodyweights.single() > 235.0)
+        rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("250")
+        rule.onNodeWithText("Bodyweight (lb)").performImeAction()
+        assertEquals(listOf(250.0), bodyweights)
+        rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("")
+        rule.onNodeWithText("Bodyweight (lb)").performImeAction()
+        assertEquals(listOf(250.0), bodyweights)
+        rule.onNodeWithText("Enter a weight of at least 1").assertExists()
     }
 }

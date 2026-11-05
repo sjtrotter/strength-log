@@ -12,10 +12,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.DAY_INDEX_LETTER_TAG
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
+import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,22 +34,20 @@ class FontScaleTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun stepperGrowsPastItsOldFloorAtDoubleFontScale() {
+    fun numberFieldGrowsAtDoubleFontScale() {
         val actual = heightAt(2f) {
-            Stepper(
+            NumberField(
                 value = 135.0,
                 onValueChange = {},
-                step = { WeightStepper.increment(it, WeightUnit.LB) },
                 format = WeightStepper::format,
                 round = { WeightStepper.round(it, WeightUnit.LB) },
-                decreaseDescription = "Decrease weight",
-                increaseDescription = "Increase weight",
+                label = "Weight (lb)",
             )
         }
-        val floor = with(composeTestRule.density) { 40.dp.roundToPx() }
+        val floor = with(composeTestRule.density) { 56.dp.roundToPx() }
 
         assertTrue(
-            "Stepper height $actual px did not exceed its 40dp/$floor px floor",
+            "Number field height $actual px did not exceed its 56dp/$floor px floor",
             actual > floor,
         )
     }

@@ -120,7 +120,19 @@ fun NoProgramState(onSetUpProgram: () -> Unit, modifier: Modifier = Modifier) {
     )
 }
 
-/** Keeps the journal's existing callbacks; callers with a known day can name its action. */
+/** The next day comes from the same repository target and dayToShow path used by Today. */
+@Composable
+fun emptyJournalAction(
+    hasProgram: Boolean,
+    dayId: String?,
+    onStartSession: () -> Unit,
+    onSetUpProgram: () -> Unit,
+): ScreenStateAction? = when {
+    !hasProgram -> ScreenStateAction(stringResource(R.string.screen_set_up_plan), onSetUpProgram)
+    dayId != null -> ScreenStateAction(stringResource(R.string.screen_start_day, dayId), onStartSession, Program.accentIndex(dayId))
+    else -> null
+}
+
 @Composable
 fun EmptyJournalState(
     hasProgram: Boolean,
@@ -128,20 +140,12 @@ fun EmptyJournalState(
     onSetUpProgram: () -> Unit,
     modifier: Modifier = Modifier,
     dayId: String? = null,
+    showAction: Boolean = true,
 ) {
-    if (!hasProgram) {
-        NoProgramState(onSetUpProgram, modifier)
-        return
-    }
     EmptyState(
-        title = stringResource(R.string.screen_no_sessions_title),
-        body = stringResource(R.string.screen_no_sessions_body),
-        action = ScreenStateAction(
-            label = dayId?.let { stringResource(R.string.screen_start_day, it) }
-                ?: stringResource(R.string.screen_start_session),
-            onClick = onStartSession,
-            dayIndex = dayId?.let { Program.accentIndex(it) },
-        ),
+        title = stringResource(if (hasProgram) R.string.screen_no_sessions_title else R.string.screen_no_plan_title),
+        body = stringResource(if (hasProgram) R.string.screen_no_sessions_body else R.string.screen_no_plan_body),
+        action = if (showAction) emptyJournalAction(hasProgram, dayId, onStartSession, onSetUpProgram) else null,
         modifier = modifier,
     )
 }

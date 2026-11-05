@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -41,9 +42,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [CustomExerciseViewModel] wiring: the form's one validation rule (blank/whitespace
- * name is never savable), the [Routes.CUSTOM_EXERCISE_PATTERN_ARG] pre-fill from the
- * picker context, and that [CustomExerciseViewModel.save] goes through the existing
+ * [CustomExerciseViewModel] wiring: a non-blank name and explicit pattern are
+ * required, navigation hints cannot silently choose a pattern, and
+ * [CustomExerciseViewModel.save] goes through the existing
  * `:data` API with no bypass — a saved exercise must turn up in
  * [CatalogRepository.catalogFlow] with exactly what the form held.
  */
@@ -122,6 +123,28 @@ class CustomExerciseViewModelTest {
         assertFalse(vm.uiState.value.saved)
     }
 
+    @Test
+    fun namedExerciseRequiresAPatternAndRestoresTheExplicitChoice() = runVmTest {
+        val handle = SavedStateHandle(mapOf("custom_exercise_pattern" to MovementPattern.HINGE.name))
+        val vm = newViewModel(handle)
+        vm.setName("Custom row")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.pattern)
+        assertFalse(vm.uiState.value.canSave)
+        vm.save()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.saved)
+        vm.setPattern(MovementPattern.H_PULL)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.canSave)
+        val restored = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
+        advanceUntilIdle()
+        assertEquals(MovementPattern.H_PULL, restored.uiState.value.pattern)
+        restored.save()
+        advanceUntilIdle()
+        assertEquals(MovementPattern.H_PULL, repo.catalogFlow.first().entries.first { it.name == "Custom row" }.pattern)
+    }
+
     // --- happy path: save goes through the existing :data API -------------------
 
     @Test
@@ -149,6 +172,19 @@ class CustomExerciseViewModelTest {
         assertEquals(listOf(Equipment.CABLE), saved.equipment)
     }
 
+    @Test
+    fun savingImmediatelyAfterTheWeightCommitKeepsTheTypedWeight() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setName("Committed on Save")
+        vm.setPattern(MovementPattern.H_PULL)
+        vm.setWeightDisplay(80.0)
+        vm.save()
+        advanceUntilIdle()
+        val exercise = repo.catalogFlow.first().entries.first { it.name == "Committed on Save" }
+        assertEquals(GoalSource.Flat(80.0), exercise.goal)
+    }
+
     // --- tracking-type mapping (WEIGHTED/REPS/TIMED choice) ---------------------
 
     @Test
@@ -158,6 +194,7 @@ class CustomExerciseViewModelTest {
 
         assertEquals(TrackingType.WEIGHTED, vm.uiState.value.tracking)
         vm.setName("Cable Hack Squat")
+        vm.setPattern(MovementPattern.H_PULL)
         vm.setWeightDisplay(80.0)
         advanceUntilIdle() // setWeightDisplay converts via unitFlow.first() asynchronously
         vm.save()
@@ -173,6 +210,7 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         vm.setName("Bodyweight Lunge")
+        vm.setPattern(MovementPattern.H_PULL)
         vm.setTracking(TrackingType.REPS)
         vm.setTargetReps(15)
         vm.setWeightDisplay(999.0) // must be ignored once tracking is REPS
@@ -193,6 +231,7 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         vm.setName("Custom Timed Hold")
+        vm.setPattern(MovementPattern.H_PULL)
         vm.setTracking(TrackingType.TIMED)
         vm.setTargetSeconds(60)
         vm.setAddedWeightDisplay(10.0)
@@ -214,6 +253,7 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         vm.setName("Plank")
+        vm.setPattern(MovementPattern.H_PULL)
         vm.setTracking(TrackingType.TIMED)
         vm.setTargetSeconds(45)
         vm.save()
@@ -223,23 +263,23 @@ class CustomExerciseViewModelTest {
         assertEquals(GoalSource.Time(45, 0.0), saved.goal)
     }
 
-    // --- nav arg: pattern pre-fill from the picker context -----------------------
+    // --- nav arg: explicit choice still required -----------------------
 
     @Test
-    fun preselectedPatternArg_prefillsTheDraft() = runVmTest {
+    fun patternNavHintStillRequiresAnExplicitChoice() = runVmTest {
         val handle = SavedStateHandle(mapOf(Routes.CUSTOM_EXERCISE_PATTERN_ARG to MovementPattern.H_PULL.name))
         val vm = newViewModel(handle)
         advanceUntilIdle()
 
-        assertEquals(MovementPattern.H_PULL, vm.uiState.value.pattern)
+        assertNull(vm.uiState.value.pattern)
     }
 
     @Test
-    fun noPatternArg_defaultsToTheFirstPattern() = runVmTest {
+    fun noPatternArg_startsUnselected() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
 
-        assertEquals(MovementPattern.entries.first(), vm.uiState.value.pattern)
+        assertNull(vm.uiState.value.pattern)
     }
 
     // --- unit-aware weight -------------------------------------------------------
@@ -257,6 +297,7 @@ class CustomExerciseViewModelTest {
         assertEquals(50.0, vm.uiState.value.weightDisplay, 0.001)
 
         vm.setName("Kg Test")
+        vm.setPattern(MovementPattern.H_PULL)
         vm.save()
         advanceUntilIdle()
 

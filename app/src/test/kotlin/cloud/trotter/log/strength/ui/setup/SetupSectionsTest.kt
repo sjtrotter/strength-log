@@ -3,22 +3,25 @@ package cloud.trotter.log.strength.ui.setup
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -106,8 +109,41 @@ class SetupSectionsTest {
             SetupScreen(SetupUiState(), setupActions().copy(onKeepScreenOnChange = { enabled = it }))
         } }
         composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep screen on during workouts"))
-        composeTestRule.onNodeWithContentDescription("Keep screen on during workouts").performClick()
+        composeTestRule.onNodeWithText("Keep screen on during workouts").performClick()
         composeTestRule.runOnIdle { assertEquals(true, enabled) }
+    }
+
+    @Test
+    fun restDialogSavesMinutesAndSecondsThroughTheExistingCallback() {
+        var saved: Pair<RestCategory, Int>? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupStateBuilder.buildUiState(unit = WeightUnit.LB), setupActions().copy(
+                onRestOverrideChange = { kind, seconds -> saved = kind to seconds },
+            ), openRestTimer = true)
+        } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Top set"))
+        composeTestRule.onNodeWithText("Top set").performClick()
+        composeTestRule.onNodeWithText("Minutes").performTextReplacement("1")
+        composeTestRule.onNodeWithText("Seconds").performTextReplacement("30")
+        composeTestRule.onNodeWithText("Save").performClick()
+        composeTestRule.runOnIdle { assertEquals(RestCategory.TOP to 90, saved) }
+        composeTestRule.onNodeWithText("Minutes").assertDoesNotExist()
+    }
+
+    @Test
+    fun restDialogRejectsValuesBeyondTheExistingLimitAndCancelDoesNotWrite() {
+        var writes = 0
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupStateBuilder.buildUiState(unit = WeightUnit.LB), setupActions().copy(
+                onRestOverrideChange = { _, _ -> writes++ },
+            ), openRestTimer = true)
+        } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Top set"))
+        composeTestRule.onNodeWithText("Top set").performClick()
+        composeTestRule.onNodeWithText("Minutes").performTextReplacement((RestPolicy.MAX_REST_SECONDS / 60 + 1).toString())
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Cancel").performClick()
+        assertEquals(0, writes)
     }
 
     private fun setupActions() = SetupActions(

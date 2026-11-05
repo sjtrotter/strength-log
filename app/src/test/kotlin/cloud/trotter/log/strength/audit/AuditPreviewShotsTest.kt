@@ -57,7 +57,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot08PreviewNoLastResults() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/08-preview-no-last-results") { PreviewScreen(auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift -> lift.copy(working = null, previous = lift.previous.map { PreviewPreviousResult(null) }) }) }, PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/08-preview-no-last-results") { PreviewScreen(auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift -> lift.copy(working = null, previous = lift.previous.map { it.copy(last = null) }) }) }, PreviewActions({}, {}, {})) }
     }
 
 }

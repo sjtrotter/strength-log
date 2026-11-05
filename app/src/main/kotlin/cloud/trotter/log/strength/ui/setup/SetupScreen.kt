@@ -2,12 +2,13 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -29,12 +32,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,8 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,14 +63,11 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DialogAction
-import cloud.trotter.log.strength.ui.components.Stepper
-import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
-import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,10 +143,12 @@ fun SetupScreen(
                         )
                         "keep_screen_on" -> {
                             val label = stringResource(R.string.setup_keep_screen_on)
-                            ListItem(headlineContent = { Text(label) }, trailingContent = {
-                                Switch(state.keepScreenOn, actions.onKeepScreenOnChange,
-                                    modifier = Modifier.semantics { contentDescription = label })
-                            })
+                            ListItem(
+                                headlineContent = { Text(label) },
+                                trailingContent = { Switch(state.keepScreenOn, onCheckedChange = null) },
+                                modifier = Modifier.fillMaxWidth().toggleable(value = state.keepScreenOn,
+                                    role = Role.Switch, onValueChange = actions.onKeepScreenOnChange),
+                            )
                         }
                         "rest_timer" -> Column(Modifier.padding(horizontal = 16.dp)) {
                             SectionHeader(stringResource(R.string.setup_rest_timer_section))
@@ -200,16 +205,16 @@ private fun RestTimerSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         RuledGroup {
-            SwitchToggle(
-                label = stringResource(R.string.setup_rest_timer_toggle),
-                checked = enabled,
-                onCheckedChange = actions.onRestTimerEnabledChange,
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.setup_rest_timer_toggle)) },
+                trailingContent = { Switch(checked = enabled, onCheckedChange = null) },
+                modifier = Modifier.fillMaxWidth().toggleable(value = enabled, role = Role.Switch, onValueChange = actions.onRestTimerEnabledChange),
             )
             HorizontalDivider(color = Border)
-            SwitchToggle(
-                label = stringResource(R.string.setup_phone_rest_timer_toggle),
-                checked = phoneEnabled,
-                onCheckedChange = actions.onPhoneRestTimerEnabledChange,
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.setup_phone_rest_timer_toggle)) },
+                trailingContent = { Switch(checked = phoneEnabled, onCheckedChange = null) },
+                modifier = Modifier.fillMaxWidth().toggleable(value = phoneEnabled, role = Role.Switch, onValueChange = actions.onPhoneRestTimerEnabledChange),
             )
         }
         if (enabled || phoneEnabled) {
@@ -227,29 +232,57 @@ private fun RestTimerSection(
 @Composable
 private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
     val label = restCategoryLabel(row.category)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Stepper(
-            value = row.seconds.toDouble(),
-            onValueChange = { onChange(it.toInt()) },
-            step = { REST_STEP_SECONDS },
-            minValue = 0.0,
-            // Doubles as the stepper's clamp (Stepper has no maxValue param):
-            // every tap's result is coerced into RestPolicy's accepted range.
-            round = { it.coerceIn(0.0, RestPolicy.MAX_REST_SECONDS.toDouble()) },
-            format = { SetupStateBuilder.restTimerLabel(it.toInt()) },
-            valueColor = if (row.seconds == 0) TextSecondary else TextPrimary,
-            decreaseDescription = stringResource(R.string.setup_decrease_rest_description, label),
-            increaseDescription = stringResource(R.string.setup_increase_rest_description, label),
-            inputLabel = stringResource(R.string.stepper_rest_label, label),
-            inputUnit = stringResource(R.string.stepper_seconds_unit),
-            maxValue = RestPolicy.MAX_REST_SECONDS.toDouble(),
-        )
+    var editing by rememberSaveable { mutableStateOf(false) }
+    ListItem(
+        headlineContent = { Text(label) },
+        trailingContent = { Text(stringResource(R.string.form_rest_duration, row.seconds / 60, row.seconds % 60)) },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { editing = true },
+    )
+    if (editing) {
+        RestDurationDialog(label, row.seconds, onSave = {
+            onChange(it)
+            editing = false
+        }, onDismiss = { editing = false })
     }
+}
+
+@Composable
+private fun RestDurationDialog(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
+    var minutes by rememberSaveable { mutableStateOf((initialSeconds / 60).toString()) }
+    var seconds by rememberSaveable { mutableStateOf((initialSeconds % 60).toString()) }
+    val minuteValue = minutes.toIntOrNull()
+    val secondValue = seconds.toIntOrNull()
+    val total = if (minuteValue != null && minuteValue in 0..RestPolicy.MAX_REST_SECONDS / 60 &&
+        secondValue != null && secondValue in 0..59
+    ) (minuteValue * 60 + secondValue).takeIf { it <= RestPolicy.MAX_REST_SECONDS } else null
+    AppAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(label) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = minutes, onValueChange = { minutes = it },
+                    label = { Text(stringResource(R.string.form_minutes_label)) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                )
+                OutlinedTextField(
+                    value = seconds, onValueChange = { seconds = it },
+                    label = { Text(stringResource(R.string.form_seconds_label)) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                )
+                if (total == null) Text(stringResource(R.string.form_rest_range, RestPolicy.MAX_REST_SECONDS),
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { total?.let(onSave) }, enabled = total != null) {
+                Text(stringResource(R.string.form_save))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.setup_cancel_button)) } },
+    )
 }
 
 /**
@@ -274,7 +307,6 @@ private fun restCategoryLabel(category: RestCategory): String = when (category) 
     RestCategory.LIGHT -> stringResource(R.string.setup_rest_category_bodyweight)
 }
 
-private const val REST_STEP_SECONDS = 15.0
 
 @Composable
 private fun ResetRestDefaultsRow(onClick: () -> Unit) {

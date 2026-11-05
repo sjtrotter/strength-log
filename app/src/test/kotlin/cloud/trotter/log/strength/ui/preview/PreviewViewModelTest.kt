@@ -1,20 +1,21 @@
 package cloud.trotter.log.strength.ui.preview
 
 import androidx.lifecycle.SavedStateHandle
-import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.storeTestRows
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
-import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -179,13 +180,13 @@ class PreviewViewModelTest : OverviewFixture() {
         val vm = preview(plan, "B")
         advanceUntilIdle()
 
-        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult(null)),
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10", exerciseName = ExerciseLibrary.get("ez_curl").name), PreviewPreviousResult(null, exerciseName = ExerciseLibrary.get("rope_pushdown").name)),
             vm.uiState.value.lifts.single().previous)
 
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "rope_pushdown", "Rope Pushdown", Slot.SS, 0,
             SetKind.WORK.name, 60.0, 12, true)))
         advanceUntilIdle()
-        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult("60 lb × 12")),
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10", exerciseName = ExerciseLibrary.get("ez_curl").name), PreviewPreviousResult("60 lb × 12", exerciseName = ExerciseLibrary.get("rope_pushdown").name)),
             vm.uiState.value.lifts.single().previous)
     }
 
@@ -201,7 +202,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val vm = preview(plan, "B")
         advanceUntilIdle()
 
-        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult(null, comparable = false)),
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10", exerciseName = ExerciseLibrary.get("ez_curl").name), PreviewPreviousResult(null, comparable = false, exerciseName = ExerciseLibrary.get("rope_pushdown").name)),
             vm.uiState.value.lifts.single().previous)
     }
 

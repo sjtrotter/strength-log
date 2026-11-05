@@ -1385,16 +1385,23 @@ A shorter enforcement sentence can be added beneath it:
 # Component summary — final KEEP inventory
 
 Round 1, #454: the compact `SheetButton` is deleted. Equipment filters now use M3
-`FilterChip`; both are retired from KEEP. No workout sheet calls the capsule
-`Stepper`. Its public API remains available to the other callers listed below.
+`FilterChip`; both are retired from KEEP. Round 1 slice 5b deletes
+`SwitchToggle` and the capsule `Stepper` and retires `SelectionCard`'s bespoke
+presentation. Its sole remaining caller is Backup's CSV picker, outside the
+slice's switch-only Backup scope; a small M3 radio-row wrapper remains until
+that caller's owning slice inlines it. Owned choices now inline M3
+`ListItem` rows with radio buttons or checkboxes and a single row interaction;
+selected containers use `surfaceContainerHighest`. Switches use stock M3 switches
+inside toggleable list rows. Number entry uses labeled M3 `OutlinedTextField`s;
+rest durations open a minutes/seconds dialog. `NumberField` shares validation and
+Done/focus-loss commits. The sheet-only `resolveStepperCommit` parser remains,
+without a bespoke presentation. These decisions supersede sections 3, 4 and 6's
+original verdicts.
 
 | Remaining bespoke component/family | M3 base used where faithful | KEEP reason (also stated in KDoc) |
 |---|---|---|
 | `pressable*` foundation leaves | Theme ripple configuration | M3 has no modifier-level component that preserves compound-control geometry plus the shared inset focus ring |
-| `SelectionCard` internals | `OutlinedCard` | Selection semantics, authored checkmark, and subtitle treatment remain custom inside the M3 container |
-| `SwitchToggle` / compact keep-screen-on switch | None | M3 `Switch` does not expose the authored 40×24 track geometry |
 | `CheckmarkToggle` | None | M3 `Checkbox` does not expose the 28 dp rounded shape, fills, glyph treatment, or completion pop |
-| `Stepper` (outside workout sheets) | None | Legacy compound capsule/value control remains for Settings, You, wizard, History corrections and custom-exercise callers; workout sheets use a shared M3 `OutlinedTextField` with 48 dp icon buttons |
 | `SetRow`, including remove leaf | M3 text leaves | M3 has no equivalent for the width budget, exact-overlap map, TOP/cascade motion, or dashed superset structure; `IconButton` would widen the remove slot from 24 to 48 dp |
 | Compact header/calendar actions | M3 theme/state layer | M3 button/icon-button layout minima cannot preserve their 40 dp or 28 dp visual slots and pinned gaps |
 | Authored edge states, Day tab decoration, progress/dashed rules, cascade/receipt/journal visuals | M3 actions/containers where applicable | Their loading/reveal motion, suggested-day marks, semantic progress/superset rules, ceremonies, and charts have no M3 equivalent |

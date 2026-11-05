@@ -62,7 +62,8 @@ internal fun auditPreviewFixture(day: DayUiState = workoutLiftSheetFixture()) = 
             ).joinToString(" + "),
             listOf(PreviewPreviousResult(card.lastTimeDisplay?.let {
                 SetFormatter.display(card.tracking, day.unit.toLb(row.weightDisplay), row.reps, row.seconds, day.unit)
-            })) + if (card.partnerExerciseId != null) listOf(PreviewPreviousResult(null)) else emptyList(),
+            }, exerciseName = card.title)) + if (card.partnerExerciseId != null)
+                listOf(PreviewPreviousResult(null, exerciseName = card.partnerTitle.orEmpty())) else emptyList(),
         )
     },
 )

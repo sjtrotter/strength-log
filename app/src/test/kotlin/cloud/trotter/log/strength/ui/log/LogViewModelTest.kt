@@ -34,17 +34,17 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -205,7 +205,7 @@ class LogViewModelTest {
         reader: HealthConnectReader = healthReader,
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): LogViewModel =
-        LogViewModel(repo.history, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        LogViewModel(repo.history, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog, tracker = repo).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -257,6 +257,25 @@ class LogViewModelTest {
         insertProgram()
         advanceUntilIdle()
         assertTrue(vm.uiState.value.hasProgram)
+        assertEquals("A", vm.uiState.value.nextDayId)
+        collect.cancel()
+    }
+
+    @Test
+    fun emptyHistoryUsesTheSuggestedDayAndTheSharedFallback() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat"))),
+            ProgramDay("B", "Upper", "", listOf(ProgramExercise("bb_bench"))),
+        )))
+        val planId = repo.plans.selectedPlanIdFlow.first()!!
+        db.planDao().updateSuggestedDay(planId, "B")
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("B", vm.uiState.value.nextDayId)
+        db.planDao().updateSuggestedDay(planId, "missing")
+        advanceUntilIdle()
+        assertEquals("A", vm.uiState.value.nextDayId)
         collect.cancel()
     }
 

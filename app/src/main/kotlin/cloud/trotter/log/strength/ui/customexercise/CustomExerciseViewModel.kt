@@ -3,14 +3,13 @@ package cloud.trotter.log.strength.ui.customexercise
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.Routes
+import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +19,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Custom-exercise creation form (PLAN.md A4). Every draft field lives in [SavedStateHandle] — same
@@ -27,10 +28,7 @@ import kotlinx.coroutines.launch
  * sheet or Setup) can lose focus/rotate before the user finishes typing a name, and that draft must
  * survive it.
  *
- * [Routes.CUSTOM_EXERCISE_PATTERN_ARG] pre-selects [MovementPattern] when the
- * picker's "＋ Create exercise" launched this route; Setup launches with no
- * arg and the default (first enum entry) is just a starting point the user
- * can change.
+ * Movement pattern starts unselected; the explicit draft choice survives recreation.
  *
  * [save] is the one write path, and it is the existing `:data` surface
  * ([CatalogRepository.addCustomExercise]) — no new persistence semantics.
@@ -44,7 +42,7 @@ class CustomExerciseViewModel @Inject constructor(
 
     private object Keys {
         const val NAME = "custom_exercise_name"
-        const val PATTERN = "custom_exercise_pattern"
+        const val PATTERN = "custom_exercise_pattern_choice_v2"
         const val EQUIPMENT = "custom_exercise_equipment"
         const val PER_HAND = "custom_exercise_per_hand"
         const val TRACKING = "custom_exercise_tracking"
@@ -54,13 +52,8 @@ class CustomExerciseViewModel @Inject constructor(
         const val ADDED_WEIGHT_LB = "custom_exercise_added_weight_lb"
     }
 
-    private val defaultPattern: MovementPattern =
-        savedState.get<String>(Routes.CUSTOM_EXERCISE_PATTERN_ARG)
-            ?.let { name -> MovementPattern.entries.firstOrNull { it.name == name } }
-            ?: MovementPattern.entries.first()
-
     private val name: StateFlow<String> = savedState.getStateFlow(Keys.NAME, "")
-    private val pattern: StateFlow<String> = savedState.getStateFlow(Keys.PATTERN, defaultPattern.name)
+    private val pattern: StateFlow<String?> = savedState.getStateFlow(Keys.PATTERN, null)
     private val equipment: StateFlow<List<String>> = savedState.getStateFlow(Keys.EQUIPMENT, emptyList())
     private val perHand: StateFlow<Boolean> = savedState.getStateFlow(Keys.PER_HAND, false)
     private val tracking: StateFlow<String> = savedState.getStateFlow(Keys.TRACKING, TrackingType.WEIGHTED.name)
@@ -70,10 +63,11 @@ class CustomExerciseViewModel @Inject constructor(
     private val addedWeightLb: StateFlow<Double> = savedState.getStateFlow(Keys.ADDED_WEIGHT_LB, 0.0)
 
     private val saved = MutableStateFlow(false)
+    private val writeOrder = Mutex()
 
     private data class FormGroup(
         val name: String,
-        val pattern: MovementPattern,
+        val pattern: MovementPattern?,
         val perHand: Boolean,
         val tracking: TrackingType,
         val weightLb: Double,
@@ -85,7 +79,7 @@ class CustomExerciseViewModel @Inject constructor(
 
     // The draft fields split into two sub-groups (`combine` tops out at 5
     // flows) and joined below — same shape as [displayGroup].
-    private data class IdentityGroup(val name: String, val pattern: MovementPattern, val perHand: Boolean)
+    private data class IdentityGroup(val name: String, val pattern: MovementPattern?, val perHand: Boolean)
     private data class TargetGroup(
         val tracking: TrackingType,
         val weightLb: Double,
@@ -95,7 +89,7 @@ class CustomExerciseViewModel @Inject constructor(
     )
 
     private val identityGroup: Flow<IdentityGroup> =
-        combine(name, pattern, perHand) { n, p, ph -> IdentityGroup(n, enumOf(p, defaultPattern), ph) }
+        combine(name, pattern, perHand) { n, p, ph -> IdentityGroup(n, MovementPattern.entries.firstOrNull { it.name == p }, ph) }
     private val targetGroup: Flow<TargetGroup> =
         combine(tracking, weightLb, targetReps, targetSeconds, addedWeightLb) { t, w, reps, secs, addedLb ->
             TargetGroup(enumOf(t, TrackingType.WEIGHTED), w, reps, secs, addedLb)
@@ -154,8 +148,10 @@ class CustomExerciseViewModel @Inject constructor(
      *  lb before storage, mirroring [cloud.trotter.log.strength.ui.day.DayViewModel.changeWeight]. */
     fun setWeightDisplay(newDisplayWeight: Double) {
         viewModelScope.launch {
-            val unit = settings.unitFlow.first()
-            savedState[Keys.WEIGHT_LB] = unit.toLb(newDisplayWeight)
+            writeOrder.withLock {
+                val unit = settings.unitFlow.first()
+                savedState[Keys.WEIGHT_LB] = unit.toLb(newDisplayWeight)
+            }
         }
     }
 
@@ -170,12 +166,14 @@ class CustomExerciseViewModel @Inject constructor(
     /** TIMED's optional added load — same unit-aware storage as [setWeightDisplay]. */
     fun setAddedWeightDisplay(newDisplayWeight: Double) {
         viewModelScope.launch {
-            val unit = settings.unitFlow.first()
-            savedState[Keys.ADDED_WEIGHT_LB] = unit.toLb(newDisplayWeight)
+            writeOrder.withLock {
+                val unit = settings.unitFlow.first()
+                savedState[Keys.ADDED_WEIGHT_LB] = unit.toLb(newDisplayWeight)
+            }
         }
     }
 
-    /** No-ops on a blank/whitespace name (mirrors [CustomExerciseUiState.canSave],
+    /** No-ops on a blank name or missing pattern (mirrors [CustomExerciseUiState.canSave],
      *  which [CustomExerciseScreen] uses to disable the save action) so a bad
      *  name can never reach [CatalogRepository.addCustomExercise]. [tracking]
      *  selects which target field is the live GOAL — the other two are simply
@@ -183,24 +181,27 @@ class CustomExerciseViewModel @Inject constructor(
     fun save() {
         val trimmedName = name.value.trim()
         if (trimmedName.isEmpty()) return
+        val selectedPattern = MovementPattern.entries.firstOrNull { it.name == pattern.value } ?: return
         viewModelScope.launch {
-            val selectedTracking = enumOf(tracking.value, TrackingType.WEIGHTED)
-            val goalStartLb = when (selectedTracking) {
-                TrackingType.WEIGHTED -> weightLb.value
-                TrackingType.TIMED -> addedWeightLb.value
-                TrackingType.REPS -> 0.0
+            writeOrder.withLock {
+                val selectedTracking = enumOf(tracking.value, TrackingType.WEIGHTED)
+                val goalStartLb = when (selectedTracking) {
+                    TrackingType.WEIGHTED -> weightLb.value
+                    TrackingType.TIMED -> addedWeightLb.value
+                    TrackingType.REPS -> 0.0
+                }
+                repo.addCustomExercise(
+                    name = trimmedName,
+                    pattern = selectedPattern,
+                    equipment = equipment.value.mapNotNull { n -> Equipment.entries.firstOrNull { it.name == n } },
+                    perHand = perHand.value,
+                    goalStartLb = goalStartLb,
+                    tracking = selectedTracking,
+                    targetReps = targetReps.value.takeIf { selectedTracking == TrackingType.REPS },
+                    targetSeconds = targetSeconds.value.takeIf { selectedTracking == TrackingType.TIMED },
+                )
+                saved.value = true
             }
-            repo.addCustomExercise(
-                name = trimmedName,
-                pattern = enumOf(pattern.value, defaultPattern),
-                equipment = equipment.value.mapNotNull { n -> Equipment.entries.firstOrNull { it.name == n } },
-                perHand = perHand.value,
-                goalStartLb = goalStartLb,
-                tracking = selectedTracking,
-                targetReps = targetReps.value.takeIf { selectedTracking == TrackingType.REPS },
-                targetSeconds = targetSeconds.value.takeIf { selectedTracking == TrackingType.TIMED },
-            )
-            saved.value = true
         }
     }
 
@@ -211,7 +212,7 @@ class CustomExerciseViewModel @Inject constructor(
         const val STOP_TIMEOUT_MS = 5_000L
 
         /** A friendly starting point (an empty barbell) — not a spec constant;
-         *  the user changes it via the stepper immediately for a real exercise. */
+         *  the user changes it in the number field for a real exercise. */
         const val DEFAULT_WEIGHT_LB = 45.0
         const val DEFAULT_TARGET_REPS = 10
         const val DEFAULT_TARGET_SECONDS = 30

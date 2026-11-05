@@ -1,11 +1,12 @@
 package cloud.trotter.log.strength.ui.customexercise
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,18 +14,33 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,12 +50,10 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CloseAction
-import cloud.trotter.log.strength.ui.components.SelectionCard
-import cloud.trotter.log.strength.ui.components.SelectionMode
-import cloud.trotter.log.strength.ui.components.Stepper
-import cloud.trotter.log.strength.ui.components.SwitchToggle
+import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -65,10 +79,10 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { NameField(state.name, actions.onNameChange) }
-                item { PatternSection(state, actions) }
-                item { EquipmentSection(state, actions) }
                 item { TrackingSection(state, actions) }
                 item { PerHandAndTargetSection(state, actions) }
+                item { PatternSection(state, actions) }
+                item { EquipmentSection(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
             Footer(state, actions)
@@ -91,11 +105,14 @@ private fun Header(actions: CustomExerciseActions) {
 @Composable
 private fun NameField(value: String, onValueChange: (String) -> Unit) {
     Column {
-        Text(stringResource(R.string.custom_exercise_name_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.size(6.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
+            label = { Text(stringResource(R.string.custom_exercise_name_label)) },
+            isError = value.isNotEmpty() && value.isBlank(),
+            supportingText = if (value.isNotEmpty() && value.isBlank()) {
+                { Text(stringResource(R.string.form_exercise_name_error)) }
+            } else null,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
@@ -118,18 +135,38 @@ private fun NameField(value: String, onValueChange: (String) -> Unit) {
 
 @Composable
 private fun PatternSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
-    Column(Modifier.selectableGroup()) {
-        Text(stringResource(R.string.custom_exercise_pattern_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.size(6.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MovementPattern.entries.forEach { pattern ->
-                SelectionCard(
-                    title = patternLabel(pattern),
-                    selected = state.pattern == pattern,
-                    onClick = { actions.onPatternChange(pattern) },
-                )
-            }
-        }
+    var choosing by rememberSaveable { mutableStateOf(false) }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.custom_exercise_pattern_label)) },
+        supportingContent = { Text(state.pattern?.let { patternLabel(it) }
+            ?: stringResource(R.string.form_choose_pattern)) },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable { choosing = true },
+    )
+    if (choosing) {
+        AppAlertDialog(
+            onDismissRequest = { choosing = false },
+            title = { Text(stringResource(R.string.custom_exercise_pattern_label)) },
+            text = {
+                LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).selectableGroup()) {
+                    items(MovementPattern.entries) { pattern ->
+                        ListItem(
+                            headlineContent = { Text(patternLabel(pattern)) },
+                            leadingContent = { RadioButton(selected = state.pattern == pattern, onClick = null) },
+                            colors = ListItemDefaults.colors(containerColor = if (state.pattern == pattern)
+                                MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(
+                                selected = state.pattern == pattern, role = Role.RadioButton,
+                                onClick = { actions.onPatternChange(pattern); choosing = false },
+                            ),
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { choosing = false }) { Text(stringResource(R.string.custom_exercise_cancel_button)) }
+            },
+        )
     }
 }
 
@@ -140,11 +177,11 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Equipment.entries.forEach { equip ->
-                SelectionCard(
-                    title = equipmentLabel(equip),
-                    selected = equip in state.equipment,
-                    onClick = { actions.onEquipmentToggle(equip) },
-                    mode = SelectionMode.Check,
+                ListItem(
+                    headlineContent = { Text(equipmentLabel(equip)) },
+                    leadingContent = { Checkbox(checked = equip in state.equipment, onCheckedChange = null) },
+                    colors = ListItemDefaults.colors(containerColor = if (equip in state.equipment) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(value = equip in state.equipment, role = Role.Checkbox, onValueChange = { actions.onEquipmentToggle(equip) }),
                 )
             }
         }
@@ -154,32 +191,35 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
 /**
  * The tracking-type choice (tracking-types §2.1, §5.6): what the exercise's
  * GOAL is and how its sets log — weight×reps, reps only, or a timed hold.
- * Three [SelectionCard]s, same pattern as [PatternSection], so the choice
- * reads as a first-class question rather than a buried toggle.
+ * M3 radio rows give each tracking type one selectable target.
  */
 @Composable
 private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
+    val focusManager = LocalFocusManager.current
     Column(Modifier.selectableGroup()) {
         Text(stringResource(R.string.custom_exercise_tracking_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SelectionCard(
-                title = stringResource(R.string.custom_exercise_weighted_title),
-                subtitle = stringResource(R.string.custom_exercise_weighted_description),
-                selected = state.tracking == TrackingType.WEIGHTED,
-                onClick = { actions.onTrackingChange(TrackingType.WEIGHTED) },
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.custom_exercise_weighted_title)) },
+                supportingContent = { Text(stringResource(R.string.custom_exercise_weighted_description)) },
+                leadingContent = { RadioButton(selected = state.tracking == TrackingType.WEIGHTED, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (state.tracking == TrackingType.WEIGHTED) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = state.tracking == TrackingType.WEIGHTED, role = Role.RadioButton, onClick = { focusManager.clearFocus(); actions.onTrackingChange(TrackingType.WEIGHTED) }),
             )
-            SelectionCard(
-                title = stringResource(R.string.custom_exercise_reps_title),
-                subtitle = stringResource(R.string.custom_exercise_reps_description),
-                selected = state.tracking == TrackingType.REPS,
-                onClick = { actions.onTrackingChange(TrackingType.REPS) },
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.custom_exercise_reps_title)) },
+                supportingContent = { Text(stringResource(R.string.custom_exercise_reps_description)) },
+                leadingContent = { RadioButton(selected = state.tracking == TrackingType.REPS, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (state.tracking == TrackingType.REPS) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = state.tracking == TrackingType.REPS, role = Role.RadioButton, onClick = { focusManager.clearFocus(); actions.onTrackingChange(TrackingType.REPS) }),
             )
-            SelectionCard(
-                title = stringResource(R.string.custom_exercise_timed_title),
-                subtitle = stringResource(R.string.custom_exercise_timed_description),
-                selected = state.tracking == TrackingType.TIMED,
-                onClick = { actions.onTrackingChange(TrackingType.TIMED) },
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.custom_exercise_timed_title)) },
+                supportingContent = { Text(stringResource(R.string.custom_exercise_timed_description)) },
+                leadingContent = { RadioButton(selected = state.tracking == TrackingType.TIMED, onClick = null) },
+                colors = ListItemDefaults.colors(containerColor = if (state.tracking == TrackingType.TIMED) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).selectable(selected = state.tracking == TrackingType.TIMED, role = Role.RadioButton, onClick = { focusManager.clearFocus(); actions.onTrackingChange(TrackingType.TIMED) }),
             )
         }
     }
@@ -191,10 +231,10 @@ private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExercis
 @Composable
 private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     AppCard {
-        SwitchToggle(
-            label = stringResource(R.string.custom_exercise_per_hand_label),
-            checked = state.perHand,
-            onCheckedChange = actions.onPerHandChange,
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.custom_exercise_per_hand_label)) },
+            trailingContent = { Switch(checked = state.perHand, onCheckedChange = null) },
+            modifier = Modifier.fillMaxWidth().toggleable(value = state.perHand, role = Role.Switch, onValueChange = actions.onPerHandChange),
         )
     }
     Spacer(Modifier.size(12.dp))
@@ -205,22 +245,18 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
             unit = state.unit,
             onWeightChange = actions.onWeightChange,
         )
-        TrackingType.REPS -> TargetStepperCard(
+        TrackingType.REPS -> TargetField(
             label = stringResource(R.string.custom_exercise_target_reps_label),
             value = state.targetReps,
             onValueChange = actions.onTargetRepsChange,
             step = 1,
-            decreaseDescription = stringResource(R.string.custom_exercise_decrease_target_reps_action),
-            increaseDescription = stringResource(R.string.custom_exercise_increase_target_reps_action),
         )
         TrackingType.TIMED -> {
-            TargetStepperCard(
+            TargetField(
                 label = stringResource(R.string.custom_exercise_target_hold_label),
                 value = state.targetSeconds,
                 onValueChange = actions.onTargetSecondsChange,
                 step = 5,
-                decreaseDescription = stringResource(R.string.custom_exercise_decrease_target_hold_action),
-                increaseDescription = stringResource(R.string.custom_exercise_increase_target_hold_action),
             )
             Spacer(Modifier.size(12.dp))
             WeightTargetCard(
@@ -237,42 +273,34 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
 private fun WeightTargetCard(label: String, weightDisplay: Double, unit: WeightUnit, onWeightChange: (Double) -> Unit) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
-            Stepper(
+            NumberField(
+                label = label,
+                decimalInput = true,
+                weightInput = true,
                 value = weightDisplay,
                 onValueChange = onWeightChange,
-                step = { WeightStepper.increment(it, unit) },
                 round = { WeightStepper.round(it, unit) },
                 format = WeightStepper::format,
-                decreaseDescription = stringResource(R.string.custom_exercise_decrease_value_action, label),
-                increaseDescription = stringResource(R.string.custom_exercise_increase_value_action, label),
             )
         }
     }
 }
 
 @Composable
-private fun TargetStepperCard(
+private fun TargetField(
     label: String,
     value: Int,
     onValueChange: (Int) -> Unit,
     step: Int,
-    decreaseDescription: String,
-    increaseDescription: String,
 ) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
-            Stepper(
+            NumberField(
+                label = label,
                 value = value.toDouble(),
                 onValueChange = { onValueChange(it.toInt()) },
-                step = { step.toDouble() },
                 minValue = step.toDouble(),
                 format = { it.toInt().toString() },
-                decreaseDescription = decreaseDescription,
-                increaseDescription = increaseDescription,
             )
         }
     }
@@ -283,6 +311,7 @@ private fun Footer(
     state: CustomExerciseUiState,
     actions: CustomExerciseActions,
 ) {
+    val focusManager = LocalFocusManager.current
     Column(Modifier.fillMaxWidth().background(Background)) {
         HorizontalDivider(thickness = FooterDividerThickness, color = Border)
         Row(
@@ -300,14 +329,15 @@ private fun Footer(
             Button(
                 enabled = state.canSave,
                 modifier = Modifier.weight(2f),
-                onClick = actions.onSave,
+                onClick = { focusManager.clearFocus(); actions.onSave() },
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(vertical = FooterButtonVerticalPadding),
             ) {
                 FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))
             }
         }
-        if (!state.canSave) Text(stringResource(R.string.operation_custom_exercise_name_required),
+        if (!state.canSave) Text(stringResource(if (state.name.isBlank()) R.string.operation_custom_exercise_name_required
+            else R.string.form_pattern_required),
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

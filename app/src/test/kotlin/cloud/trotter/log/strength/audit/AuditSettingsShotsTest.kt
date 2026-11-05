@@ -10,11 +10,11 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.backup.AutomaticBackupUiState
 import cloud.trotter.log.strength.ui.backup.BackupActions
+import cloud.trotter.log.strength.ui.backup.BackupOperation
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupUiState
 import cloud.trotter.log.strength.ui.backup.CsvImportUiState
 import cloud.trotter.log.strength.ui.backup.StatusMessage
-import cloud.trotter.log.strength.ui.backup.BackupOperation
 import cloud.trotter.log.strength.ui.backup.csvPreviewFixture
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseScreen
@@ -86,10 +86,10 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot09CustomFilled() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/09-custom-filled") { CustomExerciseScreen(CustomExerciseUiState(name = "Seated cable shoulder press", equipment = setOf(Equipment.CABLE)), customActions()) }
+        rule.auditShot("settings/09-custom-filled") { CustomExerciseScreen(CustomExerciseUiState(name = "Seated cable shoulder press", pattern = cloud.trotter.log.strength.domain.model.MovementPattern.V_PUSH, equipment = setOf(Equipment.CABLE)), customActions()) }
     }
 
-    // The model exposes canSave, with no validation-error message state.
+    // Whitespace-only names show validation copy and keep Save disabled.
     @Test fun shot10CustomValidationDisabled() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("settings/10-custom-validation-disabled") { CustomExerciseScreen(CustomExerciseUiState(name = "   "), customActions()) }
@@ -138,12 +138,12 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot19CustomReps() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/19-custom-reps") { CustomExerciseScreen(CustomExerciseUiState(name = "Bench step-up", tracking = TrackingType.REPS), customActions()) }
+        rule.auditShot("settings/19-custom-reps") { CustomExerciseScreen(CustomExerciseUiState(name = "Bench step-up", pattern = cloud.trotter.log.strength.domain.model.MovementPattern.SINGLE_LEG, tracking = TrackingType.REPS), customActions()) }
     }
 
     @Test fun shot20CustomHold() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/20-custom-hold") { CustomExerciseScreen(CustomExerciseUiState(name = "Loaded wall hold", tracking = TrackingType.TIMED, addedWeightDisplay = 25.0), customActions()) }
+        rule.auditShot("settings/20-custom-hold") { CustomExerciseScreen(CustomExerciseUiState(name = "Loaded wall hold", pattern = cloud.trotter.log.strength.domain.model.MovementPattern.CORE_ANTI_EXT, tracking = TrackingType.TIMED, addedWeightDisplay = 25.0), customActions()) }
     }
 
     private fun backupActions() = BackupActions(onAutomaticBackupChange = {}, onExportBackupClick = {},

@@ -21,6 +21,7 @@ data class PreviewLift(
 data class PreviewPreviousResult(
     val last: String?,
     val comparable: Boolean = true,
+    val exerciseName: String = "",
 )
 data class PreviewCardio(val activity: String, val time: String)
 data class PreviewActions(val onBack: () -> Unit, val onEdit: () -> Unit, val onStart: () -> Unit)

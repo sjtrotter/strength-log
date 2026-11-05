@@ -19,6 +19,7 @@ data class LogUiState(
      *  correct assumption, and the wrong one would accuse a lifter with a
      *  perfectly good program of not having it. */
     val hasProgram: Boolean = true,
+    val nextDayId: String? = null,
 )
 
 /**

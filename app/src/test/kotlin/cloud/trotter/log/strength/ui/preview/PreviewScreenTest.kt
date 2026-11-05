@@ -50,33 +50,33 @@ class PreviewScreenTest {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "A"), planName = "Strength", title = "Upper",
             lifts = listOf(PreviewLift("Bench + Row", "135 lb × 5 + 95 lb × 8", listOf(
-                PreviewPreviousResult("130 lb × 5"), PreviewPreviousResult("90 lb × 8"),
+                PreviewPreviousResult("130 lb × 5", exerciseName = "Bench"), PreviewPreviousResult("90 lb × 8", exerciseName = "Row"),
             ))),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Bench + Row").assertExists()
         rule.onNodeWithText("Today 135 lb × 5 + 95 lb × 8").assertExists()
-        rule.onNodeWithText("Last 130 lb × 5").assertExists()
-        rule.onNodeWithText("Last 90 lb × 8").assertExists()
+        rule.onNodeWithText("Bench: Last 130 lb × 5").assertExists()
+        rule.onNodeWithText("Row: Last 90 lb × 8").assertExists()
     }
 
     @Test fun supersetKeepsComparableHistoryBesideAPartnerWithoutHistory() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, lifts = listOf(PreviewLift("Bench + Row", null, listOf(
-                PreviewPreviousResult("130 lb × 5"), PreviewPreviousResult(null),
+                PreviewPreviousResult("130 lb × 5", exerciseName = "Bench"), PreviewPreviousResult(null, exerciseName = "Row"),
             ))),
         ), PreviewActions({}, {}, {})) } }
-        rule.onNodeWithText("Last 130 lb × 5").assertExists()
-        rule.onNodeWithText("No previous result").assertExists()
+        rule.onNodeWithText("Bench: Last 130 lb × 5").assertExists()
+        rule.onNodeWithText("Row: No previous result").assertExists()
     }
 
     @Test fun supersetKeepsComparableHistoryBesideAMismatchedPartner() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, lifts = listOf(PreviewLift("Bench + Row", null, listOf(
-                PreviewPreviousResult("130 lb × 5"), PreviewPreviousResult(null, comparable = false),
+                PreviewPreviousResult("130 lb × 5", exerciseName = "Bench"), PreviewPreviousResult(null, comparable = false, exerciseName = "Row"),
             ))),
         ), PreviewActions({}, {}, {})) } }
-        rule.onNodeWithText("Last 130 lb × 5").assertExists()
-        rule.onNodeWithText("No comparable previous result").assertExists()
+        rule.onNodeWithText("Bench: Last 130 lb × 5").assertExists()
+        rule.onNodeWithText("Row: No comparable previous result").assertExists()
     }
 
     @Test fun emptyDayOffersEditAndNoStart() {

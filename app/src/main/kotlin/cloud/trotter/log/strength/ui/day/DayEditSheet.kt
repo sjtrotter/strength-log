@@ -406,8 +406,9 @@ private fun daySlotSummary(slot: DayEditSlotState, state: DayEditUiState): Strin
         is PrescribedTarget.Hold -> if (target.addedLb > 0.0) stringResource(R.string.sheet_loaded_hold_prescription,
             target.seconds, WeightStepper.format(state.unit.fromLb(target.addedLb)), state.unit.name.lowercase())
             else stringResource(R.string.sheet_hold_prescription, target.seconds)
-        is PrescribedTarget.RepsInTime -> if (target.repAim == null) formatCardioTime(target.seconds)
-            else stringResource(R.string.sheet_timed_prescription, target.repAim, formatCardioTime(target.seconds))
+        is PrescribedTarget.RepsInTime -> target.repAim?.let { aim ->
+            stringResource(R.string.sheet_timed_prescription, aim, formatCardioTime(target.seconds))
+        } ?: formatCardioTime(target.seconds)
     }
     return stringResource(R.string.sheet_sets_prescription, sets.size, value)
 }

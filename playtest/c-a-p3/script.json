@@ -38,7 +38,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day B"
+        "text": "5-day full body \u00b7 Day B"
       }
     },
     {
@@ -336,13 +336,13 @@
     },
     {
       "type": {
-        "editable": true,
-        "value": ""
+        "text": "Search exercises",
+        "value": "Two-second"
       }
     },
     {
       "tap": {
-        "text": "Two-second Paused Squat"
+        "textContains": "Two-second Paused Squat"
       }
     },
     {
@@ -658,7 +658,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day C"
+        "text": "5-day full body \u00b7 Day C"
       }
     },
     {
@@ -864,11 +864,322 @@
     {
       "type": {
         "editable": true,
-        "value": "paused"
+        "value": "Three-second Paused Bench"
       }
     },
     {
       "checkpoint": "friday-search-three-second-paused-bench"
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Three-second Paused Bench"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "95"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "friday-custom-paused-bench-return-to-picker"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": "Three-second"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Three-second Paused Bench"
+      }
+    },
+    {
+      "checkpoint": "friday-custom-bench-swap-scope"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "friday-paused-bench-selected"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday-paused-bench-original-rows"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "95"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "95"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "95"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "friday-paused-bench-four-95x4-sets"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "friday-paused-bench-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Three-second pauses, 95x4x4. All clean."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "friday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "friday-saved-main-lifts"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "DL single @7; grip solid. Split squat 20/hand 2x8/leg; seated curl 3x12."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Share"
+      }
+    },
+    {
+      "checkpoint": "friday-partner-summary-share-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "15h28m"
+    },
+    {
+      "checkpoint": "saturday-nov14-before-close-grip"
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day D"
+      }
+    },
+    {
+      "checkpoint": "saturday-generated-day-d-preview"
     }
   ]
 }

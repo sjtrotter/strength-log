@@ -57,8 +57,6 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.sync.WatchContinuitySource
-import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -523,6 +521,9 @@ class DayViewModel @Inject constructor(
                 closeSheet()
             },
             executionActive = { executionActive },
+            loggedCardio = { planId, dayId ->
+                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis())
+            },
         )
 
         viewModelScope.launch {
@@ -1437,6 +1438,8 @@ class DayViewModel @Inject constructor(
         val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
         val planId = state.planId ?: return
         val runId = state.runId ?: return
+        // Rounds already ridden are logged before the strength finish reads the day's cardio.
+        reconcileCardio()?.takeIf { it.dayId == day && !it.complete }?.let(::endCardioRun)
         finisher.start(runId, planId, day, Program.accentIndex(day), dayState.value.dayTitle)
     }
 
@@ -1813,11 +1816,7 @@ class DayViewModel @Inject constructor(
             return CardioCardState(activityLabel(savedRun.block.activity), "", savedRun.block.sets.any { it.hard },
                 block = savedRun.block, run = savedRun, canAddSet = false, finishesDay = savedRun.finishesDay)
         }
-        val civilDate = Instant.ofEpochMilli(cardioClock.wallMillis()).atZone(ZoneId.systemDefault()).toLocalDate()
-        val logged = history.firstOrNull {
-            it.planId == state.planId && it.dayId == state.viewDayId &&
-                Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
-        }
+        val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
         val frozen = savedRun?.takeIf {
             it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId

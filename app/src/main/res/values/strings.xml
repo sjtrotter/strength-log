@@ -380,6 +380,7 @@
 <string name="day_finish_partial_dismiss_button">Keep going</string>
 <string name="day_clear_checks_confirm_title">Discard this workout?</string>
 <string name="day_clear_checks_confirm_body">Everything you logged in this workout is dropped, including weight and rep changes.</string>
+<string name="day_clear_checks_confirm_body_cardio_saved">The lifts you logged in this workout are dropped, including weight and rep changes. Your saved cardio stays in History.</string>
 <string name="day_clear_checks_confirm_button">Discard</string>
 
 <!-- Day edit -->

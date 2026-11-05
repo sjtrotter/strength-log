@@ -385,6 +385,7 @@ fun DayScreen(
 
     if (confirmingClearChecks && state.runOpen) {
         ClearChecksConfirmDialog(
+            cardioSaved = state.cardio?.loggedSeconds != null,
             onConfirm = {
                 confirmingClearChecks = false
                 actions.onDiscardWorkout()
@@ -437,11 +438,11 @@ private fun FinishDayConfirmDialog(
 }
 
 @Composable
-private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun ClearChecksConfirmDialog(cardioSaved: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.day_clear_checks_confirm_title)) },
-        text = { Text(stringResource(R.string.day_clear_checks_confirm_body)) },
+        text = { Text(stringResource(if (cardioSaved) R.string.day_clear_checks_confirm_body_cardio_saved else R.string.day_clear_checks_confirm_body)) },
         confirmButton = {
             DialogAction(
                 label = stringResource(R.string.day_clear_checks_confirm_button),

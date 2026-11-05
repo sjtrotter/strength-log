@@ -3664,13 +3664,14 @@
   },
   {
    "scrollTo": {
-    "textContains": "Nov 23, 2026"
+    "textContains": "Nov 23, 2026",
+    "role": "Button"
    }
   },
   {
    "tap": {
     "textContains": "Nov 23, 2026",
-    "index": 0
+    "role": "Button"
    }
   },
   {
@@ -3684,20 +3685,12 @@
   },
   {
    "scrollTo": {
-    "textContains": "Nov 20, 2026"
-   }
-  },
-  {
-   "tap": {
     "textContains": "Nov 20, 2026",
-    "index": 1
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "cardio-nov20"
-  },
-  {
-   "back": true
+   "checkpoint": "cardio-card-nov20"
   },
   {
    "tap": {
@@ -3768,13 +3761,14 @@
   },
   {
    "scrollTo": {
-    "textContains": "Dec 4, 2026"
+    "textContains": "Dec 4, 2026",
+    "role": "Button"
    }
   },
   {
    "tap": {
     "textContains": "Dec 4, 2026",
-    "index": 0
+    "role": "Button"
    }
   },
   {

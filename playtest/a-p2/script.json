@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -935,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb × 8"
+        "text": "135 lb \u00d7 8"
       }
     },
     {
@@ -1169,7 +1169,7 @@
     },
     {
       "expect": {
-        "text": "25 lb × 8"
+        "text": "25 lb \u00d7 8"
       }
     },
     {
@@ -1212,7 +1212,7 @@
     },
     {
       "expect": {
-        "text": "25 lb × 8"
+        "text": "25 lb \u00d7 8"
       }
     },
     {
@@ -1258,11 +1258,88 @@
     },
     {
       "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "monday-find-session-note-field"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
         "text": "Done"
       }
     },
     {
       "checkpoint": "home-after-first-finished-workout"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "history-first-real-monday-session"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "consistency-and-progress-with-one-session"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "plans-after-saving-my-lower-day"
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-find-backup-export-and-continuation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-find-custom-plan-entry"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "return-to-today-before-tuesday"
     },
     {
       "expect": {
@@ -1277,7 +1354,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -1347,8 +1424,14 @@
       "checkpoint": "tuesday-focus-before-first-bench"
     },
     {
+      "back": true
+    },
+    {
+      "checkpoint": "tuesday-focus-after-closing-edit-day"
+    },
+    {
       "expect": {
-        "text": "165 lb × 5"
+        "text": "165 lb \u00d7 5"
       }
     },
     {
@@ -1446,6 +1529,28 @@
     },
     {
       "checkpoint": "tuesday-remove-extra-work-and-set-raises"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices-for-brisk-walk"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "back-to-upper-editor-after-cardio-inspection"
     },
     {
       "tap": {

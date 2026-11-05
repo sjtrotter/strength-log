@@ -151,6 +151,12 @@
   },
   {
    "tap": {
+    "textContains": "Next:",
+    "role": "Button"
+   }
+  },
+  {
+   "tap": {
     "text": "Start"
    }
   },

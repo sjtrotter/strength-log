@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -734,6 +734,206 @@
     },
     {
       "checkpoint": "ready-to-enter-twelve-minute-steady-bike"
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-cable-lateral-raise"
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-plank-side-plank"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options-for-straight-working-sets"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 15 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "bench-swap-picker"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 1 of 15 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 · Work"
+      }
+    },
+    {
+      "checkpoint": "steady-bike-set-duration-fields"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "note": "I have spent too long setting this up. I will record my actual135x8 working sets through the individual set editor. I already warmed up95x5. I will leave unused ramp sets unchecked rather than claim I did them."
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "first-squat-work-set-ready"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "checkpoint": "first-squat-work-set-logged"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "checkpoint": "two-squat-work-sets-recorded"
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "third-squat-work-set-entry"
     }
   ]
 }

@@ -1384,6 +1384,12 @@
    }
   },
   {
+   "checkpoint": "receipt-b2-noted"
+  },
+  {
+   "advance": "10s"
+  },
+  {
    "tap": {
     "text": "Done"
    }

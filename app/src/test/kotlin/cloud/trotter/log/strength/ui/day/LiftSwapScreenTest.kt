@@ -2,11 +2,15 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -162,6 +166,34 @@ class LiftSwapScreenTest {
             composeTestRule.onAllNodesWithText("Swap exercise")
                 .fetchSemanticsNodes().isEmpty(),
         )
+    }
+
+    @Test
+    fun emptyPatternSearchCanSwapToAShoulderPress() {
+        searchAllAndSwap("shoulder press", "machine_shoulder")
+    }
+
+    @Test
+    fun emptyPatternSearchCanSwapToAGluteBridge() {
+        searchAllAndSwap("bridge", "glute_bridge")
+    }
+
+    private fun searchAllAndSwap(query: String, exerciseId: String) {
+        val swaps = mutableListOf<Pair<Int, String>>()
+        val target = ExerciseCatalog.CODE_ONLY.get(exerciseId)
+        setDayContent(dayEditActions = swapRecorder(swaps))
+        composeTestRule.onNodeWithText("All sets").performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
+        composeTestRule.onNodeWithText("Swap exercise").performClick()
+        composeTestRule.onNode(hasSetTextAction()).performTextInput(query)
+        composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Search all exercises").performClick()
+        composeTestRule.onNode(hasSetTextAction()).assertTextContains(query)
+        composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("The plan").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
+
+        assertEquals(listOf(0 to target.id), swaps)
     }
 
     private fun setDayContent(

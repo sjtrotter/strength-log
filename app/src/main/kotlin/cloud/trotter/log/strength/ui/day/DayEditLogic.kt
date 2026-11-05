@@ -2,33 +2,29 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.minExercisesPerDay
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.ExerciseSearch
 import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.Equipment
 
 /**
  * Pure search/filter over an already-ranked candidate list (spec §8.3, PLAN.md
- * A4). Candidates must arrive pre-ranked from [cloud.trotter.log.strength.data.catalog.ExerciseCatalog]'s
- * `substitutionsFor`/`byPattern` (subRank order, "best replacement first") —
- * this never re-sorts, it only narrows, so the ranked order always survives a
- * search or filter.
+ * A4). Candidates arrive in catalog or substitution order; filtering preserves
+ * that order so ranked replacements keep the best replacement first.
  */
 object ExercisePicker {
 
     /**
-     * [query] matches a case-insensitive substring of the entry's name (blank
-     * query matches everything). [equipment] uses [availableWith].
+     * Every [query] word matches a name word or its catalog expansion, in any
+     * order (blank query matches everything). [equipment] uses [availableWith].
      */
     fun filter(
         candidates: List<ExerciseEntry>,
         query: String,
         equipment: Set<Equipment>,
     ): List<ExerciseEntry> {
-        val q = query.trim()
-        return candidates.filter { entry -> matchesQuery(entry, q) && entry.availableWith(equipment) }
+        val search = ExerciseSearch(query)
+        return candidates.filter { entry -> search.matches(entry.name) && entry.availableWith(equipment) }
     }
-
-    private fun matchesQuery(entry: ExerciseEntry, query: String): Boolean =
-        query.isEmpty() || entry.name.contains(query, ignoreCase = true)
 }
 
 object DayEditRules {

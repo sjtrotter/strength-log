@@ -31,6 +31,9 @@ data class SetDto(
     val completedAtMillis: Long? = null,
     val plannedIndex: Int? = null,
     val watchEditedAt: Long? = null,
+    // Only the first row of an edited run plan carries the original comparison baseline.
+    // Null keeps fresh-run captures and all other set encodings byte-identical.
+    val carryForwardPlan: List<SetDto>? = null,
 ) {
     fun toDomain(): LoggedSet =
         LoggedSet(
@@ -76,6 +79,19 @@ object SetJson {
 
     fun decodeSets(text: String): List<LoggedSet> =
         json.decodeFromString<List<SetDto>>(text).map(SetDto::toDomain)
+
+    fun encodePlan(sets: List<LoggedSet>, previous: String): String {
+        val prior = json.decodeFromString<List<SetDto>>(previous)
+        val baseline = prior.firstOrNull()?.carryForwardPlan ?: prior
+        return json.encodeToString(sets.mapIndexed { index, set ->
+            SetDto.of(set).copy(carryForwardPlan = baseline.takeIf { index == 0 })
+        })
+    }
+
+    fun decodeCarryForwardPlan(text: String): List<LoggedSet> {
+        val sets = json.decodeFromString<List<SetDto>>(text)
+        return (sets.firstOrNull()?.carryForwardPlan ?: sets).map(SetDto::toDomain)
+    }
 
     fun <T> encode(serializer: kotlinx.serialization.KSerializer<T>, value: T): String =
         json.encodeToString(serializer, value)

@@ -286,7 +286,8 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(partner.all { it.kind == SetKind.WORK })
         assertEquals(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF),
             SetJson.decodeSets(grown.getValue(Slot.MAIN).plannedJson))
-        assertEquals(SetSeeder.seedPartner(6, partnerGoal), SetJson.decodeSets(grown.getValue(Slot.SS).plannedJson))
+        assertEquals(SetSeeder.seedPartner(3, 45.0) + SetSeeder.seedPartner(3, partnerGoal),
+            SetJson.decodeSets(grown.getValue(Slot.SS).plannedJson))
         val completedPartner = partner.mapIndexed { index, row -> row.copy(done = index == 5) }
         repo.writeTestRows(runId, "A", id, Slot.SS, completedPartner)
         val beforeShrink = db.runDao().tracks(runId).associateBy { it.slot }
@@ -365,6 +366,56 @@ class TrackerRepositoryRunEditsTest {
         val archivedPlan = SessionPlanJson.decode(repo.history.session(finished.sessionId)!!.plannedJson!!).single()
         assertEquals(live.planned, archivedPlan.sets.map { it.toDomain() })
         assertEquals(1, repo.history.sessionSummariesFlow.first().single().setCount)
+    }
+
+    @Test fun `MAIN prescription edit preserves remembered partner targets on the receipt`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val partner = SetSeeder.seedPartner(3, 45.0)
+        db.storeTestRows("A", id, Slot.SS, partner)
+        val runId = start(plan, sets = work())
+        val current = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }.sets
+        repo.writeTestRows(runId, "A", id, Slot.SS,
+            current.mapIndexed { index, row -> row.copy(done = index == 0) })
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(80.0, 8)))
+
+        val livePartner = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }
+        assertEquals(partner, livePartner.planned)
+        assertEquals(listOf(45.0, 45.0, 45.0), livePartner.sets.map { it.weightLb })
+        val finished = requireNotNull(repo.finishRunCapturing(runId))
+        val receiptPartner = requireNotNull(finished.tracks).single { it.slot == Slot.SS }
+        assertEquals(partner, receiptPartner.planned)
+        val archivedPlan = SessionPlanJson.decode(repo.history.session(finished.sessionId)!!.plannedJson!!)
+        assertEquals(partner, archivedPlan.single { it.slot == Slot.SS }.sets.map { it.toDomain() })
+    }
+
+    @Test fun `TOP prescription edit keeps the receipt plan and recascades next sessions completed ramp`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setKeepToPlan(id, false)
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(235.0, 5)))
+        val runId = start(plan)
+        assertEquals(SetJson.encodeSets(squat()), db.runDao().tracks(runId).single().plannedJson)
+
+        val changed = Prescription(PrescribedTarget.LoadReps(245.0, 5))
+        repo.setPrescription(id, changed)
+
+        val finished = requireNotNull(repo.finishRunCapturing(runId))
+        val receipt = requireNotNull(finished.tracks).single()
+        assertEquals(130.0, receipt.sets.first().weightLb, 0.0)
+        assertTrue(receipt.sets.first().done)
+        assertEquals(SetSeeder.seedPrescribed(3, changed, SetStructure.RAMP_TOP_BACKOFF), receipt.planned)
+        val archivedPlan = SessionPlanJson.decode(repo.history.session(finished.sessionId)!!.plannedJson!!).single()
+        assertEquals(receipt.planned, archivedPlan.sets.map { it.toDomain() })
+        val next = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.MAIN)!!.setsJson)
+        assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), next.map { it.weightLb })
+        assertTrue(next.none { it.done })
+        val archived = repo.history.sessionSets(finished.sessionId)
+        assertEquals(130.0, archived.first().weightLb, 0.0)
+        assertTrue(archived.first().done)
     }
 
     /** [F] */
@@ -455,7 +506,7 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(listOf(0, 1, 2, null), main.map { it.plannedIndex })
         assertEquals(listOf(0, 1, 2, null), ss.map { it.plannedIndex })
         assertEquals(SetSeeder.seedPrescribed(4, changed), SetJson.decodeSets(after.getValue(Slot.MAIN).plannedJson))
-        assertEquals(SetSeeder.seedPartner(4, goal), SetJson.decodeSets(after.getValue(Slot.SS).plannedJson))
+        assertEquals(partner + SetSeeder.seedPartner(1, goal), SetJson.decodeSets(after.getValue(Slot.SS).plannedJson))
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
     }
 
@@ -587,7 +638,7 @@ class TrackerRepositoryRunEditsTest {
         repo.setPrescription(slot, changed, sets = 4)
         assertEquals(original.copy(
             retired = true,
-            plannedJson = SetJson.encodeSets(SetSeeder.seedPrescribed(4, changed)),
+            plannedJson = SetJson.encodePlan(SetSeeder.seedPrescribed(4, changed), original.plannedJson),
             setsJson = SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(original.setsJson),
                 SetSeeder.seedPrescribed(4, changed))),
         ), db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" })
@@ -770,7 +821,7 @@ class TrackerRepositoryRunEditsTest {
         val editedTracks = db.runDao().tracks(runId)
         assertEquals(substituted.filterNot { it.id == original.id }, editedTracks.filterNot { it.id == original.id })
         assertEquals(substituted.single { it.id == original.id }.copy(
-            plannedJson = SetJson.encodeSets(expected),
+            plannedJson = SetJson.encodePlan(expected, original.plannedJson),
             setsJson = SetJson.encodeSets(RunReplan.represcribe(current, expected)),
         ), editedTracks.single { it.id == original.id })
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
@@ -787,7 +838,8 @@ class TrackerRepositoryRunEditsTest {
         val alignedPartner = restored.getValue(Slot.SS)
         assertEquals(partnerRows, SetJson.decodeSets(alignedPartner.setsJson).take(3))
         assertEquals(6, SetJson.decodeSets(alignedPartner.setsJson).size)
-        assertEquals(partner.plannedJson, alignedPartner.plannedJson)
+        assertEquals(SetJson.decodeSets(partner.plannedJson), SetJson.decodeSets(alignedPartner.plannedJson).take(3))
+        assertEquals(6, SetJson.decodeSets(alignedPartner.plannedJson).size)
 
         val edited = rows.mapIndexed { index, row ->
             if (index == 1) row.copy(weightLb = 85.0, watchEditedAt = 500L) else row
@@ -797,6 +849,48 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
         assertEquals(beforeSecondSwap, db.runDao().tracks(runId).single { !it.retired && it.slot == Slot.MAIN })
+
+        repo.writeTestRows(runId, "A", id, Slot.MAIN, edited.map { it.copy(done = true) })
+        val partnerDone = SetJson.decodeSets(alignedPartner.setsJson).mapIndexed { index, row ->
+            row.copy(done = index == 0)
+        }
+        repo.writeTestRows(runId, "A", id, Slot.SS, partnerDone)
+        val finished = requireNotNull(repo.finishRunCapturing(runId))
+        val receipt = requireNotNull(finished.tracks).filterNot { it.retired }
+        assertEquals(7, receipt.sumOf { track -> track.sets.count { it.done } })
+        assertEquals(12, receipt.sumOf { it.planned.size })
+        val archivedPlan = SessionPlanJson.decode(repo.history.session(finished.sessionId)!!.plannedJson!!)
+        assertEquals(12, archivedPlan.filterNot { it.retired }.sumOf { it.sets.size })
+    }
+
+    @Test fun `restoring a pair after a substituted MAIN prescription edit finishes seven of twelve`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        val captured = repo.openRunFlow.first()!!.tracks
+        assertEquals(listOf(3, 3), captured.map { it.planned.size })
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        val changed = Prescription(PrescribedTarget.LoadReps(80.0, 8))
+
+        repo.setPrescription(id, changed, sets = 6)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+
+        val restored = repo.openRunFlow.first()!!.tracks.filterNot { it.retired }
+        assertEquals(listOf(6, 6), restored.map { it.sets.size })
+        for (track in restored) {
+            repo.writeTestRows(runId, "A", id, track.slot, track.sets.mapIndexed { index, row ->
+                row.copy(done = track.slot == Slot.MAIN || index == 0)
+            })
+        }
+        val finished = requireNotNull(repo.finishRunCapturing(runId))
+        val receipt = requireNotNull(finished.tracks).filterNot { it.retired }
+        assertEquals(7, receipt.sumOf { track -> track.sets.count { it.done } })
+        assertEquals(12, receipt.sumOf { it.planned.size })
+        assertEquals(SetSeeder.seedPrescribed(6, changed), receipt.single { it.slot == Slot.MAIN }.planned)
+        val archivedPlan = SessionPlanJson.decode(repo.history.session(finished.sessionId)!!.plannedJson!!)
+        assertEquals(12, archivedPlan.filterNot { it.retired }.sumOf { it.sets.size })
+        assertEquals(7, repo.history.sessionSummariesFlow.first().single().setCount)
     }
 
     @Test fun `workout swap back follows a prescription edited while substituted and keeps done rows`() = runTest {
@@ -816,7 +910,7 @@ class TrackerRepositoryRunEditsTest {
 
         assertEquals(substitute, db.runDao().tracks(runId).single { !it.retired })
         assertEquals(original.copy(retired = true,
-            plannedJson = SetJson.encodeSets(SetSeeder.seedPrescribed(6, prescription)), setsJson = SetJson.encodeSets(
+            plannedJson = SetJson.encodePlan(SetSeeder.seedPrescribed(6, prescription), original.plannedJson), setsJson = SetJson.encodeSets(
             RunReplan.represcribe(current, SetSeeder.seedPrescribed(6, prescription)),
         )), db.runDao().tracks(runId).single { it.retired })
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
@@ -901,7 +995,7 @@ class TrackerRepositoryRunEditsTest {
         val expected = RunReplan.represcribe(current, SetSeeder.seedPartner(6, goal))
         val retired = db.runDao().tracks(runId).single { it.id == partner.id }
         assertEquals(partner.copy(retired = true,
-            plannedJson = SetJson.encodeSets(SetSeeder.seedPartner(6, goal)), setsJson = SetJson.encodeSets(expected)), retired)
+            plannedJson = SetJson.encodePlan(SetSeeder.seedPartner(6, goal), partner.plannedJson), setsJson = SetJson.encodeSets(expected)), retired)
         val activePartner = db.runDao().tracks(runId).single { it.id == substitute.id }
         assertEquals(SetJson.decodeSets(substitute.setsJson), SetJson.decodeSets(activePartner.setsJson).take(3))
         val substituteGoal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("rope_pushdown"),
@@ -1091,7 +1185,7 @@ class TrackerRepositoryRunEditsTest {
         val replannedPartner = RunReplan.represcribe(SetJson.decodeSets(originalPartner.setsJson),
             SetSeeder.seedPartner(2, partnerGoal))
         assertEquals(2, replannedPartner.size)
-        assertEquals(originalPartner.copy(plannedJson = SetJson.encodeSets(SetSeeder.seedPartner(2, partnerGoal)),
+        assertEquals(originalPartner.copy(plannedJson = SetJson.encodePlan(SetSeeder.seedPartner(2, partnerGoal), originalPartner.plannedJson),
             setsJson = SetJson.encodeSets(replannedPartner)),
             after.single { it.id == originalPartner.id })
         val earlierSubstitute = before.single { it.slot == Slot.SS && it.exerciseId == "cable_curl" }
@@ -1440,7 +1534,7 @@ class TrackerRepositoryRunEditsTest {
             SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF))
         assertEquals(promoted, db.runDao().tracks(runId).single { !it.retired })
         assertEquals(droppedMain.copy(
-            plannedJson = SetJson.encodeSets(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)),
+            plannedJson = SetJson.encodePlan(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF), droppedMain.plannedJson),
             setsJson = SetJson.encodeSets(expected)),
             db.runDao().tracks(runId).single { it.id == original.id })
         val partnerBeforeRestore = db.runDao().tracks(runId).single { it.slot == Slot.SS }
@@ -1484,7 +1578,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
         assertEquals(original.copy(retired = true,
-            plannedJson = SetJson.encodeSets(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)),
+            plannedJson = SetJson.encodePlan(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF), original.plannedJson),
             setsJson = SetJson.encodeSets(RunReplan.represcribe(current,
             SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)))),
             db.runDao().tracks(runId).single { it.id == original.id })

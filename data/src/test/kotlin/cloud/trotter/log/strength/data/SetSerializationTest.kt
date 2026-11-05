@@ -22,6 +22,22 @@ class SetSerializationTest {
         )
     }
 
+    @Test
+    fun `edited run plans retain their first carry forward baseline across repeated edits`() {
+        val original = listOf(LoggedSet(235.0, 5, SetKind.TOP))
+        val captured = SetJson.encodeSets(original)
+        assertEquals(original, SetJson.decodeCarryForwardPlan(captured))
+        val changed = listOf(LoggedSet(245.0, 5, SetKind.TOP))
+        val firstEdit = SetJson.encodePlan(changed, captured)
+        val latest = listOf(LoggedSet(255.0, 3, SetKind.TOP))
+        val secondEdit = SetJson.encodePlan(latest, firstEdit)
+
+        assertEquals(changed, SetJson.decodeSets(firstEdit))
+        assertEquals(latest, SetJson.decodeSets(secondEdit))
+        assertEquals(original, SetJson.decodeCarryForwardPlan(firstEdit))
+        assertEquals(original, SetJson.decodeCarryForwardPlan(secondEdit))
+    }
+
     /** [F] */
     @Test
     fun `run row identity and watch stamp round trip`() {

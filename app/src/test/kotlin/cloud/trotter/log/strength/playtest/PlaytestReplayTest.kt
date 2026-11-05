@@ -49,6 +49,7 @@ class PlaytestReplayTest {
         var failure: Throwable? = null
         var launchAttempted = false
         var backupAttempted = false
+        startRunWatchdog(artifacts)
         fun writeBackup() {
             backupAttempted = true
             artifacts.writeSummary(if (this::time.isInitialized) time else null)
@@ -79,6 +80,9 @@ class PlaytestReplayTest {
                 try {
                     waitForStorage(60_000) { backup.import(file.readText()) }
                 } catch (error: PlaytestError) {
+                    // The import may still be committing; an export now could mix old and new state.
+                    backupAttempted = true
+                    artifacts.backupFailure(PlaytestError("timeout", "Restore did not finish, so no backup was exported"))
                     throw error
                 } catch (error: Exception) {
                     throw PlaytestError("script", "Cannot restore ${file.path}: ${error.message}", cause = error)
@@ -136,4 +140,25 @@ class PlaytestReplayTest {
             }
         }
     }
+
+    /** Any wait that cannot be interrupted (a looper drain that never empties, a blocked callback)
+     *  still ends with a summary before the workflow kills the job. */
+    private fun startRunWatchdog(artifacts: RunArtifacts) {
+        Thread({
+            try {
+                Thread.sleep(RUN_LIMIT_MS)
+            } catch (_: InterruptedException) {
+                return@Thread
+            }
+            try {
+                artifacts.failure(PlaytestError("timeout", "The replay exceeded ${RUN_LIMIT_MS / 60_000} minutes"), null)
+                artifacts.writeSummary(null)
+            } finally {
+                Runtime.getRuntime().halt(1)
+            }
+        }, "playtest-run-watchdog").apply { isDaemon = true }.start()
+    }
 }
+
+/** Below the workflow's 25-minute job timeout, after setup and compilation, leaving time to upload. */
+private const val RUN_LIMIT_MS = 15 * 60_000L

@@ -28,6 +28,8 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Duration
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -68,9 +70,13 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
     }
 
     fun writeBackup(backup: BackupService) {
-        waitForStorage(60_000) {
-            File(directory, "backup.json").writeText(backup.export())
-        }
+        // Written only after the export returns, then moved into place, so a timeout never
+        // leaves a truncated backup.json behind.
+        val json = waitForStorage(60_000) { backup.export() }
+        val partial = File(directory, "backup.json.tmp")
+        partial.writeText(json)
+        Files.move(partial.toPath(), File(directory, "backup.json").toPath(),
+            StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 
     fun backupFailure(error: PlaytestError) {

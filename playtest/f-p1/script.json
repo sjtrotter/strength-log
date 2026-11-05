@@ -135,101 +135,8 @@
   },
   {
    "tap": {
-    "text": "Start day A"
-   }
-  },
-  {
-   "checkpoint": "first-workout"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "checkpoint": "all-sets"
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "checkpoint": "sets-more"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Day A lifts, 0 of 21 sets"
-   }
-  },
-  {
-   "checkpoint": "day-list"
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "checkpoint": "day-more"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
-   }
-  },
-  {
-   "checkpoint": "edit-set"
-  },
-  {
-   "tap": {
-    "desc": "Set menu"
-   }
-  },
-  {
-   "checkpoint": "set-menu"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Back"
-   }
-  },
-  {
-   "checkpoint": "left-workout"
-  },
-  {
-   "tap": {
     "text": "Plans"
    }
-  },
-  {
-   "tap": {
-    "desc": "Plan options"
-   }
-  },
-  {
-   "checkpoint": "plan-options"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -238,6 +145,50 @@
   },
   {
    "checkpoint": "plan-detail"
+  },
+  {
+   "tap": {
+    "text": "160"
+   }
+  },
+  {
+   "checkpoint": "goal-editor"
+  },
+  {
+   "type": {
+    "editable": true,
+    "inDialog": true,
+    "value": "45",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "goal-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "goal-saved"
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-options"
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "checkpoint": "edit-day"
   }
  ]
 }

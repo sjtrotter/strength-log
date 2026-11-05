@@ -1252,273 +1252,91 @@
    }
   },
   {
-   "advance": "24h"
-  },
-  {
-   "note": "Wed Nov 11. Deadlift 4x4 at 195 on their Day C. Skipped abs, work call at 7."
+   "note": "Wed Nov 11. First, Sunday-style look at the week so far while the app still works."
   },
   {
    "tap": {
-    "text": "Today",
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-2-sessions"
+  },
+  {
+   "tap": {
+    "textContains": "Nov 10, 2026"
+   }
+  },
+  {
+   "checkpoint": "session-tue"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "session-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "swipe": {
+    "text": "History",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
     "role": "Tab"
    }
   },
   {
    "tap": {
-    "textContains": "Day C"
-   }
-  },
-  {
-   "tap": {
-    "text": "Start day C"
-   }
-  },
-  {
-   "checkpoint": "wed-workout"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
+    "textContains": "You"
    }
   },
   {
    "type": {
-    "text": "Weight (kg)",
-    "value": "195"
+    "text": "Bodyweight (kg)",
+    "value": "95.2",
+    "ime": "done"
    }
   },
   {
-   "type": {
-    "text": "Reps",
-    "value": "4"
-   }
+   "checkpoint": "bw-95-2"
   },
   {
-   "tap": {
-    "text": "Save set"
-   }
+   "back": true
   },
   {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 2"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "195"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "4"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "195"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "4"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 4"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "195"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "4"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "checkpoint": "dl-4x4"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Note"
-   }
-  },
-  {
-   "type": {
-    "text": "Note",
-    "value": "Set 2 bar drifted forward, fixed it on 3 and 4."
-   }
-  },
-  {
-   "tap": {
-    "text": "Save note"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip for this workout"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip for this workout"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip for this workout"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "wed-receipt"
-  },
-  {
-   "tap": {
-    "text": "Done"
-   }
+   "checkpoint": "plans-after-bw"
   },
   {
    "advance": "48h"
   },
   {
-   "note": "Thu walk with the dog, nowhere to put it. Fri Nov 13, heavy bench 3x3 at 125 on their Day D."
+   "note": "Fri Nov 13, heavy bench 3x3 at 125 on their Day D. (Wed deadlifts moved below; Day C hung on Loading last time.)"
   },
   {
    "tap": {
@@ -1535,6 +1353,12 @@
    "tap": {
     "text": "Start day D"
    }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 10000
   },
   {
    "tap": {
@@ -1770,61 +1594,6 @@
    }
   },
   {
-   "tap": {
-    "text": "History",
-    "role": "Tab"
-   }
-  },
-  {
-   "checkpoint": "history-week1"
-  },
-  {
-   "tap": {
-    "text": "Trends and calendar"
-   }
-  },
-  {
-   "checkpoint": "trends"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "textContains": "Nov 13, 2026"
-   }
-  },
-  {
-   "checkpoint": "session-fri"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Plans",
-    "role": "Tab"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "You"
-   }
-  },
-  {
-   "type": {
-    "text": "Bodyweight (kg)",
-    "value": "95.2",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "bw-95-2"
-  },
-  {
-   "back": true
-  },
-  {
    "advance": "24h"
   },
   {
@@ -1845,6 +1614,12 @@
    "tap": {
     "text": "Start day F"
    }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 10000
   },
   {
    "tap": {
@@ -1871,6 +1646,199 @@
   },
   {
    "checkpoint": "swapped"
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "checkpoint": "left-sat-workout"
+  },
+  {
+   "advance": "1h"
+  },
+  {
+   "note": "Retrying their Day C (deadlift) with a long wait."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "today-after-leaving"
+  },
+  {
+   "tap": {
+    "textContains": "Day C"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "day-c-loaded"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "195"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "195"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "195"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "195"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "dl-4x4"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "dl-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-final"
   }
  ]
 }

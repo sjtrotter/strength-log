@@ -108,12 +108,17 @@
    "checkpoint": "today-after-tue"
   },
   {
-   "note": "What does it think bench is next week after 5/5/4? Let me look at Day A."
+   "tap": {
+    "text": "Other days"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "other-days-tue"
   },
   {
    "tap": {
-    "text": "4-day upper/lower \u00b7 Day A",
-    "index": 1
+    "text": "4-day upper/lower \u00b7 Day A"
    },
    "timeoutMs": 20000
   },
@@ -163,12 +168,21 @@
   },
   {
    "tap": {
-    "text": "Other days"
+    "text": "4-day upper/lower \u00b7 Day C1"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "wed-other-days"
+   "checkpoint": "cardio-day-detail"
+  },
+  {
+   "tap": {
+    "textContains": "Start day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "cardio-started"
   }
  ]
 }

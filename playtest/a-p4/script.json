@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -781,77 +781,23 @@
     },
     {
       "tap": {
-        "desc": "Close sheet"
+        "desc": "Back",
+        "index": 1
       }
     },
     {
-      "tap": {
-        "desc": "Day A lifts, 1 of 15 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
+      "expect": {
         "text": "Edit day"
       }
     },
     {
-      "tap": {
-        "desc": "More options for DB Bench Press"
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day",
+        "absent": true
       }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "bench-swap-picker"
-    },
-    {
-      "tap": {
-        "desc": "Close sheet"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 1 of 15 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Set 1 · Work"
-      }
-    },
-    {
-      "checkpoint": "steady-bike-set-duration-fields"
-    },
-    {
-      "tap": {
-        "desc": "Close sheet"
-      }
-    },
-    {
-      "note": "I have spent too long setting this up. I will record my actual135x8 working sets through the individual set editor. I already warmed up95x5. I will leave unused ramp sets unchecked rather than claim I did them."
     },
     {
       "tap": {
@@ -881,7 +827,15 @@
       }
     },
     {
-      "checkpoint": "first-squat-work-set-ready"
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "monday-first-squat-work-set-logged"
+    },
+    {
+      "note": "I tapped this check once before I meant to. Uncheck it, then check it when the set is actually done; the result should still be one set."
     },
     {
       "tap": {
@@ -889,10 +843,31 @@
       }
     },
     {
-      "advance": "120s"
+      "checkpoint": "corrected-premature-set-check"
     },
     {
-      "checkpoint": "first-squat-work-set-logged"
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "extended-squat-rest"
+    },
+    {
+      "advance": "195s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {
@@ -925,7 +900,7 @@
       "advance": "120s"
     },
     {
-      "checkpoint": "two-squat-work-sets-recorded"
+      "checkpoint": "monday-two-squat-work-sets-plus-warmup"
     },
     {
       "tap": {
@@ -933,7 +908,7 @@
       }
     },
     {
-      "checkpoint": "third-squat-work-set-entry"
+      "checkpoint": "monday-third-squat-work-set-entry"
     }
   ]
 }

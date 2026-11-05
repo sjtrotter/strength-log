@@ -214,26 +214,132 @@
    "checkpoint": "c1-run-after-40m"
   },
   {
+   "note": "The 25:00 ran out on its own and logged itself. 'Distance not entered' is just a line, not a button. Trying All sets to find where distance goes."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "run-all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-all-sets-back"
+  },
+  {
    "tap": {
     "tag": "workout-action-filled"
    }
   },
   {
-   "checkpoint": "c1-run-after-tap-2"
-  },
-  {
-   "advance": "5s"
-  },
-  {
-   "checkpoint": "c1-run-after-tap-2-5s"
+   "checkpoint": "c1-receipt"
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "text": "Add a note"
    }
   },
   {
-   "checkpoint": "c1-finish-dialog"
+   "type": {
+    "editable": true,
+    "value": "7.1 km, 40:12, 5:40 pace. Nice out, felt good. App logged 25:00 because that is what the plan said."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "run-note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "tue-after-run-today"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-tue"
+  },
+  {
+   "tap": {
+    "text": "Nov 10, 2026"
+   }
+  },
+  {
+   "checkpoint": "history-run-row"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "history-run-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "advance": "35h"
+  },
+  {
+   "checkpoint": "thu-morning-today"
+  },
+  {
+   "note": "Thursday 6:30 am, intervals done, 8.3 km, reps 4:28 4:31 4:35 4:41. Faded on the last one. Logging it as C2 since C1 is used."
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "thu-other-days"
+  },
+  {
+   "tap": {
+    "text": "2-day full body \u00b7 Day C2"
+   }
+  },
+  {
+   "checkpoint": "c2-page"
+  },
+  {
+   "tap": {
+    "text": "Start day C2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "c2-started"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "c2-edit-set-1"
   }
  ]
 }

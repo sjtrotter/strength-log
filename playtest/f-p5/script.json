@@ -392,7 +392,12 @@
   {
    "tap": {
     "text": "Start empty"
-   }
+   },
+   "timeoutMs": 40000
+  },
+  {
+   "checkpoint": "after-start-empty",
+   "timeoutMs": 30000
   },
   {
    "checkpoint": "empty-plan"

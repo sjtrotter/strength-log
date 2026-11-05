@@ -3,42 +3,54 @@ package cloud.trotter.log.strength.ui.log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -46,30 +58,31 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
-import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import cloud.trotter.log.strength.ui.components.CheckmarkToggle
-import cloud.trotter.log.strength.ui.components.Stepper
-import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
-import cloud.trotter.log.strength.ui.theme.StepperRepsValue
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.CheckmarkToggle
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.NoteSheet
+import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.BorderStrong
+import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.theme.SummaryLine
 import cloud.trotter.log.strength.ui.theme.Surface3
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -77,23 +90,23 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.readableWidth
-import cloud.trotter.log.strength.domain.theme.ThemePreference
-import cloud.trotter.log.strength.ui.text.resolve
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 /**
- * The journal (PLAN.md A1; docs/briefs/journal.md): the three derived sections
- * — trajectory, volume, calendar — over the read-only, reverse-chronological
- * list of completed sessions. Expanding a row shows that session's sets
- * grouped by exercise. Stateless in the Compose sense, matching
- * [cloud.trotter.log.strength.ui.day.DayScreen] — [state] renders, [actions]
- * carries every intent back to [LogViewModel].
+ * History keeps the top-set trajectory visible and discloses weekly volume
+ * and the calendar above the reverse-chronological list of completed sessions.
+ * Expanding a row shows that session's sets grouped by exercise. [state]
+ * renders and [actions] carries session intents back to [LogViewModel];
+ * disclosure state is saveable across recreation.
  */
 @Composable
 fun LogScreen(state: LogUiState, actions: LogActions) {
     val showPlanNames = state.sessions.mapNotNull { it.planId }.distinct().size > 1
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var trendsExpanded by rememberSaveable { mutableStateOf(false) }
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var deleteConfirmation by remember { mutableStateOf<Long?>(null) }
     var noteSessionId by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -101,33 +114,51 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
             LogHeader()
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = bottomInset + 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
 
-                if (state.journal.trajectories.isNotEmpty()) {
-                    item(key = "trajectory-header") { LogSectionHeader(stringResource(R.string.log_trajectory_header)) }
-                    items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
-                        TrajectoryCardView(card)
+                if (state.health.available && state.health.publishing && state.health.backfill != null) {
+                    item(key = "hc-action") {
+                        HealthConnectSection(state.health, actions.onConnectHealth, actions.onPublishPastWorkouts)
                     }
                 }
-                state.journal.volume?.let { volume ->
-                    item(key = "volume-header") { LogSectionHeader(stringResource(R.string.log_volume_header)) }
-                    item(key = "volume") { VolumeCardView(volume) }
+                items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
+                    TrajectoryCardView(card)
                 }
-                state.journal.calendar?.let { calendar ->
-                    item(key = "calendar-header") { LogSectionHeader(stringResource(R.string.log_calendar_header)) }
-                    item(key = "calendar") {
-                        CalendarCardView(
-                            month = calendar,
-                            onPage = actions.onPageCalendar,
-                            onSelectSession = { sessionId ->
-                                sessionRowIndex(state, sessionId)?.let { index ->
-                                    scope.launch { listState.animateScrollToItem(index) }
-                                }
-                            },
-                        )
+                item(key = "trends-disclosure") {
+                    val disclosureState = stringResource(if (trendsExpanded) R.string.log_expanded_state else R.string.log_collapsed_state)
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.log_trends_and_calendar)) },
+                        trailingContent = {
+                            Icon(if (trendsExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null)
+                        },
+                        modifier = Modifier
+                            .heightIn(min = 56.dp)
+                            .clickable(role = Role.Button) { trendsExpanded = !trendsExpanded }
+                            .semantics { stateDescription = disclosureState },
+                    )
+                }
+                if (trendsExpanded) {
+                    state.journal.volume?.let { volume ->
+                        item(key = "volume-header") { LogSectionHeader(stringResource(R.string.log_weekly_volume)) }
+                        items(volume.weeks, key = { "volume-${it.startDate}" }) { week -> VolumeWeekRow(week) }
+                    }
+                    state.journal.calendar?.let { calendar ->
+                        item(key = "calendar-header") { LogSectionHeader(stringResource(R.string.log_calendar_section)) }
+                        item(key = "calendar") {
+                            CalendarCardView(
+                                month = calendar,
+                                onPage = actions.onPageCalendar,
+                                onSelectSession = { sessionId ->
+                                    sessionRowIndex(state, sessionId, trendsExpanded)?.let { index ->
+                                        scope.launch { listState.animateScrollToItem(index) }
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -136,16 +167,6 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                         BodyweightPromptCard(prompt, actions.onApplyBodyweight, actions.onDismissBodyweight)
                     }
                 }
-                if (state.health.available) {
-                    item(key = "hc-status") {
-                        HealthConnectSection(
-                            section = state.health,
-                            onConnect = actions.onConnectHealth,
-                            onPublishPast = actions.onPublishPastWorkouts,
-                        )
-                    }
-                }
-
                 if (state.sessions.isEmpty()) {
                     item(key = "empty") {
                         EmptyJournalState(
@@ -174,12 +195,17 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 }
 
                 if (state.health.externalSessions.isNotEmpty()) {
-                    item(key = "external-header") { LogSectionHeader(stringResource(R.string.log_external_header)) }
+                    item(key = "external-header") { LogSectionHeader(stringResource(R.string.log_external_section)) }
                     items(state.health.externalSessions, key = { "ext-${it.title}-${it.dateDisplay}-${it.sourceLabel}" }) { row ->
                         ExternalSessionCard(row)
                     }
                 }
 
+                if (state.health.available && (!state.health.publishing || state.health.backfill == null)) {
+                    item(key = "hc-status") {
+                        HealthConnectSection(state.health, actions.onConnectHealth, actions.onPublishPastWorkouts)
+                    }
+                }
                 item { Spacer(Modifier.size(8.dp)) }
             }
         }
@@ -218,7 +244,7 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
     val spoken = stringResource(R.string.log_cardio_semantics, item.cardioSemantics.orEmpty(), item.cardioDuration.orEmpty())
     val summary = stringResource(R.string.log_cardio_summary, item.cardioSummary.orEmpty(), item.cardioDuration.orEmpty())
     AppCard(
-        modifier = Modifier.semantics(mergeDescendants = true) {
+        modifier = Modifier.padding(horizontal = 4.dp).semantics(mergeDescendants = true) {
             contentDescription = spoken
         },
     ) {
@@ -243,15 +269,18 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
  * bookkeeping). Must be kept in step with the item order in [LogScreen] above;
  * an unknown session simply yields null and the tap does nothing.
  */
-private fun sessionRowIndex(state: LogUiState, sessionId: Long): Int? {
-    val position = state.sessions.indexOfFirst { it.sessionId == sessionId }
+private fun sessionRowIndex(state: LogUiState, sessionId: Long, trendsExpanded: Boolean): Int? {
+    val position = state.sessions.indexOfFirst { it.cardioId == null && it.sessionId == sessionId }
     if (position < 0) return null
     var index = 1 // leading spacer
-    if (state.journal.trajectories.isNotEmpty()) index += 1 + state.journal.trajectories.size
-    if (state.journal.volume != null) index += 2
-    if (state.journal.calendar != null) index += 2
+    if (state.health.available && state.health.publishing && state.health.backfill != null) index += 1
+    index += state.journal.trajectories.size
+    index += 1 // disclosure
+    if (trendsExpanded) {
+        state.journal.volume?.let { index += 1 + it.weeks.size }
+        if (state.journal.calendar != null) index += 2
+    }
     if (state.health.bodyweightPrompt != null) index += 1
-    if (state.health.available) index += 1
     return index + position
 }
 
@@ -289,7 +318,7 @@ private fun SessionCard(
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     val disclosureLabel = stringResource(if (item.expanded) R.string.log_collapse_label else R.string.log_expand_label)
     val disclosureState = stringResource(if (item.expanded) R.string.log_expanded_state else R.string.log_collapsed_state)
-    AppCard {
+    AppCard(modifier = Modifier.padding(horizontal = 4.dp)) {
         // SHARE is a separate action when expanded, so disclosure belongs to
         // this header region rather than the M3 card container.
         Row(
@@ -437,7 +466,7 @@ private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEd
 private fun UndoDeletedSessionRow(dayIndex: Int, onUndo: () -> Unit) {
     TextButton(
         onClick = onUndo,
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).heightIn(min = 48.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = accentEmphasis(dayIndex)),
     ) {
         Text(stringResource(R.string.log_session_deleted), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
@@ -494,7 +523,7 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
  */
 @Composable
 private fun BodyweightPromptCard(prompt: BodyweightPromptUi, onApply: () -> Unit, onDismiss: () -> Unit) {
-    AppCard {
+    AppCard(modifier = Modifier.padding(horizontal = 4.dp)) {
         Text(stringResource(R.string.log_bodyweight_title), color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(
@@ -564,7 +593,7 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
  *  isn't: the lazy, user-initiated permission entry point. */
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
-    AppCard(onClick = onConnect) {
+    AppCard(onClick = onConnect, modifier = Modifier.padding(horizontal = 4.dp)) {
         Text(stringResource(R.string.log_health_connect_title), color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(
@@ -579,13 +608,12 @@ private fun ConnectHealthCard(onConnect: () -> Unit) {
  *  never confused with the user's own logged history. */
 @Composable
 private fun ExternalSessionCard(row: ExternalSessionRow) {
-    AppCard {
+    AppCard(modifier = Modifier.padding(horizontal = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(row.title, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
                 Text(row.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
-            // Another app's provenance is body copy; caps overlines mark our sections.
             Text(row.sourceLabel, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -678,39 +706,34 @@ private fun LogScreenPreviewContent(theme: ThemePreference) {
                     exerciseName = "Barbell Back Squat",
                     dayIndex = 0,
                     points = listOf(
-                        TrajectoryPoint(205f, newHigh = true),
-                        TrajectoryPoint(205f, newHigh = false),
-                        TrajectoryPoint(215f, newHigh = true),
-                        TrajectoryPoint(215f, newHigh = false),
-                        TrajectoryPoint(225f, newHigh = true),
-                        TrajectoryPoint(235f, newHigh = true),
+                        TrajectoryPoint(205f, newHigh = true, date = LocalDate.of(2026, 5, 4).plusWeeks(0)),
+                        TrajectoryPoint(205f, newHigh = false, date = LocalDate.of(2026, 5, 4).plusWeeks(1)),
+                        TrajectoryPoint(215f, newHigh = true, date = LocalDate.of(2026, 5, 4).plusWeeks(2)),
+                        TrajectoryPoint(215f, newHigh = false, date = LocalDate.of(2026, 5, 4).plusWeeks(3)),
+                        TrajectoryPoint(225f, newHigh = true, date = LocalDate.of(2026, 5, 4).plusWeeks(4)),
+                        TrajectoryPoint(235f, newHigh = true, date = LocalDate.of(2026, 5, 4).plusWeeks(5)),
                     ),
                     goalValue = 235f,
-                    goalLabel = "GOAL 235",
+                    goalLabel = "235",
                     goalMet = true,
                     latestLabel = "235",
-                    caption = "6 SESSIONS · SINCE MAY 4",
+                    unit = WeightUnit.LB,
                     axisMin = 200f,
                     axisMax = 240f,
-                    gridlines = listOf(TrajectoryGridline(205f, "205"), TrajectoryGridline(235f, "235")),
                 ),
             ),
             volume = VolumeChart(
-                bars = listOf(0.4f, 0.6f, 0f, 0.7f, 0.9f, 1f, 0.8f, 0f, 0.5f, 0.7f, 0.85f, 0.62f)
-                    .mapIndexed { i, fraction ->
-                        VolumeBar(
-                            fraction = fraction,
-                            trained = fraction > 0f,
-                            label = when (i) {
-                                5 -> "19.8K"
-                                11 -> "12.4K"
-                                else -> null
-                            },
-                        )
-                    },
+                weeks = List(12) { i ->
+                    VolumeWeek(
+                        startDate = LocalDate.of(2026, 7, 6).minusWeeks(i.toLong()),
+                        total = if (i == 2) 0.0 else 12_400.0,
+                        unit = WeightUnit.LB,
+                        trained = i != 2,
+                    )
+                },
             ),
             calendar = CalendarMonth(
-                title = "JULY 2026",
+                title = "July 2026",
                 monthOffset = 0,
                 canPageBack = true,
                 canPageForward = false,

@@ -129,20 +129,22 @@ class AuditHistoryShotsTest : UiAuditTest() {
     @Test fun shot18HistoryVolume() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/18-history-volume", beforeCapture = {
-            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Volume"))
+            rule.onNodeWithText("Trends and calendar").performScrollTo().performClick()
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Weekly volume"))
         }) { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture(), logActions()) } }
     }
 
     @Test fun shot19HistoryCalendar() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/19-history-calendar", beforeCapture = {
-            rule.onNode(hasScrollAction()).performScrollToNode(hasText("NOVEMBER 2026"))
+            rule.onNodeWithText("Trends and calendar").performScrollTo().performClick()
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText("November 2026"))
         }) { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture(), logActions()) } }
     }
 
     @Test fun shot20HistoryUnplotted() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("history/20-history-unplotted") { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture().let { it.copy(journal = it.journal.copy(trajectories = it.journal.trajectories.map { card -> card.copy(points = card.points.take(1)) })) }, logActions()) } }
+        rule.auditShot("history/20-history-unplotted") { AuditDestination(TopLevelDestination.LOG) { LogScreen(auditHistoryFixture().let { it.copy(journal = it.journal.copy(trajectories = it.journal.trajectories.map { card -> card.copy(points = card.points.takeLast(1)) })) }, logActions()) } }
     }
 
     @Test fun shot21HistoryExternal() {

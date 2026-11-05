@@ -1600,13 +1600,350 @@
    "checkpoint": "plank-done"
   },
   {
+   "advance": "5s"
+  },
+  {
    "tap": {
-    "tag": "workout-finish"
+    "textContains": "Finish day"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "finish-dialog"
+   "checkpoint": "finish-confirm-D"
+  },
+  {
+   "tap": {
+    "role": "Button",
+    "inDialog": true,
+    "index": 1
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-D"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "today-after-monday"
+  },
+  {
+   "note": "Tuesday 6 am. Bench day."
+  },
+  {
+   "advance": "22h"
+  },
+  {
+   "checkpoint": "tuesday-6am"
+  },
+  {
+   "tap": {
+    "textContains": "Start day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "tue-bench-set1"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "note": "Set 3: stalled two inches off my chest on rep 5. Rolled it to my hips. 4 reps."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "tue-after-bench"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "tue-after-rows"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "7"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "tue-curls-superset"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "tue-after-curls"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "tue-all-logged"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "note-dialog"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Bench: second time 175 stalls on the last rep of set 3. I rest 2 min and call it 3."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "note-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "back": true
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "finish-confirm-A"
+  },
+  {
+   "tap": {
+    "role": "Button",
+    "inDialog": true,
+    "index": 1
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-A"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "today-after-tuesday"
   }
  ]
 }

@@ -91,9 +91,10 @@ private fun AppNavigationBar(
 }
 
 /**
- * M3's [NavigationBar] has a fixed 80 dp height, so a label at font scale 2 is clipped by the
- * bar's own bounds. The label follows the user's font size up to [MAX_LABEL_FONT_SCALE] and stops
- * there, where it still fits; the screens above the bar keep the full scale.
+ * M3's [NavigationBar] has a fixed 80 dp height, which leaves about 20 dp for the label line
+ * under the 32 dp indicator, so a larger label is clipped by the bar's own bounds. The label
+ * follows the user's font size up to [MAX_LABEL_FONT_SCALE] (labelMedium's 16 sp line at 1.2x is
+ * 19.2 dp) and stops there; the icon and the screens above the bar carry the full scale.
  */
 @Composable
 private fun NavigationLabel(text: String) {
@@ -104,4 +105,4 @@ private fun NavigationLabel(text: String) {
     }
 }
 
-private const val MAX_LABEL_FONT_SCALE = 1.5f
+private const val MAX_LABEL_FONT_SCALE = 1.2f

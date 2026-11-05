@@ -585,15 +585,13 @@
     {
       "type": {
         "text": "Reps",
-        "value": "5",
-        "ime": "done"
+        "value": "5"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "215",
-        "ime": "done"
+        "value": "215"
       }
     },
     {
@@ -612,22 +610,19 @@
     {
       "type": {
         "text": "Sets",
-        "value": "3",
-        "ime": "done"
+        "value": "3"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
-        "ime": "done"
+        "value": "8"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "135",
-        "ime": "done"
+        "value": "135"
       }
     },
     {
@@ -646,15 +641,13 @@
     {
       "type": {
         "text": "Sets",
-        "value": "3",
-        "ime": "done"
+        "value": "3"
       }
     },
     {
       "type": {
         "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
+        "value": "0:30"
       }
     },
     {
@@ -676,15 +669,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "45",
-        "ime": "done"
+        "value": "45"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {

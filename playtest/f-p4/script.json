@@ -217,18 +217,52 @@
    "checkpoint": "prescription"
   },
   {
-   "type": {
-    "text": "Reps",
-    "value": "5",
-    "ime": "done"
+   "tap": {
+    "desc": "Decrease sets"
    }
   },
   {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "185",
-    "ime": "done"
+   "tap": {
+    "desc": "Decrease sets"
    }
+  },
+  {
+   "tap": {
+    "desc": "Decrease sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "checkpoint": "prescription-set"
   },
   {
    "tap": {

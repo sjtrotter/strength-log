@@ -1581,6 +1581,345 @@
     },
     {
       "checkpoint": "nov23-opening-target-before-eighty"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "note": "Nov 23: five-minute warmup walked physically; it is elapsed time, not a saved warmup. Trying 80 lb on leg press is my own choice."
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "nov23-third-leg-attempt-eight-reps"
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov23-chest-target-after-leg-miss"
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov23-row-target"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "checkpoint": "nov23-eleven-actual-sets-including-leg-eight"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "nov23-saved-eighty-ten-ten-eight"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h9m"
+    },
+    {
+      "checkpoint": "nov25-short-visit-today-after-missed-leg-reps"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "checkpoint": "nov25-preview-after-eighty-ten-ten-eight"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "nov25-opening-leg-offer"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "nov25-all-leg-targets-after-miss"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "note": "Nov 25: work ran late, groceries next. Only 24 minutes today; three-minute physical warmup, leg press and two chest sets, then leave. No finishing walk, row or curl."
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov25-three-leg-sets-now-ten-reps"
+    },
+    {
+      "advance": "5m30s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov25-five-sets-only-before-leaving"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "nov25-early-finish-confirmation"
     }
   ]
 }

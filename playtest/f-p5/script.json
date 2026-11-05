@@ -533,7 +533,7 @@
   },
   {
    "tap": {
-    "textContains": "Bulgarian"
+    "text": "Bulgarian Split Squat"
    }
   },
   {
@@ -541,7 +541,7 @@
   },
   {
    "tap": {
-    "textContains": "Bulgarian"
+    "text": "Bulgarian Split Squat"
    }
   },
   {
@@ -642,11 +642,57 @@
   {
    "type": {
     "text": "Search exercises",
-    "value": "step"
+    "value": "plank"
    }
   },
   {
-   "checkpoint": "search-step"
+   "checkpoint": "search-plank"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-from-search"
+  },
+  {
+   "tap": {
+    "desc": "More options for Trap-Bar Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single leg"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Copenhagen plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "checkpoint": "create-exercise"
   }
  ]
 }

@@ -180,10 +180,32 @@
    }
   },
   {
-   "checkpoint": "squat-editor"
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45",
+    "ime": "done"
+   }
   },
   {
-   "back": true
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "squat-45"
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "after-remove-rdl"
   },
   {
    "tap": {
@@ -191,10 +213,48 @@
    }
   },
   {
-   "checkpoint": "more-options"
+   "tap": {
+    "text": "Remove"
+   }
   },
   {
-   "back": true
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "day-a-trimmed"
+  },
+  {
+   "tap": {
+    "desc": "More options for Chest-Supported Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap-picker"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Pulldown"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Pulldown"
+   }
+  },
+  {
+   "checkpoint": "after-swap"
   },
   {
    "tap": {
@@ -202,7 +262,15 @@
    }
   },
   {
-   "checkpoint": "edit-cardio"
+   "tap": {
+    "text": "25:00"
+   }
+  },
+  {
+   "checkpoint": "cardio-duration"
+  },
+  {
+   "back": true
   },
   {
    "back": true
@@ -213,19 +281,12 @@
    }
   },
   {
-   "checkpoint": "add-exercise"
+   "scrollTo": {
+    "textContains": "url"
+   }
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "after-add-back"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-sheet-back"
+   "checkpoint": "add-exercise-curl"
   }
  ]
 }

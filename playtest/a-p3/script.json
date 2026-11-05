@@ -248,6 +248,81 @@
     },
     {
       "checkpoint": "home-after-reopening-app"
+    },
+    {
+      "note": "Setup is complete without an account. Before training I need to find where my own block goes; inspect settings, history, day selection, and preview before opening Plans."
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-units-backup-and-program-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "empty-history-calendar-and-review-options"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choosing-days-scheduling-or-rotation"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "today-after-day-selector"
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "day-a-preview-before-starting"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "returned-from-preview-without-starting"
+    },
+    {
+      "note": "My Monday work is squat 190 x 1 then 165 x 5 x 4, bench 100 x 5 x 5, leg curls and ab wheel. I need the plan editor before I can claim this generated session is mine."
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-looking-for-own-four-week-block"
+    },
+    {
+      "note": "Next replay: inspect all newly opened screens, prioritize building or editing my own program, then begin Monday training. No workout has been logged by these discovery steps."
     }
   ]
 }

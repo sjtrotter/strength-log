@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -541,13 +541,13 @@
       "checkpoint": "today-after-leaving-upper-day-preview"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "expect": {
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -650,6 +650,14 @@
     },
     {
       "checkpoint": "monday-warmup-survives-activity-recreation"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "monday-all-squat-sets-and-warmup-classification"
     }
   ],
   "capture": "checkpoints"

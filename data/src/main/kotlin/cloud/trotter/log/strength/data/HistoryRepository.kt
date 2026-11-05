@@ -16,10 +16,13 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
@@ -103,10 +106,6 @@ class HistoryRepository(
                 cardio.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
             ).maxOrNull()
         }.distinctUntilChanged()
-
-    private fun belongsToPlan(sessionPlanId: Long?, planId: Long?): Boolean =
-        planId != null &&
-            (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
 
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
         require(metres == null || metres > 0)
@@ -239,6 +238,30 @@ class HistoryRepository(
         return sessionDao.lastPerformedRows(exerciseIds).toLastPerformedByExercise()
     }
 
+    /** Archived tracks of the newest session for this plan and day, keyed by exercise and slot. */
+    suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
+        val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
+        val plannedJson = session.plannedJson ?: return@withTransaction emptyMap()
+        val sets = sessionDao.setsForSession(session.id)
+        SessionPlanJson.decode(plannedJson).associate { dto ->
+            (dto.exerciseId to dto.slot) to SlotSession(
+                dto.sets.map(SetDto::toDomain),
+                sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot }
+                    .sortedBy { it.setIndex }.map { it.toLoggedSet() },
+                dto.retired,
+            )
+        }
+    }
+
+    suspend fun lastPerformedForSlots(
+        planId: Long,
+        dayId: String,
+        exerciseIds: List<String>,
+    ): Map<Pair<String, String>, SlotLast> {
+        if (exerciseIds.isEmpty()) return emptyMap()
+        return sessionDao.lastPerformedSourceRows(exerciseIds).toLastPerformedForSlots(planId, dayId)
+    }
+
     /**
      * Batches the day-card "Best" chip for a whole day into one query
      * (performance-profile.md Phase 1): [exerciseIds]' all-time heaviest
@@ -315,8 +338,22 @@ class HistoryRepository(
         }
     }
 
+    private fun SessionSetEntity.toLoggedSet(): LoggedSet = LoggedSet(
+        weightLb = weightLb,
+        reps = reps,
+        kind = SetKind.entries.firstOrNull { it.name == kind } ?: SetKind.WORK,
+        done = done,
+        seconds = seconds,
+        startedAtMillis = startedAtMillis,
+        completedAtMillis = completedAtMillis,
+        plannedIndex = plannedIndex,
+    )
+
 }
 
 /** Unknown stored enum names stay unknown: callers may render [mode], while typed consumers skip it. */
 fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
     CardioMode.entries.find { it.name == mode }
+
+/** One archived track of the newest session for a plan and day. */
+data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean)

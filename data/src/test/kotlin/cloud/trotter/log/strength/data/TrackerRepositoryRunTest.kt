@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -808,6 +809,137 @@ class TrackerRepositoryRunTest {
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         repo.ensureSeeded(plan, "A")
         assertEquals(seed, repo.dayTracksFlow(plan, "A").first().tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.sets)
+    }
+
+    @Test fun `finish holds the opening weight after a miss`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        val runId = start(plan)
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot, 1), TrackEdit(slot, Slot.MAIN) {
+            SetEditor.editReps(it, 2, 6)
+        }, tick(slot, 2)))
+
+        repo.finishRun(runId)
+
+        assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `a dropped track with done rows carries and one without leaves working values alone`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.SS, work())
+        val originalPartner = db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!
+        val runId = start(plan)
+        assertTrue(repo.dropSupersetHalf(plan, "A", slot, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        val main = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }
+        repo.finishRun(runId)
+        assertEquals(originalPartner, db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        assertEquals(CarryForward.next(main.planned, main.sets),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+
+        val secondRunId = day(plan).nextRunId
+        repo.applyToRun(secondRunId, plan, "A", listOf(TrackEdit(slot, Slot.SS) { rows ->
+            rows.mapIndexed { i, row -> if (i == 0) row.copy(done = true, weightLb = 60.0, reps = 6) else row }
+        }))
+        assertTrue(repo.dropSupersetHalf(plan, "A", slot, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        val partner = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == slot && it.slot == Slot.SS }
+        assertTrue(partner.dropped && partner.retired)
+        repo.finishRun(secondRunId)
+        assertEquals(CarryForward.next(partner.planned, partner.sets),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+        assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+    }
+
+    @Test fun `a skipped ramp with done work carries its manual ramp edit`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        val runId = start(plan)
+        repo.applyToRun(runId, plan, "A", listOf(weight(slot, 140.0)))
+        assertTrue(repo.skipLift(plan, "A", slot, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        repo.finishRun(runId)
+        assertEquals(squat().mapIndexed { i, row -> if (i == 0) row.copy(weightLb = 140.0) else row },
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `setWorkingWeight writes working values before a run and both jsons in a run and refuses after a tick`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        val runId = day(plan).nextRunId
+        assertEquals(RunWriteResult.WorkingValues, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+        assertEquals(work().map { it.copy(weightLb = 55.0) },
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertNull(db.runDao().openRun())
+        assertEquals(RunStartResult.Started(runId), repo.startRun(plan, "A"))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 60.0))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+        val track = db.runDao().tracks(runId).single()
+        val rows = SetJson.decodeSets(track.setsJson)
+        assertEquals(List(3) { 55.0 }, rows.map { it.weightLb })
+        assertEquals(listOf(0, 1, 2), rows.map { it.plannedIndex })
+        assertEquals(CarryForward.cleared(rows), SetJson.decodeSets(track.plannedJson))
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
+        val before = db.runDao().tracks(runId)
+        assertEquals(RunWriteResult.Unchanged, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 60.0))
+        assertEquals(before, db.runDao().tracks(runId))
+        repo.finishRun(runId)
+        assertEquals(work().map { it.copy(weightLb = 55.0) },
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `setWorkingWeight rejects stale runs mismatched days and missing or retired tracks`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val runId = day(plan).nextRunId
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        val logs = db.programDao().allLogs()
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight("stale", plan, "A", slot, Slot.MAIN, 55.0))
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan, "B", slot, Slot.MAIN, 55.0))
+        assertEquals(logs, db.programDao().allLogs())
+        repo.startRun(plan, "A")
+        val tracks = db.runDao().tracks(runId)
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan + 100, "A", slot, Slot.MAIN, 55.0))
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan, "B", slot, Slot.MAIN, 55.0))
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan, "A", slot, Slot.SS, 55.0))
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(day(plan, "B").nextRunId, plan, "B", slot(plan, "B"), Slot.MAIN, 55.0))
+        assertEquals(tracks, db.runDao().tracks(runId))
+        assertEquals(logs, db.programDao().allLogs())
+        assertTrue(repo.swapInRun(runId, slot, Slot.MAIN, "hack_squat"))
+        val replacement = db.runDao().tracks(runId).single { !it.retired }
+        db.runDao().updateTrack(replacement.copy(retired = true))
+        val retired = db.runDao().tracks(runId)
+        assertEquals(RunWriteResult.Rejected, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 55.0))
+        assertEquals(retired, db.runDao().tracks(runId))
+    }
+
+    @Test fun `setWorkingWeight cascades kg ramp loads on the grid with the bar floor`() = runTest {
+        repo.replaceProgram(generated())
+        settings.setUnit(WeightUnit.KG)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        val runId = day(plan).nextRunId
+        val weight = WeightUnit.KG.toLb(20.0)
+        assertEquals(RunWriteResult.WorkingValues, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, weight))
+        SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson).forEach {
+            assertEquals(20.0, WeightUnit.KG.fromLb(it.weightLb), 1e-6)
+        }
+        repo.startRun(plan, "A")
+        assertEquals(RunWriteResult.InRun(runId, false), repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, WeightUnit.KG.toLb(22.5)))
+        val track = db.runDao().tracks(runId).single { it.slot == Slot.MAIN && it.programExerciseId == slot }
+        val rows = SetJson.decodeSets(track.setsJson)
+        listOf(20.0, 20.0, 20.0, 20.0, 22.5, 20.0).zip(rows).forEach { (expected, row) ->
+            assertEquals(expected, WeightUnit.KG.fromLb(row.weightLb), 1e-6)
+        }
+        assertEquals(CarryForward.cleared(rows), SetJson.decodeSets(track.plannedJson))
     }
 
     @Test fun `remembered prescribed slot carries forward the run track`() = runTest {

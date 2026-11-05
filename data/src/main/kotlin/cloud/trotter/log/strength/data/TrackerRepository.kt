@@ -1058,6 +1058,50 @@ class TrackerRepository(
         }
     }
 
+    /**
+     * Writes an accepted or restored working weight. In a run, it becomes the opening weight too.
+     * Refused once a row is done.
+     */
+    suspend fun setWorkingWeight(
+        runId: String,
+        planId: Long,
+        dayId: String,
+        programExerciseId: Long,
+        slot: String,
+        weightLb: Double,
+    ): RunWriteResult {
+        val unit = settings.unitFlow.first()
+        return db.withTransaction {
+            val open = runDao.openRun()
+            if (open?.id == runId) {
+                if (open.planId != planId || open.dayId != dayId) return@withTransaction RunWriteResult.Rejected
+                val track = runDao.tracks(runId).singleOrNull {
+                    it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
+                } ?: return@withTransaction RunWriteResult.Rejected
+                val rows = SetJson.decodeSets(track.setsJson)
+                if (rows.any { it.done }) return@withTransaction RunWriteResult.Unchanged
+                val equipment = catalog.snapshot().find(track.exerciseId)?.equipment.orEmpty()
+                val next = CarryForward.withWorkingWeight(rows, weightLb, unit, equipment)
+                runDao.updateTrack(track.copy(
+                    setsJson = SetJson.encodeSets(next),
+                    plannedJson = SetJson.encodeSets(CarryForward.cleared(next)),
+                    updatedAt = clock.millis(),
+                ))
+                return@withTransaction RunWriteResult.InRun(runId, false)
+            }
+            if (open == null && programDao.day(planId, dayId)?.nextRunId == runId) {
+                val stored = programDao.logForSlot(planId, dayId, programExerciseId, slot)
+                    ?: return@withTransaction RunWriteResult.Rejected
+                val exercise = programDao.exercise(programExerciseId)?.exerciseIdFor(slot)
+                val equipment = exercise?.let { catalog.snapshot().find(it)?.equipment }.orEmpty()
+                programDao.upsertLog(logEntity(planId, dayId, programExerciseId, slot,
+                    CarryForward.withWorkingWeight(SetJson.decodeSets(stored.setsJson), weightLb, unit, equipment)))
+                return@withTransaction RunWriteResult.WorkingValues
+            }
+            RunWriteResult.Rejected
+        }
+    }
+
     /** The bounded path for a delta that carries no run: an old watch. */
     suspend fun applyToOpenRun(
         planId: Long, dayId: String, editedAtMillis: Long, edits: List<TrackEdit>,
@@ -1436,7 +1480,9 @@ class TrackerRepository(
         }.map { it.id }.toSet()
         changedShape.forEach { deleteSlotWorkingValues(slots.getValue(it)) }
         for (track in tracks) {
-            if (track.retired || track.dropped) continue
+            if (track.retired && !track.dropped) continue
+            val actual = SetJson.decodeSets(track.setsJson)
+            if (track.dropped && actual.none { it.done }) continue
             val slot = slots[track.programExerciseId] ?: continue
             if (slot.exerciseIdFor(track.slot) != track.exerciseId) continue
             if (slot.id in changedShape) continue
@@ -1444,7 +1490,7 @@ class TrackerRepository(
                 programDao.deleteLogForSlot(day.planId, day.dayId, slot.id, track.slot)
             } else {
                 programDao.upsertLog(logEntity(day.planId, day.dayId, slot.id, track.slot, CarryForward.next(
-                    SetJson.decodeSets(track.plannedJson), SetJson.decodeSets(track.setsJson),
+                    SetJson.decodeSets(track.plannedJson), actual,
                     unit, catalog.find(track.exerciseId)?.equipment.orEmpty(),
                 )))
             }

@@ -338,6 +338,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(strengthSlot) ?: -1, "A").first().runId.orEmpty(), "A", strengthSlot, Slot.MAIN, sets(225.0))
         val otherDayLogs = db.programDao().logsForDay(plan.id, "A")
         val suggestedBefore = repo.plans.suggestedDayFlow.first()
+        val opening = repo.openRunFlow.first()!!.tracks.single().planned
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
@@ -350,7 +351,7 @@ class TrackerRepositoryPlanScopeTest {
         val recordedSet = repo.history.sessionSets(sessionId).single()
         assertTrue(recordedSet.done)
         assertEquals(30, recordedSet.seconds)
-        assertEquals(coreSets.map { it.copy(done = false) }, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets)
+        assertEquals(opening, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets)
         assertEquals(otherDayLogs, db.programDao().logsForDay(plan.id, "A"))
         assertEquals("B", suggestedBefore)
         assertEquals(suggestedBefore, repo.plans.suggestedDayFlow.first())

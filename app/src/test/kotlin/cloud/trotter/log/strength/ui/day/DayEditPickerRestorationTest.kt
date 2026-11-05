@@ -84,4 +84,31 @@ class DayEditPickerRestorationTest {
         org.junit.Assert.assertEquals(before, search.fetchSemanticsNode().boundsInRoot.top)
     }
 
+    @Test
+    fun clearingAnEmptyEquipmentSelectionRestoresResultsAndSelectsEveryOption() {
+        show(key = "clear-empty-equipment")
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Clear filters").performClick()
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Hack Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
+        composeTestRule.onNodeWithText("Rack").assertIsSelected()
+
+        // An unmatched query alone is not an equipment restriction.
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz-no-such-exercise")
+        composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Clear filters").assertDoesNotExist()
+    }
+
+    @Test
+    fun clearingAPartialEquipmentSelectionRestoresMultiEquipmentExercises() {
+        show(key = "clear-partial-equipment")
+        composeTestRule.onNodeWithText("Barbell").performClick()
+        // The squat needs both the barbell and rack; selecting only the barbell still excludes it.
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Clear filters").performClick()
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rack").assertIsSelected()
+    }
+
 }

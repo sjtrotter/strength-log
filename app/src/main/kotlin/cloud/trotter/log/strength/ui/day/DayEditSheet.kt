@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -66,13 +67,18 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -370,16 +376,40 @@ private fun AddExerciseRow(label: String, onClick: () -> Unit) {
 private fun daySlotSummary(slot: DayEditSlotState, state: DayEditUiState): String {
     if (slot.isSuperset) return stringResource(R.string.sheet_superset_with, slot.partnerTitle.orEmpty())
     if (slot.targetSets == 0) return stringResource(R.string.sheet_no_sets)
-    val target = slot.prescription?.target ?: PrescriptionDraft.from(slot, state.catalog, state.config).prescription().target
+    val entry = state.catalog.find(slot.exerciseId)
+    val exercise = ProgramExercise(slot.exerciseId, structure = slot.structure,
+        targetSets = slot.targetSets, prescription = slot.prescription)
+    // Use the workout's seed policy; the prescription editor's defaults are only input drafts.
+    val sets = SlotSeeds.main(exercise, entry, state.config)
+        ?: return stringResource(when (slot.structure) {
+            SetStructure.STRAIGHT -> R.string.day_edit_structure_straight
+            SetStructure.RAMP_TOP -> R.string.day_edit_structure_ramp_top
+            SetStructure.RAMP_TOP_BACKOFF -> R.string.day_edit_structure_ramp_top_backoff
+        })
+    val first = sets.firstOrNull() ?: return stringResource(R.string.sheet_no_sets)
+    val top = sets.firstOrNull { it.kind == SetKind.TOP }
+    if (top != null && sets.any { it.kind == SetKind.RAMP }) {
+        val ramp = stringResource(R.string.sheet_ramp_prescription,
+            WeightStepper.format(state.unit.fromLb(top.weightLb)), state.unit.name.lowercase())
+        val backoffs = sets.count { it.kind == SetKind.BACKOFF }
+        return if (backoffs == 0) ramp else pluralStringResource(R.plurals.sheet_ramp_backoffs, backoffs, ramp, backoffs)
+    }
+    val target = slot.prescription?.target ?: when (entry?.tracking) {
+        TrackingType.WEIGHTED -> PrescribedTarget.LoadReps(first.weightLb, first.reps)
+        TrackingType.TIMED -> PrescribedTarget.Hold(first.seconds, first.weightLb)
+        TrackingType.REPS, null -> PrescribedTarget.Reps(first.reps)
+    }
     val value = when (target) {
         is PrescribedTarget.LoadReps -> stringResource(R.string.sheet_load_prescription,
             target.reps, WeightStepper.format(state.unit.fromLb(target.lb)), state.unit.name.lowercase())
         is PrescribedTarget.Reps -> target.reps.toString()
-        is PrescribedTarget.Hold -> stringResource(R.string.sheet_hold_prescription, target.seconds)
+        is PrescribedTarget.Hold -> if (target.addedLb > 0.0) stringResource(R.string.sheet_loaded_hold_prescription,
+            target.seconds, WeightStepper.format(state.unit.fromLb(target.addedLb)), state.unit.name.lowercase())
+            else stringResource(R.string.sheet_hold_prescription, target.seconds)
         is PrescribedTarget.RepsInTime -> if (target.repAim == null) formatCardioTime(target.seconds)
             else stringResource(R.string.sheet_timed_prescription, target.repAim, formatCardioTime(target.seconds))
     }
-    return stringResource(R.string.sheet_sets_prescription, slot.targetSets, value)
+    return stringResource(R.string.sheet_sets_prescription, sets.size, value)
 }
 
 @Composable
@@ -945,7 +975,7 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
             if (results.isEmpty()) item {
                 Column(Modifier.padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.sheet_no_matching_exercises), style = MaterialTheme.typography.bodyMedium)
-                    if (equipmentFilter.isNotEmpty()) TextButton(onClick = { equipmentFilter = emptySet() }) {
+                    if (!equipmentFilter.containsAll(allEquipment)) TextButton(onClick = { equipmentFilter = allEquipment.toSet() }) {
                         Text(stringResource(R.string.sheet_clear_filters))
                     }
                 }

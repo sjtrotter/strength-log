@@ -895,4 +895,10 @@
     <string name="sheet_add_exercise_title">Add %1$s</string>
     <string name="sheet_swap_title">Swap %1$s</string>
     <string name="sheet_reset_confirm_body">This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded. Logged history is not affected.</string>
+    <string name="sheet_ramp_prescription">Ramp to %1$s %2$s</string>
+    <plurals name="sheet_ramp_backoffs">
+        <item quantity="one">%1$s, then %2$d back-off</item>
+        <item quantity="other">%1$s, then %2$d back-offs</item>
+    </plurals>
+    <string name="sheet_loaded_hold_prescription">%1$d s at %2$s %3$s</string>
 </resources>

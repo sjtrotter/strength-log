@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -34,6 +36,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -479,6 +482,37 @@ class ReceiptScreenTest {
         rule.runOnIdle { save.value = NoteSave.Saved("Felt steady") }
         rule.onNodeWithText("Note").assertDoesNotExist()
         assertEquals(1, handled)
+    }
+
+    @Test
+    fun failedReceiptNoteSaveKeepsTheDraftAfterDismissAndReopen() {
+        val save = mutableStateOf<NoteSave?>(null)
+        val saved = mutableListOf<String>()
+        var handled = 0
+        rule.setContent {
+            AppTheme {
+                SessionReceiptScreen(receiptFixture(), {}, {}, onSetNote = { saved += it }, noteSave = save.value,
+                    onNoteSaveHandled = { handled++; save.value = null })
+            }
+        }
+        rule.onNodeWithText("Add a note").performScrollTo().performClick()
+        rule.onNodeWithText("Note").performTextReplacement("Felt steady")
+        rule.onNodeWithText("Save note").performClick()
+        rule.runOnIdle { save.value = NoteSave.Failed("Felt steady") }
+        rule.onNodeWithText("Note not saved.").assertIsDisplayed()
+        // Keep edits made after the failed write too, rather than reconstructing from the result.
+        val draft = "Felt steady, last set slow"
+        rule.onNodeWithText("Note").performTextReplacement(draft)
+        rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss))
+            .performSemanticsAction(SemanticsActions.Dismiss) { it() }
+        rule.onNodeWithText("Note").assertDoesNotExist()
+        rule.runOnIdle { assertNull(save.value); assertEquals(1, handled) }
+
+        rule.onNodeWithText("Add a note").performScrollTo().performClick()
+        rule.onNodeWithText("Note").assertTextContains(draft)
+        rule.onNodeWithText("Note not saved.").assertDoesNotExist()
+        rule.onNodeWithText("Save note").performClick()
+        rule.runOnIdle { assertEquals(listOf("Felt steady", draft), saved) }
     }
 
     @Test

@@ -650,12 +650,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb \u00d7 8"
+        "text": "Log 35 lb × 8"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 8"
+        "text": "Log 35 lb × 8"
       }
     },
     {
@@ -694,12 +694,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb \u00d7 6"
+        "text": "Log 35 lb × 6"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 6"
+        "text": "Log 35 lb × 6"
       }
     },
     {
@@ -735,12 +735,12 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1191,7 +1191,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1207,7 +1207,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1218,7 +1218,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1442,7 +1442,7 @@
       "checkpoint": "return-to-session-after-note-entry"
     },
     {
-      "advance": "19m30s"
+      "advance": "1170s"
     },
     {
       "checkpoint": "monday-eighteen-oh-eight-review-before-finishing"
@@ -1468,7 +1468,7 @@
       "note": "This is provisional incomplete Monday data entry, not a claim I skipped calves or the second plank. Repair from the newly captured controls next replay; do not relabel the diary."
     },
     {
-      "advance": "12h52m"
+      "advance": "772m"
     },
     {
       "checkpoint": "tuesday-nov10-seven-am-before-easy-run"
@@ -1523,7 +1523,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {

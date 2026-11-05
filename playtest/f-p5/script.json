@@ -77,8 +77,9 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Keep me 5k-ready"
+   "swipe": {
+    "text": "Placement",
+    "direction": "up"
    }
   },
   {
@@ -127,8 +128,9 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Ez Bar"
+   "swipe": {
+    "text": "Cable",
+    "direction": "up"
    }
   },
   {
@@ -148,8 +150,9 @@
    "checkpoint": "rotation-2day"
   },
   {
-   "scrollTo": {
-    "text": "Missing a day never skips the next workout."
+   "swipe": {
+    "text": "Day B",
+    "direction": "up"
    }
   },
   {

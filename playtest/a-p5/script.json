@@ -323,6 +323,93 @@
     },
     {
       "note": "Inspect plan editing and workout controls before recording goblet squat 35x8,35x6,30x8 and the rest of my actual A. Recreate is only a saved-state proxy, not proof of screen-lock or offline behavior."
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "set-editor-find-actual-reps-weight-warmup-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "all-sets-find-exercise-editing-and-warmup-types"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "checkpoint": "workout-lifts-find-swap-and-add-exercise"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-unlogged-generated-workout-to-edit-plan"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-find-edit-backup-export"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "combined-calendar-before-diary-look-for-scheduling"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "checkpoint": "open-plan-to-replace-barbell-prescription-with-my-lifts"
     }
   ]
 }

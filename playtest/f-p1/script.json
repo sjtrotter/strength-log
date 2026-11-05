@@ -176,11 +176,56 @@
   },
   {
    "tap": {
-    "textContains": "Cable Lateral Raise"
+    "textContains": "Ramp to 160"
    }
   },
   {
-   "checkpoint": "edit-day-row"
+   "checkpoint": "squat-editor"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "checkpoint": "more-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-exercise"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-add-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-sheet-back"
   }
  ]
 }

@@ -1817,11 +1817,11 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "tag": "workout-action-tonal"
    }
   },
   {
-   "checkpoint": "bike-after-tap"
+   "checkpoint": "bike-stopped"
   },
   {
    "tap": {
@@ -1841,6 +1841,981 @@
    "tap": {
     "text": "Done"
    }
+  },
+  {
+   "advance": "19h30m"
+  },
+  {
+   "note": "Wed Nov 18. Deadlift 4x4 at 202.5."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day C"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "wed-wk2-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "202.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "202.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "202.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "All good. Pulled the last set with straps off out of stubbornness. Deficits 170 3x3, RDL 145 3x8, ab wheel 3x10, none in here."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "202.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "wed-wk2-4x4"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "wed-wk2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d"
+  },
+  {
+   "note": "Thu: rain, no walk. Fri Nov 20. Heavy bench 3x3 at 127.5. Their Day D is a six-set ramp to 127.5 now; skipping the ramp sets."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day D"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "fri-wk2-workout"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "fri-after-ramp-skips"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "fri-top-logged-one-tap"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "127.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Last set RPE 8.5, slightly worse than I want, not alarm bells. Spoto 105. Pull-ups +10 again, didn't add. Triceps."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "127.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "fri-wk2-3x3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "fri-wk2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "1d3h"
+  },
+  {
+   "note": "Sat Nov 21. SSB bar taken by a class. Front squats 3x6 at 120 instead. Trying the swap for real."
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "You"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (kg)",
+    "value": "95.0",
+    "ime": "done"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   }
+  },
+  {
+   "checkpoint": "swap-squat-list"
+  },
+  {
+   "tap": {
+    "textContains": "Front Squat"
+   }
+  },
+  {
+   "checkpoint": "swap-for-front"
+  },
+  {
+   "tap": {
+    "text": "This workout",
+    "role": "RadioButton"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swapped-front"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "120"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "120"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "SSB taken, front squat 3x6 at 120, same feel. Singles at 187.5 fine. Back ext +20, DB rows 40s, treadmill 25. 95.0."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "120"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "sat-wk2-after-front"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "sat-wk2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "1d"
+  },
+  {
+   "note": "Sun Nov 22. Planning week 3. What does History give me?"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-wk2"
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press top set"
+   }
+  },
+  {
+   "checkpoint": "top-set-card-tapped"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "Nov 16, 2026"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Nov 16, 2026"
+   }
+  },
+  {
+   "checkpoint": "mon-wk2-detail"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "mon-wk2-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends-wk2"
+  },
+  {
+   "swipe": {
+    "text": "Week of Nov 9",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Week of Nov 9",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-wk2-scrolled"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Share"
+   }
+  },
+  {
+   "checkpoint": "share-tapped"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Warm-up",
+    "direction": "up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Backup"
+   }
+  },
+  {
+   "checkpoint": "backup-wk2"
+  },
+  {
+   "tap": {
+    "text": "Export CSV"
+   }
+  },
+  {
+   "checkpoint": "export-csv-tapped"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Export backup"
+   }
+  },
+  {
+   "checkpoint": "export-backup-tapped"
   }
  ]
 }

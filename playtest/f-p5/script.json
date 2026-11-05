@@ -763,113 +763,46 @@
    "checkpoint": "create-slrdl-filled"
   },
   {
-   "tap": {
-    "text": "Save"
+   "note": "Save is greyed: 'Choose a movement pattern to save it'. The pattern picker is below the bottom of the form and nothing scrolls on this rig. Trying one swipe, then giving up and using the library's DB RDL per side instead."
+  },
+  {
+   "swipe": {
+    "text": "Per hand (dumbbell/unilateral)",
+    "direction": "up"
    }
   },
   {
-   "checkpoint": "after-create-slrdl"
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
+   "swipe": {
+    "text": "Per hand (dumbbell/unilateral)",
+    "direction": "up"
    }
   },
   {
+   "checkpoint": "create-form-after-swipe"
+  },
+  {
    "tap": {
-    "text": "Single leg"
+    "desc": "Cancel"
    }
+  },
+  {
+   "checkpoint": "after-cancel-create"
   },
   {
    "type": {
     "editable": true,
-    "value": "Single-Leg Calf Raise"
+    "value": "DB Romanian"
    }
   },
   {
    "tap": {
-    "text": "Create exercise"
-   }
-  },
-  {
-   "type": {
-    "text": "Name",
-    "value": "Single-Leg Calf Raise"
+    "text": "DB Romanian Deadlift"
    }
   },
   {
    "tap": {
-    "text": "Reps"
+    "text": "DB Romanian Deadlift"
    }
-  },
-  {
-   "tap": {
-    "text": "Per hand (dumbbell/unilateral)"
-   }
-  },
-  {
-   "checkpoint": "create-calf-filled"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "after-create-calf"
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "tap": {
-    "text": "Single leg"
-   }
-  },
-  {
-   "type": {
-    "editable": true,
-    "value": "Copenhagen Plank"
-   }
-  },
-  {
-   "tap": {
-    "text": "Create exercise"
-   }
-  },
-  {
-   "type": {
-    "text": "Name",
-    "value": "Copenhagen Plank"
-   }
-  },
-  {
-   "tap": {
-    "text": "Timed"
-   }
-  },
-  {
-   "tap": {
-    "text": "Per hand (dumbbell/unilateral)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "after-create-copenhagen"
-  },
-  {
-   "tap": {
-    "textContains": "Single-Leg RDL"
-   }
-  },
-  {
-   "checkpoint": "slrdl-prescription"
   },
   {
    "type": {
@@ -878,22 +811,14 @@
    }
   },
   {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Single-Leg Calf Raise"
-   }
-  },
-  {
-   "checkpoint": "calf-prescription"
-  },
-  {
    "type": {
-    "text": "Reps",
-    "value": "12"
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Each side"
    }
   },
   {
@@ -902,18 +827,60 @@
    }
   },
   {
-   "tap": {
-    "textContains": "Copenhagen Plank"
-   }
-  },
-  {
-   "checkpoint": "copenhagen-prescription"
+   "checkpoint": "day-a-built"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "day-a-built"
+   "checkpoint": "monday-workout-start"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set-sheet"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-first-log"
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "checkpoint": "after-rest-60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-plank-3"
+  },
+  {
+   "advance": "30s"
+  },
+  {
+   "checkpoint": "trap-bar-up"
   }
  ]
 }

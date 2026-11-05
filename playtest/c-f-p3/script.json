@@ -336,6 +336,14 @@
   },
   {
    "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bss-up"
+  },
+  {
+   "tap": {
     "text": "All sets"
    }
   },
@@ -350,11 +358,31 @@
    }
   },
   {
-   "checkpoint": "swap-sheet"
+   "checkpoint": "swap-sheet-bss"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Romanian"
+   }
+  },
+  {
+   "checkpoint": "swap-search"
   },
   {
    "tap": {
-    "textContains": "Romanian"
+    "textContains": "Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "This workout",
+    "role": "RadioButton"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
    }
   },
   {

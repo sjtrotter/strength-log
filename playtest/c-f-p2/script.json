@@ -1,0 +1,17 @@
+{
+  "seat": "c-f-p2",
+  "start": {"restore": "start-backup.json", "date": "2026-11-10", "time": "07:00", "zone": "America/Chicago"},
+  "steps": [
+    {"note": "Tuesday Nov 10, 7 am. Bench day is done, every set logged, I never tapped Finish. Phone's been on the bench. Let's see what it kept."},
+    {"checkpoint": "tue-7am-launch"},
+    {"tap": {"text": "History", "role": "Tab"}, "timeoutMs": 20000},
+    {"checkpoint": "history-tue"},
+    {"tap": {"text": "Trends and calendar"}, "timeoutMs": 20000},
+    {"checkpoint": "trends-tue"},
+    {"back": true},
+    {"tap": {"text": "Today", "role": "Tab"}, "timeoutMs": 20000},
+    {"checkpoint": "today-tue"},
+    {"tap": {"textContains": "day A", "role": "Button"}, "timeoutMs": 20000},
+    {"checkpoint": "dayA-reopened"}
+  ]
+}

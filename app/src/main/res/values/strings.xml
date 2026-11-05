@@ -809,4 +809,20 @@
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
+
+    <string name="log_trends_and_calendar">Trends and calendar</string>
+    <string name="log_weekly_volume">Weekly volume</string>
+    <string name="log_calendar_section">Calendar</string>
+    <string name="log_external_section">From other apps</string>
+    <string name="log_week_of">Week of %1$s</string>
+    <string name="log_week_no_sessions">No sessions</string>
+    <string name="log_week_volume_unavailable">Volume unavailable</string>
+    <string name="log_week_volume_total">%1$s %2$s</string>
+    <string name="log_top_set_heading">%1$s top set</string>
+    <string name="log_top_set_insufficient">Not enough top sets yet to show a trend.</string>
+    <string name="log_top_set_latest">Latest %1$s %2$s</string>
+    <string name="log_top_set_goal">Goal %1$s %2$s</string>
+    <string name="log_top_set_goal_met">Goal met</string>
+    <string name="log_top_set_date_range">%1$s to %2$s</string>
+    <string name="log_top_set_series_description">%1$s top sets: %2$s, %3$s %6$s; %4$s, %5$s %6$s. Goal %7$s %6$s.</string>
 </resources>

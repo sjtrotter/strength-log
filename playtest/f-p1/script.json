@@ -252,7 +252,21 @@
   },
   {
    "tap": {
-    "textContains": "3 \u00d7 10 at 105"
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "swap-confirmed"
+  },
+  {
+   "tap": {
+    "textContains": "Seated Cable Row"
    }
   },
   {
@@ -347,7 +361,26 @@
    "back": true
   },
   {
-   "checkpoint": "workout-after-edit"
+   "note": "Mon Nov 9: squat, app says 25 lb; I load the empty bar instead"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "set1-edited"
   },
   {
    "tap": {
@@ -371,11 +404,90 @@
   },
   {
    "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
     "tag": "workout-action-filled"
    }
   },
   {
-   "checkpoint": "after-log-2"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-3"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-1"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-3"
   }
  ]
 }

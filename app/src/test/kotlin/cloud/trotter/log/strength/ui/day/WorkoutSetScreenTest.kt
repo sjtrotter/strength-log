@@ -114,13 +114,15 @@ class WorkoutSetScreenTest {
                 AppTheme { WorkoutSetHost(state) }
             }
         }
+        val label = "Log 102.5 kg × 12"
         val results = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithText("Log 102.5 kg × 12").assertIsDisplayed()
+        rule.onNodeWithText(label).assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
         val layout = results.single()
-        assertTrue(layout.lineCount <= 2)
+        assertEquals(label, layout.layoutInput.text.text)
         assertFalse(layout.hasVisualOverflow)
         repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
+        rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)
     }
 
     @Test
@@ -291,7 +293,7 @@ class WorkoutSetScreenTest {
         }) }).withWorkoutRestHint(true, emptyMap())
         show(state)
         rule.onNodeWithTag("workout-half-${Slot.SS}")
-            .assertContentDescriptionEquals("Seated Cable Row, done, 115 × 9, open sets")
+            .assertContentDescriptionEquals("Seated Cable Row, done, 115 lb × 9, open sets")
         rule.onNodeWithText("Then rest").assertIsDisplayed()
     }
 

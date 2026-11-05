@@ -245,7 +245,7 @@ class StoreScreenshotsTest {
             beforeCapture = {
                 composeTestRule.onNodeWithText("Squat focus, done.").assertIsDisplayed()
                 composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertIsDisplayed()
-                composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+                composeTestRule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
             },
         )
     }

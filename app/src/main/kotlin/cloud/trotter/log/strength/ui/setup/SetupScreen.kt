@@ -244,15 +244,19 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
     }
 }
 
+/** The rest a minutes-and-seconds draft names, or null when either part is blank, out of range, or the total is over the cap. */
+internal fun restDurationSeconds(minutes: String, seconds: String): Int? {
+    val minuteValue = minutes.trim().toIntOrNull() ?: return null
+    val secondValue = seconds.trim().toIntOrNull() ?: return null
+    if (minuteValue !in 0..RestPolicy.MAX_REST_SECONDS / 60 || secondValue !in 0..59) return null
+    return (minuteValue * 60 + secondValue).takeIf { it <= RestPolicy.MAX_REST_SECONDS }
+}
+
 @Composable
 private fun RestDurationDialog(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
     var minutes by rememberSaveable { mutableStateOf((initialSeconds / 60).toString()) }
     var seconds by rememberSaveable { mutableStateOf((initialSeconds % 60).toString()) }
-    val minuteValue = minutes.toIntOrNull()
-    val secondValue = seconds.toIntOrNull()
-    val total = if (minuteValue != null && minuteValue in 0..RestPolicy.MAX_REST_SECONDS / 60 &&
-        secondValue != null && secondValue in 0..59
-    ) (minuteValue * 60 + secondValue).takeIf { it <= RestPolicy.MAX_REST_SECONDS } else null
+    val total = restDurationSeconds(minutes, seconds)
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(label) },

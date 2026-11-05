@@ -48,7 +48,7 @@ data class ReceiptRow(
     val lines: List<ValueLine>,
     /** When three or more weights were used: [lines] holds the heaviest set only, this is the rest. */
     val lighterSets: Int,
-    /** Available work supplies completion counts; skipped rows keep their captured plan. */
+    /** The slot's prescription at Finish, independent of its live row count. */
     val planned: PlannedSets?,
     val record: RecordMark?,
 ) : Parcelable {
@@ -70,6 +70,10 @@ data class ReceiptRow(
 @Parcelize data class ValueLine(val weightLb: Double?, val setIndices: List<Int>) : Parcelable
 
 @Parcelize data class PlannedSets(val count: Int, val weightLb: Double, val reps: Int, val seconds: Int) : Parcelable
+
+/** Separate saved state preserves the field order of existing receipt parcels. */
+@Parcelize
+data class ReceiptSetCounts(val sessionId: Long, val total: Int, val remaining: Int) : Parcelable
 
 /** [kind] is the label; [alsoKind] is spoken after it and never drawn. [setIndex] indexes [ReceiptRow.sets]. */
 @Parcelize data class RecordMark(val kind: PrKind, val alsoKind: PrKind?, val setIndex: Int, val previous: ReceiptSet) : Parcelable
@@ -103,8 +107,7 @@ data class FinishAttempt(
     val failed: Boolean = false,
 ) : Parcelable
 
-/** Completion is presentation only; the recorded session and rotation stay unchanged.
- * These derived values add no fields to the SavedStateHandle parcel. */
+/** Completion is presentation only; the recorded session and rotation stay unchanged. */
 internal val WorkoutReceipt.loggedSetCount: Int get() = if (cardio) {
     cardioRows.sumOf { row -> row.intervals.count { it.status != CardioSetStatus.SKIPPED } + row.recoverySeconds.size }
 } else groups.sumOf { group -> group.rows.sumOf { it.sets.size } }

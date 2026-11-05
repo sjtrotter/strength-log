@@ -178,19 +178,6 @@ class TrackerRepository(
     }
 
     private suspend fun replanSlot(row: ProgramExerciseEntity, config: LifterConfig) {
-        fun plannedJson(track: RunTrackEntity, rows: List<LoggedSet>, seed: List<LoggedSet>): String = SetJson.encodePlan(
-            CarryForward.cleared(rows.mapIndexed { index, set -> seed.getOrNull(index) ?: set }),
-            track.plannedJson,
-        )
-
-        fun partnerPlan(track: RunTrackEntity, rows: List<LoggedSet>, seed: List<LoggedSet>): String {
-            val captured = SetJson.decodeSets(track.plannedJson)
-            val current = SetJson.decodeSets(track.setsJson)
-            return plannedJson(track, rows, rows.indices.map { index ->
-                captured.getOrNull(index) ?: current.getOrNull(index) ?: seed.getOrNull(index) ?: rows[index]
-            })
-        }
-
         val run = runDao.openRun() ?: return
         if (run.planId != row.planId || run.dayId != row.dayId) return
         val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id }
@@ -218,10 +205,8 @@ class TrackerRepository(
             val trackIsTimed = if (track.slot == Slot.MAIN) isTimed
                 else catalog.find(track.exerciseId)?.tracking == TrackingType.TIMED
             if (!track.canReplan(trackIsTimed)) continue
-            val rows = RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)
             runDao.updateTrack(track.copy(
-                plannedJson = plannedJson(track, rows, trackSeed),
-                setsJson = SetJson.encodeSets(rows),
+                setsJson = SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)),
                 updatedAt = clock.millis(),
             ))
         }
@@ -241,10 +226,8 @@ class TrackerRepository(
             if (rows.size > partnerRows.size) {
                 val partnerSeed = SlotSeeds.partner(catalog.find(partner.exerciseId), rows.size, config)
                     ?: partnerRows.ifEmpty { rows }
-                val aligned = RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second
                 runDao.updateTrack(partner.copy(
-                    plannedJson = partnerPlan(partner, aligned, partnerSeed),
-                    setsJson = SetJson.encodeSets(aligned),
+                    setsJson = SetJson.encodeSets(RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second),
                     updatedAt = clock.millis(),
                 ))
             }
@@ -257,14 +240,12 @@ class TrackerRepository(
                     current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
                 )
                 runDao.updateTrack(partner.copy(
-                    plannedJson = partnerPlan(partner, paired.second, partnerSeed),
                     setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
                 ))
                 paired.first
             }
         }
         runDao.updateTrack(main.copy(
-            plannedJson = plannedJson(main, mainRows, seeded),
             setsJson = SetJson.encodeSets(mainRows), updatedAt = clock.millis(),
         ))
     }
@@ -983,20 +964,9 @@ class TrackerRepository(
                 if ((swappedRows.size < count && swappedSeed.isEmpty()) ||
                     (otherRows.size < count && otherSeed.isEmpty())) return@withTransaction false
                 val aligned = RunReplan.alignPaired(swappedRows, otherRows, swappedSeed, otherSeed)
-                val swappedPlan = SetJson.decodeSets(replacement.plannedJson)
-                val otherPlan = SetJson.decodeSets(partner.plannedJson)
-                val alignedPlan = RunReplan.alignPaired(swappedPlan, otherPlan, swappedSeed, otherSeed)
-                replacement = replacement.copy(
-                    plannedJson = if (alignedPlan.first == swappedPlan) replacement.plannedJson
-                        else SetJson.encodePlan(CarryForward.cleared(alignedPlan.first), replacement.plannedJson),
-                    setsJson = SetJson.encodeSets(aligned.first),
-                )
-                if (aligned.second != otherRows || alignedPlan.second != otherPlan) {
-                    alignedPartner = partner.copy(
-                        plannedJson = if (alignedPlan.second == otherPlan) partner.plannedJson
-                            else SetJson.encodePlan(CarryForward.cleared(alignedPlan.second), partner.plannedJson),
-                        setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis(),
-                    )
+                replacement = replacement.copy(setsJson = SetJson.encodeSets(aligned.first))
+                if (aligned.second != otherRows) {
+                    alignedPartner = partner.copy(setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis())
                 }
             }
             active?.let { runDao.updateTrack(it.copy(retired = true, updatedAt = clock.millis())) }
@@ -1332,9 +1302,9 @@ class TrackerRepository(
     /** Archives a run once, carries forward its working values, and advances its day. */
     suspend fun finishRun(runId: String): Long? = finishRunCapturing(runId)?.sessionId
 
-    /** A finished run's session and the tracks it archived; [tracks] is null when an
+    /** A finished run's session, tracks, and slot prescriptions; [tracks] is null when an
      *  earlier finish already archived the run. */
-    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?)
+    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?, val slots: List<ProgramSlot>? = null)
 
     /** [finishRun], also returning the exact tracks the transaction archived, so a caller
      *  describing the session cannot disagree with it after a concurrent edit (the watch's
@@ -1349,6 +1319,8 @@ class TrackerRepository(
             val now = clock.millis()
             val sessionId = archiveRun(run, tracks, bodyweight, catalog, now)
             val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
+            val slots = day?.let { programDao.exercisesForDay(it.planId, it.dayId) }
+                .orEmpty().map { ProgramSlot(it.id, it.position, it.toDomain()) }
             if (day != null && day.nextRunId == run.id) {
                 carryForward(day, tracks)
                 planDao.plan(day.planId)?.let { advanceRotation(it, day.dayId) }
@@ -1356,7 +1328,7 @@ class TrackerRepository(
             }
             runDao.deleteTracks(runId)
             runDao.deleteRun(runId)
-            FinishedRun(sessionId, tracks.map { it.toRunTrack() })
+            FinishedRun(sessionId, tracks.map { it.toRunTrack() }, slots)
         }
     }
 
@@ -1372,7 +1344,8 @@ class TrackerRepository(
             completedAt = now, bodyweightLb = bodyweight, planId = run.planId,
             planName = run.planId?.let { planDao.plan(it)?.name } ?: run.planName, runId = run.id,
             plannedJson = SessionPlanJson.encode(tracks.map {
-                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired, SetJson.decodeSets(it.plannedJson).map(SetDto::of))
+                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired,
+                    SetJson.decodeSets(it.plannedJson).map(SetDto::of), liveSetCount = it.toRunTrack().setCounts().total)
             }),
         ))
         sessionDao.insertSets(tracks.flatMap { track ->
@@ -1410,7 +1383,7 @@ class TrackerRepository(
                 programDao.deleteLogForSlot(day.planId, day.dayId, slot.id, track.slot)
             } else {
                 programDao.upsertLog(logEntity(day.planId, day.dayId, slot.id, track.slot, CarryForward.next(
-                    SetJson.decodeCarryForwardPlan(track.plannedJson), SetJson.decodeSets(track.setsJson),
+                    SetJson.decodeSets(track.plannedJson), SetJson.decodeSets(track.setsJson),
                 )))
             }
         }

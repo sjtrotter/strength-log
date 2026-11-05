@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day.receipt
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.RunTrack
+import cloud.trotter.log.strength.data.setCounts
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -19,6 +20,8 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -165,7 +168,8 @@ class ReceiptBuilderTest {
         val row = row(track(
             exerciseId = "plank", sets = listOf(work(seconds = 75), work(seconds = 70)),
             planned = List(2) { work(seconds = 60, done = false) },
-        ), SetStructure.RAMP_TOP_BACKOFF, baseline(0.0, 0, seconds = 70, exerciseId = "plank"))
+        ), SetStructure.RAMP_TOP_BACKOFF, baseline(0.0, 0, seconds = 70, exerciseId = "plank"),
+            targets = List(2) { work(seconds = 60, done = false) })
         assertEquals(ReceiptRow.Shape.STRAIGHT, row.shape)
         assertEquals(TrackingType.TIMED, row.tracking)
         assertEquals(listOf(ValueLine(null, listOf(0, 1))), row.lines)
@@ -279,7 +283,7 @@ class ReceiptBuilderTest {
     }
 
     @Test
-    fun `a dropped empty partner marks the receipt partial without recording sets for it`() {
+    fun `a dropped empty partner keeps its skipped row and contributes no live sets`() {
         val bench = track(exerciseId = "bb_bench", sets = List(3) { work(185.0, 5) },
             planned = List(3) { work(185.0, 5, done = false) })
         val partner = track(exerciseId = "bb_row", slot = Slot.SS, sets = emptyList(), retired = true, dropped = true,
@@ -289,9 +293,10 @@ class ReceiptBuilderTest {
         assertEquals(ReceiptRow.Shape.SKIPPED, group.rows[1].shape)
         assertTrue(group.rows[1].sets.isEmpty())
         val receipt = receiptFixture().copy(groups = listOf(group))
-        assertTrue(receipt.isPartial)
         assertEquals(3, receipt.loggedSetCount)
-        assertEquals(6, receipt.plannedSetCount)
+        assertEquals(3, listOf(bench, partner).setCounts().total)
+        assertEquals(0, listOf(bench, partner).setCounts().remaining)
+        assertNull(group.rows[1].planned)
     }
 
     @Test
@@ -306,7 +311,7 @@ class ReceiptBuilderTest {
     }
 
     @Test
-    fun `an unreached live lift is skipped with tracking from its plan`() {
+    fun `an unreached live lift is skipped with tracking from its current rows`() {
         val receiptRow = row(track(exerciseId = "plank", sets = listOf(work(seconds = 60, done = false)),
             planned = listOf(work(seconds = 60, done = false))))
         assertEquals(ReceiptRow.Shape.SKIPPED, receiptRow.shape)
@@ -320,32 +325,47 @@ class ReceiptBuilderTest {
     }
 
     @Test
-    fun `two of three original sets then all three replacement sets completes the receipt`() {
+    fun `replacement rows keep their Finish prescription separate from retired done work`() {
         val receipt = swappedReceiptFixture()
-        assertEquals(listOf(2, 3), receipt.groups.map { it.rows.single().planned?.count })
+        assertEquals(listOf(3, 3), receipt.groups.map { it.rows.single().planned?.count })
         assertEquals(5, receipt.loggedSetCount)
-        assertEquals(5, receipt.plannedSetCount)
-        assertFalse(receipt.isPartial)
+        assertEquals(3, requireNotNull(receipt.groups.last().rows.single().planned).count)
     }
 
     @Test
     fun `unfinished replacement sets still make the receipt partial`() {
         val receipt = swappedReceiptFixture(replacementLogged = 2)
         assertEquals(4, receipt.loggedSetCount)
-        assertEquals(5, receipt.plannedSetCount)
+        assertEquals(3, requireNotNull(receipt.groups.last().rows.single().planned).count)
         assertTrue(receipt.isPartial)
     }
 
     @Test
-    fun `a partially logged dropped prescription still counts the skipped work`() {
+    fun `a partially logged dropped track preserves work and contributes no live sets`() {
         val planned = List(3) { work(185.0, 5, done = false) }
         val dropped = track(planned = planned, sets = planned.mapIndexed { index, set -> set.copy(done = index < 2) },
             retired = true, dropped = true)
         val groups = ReceiptBuilder.strength(listOf(dropped), listOf(slot()), { it }, emptyMap())
         val receipt = receiptFixture().copy(groups = groups)
         assertEquals(2, receipt.loggedSetCount)
-        assertEquals(3, receipt.plannedSetCount)
-        assertTrue(receipt.isPartial)
+        assertEquals(0, listOf(dropped).setCounts().total)
+        assertEquals(2, listOf(dropped).setCounts().done)
+    }
+
+    @Test
+    fun `Planned uses the Finish prescription even when a done tail keeps more live rows`() {
+        val original = List(6) { work(40.0, 5, done = false) }
+        val track = track(planned = original, sets = original.take(4).mapIndexed { index, set ->
+            set.copy(done = index == 3)
+        })
+        val slot = slot().let { it.copy(exercise = it.exercise.copy(targetSets = 2,
+            prescription = Prescription(PrescribedTarget.LoadReps(30.0, 8)))) }
+
+        val row = ReceiptBuilder.strength(listOf(track), listOf(slot), { it }, emptyMap()).single().rows.single()
+
+        assertEquals(PlannedSets(2, 30.0, 8, 0), row.planned)
+        assertEquals(listOf(ReceiptSet(40.0, 5, 0)), row.sets)
+        assertEquals(4, listOf(track).setCounts().total)
     }
 
     @Test
@@ -566,7 +586,9 @@ class ReceiptBuilderTest {
         track: RunTrack,
         structure: SetStructure = SetStructure.STRAIGHT,
         standing: Map<String, PersonalRecord> = emptyMap(),
-    ): ReceiptRow = ReceiptBuilder.strength(listOf(track), listOf(slot(structure = structure)), { it }, standing)
+        targets: List<LoggedSet>? = null,
+    ): ReceiptRow = ReceiptBuilder.strength(listOf(track), listOf(slot(structure = structure)), { it }, standing,
+        targets?.let { mapOf(track.id to it) }.orEmpty())
         .single().rows.single()
 
     private fun track(

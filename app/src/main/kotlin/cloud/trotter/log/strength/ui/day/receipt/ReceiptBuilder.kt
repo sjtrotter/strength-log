@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.records.PersonalBests
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import java.time.Instant
 import java.time.ZoneId
 
@@ -28,6 +29,7 @@ object ReceiptBuilder {
         slots: List<ProgramSlot>,
         names: (String) -> String,
         standing: Map<String, PersonalRecord>,
+        targets: Map<Long, List<LoggedSet>> = emptyMap(),
     ): List<ReceiptGroup> = buildList {
         for (slot in slots.sortedBy { it.position }) {
             val captured = tracks.filter { it.programExerciseId == slot.programExerciseId }.sortedBy { it.position }
@@ -47,18 +49,18 @@ object ReceiptBuilder {
             val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
-                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing))))
+                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing, plan(track, slot, targets)))))
             }
             if (main != null) {
                 val rows = listOfNotNull(main, partner).map {
-                    row(it, slot.structureOf(it), names(it.exerciseId), standing)
+                    row(it, slot.structureOf(it), names(it.exerciseId), standing, plan(it, slot, targets))
                 }
                 add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows))
             }
         }
         val slotIds = slots.map { it.programExerciseId }.toSet()
         for (track in tracks.filter { it.programExerciseId !in slotIds }.sortedBy { it.position }) {
-            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing))))
+            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing, plan(track, null, targets)))))
         }
     }
 
@@ -66,21 +68,24 @@ object ReceiptBuilder {
     private fun ProgramSlot.structureOf(track: RunTrack): SetStructure =
         if (track.slot == Slot.SS) SetStructure.STRAIGHT else exercise.structure
 
+    private fun plan(track: RunTrack, slot: ProgramSlot?, targets: Map<Long, List<LoggedSet>>): PlannedSets? {
+        val exercise = slot?.exercise?.takeIf { track.slot == Slot.MAIN && it.exerciseId == track.exerciseId }
+        val rows = exercise?.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it) }
+            ?: targets[track.id] ?: track.sets
+        return rows.firstOrNull()?.let { PlannedSets(rows.size, it.weightLb, it.reps, it.seconds) }
+    }
+
     private fun row(
         track: RunTrack,
         structure: SetStructure,
         name: String,
         standing: Map<String, PersonalRecord>,
+        planned: PlannedSets?,
     ): ReceiptRow {
         val done = track.sets.filter { it.done }
-        val planned = track.planned.firstOrNull()?.let {
-            // Like the workout's retired rounds, a replaced prescription contributes only done work.
-            // Dropped work keeps its prescription so skips still make the receipt partial.
-            val count = if (track.retired && !track.dropped) done.size else track.planned.size
-            PlannedSets(count, it.weightLb, it.reps, it.seconds)
-        }
         if (done.isEmpty()) {
-            val tracking = track.planned.firstOrNull()?.let(PersonalBests::tracking) ?: TrackingType.WEIGHTED
+            val tracking = planned?.let { PersonalBests.tracking(LoggedSet(it.weightLb, it.reps, SetKind.WORK, seconds = it.seconds)) }
+                ?: TrackingType.WEIGHTED
             return ReceiptRow(name, tracking, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, planned, null)
         }
         val bestIndex = PersonalBests.bestIndex(done)

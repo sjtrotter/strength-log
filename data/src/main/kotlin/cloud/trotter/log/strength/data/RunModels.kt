@@ -49,6 +49,18 @@ data class RunTrack(
     val dropped: Boolean = false,
 )
 
+data class RunSetCounts(val done: Int, val total: Int, val remaining: Int)
+
+fun RunTrack.setCounts(): RunSetCounts {
+    val live = sets.takeUnless { retired || dropped }.orEmpty()
+    return RunSetCounts(sets.count { it.done }, live.size, live.count { !it.done })
+}
+
+fun List<RunTrack>.setCounts(): RunSetCounts {
+    val counts = map { it.setCounts() }
+    return RunSetCounts(counts.sumOf { it.done }, counts.sumOf { it.total }, counts.sumOf { it.remaining })
+}
+
 /** The open workout, independent of the selected plan and rotation. */
 data class OpenRun(
     val id: String,

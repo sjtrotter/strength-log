@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
 import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -2502,7 +2503,7 @@ class DayViewModelWiringTest {
         assertEquals(listOf(RetiredTrackLine("Barbell Bench Press", 2)), vm.uiState.value.retiredTracks)
         assertEquals(2, vm.uiState.value.doneSets)
         val card = vm.uiState.value.exercises.single()
-        assertEquals(card.rows.size + 2, vm.uiState.value.totalSets)
+        assertEquals(card.rows.size, vm.uiState.value.totalSets)
         assertEquals("DB Bench Press", card.title)
         assertTrue(card.rows.isNotEmpty())
         assertTrue(card.rows.none { it.done })
@@ -2533,7 +2534,7 @@ class DayViewModelWiringTest {
         assertEquals(listOf("Barbell Bench Press", "DB Bench Press"), rows.map { it.name })
         assertEquals(listOf(2, 0), rows.map { it.sets.size })
         val archived = repo.history.sessionSets(receipt.sessionId)
-        assertEquals(total, archived.count { Slot.isRound(it.slot) })
+        assertEquals(total + 2, archived.count { Slot.isRound(it.slot) })
         val completed = archived.filter { it.done }
         assertEquals(2, completed.size)
         assertTrue(completed.all { it.exerciseId == "bb_bench" })
@@ -2543,7 +2544,7 @@ class DayViewModelWiringTest {
     }
 
     /** [F] */
-    @Test fun retiredPartnerWorkDoesNotDoubleCountRounds() = runVmTest {
+    @Test fun retiredPartnerWorkCountsDoneSetsWithoutAddingToTheLiveTotal() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
@@ -2558,7 +2559,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals(1, vm.uiState.value.retiredTracks.single().doneCount)
         assertEquals(0, vm.uiState.value.retiredRoundDoneCount)
-        assertEquals(1, vm.uiState.value.doneSets)
+        assertEquals(2, vm.uiState.value.doneSets)
         assertEquals(total, vm.uiState.value.totalSets)
         vm.completeDay()
         advanceUntilIdle()
@@ -2566,7 +2567,9 @@ class DayViewModelWiringTest {
         assertEquals(1, groups.single { it.rounds != null }.rounds)
         assertEquals(2, groups.flatMap { it.rows }.sumOf { it.sets.size })
         val archived = repo.history.sessionSets(vm.finisher.receipt.value!!.sessionId)
-        assertEquals(total, archived.count { Slot.isRound(it.slot) })
+        val session = requireNotNull(repo.history.session(vm.finisher.receipt.value!!.sessionId))
+        val snapshot = SessionPlanJson.decode(requireNotNull(session.plannedJson))
+        assertEquals(total, snapshot.sumOf { requireNotNull(it.liveSetCount) })
         assertEquals(1, archived.count { Slot.isRound(it.slot) && it.done })
         collect.cancel()
     }

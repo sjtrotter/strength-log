@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.RunWriteResult
+import cloud.trotter.log.strength.data.setCounts
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PerformedDay
@@ -221,6 +222,7 @@ class DayViewModel @Inject constructor(
                     val tracks = day.tracks
                     val state = buildState(ctx, day, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
+                            runSetCounts = open?.takeIf { it.id == tracks.runId }?.tracks?.setCounts(),
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
                             skippedLifts = slots.filter { it.programExerciseId in tracks.skippedLifts }.map { slot ->
                                 val id = slot.exercise.exerciseId

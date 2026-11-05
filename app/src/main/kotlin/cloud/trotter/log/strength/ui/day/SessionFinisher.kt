@@ -7,14 +7,18 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.setCounts
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilder
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.time.Clock
@@ -48,6 +52,7 @@ internal class SessionFinisher(
 ) {
     val attempt = savedState.getStateFlow<FinishAttempt?>(KEY_FINISH, null)
     val receipt = savedState.getStateFlow<WorkoutReceipt?>(KEY_WORKOUT_RECEIPT, null)
+    val receiptSetCounts = savedState.getStateFlow<ReceiptSetCounts?>(KEY_RECEIPT_SET_COUNTS, null)
     private val _noteSave = MutableStateFlow<NoteSave?>(null)
     val noteSave: StateFlow<NoteSave?> = _noteSave.asStateFlow()
     private val _pendingShare = MutableStateFlow<Intent?>(null)
@@ -104,11 +109,11 @@ internal class SessionFinisher(
             savedState[KEY_FINISH] = null
             return
         }
-        val slots = plans.slotsFor(planId, dayId).first()
         val exercises = catalog.catalogFlow.first()
         // DataStore reads must finish before finishRun opens its Room transaction.
         val unit = settings.unitFlow.first()
         val program = plans.programFor(planId).first()
+        val config = plans.wizardAnswersFor(planId).first().config
         val ids = run.tracks.map { it.exerciseId }.distinct()
         var standing = baseline(ids, runId)
         val finished = repo.finishRunCapturing(runId) ?: run {
@@ -121,16 +126,32 @@ internal class SessionFinisher(
         if (finished.tracks != null) scope.launch { sessionPublisher.publish(sessionId) }
         // Describe what the transaction archived, not the earlier read: a watch edit can land in between.
         val tracks = finished.tracks ?: run.tracks
+        val slots = finished.slots ?: plans.slotsFor(planId, dayId).first()
         val swappedIn = tracks.map { it.exerciseId }.distinct() - ids.toSet()
         if (standing != null && swappedIn.isNotEmpty()) {
             standing = baseline(swappedIn, runId)?.let { standing.orEmpty() + it }
         }
-        val groups = ReceiptBuilder.strength(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty())
+        val targets = tracks.mapNotNull { track ->
+            val slot = slots.firstOrNull { it.programExerciseId == track.programExerciseId } ?: return@mapNotNull null
+            val exercise = slot.exercise
+            val rows = if (track.slot == Slot.SS) {
+                val mainCount = SlotSeeds.main(exercise, exercises.find(exercise.exerciseId), config)?.size
+                    ?: track.sets.size
+                SlotSeeds.partner(exercises.find(track.exerciseId), mainCount, config)
+            } else SlotSeeds.main(exercise.copy(
+                exerciseId = track.exerciseId,
+                prescription = exercise.prescription.takeIf { track.exerciseId == exercise.exerciseId },
+            ), exercises.find(track.exerciseId), config)
+            rows?.let { track.id to it }
+        }.toMap()
+        val groups = ReceiptBuilder.strength(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty(), targets)
+        val counts = tracks.setCounts()
         val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
         afterCommit(dayId, nextDayId)
         val session = historyRepository.session(sessionId)
         val completedAt = session?.completedAt ?: clock.millis()
         val allPlansDone = allPlansDone(completedAt)
+        savedState[KEY_RECEIPT_SET_COUNTS] = ReceiptSetCounts(sessionId, counts.total, counts.remaining)
         savedState[KEY_WORKOUT_RECEIPT] = WorkoutReceipt(
             sessionId = sessionId, cardio = false, dayId = dayId, dayIndex = dayIndex,
             dayTitle = program.days.firstOrNull { it.id == dayId }?.title ?: current.dayTitle,
@@ -159,6 +180,7 @@ internal class SessionFinisher(
     fun dismissReceipt(): Boolean {
         if (executionActive() || receipt.value == null) return false
         savedState[KEY_WORKOUT_RECEIPT] = null
+        savedState[KEY_RECEIPT_SET_COUNTS] = null
         return true
     }
 
@@ -206,6 +228,7 @@ internal class SessionFinisher(
         val unit = settings.unitFlow.first()
         val allPlansDone = allPlansDone(completedAt)
         if (executionActive()) return
+        savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_WORKOUT_RECEIPT] = WorkoutReceipt(
             sessionId = requireNotNull(run.sessionId), cardio = true, dayId = run.dayId, dayIndex = run.dayIndex,
             dayTitle = title, planName = run.planName, completedAt = completedAt,
@@ -224,5 +247,6 @@ internal class SessionFinisher(
     private companion object {
         const val KEY_FINISH = "day_finish"
         const val KEY_WORKOUT_RECEIPT = "day_workout_receipt"
+        const val KEY_RECEIPT_SET_COUNTS = "day_receipt_set_counts"
     }
 }

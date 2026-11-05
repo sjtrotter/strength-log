@@ -112,6 +112,20 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun finishCountUsesLiveRowsWhileThePlannedLineKeepsThePrescription() {
+        val row = receiptFixture().groups[3].rows.single().copy(
+            sets = listOf(ReceiptSet(40.0, 5, 0)), lines = listOf(ValueLine(40.0, listOf(0))),
+            planned = PlannedSets(2, 30.0, 8, 0), record = null,
+        )
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        setReceipt(receipt, setCounts = ReceiptSetCounts(receipt.sessionId, 4, 3))
+
+        rule.onNodeWithText("1 of 4 sets logged").assertExists()
+        rule.onNodeWithContentDescription("Dumbbell Curl. 40 pounds: 5 reps.").performClick()
+        rule.onNodeWithText("Planned 2 × 8 at 30 lb", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
     fun oldSkippedReceiptDoesNotInventAPlannedSetCount() {
         val skipped = ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED,
             emptyList(), emptyList(), 0, null, null)
@@ -138,7 +152,7 @@ class ReceiptScreenTest {
 
     @Test
     fun completedReplacementKeepsTheDoneTitle() {
-        setReceipt(swappedReceiptFixture())
+        setReceipt(swappedReceiptFixture(), setCounts = ReceiptSetCounts(1, 3, 0))
         rule.onNodeWithText("Squat focus, done.").assertExists()
         rule.onNodeWithText("Squat focus, saved.").assertDoesNotExist()
         rule.onNodeWithText("5 of 6 sets logged").assertDoesNotExist()
@@ -612,10 +626,15 @@ class ReceiptScreenTest {
             abs(headline.left - (root.width - back.right)) <= 2f)
     }
 
-    private fun setReceipt(receipt: WorkoutReceipt = receiptFixture(), onShare: () -> Unit = {}, onFinish: () -> Unit = {}) {
+    private fun setReceipt(
+        receipt: WorkoutReceipt = receiptFixture(),
+        onShare: () -> Unit = {},
+        onFinish: () -> Unit = {},
+        setCounts: ReceiptSetCounts? = null,
+    ) {
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-            AppTheme { SessionReceiptScreen(receipt, onShare, onFinish) }
+            AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts) }
         }
     }
 

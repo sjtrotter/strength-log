@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -54,6 +55,7 @@ data class DayUiState(
     val planId: Long? = null,
     val runId: String? = null,
     val runOpen: Boolean = false,
+    val runSetCounts: RunSetCounts? = null,
     val openRunElsewhere: String? = null,
     /** Completed tracks displaced by plan edits during this run. */
     val retiredTracks: List<RetiredTrackLine> = emptyList(),
@@ -84,9 +86,10 @@ data class DayUiState(
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
 
-    /** Rounds ticked across active and retired MAIN tracks must match Today and the widget.
-     *  A superset partner shares its round. Recomputed once per state, including copy(). */
-    val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } } + retiredRoundDoneCount
+    val doneSets: Int = runSetCounts?.done
+        ?: (exercises.sumOf { card ->
+            card.rows.count { it.done } + card.rows.count { it.partner?.done == true }
+        } + retiredRoundDoneCount)
 
     val canFinish: Boolean = exercises.any { card ->
         card.rows.any { it.done || it.partner?.done == true }
@@ -104,8 +107,9 @@ data class DayUiState(
         else -> null
     }
 
-    /** Rounds this day holds in total, counted the same way as [doneSets]. */
-    val totalSets: Int = exercises.sumOf { it.rows.size } + retiredRoundDoneCount
+    val totalSets: Int = runSetCounts?.total ?: exercises.sumOf { card ->
+        card.rows.size + card.rows.count { it.partner != null }
+    }
 
     val pages: List<WorkoutPage> = exercises.map { card ->
         WorkoutPage(card.programExerciseId, card.title, card.rows.count { it.done }, card.rows.size, card.allDone)

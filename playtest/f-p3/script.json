@@ -391,6 +391,58 @@
   },
   {
    "checkpoint": "after-sheet-closed"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set-1"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "checkpoint": "left-workout"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "today-after-edit"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "checkpoint": "day-f"
   }
  ]
 }

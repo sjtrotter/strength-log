@@ -286,30 +286,60 @@
    "back": true
   },
   {
+   "note": "'Start empty' froze the app twice (10 s and 40 s). Giving up on it; I'll gut the generated plan instead."
+  },
+  {
    "tap": {
-    "text": "New plan"
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Warm-up",
+    "direction": "up"
    }
   },
   {
    "tap": {
-    "text": "Start empty"
-   },
-   "timeoutMs": 40000
-  },
-  {
-   "checkpoint": "empty-plan"
-  },
-  {
-   "tap": {
-    "text": "Add day"
+    "text": "Backup"
    }
   },
   {
-   "checkpoint": "added-day"
+   "checkpoint": "backup-screen"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
   },
   {
    "tap": {
-    "textContains": "Day A"
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "6-day push/pull/legs"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "6 lifts, 21 sets",
+    "index": 0
    }
   },
   {

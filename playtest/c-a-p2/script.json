@@ -1634,12 +1634,12 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "Resume day D"
       }
     },
     {
-      "tap": {
-        "text": "Start day D"
+      "expect": {
+        "text": "220 lb × 5"
       }
     },
     {
@@ -1662,11 +1662,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Barbell Back Squat, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "3m"
     },
     {
       "tap": {
         "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Back Squat, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -1817,6 +1837,32 @@
       }
     },
     {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "week-two-first-history-with-five-sessions"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "week-two-first-trends-and-calendar"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
       "advance": "23h10m"
     },
     {
@@ -1930,19 +1976,19 @@
       "back": true
     },
     {
-      "back": true
+      "checkpoint": "tuesday-focus-directly-after-edit"
     },
     {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "4-day upper/lower · Day A"
+      "expect": {
+        "text": "170 lb × 5"
       }
     },
     {
-      "tap": {
-        "text": "Start day A"
+      "checkpoint": "tuesday-ready-without-reopening-day"
+    },
+    {
+      "expect": {
+        "text": "170 lb × 5"
       }
     },
     {
@@ -1962,11 +2008,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Barbell Bench Press, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "3m"
     },
     {
       "tap": {
         "text": "Log 170 lb × 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -1994,11 +2060,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Barbell Row, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "2m"
     },
     {
       "tap": {
         "text": "Log 115 lb × 9"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Row, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -2026,11 +2112,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Pull-Up / Chin-Up, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "2m"
     },
     {
       "tap": {
         "text": "Log 6 reps"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Pull-Up / Chin-Up, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -2069,6 +2175,16 @@
     {
       "tap": {
         "text": "Log 10 lb × 13"
+      }
+    },
+    {
+      "expect": {
+        "desc": "DB Lateral Raise, set 2 of 2"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -2175,19 +2291,19 @@
       "back": true
     },
     {
-      "back": true
+      "checkpoint": "thursday-focus-directly-after-edit"
     },
     {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "4-day upper/lower · Day B"
+      "expect": {
+        "text": "270 lb × 5"
       }
     },
     {
-      "tap": {
-        "text": "Start day B"
+      "checkpoint": "thursday-ready-without-reopening-day"
+    },
+    {
+      "expect": {
+        "text": "270 lb × 5"
       }
     },
     {
@@ -2508,6 +2624,323 @@
     },
     {
       "checkpoint": "second-saturday-temporary-db-press-before-changing-set-values"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-db-press-selected-before-set-only-edits"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Seated DB Shoulder Press, set 2 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Seated DB Shoulder Press, set 3 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-three-dumbbell-press-sets"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "150 lb × 8"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 2 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 3 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "7"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb × 7"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-bench-eight-eight-seven"
+    },
+    {
+      "expect": {
+        "text": "50 lb × 11"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb × 11"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 2 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb × 11"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 3 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb × 11"
+      }
+    },
+    {
+      "expect": {
+        "text": "25 lb × 11"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 11"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Incline DB Curl, set 2 of 2"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 11"
+      }
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "checkpoint": "second-saturday-completed-lifting-and-jog"
+    },
+    {
+      "tap": {
+        "text": "Finish day C"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-recap-missed-bench-rep-and-temporary-press"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Rack busy: DB press30x8x3 today only. Bench150:8,8,7; repeat150. Jog20min incl2 walking, better pacing. DB per hand."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-context-and-jog-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "46h58m"
+    },
+    {
+      "checkpoint": "monday-nov23-after-squat-miss"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day D"
+      }
+    },
+    {
+      "checkpoint": "third-lower-a-next-target-after220-five-five-four"
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "third-lower-a-set-by-set-previous-miss-and-offered-targets"
     }
   ]
 }

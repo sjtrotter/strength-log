@@ -27,7 +27,59 @@ class CardioExecutionTest {
         CardioSetSpec(role, Measure.Distance(400), Measure.Time(105), hard = role == CardioRole.WORK)
 
     private fun execution(vararg sets: CardioSetSpec): CardioExecution =
-        CardioExecution(CardioBlock(CardioActivity.TRACK_RUN, sets.toList()))
+        CardioExecution(CardioBlock(CardioActivity.TRACK_RUN, sets.toList()), allowOpenEnded = true)
+
+    @Test
+    fun `a lone timed set never finishes by itself`() {
+        val now = start.advance(60_000L)
+        val run = execution(time(CardioRole.WORK, 10)).start(start).reconcile(now)
+        assertTrue(run.running)
+        assertTrue(run.results.isEmpty())
+        assertEquals(60, run.elapsedSeconds(now))
+    }
+
+    @Test
+    fun `a lone timed set stopped with a distance is finished and asks nothing`() {
+        val run = execution(time(CardioRole.WORK, 10)).start(start)
+            .finishStep(CardioSetStatus.FINISHED, 60, start.advance(60_000L), metres = 5000, requestDistance = false)
+        assertTrue(run.complete)
+        assertFalse(run.running)
+        val result = run.results.single()
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(60, result.elapsedSeconds)
+        assertEquals(5000, result.metres)
+        assertEquals(DistanceSource.MANUAL, result.distanceSource)
+        assertTrue(run.distanceEntries.isEmpty())
+    }
+
+    @Test
+    fun `a lone timed set stopped without a distance asks for one`() {
+        val run = execution(time(CardioRole.WORK, 10)).start(start)
+            .finishStep(CardioSetStatus.FINISHED, 60, start.advance(60_000L), requestDistance = true)
+        assertEquals(listOf(0), run.distanceEntries)
+    }
+
+    @Test
+    fun `a timed set with company still finishes at its deadline`() {
+        val run = execution(time(CardioRole.WORK, 10), time(CardioRole.COOLDOWN, 10))
+            .start(start).reconcile(start.advance(10_000L))
+        assertEquals(listOf(CardioSetStatus.FINISHED), run.results.map { it.status })
+        assertEquals(listOf(10), run.results.map { it.elapsedSeconds })
+        assertEquals(1, run.position)
+        assertTrue(run.running)
+    }
+
+    @Test
+    fun `default execution keeps a lone watch timed set at its deadline without distance entry`() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 10)))
+        val run = CardioExecution(block).start(start).reconcile(start.advance(60_000L))
+        assertTrue(run.complete)
+        assertFalse(run.running)
+        assertEquals(CardioSetStatus.FINISHED, run.results.single().status)
+        assertEquals(10, run.results.single().elapsedSeconds)
+        assertEquals(start.wallMillis + 10_000L, run.completedAt)
+        assertTrue(run.distanceEntries.isEmpty())
+    }
 
     @Test
     fun `same boot uses elapsed time even when wall time jumps`() {
@@ -253,12 +305,14 @@ class CardioExecutionTest {
     }
 
     @Test
-    fun `thirty minute road run summarizes planned seconds without overrun`() {
+    fun `thirty minute road run summarizes actual seconds when stopped`() {
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 1_800)))
-        val run = CardioExecution(block).start(start).reconcile(start.advance(1_840_000L))
+        val now = start.advance(1_840_000L)
+        val running = CardioExecution(block, allowOpenEnded = true).start(start).reconcile(now)
+        val run = running.finishStep(CardioSetStatus.FINISHED, running.elapsedSeconds(now), now)
         assertTrue(run.complete)
-        assertEquals(2_800_000L, run.completedAt)
-        assertEquals(CardioSummary(CardioMode.OUTDOOR_RUN, false, "Road run", 1_800, 1), run.summary())
+        assertEquals(2_840_000L, run.completedAt)
+        assertEquals(CardioSummary(CardioMode.OUTDOOR_RUN, false, "Road run", 1_840, 1), run.summary())
     }
 
     @Test
@@ -273,7 +327,8 @@ class CardioExecutionTest {
 
         val easyBlock = CardioBlock(CardioActivity.TREADMILL_RUN,
             listOf(time(CardioRole.COOLDOWN, 10, hard = true)))
-        val easy = CardioExecution(easyBlock).start(start).reconcile(start.advance(10_000L))
+        val easy = CardioExecution(easyBlock).start(start)
+            .finishStep(CardioSetStatus.FINISHED, 10, start.advance(10_000L))
         assertEquals(CardioSummary(CardioMode.TREADMILL, false, "Treadmill run", 10, 1), easy.summary())
         assertEquals(CardioMode.LOW_IMPACT, easy.copy(block = easyBlock.copy(activity = CardioActivity.ROWER)).summary().mode)
     }

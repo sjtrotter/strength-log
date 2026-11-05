@@ -520,6 +520,7 @@ internal fun DayRoute(
         onOpenCardioDistance = viewModel::openCardioDistance,
         onRequestCardioDistance = viewModel::requestCardioDistance,
         onCardioDistanceChange = viewModel::changeCardioDistance,
+        onCardioRunDistanceChange = viewModel::changeCardioRunDistance,
         onSaveCardioDistance = viewModel::saveCardioDistance,
         onRetryCardioSave = viewModel::retryCardioSave,
         onCardioScreenLive = viewModel::setCardioScreenLive,

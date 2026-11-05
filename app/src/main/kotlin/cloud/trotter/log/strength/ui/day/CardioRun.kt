@@ -32,6 +32,12 @@ data class CardioDistanceDraft(
     val valid: Boolean get() = text.isBlank() || (text.all(Char::isDigit) && metres != null)
 }
 
+/** Metres typed on the running screen for a lone timed set. Its own saved key, so [CardioRun] keeps its layout. */
+@Parcelize
+data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
+    val metres: Int? get() = text.toIntOrNull()?.takeIf { it > 0 }
+}
+
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize
 data class CardioRun(
@@ -77,6 +83,7 @@ data class CardioRun(
         anchor = wallStart?.let { BootAnchor(it, elapsedStart, bootCount) },
         completedAt = completedAt,
         distanceEntries = drafts.filterNot { it.saved }.map { it.position },
+        allowOpenEnded = true,
     )
 
     private fun withExecution(next: CardioExecution): CardioRun = copy(

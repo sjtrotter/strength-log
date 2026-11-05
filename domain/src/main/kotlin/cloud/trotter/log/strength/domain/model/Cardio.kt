@@ -55,6 +55,9 @@ data class CardioSetResult(
 }
 
 data class CardioBlock(val activity: CardioActivity, val sets: List<CardioSetSpec>) {
+    /** A lone timed set is a steady effort: it counts up and ends when the lifter stops, not at its planned time. */
+    val openEnded: Boolean get() = sets.size == 1 && sets.single().end is Measure.Time
+
     init {
         require(sets.isNotEmpty()) { "cardio block must have at least one set" }
     }

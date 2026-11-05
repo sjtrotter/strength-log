@@ -162,6 +162,147 @@ class DayViewModelCardioExecutionTest {
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
 
     @Test
+    fun loneTimedRunCountsUpAndStopLogsFinishedWithTheTypedDistance() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        tick(1_690_000)
+
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertTrue(requireNotNull(cardio.run).running)
+        assertEquals(1690, cardio.elapsedSeconds)
+        assertNull(alarm.deadline)
+        assertEquals(0, alarm.buzzes)
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        vm.changeCardioRunDistance("5000")
+        runCurrent()
+        assertEquals("5000", vm.uiState.value.cardio?.runDistanceText)
+        vm.stopCardio(requireNotNull(cardio.run).action())
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(1690, session.seconds)
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(1690, result.elapsedSeconds)
+        assertEquals(5000, result.metres)
+        assertEquals(DistanceSource.MANUAL, result.distanceSource)
+        assertNull(vm.uiState.value.openSheet)
+        assertTrue(vm.uiState.value.cardio!!.distanceRuns.isEmpty())
+        assertEquals(CardioInterval(CardioSetStatus.FINISHED, 1690, 5000),
+            requireNotNull(vm.finisher.receipt.value).cardioRows.single().intervals.single())
+        assertEquals(listOf(session.id), publishedCardio)
+        assertNull(handle.get<CardioRunDistance>("day_cardio_run_distance"))
+    }
+
+    @Test
+    fun loneTimedRunStoppedBlankOpensTheDistanceSheetAndStaysFinished() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(600_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        assertEquals(OpenSheet.Kind.CARDIO_DISTANCE, vm.uiState.value.openSheet?.kind)
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(600, result.elapsedSeconds)
+        assertNull(result.metres)
+        assertNotNull(vm.finisher.receipt.value)
+    }
+
+    @Test
+    fun runDistanceDraftSurvivesProcessDeathWithTheRun() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 10))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startCardio()
+        runCurrent()
+        first.changeCardioRunDistance("3000")
+        runCurrent()
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        clock.advance(60_000)
+        val restored = readyVm(recreateHandle(handle))
+        assertEquals("3000", restored.uiState.value.cardio?.runDistanceText)
+        assertTrue(requireNotNull(restored.uiState.value.cardio?.run).running)
+        assertEquals(60, restored.uiState.value.cardio?.elapsedSeconds)
+        tick(60_000)
+        assertTrue(requireNotNull(restored.uiState.value.cardio?.run).running)
+        assertEquals(120, restored.uiState.value.cardio?.elapsedSeconds)
+        restored.stopCardio(requireNotNull(restored.uiState.value.cardio?.run).action())
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(3000, repo.history.cardioSetsFor(session.id).single().metres)
+    }
+
+    @Test
+    fun endCardioOnALoneRunLogsFinishedWithTheTypedDistance() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        tick(600_000)
+        vm.changeCardioRunDistance("4200")
+        vm.endCardioBlock()
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(600, result.elapsedSeconds)
+        assertEquals(4200, result.metres)
+        assertNull(vm.uiState.value.openSheet)
+        assertNotNull(vm.finisher.receipt.value)
+        assertNull(handle.get<CardioRunDistance>("day_cardio_run_distance"))
+    }
+
+    @Test
+    fun aTypedDistanceIsIgnoredOnceTheRunMovesOn() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(4_000)
+        vm.changeCardioRunDistance("900")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(900, repo.history.cardioSetsFor(session.id).single().metres)
+        assertTrue(vm.finisher.dismissReceipt())
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+        assertEquals("", vm.uiState.value.cardio?.runDistanceText)
+    }
+
+    @Test
+    fun intervalWorkStillStopsAsShortened() = test {
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(4_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val result = requireNotNull(vm.uiState.value.cardio?.run).results.single()
+        assertEquals("SHORTENED", result.status)
+        assertEquals(4, result.seconds)
+    }
+
+    @Test
     fun loggedCardioOnAMixedDayEnablesFinishAndTheReceiptListsTheRun() = test {
         prepareBlock(time(CardioRole.WORK), time(CardioRole.COOLDOWN))
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -475,6 +616,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_800_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         assertNull(vm.finisher.receipt.value)
         val pending = vm.uiState.value.cardio!!.distanceRuns.single()
         assertEquals(4980, handle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${pending.runId}")?.single()?.metres)
@@ -517,6 +660,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_800_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val first = vm.uiState.value.cardio!!.distanceRuns.single()
         vm.openCardioDistance()
         vm.closeSheet()
@@ -526,6 +671,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_800_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val pending = requireNotNull(handle.get<ArrayList<CardioRun>>("day_cardio_distances"))
         assertEquals(2, pending.size)
         val second = pending.single { it.runId != first.runId }
@@ -786,6 +933,11 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertTrue(vm.uiState.value.cardio!!.run!!.running)
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
 
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals(plan, session.planId)
@@ -822,6 +974,8 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(2, vm.uiState.value.cardio?.run?.dayIndex)
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         vm.openCardioDistance()
         runCurrent()
         vm.saveCardioDistance(vm.distanceAction()) // Blank distance is allowed.
@@ -860,6 +1014,9 @@ class DayViewModelCardioExecutionTest {
         assertEquals(390, repo.history.cardioSetsFor(requireNotNull(first.sessionId)).single().metres)
 
         tick(10_000)
+        vm.changeCardioRunDistance("390")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
 
         assertNull(vm.uiState.value.cardio?.run)
         assertFalse(vm.uiState.value.executionBusy)
@@ -1272,6 +1429,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val session = repo.history.cardioSessionsFlow.first().single()
         // Publication happens at commit, even before the entry is dismissed.
         assertEquals(listOf(session.id), publishedCardio)
@@ -1344,6 +1503,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val firstSession = repo.history.cardioSessionsFlow.first().single()
         vm.openCardioDistance()
         runCurrent()
@@ -1352,6 +1513,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val secondSession = repo.history.cardioSessionsFlow.first().first { it.id != firstSession.id }
         vm.openCardioDistance()
         vm.changeCardioDistance("395")
@@ -1547,7 +1710,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun expiredFinalRestoreLogsSilentlyWithoutOverrunOrDuplicate() = test {
-        prepareBlock(time(CardioRole.WORK))
+        prepareBlock(time(CardioRole.WORK, 5), time(CardioRole.COOLDOWN, 5))
         val handle = SavedStateHandle()
         val first = readyVm(handle)
         first.startCardio()
@@ -1803,6 +1966,8 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(frozen, vm.uiState.value.cardio?.run)
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals(frozen.block.sets, repo.history.cardioSetsFor(session.id).map { it.spec })
         assertFalse(vm.uiState.value.executionBusy)
@@ -1842,6 +2007,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertNull(vm.finisher.receipt.value)
         assertEquals(1, repo.history.cardioSessionsFlow.first().size)
@@ -1874,6 +2041,8 @@ class DayViewModelCardioExecutionTest {
         first.startCardio()
         runCurrent()
         tick(10_000)
+        first.stopCardio(requireNotNull(first.uiState.value.cardio?.run).action())
+        runCurrent()
         first.openCardioDistance()
         first.changeCardioDistance("123")
         runCurrent()
@@ -1892,7 +2061,7 @@ class DayViewModelCardioExecutionTest {
         assertNull(repo.history.cardioSetsFor(repo.history.cardioSessionsFlow.first().single().id).single().metres)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("A", restored.finisher.receipt.value?.dayId)
-        assertEquals(1, alarm.buzzes)
+        assertEquals(0, alarm.buzzes)
     }
 
     @Test
@@ -1907,6 +2076,11 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_500_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
         assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals("C", vm.finisher.receipt.value?.dayId)
         assertEquals(1, repo.history.cardioSessionsFlow.first().size)
@@ -1932,6 +2106,8 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
         assertTrue(vm.uiState.value.cardio!!.run!!.saveFailed)
         assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")

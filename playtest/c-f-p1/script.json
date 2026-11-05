@@ -605,24 +605,11 @@
    "checkpoint": "cardio-editor"
   },
   {
-   "tap": {
-    "role": "DropdownList"
-   }
-  },
-  {
-   "checkpoint": "cardio-activity-options"
+   "note": "the activity box will not open for me here; just make it 10 minutes"
   },
   {
    "tap": {
-    "textContains": "ike"
-   }
-  },
-  {
-   "checkpoint": "cardio-bike"
-  },
-  {
-   "tap": {
-    "textContains": "Work 25:00"
+    "text": "Set 1 \u00b7 Work"
    }
   },
   {
@@ -652,6 +639,120 @@
   },
   {
    "checkpoint": "edit-day-after-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "fri-cardio-10"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "checkpoint": "fri-cardio-done"
+  },
+  {
+   "tap": {
+    "text": "Finish day C",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "fri-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "stick to one deadlift set like the plan says, back felt it"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "fri-summary-note"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-fri"
+  },
+  {
+   "advance": "71h40m"
+  },
+  {
+   "note": "Mon Nov 16, 5 pm. Second Monday. What does it give me after the 45s?"
+  },
+  {
+   "checkpoint": "today-mon16"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "checkpoint": "mon16-squat"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "mon16-squat-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "today-mon16-open"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Nov 13, 2026"
+   }
+  },
+  {
+   "tap": {
+    "text": "Nov 13, 2026"
+   }
+  },
+  {
+   "checkpoint": "history-fri"
+  },
+  {
+   "tap": {
+    "text": "Share"
+   }
+  },
+  {
+   "checkpoint": "share-tapped"
   }
  ]
 }

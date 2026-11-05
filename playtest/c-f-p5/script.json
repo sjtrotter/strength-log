@@ -418,6 +418,25 @@
    "checkpoint": "c2-run-done"
   },
   {
+   "note": "Run logged, 25:00 again, and Finish is still grey: 'Log a set to finish this workout.' A run isn't a set to this app. Logging one pallof set I didn't do so I can close the day."
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c2-back-on-pallof"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "5s"
+  },
+  {
    "tap": {
     "tag": "workout-finish"
    }
@@ -427,7 +446,8 @@
   },
   {
    "tap": {
-    "text": "Finish",
+    "role": "Button",
+    "textContains": "Finish",
     "inDialog": true
    }
   },
@@ -442,7 +462,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Intervals, 8.3 km. 4:28 4:31 4:35 4:41. Faded on the last one, legs still had Monday in them. No pallof, it was 6 am."
+    "value": "Intervals, 8.3 km. 4:28 4:31 4:35 4:41. Faded on the last one, legs still had Monday in them. The one pallof set is fake, the app would not let me finish without it."
    }
   },
   {

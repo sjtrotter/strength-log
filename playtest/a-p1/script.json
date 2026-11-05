@@ -159,6 +159,17 @@
     },
     {
       "checkpoint": "setup-question-eight"
+    },
+    {
+      "note": "The preview still shows Barbell Back Squat and Barbell Bench Press after I unchecked bars. I am continuing to look for exercise replacements, not agreeing to train with barbells."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "after-setup-looking-for-machine-plan"
     }
   ]
 }

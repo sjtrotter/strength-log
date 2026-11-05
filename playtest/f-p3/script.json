@@ -1,0 +1,22 @@
+{
+  "seat": "f-p3",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
+  "steps": [
+    { "checkpoint": "wizard-1" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-2" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-3" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-4" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-5" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-6" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-7" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-8" }
+  ]
+}

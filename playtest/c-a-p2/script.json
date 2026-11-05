@@ -143,10 +143,8 @@
       }
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "6",
-        "editable": true
+      "expect": {
+        "text": "6"
       }
     },
     {

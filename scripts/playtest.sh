@@ -63,7 +63,11 @@ if [[ -n "$restore" && "$restore" != /* ]]; then
     source_dir=$(dirname "$script")
     [[ -f "$source_dir/$restore" ]] || { echo "restore backup not found: $source_dir/$restore" >&2; exit 2; }
     for file in "$restore" summary.json; do
-        [[ -f "$source_dir/$file" ]] || continue
+        if [[ ! -f "$source_dir/$file" ]]; then
+            # A summary left by an earlier restore must not supply this backup's clock.
+            git -C "$worktree" rm -q -f --ignore-unmatch "playtest/$seat/$file"
+            continue
+        fi
         if [[ "$source_dir/$file" != "$worktree/playtest/$seat/$file" ]]; then cp "$source_dir/$file" "$worktree/playtest/$seat/$file"; fi
         git -C "$worktree" add -f "playtest/$seat/$file"
     done

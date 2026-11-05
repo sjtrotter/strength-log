@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.DayIndex
@@ -78,7 +79,15 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                         }
                     } }
                     items(state.lifts) { lift -> ListItem(
-                        headlineContent = { Text(lift.name) },
+                        headlineContent = {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(lift.name)
+                                if (lift.note.isNotBlank()) Text(lift.note,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        },
                         supportingContent = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 lift.working?.let { working ->

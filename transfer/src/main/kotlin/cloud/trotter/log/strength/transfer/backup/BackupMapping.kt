@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -286,7 +287,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             startedAt = it.startedAt,
             completedAt = it.completedAt,
             bodyweightLb = it.bodyweightLbPrecise ?: it.bodyweightLb?.toDouble(),
-            note = it.note.ifEmpty { settings.sessionNotes[it.id].orEmpty() }.trim().take(120),
+            note = it.note.ifEmpty { settings.sessionNotes[it.id].orEmpty() }.trim().take(NOTE_MAX_LENGTH),
             planId = it.planId,
             planName = it.planName,
             runId = if (schemaVersion >= 13) it.runId else null,

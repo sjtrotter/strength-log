@@ -235,6 +235,15 @@ class AuditWorkoutShotsTest : UiAuditTest() {
         rule.auditShot("workout/31-workout-finish-disabled") { AuditDay(workoutSetSingleFixture().let { it.copy(exercises = it.exercises.map { card -> card.copy(allDone = true, rows = card.rows.map { row -> row.copy(done = true) }) }, workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, 1_000L)) }) }
     }
 
+    @Config(fontScale = 2f)
+    @Test fun shot32WorkoutLiftNoteFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = rampFixture(0).let { it.copy(exercises = it.exercises.map { card ->
+            card.copy(note = "Belt on top, straps on back-off sets")
+        }) }
+        rule.auditShot("workout/32-workout-lift-note-font2", fontScale = 2f) { AuditDay(state) }
+    }
+
     private fun rampFixture(done: Int) = workoutLiftSheetFixture().let { state ->
         state.copy(exercises = state.exercises.map { card -> card.copy(
             allDone = done == card.rows.size,

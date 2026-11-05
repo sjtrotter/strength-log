@@ -432,6 +432,7 @@ private fun EditableExerciseGroupRow(
 ) {
     Column(Modifier.padding(vertical = 4.dp)) {
         Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
+        if (group.note.isNotBlank()) Text(group.note, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         group.sets.forEach { set ->
             Column(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
@@ -516,6 +517,7 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
     }
     Column(Modifier.padding(vertical = 4.dp)) {
         Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
+        if (group.note.isNotBlank()) Text(group.note, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         Text(
             summaries.joinToString(separator),
             color = TextSecondary,

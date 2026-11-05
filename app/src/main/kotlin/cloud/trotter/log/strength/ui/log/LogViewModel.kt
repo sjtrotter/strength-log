@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -125,15 +126,36 @@ class LogViewModel @Inject constructor(
         summaries to notes
     }
 
+    private val expandedLiftNotes = combine(expandedSessionId, repo.sessionsFlow) { id, sessions ->
+        sessions.firstOrNull { it.id == id }
+    }.distinctUntilChanged().flatMapLatest { session ->
+        if (session == null) flowOf(null to emptyMap<String, String>())
+        else plans.programFor(session.planId ?: PlanEntity.LEGACY_ID).map { program ->
+            val notes = buildMap {
+                program.days.firstOrNull { it.id == session.dayId }?.exercises?.forEach { exercise ->
+                    put(exercise.exerciseId, exercise.note)
+                    exercise.superset?.let { put(it.exerciseId, exercise.note) }
+                }
+            }
+            session.id to notes
+        }
+    }
+
+    private val expandedSetsWithNotes = combine(expandedSets, expandedLiftNotes) { sets, notes -> sets to notes }
+
     private val ownSessions = combine(
         summariesWithNotes,
         settings.unitFlow,
         expandedSessionId,
-        expandedSets,
+        expandedSetsWithNotes,
         editingSessionId,
-    ) { summariesAndNotes, unit, expandedId, setsCache, editingId ->
+    ) { summariesAndNotes, unit, expandedId, content, editingId ->
+        val (setsCache, sessionNotes) = content
+        val (notedSessionId, liftNotes) = sessionNotes
         summariesAndNotes.first.map { summary ->
-            buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId, summariesAndNotes.second[summary.session.id].orEmpty())
+            buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId,
+                summariesAndNotes.second[summary.session.id].orEmpty(),
+                liftNotes.takeIf { notedSessionId == summary.session.id }.orEmpty())
         }
     }
 
@@ -453,6 +475,7 @@ class LogViewModel @Inject constructor(
         cachedSets: List<SessionSetEntity>?,
         editingId: Long?,
         note: String,
+        liftNotes: Map<String, String>,
     ): SessionListItem {
         val session = summary.session
         val expanded = session.id == expandedId
@@ -466,7 +489,7 @@ class LogViewModel @Inject constructor(
             bodyweightDisplay = LogScreenBuilder.bodyweightDisplay(session.bodyweightLb, unit),
             expanded = expanded,
             exerciseGroups = if (expanded && cachedSets != null) {
-                LogScreenBuilder.groupByExercise(cachedSets, unit)
+                LogScreenBuilder.groupByExercise(cachedSets, unit, liftNotes)
             } else {
                 null
             },

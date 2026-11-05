@@ -894,6 +894,7 @@
     <string name="sheet_clear_filters">Clear filters</string>
     <string name="sheet_swap_for">Swap for</string>
     <string name="sheet_note_label">Note</string>
+    <string name="sheet_note_counter">%1$d / %2$d</string>
     <string name="sheet_superset_pattern_title">Pick a superset movement</string>
     <string name="sheet_superset_exercise_title">Superset with %1$s</string>
     <string name="sheet_add_pattern_title">Pick a movement</string>

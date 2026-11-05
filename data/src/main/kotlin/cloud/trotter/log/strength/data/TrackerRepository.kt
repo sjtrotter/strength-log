@@ -37,6 +37,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -394,7 +395,7 @@ class TrackerRepository(
         }
 
     suspend fun setExerciseNote(programExerciseId: Long, text: String) {
-        programDao.setExerciseNote(programExerciseId, text.trim().take(120))
+        programDao.setExerciseNote(programExerciseId, text.trim().take(NOTE_MAX_LENGTH))
     }
 
     suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {

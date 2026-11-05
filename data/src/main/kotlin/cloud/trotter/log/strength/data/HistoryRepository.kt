@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -61,7 +62,7 @@ class HistoryRepository(
 
     suspend fun setSessionNote(sessionId: Long, text: String) {
         ensureSessionNotesMoved()
-        sessionDao.setNote(sessionId, text.trim().take(120))
+        sessionDao.setNote(sessionId, text.trim().take(NOTE_MAX_LENGTH))
     }
 
     suspend fun ensureSessionNotesMoved() {
@@ -70,7 +71,7 @@ class HistoryRepository(
             val notes = settings.legacySessionNotesFlow.first()
             if (notes.isEmpty()) return@withLock
             db.withTransaction {
-                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
+                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(NOTE_MAX_LENGTH)) }
             }
             settings.removeLegacySessionNotes()
         }

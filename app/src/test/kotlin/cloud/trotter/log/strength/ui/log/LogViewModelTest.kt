@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
@@ -294,6 +295,60 @@ class LogViewModelTest {
         assertEquals(1, sessions[1].setCount)
         assertTrue(sessions.none { it.expanded })
         assertTrue(sessions.all { it.exerciseGroups == null })
+        collect.cancel()
+    }
+
+    @Test
+    fun expandedLiftNotesFollowTheSessionsPlanAndDayAndStayCurrent() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat",
+                superset = SupersetPartner("bb_row"), note = "Seat 4"))),
+            ProgramDay("B", "Other day", "", listOf(ProgramExercise("bb_back_squat", note = "Other day note"))),
+        )))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
+        repo.setExerciseNote(repo.plans.slotsFor(other, "A").first().single().programExerciseId, "Other plan note")
+        repo.plans.selectPlan(other)
+        val id = db.sessionDao().insertSession(session("A", "Lower", 1_000).copy(planId = plan, note = "Felt steady"))
+        db.sessionDao().insertSets(listOf(
+            set("bb_back_squat", "Barbell Back Squat").copy(sessionId = id),
+            set("bb_row", "Barbell Row").copy(sessionId = id, slot = Slot.SS),
+        ))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+        assertEquals(listOf("Seat 4", "Seat 4"), vm.uiState.value.sessions.single().exerciseGroups?.map { it.note })
+        assertEquals("Felt steady", vm.uiState.value.sessions.single().note)
+
+        repo.setExerciseNote(slot, "Seat 5")
+        advanceUntilIdle()
+        assertEquals(listOf("Seat 5", "Seat 5"), vm.uiState.value.sessions.single().exerciseGroups?.map { it.note })
+        repo.setExerciseNote(slot, "")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.sessions.single().exerciseGroups!!.all { it.note.isEmpty() })
+        assertEquals("Felt steady", repo.history.session(id)?.note)
+        collect.cancel()
+    }
+
+    @Test
+    fun legacyHistoryUsesTheLegacyPlansCurrentLiftNote() = runVmTest {
+        insertProgram()
+        val slot = repo.plans.daySlotsFlow("A").first().single().programExerciseId
+        repo.setExerciseNote(slot, "Belt on top")
+        seedTwoSessions()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val lowerId = vm.uiState.value.sessions.first { it.dayLetter == "A" }.sessionId
+        vm.toggleExpanded(lowerId)
+        advanceUntilIdle()
+        assertEquals("Belt on top", vm.uiState.value.sessions.first { it.sessionId == lowerId }.exerciseGroups?.single()?.note)
+        val upperId = vm.uiState.value.sessions.first { it.dayLetter == "B" }.sessionId
+        vm.toggleExpanded(upperId)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.sessions.first { it.sessionId == upperId }.exerciseGroups!!.all { it.note.isEmpty() })
         collect.cancel()
     }
 

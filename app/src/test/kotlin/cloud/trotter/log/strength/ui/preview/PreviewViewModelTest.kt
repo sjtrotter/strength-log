@@ -38,6 +38,21 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun previewReadsTheSlotsStickyNoteAndTracksEdits() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "B").first().single().programExerciseId
+        val vm = preview(plan, "B")
+        advanceUntilIdle()
+        assertEquals("", vm.uiState.value.lifts.single().note)
+        repo.setExerciseNote(slot, "Seat 4")
+        advanceUntilIdle()
+        assertEquals("Seat 4", vm.uiState.value.lifts.single().note)
+        repo.setExerciseNote(slot, "")
+        advanceUntilIdle()
+        assertEquals("", vm.uiState.value.lifts.single().note)
+    }
+
     @Test fun previewShowsAnOfferAfterSuccessAndRepeatAfterAMissAndHidesItInPlanMode() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),

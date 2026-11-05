@@ -86,6 +86,30 @@ class LogScreenInteractionTest {
     }
 
     @Test
+    fun expandedHistoryShowsLiftNotesUnderTheirNamesAndKeepsTheSessionNote() {
+        val session = mutableStateOf(logSessionFixture(true).copy(note = "Felt steady", exerciseGroups = listOf(
+            SessionExerciseGroup("Back Squat", listOf(SessionSetSummary("TOP", "225×5", done = true)), note = "Belt on top"),
+            SessionExerciseGroup("Bench", listOf(SessionSetSummary("1", "135×8", done = true))),
+        )))
+        composeTestRule.setContent { AppTheme {
+            LogScreen(LogUiState(sessions = listOf(session.value)), LogActions(
+                onToggleExpanded = { session.value = session.value.copy(expanded = !session.value.expanded) },
+                onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onStartSession = {}, onSetUpProgram = {},
+            ))
+        } }
+        composeTestRule.onNodeWithText("Belt on top").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Felt steady").assertIsDisplayed()
+        val nameBounds = composeTestRule.onNodeWithText("Back Squat").getUnclippedBoundsInRoot()
+        val noteBounds = composeTestRule.onNodeWithText("Belt on top").getUnclippedBoundsInRoot()
+        assertTrue(noteBounds.top >= nameBounds.bottom)
+        composeTestRule.runOnIdle { session.value = session.value.copy(expanded = false) }
+        composeTestRule.onNodeWithText("Belt on top").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Felt steady").assertDoesNotExist()
+    }
+
+    @Test
     fun expandedHistoryShowsOnlyDoneRowsAndEditShowsEveryRow() {
         val session = mutableStateOf(logSessionFixture(true).copy(setCount = 1, exerciseGroups = listOf(
             SessionExerciseGroup("Back Squat", listOf(

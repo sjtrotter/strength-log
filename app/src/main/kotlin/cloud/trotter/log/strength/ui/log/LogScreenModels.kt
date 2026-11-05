@@ -100,6 +100,7 @@ data class SessionListItem(
 data class SessionExerciseGroup(
     val exerciseName: String,
     val sets: List<SessionSetSummary>,
+    val note: String = "",
 )
 
 /** One logged set's display: its kind label (R1/TOP/B/O/plain number) and `w×r`. */

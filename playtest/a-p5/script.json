@@ -805,12 +805,16 @@
       "back": true
     },
     {
-      "back": true
+      "tap": {
+        "text": "Goblet Squat",
+        "index": 1
+      }
     },
     {
-      "tap": {
-        "text": "Edit"
-      }
+      "checkpoint": "goblet-prescription-fields-after-three-actual-sets"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -818,34 +822,47 @@
       }
     },
     {
-      "checkpoint": "cardio-prescription-controls-for-separate-running-days"
-    },
-    {
-      "back": true
+      "checkpoint": "cardio-prescription-fields"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Edit"
+        "desc": "More options for Goblet Squat"
       }
     },
     {
       "tap": {
-        "text": "Goblet Squat",
-        "index": 1
+        "text": "Lift options"
       }
     },
     {
-      "checkpoint": "goblet-plan-prescription-fields"
+      "checkpoint": "goblet-lift-options-for-straight-working-sets"
+    },
+    {
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "All sets"
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "finish-review-preview-with-only-three-sets-logged"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Do not finish Monday yet: only the three goblet sets have been entered. The remaining diary exercises still need their own entries."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 21 sets"
       }
     },
     {
@@ -855,11 +872,92 @@
     },
     {
       "tap": {
-        "text": "Note"
+        "text": "Edit day"
       }
     },
     {
-      "checkpoint": "squat-note-entry-start-at-30-next-time"
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "hinge-exercise-choices-for-dumbbell-rdl"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "return-to-day-editor-after-hinge-picker"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "remove-unwanted-press-result"
+    },
+    {
+      "note": "Remove the generated pressing and rowing accessories from my running-support A; retain the logged goblet sets and plank."
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "own-a-after-removing-unwanted-generated-exercises"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "ready-to-add-dumbbell-rdl-to-own-a"
     }
   ]
 }

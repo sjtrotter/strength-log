@@ -2710,6 +2710,12 @@
   },
   {
    "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
     "text": "Trends and calendar"
    }
   },
@@ -3400,7 +3406,7 @@
    }
   },
   {
-   "advance": "20h"
+   "advance": "1d"
   },
   {
    "note": "Wed Nov 25, 8 a.m., gym closes at noon. Deadlifts only, 4x4 at 207.5. 40 minutes door to door."
@@ -3709,7 +3715,8 @@
   },
   {
    "tap": {
-    "textContains": "Dumbbell Bench"
+    "textContains": "Dumbbell Bench",
+    "index": 0
    }
   },
   {
@@ -4850,7 +4857,8 @@
   },
   {
    "tap": {
-    "text": "Share"
+    "text": "Share",
+    "index": 0
    }
   },
   {
@@ -4906,9 +4914,6 @@
   },
   {
    "checkpoint": "export-csv-tapped"
-  },
-  {
-   "back": true
   },
   {
    "tap": {

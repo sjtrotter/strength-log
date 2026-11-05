@@ -1140,6 +1140,9 @@
    "back": true
   },
   {
+   "back": true
+  },
+  {
    "tap": {
     "text": "Today",
     "role": "Tab"
@@ -1148,6 +1151,87 @@
   },
   {
    "checkpoint": "today-after-plan-edits"
+  },
+  {
+   "note": "Monday 6 am. Garage is 41 degrees. Squat day, which the app calls Day D."
+  },
+  {
+   "advance": "10h"
+  },
+  {
+   "checkpoint": "monday-6am"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day D"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayD-detail-monday"
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "squat-set1"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "squat-set1-logged"
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "squat-after-3min"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "edit-set-2"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day D lifts, 1 of 18 sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "day-overview"
   }
  ]
 }

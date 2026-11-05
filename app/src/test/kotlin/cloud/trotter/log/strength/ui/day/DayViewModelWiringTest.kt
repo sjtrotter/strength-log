@@ -220,6 +220,81 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun cancellingACardioSetPageRevertsItsEditsAndSaveKeepsThem() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.editor.setDayEditorOpen(true)
+        vm.editor.openCardioBlock()
+        advanceUntilIdle()
+        val draft = vm.dayEditState.value.cardioDraft!!
+        assertFalse(draft.sets.single().hasAim)
+        vm.editor.changeCardioDraft(draft.copy(editingSet = 0))
+        vm.editor.changeCardioDraft(draft.copy(editingSet = 0, sets = listOf(draft.sets.single().copy(hasAim = true))))
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.cardioDraft!!.sets.single().hasAim)
+
+        vm.editor.backCardioBlock()
+        advanceUntilIdle()
+        assertNull(vm.dayEditState.value.cardioDraft!!.editingSet)
+        assertFalse(vm.dayEditState.value.cardioDraft!!.sets.single().hasAim)
+        assertNull(handle.get<CardioSetDraft>("day_cardio_set_before_edit"))
+
+        val reverted = vm.dayEditState.value.cardioDraft!!
+        vm.editor.changeCardioDraft(reverted.copy(editingSet = 0))
+        vm.editor.changeCardioDraft(reverted.copy(editingSet = 0, sets = listOf(reverted.sets.single().copy(hasAim = true))))
+        vm.editor.saveCardioBlock()
+        advanceUntilIdle()
+        assertEquals(Measure.Distance(400), repo.plans.programFor(plan).first().days.single().cardioBlock!!.sets.single().aim)
+        assertNull(vm.dayEditState.value.cardioDraft!!.editingSet)
+        assertTrue(vm.dayEditState.value.cardioDraft!!.sets.single().hasAim)
+        assertNull(handle.get<CardioSetDraft>("day_cardio_set_before_edit"))
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun aCardioSetEditInProgressRevertsAfterProcessDeathCancel() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        first.editor.setDayEditorOpen(true)
+        first.editor.openCardioBlock()
+        advanceUntilIdle()
+        val draft = first.dayEditState.value.cardioDraft!!
+        first.editor.changeCardioDraft(draft.copy(editingSet = 0))
+        first.editor.changeCardioDraft(draft.copy(editingSet = 0, sets = listOf(draft.sets.single().copy(hasAim = true))))
+        advanceUntilIdle()
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(CardioBlockDraft::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+        val restored = newViewModel(restoredHandle)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertEquals(0, restored.dayEditState.value.cardioDraft!!.editingSet)
+        assertTrue(restored.dayEditState.value.cardioDraft!!.sets.single().hasAim)
+
+        restored.editor.backCardioBlock()
+        advanceUntilIdle()
+        assertNull(restored.dayEditState.value.cardioDraft!!.editingSet)
+        assertFalse(restored.dayEditState.value.cardioDraft!!.sets.single().hasAim)
+        assertNull(restoredHandle.get<CardioSetDraft>("day_cardio_set_before_edit"))
+        collectEdit.cancel()
+    }
+
+    @Test
     fun authoredCardioAddCopiesTheLastWorkAndRecoveryBeforeCooldownAndAllowsLastExerciseRemoval() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Running", "Run")
         repo.plans.publishCreatedAuthoredPlan(plan)

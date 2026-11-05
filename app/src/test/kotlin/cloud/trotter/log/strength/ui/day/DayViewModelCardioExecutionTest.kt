@@ -36,6 +36,8 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
+import cloud.trotter.log.strength.ui.day.receipt.CardioInterval
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
@@ -158,6 +160,159 @@ class DayViewModelCardioExecutionTest {
         CardioSetSpec(role, Measure.Time(seconds), aim?.let { Measure.Distance(it) }, hard = role == CardioRole.WORK)
 
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
+
+    @Test
+    fun loggedCardioOnAMixedDayEnablesFinishAndTheReceiptListsTheRun() = test {
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.COOLDOWN))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        val vm = readyVm()
+        assertFalse(vm.uiState.value.canFinish)
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        tick(10_000)
+
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertNull(vm.finisher.receipt.value)
+        assertTrue(vm.uiState.value.canFinish)
+        vm.completeDay()
+        runCurrent()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertFalse(receipt.cardio)
+        assertEquals(CardioActivity.TRACK_RUN, receipt.activity)
+        assertEquals(listOf(CardioRole.WORK, CardioRole.COOLDOWN), receipt.cardioRows.map { it.role })
+        assertEquals(CardioInterval(CardioSetStatus.FINISHED, 10, null), receipt.cardioRows.first().intervals.single())
+        assertEquals(ReceiptRow.Shape.SKIPPED, receipt.groups.single().rows.single().shape)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertEquals(1, publishedCardio.size)
+        assertTrue(vm.finisher.dismissReceipt())
+    }
+
+    @Test
+    fun finishingMidIntervalEndsTheRunLogsRiddenRoundsAndLetsTheReceiptClose() = test {
+        prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY),
+            time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val slotId = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        vm.toggleDone(slotId, 0, true, Slot.MAIN)
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        assertFalse(requireNotNull(vm.uiState.value.cardio?.run).running)
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        tick(5_000)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+
+        vm.completeDay()
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val sets = repo.history.cardioSetsFor(session.id)
+        assertEquals(listOf(CardioSetStatus.FINISHED, CardioSetStatus.FINISHED, CardioSetStatus.SHORTENED,
+            CardioSetStatus.SKIPPED, CardioSetStatus.SKIPPED), sets.map { it.status })
+        assertEquals(listOf(10, 10, 5, 0, 0), sets.map { it.elapsedSeconds })
+        assertNull(vm.uiState.value.cardio?.run)
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+        assertFalse(vm.executionActive)
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardioRows.isNotEmpty())
+        assertEquals(listOf(session.id), publishedCardio)
+        assertTrue(vm.finisher.dismissReceipt())
+        assertNull(alarm.deadline)
+    }
+
+    @Test
+    fun finishingMidIntervalWithAFailedCardioSaveKeepsStrengthOpenUntilRetrySucceeds() = test {
+        prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        val runId = requireNotNull(repo.openRunFlow.first()).id
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val slotId = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        vm.toggleDone(slotId, 0, true, Slot.MAIN)
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.startCardio()
+        runCurrent()
+        tick(5_000)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+
+        vm.completeDay()
+        runCurrent()
+
+        val failed = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(failed.complete)
+        assertTrue(failed.saveFailed)
+        assertEquals(failed, handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(listOf(SavedCardioResult("FINISHED", 10), SavedCardioResult("SHORTENED", 5),
+            SavedCardioResult("SKIPPED", 0)), failed.results)
+        assertTrue(vm.uiState.value.runOpen)
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+        assertTrue(requireNotNull(repo.openRunFlow.first()).tracks.single().sets.first().done)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        assertTrue(publishedCardio.isEmpty())
+        assertNull(vm.finisher.receipt.value)
+        assertNull(vm.finisher.attempt.value)
+        assertNull(alarm.deadline)
+
+        vm.completeDay()
+        runCurrent()
+        assertNull(vm.finisher.receipt.value)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        vm.retryCardioSave()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(listOf(10, 5, 0), repo.history.cardioSetsFor(session.id).map { it.elapsedSeconds })
+        assertEquals(listOf(session.id), publishedCardio)
+        assertFalse(vm.executionActive)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+
+        vm.completeDay()
+        runCurrent()
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardioRows.isNotEmpty())
+        assertTrue(vm.finisher.dismissReceipt())
+    }
+
+    @Test
+    fun finishingWithAnUnstartedCardioRunLogsNothingAndStillCloses() = test {
+        prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY),
+            time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        val vm = readyVm()
+        vm.skipCardioSet(CardioSetAction("A", null, 0))
+        runCurrent()
+        assertNull(requireNotNull(vm.uiState.value.cardio?.run).startedAt)
+        val slotId = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        vm.toggleDone(slotId, 0, true, Slot.MAIN)
+        runCurrent()
+
+        vm.completeDay()
+        runCurrent()
+
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        assertTrue(publishedCardio.isEmpty())
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardioRows.isEmpty())
+        assertNull(vm.uiState.value.cardio?.run)
+        assertFalse(vm.executionActive)
+        assertTrue(vm.finisher.dismissReceipt())
+    }
 
     @Test
     fun cardioLoggedOnAnotherPlansSameDayDoesNotMarkTheDisplayedDayLogged() = test {

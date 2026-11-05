@@ -20,10 +20,29 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
+
+    @Test
+    fun loggedCardioAloneEnablesFinish() {
+        val state = DayUiState(
+            hasProgram = true, viewDayId = "A",
+            exercises = workoutDayFixture().exercises.map { card ->
+                card.copy(rows = card.rows.map { row ->
+                    row.copy(done = false, partner = row.partner?.copy(done = false))
+                })
+            },
+            cardio = CardioCardState("Road run", "", false, loggedSeconds = 300),
+        )
+        assertTrue(state.canFinish)
+        assertNull(state.finishBlockedReason)
+        val unlogged = state.copy(cardio = CardioCardState("Road run", "", false))
+        assertFalse(unlogged.canFinish)
+        assertEquals(WorkoutBlockedReason.NO_LOGGED_SETS, unlogged.finishBlockedReason)
+    }
 
     @Test
     fun `generated header retains the exact goal value in either unit`() {

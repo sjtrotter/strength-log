@@ -613,6 +613,55 @@
   },
   {
    "checkpoint": "plan-detail"
+  },
+  {
+   "note": "There's a Goals list down here. Squat 215. I squat 225 for 5. Where was this during setup?"
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "day-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "5 lifts, 18 sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plan-dayA-row"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "back-to-plan-detail"
+  },
+  {
+   "scrollTo": {
+    "text": "Conventional Deadlift"
+   },
+   "timeoutMs": 30000
+  },
+  {
+   "checkpoint": "goals"
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "goal-tap"
   }
  ]
 }

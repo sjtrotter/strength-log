@@ -591,6 +591,14 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "check-top-edit-preserved-completed-60kg-warmup"
+    },
+    {
+      "tap": {
         "tag": "lift-set-1"
       }
     },
@@ -609,6 +617,48 @@
     {
       "tap": {
         "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "second-warmup-logged-before-undo"
+    },
+    {
+      "tap": {
+        "text": "Undo 100 \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "undo-second-warmup-immediately"
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "warmup-rest-extended-without-blocking-log"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -634,6 +684,24 @@
       }
     },
     {
+      "expect": {
+        "text": "Log 140 kg \u00d7 3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
       "tap": {
         "tag": "lift-set-3"
       }
@@ -653,6 +721,49 @@
     {
       "tap": {
         "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 170 kg \u00d7 1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "expect": {
+        "text": "Log 190 kg \u00d7 1"
+      }
+    },
+    {
+      "checkpoint": "ready-for-diary-squat-single"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "monday-190kg-single-logged"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "single-and-active-rest-survive-reopening"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -678,53 +789,20 @@
       }
     },
     {
-      "checkpoint": "squat-warmups-single-and-first-backoff-configured"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-1"
+      "expect": {
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
-      "advance": "2m"
-    },
-    {
       "tap": {
-        "tag": "lift-check-main-2"
+        "text": "All sets"
       }
     },
     {
-      "advance": "3m"
+      "checkpoint": "warmups-and-single-done-first-backoff-ready"
     },
     {
-      "tap": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "checkpoint": "monday-squat-single-and-first-backoff-logged"
-    },
-    {
-      "note": "Single was 190 x 1 at RPE 7; first backoff 165 x 5. Need three additional 165 x 5 backoffs, then bench. The side video shows depth is there. These script notes are not saved app notes; still need an in-app place for RPE and video reference."
+      "note": "Squat single was 190 x 1 at RPE 7; side video confirms depth. First backoff is ready at 165 x 5. Add the three further backoffs before completing the lift so I can keep all four under squat. Lift More now has a Note entry: use it once its field is inspected. Script notes are not app notes."
     },
     {
       "tap": {
@@ -732,7 +810,7 @@
       }
     },
     {
-      "checkpoint": "adding-second-squat-backoff"
+      "checkpoint": "add-second-backoff-before-finishing-squat"
     }
   ]
 }

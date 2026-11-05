@@ -16,7 +16,8 @@
   },
   {
    "tap": {
-    "text": "History"
+    "text": "History",
+    "role": "Tab"
    }
   },
   {
@@ -51,12 +52,14 @@
   },
   {
    "tap": {
-    "text": "Today"
+    "text": "Today",
+    "role": "Tab"
    }
   },
   {
    "tap": {
-    "text": "History"
+    "text": "History",
+    "role": "Tab"
    }
   },
   {
@@ -77,7 +80,8 @@
   },
   {
    "tap": {
-    "text": "Today"
+    "text": "Today",
+    "role": "Tab"
    }
   },
   {
@@ -98,7 +102,8 @@
   },
   {
    "tap": {
-    "text": "Plans"
+    "text": "Plans",
+    "role": "Tab"
    }
   },
   {
@@ -125,7 +130,8 @@
   },
   {
    "tap": {
-    "text": "Today"
+    "text": "Today",
+    "role": "Tab"
    }
   },
   {
@@ -234,6 +240,44 @@
   },
   {
    "checkpoint": "edit-day-c"
+  },
+  {
+   "tap": {
+    "textContains": "Ramp to"
+   }
+  },
+  {
+   "checkpoint": "deadlift-editor"
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "edit-day-c-95"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-exercise"
+  },
+  {
+   "scrollTo": {
+    "textContains": "url"
+   }
+  },
+  {
+   "checkpoint": "add-exercise-curl"
   }
  ]
 }

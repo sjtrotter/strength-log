@@ -37,8 +37,8 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,7 +60,9 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
+import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
@@ -237,7 +239,7 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { editing = true },
     )
     if (editing) {
-        RestDurationDialog(label, row.seconds, onSave = {
+        RestDurationSheet(label, row.seconds, onSave = {
             onChange(it)
             editing = false
         }, onDismiss = { editing = false })
@@ -252,38 +254,44 @@ internal fun restDurationSeconds(minutes: String, seconds: String): Int? {
     return (minuteValue * 60 + secondValue).takeIf { it <= RestPolicy.MAX_REST_SECONDS }
 }
 
+/** Rest is edited in the app's standard sheet: two fields and one pinned Save, like the other entry sheets. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RestDurationDialog(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
     var minutes by rememberSaveable { mutableStateOf((initialSeconds / 60).toString()) }
     var seconds by rememberSaveable { mutableStateOf((initialSeconds % 60).toString()) }
     val total = restDurationSeconds(minutes, seconds)
-    AppAlertDialog(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(label) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = minutes, onValueChange = { minutes = it },
-                    label = { Text(stringResource(R.string.form_minutes_label)) },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                )
-                OutlinedTextField(
-                    value = seconds, onValueChange = { seconds = it },
-                    label = { Text(stringResource(R.string.form_seconds_label)) },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                )
-                if (total == null) Text(stringResource(R.string.form_rest_range, RestPolicy.MAX_REST_SECONDS),
-                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        title = { Text(label, style = MaterialTheme.typography.titleLarge) },
+        footer = {
+            SheetCommitButton(
+                label = stringResource(R.string.form_save),
+                onClick = { total?.let(onSave) },
+                enabled = total != null,
+                cancelLabel = stringResource(R.string.setup_cancel_button),
+                onCancel = onDismiss,
+            )
         },
-        confirmButton = {
-            TextButton(onClick = { total?.let(onSave) }, enabled = total != null) {
-                Text(stringResource(R.string.form_save))
-            }
+        body = {
+            OutlinedTextField(
+                value = minutes, onValueChange = { minutes = it },
+                label = { Text(stringResource(R.string.form_minutes_label)) },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            )
+            OutlinedTextField(
+                value = seconds, onValueChange = { seconds = it },
+                label = { Text(stringResource(R.string.form_seconds_label)) },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                supportingText = if (total == null) {
+                    { Text(stringResource(R.string.form_rest_range, RestPolicy.MAX_REST_SECONDS)) }
+                } else null,
+                isError = total == null,
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.setup_cancel_button)) } },
     )
 }
 

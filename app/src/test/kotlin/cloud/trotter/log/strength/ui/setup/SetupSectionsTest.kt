@@ -121,8 +121,8 @@ class SetupSectionsTest {
         } }
         composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Top set"))
         composeTestRule.onNodeWithText("Top set").performClick()
-        // Typing into a dialog's text field never idles under Robolectric (see #454 round 0), so
-        // this saves the prefilled draft; restDurationSecondsParsesAndBoundsTheDraft covers parsing.
+        // Typing into these fields is covered by restDurationSecondsParsesAndBoundsTheDraft, so
+        // this saves the prefilled draft through the callback.
         val shown = SetupStateBuilder.buildUiState(unit = WeightUnit.LB).restCategories
             .single { it.category == RestCategory.TOP }.seconds
         composeTestRule.onNodeWithText("Save").performClick()

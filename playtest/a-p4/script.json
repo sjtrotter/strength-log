@@ -1417,8 +1417,7 @@
     {
       "type": {
         "text": "Duration",
-        "value": "12:00",
-        "ime": "done"
+        "value": "12:00"
       }
     },
     {
@@ -1461,8 +1460,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Last bench set slowed down, but nothing ugly. Today I used dumbbells for Romanian deadlifts: 40 lb EACH hand, 2 x 10. I could not find that variant in the suggested swaps, so the generic RDL entry needs this qualification. Bike: 12 steady minutes, 111 average watts, effort 6/10.",
-        "ime": "done"
+        "value": "Last bench set slowed down, but nothing ugly. Today I used dumbbells for Romanian deadlifts: 40 lb EACH hand, 2 x 10. I could not find that variant in the suggested swaps, so the generic RDL entry needs this qualification. Bike: 12 steady minutes, 111 average watts, effort 6/10."
       }
     },
     {
@@ -1500,15 +1498,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
+        "value": "40"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {
@@ -1532,15 +1528,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
+        "value": "40"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {

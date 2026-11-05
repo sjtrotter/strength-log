@@ -360,80 +360,82 @@
       "checkpoint": "unrestricted-add-exercise-picker"
     },
     {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "shoulder"
+      "swipe": {
+        "text": "Knee flexion",
+        "direction": "up"
       }
     },
     {
-      "checkpoint": "add-exercise-search-shoulder"
+      "checkpoint": "movement-list-lower-categories-for-shoulders-and-pulldown"
     },
     {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "press"
+      "scrollTo": {
+        "text": "Single leg"
       }
     },
     {
-      "checkpoint": "add-exercise-search-press"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "pulldown"
+      "tap": {
+        "text": "Single leg"
       }
     },
     {
-      "checkpoint": "add-exercise-search-pulldown"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "split"
-      }
-    },
-    {
-      "checkpoint": "add-exercise-search-split"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "row"
-      }
-    },
-    {
-      "checkpoint": "add-exercise-search-row"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "overhead"
-      }
-    },
-    {
-      "checkpoint": "add-exercise-search-overhead"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "seated"
-      }
-    },
-    {
-      "checkpoint": "add-exercise-search-seated"
+      "checkpoint": "single-leg-exercise-choices-before-selecting-split-squat"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "workout-after-add-catalog-discovery"
+      "back": true
+    },
+    {
+      "checkpoint": "today-after-leaving-open-wednesday"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "second-monday-preview-targets-versus-nov9-actuals"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "friday-plan-preview-before-corrections"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day C"
+      }
     },
     {
       "tap": {
@@ -456,7 +458,28 @@
       }
     },
     {
-      "checkpoint": "cardio-activity-before-label-probe"
+      "checkpoint": "cardio-duration-readback-before-rower-selection"
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "twelve-minute-segment-readback"
+    },
+    {
+      "tap": {
+        "desc": "Aim"
+      }
+    },
+    {
+      "checkpoint": "cardio-distance-target-entry-controls"
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
     },
     {
       "tap": {
@@ -467,7 +490,7 @@
       "checkpoint": "activity-menu-via-label"
     },
     {
-      "note": "Next choose native Wednesday shoulder press, lat pulldown and split squat from these Add exercise results. Do not log the removed bench or chest-supported row as those movements. Rowing activity selection remains pending until this menu is observed; twelve minutes alone is not a completed row."
+      "note": "Choose rowing and actual native shoulder/pulldown/split entries from these visible choices next. Wednesday remains open; no accessories or rowing have been falsely marked performed. Lower movement categories should resolve the movement-scoped searches. The Day A preview is inspection only, not a new visit."
     }
   ]
 }

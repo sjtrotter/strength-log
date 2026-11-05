@@ -1401,40 +1401,1007 @@
    "checkpoint": "sat21-swapped"
   },
   {
+   "note": "100 on the machine? no idea. 70, 8 reps."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "sat21-row"
+  },
+  {
+   "note": "out of time, skipping the row and the bike. 50 minutes."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "sat21-row-skipped"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "sat21-finish-dialog"
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "sat21-summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-sat21"
+  },
+  {
+   "advance": "47h40m"
+  },
+  {
+   "note": "Mon Nov 23. Squat 55. First time it looks like something on the bar."
+  },
+  {
+   "checkpoint": "today-mon23"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "checkpoint": "mon23-squat"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon23-dbbench"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "note": "35s. Too fast a jump after Saturday."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon23-row"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "80"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "80"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "80"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon23-cardio"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "End cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "End and log"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish day A",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon23-summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "47h40m"
+  },
+  {
+   "note": "Wed Nov 25, day before Thanksgiving, gym empty. Bench after the miss: what does it give me?"
+  },
+  {
+   "checkpoint": "today-wed25"
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "checkpoint": "wed25-bench"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "wed25-bench-sets"
+  },
+  {
    "back": true
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "today-sat21-open"
-  },
-  {
    "tap": {
-    "text": "History",
-    "role": "Tab"
+    "desc": "Edit set 1"
    }
   },
   {
-   "scrollTo": {
-    "textContains": "8 sets"
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
    }
   },
   {
    "tap": {
-    "textContains": "8 sets"
+    "text": "Save set"
    }
-  },
-  {
-   "checkpoint": "history-fri"
   },
   {
    "tap": {
-    "text": "Share"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "share-tapped"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "two misses in a row at 70 now. what am I supposed to do?"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "wed25-bench-note"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed25-pulldown"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed25-cardio"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "5m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "End cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "End and log"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish day B",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed25-summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-wed25"
+  },
+  {
+   "advance": "119h30m"
+  },
+  {
+   "note": "Skipped Friday, gym closed at 4 for the holiday. Out of town all weekend. Mon Nov 30, five days off and too much pie."
+  },
+  {
+   "checkpoint": "today-mon30"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "checkpoint": "mon30-deadlift"
+  },
+  {
+   "note": "deadlift 115. grip went on rep 4 and 5."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "115"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon30-dbbench"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon30-row"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon30-cardio"
+  },
+  {
+   "note": "skipping the treadmill. left annoyed."
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "mon30-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "grip slipping on deadlift rep 4 and 5. look up mixed grip or chalk"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "mon30-summary-note"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-mon30"
   }
  ]
 }

@@ -225,6 +225,17 @@
    "checkpoint": "run-all-sets"
   },
   {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "run-more-menu"
+  },
+  {
+   "back": true
+  },
+  {
    "back": true
   },
   {
@@ -276,7 +287,8 @@
   },
   {
    "tap": {
-    "text": "Nov 10, 2026"
+    "text": "Nov 10, 2026",
+    "index": 0
    }
   },
   {

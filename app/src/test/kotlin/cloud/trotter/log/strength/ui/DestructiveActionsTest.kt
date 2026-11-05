@@ -67,7 +67,7 @@ class DestructiveActionsTest {
     /** [F] */
     @Test fun discardIsShownWithAnOpenRun() {
         setDayContent(runOpen = true)
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).assertIsDisplayed()
     }
 
@@ -78,7 +78,7 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals("the menu tap must only open the dialog", 0, cleared)
 
@@ -91,13 +91,13 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).performClick()
         composeTestRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(0, cleared)
         // The dialog is gone, so the menu action is reachable again.
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals(0, cleared)
     }
@@ -105,7 +105,7 @@ class DestructiveActionsTest {
     /** [F] */
     @Test fun discardIsHiddenWithoutAnOpenRun() {
         setDayContent(runOpen = false)
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).assertDoesNotExist()
     }
 
@@ -194,7 +194,7 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        openDayMenu()
         composeTestRule.onNodeWithText(discardAction).performClick()
         composeTestRule.onNodeWithText("Discard").assertIsDisplayed()
 
@@ -255,6 +255,11 @@ class DestructiveActionsTest {
     }
 
     // --- fixtures --------------------------------------------------------------
+
+    private fun openDayMenu() {
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
+    }
 
     private fun setDayContent(
         runOpen: Boolean = true,

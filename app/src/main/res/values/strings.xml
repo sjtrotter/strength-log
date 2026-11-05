@@ -72,7 +72,7 @@
 <string name="settings_title">Settings</string>
 <string name="settings_units">Units</string>
 <string name="settings_custom_exercise">Create custom exercise</string>
-<string name="settings_backup">Backup</string>
+<string name="settings_backup">Backup and export</string>
 <string name="settings_licenses">Licenses</string>
 <string name="you_title">You</string>
 <string name="you_goals_note">Generated plans set their goals from these.</string>

@@ -21,7 +21,14 @@
    }
   },
   {
-   "checkpoint": "wizard-2"
+   "type": {
+    "text": "Days per week"
+   },
+   "value": "3",
+   "ime": "done"
+  },
+  {
+   "checkpoint": "days-3"
   },
   {
    "tap": {
@@ -29,7 +36,7 @@
    }
   },
   {
-   "checkpoint": "wizard-3"
+   "checkpoint": "split"
   },
   {
    "tap": {
@@ -37,7 +44,19 @@
    }
   },
   {
-   "checkpoint": "wizard-4"
+   "tap": {
+    "role": "RadioButton",
+    "index": 1
+   }
+  },
+  {
+   "tap": {
+    "role": "RadioButton",
+    "index": 4
+   }
+  },
+  {
+   "checkpoint": "main-lifts"
   },
   {
    "tap": {
@@ -45,7 +64,19 @@
    }
   },
   {
-   "checkpoint": "wizard-5"
+   "tap": {
+    "role": "RadioButton",
+    "index": 1
+   }
+  },
+  {
+   "tap": {
+    "role": "RadioButton",
+    "index": 4
+   }
+  },
+  {
+   "checkpoint": "cardio"
   },
   {
    "tap": {
@@ -53,7 +84,33 @@
    }
   },
   {
-   "checkpoint": "wizard-6"
+   "tap": {
+    "role": "RadioButton",
+    "index": 1
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)"
+   },
+   "value": "170",
+   "ime": "done"
+  },
+  {
+   "type": {
+    "text": "Age"
+   },
+   "value": "26",
+   "ime": "done"
+  },
+  {
+   "tap": {
+    "role": "RadioButton",
+    "index": 2
+   }
+  },
+  {
+   "checkpoint": "about-you"
   },
   {
    "tap": {
@@ -61,23 +118,28 @@
    }
   },
   {
-   "checkpoint": "wizard-7"
-  },
-  {
    "tap": {
     "text": "Next"
    }
   },
   {
-   "checkpoint": "wizard-8"
+   "checkpoint": "rotation"
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Start"
    }
   },
   {
-   "checkpoint": "wizard-9"
+   "checkpoint": "after-wizard"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "checkpoint": "first-workout"
   }
  ]
 }

@@ -94,6 +94,193 @@
     },
     {
       "checkpoint": "setup-page-8-inspect-defaults"
+    },
+    {
+      "note": "The default preview is not my plan. Go back and choose Upper / Lower, my four main lifts, conventional deadlift, and actual garage equipment. Intermediate is a reasonable description of three years. Pounds is already selected. No working-set, weekday, or session-length input was offered."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "checkpoint": "my-main-lifts-conventional"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "checkpoint": "outdoor-cardio-after-lifting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "34",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 3
+      }
+    },
+    {
+      "note": "Bodyweight was not specified in my original diary. Leaving the prefilled 235 for now; it is an app default, not a measured personal weight. There is no field here for squat 225 x 5, bench 175 x 5, deadlift 275 x 5."
+    },
+    {
+      "checkpoint": "age34-intermediate-pounds"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 5
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 6
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Rack"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rack"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "checkpoint": "garage-equipment-selected"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "revised-plan-preview-top"
+    },
+    {
+      "scrollTo": {
+        "text": "Day D"
+      }
+    },
+    {
+      "checkpoint": "revised-plan-preview-bottom"
+    },
+    {
+      "note": "I want my own Lower A / Upper A / Lower B / Upper B routine. Enter the app to find plan editing before logging any training."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "first-home-find-plan-editing"
     }
   ],
   "capture": "checkpoints"

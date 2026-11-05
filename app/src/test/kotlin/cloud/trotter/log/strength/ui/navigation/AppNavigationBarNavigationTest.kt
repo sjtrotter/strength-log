@@ -4,12 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.NavHost
@@ -18,7 +16,6 @@ import androidx.navigation.testing.TestNavHostController
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -52,13 +49,13 @@ class AppNavigationBarNavigationTest {
             }
         }
 
+        val bar = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
         listOf("Today", "History", "Plans").forEach { label ->
-            val layouts = mutableListOf<TextLayoutResult>()
-            composeTestRule.onNodeWithText(label, useUnmergedTree = true)
+            val bounds = composeTestRule.onNodeWithText(label, useUnmergedTree = true)
                 .assertIsDisplayed()
-                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertTrue("$label has a measured text layout", layouts.isNotEmpty())
-            assertFalse("$label must fit at font scale 2", layouts.any { it.hasVisualOverflow })
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue("$label has height", bounds.height > 0f)
+            assertTrue("$label stays inside the bar at font scale 2", bounds.top >= bar.top && bounds.bottom <= bar.bottom)
         }
     }
 

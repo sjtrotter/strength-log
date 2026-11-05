@@ -496,36 +496,18 @@
    "checkpoint": "after-pick-trap"
   },
   {
-   "type": {
-    "text": "Sets",
-    "value": "3",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "5",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "185",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "trap-prescription"
+   "note": "Picked trap bar and it came in as 'Ramp to 185 lb, then 1 back-off'. That's not my 3x5. Opening the row to fix it."
   },
   {
    "tap": {
-    "text": "Save"
+    "text": "Trap-Bar Deadlift"
    }
   },
   {
-   "checkpoint": "day-a-with-trap"
+   "checkpoint": "trap-row-sheet"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -541,9 +523,29 @@
    "checkpoint": "single-leg-list"
   },
   {
+   "type": {
+    "text": "Search exercises",
+    "value": "Bulgarian"
+   }
+  },
+  {
+   "checkpoint": "search-bulgarian"
+  },
+  {
    "tap": {
     "textContains": "Bulgarian"
    }
+  },
+  {
+   "checkpoint": "after-pick-bulgarian"
+  },
+  {
+   "tap": {
+    "textContains": "Bulgarian"
+   }
+  },
+  {
+   "checkpoint": "bulgarian-row-sheet"
   },
   {
    "type": {
@@ -580,50 +582,71 @@
    }
   },
   {
+   "checkpoint": "day-a-after-bss"
+  },
+  {
    "tap": {
     "text": "Add exercise"
    }
   },
   {
    "tap": {
-    "text": "Knee flexion"
+    "text": "Single leg"
    }
   },
   {
-   "checkpoint": "knee-flexion-list"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Knee extension"
+   "type": {
+    "text": "Search exercises",
+    "value": "Romanian"
    }
   },
   {
-   "checkpoint": "knee-extension-list"
+   "checkpoint": "search-romanian"
   },
   {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Squat bilateral"
+   "type": {
+    "text": "Search exercises",
+    "value": "calf"
    }
   },
   {
-   "checkpoint": "squat-list"
+   "checkpoint": "search-calf"
   },
   {
-   "back": true
-  },
-  {
-   "scrollTo": {
-    "text": "H push"
+   "type": {
+    "text": "Search exercises",
+    "value": "Copenhagen"
    }
   },
   {
-   "checkpoint": "picker-scrolled"
+   "checkpoint": "search-copenhagen"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Nordic"
+   }
+  },
+  {
+   "checkpoint": "search-nordic"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "clam"
+   }
+  },
+  {
+   "checkpoint": "search-clam"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "step"
+   }
+  },
+  {
+   "checkpoint": "search-step"
   }
  ]
 }

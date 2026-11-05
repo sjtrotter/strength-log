@@ -1564,53 +1564,52 @@
     },
     {
       "tap": {
-        "role": "DropdownList"
-      }
-    },
-    {
-      "checkpoint": "saturday-cardio-activity-choices"
-    },
-    {
-      "tap": {
-        "text": "Treadmill"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
+        "text": "Cancel"
       }
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "desc": "Day D lifts, 4 of 25 sets"
-      }
+      "checkpoint": "cardio-selector-harness-boundary-return-to-workout"
     },
     {
-      "scrollTo": {
-        "text": "Treadmill"
+      "tap": {
+        "text": "All sets"
       }
     },
     {
       "tap": {
-        "text": "Treadmill"
+        "desc": "More"
       }
-    },
-    {
-      "checkpoint": "saturday-treadmill-before-start"
     },
     {
       "tap": {
-        "text": "Start"
+        "text": "Note"
       }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "90x6x4. Walk25m at5km/h,5%. Cardio recorded here; DB press24/hand3x10."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "saturday-walk-context-note-saved"
+    },
+    {
+      "recreate": true
     },
     {
       "advance": "25m"
     },
     {
-      "checkpoint": "saturday-treadmill-after-25-minutes"
+      "checkpoint": "saturday-walk-time-elapsed-note-only"
     },
     {
       "tap": {
@@ -3689,32 +3688,35 @@
     },
     {
       "tap": {
-        "desc": "Day D lifts, 4 of 25 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Treadmill"
+        "text": "All sets"
       }
     },
     {
       "tap": {
-        "text": "Treadmill"
+        "desc": "More"
       }
     },
     {
-      "checkpoint": "week2-treadmill-offered-again"
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "92.5x6x4 @8.5. Walk25m5km/h:5%10m,3%15m; tight calves. DB24/hand."
+      }
     },
     {
       "tap": {
-        "text": "Start"
+        "text": "Save note"
       }
     },
     {
       "advance": "10m"
     },
     {
-      "checkpoint": "week2-walk-ten-minutes-before-incline-reduction"
+      "checkpoint": "week2-note-only-walk-ten-minutes"
     },
     {
       "note": "Calves tight: lower the physical treadmill from5% to3%; keep5km/h for remaining15m. Save actual settings in session note. No make-up bike for Tuesday."
@@ -3723,7 +3725,7 @@
       "advance": "15m"
     },
     {
-      "checkpoint": "week2-walk-25-minutes-completed"
+      "checkpoint": "week2-note-only-walk-25-minutes"
     },
     {
       "tap": {
@@ -3749,7 +3751,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Walk25m 5km/h:5% first10m,3% last15m; tight calves. DB24s; usual accessories. No makeup bike."
+        "value": "Walk25m5km/h:5%10m,3%15m; tight calves. Usual accessories; no makeup bike."
       }
     },
     {
@@ -3848,6 +3850,504 @@
     },
     {
       "checkpoint": "week3-monday-original-prescription-after-reduction"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "200"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "175"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "175"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "175"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "175"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 5 of 26 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "week3-monday-main-work-completed-200-175-and105"
     }
   ]
 }

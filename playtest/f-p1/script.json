@@ -140,6 +140,71 @@
   },
   {
    "checkpoint": "first-workout"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "checkpoint": "day-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "checkpoint": "left-workout"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "other-days"
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "checkpoint": "plans-day-a"
   }
  ]
 }

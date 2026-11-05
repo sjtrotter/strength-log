@@ -2682,18 +2682,7 @@
    "checkpoint": "history-wk2"
   },
   {
-   "tap": {
-    "text": "Barbell Bench Press top set"
-   }
-  },
-  {
-   "checkpoint": "top-set-card-tapped"
-  },
-  {
-   "tap": {
-    "text": "History",
-    "role": "Tab"
-   }
+   "note": "The top set card is not tappable. Fine."
   },
   {
    "scrollTo": {
@@ -2729,13 +2718,13 @@
   },
   {
    "swipe": {
-    "text": "Week of Nov 9",
+    "text": "Weekly volume",
     "direction": "up"
    }
   },
   {
    "swipe": {
-    "text": "Week of Nov 9",
+    "text": "Weekly volume",
     "direction": "up"
    }
   },
@@ -2748,6 +2737,2118 @@
    }
   },
   {
+   "advance": "1d8h18m"
+  },
+  {
+   "note": "Mon Nov 23, week 3, 80%. Squat 4x5 at 187.5. Thanksgiving week."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "checkpoint": "mon-wk3-f-preview"
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "mon-wk3-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "187.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "187.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "187.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Set 4 rep 5 I cut the depth. Would be a miss on the platform. Counting it with an asterisk. RPE 9. Paused 152.5 3x3 tired. Belt squat 110 clean."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "187.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "mon-wk3-4x5"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "mon-wk3-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "16h"
+  },
+  {
+   "note": "Tue Nov 24. Bench 5x5 at 115. Set 5 I got 4 and racked it. First real miss of the block."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "tue-wk3-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Set 5: 4 reps, racked it. First miss. Close grip at 100, probably shouldn't have gone up. Skipped the bike, packing."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "checkpoint": "tue-wk3-set5-edit"
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "tue-wk3-missed-rep-logged"
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "tue-wk3-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "checkpoint": "a-preview-after-miss"
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "advance": "20h"
+  },
+  {
+   "note": "Wed Nov 25, 8 a.m., gym closes at noon. Deadlifts only, 4x4 at 207.5. 40 minutes door to door."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day C"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "wed-wk3-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "207.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "207.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "207.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Best lifts of the week. Deadlift only, travel day to Ohio. No deficits, no RDL, no abs."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "207.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "wed-wk3-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d"
+  },
+  {
+   "note": "Fri Nov 27. Planet Fitness. No barbell bench. Dumbbell bench 5x8 with the 35s. Swapping their bench for this workout only."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day D"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Dumbbell"
+   }
+  },
+  {
+   "checkpoint": "swap-search-dumbbell"
+  },
+  {
+   "tap": {
+    "textContains": "Dumbbell Bench"
+   }
+  },
+  {
+   "tap": {
+    "text": "This workout",
+    "role": "RadioButton"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swapped-db-bench"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Planet Fitness near the in-laws. DB bench 5x8 with the 35s, one-arm rows 4x10, pull-ups on the assisted machine with no assistance, triceps. Heavy 3x3 at 130 did not happen, moving it to Sunday."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "35"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "fri-wk3-after-5"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "fri-wk3-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d2h"
+  },
+  {
+   "note": "Sun Nov 29. Home. Friday's heavy bench today: 3x3 at 130. Saturday's squat day skipped, two days late is too late."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day D"
+   }
+  },
+  {
+   "checkpoint": "sun-d-preview"
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "sun-wk3-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "130"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "130"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Third set RPE 9, grinder on rep 3. Two heavy benches above RPE 8 in a row: bench TM drops to 147.5 for block 2. Spoto 105. Pull-ups +12.5."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "130"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "sun-wk3-3x3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "sun-wk3-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d8h"
+  },
+  {
+   "note": "Mon Nov 30 off, shoulder. Tue Dec 1, deload. Squat 3x5 at 152.5. 94.7 this morning."
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "You"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (kg)",
+    "value": "94.7",
+    "ime": "done"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "checkpoint": "deload-f-preview"
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "deload-f-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "152.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "152.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Deload. Felt like nothing. Paused 2x3 at 152.5. Belt squat 2x10 light."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "152.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "deload-after-3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "deload-f-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "1d"
+  },
+  {
+   "note": "Wed Dec 2, deload bench 3x5 at 97.5. What does Day A offer after last week's miss?"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "checkpoint": "deload-a-preview"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "deload-a-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "97.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "97.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Deload. Close grip 90. Rows, face pulls, easy bike."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "97.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "deload-a-after-3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "deload-a-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "4d"
+  },
+  {
+   "note": "Sun Dec 6. Block over. Count the sessions, look at the trends, get the data out."
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-end"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends-end"
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-end-scrolled"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "Nov 24, 2026"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Nov 24, 2026"
+   }
+  },
+  {
+   "checkpoint": "tue-miss-detail"
+  },
+  {
    "tap": {
     "text": "Share"
    }
@@ -2757,6 +4858,9 @@
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "after-share-back"
   },
   {
    "tap": {
@@ -2793,7 +4897,7 @@
    }
   },
   {
-   "checkpoint": "backup-wk2"
+   "checkpoint": "backup-end"
   },
   {
    "tap": {

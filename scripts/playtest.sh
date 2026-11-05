@@ -72,12 +72,13 @@ for _ in $(seq 30); do
     run=$(gh run list --workflow playtest.yml --branch "$branch" --event workflow_dispatch --created ">=$before" \
         --json databaseId,headSha -q ".[] | select(.headSha == \"$head\") | .databaseId" | head -1 || true)
     [[ -n "$run" ]] && break
-    sleep 5
+    sleep 10
 done
-[[ -n "$run" ]] || { echo 'dispatch not visible after 150 s' >&2; exit 2; }
+[[ -n "$run" ]] || { echo 'dispatch not visible after 300 s' >&2; exit 2; }
 
 status=0
-gh run watch "$run" --exit-status >/dev/null || status=$?
+# Ten seats can run at once; a slow poll keeps them under the API rate limit.
+gh run watch "$run" --interval 30 --exit-status >/dev/null || status=$?
 out="playtest-runs/$seat/$run"
 mkdir -p "$out"
 gh run download "$run" -D "$out" -n "playtest-$run-0"

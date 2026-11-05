@@ -995,11 +995,89 @@
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "tag": "workout-action-filled"
    }
   },
   {
-   "checkpoint": "finish-tapped"
+   "checkpoint": "finish-pressed"
+  },
+  {
+   "tap": {
+    "role": "Button",
+    "inDialog": true,
+    "textContains": "Finish"
+   }
+  },
+  {
+   "checkpoint": "after-finish-confirm"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Groin felt weird on the Copenhagen side so I cut the third set. 48 min door to door."
+   }
+  },
+  {
+   "checkpoint": "note-typed"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-receipt-back"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-after-monday"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "advance": "24h"
+  },
+  {
+   "checkpoint": "tuesday-today"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body \u00b7 Day C1"
+   }
+  },
+  {
+   "checkpoint": "c1-page"
+  },
+  {
+   "tap": {
+    "text": "Start day C1"
+   }
+  },
+  {
+   "checkpoint": "c1-started"
   }
  ]
 }

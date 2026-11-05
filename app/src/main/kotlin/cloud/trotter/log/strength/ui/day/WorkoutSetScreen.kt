@@ -67,7 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -745,8 +745,9 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     val rest = state.rest?.takeUnless { it.over }
     val undo = state.workout?.undo
     if (rest == null && undo == null) return
+    val resources = LocalResources.current
     val announcement = rest?.let {
-        stringResource(R.string.workout_rest_remaining_clock, formatCardioTime(it.remainingSeconds))
+        formatRestAnnouncement(resources, it.remainingSeconds)
     }
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
@@ -756,13 +757,13 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
         }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
-                val minutes = (rest.remainingSeconds + 59) / 60
-                val minuteAnnouncement = pluralStringResource(R.plurals.workout_rest_remaining_minutes, minutes, minutes)
+                val startedSeconds = remember(rest.rest) { rest.remainingSeconds }
+                val startAnnouncement = formatRestAnnouncement(resources, startedSeconds)
                 Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("workout-rest-announcement").semantics {
                         liveRegion = LiveRegionMode.Polite
-                        contentDescription = minuteAnnouncement
+                        contentDescription = startAnnouncement
                     })
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,

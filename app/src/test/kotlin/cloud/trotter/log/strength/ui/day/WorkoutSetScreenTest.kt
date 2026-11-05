@@ -669,8 +669,32 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Undo Bench Press 165 × 5").assertIsDisplayed()
     }
 
-    @Test fun restDescriptionMatchesSecondsWhileLiveRegionChangesOnlyAtMinuteBoundaries() {
-        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 64)))
+    @Test fun restStartAnnouncesExactMinutesAndSeconds() {
+        var state by mutableStateOf(workoutSetSingleFixture())
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true).assertDoesNotExist()
+        listOf(
+            Triple(90, "Rest 1 minute 30 seconds", "1:30"),
+            Triple(60, "Rest 1 minute", "1:00"),
+            Triple(150, "Rest 2 minutes 30 seconds", "2:30"),
+        ).forEach { (seconds, announcement, clock) ->
+            rule.runOnIdle {
+                val rest = workoutRest()
+                state = state.copy(rest = rest.copy(
+                    rest = rest.rest.copy(deadlineEpochMillis = seconds * 1_000L, totalSeconds = seconds),
+                    remainingSeconds = seconds,
+                ))
+            }
+            rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+                .assertContentDescriptionEquals(announcement)
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            rule.onNodeWithTag("workout-rest").assertContentDescriptionEquals(announcement)
+            rule.onNodeWithText(clock).assertIsDisplayed()
+        }
+    }
+
+    @Test fun restDescriptionTracksSecondsWithoutRepeatingTheStartAnnouncement() {
+        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest()))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         fun description() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
         fun announced() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
@@ -684,24 +708,31 @@ class WorkoutSetScreenTest {
         }
         rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-        assertEquals(listOf("Rest remaining: 1:04"), description())
-        assertEquals(listOf("Rest remaining: 2 minutes"), announced())
-        val minuteAnnouncement = announced()
-        val minuteText = announcementText()
-        rule.onNodeWithContentDescription("Rest remaining: 1:04").assertIsDisplayed()
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 63)) }
-        assertEquals(listOf("Rest remaining: 1:03"), description())
-        assertEquals(minuteAnnouncement, announced())
-        assertEquals(minuteText, announcementText())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 61)) }
-        assertEquals(listOf("Rest remaining: 1:01"), description())
-        assertEquals(minuteAnnouncement, announced())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 60)) }
-        assertEquals(listOf("Rest remaining: 1:00"), description())
-        assertEquals(listOf("Rest remaining: 1 minute"), announced())
-        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 59)) }
-        assertEquals(listOf("Rest remaining: 0:59"), description())
-        assertEquals(listOf("Rest remaining: 1 minute"), announced())
+        assertEquals(listOf("Rest 1 minute 30 seconds"), description())
+        assertEquals(listOf("Rest 1 minute 30 seconds"), announced())
+        val startAnnouncement = announced()
+        val startText = announcementText()
+        listOf(
+            89 to "Rest 1 minute 29 seconds",
+            61 to "Rest 1 minute 1 second",
+            60 to "Rest 1 minute",
+            59 to "Rest 59 seconds",
+            45 to "Rest 45 seconds",
+        ).forEach { (seconds, expected) ->
+            rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = seconds)) }
+            assertEquals(listOf(expected), description())
+            assertEquals(startAnnouncement, announced())
+            assertEquals(startText, announcementText())
+        }
+        rule.runOnIdle {
+            val rest = requireNotNull(state.rest)
+            state = state.copy(rest = rest.copy(
+                rest = rest.rest.copy(deadlineEpochMillis = rest.rest.deadlineEpochMillis + 15_000, totalSeconds = 60),
+                remainingSeconds = 60,
+            ))
+        }
+        assertEquals(listOf("Rest 1 minute"), description())
+        assertEquals(listOf("Rest 1 minute"), announced())
     }
 
     @Test

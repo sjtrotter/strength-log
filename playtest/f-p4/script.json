@@ -1,42 +1,178 @@
 {
-  "seat": "f-p4",
-  "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
-  "steps": [
-    { "tap": { "text": "Balanced strength + muscle" } },
-    { "tap": { "text": "Next" } },
-    { "type": { "text": "Days per week" }, "value": "3", "ime": "done" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wiz-3-split" },
-    { "tap": { "text": "Full-body rotation" } },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)" } },
-    { "tap": { "text": "Conventional" } },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Bike / elliptical" } },
-    { "tap": { "text": "Finishers after lifting" } },
-    { "checkpoint": "wiz-5-cardio" },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "LB" } },
-    { "type": { "text": "Bodyweight (lb)" }, "value": "190", "ime": "done" },
-    { "type": { "text": "Age" }, "value": "38", "ime": "done" },
-    { "tap": { "text": "Intermediate" } },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Trap Bar" } },
-    { "scrollTo": { "text": "Kettlebell" } },
-    { "tap": { "text": "Ez Bar" } },
-    { "tap": { "text": "Kettlebell" } },
-    { "checkpoint": "wiz-7-equipment" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "wiz-8-rotation" },
-    { "scrollTo": { "text": "Missing a day never skips the next workout." } },
-    { "checkpoint": "wiz-8-rotation-bottom" },
-    { "tap": { "text": "Start" } },
-    { "checkpoint": "after-start" },
-    { "tap": { "text": "Plan" } },
-    { "checkpoint": "plan-tab" },
-    { "tap": { "text": "Log" } },
-    { "checkpoint": "log-tab" },
-    { "tap": { "text": "Settings" } },
-    { "checkpoint": "settings-tab" }
-  ]
+ "seat": "f-p4",
+ "start": {
+  "date": "2026-11-09",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "tap": {
+    "text": "Balanced strength + muscle"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "type": {
+    "text": "Days per week",
+    "value": "3",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-3-split"
+  },
+  {
+   "tap": {
+    "text": "Full-body rotation"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bike / elliptical"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finishers after lifting"
+   }
+  },
+  {
+   "checkpoint": "wiz-5-cardio"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "38",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Trap Bar"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "checkpoint": "wiz-7-equipment"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-8-rotation"
+  },
+  {
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
+   }
+  },
+  {
+   "checkpoint": "wiz-8-rotation-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "after-start"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-tab"
+  },
+  {
+   "tap": {
+    "text": "Log"
+   }
+  },
+  {
+   "checkpoint": "log-tab"
+  },
+  {
+   "tap": {
+    "text": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings-tab"
+  }
+ ]
 }

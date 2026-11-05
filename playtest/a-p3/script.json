@@ -954,6 +954,227 @@
     },
     {
       "note": "Inspect only: Monday still needs competition bench 100 x 5 for five sets, lying leg curls and ab wheel. Do not confirm a finished Monday yet. Swap chooser above is the next route to correct the generated dumbbell bench."
+    },
+    {
+      "tap": {
+        "text": "Keep going"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "monday-swap-db-to-barbell-bench"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "monday-five-bench-sets-at-100kg"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "first-bench-set-stiff-but-complete"
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 9 competition bench: 100 kg x 5 for five sets, with a real pause. First set felt stiff, then fine."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-five-sets-complete"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 14 of 26 sets"
+      }
+    },
+    {
+      "checkpoint": "monday-main-work-done-accessories-still-needed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-menu-looking-for-accessory-editor"
+    },
+    {
+      "note": "Squat and bench are now logged if preceding actions passed. The generated RDL, row, lateral raise, plank and bike are not my Monday accessories. Use the day editor to add lying leg curl and ab wheel; do not log the generated work or claim Monday complete yet. Need finish Monday and progress through at least Nov21 urgently."
     }
   ]
 }

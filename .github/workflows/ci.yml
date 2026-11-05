@@ -24,6 +24,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Robolectric fetches its Android jars from Maven Central at test time;
+      # two runs at once have been rate limited (HTTP 429), so keep them cached.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
+
       - name: Build
         run: ./gradlew build
         # Backstop for a hang the test task's own timeout can't interrupt (#310).

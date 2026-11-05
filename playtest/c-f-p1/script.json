@@ -3151,19 +3151,19 @@
   },
   {
    "scrollTo": {
-    "textContains": "lbow"
+    "text": "Biceps"
    }
   },
   {
-   "checkpoint": "picker-elbow"
+   "checkpoint": "picker-biceps-found"
   },
   {
    "tap": {
-    "textContains": "lbow"
+    "text": "Biceps"
    }
   },
   {
-   "checkpoint": "picker-elbow-tapped"
+   "checkpoint": "picker-biceps"
   },
   {
    "scrollTo": {
@@ -3171,7 +3171,59 @@
    }
   },
   {
-   "checkpoint": "picker-curl"
+   "checkpoint": "picker-curl-list"
+  },
+  {
+   "tap": {
+    "textContains": "Curl",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "picker-curl-tapped"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-picker-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-picker-back-2"
+  },
+  {
+   "note": "touching Plan in Lift options threw away my 60s and put the 25-pound ramp back. Throwing this workout away."
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 0 of 12 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Discard workout"
+   }
+  },
+  {
+   "checkpoint": "discard-dialog"
+  },
+  {
+   "tap": {
+    "textContains": "Discard",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "today-end"
   }
  ]
 }

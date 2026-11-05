@@ -44,7 +44,7 @@ object ReceiptBuilder {
             }
             val partner = partners.firstOrNull { !it.retired }
                 ?: partners.lastOrNull()?.takeIf { !promoted || it.exerciseId != main?.exerciseId }
-            val singles = mains.filter { it.retired && it.sets.any { set -> set.done } } +
+            val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
                 add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing))))
@@ -74,7 +74,10 @@ object ReceiptBuilder {
     ): ReceiptRow {
         val done = track.sets.filter { it.done }
         val planned = track.planned.firstOrNull()?.let {
-            PlannedSets(track.planned.size, it.weightLb, it.reps, it.seconds)
+            // Like the workout's retired rounds, a replaced prescription contributes only done work.
+            // Dropped work keeps its prescription so skips still make the receipt partial.
+            val count = if (track.retired && !track.dropped) done.size else track.planned.size
+            PlannedSets(count, it.weightLb, it.reps, it.seconds)
         }
         if (done.isEmpty()) {
             val tracking = track.planned.firstOrNull()?.let(PersonalBests::tracking) ?: TrackingType.WEIGHTED

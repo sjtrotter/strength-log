@@ -1,9 +1,16 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
+import cloud.trotter.log.strength.data.ProgramSlot
+import cloud.trotter.log.strength.data.RunTrack
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayUiState
@@ -45,6 +52,40 @@ internal fun receiptFixture(): WorkoutReceipt {
             single(ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, PlannedSets(3, 40.0, 12, 0), null)),
         ), activity = null, cardioRows = emptyList(),
     )
+}
+
+internal fun partialReceiptFixture(): WorkoutReceipt = receiptFixture().let { receipt ->
+    receipt.copy(minutes = 31, groups = receipt.groups.take(1).map { group ->
+        group.copy(rows = group.rows.map { row ->
+            row.copy(shape = ReceiptRow.Shape.HEAVIEST_NO_TOP, planned = PlannedSets(6, 130.0, 5, 0), record = null)
+        })
+    })
+}
+
+internal fun swappedReceiptFixture(replacementLogged: Int = 3): WorkoutReceipt {
+    val originalPlan = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
+    val replacementPlan = List(3) { LoggedSet(60.0, 8, SetKind.WORK) }
+    val tracks = listOf(
+        RunTrack(1, 0, 1, Slot.MAIN, "bb_bench", true, originalPlan,
+            originalPlan.mapIndexed { index, set -> set.copy(done = index < 2) }),
+        RunTrack(2, 1, 1, Slot.MAIN, "db_bench_press", false, replacementPlan,
+            replacementPlan.mapIndexed { index, set -> set.copy(done = index < replacementLogged) }),
+    )
+    val groups = ReceiptBuilder.strength(tracks, listOf(ProgramSlot(1, 0, ProgramExercise("db_bench_press"))),
+        { it }, emptyMap())
+    return receiptFixture().copy(groups = groups)
+}
+
+internal fun skippedSupersetReceiptFixture(): WorkoutReceipt {
+    val benchPlan = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
+    val partnerPlan = List(3) { LoggedSet(155.0, 8, SetKind.WORK) }
+    val tracks = listOf(
+        RunTrack(1, 0, 1, Slot.MAIN, "bb_bench", true, benchPlan, benchPlan, dropped = true),
+        RunTrack(2, 1, 1, Slot.SS, "bb_row", true, partnerPlan, partnerPlan, dropped = true),
+        RunTrack(3, 2, 1, Slot.MAIN, "bb_row", false, partnerPlan, partnerPlan.map { it.copy(done = true) }),
+    )
+    val slot = ProgramSlot(1, 0, ProgramExercise("bb_bench", superset = SupersetPartner("bb_row")))
+    return receiptFixture().copy(groups = ReceiptBuilder.strength(tracks, listOf(slot), { it }, emptyMap()), allPlansDone = true)
 }
 
 internal fun cardioReceiptFixture(): WorkoutReceipt = receiptFixture().copy(

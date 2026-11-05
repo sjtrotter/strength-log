@@ -213,6 +213,18 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun `skipping the first superset half before logging keeps the skipped row without duplicating its promoted partner`() {
+        val receipt = skippedSupersetReceiptFixture()
+        val groups = receipt.groups
+        assertEquals(listOf("bb_bench", "bb_row"), groups.flatMap { group -> group.rows.map { it.name } })
+        assertTrue(groups.all { it.rounds == null && it.rows.size == 1 })
+        assertEquals(ReceiptRow.Shape.SKIPPED, groups.first().rows.single().shape)
+        assertTrue(receipt.isPartial)
+        assertEquals(3, receipt.loggedSetCount)
+        assertEquals(6, receipt.plannedSetCount)
+    }
+
+    @Test
     fun `skipping the first half after two rounds leaves the promoted partner as its own lifts`() {
         // dropSupersetHalf(keep = SS): partner retired and dropped, its exercise swapped into MAIN.
         val bench = track(exerciseId = "bb_bench", sets = listOf(work(185.0, 5), work(185.0, 5)),
@@ -305,6 +317,35 @@ class ReceiptBuilderTest {
         assertNull(receiptRow.record)
         val unplanned = row(track(sets = emptyList()))
         assertEquals(TrackingType.WEIGHTED, unplanned.tracking)
+    }
+
+    @Test
+    fun `two of three original sets then all three replacement sets completes the receipt`() {
+        val receipt = swappedReceiptFixture()
+        assertEquals(listOf(2, 3), receipt.groups.map { it.rows.single().planned?.count })
+        assertEquals(5, receipt.loggedSetCount)
+        assertEquals(5, receipt.plannedSetCount)
+        assertFalse(receipt.isPartial)
+    }
+
+    @Test
+    fun `unfinished replacement sets still make the receipt partial`() {
+        val receipt = swappedReceiptFixture(replacementLogged = 2)
+        assertEquals(4, receipt.loggedSetCount)
+        assertEquals(5, receipt.plannedSetCount)
+        assertTrue(receipt.isPartial)
+    }
+
+    @Test
+    fun `a partially logged dropped prescription still counts the skipped work`() {
+        val planned = List(3) { work(185.0, 5, done = false) }
+        val dropped = track(planned = planned, sets = planned.mapIndexed { index, set -> set.copy(done = index < 2) },
+            retired = true, dropped = true)
+        val groups = ReceiptBuilder.strength(listOf(dropped), listOf(slot()), { it }, emptyMap())
+        val receipt = receiptFixture().copy(groups = groups)
+        assertEquals(2, receipt.loggedSetCount)
+        assertEquals(3, receipt.plannedSetCount)
+        assertTrue(receipt.isPartial)
     }
 
     @Test

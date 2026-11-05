@@ -125,6 +125,30 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun skippedFirstSupersetHalfSaysSavedAndSuppressesAllPlansDone() {
+        setReceipt(skippedSupersetReceiptFixture())
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("3 of 6 sets logged").assertExists()
+        rule.onNodeWithText("Squat focus, done.").assertDoesNotExist()
+        rule.onNodeWithText("All plans done for today.").assertDoesNotExist()
+    }
+
+    @Test
+    fun completedReplacementKeepsTheDoneTitle() {
+        setReceipt(swappedReceiptFixture())
+        rule.onNodeWithText("Squat focus, done.").assertExists()
+        rule.onNodeWithText("Squat focus, saved.").assertDoesNotExist()
+        rule.onNodeWithText("5 of 6 sets logged").assertDoesNotExist()
+    }
+
+    @Test
+    fun partialAuditFixtureShowsFewerLoggedSetsThanPlanned() {
+        setReceipt(partialReceiptFixture())
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("1 of 6 sets logged").assertExists()
+    }
+
+    @Test
     fun skippedCardioSuppressesTheCompletionFooter() {
         val receipt = timeTargetFixture()
         val row = receipt.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.SKIPPED, 0, null)), record = null)

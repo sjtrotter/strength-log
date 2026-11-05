@@ -945,6 +945,37 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Log a set to finish this workout.").assertIsDisplayed()
     }
 
+    @Test
+    @Config(qualifiers = "w360dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun finishReasonWrapsBelowTheToolbarAtFontScaleTwo() {
+        val base = workoutSetSingleFixture()
+        val state = base.copy(exercises = base.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(done = false) })
+        })
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val title = rule.onNodeWithText("Day A").assertIsDisplayed()
+        val finish = rule.onNodeWithTag("workout-finish").assertIsDisplayed().assertIsNotEnabled()
+        val reason = rule.onNodeWithText("Log a set to finish this workout.").assertIsDisplayed()
+        val reasonBounds = reason.fetchSemanticsNode().boundsInRoot
+        assertTrue(reasonBounds.top >= title.fetchSemanticsNode().boundsInRoot.bottom)
+        assertTrue(reasonBounds.top >= finish.fetchSemanticsNode().boundsInRoot.bottom)
+        val titleLayouts = mutableListOf<TextLayoutResult>()
+        title.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(titleLayouts) }
+        assertFalse(titleLayouts.single().hasVisualOverflow)
+        val layouts = mutableListOf<TextLayoutResult>()
+        reason.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        assertTrue(layout.layoutInput.softWrap)
+        assertTrue(layout.lineCount > 1)
+        assertFalse(layout.hasVisualOverflow)
+    }
+
     @Test fun clockChipReturnsToTimedRepAndReportsPendingCount() {
         val timed = workoutSetTimedRepRunningFixture()
         val event = requireNotNull(timed.timedRep)

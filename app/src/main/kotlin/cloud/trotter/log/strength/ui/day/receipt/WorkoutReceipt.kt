@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -47,7 +48,7 @@ data class ReceiptRow(
     val lines: List<ValueLine>,
     /** When three or more weights were used: [lines] holds the heaviest set only, this is the rest. */
     val lighterSets: Int,
-    /** The captured plan supplies completion counts, including closed and skipped rows. */
+    /** Available work supplies completion counts; skipped rows keep their captured plan. */
     val planned: PlannedSets?,
     val record: RecordMark?,
 ) : Parcelable {
@@ -117,7 +118,8 @@ internal val WorkoutReceipt.plannedSetCount: Int get() = if (cardio) {
 internal val WorkoutReceipt.isPartial: Boolean get() = if (cardio) {
     cardioRows.any { row -> row.intervals.any { it.status != CardioSetStatus.FINISHED } }
 } else groups.any { group -> group.rows.any { row ->
-    row.shape == ReceiptRow.Shape.SKIPPED || row.sets.size < (row.planned?.count ?: row.sets.size)
+    row.shape == ReceiptRow.Shape.SKIPPED ||
+        !DayScreenBuilder.allDone(row.sets.size, row.planned?.count ?: row.sets.size)
 } }
 
 /** Older receipt bundles omitted plans on closed and skipped rows. */

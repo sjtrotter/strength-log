@@ -141,32 +141,36 @@ private fun WorkoutSetContent(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.today_day_label, state.viewDayId.orEmpty())) },
-                navigationIcon = {
-                    IconButton(onClick = { onBack?.invoke() },
-                        modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onExercises,
-                        modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.List, stringResource(
-                            R.string.workout_exercises, state.viewDayId.orEmpty(), state.doneSets, state.totalSets,
-                        ))
-                    }
-                    if (!allLogged) {
-                        Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.today_day_label, state.viewDayId.orEmpty())) },
+                    navigationIcon = {
+                        IconButton(onClick = { onBack?.invoke() },
+                            modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_back))
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onExercises,
+                            modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.List, stringResource(
+                                R.string.workout_exercises, state.viewDayId.orEmpty(), state.doneSets, state.totalSets,
+                            ))
+                        }
+                        if (!allLogged) {
                             TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors(),
                                 modifier = Modifier.testTag("workout-finish")) {
                                 Text(stringResource(R.string.day_finish_partial_confirm_button))
                             }
-                            WorkoutBlockedReasonText(state.finishBlockedReason)
                         }
+                    },
+                )
+                if (!allLogged && state.finishBlockedReason != null) {
+                    Box(Modifier.widthIn(max = ReadableWidth).fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                        WorkoutBlockedReasonText(state.finishBlockedReason)
                     }
-                },
-            )
+                }
+            }
         },
         bottomBar = {
             Column(

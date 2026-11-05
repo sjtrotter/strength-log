@@ -1088,55 +1088,90 @@
    "checkpoint": "intervals-after-warmup"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "checkpoint": "intervals-after-work1"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "advance": "2m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "2m"
+   "advance": "3m"
   },
   {
-   "checkpoint": "intervals-after-35m"
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "intervals-before-cooldown"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "6m"
+  },
+  {
+   "checkpoint": "intervals-done"
   },
   {
    "tap": {
@@ -1174,10 +1209,65 @@
    "checkpoint": "today-after-b"
   },
   {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "swipe": {
+    "text": "Trends and calendar",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "history-back"
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "settings-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
    "advance": "46h"
   },
   {
-   "advance": "20m"
+   "advance": "5m"
   },
   {
    "checkpoint": "today-fri"
@@ -1346,21 +1436,7 @@
    }
   },
   {
-   "checkpoint": "history"
-  },
-  {
-   "tap": {
-    "text": "Trends and calendar"
-   }
-  },
-  {
-   "checkpoint": "trends"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "history-back"
+   "checkpoint": "history-2"
   }
  ]
 }

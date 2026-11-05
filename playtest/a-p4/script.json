@@ -1189,6 +1189,291 @@
     },
     {
       "checkpoint": "monday-cable-row-replacement-picker"
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "monday-cable-row-three-sets-at-90"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 10 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "dumbbell-rdl-replacement-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 10 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "note-entry-for-slow-last-bench-set"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 10 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "bike-duration-and-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "review-monday-before-finishing-with-missing-rdl-and-cardio"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 10 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "bike-actions-for-actual-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "note": "Bike: I ride 12 steady minutes at 111 average watts, effort 6/10. The diary still needs two dumbbell RDL sets; do not finish the visit before recording those."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "checkpoint": "bike-after-twelve-steady-minutes"
     }
   ]
 }

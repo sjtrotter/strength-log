@@ -370,23 +370,108 @@
    "checkpoint": "swap-search"
   },
   {
+   "note": "Swap only offers the same pattern. No RDL for a split squat slot. Adding RDL to the day instead."
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 4 of 16 sets"
+   }
+  },
+  {
+   "checkpoint": "lifts-overview-midworkout"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "checkpoint": "hinge-list"
+  },
+  {
    "tap": {
     "textContains": "Romanian Deadlift"
    }
   },
   {
+   "checkpoint": "rdl-added"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-add-back"
+  },
+  {
    "tap": {
-    "text": "This workout",
-    "role": "RadioButton"
+    "text": "All sets"
    }
   },
   {
    "tap": {
-    "text": "Swap"
+    "desc": "More"
    }
   },
   {
-   "checkpoint": "swapped-rdl"
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "at-rdl"
   },
   {
    "tap": {

@@ -135,6 +135,17 @@
   },
   {
    "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
     "text": "Plans"
    }
   },
@@ -148,53 +159,12 @@
   },
   {
    "tap": {
-    "desc": "Day options",
+    "textContains": "6 lifts, 21 sets",
     "index": 0
    }
   },
   {
-   "checkpoint": "day-options"
-  },
-  {
-   "tap": {
-    "text": "Edit day"
-   }
-  },
-  {
-   "checkpoint": "edit-day"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-edit-day-back"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Settings"
-   }
-  },
-  {
-   "checkpoint": "settings"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "textContains": "On Today"
-   }
-  },
-  {
-   "longPress": {
-    "textContains": "Barbell Back Squat"
-   }
-  },
-  {
-   "checkpoint": "goal-longpress"
+   "checkpoint": "day-a-detail"
   }
  ]
 }

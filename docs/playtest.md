@@ -67,9 +67,9 @@ If a step remains stuck 30 seconds past its deadline, the harness writes `error.
 | `tap` | Selector. Clicks the matching node. |
 | `longPress` | Selector. Holds the matching node. |
 | `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. |
-| `scrollTo` | Selector. Scrolls to an existing target; for an uncomposed target, searches a lazy scroll container, number 0 or the supplied `index`. |
+| `scrollTo` | Selector. Scrolls to an existing target; for one not yet drawn, scrolls each long list on screen until it appears. |
 | `swipe` | Selector plus `"direction": "left"`, `"right"`, `"up"`, or `"down"`. |
-| `back` | `true`. Uses the activity's real Back dispatcher. |
+| `back` | `true`. Like the system Back key: an open sheet or dialog closes first, otherwise the screen goes back. |
 | `advance` | Positive whole duration such as `"90s"`, `"15m"`, `"2h"`, or `"2d"`. Moves wall time, civil day, and timer clocks together. |
 | `recreate` | `true`. Recreates the activity to exercise saved state. |
 | `checkpoint` | A nonblank name. Always captures a named screen. |

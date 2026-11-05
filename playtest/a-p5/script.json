@@ -1286,11 +1286,13 @@
     },
     {
       "tap": {
-        "text": "Next: Reverse Lunge"
+        "desc": "Day A lifts, 6 of 10 sets"
       }
     },
     {
-      "checkpoint": "lunge-actual-eight-each-side-display"
+      "tap": {
+        "text": "Reverse Lunge"
+      }
     },
     {
       "expect": {
@@ -1323,51 +1325,16 @@
     },
     {
       "tap": {
-        "text": "All sets"
+        "desc": "Day A lifts, 8 of 10 sets"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Plank / Side Plank"
       }
     },
     {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "checkpoint": "left-side-wobbly-exercise-note-entry"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "Left side wobbly. 8 reps per leg; 15 lb dumbbell in each hand."
-      }
-    },
-    {
-      "checkpoint": "lunge-note-typed-check-save-control"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "lunge-note-dismissal-result"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "return-from-lunge-note"
-    },
-    {
-      "tap": {
-        "text": "Next: Plank / Side Plank"
-      }
-    },
-    {
-      "checkpoint": "side-plank-each-side-actual-controls"
+      "checkpoint": "plank-selected-explicitly-after-two-lunge-sets"
     },
     {
       "tap": {
@@ -1375,14 +1342,39 @@
       }
     },
     {
-      "checkpoint": "side-plank-actual-hold-editor-left-versus-right"
+      "checkpoint": "actual-timed-hold-fields-and-left-right-options"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "desc": "Day A lifts, 8 of 10 sets"
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "checkpoint": "first-plank-round-thirty-seconds-each-side"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "checkpoint": "second-plank-round-needs-left24-right30"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Second plank was 24 seconds left and 30 right. Do not log thirty for both just to complete the day; inspect the hold editor before repairing this replay."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
       }
     },
     {
@@ -1407,7 +1399,135 @@
       }
     },
     {
-      "checkpoint": "lower-movement-categories-for-standing-calf-raise"
+      "checkpoint": "lower-movement-categories-to-locate-standing-calves"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "exercise-note-controls-for-unequal-plank-holds"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Side plank: first round 30 seconds each side. Second round left 24 seconds, right 30. Left side wobbly. Start goblet squats at 30 lb next time."
+      }
+    },
+    {
+      "checkpoint": "typed-actual-plank-note-check-save-action"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "return-to-session-after-note-entry"
+    },
+    {
+      "advance": "19m30s"
+    },
+    {
+      "checkpoint": "monday-eighteen-oh-eight-review-before-finishing"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "partial-entry-warning-before-save"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved-review-and-next-controls"
+    },
+    {
+      "note": "This is provisional incomplete Monday data entry, not a claim I skipped calves or the second plank. Repair from the newly captured controls next replay; do not relabel the diary."
+    },
+    {
+      "advance": "12h52m"
+    },
+    {
+      "checkpoint": "tuesday-nov10-seven-am-before-easy-run"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day C1"
+      }
+    },
+    {
+      "checkpoint": "easy-run-day-preview"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-editor-remove-unwanted-strength"
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "c1-with-core-removed-for-standalone-run"
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "existing-road-run-prescription"
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "road-run-set-fields-distance-duration-and-intensity"
     }
   ]
 }

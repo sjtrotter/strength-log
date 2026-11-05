@@ -1226,6 +1226,254 @@
   },
   {
    "checkpoint": "day-overview"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Rest says 1:30 on a squat set. I rest 3 to 4 on squats. Where did my 3 minutes go?"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "squat-set3-ready"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "squat-done"
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "note": "RDL: 185 for 8, not 155 for 10. Change it."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "rdl-set1-edited"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "rdl-set1-logged"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rdl-set2"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "allsets-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rdl-done"
+  },
+  {
+   "note": "Split squats on the plan, but I do walking lunges with the 40s. Logging them here as 40s."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "40"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "40"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "bss-set3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bss-skipped-set3"
   }
  ]
 }

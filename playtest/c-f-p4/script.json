@@ -1264,6 +1264,24 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "after-skip-pushdown"
+  },
+  {
+   "tap": {
     "textContains": "Log ",
     "role": "Button"
    }

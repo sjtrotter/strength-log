@@ -335,6 +335,88 @@
     },
     {
       "checkpoint": "first-home-find-plan-editing"
+    },
+    {
+      "note": "Setup is complete. The suggested rotation starts Upper and has a 25-minute run every day, unlike my diary. Look for custom planning, backup/export, schedule controls, and a day preview before starting Monday."
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-find-my-four-workout-editor"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-find-backup-units-progression"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-before-first-workout"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "other-days-find-lower-monday-and-scheduling"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "suggested-day-detail-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "note": "Inspect these actual screens before choosing an editor or logging any sets. I still intend to train Lower A on Monday: squat215, RDL135, reverse lunge25 per hand, plank30seconds. No diary training has been claimed yet."
     }
   ],
   "capture": "checkpoints"

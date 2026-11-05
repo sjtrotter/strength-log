@@ -299,93 +299,7 @@
       "back": true
     },
     {
-      "tap": {
-        "text": "Finish"
-      }
-    },
-    {
-      "checkpoint": "finish-run-with-core-deliberately-unlogged"
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-saved-summary-verify-7000m-and-4210"
-    },
-    {
-      "tap": {
-        "desc": "Share"
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-share-harness-boundary"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-overall-note-fields"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "7.00 km in 42:10. Easy, effort 3/10. Quads noticeable for the first kilometer, then fine. Glad I stopped those squat reps yesterday."
-      }
-    },
-    {
-      "checkpoint": "tuesday-note-draft-check-save-control"
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "tuesday-note-saved-summary"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "advance": "47h17m50s"
-    },
-    {
-      "checkpoint": "thursday-nov12-morning-no-catchup-lift"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "text": "2-day full body"
-      }
-    },
-    {
-      "tap": {
-        "text": "Day C1"
-      }
-    },
-    {
-      "checkpoint": "second-run-preview-last-result-and-offered-target"
-    },
-    {
-      "tap": {
-        "text": "Start day C1"
-      }
-    },
-    {
-      "checkpoint": "second-run-started-core-left-unlogged"
+      "note": "Nov10 actual run is42:10 and7000m, confirmed on screen, but Finish stays disabled: Log a set to finish this workout. I will keep running in my existing diary; no invented plank just to save a run."
     },
     {
       "tap": {
@@ -399,130 +313,35 @@
     },
     {
       "tap": {
-        "text": "Edit day"
+        "text": "Discard workout"
       }
+    },
+    {
+      "checkpoint": "discard-stuck-cardio-confirmation"
     },
     {
       "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "checkpoint": "second-run-carried-forward-prescription"
-    },
-    {
-      "tap": {
-        "text": "Set 1 \u00b7 Work"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "41:35"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (m)",
-        "value": "7000"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day C1 lifts, 0 of 3 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Road run"
-      }
-    },
-    {
-      "checkpoint": "thursday-7000m-4135-before-recording"
-    },
-    {
-      "note": "Thursday Nov12: actual 7.00km in41:35 with2km easy then3x5min efforts/2min jogs and easy finish. Using whole-run timer here; intervals still need a separate timing test. Last effort8/10; do not chase uphill pace."
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "41m35s"
-    },
-    {
-      "checkpoint": "thursday-timer-end-and-completion-controls"
-    },
-    {
-      "type": {
-        "text": "Distance (m)",
-        "value": "7000"
-      }
-    },
-    {
-      "checkpoint": "thursday-actual-distance-entered-confirm-button"
-    },
-    {
-      "tap": {
-        "role": "Button",
-        "index": 7
-      }
-    },
-    {
-      "checkpoint": "thursday-actual-distance-confirmed-finish-availability"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "thursday-actual-run-values-before-finish"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Finish"
-      }
-    },
-    {
-      "checkpoint": "thursday-finish-confirmation"
-    },
-    {
-      "tap": {
-        "text": "Finish",
+        "text": "Discard",
         "inDialog": true
       }
     },
     {
-      "checkpoint": "thursday-saved-actual-7000m-4135"
+      "checkpoint": "after-discarding-run-save-blocker"
     },
     {
-      "tap": {
-        "text": "Done"
-      }
+      "advance": "47h17m50s"
     },
     {
-      "advance": "34h48m25s"
+      "checkpoint": "nov12-quicker-run-day-after-cardio-blocker"
     },
     {
-      "checkpoint": "friday-nov13-strength-b-before-start"
+      "note": "Nov12 diary:7km41:35, three5min efforts with2min jogs; last effort8/10. Keeping this outside app after its standalone-run Finish blocker; this note is not an app workout record."
+    },
+    {
+      "advance": "35h30m"
+    },
+    {
+      "checkpoint": "nov13-friday-strength-b"
     },
     {
       "tap": {
@@ -541,7 +360,7 @@
       }
     },
     {
-      "checkpoint": "first-strength-b-preview-needs-own-exercises"
+      "checkpoint": "first-strength-b-preview-offered-plan"
     },
     {
       "tap": {
@@ -549,7 +368,7 @@
       }
     },
     {
-      "checkpoint": "first-strength-b-started-offered-loads"
+      "checkpoint": "first-strength-b-offered-loads"
     },
     {
       "tap": {
@@ -567,7 +386,7 @@
       }
     },
     {
-      "checkpoint": "strength-b-original-exercise-list"
+      "checkpoint": "strength-b-editor-before-own-exercises"
     },
     {
       "tap": {
@@ -585,7 +404,7 @@
       }
     },
     {
-      "checkpoint": "step-up-added-for-friday"
+      "checkpoint": "step-up-added"
     },
     {
       "tap": {
@@ -611,7 +430,12 @@
       }
     },
     {
-      "checkpoint": "step-up-two-by-eight-fifteen-check-per-side"
+      "tap": {
+        "desc": "Each side"
+      }
+    },
+    {
+      "checkpoint": "step-up-two-by-eight-fifteen-each-side"
     },
     {
       "tap": {
@@ -619,10 +443,193 @@
       }
     },
     {
-      "checkpoint": "friday-step-up-prescription-saved"
+      "tap": {
+        "text": "Add exercise"
+      }
     },
     {
-      "note": "Friday diary:36min. Step-up15lb2x8 per leg; single-leg RDL one20lb2x8 per leg; hamstring curl40x10,10,8; seated calf45lb3x12; Pallof15lb2x10 per side. Only log actual matching exercises. Remaining B configuration needs the now-visible editor; do not log generated lifts as mine."
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "checkpoint": "single-leg-rdl-added"
+    },
+    {
+      "tap": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side"
+      }
+    },
+    {
+      "checkpoint": "single-leg-rdl-one-twenty-pound-dumbbell-each-side"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 25 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "checkpoint": "friday-first-actual-step-up"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "two-step-up-sets-logged"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 2 of 25 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "checkpoint": "friday-single-leg-rdl-before-actual-sets"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "friday-four-actual-sets-logged"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "One 20 lb dumbbell in the opposite hand. Touched the rack a couple of times for balance."
+      }
+    },
+    {
+      "checkpoint": "friday-single-leg-balance-note-draft"
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "friday-balance-note-saved"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 4 of 25 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Single leg",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "friday-remaining-movement-groups-for-curl-calves-pallof"
+    },
+    {
+      "note": "Nov13 workout still open. Four actual sets logged if above succeeds; finish remaining curl40x10,10,8, seated calf45x12x3, Pallof15x10x2 per side before36min total. No generated exercises were performed. Next priority Nov17 second A after miss/weight drop, Nov20 skipped B, then week3 swap and week4 easier. Runs remain in outside diary unless a real standalone save route is found."
     }
   ]
 }

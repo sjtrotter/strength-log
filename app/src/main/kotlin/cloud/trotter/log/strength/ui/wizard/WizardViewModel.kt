@@ -154,19 +154,22 @@ class WizardViewModel @Inject constructor(
             AboutGroup(bw, a, enumOf(l, defaults.config.level), enumOf(e, defaults.config.emphasis))
         }
 
-    private fun assembleAnswers(sg: SplitGroup, cg: CardioGroup, ag: AboutGroup, equip: List<String>): WizardAnswers =
+    private fun assembleAnswers(sg: SplitGroup, cg: CardioGroup, ag: AboutGroup, equip: List<String>, unitName: String): WizardAnswers =
         WizardAnswers(
             daysPerWeek = sg.days,
             split = sg.split,
             anchorScheme = sg.anchors,
             deadliftVariant = sg.deadlift,
             cardio = CardioPrefs(mode = cg.mode, placement = cg.placement, fiveKGoal = cg.fiveK),
-            config = LifterConfig(bodyweightLb = ag.bodyweight, age = ag.age, level = ag.level, emphasis = ag.emphasis),
+            config = LifterConfig(bodyweightLb = ag.bodyweight, age = ag.age, level = ag.level,
+                emphasis = ag.emphasis, weightUnit = enumOf(unitName, WeightUnit.LB)),
             equipment = equip.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
         )
 
     private val answersFlow: Flow<WizardAnswers> =
-        combine(splitGroup, cardioGroup, aboutGroup, equipment) { sg, cg, ag, equip -> assembleAnswers(sg, cg, ag, equip) }
+        combine(splitGroup, cardioGroup, aboutGroup, equipment, unit) { sg, cg, ag, equip, unitName ->
+            assembleAnswers(sg, cg, ag, equip, unitName)
+        }
 
     /** Synchronous snapshot of the draft straight off the raw SavedStateHandle
      *  fields — used where a caller (namely [finish]) must not risk reading a
@@ -181,6 +184,7 @@ class WizardViewModel @Inject constructor(
         CardioGroup(enumOf(cardioMode.value, defaults.cardio.mode), enumOf(cardioPlacement.value, defaults.cardio.placement), fiveK.value),
         AboutGroup(bodyweight.value, age.value, enumOf(level.value, defaults.config.level), enumOf(emphasis.value, defaults.config.emphasis)),
         equipment.value,
+        unit.value,
     )
 
     private data class CompletionGroup(
@@ -465,6 +469,7 @@ class WizardViewModel @Inject constructor(
         savedState[Keys.AGE] = answers.config.age
         savedState[Keys.LEVEL] = answers.config.level.name
         savedState[Keys.EMPHASIS] = answers.config.emphasis.name
+        savedState[Keys.UNIT] = answers.config.weightUnit.name
         savedState[Keys.EQUIPMENT] = answers.equipment.map { it.name }
     }
 

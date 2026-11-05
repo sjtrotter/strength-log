@@ -34,6 +34,7 @@ import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -1102,7 +1103,6 @@ class TrackerRepository(
             if (tracks.slotSkipped(edit.programExerciseId, edit.slot)) {
                 return ResolvedRunEdits(failure = RunWriteResult.Rejected)
             }
-            val seed = seeds[edit.programExerciseId to edit.slot]
             var created: List<LoggedSet>? = null
             var index = resolved.indexOfFirst {
                 it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
@@ -1126,14 +1126,14 @@ class TrackerRepository(
                 }
             }
             if (index < 0) {
-                // Unknown exercises have no plan seed; a phone edit can supply their first rows.
-                val base = seed ?: if (edit.createsMissing) {
-                    edit.transform(emptyList())?.takeIf { it.isNotEmpty() }?.also { created = it }?.let(CarryForward::cleared)
-                        ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
-                } else return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val slot = programDao.exercise(edit.programExerciseId)
                     ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
                     ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                // Unknown exercises have no plan seed; a phone edit can supply their first rows.
+                val base = workingBase(day, slot, edit.slot, seeds) ?: if (edit.createsMissing) {
+                    edit.transform(emptyList())?.takeIf { it.isNotEmpty() }?.also { created = it }?.let(CarryForward::cleared)
+                        ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
+                } else return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val exerciseId = slot.exerciseIdFor(edit.slot)
                     ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 if (edit.exerciseId != null && edit.exerciseId != exerciseId) {
@@ -1284,7 +1284,8 @@ class TrackerRepository(
         catalog: ExerciseCatalog,
     ): List<LoggedSet>? {
         val entry = catalog.find(exerciseId) ?: return null
-        if (entry.tracking != TrackingType.WEIGHTED) return null
+        val timedLoad = (entry.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0
+        if (entry.tracking != TrackingType.WEIGHTED && timedLoad <= 0.0) return null
         val weight = sessionDao.lastWorkingWeight(exerciseId,
             SetKind.entries.filter { it != SetKind.RAMP }.map { it.name }) ?: return null
         val topIndex = seed.indexOfFirst { it.kind == SetKind.TOP }
@@ -1328,7 +1329,7 @@ class TrackerRepository(
         for ((key, sets) in seeds) {
             val slot = programDao.exercise(key.first) ?: continue
             val exerciseId = slot.exerciseIdFor(key.second) ?: continue
-            val base = workingBase(day, slot, key.second, seeds) ?: sets
+            val base = if (restoringLift == null) workingBase(day, slot, key.second, seeds) ?: sets else sets
             val track = runTrack(runId, slot, key.second, exerciseId, CarryForward.cleared(base))
             val retiredIndex = existing.indexOfFirst { it.retired && it.sameKey(track) }
             if (retiredIndex >= 0) {

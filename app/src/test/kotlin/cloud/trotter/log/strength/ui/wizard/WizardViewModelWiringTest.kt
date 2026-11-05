@@ -301,6 +301,24 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(WeightUnit.KG, vm.uiState.value.unit)
+        assertEquals(WeightUnit.KG, vm.uiState.value.answers.config.weightUnit)
+    }
+
+    @Test
+    fun selectedUnit_isCarriedInAnswersAfterRecreation() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        vm.setUnit(WeightUnit.KG)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.KG, vm.uiState.value.answers.config.weightUnit)
+
+        val revived = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.KG, revived.uiState.value.answers.config.weightUnit)
+        revived.setUnit(WeightUnit.LB)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.LB, revived.uiState.value.answers.config.weightUnit)
     }
 
     @Test

@@ -195,6 +195,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         bodyweightLb = settings.bodyweightLb,
         age = settings.age,
         level = enumOrDefault(settings.level, ExperienceLevel.INTERMEDIATE),
+        weightUnit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         emphasis = if (schemaVersion >= 9) {
             WizardAnswers().config.emphasis
         } else {

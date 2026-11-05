@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -186,6 +187,64 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(ExerciseSwapResult.CHANGED,
             repo.applyExerciseSwap(plan, "A", slot(plan), "bb_back_squat", runId, allowChange = true))
         assertEquals(235.0, repo.openRunFlow.first()!!.tracks.single { !it.retired }.sets[4].weightLb, 0.0)
+    }
+
+    @Test fun `loaded timed adds and swaps remember weight while preserving duration and row shape`() = runTest {
+        val historyPlan = generated()
+        repo.addExercise("A", ProgramExercise("weighted_plank"), historyPlan)
+        val loaded = db.programDao().exercisesForDay(historyPlan, "A").last().id
+        val runId = explicitStart(historyPlan, squat())
+        repo.applyToRun(runId, historyPlan, "A", listOf(TrackEdit(loaded, Slot.MAIN) { rows ->
+            rows.map { it.copy(weightLb = 10.0, seconds = 60, done = true) }
+        }))
+        repo.finishRun(runId)
+        loggedWeight(historyPlan, "plank", 99.0, 1_000)
+
+        val plan = repo.plans.createAuthoredPlan("New plan", "Day A")
+        repo.addExercise("A", ProgramExercise("weighted_plank", targetSets = 4), plan)
+        repo.addExercise("A", ProgramExercise("ez_curl", targetSets = 2), plan)
+        val swapped = db.programDao().exercisesForDay(plan, "A").last().id
+        assertTrue(repo.swapExerciseById("A", swapped, "weighted_plank"))
+        repo.addExercise("A", ProgramExercise("plank"), plan)
+        repo.ensureSeeded(plan, "A")
+
+        val tracks = repo.dayTracksFlow(plan, "A").first().tracks
+        val timed = tracks.filter { it.exerciseId == "weighted_plank" }
+        assertEquals(listOf(4, 2), timed.map { it.sets.size })
+        timed.forEach { track ->
+            assertEquals(List(track.sets.size) { LoggedSet(10.0, 0, SetKind.WORK, seconds = 45) }, track.sets)
+        }
+        assertTrue(tracks.single { it.exerciseId == "plank" }.sets.all { it.weightLb == 0.0 && it.seconds == 45 })
+
+        val active = repo.startRun(plan, "A") as RunStartResult.Started
+        val id = slot(plan)
+        assertTrue(repo.swapInRun(active.runId, id, Slot.MAIN, "hollow_hold"))
+        assertTrue(repo.swapInRun(active.runId, id, Slot.MAIN, "weighted_plank"))
+        val restored = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }
+        assertEquals(List(4) { LoggedSet(10.0, 0, SetKind.WORK, seconds = 45) }, restored.planned)
+    }
+
+    @Test fun `watch edits before lazy seeding use remembered working rows`() = runTest {
+        val plan = generated()
+        loggedWeight(plan, "db_row", 10.0, 1_000)
+        val runId = start(plan)
+        for (legacy in listOf(false, true)) {
+            repo.addExercise("A", ProgramExercise("db_row"), plan)
+            val added = db.programDao().exercisesForDay(plan, "A").last().id
+            val edits = listOf(TrackEdit(added, Slot.MAIN) { rows ->
+                SetEditor.edit(rows, 0, SetEdit(done = true, watchEditedAt = 200L))
+            })
+            val result = if (legacy) repo.applyToOpenRun(plan, "A", clock.millis(), edits)
+                else repo.applyToRun(runId, plan, "A", edits)
+            assertEquals(RunWriteResult.InRun(runId, false), result)
+            seed(runId)
+
+            val track = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == added && !it.retired }
+            assertEquals(List(3) { 10.0 }, track.planned.map { it.weightLb })
+            assertEquals(List(3) { 10.0 }, track.sets.map { it.weightLb })
+            assertEquals(listOf(true, false, false), track.sets.map { it.done })
+            assertEquals(200L, track.sets.first().watchEditedAt)
+        }
     }
 
     @Test fun `history seeding survives adding and plan swapping during a run with unknown history unchanged`() = runTest {
@@ -857,7 +916,7 @@ class TrackerRepositoryRunEditsTest {
 
         repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
 
-        val expected = SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)
+        val expected = SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF, equipment = listOf(Equipment.BARBELL))
         val editedTracks = db.runDao().tracks(runId)
         assertEquals(substituted.filterNot { it.id == original.id }, editedTracks.filterNot { it.id == original.id })
         assertEquals(substituted.single { it.id == original.id }.copy(
@@ -1522,7 +1581,7 @@ class TrackerRepositoryRunEditsTest {
         repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
 
         val expected = RunReplan.represcribe(current,
-            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF))
+            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF, equipment = listOf(Equipment.BARBELL)))
         assertEquals(promoted, db.runDao().tracks(runId).single { !it.retired })
         assertEquals(droppedMain.copy(setsJson = SetJson.encodeSets(expected)),
             db.runDao().tracks(runId).single { it.id == original.id })
@@ -1566,7 +1625,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
         assertEquals(original.copy(retired = true, setsJson = SetJson.encodeSets(RunReplan.represcribe(current,
-            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)))),
+            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF, equipment = listOf(Equipment.BARBELL))))),
             db.runDao().tracks(runId).single { it.id == original.id })
         assertTrue(repo.skipLift(plan, "A", id, Slot.SS, "hack_squat", "ez_curl") is RunWriteResult.InRun)
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "hack_squat", null) is RunWriteResult.InRun)
@@ -1576,7 +1635,7 @@ class TrackerRepositoryRunEditsTest {
         val restored = db.runDao().tracks(runId).filter { it.programExerciseId == id && !it.retired }
         val main = restored.single { it.slot == Slot.MAIN }
         assertEquals(RunReplan.represcribe(current,
-            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)), SetJson.decodeSets(main.setsJson))
+            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF, equipment = listOf(Equipment.BARBELL))), SetJson.decodeSets(main.setsJson))
         assertEquals(original.plannedJson, main.plannedJson)
         assertEquals(6, SetJson.decodeSets(restored.single { it.slot == Slot.SS }.setsJson).size)
         assertTrue(restored.none { it.dropped })

@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.Serializable
 
 enum class ExperienceLevel { NOVICE, INTERMEDIATE, ADVANCED }
@@ -110,6 +111,7 @@ data class LifterConfig(
     val age: Int = 40,
     val level: ExperienceLevel = ExperienceLevel.INTERMEDIATE,
     val emphasis: GoalEmphasis = GoalEmphasis.BALANCED,
+    val weightUnit: WeightUnit = WeightUnit.LB,
 )
 
 enum class CardioMode { OUTDOOR_RUN, TREADMILL, LOW_IMPACT, NONE }

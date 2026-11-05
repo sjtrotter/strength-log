@@ -472,6 +472,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         bodyweightLb = this[Keys.BODYWEIGHT] ?: DEFAULT_CONFIG.bodyweightLb,
         age = this[Keys.AGE] ?: DEFAULT_CONFIG.age,
         level = enum(Keys.LEVEL, DEFAULT_CONFIG.level),
+        weightUnit = enum(Keys.WEIGHT_UNIT, WeightUnit.LB),
     )
 
     private fun Preferences.readConfig(): LifterConfig =

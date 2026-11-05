@@ -144,6 +144,17 @@ interface SessionDao {
     )
     suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow>
 
+    @Query(
+        """
+        SELECT ss.weightLb FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.exerciseId = :exerciseId AND ss.done = 1 AND ss.kind IN (:kinds)
+        ORDER BY ws.completedAt DESC, ws.id DESC, ss.weightLb DESC, ss.id DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun lastWorkingWeight(exerciseId: String, kinds: List<String>): Double?
+
     @Query("""
         SELECT ss.exerciseId AS exerciseId, MAX(ws.completedAt) AS completedAt
         FROM session_set ss INNER JOIN workout_session ws ON ws.id = ss.sessionId

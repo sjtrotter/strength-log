@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -18,6 +20,8 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.model.StandardLift
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.seeding.RunReplan
@@ -52,6 +56,7 @@ import org.robolectric.annotation.Config
 class TrackerRepositoryRunEditsTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
+    private lateinit var settings: SettingsStore
     private lateinit var storeScope: CoroutineScope
     private val ids = ArrayDeque((1..100).map { "id-$it" })
     private val clock = Clock.fixed(Instant.parse("2026-10-19T12:00:00Z"), ZoneOffset.UTC)
@@ -65,8 +70,9 @@ class TrackerRepositoryRunEditsTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("run-edits-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(),
-            SettingsStore(dataStore), clock, { ids.removeFirst() })
+            settings, clock, { ids.removeFirst() })
     }
 
     /** Releases the database and settings scope. */
@@ -105,6 +111,131 @@ class TrackerRepositoryRunEditsTest {
     private suspend fun seed(runId: String) {
         val run = checkNotNull(db.runDao().openRun()).also { check(it.id == runId) }
         repo.ensureSeeded(requireNotNull(run.planId), requireNotNull(run.dayId))
+    }
+
+    private suspend fun loggedWeight(
+        planId: Long,
+        exerciseId: String,
+        weight: Double,
+        completedAt: Long,
+        kind: SetKind = SetKind.WORK,
+        done: Boolean = true,
+    ) {
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(
+            id = 0, dayId = "B", dayTitle = "Day B", startedAt = null,
+            completedAt = completedAt, bodyweightLb = 235, planId = planId,
+        ))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(
+            id = 0, sessionId = session, exerciseId = exerciseId, exerciseName = exerciseId,
+            slot = Slot.MAIN, setIndex = 0, kind = kind.name, weightLb = weight, reps = 8, done = done,
+        )))
+    }
+
+    @Test fun `plan swap uses latest completed working weight across plans and days`() = runTest {
+        val historyPlan = generated()
+        loggedWeight(historyPlan, "db_row", 60.0, 1_000)
+        loggedWeight(historyPlan, "db_row", 10.0, 2_000)
+        loggedWeight(historyPlan, "db_row", 300.0, 3_000, done = false)
+        loggedWeight(historyPlan, "db_row", 200.0, 4_000, kind = SetKind.RAMP)
+        loggedWeight(historyPlan, "cs_row", 150.0, 5_000)
+        val plan = repo.plans.createAuthoredPlan("New plan", "Day A")
+        repo.addExercise("A", ProgramExercise("ez_curl"), plan)
+        val id = slot(plan)
+
+        assertTrue(repo.swapExerciseById("A", id, "db_row"))
+        repo.ensureSeeded(plan, "A")
+
+        val rows = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.MAIN)!!.setsJson)
+        assertEquals(List(3) { 10.0 }, rows.map { it.weightLb })
+        assertTrue(rows.none { it.done })
+        assertNull(db.programDao().exercise(id)!!.prescriptionJson)
+    }
+
+    @Test fun `added exercises and partners seed from their own history and retain edits and prescriptions`() = runTest {
+        val plan = generated()
+        loggedWeight(plan, "db_row", 10.0, 1_000)
+        loggedWeight(plan, "rope_pushdown", 15.0, 2_000)
+        repo.addExercise("A", ProgramExercise("db_row"), plan)
+        val added = db.programDao().exercisesForDay(plan, "A").last().id
+        repo.setSupersetPartner("A", added, "rope_pushdown")
+        repo.ensureSeeded(plan, "A")
+        val rows = repo.dayTracksFlow(plan, "A").first().tracks.filter { it.programExerciseId == added }
+        assertEquals(List(3) { 10.0 }, rows.single { it.slot == Slot.MAIN }.sets.map { it.weightLb })
+        assertEquals(List(3) { 15.0 }, rows.single { it.slot == Slot.SS }.sets.map { it.weightLb })
+        db.storeTestRows("A", added, Slot.MAIN, rows.single { it.slot == Slot.MAIN }.sets.map { it.copy(weightLb = 12.5) })
+        repo.ensureSeeded(plan, "A")
+        assertEquals(List(3) { 12.5 }, repo.dayTracksFlow(plan, "A").first().tracks
+            .single { it.programExerciseId == added && it.slot == Slot.MAIN }.sets.map { it.weightLb })
+
+        repo.addExercise("A", ProgramExercise("db_row", prescription = load), plan)
+        val written = db.programDao().exercisesForDay(plan, "A").last().id
+        repo.ensureSeeded(plan, "A")
+        assertEquals(List(3) { 50.0 }, repo.dayTracksFlow(plan, "A").first().tracks
+            .single { it.programExerciseId == written && it.slot == Slot.MAIN }.sets.map { it.weightLb })
+    }
+
+    @Test fun `run swap seeds remembered top and derived rows and restores retired work`() = runTest {
+        val plan = generated()
+        loggedWeight(plan, "db_row", 10.0, 1_000)
+        val runId = start(plan)
+        assertEquals(ExerciseSwapResult.CHANGED,
+            repo.applyExerciseSwap(plan, "A", slot(plan), "db_row", runId, allowChange = true))
+        val swapped = repo.openRunFlow.first()!!.tracks.single { !it.retired }
+        assertEquals(listOf(5.0, 5.0, 10.0, 10.0, 10.0, 10.0), swapped.sets.map { it.weightLb })
+        assertEquals(listOf(5, 5, 5, 3, 5, 8), swapped.sets.map { it.reps })
+        assertEquals(ExerciseSwapResult.CHANGED,
+            repo.applyExerciseSwap(plan, "A", slot(plan), "bb_back_squat", runId, allowChange = true))
+        assertEquals(235.0, repo.openRunFlow.first()!!.tracks.single { !it.retired }.sets[4].weightLb, 0.0)
+    }
+
+    @Test fun `history seeding survives adding and plan swapping during a run with unknown history unchanged`() = runTest {
+        val plan = generated()
+        loggedWeight(plan, "db_row", 10.0, 1_000)
+        val runId = start(plan)
+        loggedWeight(plan, "rope_pushdown", 15.0, 2_000)
+        repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot(plan), Slot.MAIN) { SetEditor.addSet(it) }))
+        repo.setSupersetPartner("A", slot(plan), "rope_pushdown")
+        repo.ensureSeeded(plan, "A")
+        val partner = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS && !it.retired }
+        assertEquals(List(7) { 15.0 }, partner.sets.map { it.weightLb })
+        repo.removeSupersetPartner("A", slot(plan))
+        repo.addExercise("A", ProgramExercise("db_row"), plan)
+        val added = db.programDao().exercisesForDay(plan, "A").last().id
+        repo.ensureSeeded(plan, "A")
+        assertEquals(List(3) { 10.0 }, repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == added && !it.retired
+        }.sets.map { it.weightLb })
+        assertTrue(repo.swapExerciseById("A", slot(plan), "db_row"))
+        repo.ensureSeeded(plan, "A")
+        assertEquals(10.0, repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == slot(plan) && !it.retired
+        }.sets[4].weightLb, 0.0)
+        assertEquals(ExerciseSwapResult.CHANGED,
+            repo.applyExerciseSwap(plan, "A", slot(plan), "hack_squat", runId, allowChange = true))
+        assertEquals(180.0, repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == slot(plan) && !it.retired
+        }.sets[4].weightLb, 0.0)
+    }
+
+    @Test fun `kg preference reaches generated goals seeded rows and carry forward`() = runTest {
+        settings.setUnit(WeightUnit.KG)
+        val plan = generated()
+        repo.ensureSeeded(plan, "A")
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        assertEquals(105.0, WeightUnit.KG.fromLb(GoalCalculator.goalForMain(
+            StandardLift.SQUAT, false, config,
+        )), 1e-9)
+        val rows = repo.dayTracksFlow(plan, "A").first().tracks.single().sets
+        assertEquals(105.0, WeightUnit.KG.fromLb(rows[4].weightLb), 1e-9)
+        val runId = start(plan, sets = rows)
+        repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot(plan), Slot.MAIN) { current ->
+            current.mapIndexed { i, row -> row.copy(
+                done = true, weightLb = if (i == 4) WeightUnit.KG.toLb(20.0) else row.weightLb,
+            ) }
+        }))
+        repo.finishRun(runId)
+        val next = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot(plan), Slot.MAIN)!!.setsJson)
+        next.forEach { assertEquals(20.0, WeightUnit.KG.fromLb(it.weightLb), 1e-9) }
     }
 
     /** [F] */

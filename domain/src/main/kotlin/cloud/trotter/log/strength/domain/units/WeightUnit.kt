@@ -1,11 +1,9 @@
 package cloud.trotter.log.strength.domain.units
 
 /**
- * Display unit for a weight. Canonical storage is always pounds: every spec
- * calculation (goal math, ramps, cascades, [WeightStepper.round]'s spiritual
- * ancestor round5) is lb-calibrated and stays that way regardless of what the
- * user sees on screen. This is the one conversion point (SSOT) between the
- * two — nothing else in the codebase should do lb/kg math directly.
+ * Display unit for a weight. Canonical storage is always pounds. Generated
+ * loads snap to the selected unit's grid before storage; conversion lives here
+ * so nothing else in the codebase does lb/kg math directly.
  */
 enum class WeightUnit {
     LB,

@@ -987,11 +987,18 @@ class DayViewModel @Inject constructor(
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
-            val lb = settings.unitFlow.first().toLb(newDisplayWeight)
+            val unit = settings.unitFlow.first()
+            val lb = unit.toLb(newDisplayWeight)
+            val programSlot = plans.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                ?: return@mutate
+            val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == slot
+            }
+            val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first(), slot)
             val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
             repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
-                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(weightLb = lb))
+                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(weightLb = lb), unit, performed.entry?.equipment.orEmpty())
                 },
             ))
             if (tapped?.kind == SetKind.TOP && tapped.weightLb != lb) settings.markTopSetHelperSeen()

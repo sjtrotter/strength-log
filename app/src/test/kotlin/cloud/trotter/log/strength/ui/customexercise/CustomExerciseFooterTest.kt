@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -18,8 +20,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins the footer's contract: SAVE's enablement is M3-owned (a nameless
- * exercise cannot be saved), and CANCEL always fires.
+ * Pins the footer's contract: Save requires a name, pattern and valid active
+ * target drafts, and Cancel always fires.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -28,7 +30,12 @@ class CustomExerciseFooterTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun setContent(state: CustomExerciseUiState, onSave: () -> Unit = {}, onCancel: () -> Unit = {}) {
+    private fun setContent(
+        state: CustomExerciseUiState,
+        onSave: () -> Unit = {},
+        onCancel: () -> Unit = {},
+        onWeightChange: (Double) -> Unit = {},
+    ) {
         composeTestRule.setContent {
             AppTheme {
                 CustomExerciseScreen(
@@ -39,7 +46,7 @@ class CustomExerciseFooterTest {
                         onEquipmentToggle = {},
                         onPerHandChange = {},
                         onTrackingChange = {},
-                        onWeightChange = {},
+                        onWeightChange = onWeightChange,
                         onTargetRepsChange = {},
                         onTargetSecondsChange = {},
                         onAddedWeightChange = {},
@@ -65,6 +72,60 @@ class CustomExerciseFooterTest {
         setContent(CustomExerciseUiState(name = "Zercher Squat", pattern = MovementPattern.SQUAT_BILATERAL), onSave = { saves++ })
         composeTestRule.onNodeWithText("Save").assertIsEnabled().performClick()
         assertEquals(1, saves)
+    }
+
+    @Test
+    fun blankWeightBlocksSaveUntilCorrectedAndCommitsBeforeSaving() {
+        val events = mutableListOf<String>()
+        setContent(
+            CustomExerciseUiState(name = "Zercher Squat", pattern = MovementPattern.SQUAT_BILATERAL),
+            onSave = { events += "save" },
+            onWeightChange = { events += "weight $it" },
+        )
+        composeTestRule.onNodeWithText("Starting weight (lb)")
+            .performScrollTo().performClick().performTextReplacement("")
+
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled().performClick()
+        composeTestRule.onNodeWithText("Enter a weight to save it").assertExists()
+        composeTestRule.runOnIdle { assertEquals(emptyList<String>(), events) }
+
+        composeTestRule.onNodeWithText("Starting weight (lb)").performClick().performTextReplacement("50")
+        composeTestRule.onNodeWithText("Save").assertIsEnabled().performClick()
+        composeTestRule.runOnIdle { assertEquals(listOf("weight 50.0", "save"), events) }
+    }
+
+    @Test
+    fun invalidWeightBlocksSave() {
+        assertTargetBlocksSave(TrackingType.WEIGHTED, "Starting weight (lb)", "-1", "Enter a weight to save it")
+    }
+
+    @Test
+    fun invalidRepsBlockSave() {
+        assertTargetBlocksSave(TrackingType.REPS, "Target reps", "0", "Enter target reps to save it")
+    }
+
+    @Test
+    fun invalidHoldBlocksSave() {
+        assertTargetBlocksSave(TrackingType.TIMED, "Target hold (seconds)", "0", "Enter a hold time to save it")
+    }
+
+    @Test
+    fun blankAddedLoadBlocksSaveEvenWhenTheHoldIsValid() {
+        assertTargetBlocksSave(TrackingType.TIMED, "Added load, optional (lb)", "", "Enter an added load to save it")
+    }
+
+    private fun assertTargetBlocksSave(tracking: TrackingType, label: String, draft: String, message: String) {
+        var saves = 0
+        setContent(
+            CustomExerciseUiState(name = "Custom exercise", pattern = MovementPattern.SQUAT_BILATERAL, tracking = tracking),
+            onSave = { saves++ },
+        )
+        composeTestRule.onNodeWithText(label).performScrollTo().performClick().performTextReplacement(draft)
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled().performClick()
+        composeTestRule.onNodeWithText(message).assertExists()
+        composeTestRule.onNodeWithText("Name").performScrollTo().performClick()
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
+        composeTestRule.runOnIdle { assertEquals(0, saves) }
     }
 
     @Test

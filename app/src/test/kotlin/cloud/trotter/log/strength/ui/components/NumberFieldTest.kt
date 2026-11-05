@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -56,6 +57,58 @@ class NumberFieldTest {
         rule.onNodeWithText("Weight (lb)").performClick().performTextReplacement("501")
         rule.onNodeWithText("Reps").performClick()
         rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
+    }
+
+    @Test fun delayedCommitAcknowledgmentPreservesTheNextDraft() {
+        val persisted = mutableStateOf(135.0)
+        val writes = mutableListOf<Double>()
+        rule.setContent { AppTheme {
+            NumberField(persisted.value, { writes += it }, "Bodyweight (lb)")
+        } }
+        rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("250")
+        rule.onNodeWithText("Bodyweight (lb)").performImeAction()
+        rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("260")
+
+        rule.runOnIdle { persisted.value = 250.0 }
+
+        rule.onNodeWithText("260").assertExists()
+        rule.onNodeWithText("Bodyweight (lb)").performImeAction()
+        rule.runOnIdle { assertEquals(listOf(250.0, 260.0), writes) }
+    }
+
+    @Test fun externalValuePreservesAnInvalidDraftEvenAfterFocusLoss() {
+        val persisted = mutableStateOf(135.0)
+        val writes = mutableListOf<Double>()
+        rule.setContent { AppTheme { Column {
+            NumberField(persisted.value, { writes += it }, "Weight (lb)")
+            NumberField(8.0, {}, "Reps")
+        } } }
+        rule.onNodeWithText("Weight (lb)").performClick().performTextReplacement("invalid")
+        rule.onNodeWithText("Reps").performClick()
+
+        rule.runOnIdle { persisted.value = 250.0 }
+
+        rule.onNodeWithText("invalid").assertExists()
+        rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
+    }
+
+    @Test fun externalValuePreservesAFocusedFieldWithoutEdits() {
+        val persisted = mutableStateOf(135.0)
+        rule.setContent { AppTheme { NumberField(persisted.value, {}, "Weight (lb)") } }
+        rule.onNodeWithText("Weight (lb)").performClick()
+
+        rule.runOnIdle { persisted.value = 250.0 }
+
+        rule.onNodeWithText("135").assertExists()
+    }
+
+    @Test fun externalValueUpdatesAnIdleField() {
+        val persisted = mutableStateOf(135.0)
+        rule.setContent { AppTheme { NumberField(persisted.value, {}, "Weight (lb)") } }
+
+        rule.runOnIdle { persisted.value = 250.0 }
+
+        rule.onNodeWithText("250").assertExists()
     }
 
     @Test fun invalidNumbersNeverReachRounding() {

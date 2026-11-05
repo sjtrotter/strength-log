@@ -6,6 +6,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,13 +48,22 @@ fun NumberField(
     round: (Double) -> Double = { it },
     decimalInput: Boolean = false,
     weightInput: Boolean = false,
+    onValidityChange: (Boolean) -> Unit = {},
 ) {
-    var draft by rememberSaveable(value, label) { mutableStateOf(format(value)) }
-    var dirty by rememberSaveable(value, label) { mutableStateOf(false) }
+    var draft by rememberSaveable(label) { mutableStateOf(format(value)) }
+    var dirty by rememberSaveable(label) { mutableStateOf(false) }
+    var pendingCommit by rememberSaveable(label) { mutableStateOf<Double?>(null) }
     var focused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val parsed = resolveNumberCommit(draft, minValue, maxValue, round)
     val invalid = dirty && parsed == null
+    SideEffect { onValidityChange(parsed != null) }
+    LaunchedEffect(value, label) {
+        val acknowledged = value == pendingCommit
+        // An older write can arrive after the user has started the next edit.
+        if (!dirty && (!focused || acknowledged)) draft = format(value)
+        if (acknowledged) pendingCommit = null
+    }
     val rangeError = if (maxValue.isFinite()) {
         stringResource(if (weightInput) R.string.form_weight_range else R.string.form_number_range,
             format(minValue), format(maxValue))
@@ -64,6 +75,7 @@ fun NumberField(
         val committed = resolveNumberCommit(draft, minValue, maxValue, round) ?: return
         dirty = false
         draft = format(committed)
+        pendingCommit = committed
         onValueChange(committed)
     }
     OutlinedTextField(

@@ -64,12 +64,23 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
- * Custom-exercise creation form (PLAN.md A4). Stateless: renders [state] and
- * forwards every intent to [CustomExerciseActions], same shape as
- * [cloud.trotter.log.strength.ui.wizard.WizardScreen].
+ * Custom-exercise creation form (PLAN.md A4). Renders committed [state] and
+ * forwards intents to [CustomExerciseActions]. Active target drafts report
+ * their validity before Save can commit them and save the exercise.
  */
 @Composable
 fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseActions) {
+    var targetValid by rememberSaveable(state.tracking, state.unit) { mutableStateOf(true) }
+    var addedWeightValid by rememberSaveable(state.tracking, state.unit) { mutableStateOf(true) }
+    val targetError = when {
+        !targetValid -> when (state.tracking) {
+            TrackingType.WEIGHTED -> R.string.form_custom_weight_required
+            TrackingType.REPS -> R.string.form_custom_reps_required
+            TrackingType.TIMED -> R.string.form_custom_hold_required
+        }
+        state.tracking == TrackingType.TIMED && !addedWeightValid -> R.string.form_custom_load_required
+        else -> null
+    }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
             Header(actions)
@@ -80,12 +91,18 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
             ) {
                 item { NameField(state.name, actions.onNameChange) }
                 item { TrackingSection(state, actions) }
-                item { PerHandAndTargetSection(state, actions) }
+                item {
+                    PerHandAndTargetSection(
+                        state, actions,
+                        onTargetValidityChange = { targetValid = it },
+                        onAddedWeightValidityChange = { addedWeightValid = it },
+                    )
+                }
                 item { PatternSection(state, actions) }
                 item { EquipmentSection(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
-            Footer(state, actions)
+            Footer(state, actions, targetError)
         }
     }
 }
@@ -229,7 +246,12 @@ private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExercis
  *  (§3): a starting GOAL weight, a target rep count, or a target hold with an
  *  optional added load — never all three at once. */
 @Composable
-private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
+private fun PerHandAndTargetSection(
+    state: CustomExerciseUiState,
+    actions: CustomExerciseActions,
+    onTargetValidityChange: (Boolean) -> Unit,
+    onAddedWeightValidityChange: (Boolean) -> Unit,
+) {
     AppCard {
         ListItem(
             headlineContent = { Text(stringResource(R.string.custom_exercise_per_hand_label)) },
@@ -244,12 +266,14 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
             weightDisplay = state.weightDisplay,
             unit = state.unit,
             onWeightChange = actions.onWeightChange,
+            onValidityChange = onTargetValidityChange,
         )
         TrackingType.REPS -> TargetField(
             label = stringResource(R.string.custom_exercise_target_reps_label),
             value = state.targetReps,
             onValueChange = actions.onTargetRepsChange,
             step = 1,
+            onValidityChange = onTargetValidityChange,
         )
         TrackingType.TIMED -> {
             TargetField(
@@ -257,6 +281,7 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
                 value = state.targetSeconds,
                 onValueChange = actions.onTargetSecondsChange,
                 step = 5,
+                onValidityChange = onTargetValidityChange,
             )
             Spacer(Modifier.size(12.dp))
             WeightTargetCard(
@@ -264,13 +289,20 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
                 weightDisplay = state.addedWeightDisplay,
                 unit = state.unit,
                 onWeightChange = actions.onAddedWeightChange,
+                onValidityChange = onAddedWeightValidityChange,
             )
         }
     }
 }
 
 @Composable
-private fun WeightTargetCard(label: String, weightDisplay: Double, unit: WeightUnit, onWeightChange: (Double) -> Unit) {
+private fun WeightTargetCard(
+    label: String,
+    weightDisplay: Double,
+    unit: WeightUnit,
+    onWeightChange: (Double) -> Unit,
+    onValidityChange: (Boolean) -> Unit,
+) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             NumberField(
@@ -281,6 +313,7 @@ private fun WeightTargetCard(label: String, weightDisplay: Double, unit: WeightU
                 onValueChange = onWeightChange,
                 round = { WeightStepper.round(it, unit) },
                 format = WeightStepper::format,
+                onValidityChange = onValidityChange,
             )
         }
     }
@@ -292,6 +325,7 @@ private fun TargetField(
     value: Int,
     onValueChange: (Int) -> Unit,
     step: Int,
+    onValidityChange: (Boolean) -> Unit,
 ) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -301,6 +335,7 @@ private fun TargetField(
                 onValueChange = { onValueChange(it.toInt()) },
                 minValue = step.toDouble(),
                 format = { it.toInt().toString() },
+                onValidityChange = onValidityChange,
             )
         }
     }
@@ -310,8 +345,10 @@ private fun TargetField(
 private fun Footer(
     state: CustomExerciseUiState,
     actions: CustomExerciseActions,
+    targetError: Int?,
 ) {
     val focusManager = LocalFocusManager.current
+    val canSave = state.canSave && targetError == null
     Column(Modifier.fillMaxWidth().background(Background)) {
         HorizontalDivider(thickness = FooterDividerThickness, color = Border)
         Row(
@@ -327,7 +364,7 @@ private fun Footer(
                 FooterButtonLabel(stringResource(R.string.custom_exercise_cancel_button))
             }
             Button(
-                enabled = state.canSave,
+                enabled = canSave,
                 modifier = Modifier.weight(2f),
                 onClick = { focusManager.clearFocus(); actions.onSave() },
                 shape = MaterialTheme.shapes.large,
@@ -336,8 +373,12 @@ private fun Footer(
                 FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))
             }
         }
-        if (!state.canSave) Text(stringResource(if (state.name.isBlank()) R.string.operation_custom_exercise_name_required
-            else R.string.form_pattern_required),
+        val saveError = when {
+            state.name.isBlank() -> R.string.operation_custom_exercise_name_required
+            state.pattern == null -> R.string.form_pattern_required
+            else -> targetError
+        }
+        if (saveError != null) Text(stringResource(saveError),
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

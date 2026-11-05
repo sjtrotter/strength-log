@@ -953,4 +953,8 @@
     <string name="form_pattern_required">Choose a movement pattern to save it</string>
     <string name="form_exercise_name_error">Enter an exercise name.</string>
     <string name="form_named_previous_result">%1$s: %2$s</string>
+    <string name="form_custom_weight_required">Enter a weight to save it</string>
+    <string name="form_custom_reps_required">Enter target reps to save it</string>
+    <string name="form_custom_hold_required">Enter a hold time to save it</string>
+    <string name="form_custom_load_required">Enter an added load to save it</string>
 </resources>

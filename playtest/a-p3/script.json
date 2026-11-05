@@ -1424,96 +1424,101 @@
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
         "value": "close"
       }
     },
     {
-      "checkpoint": "variation-search-close-grip-bench"
+      "checkpoint": "catalog-close-grip"
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
         "value": "pause"
       }
     },
     {
-      "checkpoint": "variation-search-pause-word-for-bench-squat-and-pulls"
+      "checkpoint": "catalog-pause-variations"
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
         "value": "row"
       }
     },
     {
-      "checkpoint": "tuesday-row-substitution-catalog-options"
+      "checkpoint": "catalog-row-substitution"
     },
     {
       "type": {
-        "text": "Search exercises",
-        "value": ""
+        "editable": true,
+        "value": "leg curl"
       }
     },
     {
-      "checkpoint": "unfiltered-exercise-picker-looking-for-custom-name-action"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
+      "checkpoint": "catalog-machine-curls"
     },
     {
       "type": {
-        "text": "Note",
-        "value": "Nov10: PAUSED deadlift, pause just off floor. 170kg x3 for 4 sets. First pause rushed. Keep separate from competition pulls."
+        "editable": true,
+        "value": "ab wheel"
       }
     },
     {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "tuesday-pause-definition-in-note-awaiting-correct-exercise-identity"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-4"
-      }
+      "checkpoint": "catalog-ab-wheel"
     },
     {
       "type": {
-        "text": "Weight (kg)",
-        "value": "170"
+        "editable": true,
+        "value": "Pallof"
       }
+    },
+    {
+      "checkpoint": "catalog-pallof-press"
     },
     {
       "type": {
-        "text": "Reps",
-        "value": "3"
+        "editable": true,
+        "value": "pressdown"
       }
+    },
+    {
+      "checkpoint": "catalog-rope-pressdown"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": "lateral"
+      }
+    },
+    {
+      "checkpoint": "catalog-lateral-raise"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": "bench"
+      }
+    },
+    {
+      "checkpoint": "catalog-bench-variants"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": "paused"
+      }
+    },
+    {
+      "checkpoint": "return-to-paused-deadlift-custom-route"
     },
     {
       "tap": {
-        "text": "Save set"
+        "text": "Create exercise"
       }
     },
     {
-      "checkpoint": "tuesday-first-working-prescription-prepared-not-logged"
+      "checkpoint": "custom-paused-deadlift-form"
     }
   ]
 }

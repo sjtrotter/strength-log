@@ -1920,6 +1920,447 @@
     },
     {
       "checkpoint": "nov25-early-finish-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "nov25-saved-short-visit-five-sets-24min"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "nov25-share-short-visit-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-after-eight-visits-including-short-one"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "nov25-trends-and-calendar-with-real-data"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "advance": "47h36m"
+    },
+    {
+      "checkpoint": "nov27-skipped-friday-no-workout-started"
+    },
+    {
+      "note": "Nov 27: still at parents after Thanksgiving, travel ran late. I am skipping the gym. No workout started and no zero-rep sets. Today previously offered no skip control; leave this day empty and return Monday."
+    },
+    {
+      "advance": "72h"
+    },
+    {
+      "checkpoint": "nov30-return-after-skipped-friday"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "checkpoint": "nov30-preview-after-short-visit-and-skip"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "nov30-leg-offer-after-three-successful-eighty-sets"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "note": "Nov 30: bad sleep, everything feels heavy. Physical five-minute warmup. Two-minute rests today. Keep actual misses: leg80 10/8/8, chest20 10/10/10, row35 10/9/8, curl25 10/8. Five-minute finisher."
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "nov30-reading-earlier-leg-note-before-adding-fatigue"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 13: Felt pretty light. Everything feels a little less awkward.\nNov 30: tired, slept badly. Everything felt heavy after missing Friday."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-chest-offer-after-only-two-sets-last-visit"
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-third-chest-target-after-short-visit"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-row-offer-after-omitting-row-last-visit"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-curl-offer-after-omitting-curl-last-visit"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-all-actual-lifting-recorded"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "nov30-saved-tired-day-with-missed-reps"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

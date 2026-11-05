@@ -21,7 +21,7 @@ data class WorkoutSessionEntity(
      *  number: a 0 here reads as a weightless lifter to the calorie estimate and
      *  as a real value to the backup, which is what made imported history
      *  unrestorable. Added in DB v4. */
-    val bodyweightLb: Int?,
+    val bodyweightLb: Double?,
     /** The plan this session ran under, or null for history recorded before plans
      *  existed (earlier wizard runs deleted programs whose days shared these
      *  letters, so their plan is unknowable) and for CSV imports. */

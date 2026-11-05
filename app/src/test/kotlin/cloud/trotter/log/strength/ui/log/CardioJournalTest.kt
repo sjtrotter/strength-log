@@ -74,7 +74,7 @@ class CardioJournalTest {
     private fun strengthSummaryAt(completedAt: Long) = SessionSummaryRow(
         session = WorkoutSessionEntity(
             id = 9, dayId = "A", dayTitle = "Day A", startedAt = null,
-            completedAt = completedAt, bodyweightLb = 200,
+            completedAt = completedAt, bodyweightLb = 200.0,
         ),
         setCount = 8,
     )

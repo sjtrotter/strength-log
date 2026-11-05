@@ -159,7 +159,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         service.import(backup)
         assertEquals(before, captureState())
         val restored = backupRepository.exportSnapshot()
-        assertEquals(16, BackupCodec().decode(backup).schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, BackupCodec().decode(backup).schemaVersion)
         assertTrue(restored.exercises.first { it.id == rowId }.keepToPlan)
         assertEquals("Felt smooth", restored.sessions.single().note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())

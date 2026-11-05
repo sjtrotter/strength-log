@@ -240,7 +240,7 @@ class WizardRestoreWiringTest {
         val nonce = "previous-build-restore"
         journalStore.edit { prefs ->
             prefs.clear()
-            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb
+            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb.toInt()
             prefs[intPreferencesKey("age")] = answers.config.age
             prefs[stringPreferencesKey("level")] = answers.config.level.name
             prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name
@@ -271,7 +271,7 @@ class WizardRestoreWiringTest {
         // isComplete is what AppNavHost's WizardRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190, repo.plans.wizardAnswersFlow.first().config.bodyweightLb)
+        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
         assertEquals(1, repo.plans.programFlow.first().days.size)
     }
 
@@ -333,7 +333,7 @@ class WizardRestoreWiringTest {
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)
-        assertEquals(190, state.answers.config.bodyweightLb)
+        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
         assertEquals(33, state.answers.config.age)
         assertFalse(settings.wizardCompleteFlow.first())
     }
@@ -352,7 +352,7 @@ class WizardRestoreWiringTest {
         }
         assertFalse(state.isComplete)
         assertEquals(null, state.restore.error)
-        assertEquals(190, state.answers.config.bodyweightLb)
+        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
         assertEquals("STRENGTH", state.answers.config.emphasis.name)
         assertEquals(state.answers, repo.plans.wizardAnswersFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
@@ -514,7 +514,7 @@ class WizardRestoreWiringTest {
         assertNull(completed.restore.error)
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(190, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -558,7 +558,7 @@ class WizardRestoreWiringTest {
             repo.plans.programFlow.first().days.map { it.id },
         )
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
     }
 
     private companion object {

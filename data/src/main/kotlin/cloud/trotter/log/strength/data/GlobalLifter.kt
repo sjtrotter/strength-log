@@ -4,7 +4,7 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 
 data class GlobalLifter(
-    val bodyweightLb: Int = LifterConfig().bodyweightLb,
+    val bodyweightLb: Double = LifterConfig().bodyweightLb,
     val age: Int = LifterConfig().age,
     val level: ExperienceLevel = LifterConfig().level,
 ) {

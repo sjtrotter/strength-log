@@ -278,6 +278,46 @@ class WizardViewModelWiringTest {
         assertEquals(WizardAnswers(), state.answers)
     }
 
+    @Test
+    fun stepOneTapBeforeSavedAnswersArriveIsKept() = runVmTest {
+        repo.plans.setWizardAnswers(WizardAnswers(config = WizardAnswers().config.copy(emphasis = GoalEmphasis.PHYSIQUE)))
+        settings.setWizardComplete(true)
+        val readStarted = CompletableDeferred<Unit>()
+        val releaseRead = CompletableDeferred<Unit>()
+        val gatedSettings = SettingsStore(object : DataStore<Preferences> {
+            override val data = flow {
+                readStarted.complete(Unit)
+                releaseRead.await()
+                emitAll(dataStore.data)
+            }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                dataStore.updateData(transform)
+        })
+        val gatedRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
+        val vm = newViewModel(repository = gatedRepo, preferences = gatedSettings)
+        readStarted.await()
+        vm.setEmphasis(GoalEmphasis.STRENGTH)
+        releaseRead.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(GoalEmphasis.STRENGTH, vm.uiState.value.answers.config.emphasis)
+    }
+
+    @Test
+    fun firstRunAboutYouStartsEmptyAndDraftSurvivesRecreation() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(null, vm.uiState.value.bodyweightLb)
+        assertEquals(null, vm.uiState.value.age)
+        vm.setBodyweight(210.5)
+        vm.setAge(33)
+        advanceUntilIdle()
+        val recreated = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
+        advanceUntilIdle()
+        assertEquals(210.5, recreated.uiState.value.bodyweightLb ?: Double.NaN, 0.0)
+        assertEquals(33, recreated.uiState.value.age)
+    }
+
     // --- navigation --------------------------------------------------------------
 
     @Test
@@ -347,7 +387,7 @@ class WizardViewModelWiringTest {
         vm.setSplit(SplitTemplate.UPPER_LOWER)
         vm.setAnchorScheme(AnchorScheme.BIG_4)
         vm.setDeadliftVariant(DeadliftVariant.SUMO)
-        vm.setBodyweight(200)
+        vm.setBodyweight(200.0)
         vm.setAge(30)
         vm.toggleEquipment(Equipment.KETTLEBELL) // present by default -> removed
         advanceUntilIdle()
@@ -358,7 +398,7 @@ class WizardViewModelWiringTest {
         assertEquals(SplitTemplate.UPPER_LOWER, answers.split)
         assertEquals(AnchorScheme.BIG_4, answers.anchorScheme)
         assertEquals(DeadliftVariant.SUMO, answers.deadliftVariant)
-        assertEquals(200, answers.config.bodyweightLb)
+        assertEquals(200.0, answers.config.bodyweightLb, 0.0)
         assertEquals(30, answers.config.age)
         assertFalse(Equipment.KETTLEBELL in answers.equipment)
     }
@@ -383,7 +423,7 @@ class WizardViewModelWiringTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         advanceUntilIdle()
-        vm.setBodyweight(210)
+        vm.setBodyweight(210.0)
         vm.toggleEquipment(Equipment.MACHINE)
         vm.onNext()
         advanceUntilIdle()
@@ -392,7 +432,7 @@ class WizardViewModelWiringTest {
         val revived = newViewModel(handle)
         advanceUntilIdle()
         val state = revived.uiState.value
-        assertEquals(210, state.answers.config.bodyweightLb)
+        assertEquals(210.0, state.answers.config.bodyweightLb, 0.0)
         assertFalse(Equipment.MACHINE in state.answers.equipment)
         assertEquals(WizardStep.DAYS_PER_WEEK, state.step)
     }
@@ -511,7 +551,7 @@ class WizardViewModelWiringTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle, recording, preferences = failingSettings)
         advanceUntilIdle()
-        vm.setBodyweight(210)
+        vm.setBodyweight(210.0)
         vm.setUnit(WeightUnit.KG)
         failingStore.failOnUpdate = failedUpdate
 
@@ -537,7 +577,7 @@ class WizardViewModelWiringTest {
             calls,
         )
         assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
-        assertEquals(210, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(210.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue(settings.wizardCompleteFlow.first())
         assertTrue(vm.uiState.value.isComplete)
@@ -743,7 +783,7 @@ class WizardViewModelWiringTest {
 
     @Test
     fun reRun_prefills_the_draft_from_previously_stored_answers() = runVmTest {
-        val previous = WizardAnswers(daysPerWeek = 3, split = SplitTemplate.FULL_BODY, config = WizardAnswers().config.copy(bodyweightLb = 190))
+        val previous = WizardAnswers(daysPerWeek = 3, split = SplitTemplate.FULL_BODY, config = WizardAnswers().config.copy(bodyweightLb = 190.0))
         repo.plans.setWizardAnswers(previous)
         settings.setWizardComplete(true)
 
@@ -751,7 +791,9 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(3, vm.uiState.value.answers.daysPerWeek)
-        assertEquals(190, vm.uiState.value.answers.config.bodyweightLb)
+        assertEquals(190.0, vm.uiState.value.answers.config.bodyweightLb, 0.0)
+        assertEquals(190.0, vm.uiState.value.bodyweightLb ?: Double.NaN, 0.0)
+        assertEquals(previous.config.age, vm.uiState.value.age)
     }
 
     // --- restore from backup: offered on a first run only ------------------------

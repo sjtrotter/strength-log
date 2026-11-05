@@ -31,9 +31,7 @@ object SetupStateBuilder {
     fun bodyweightDisplay(cfg: LifterConfig, unit: WeightUnit): Double =
         BodyweightInput.display(cfg.bodyweightLb, unit)
 
-    /** Converts a stepper's [unit]-display value back to the whole-pound canonical storage
-     *  ([LifterConfig.bodyweightLb] is an Int — spec goal math is lb-integer-calibrated). */
-    fun bodyweightLb(displayValue: Double, unit: WeightUnit): Int =
+    fun bodyweightLb(displayValue: Double, unit: WeightUnit): Double =
         BodyweightInput.canonicalLb(displayValue, unit)
 
     /**

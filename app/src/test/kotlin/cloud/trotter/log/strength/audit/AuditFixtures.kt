@@ -114,7 +114,7 @@ internal fun auditHistoryFixture(): LogUiState {
                 WeightUnit.LB, today, ZoneOffset.UTC),
             calendar = JournalBuilder.calendar(sessions.map { SessionSummaryRow(
                 WorkoutSessionEntity(id = it.sessionId, dayId = it.dayLetter, dayTitle = it.dayTitle,
-                    startedAt = null, completedAt = it.completedAt, bodyweightLb = 185), it.setCount,
+                    startedAt = null, completedAt = it.completedAt, bodyweightLb = 185.0), it.setCount,
             ) }, 0, today, ZoneOffset.UTC),
         ),
     )

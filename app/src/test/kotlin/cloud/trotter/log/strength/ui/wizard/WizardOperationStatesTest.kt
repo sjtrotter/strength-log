@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
@@ -42,6 +44,36 @@ class WizardOperationStatesTest {
         onBodyweightChange = {}, onUnitChange = {}, onAgeChange = {}, onLevelChange = {},
         onEquipmentToggle = {}, onRestoreFromBackup = {},
     )
+
+    @Test fun loadingHidesStepInputsAndDisablesNext() {
+        var state by mutableStateOf(WizardUiState(initialized = false))
+        rule.setContent { AppTheme { WizardScreen(state, actions()) } }
+        rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { state = state.copy(initialized = true) }
+        rule.onNodeWithText("Strength-leaning").assertExists()
+        rule.onNodeWithText("Next").assertIsEnabled()
+    }
+
+    @Test fun freshAboutYouIsEmptyAndNextRequiresBothValidValues() {
+        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStep.ABOUT_YOU.ordinal, WizardAnswers(), false))
+        rule.setContent { AppTheme { WizardScreen(state, actions().copy(
+            onBodyweightChange = { state = state.copy(bodyweightLb = it) },
+            onAgeChange = { state = state.copy(age = it) },
+        )) } }
+        assertEquals("", rule.onNodeWithText("Bodyweight (lb)").fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        assertEquals("", rule.onNodeWithText("Age").fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("Bodyweight (lb)").performTextReplacement("210.5")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("Age").performTextReplacement("33")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(210.5, state.bodyweightLb ?: Double.NaN, 0.0) }
+        rule.onNodeWithText("Age").performTextReplacement("")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("Age").performTextReplacement("0")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+    }
 
     @Test fun tappingARadioRowSelectsTheAnswer() {
         var state by mutableStateOf(WizardStateBuilder.buildUiState(0, WizardAnswers(), false))

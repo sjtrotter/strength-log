@@ -299,7 +299,7 @@ class RestoreCoordinationTest {
         assertFalse(settings.wizardCompleteFlow.first())
 
         val result = service.withRestoreLock {
-            assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+            assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
             assertTrue(settings.wizardCompleteFlow.first())
             assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
             assertNull(db.restoreMarkerDao().nonce())
@@ -326,7 +326,7 @@ class RestoreCoordinationTest {
         assertFalse(settings.wizardCompleteFlow.first())
 
         val result = service.withRestoreLock {
-            assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+            assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
             assertTrue(settings.wizardCompleteFlow.first())
             assertTrue(db.planDao().allPlans().isEmpty())
             assertTrue(repo.plans.programFlow.first().days.isEmpty())
@@ -390,7 +390,7 @@ class RestoreCoordinationTest {
 
         assertFalse("by its turn the restore had finished, so there was nothing left", replayed)
         assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -400,7 +400,7 @@ class RestoreCoordinationTest {
         service.import(backupJson("B", 205))
 
         assertEquals(listOf("B"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(205.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertNull("the second restore cleared its own marker", db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
@@ -420,7 +420,7 @@ class RestoreCoordinationTest {
         }
 
         assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
@@ -443,7 +443,7 @@ class RestoreCoordinationTest {
         assertNull(settings.selectedPlanIdFlow.first())
         assertNull(repo.plans.suggestedDayFlow.first())
         val global = settings.globalLifterFlow.first()
-        assertEquals(210, global.bodyweightLb)
+        assertEquals(210.0, global.bodyweightLb, 0.0)
         assertEquals(33, global.age)
         assertEquals("ADVANCED", global.level.name)
         assertTrue(settings.wizardCompleteFlow.first())
@@ -498,7 +498,7 @@ class RestoreCoordinationTest {
 
     @Test
     fun v14ImportMovesLegacyNotesBeforeReplacingSessionsWithMatchingIds() = runBlocking {
-        db.sessionDao().insertSessions(listOf(WorkoutSessionEntity(11, "A", "Local", null, 1_000, 190)))
+        db.sessionDao().insertSessions(listOf(WorkoutSessionEntity(11, "A", "Local", null, 1_000, 190.0)))
         val key = stringPreferencesKey("session_notes")
         settingsStore.edit { it[key] = """{"11":"Local legacy note"}""" }
         val document = BackupDocument(

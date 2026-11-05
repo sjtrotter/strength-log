@@ -216,7 +216,7 @@ class BackupCodecTest {
     fun `session plan identity survives a full export-import cycle`() {
         val session = WorkoutSessionEntity(
             id = 7, dayId = "A", dayTitle = "Day A", startedAt = null, completedAt = 5_000L,
-            bodyweightLb = 235, planId = 2, planName = "Test prep",
+            bodyweightLb = 235.0, planId = 2, planName = "Test prep",
         )
         val cardioSession = CardioSessionEntity(
             id = 3, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
@@ -647,7 +647,7 @@ class BackupCodecTest {
             logs = listOf(
                 ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", 1_000L),
             ),
-            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210.0)),
             sessionSets = listOf(SessionSetEntity(11, 7, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)),
         )
         val first = codec.encode(snapshot.toDocument())
@@ -672,7 +672,7 @@ class BackupCodecTest {
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
             exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, "")),
             logs = emptyList(),
-            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210.0)),
             sessionSets = listOf(stamped),
         )
 
@@ -797,7 +797,7 @@ class BackupCodecTest {
                 slot.copy(keepToPlan = true),
                 slot.copy(id = 2, position = 1, prescriptionJson = prescription, keepToPlan = false),
             ),
-            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000, 210, note = "Felt smooth")),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000, 210.0, note = "Felt smooth")),
         )
         val encoded = codec.encode(snapshot.toDocument().withoutV16Fields().copy(schemaVersion = 14))
         val decoded = codec.decode(encoded)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -21,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -47,8 +49,9 @@ class YouViewModelTest {
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
+    private lateinit var settingsFile: File
     private lateinit var storeScope: CoroutineScope
-    private val writtenBodyweights = mutableListOf<Int?>()
+    private val writtenBodyweights = mutableListOf<Long?>()
     private val writtenAges = mutableListOf<Int?>()
     private val vms = mutableListOf<YouViewModel>()
 
@@ -61,14 +64,13 @@ class YouViewModelTest {
             .setQueryCoroutineContext(dispatcher)
             .build()
         storeScope = CoroutineScope(dispatcher + Job())
-        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
-            File.createTempFile("you-vm-settings", ".preferences_pb")
-        }
+        settingsFile = File.createTempFile("you-vm-settings", ".preferences_pb")
+        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) { settingsFile }
         settings = SettingsStore(object : DataStore<Preferences> {
             override val data = dataStore.data
             override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
                 dataStore.updateData(transform).also { prefs ->
-                    writtenBodyweights += prefs[intPreferencesKey("bodyweight")]
+                    writtenBodyweights += prefs[longPreferencesKey("bodyweight_tenths_lb")]
                     writtenAges += prefs[intPreferencesKey("age")]
                 }
         })
@@ -104,6 +106,32 @@ class YouViewModelTest {
         }
 
     @Test
+    fun metricBodyweightRoundTripsAfterRestart() = runVmTest {
+        bodyweightRoundTripAfterRestart(95.5, WeightUnit.KG, 210.5)
+    }
+
+    @Test
+    fun poundBodyweightRoundTripsAfterRestart() = runVmTest {
+        bodyweightRoundTripAfterRestart(210.5, WeightUnit.LB, 210.5)
+    }
+
+    private suspend fun TestScope.bodyweightRoundTripAfterRestart(value: Double, unit: WeightUnit, expectedLb: Double) {
+        settings.setUnit(unit)
+        val vm = newViewModel()
+        vm.setBodyweight(value)
+        advanceUntilIdle()
+        vm.viewModelScope.cancel()
+        storeScope.coroutineContext[Job]!!.cancelAndJoin()
+        storeScope = CoroutineScope(dispatcher + Job())
+        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) { settingsFile })
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        val restarted = newViewModel()
+        advanceUntilIdle()
+        assertEquals(expectedLb, restarted.uiState.value.config.bodyweightLb.toDouble(), 0.0)
+        assertEquals(value, restarted.uiState.value.bodyweightDisplay, 0.0)
+    }
+
+    @Test
     fun setBodyweight_persists_in_canonical_lb_regardless_of_display_unit() = runVmTest {
         settings.setUnit(WeightUnit.KG)
         val vm = newViewModel()
@@ -113,8 +141,8 @@ class YouViewModelTest {
         vm.setBodyweight(100.0)
         advanceUntilIdle()
 
-        val expectedLb = WeightUnit.KG.toLb(100.0).let(Math::round).toInt()
-        assertEquals(expectedLb, repo.plans.configFlow.first().bodyweightLb)
+        val expectedLb = Math.round(WeightUnit.KG.toLb(100.0) * 10.0) / 10.0
+        assertEquals(expectedLb, repo.plans.configFlow.first().bodyweightLb, 0.0)
     }
 
     @Test
@@ -136,9 +164,9 @@ class YouViewModelTest {
         vm.setBodyweight(245.0)
         vm.setAge(41)
         advanceUntilIdle()
-        assertEquals(245, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(245.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(41, repo.plans.configFlow.first().age)
-        assertEquals(listOf(240, 245, 245), writtenBodyweights)
+        assertEquals(listOf(2400L, 2450L, 2450L), writtenBodyweights)
         assertEquals(listOf(40, 40, 41), writtenAges)
     }
 

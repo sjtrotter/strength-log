@@ -131,6 +131,6 @@ class HistoryRepositoryNotesTest {
     }
 
     private suspend fun insertSession(id: Long) {
-        db.sessionDao().insertSession(WorkoutSessionEntity(id, "A", "Day A", null, 1_000, 235))
+        db.sessionDao().insertSession(WorkoutSessionEntity(id, "A", "Day A", null, 1_000, 235.0))
     }
 }

@@ -58,7 +58,7 @@ class BackupV16Test {
         val snapshot = codec.decode(codec.encode(document(slots))).toSnapshot()
         val encoded = codec.encode(snapshot.toDocument())
         val restored = codec.decode(encoded)
-        assertEquals(16, restored.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, restored.schemaVersion)
         assertEquals(SetStructure.entries.map { it.name }, restored.plans.single().days.single().exercises.map { it.structure })
         assertEquals(snapshot, restored.toSnapshot())
         assertEquals(SetStructure.entries, restored.toSnapshot().exercises.map { it.toDomain().structure })

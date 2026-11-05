@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
 import cloud.trotter.log.strength.data.db.MIGRATION_17_18
+import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -45,7 +46,7 @@ class Migration14To15Test {
         createV14().also { it.writableDatabase.close(); it.close() }
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries().build()
             try {
                 assertEquals(listOf(
                     ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, "ez_curl", "slot note",
@@ -57,7 +58,7 @@ class Migration14To15Test {
                     ExerciseLogEntity(1, "A", 1, "ss", working, 2_000),
                     ExerciseLogEntity(1, "A", 2, "main", working, 3_000),
                 ), db.programDao().allLogs())
-                assertEquals(listOf(WorkoutSessionEntity(7, "A", "Day A", 1_000, 2_000, 235, 1, "My plan")),
+                assertEquals(listOf(WorkoutSessionEntity(7, "A", "Day A", 1_000, 2_000, 235.0, 1, "My plan")),
                     db.sessionDao().allSessions())
                 assertEquals("", db.sessionDao().allSessions().single().note)
                 assertEquals(listOf(WorkoutRunEntity("run-A", 1, "A", "Day A", "My plan", 4_000)), db.runDao().allRuns())

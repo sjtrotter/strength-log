@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.health
 
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import kotlin.math.abs
 
 /**
@@ -13,12 +14,12 @@ import kotlin.math.abs
 object BodyweightPrompt {
 
     /** Below this pound difference the two are "the same" and no prompt shows —
-     *  bodyweight noise shouldn't nag, and config is whole-pound anyway. */
+     *  bodyweight noise should not prompt a goal update. */
     private const val DEFAULT_THRESHOLD_LB = 1.0
 
     fun evaluate(
         latestWeightLb: Double?,
-        configBodyweightLb: Int,
+        configBodyweightLb: Double,
         thresholdLb: Double = DEFAULT_THRESHOLD_LB,
     ): BodyweightPromptData? {
         if (latestWeightLb == null) return null
@@ -26,7 +27,5 @@ object BodyweightPrompt {
         return BodyweightPromptData(healthConnectLb = latestWeightLb, currentConfigLb = configBodyweightLb)
     }
 
-    /** The whole-pound bodyweight to write into config when the user accepts the
-     *  prompt — the single place the Health Connect reading becomes app config. */
-    fun appliedBodyweightLb(data: BodyweightPromptData): Int = Math.round(data.healthConnectLb).toInt()
+    fun appliedBodyweightLb(data: BodyweightPromptData): Double = Bodyweight.round(data.healthConnectLb)
 }

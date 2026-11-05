@@ -466,7 +466,7 @@ class TrackerRepositoryPlanScopeTest {
         val days = db.programDao().daysForPlan(1)
         val exercises = db.programDao().exercisesForPlan(1)
         val logs = db.programDao().logsForPlan(1)
-        val answers = WizardAnswers(config = oldAnswers.config.copy(bodyweightLb = 210))
+        val answers = WizardAnswers(config = oldAnswers.config.copy(bodyweightLb = 210.0))
 
         val created = repo.plans.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
 
@@ -480,7 +480,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(created, settings.selectedPlanIdFlow.first())
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(created)!!.recipeJson)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
-        assertEquals(210, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(210.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(program("New", "bb_bench"), repo.plans.programFlow.first())
         assertEquals(before, db.planDao().plan(1))
         assertEquals(days, db.programDao().daysForPlan(1))
@@ -502,7 +502,7 @@ class TrackerRepositoryPlanScopeTest {
         val creator = TrackerRepository(
             db, db.programDao(), db.sessionDao(), db.customExerciseDao(), unpublishedSettings,
         )
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
 
         val created = creator.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench"))
 
@@ -516,7 +516,7 @@ class TrackerRepositoryPlanScopeTest {
     fun `publication does not select a missing plan`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
         val plans = db.planDao().allPlans()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
 
         repeat(2) { repo.plans.publishCreatedPlan(Long.MAX_VALUE, answers) }
 
@@ -531,7 +531,7 @@ class TrackerRepositoryPlanScopeTest {
         insertPlanTwo()
         assertTrue(repo.plans.archivePlan(2))
         val plans = db.planDao().allPlans()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
 
         repeat(2) { repo.plans.publishCreatedPlan(2, answers) }
 
@@ -545,7 +545,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
         val id = repo.plans.selectedPlanIdFlow.first()!!
         val global = settings.globalLifterFlow.first()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
 
         assertEquals(id, repo.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
 
@@ -582,7 +582,7 @@ class TrackerRepositoryPlanScopeTest {
             log(1, slot.id, sets(135.0)).copy(slot = Slot.SS),
         ))
         insertPlanTwo()
-        db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Original", null, 100, 180, 1, source.name))
+        db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Original", null, 100, 180.0, 1, source.name))
         db.cardioSessionDao().insert(CardioSessionEntity(
             dayId = "C", mode = "OUTDOOR_RUN", hard = false, label = "Easy run",
             startedAt = 200, completedAt = 1_400, seconds = 1_200, stepsCompleted = 1, planId = 1,
@@ -665,10 +665,10 @@ class TrackerRepositoryPlanScopeTest {
         db.programDao().upsertDay(ProgramDayEntity(copy, "B", 1, "Copy next", "", null))
         db.planDao().updateSuggestedDay(copy, "B")
         db.sessionDao().insertSessions(listOf(
-            WorkoutSessionEntity(0, "A", "Original", null, 100, 180, 1),
-            WorkoutSessionEntity(0, "A", "Original", null, 200, 180, 1),
-            WorkoutSessionEntity(0, "A", "Copy", null, 400, 180, copy),
-            WorkoutSessionEntity(0, "A", "Unknown", null, 999, 180),
+            WorkoutSessionEntity(0, "A", "Original", null, 100, 180.0, 1),
+            WorkoutSessionEntity(0, "A", "Original", null, 200, 180.0, 1),
+            WorkoutSessionEntity(0, "A", "Copy", null, 400, 180.0, copy),
+            WorkoutSessionEntity(0, "A", "Unknown", null, 999, 180.0),
         ))
         db.cardioSessionDao().insertAll(listOf(
             CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",

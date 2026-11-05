@@ -48,7 +48,12 @@ data class WizardUiState(
     val restore: WizardRestoreState = WizardRestoreState(),
     val finishError: UiText? = null,
     val finishInFlight: Boolean = false,
+    val initialized: Boolean = true,
+    val bodyweightLb: Double? = null,
+    val age: Int? = null,
 ) {
+    val canContinue: Boolean get() = initialized && (step != WizardStep.ABOUT_YOU ||
+        (bodyweightLb != null && bodyweightLb.isFinite() && bodyweightLb >= 1.0 && age != null && age >= 1))
     val emptyRotation: Boolean get() = isLastStep && previewProgram?.days.isNullOrEmpty()
     val totalSteps: Int get() = WizardStep.entries.size
     val isFirstStep: Boolean get() = stepIndex == 0
@@ -82,9 +87,9 @@ data class WizardActions(
     val onCardioModeChange: (CardioMode) -> Unit,
     val onCardioPlacementChange: (CardioPlacement) -> Unit,
     val onFiveKChange: (Boolean) -> Unit,
-    val onBodyweightChange: (Int) -> Unit,
+    val onBodyweightChange: (Double?) -> Unit,
     val onUnitChange: (WeightUnit) -> Unit,
-    val onAgeChange: (Int) -> Unit,
+    val onAgeChange: (Int?) -> Unit,
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEquipmentToggle: (Equipment) -> Unit,
     val onRestoreFromBackup: () -> Unit,

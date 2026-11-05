@@ -117,7 +117,7 @@ class BackupV2RestoreTest {
     @Test
     fun `everything else in the v2 document is preserved`() {
         val snapshot = codec.decode(v2Json()).toSnapshot()
-        assertEquals(235, snapshot.answers.config.bodyweightLb)
+        assertEquals(235.0, snapshot.answers.config.bodyweightLb)
         assertEquals("A", snapshot.suggestedDay)
         assertTrue(snapshot.wizardComplete)
         assertEquals("TIMED", snapshot.customExercises.single().tracking)

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneOffset
 import java.util.Locale
@@ -48,12 +49,12 @@ class LogScreenBuilderTest {
 
     @Test
     fun bodyweightDisplay_converts_to_the_display_unit() {
-        assertEquals("182", LogScreenBuilder.bodyweightDisplay(182, WeightUnit.LB))
+        assertEquals("182", LogScreenBuilder.bodyweightDisplay(182.0, WeightUnit.LB))
         // Delegates to WeightStepper/WeightUnit (SSOT) rather than reimplementing
         // the lb/kg conversion — pin the delegation, not an arbitrary lb→kg number.
         assertEquals(
-            WeightStepper.format(WeightUnit.KG.fromLb(220.0)),
-            LogScreenBuilder.bodyweightDisplay(220, WeightUnit.KG),
+            WeightStepper.format(Bodyweight.display(220.0, WeightUnit.KG)),
+            LogScreenBuilder.bodyweightDisplay(220.0, WeightUnit.KG),
         )
     }
 

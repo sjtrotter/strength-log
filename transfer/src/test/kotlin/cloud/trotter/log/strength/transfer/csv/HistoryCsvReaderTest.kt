@@ -93,7 +93,7 @@ class HistoryCsvReaderTest {
     @Test
     fun `our formula prefix round-trips only on dangerous free-text names`() {
         val session = cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity(
-            1, "A", " =Training", null, 1_720_000_000_000L, 235,
+            1, "A", " =Training", null, 1_720_000_000_000L, 235.0,
         )
         val set = cloud.trotter.log.strength.data.db.entity.SessionSetEntity(
             1, 1, "custom", "＠Press", cloud.trotter.log.strength.data.db.entity.Slot.MAIN,

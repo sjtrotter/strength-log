@@ -94,7 +94,7 @@ class ShareCardServiceTest {
 
     private fun session(dayId: String) = WorkoutSessionEntity(
         id = 0, dayId = dayId, dayTitle = "Lower", startedAt = null, completedAt = 1_783_502_280_000L,
-        bodyweightLb = 182,
+        bodyweightLb = 182.0,
     )
 
     private fun set() = SessionSetEntity(

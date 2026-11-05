@@ -44,6 +44,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -665,9 +666,12 @@ class DayViewModelTimedRepExecutionTest {
     @Test
     fun loggingPendingRepsDoesNotCancelCardioStartedAfterTimeUp() = test {
         val vm = awaitingVm()
+        vm.addCardioSet()
+        runCurrent()
         vm.startCardio()
         runCurrent()
         val deadline = alarm.deadline
+        assertNotNull(deadline)
         vm.changeTimedRepDraft("38")
         vm.logTimedRepCount()
         runCurrent()

@@ -162,6 +162,46 @@ class DayViewModelCardioExecutionTest {
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
 
     @Test
+    fun runningLoneTimedSetRefusesAddSetAndKeepsElapsedAndTypedDistance() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        assertTrue(vm.uiState.value.cardio!!.canAddSet)
+        vm.startCardio()
+        runCurrent()
+        val original = requireNotNull(vm.uiState.value.cardio?.run)
+        assertFalse(vm.uiState.value.cardio!!.canAddSet)
+        vm.addCardioSet()
+        runCurrent()
+        assertEquals(original, vm.uiState.value.cardio?.run)
+        tick(1_690_000)
+        vm.changeCardioRunDistance("5000")
+        runCurrent()
+
+        vm.openCardioSets()
+        vm.addCardioSet()
+        runCurrent()
+
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertFalse(cardio.canAddSet)
+        assertEquals(original, cardio.run)
+        assertEquals(1690, cardio.elapsedSeconds)
+        assertEquals("5000", cardio.runDistanceText)
+        assertNull(alarm.deadline)
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        vm.closeSheet()
+        vm.stopCardio(original.action())
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(1690, session.seconds)
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(1690, result.elapsedSeconds)
+        assertEquals(5000, result.metres)
+        assertEquals(original.block.sets.single(), result.spec)
+    }
+
+    @Test
     fun loneTimedRunCountsUpAndStopLogsFinishedWithTheTypedDistance() = test {
         prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
         val handle = SavedStateHandle()
@@ -603,6 +643,47 @@ class DayViewModelCardioExecutionTest {
         assertFalse(restoredHandle.keys().any {
             it.startsWith("day_cardio_standing_bests:") || it.startsWith("day_cardio_receipt_records:")
         })
+    }
+
+    @Test
+    fun unequalDurationRunsAreLoggedWithoutRecordsAndDoNotSuppressAnEqualDurationImprovement() = test {
+        val spec = time(CardioRole.WORK, seconds = 1500)
+        val activity = CardioActivity.ROAD_RUN
+        prepareAuthoredCardioDay(spec, activity = activity)
+        seedCardioBest(spec, 1500, 5000, activity)
+        val vm = readyVm()
+
+        for (seconds in listOf(1200, 2400)) {
+            vm.startCardio()
+            runCurrent()
+            tick(seconds * 1_000L)
+            vm.changeCardioRunDistance("6000")
+            vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+            runCurrent()
+
+            val receipt = requireNotNull(vm.finisher.receipt.value)
+            val result = repo.history.cardioSetsFor(receipt.sessionId).single()
+            assertEquals(spec, result.spec)
+            assertEquals(CardioSetStatus.FINISHED, result.status)
+            assertEquals(seconds, result.elapsedSeconds)
+            assertEquals(6000, result.metres)
+            assertNull(receipt.cardioRows.single().record)
+            assertEquals(5000, repo.history.cardioBestsFor(activity).values.single().metres)
+            assertTrue(vm.finisher.dismissReceipt())
+            runCurrent()
+        }
+
+        vm.startCardio()
+        runCurrent()
+        tick(1_500_000)
+        vm.changeCardioRunDistance("5500")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+
+        assertEquals(CardioRecordMark(PrKind.FARTHER, 0, null, 5000),
+            requireNotNull(vm.finisher.receipt.value).cardioRows.single().record)
+        assertEquals(5500, repo.history.cardioBestsFor(activity).values.single().metres)
+        assertEquals(4, repo.history.cardioSessionsFlow.first().size)
     }
 
     @Test

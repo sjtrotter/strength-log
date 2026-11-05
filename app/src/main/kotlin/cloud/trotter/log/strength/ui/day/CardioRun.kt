@@ -68,6 +68,7 @@ data class CardioRun(
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
     val running: Boolean get() = wallStart != null
+    val canAddSet: Boolean get() = !complete && !(running && block.openEnded)
     val resultSets: List<CardioSetResult> get() {
         val prescriptions = block.sets
         return results.mapIndexed { index, result ->

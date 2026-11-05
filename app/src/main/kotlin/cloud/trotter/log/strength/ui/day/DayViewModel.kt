@@ -691,7 +691,7 @@ class DayViewModel @Inject constructor(
         mutate {
             if (currentDay() != dayId || cardioRun.value?.let { it.dayId != dayId } == true) return@mutate
             val run = reconcileCardio() ?: newCardioRun() ?: return@mutate
-            if (run.dayId != dayId || run.complete || timedRepEvent.value?.awaitingCount == false) return@mutate
+            if (run.dayId != dayId || !run.canAddSet || timedRepEvent.value?.awaitingCount == false) return@mutate
             val block = run.block
             val workIndex = block.sets.indexOfLast { it.role == CardioRole.WORK }
             val work = block.sets.getOrNull(workIndex) ?: block.sets[run.position].copy(role = CardioRole.WORK)
@@ -1856,6 +1856,7 @@ class DayViewModel @Inject constructor(
             source.copy(loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
+                    cardioRun.value?.canAddSet != false &&
                     timedRepEvent.value?.awaitingCount != false,
                 block = if (savedRun?.dayId != state.viewDayId && loggedSets.isNotEmpty()) {
                     source.block?.copy(sets = loggedSets.map { it.spec })

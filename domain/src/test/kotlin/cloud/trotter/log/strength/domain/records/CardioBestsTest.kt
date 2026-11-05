@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CardioBestsTest {
@@ -54,6 +55,29 @@ class CardioBestsTest {
         assertTrue(CardioBests.records(activity, listOf(
             result(end, 1700, 5300, status = CardioSetStatus.SHORTENED),
         ), standing).isEmpty())
+    }
+
+    @Test
+    fun `timed records exclude finished runs whose actual duration differs from the plan`() {
+        val activity = CardioActivity.ROAD_RUN
+        val end = Measure.Time(1500)
+        val prior = result(end, 1500, 5000)
+        val standing = CardioBests.bests(activity, listOf(prior))
+        val unequal = listOf(result(end, 1200, 6000), result(end, 2400, 6000))
+
+        unequal.forEach { assertFalse(CardioBests.counts(it)) }
+        assertTrue(CardioBests.bests(activity, unequal).isEmpty())
+        assertTrue(CardioBests.records(activity, unequal, standing).isEmpty())
+        val historical = CardioBests.bests(activity, listOf(prior) + unequal)
+        assertEquals(standing, historical)
+
+        val improvement = result(end, 1500, 5500)
+        val record = CardioBests.records(activity, listOf(improvement), historical).single()
+        assertEquals(prior, record.previous)
+        assertEquals(improvement, record.best)
+        assertEquals(PrKind.FARTHER, record.kind)
+        assertTrue(CardioBests.records(activity, listOf(improvement),
+            mapOf(CardioRecordKey(activity, end) to unequal.first())).isEmpty())
     }
 
     @Test

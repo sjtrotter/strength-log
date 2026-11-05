@@ -469,12 +469,10 @@
    }
   },
   {
-   "tap": {
-    "text": "Remove"
-   }
+   "note": "Can't remove the last lift, a day keeps at least one. I do side planks anyway, so the plank stays."
   },
   {
-   "checkpoint": "day-a-emptied"
+   "back": true
   },
   {
    "tap": {
@@ -528,6 +526,104 @@
   },
   {
    "checkpoint": "day-a-with-trap"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single leg"
+   }
+  },
+  {
+   "checkpoint": "single-leg-list"
+  },
+  {
+   "tap": {
+    "textContains": "Bulgarian"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Each side"
+   }
+  },
+  {
+   "checkpoint": "bss-prescription"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Knee flexion"
+   }
+  },
+  {
+   "checkpoint": "knee-flexion-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Knee extension"
+   }
+  },
+  {
+   "checkpoint": "knee-extension-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Squat bilateral"
+   }
+  },
+  {
+   "checkpoint": "squat-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "scrollTo": {
+    "text": "H push"
+   }
+  },
+  {
+   "checkpoint": "picker-scrolled"
   }
  ]
 }

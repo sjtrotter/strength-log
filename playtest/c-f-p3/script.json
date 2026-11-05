@@ -1140,6 +1140,16 @@
   },
   {
    "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "tap": {
     "text": "Today",
     "role": "Tab"
    }

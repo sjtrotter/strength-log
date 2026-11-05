@@ -46,6 +46,7 @@ class PlaytestReplayTest {
         val artifacts = RunArtifacts(File(requireNotNull(System.getProperty("playtest.dir"))), captureFromText.toIntOrNull() ?: 0)
         val originalLocale = Locale.getDefault()
         val originalTimeZone = TimeZone.getDefault()
+        val previousWindowSize = System.getProperty(REQUESTED_WINDOW_SIZE)
         var failure: Throwable? = null
         var launchAttempted = false
         var backupAttempted = false
@@ -88,6 +89,7 @@ class PlaytestReplayTest {
                     throw PlaytestError("script", "Cannot restore ${file.path}: ${error.message}", cause = error)
                 }
             }
+            System.setProperty(REQUESTED_WINDOW_SIZE, "true")
             compose.mainClock.autoAdvance = false
             launchAttempted = true
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -137,6 +139,8 @@ class PlaytestReplayTest {
                     watchdog.interrupt()
                     Locale.setDefault(originalLocale)
                     TimeZone.setDefault(originalTimeZone)
+                    if (previousWindowSize == null) System.clearProperty(REQUESTED_WINDOW_SIZE)
+                    else System.setProperty(REQUESTED_WINDOW_SIZE, previousWindowSize)
                 }
             }
         }
@@ -162,3 +166,7 @@ class PlaytestReplayTest {
 
 /** Below the workflow's 25-minute job timeout, after setup and compilation, leaving time to upload. */
 private const val RUN_LIMIT_MS = 15 * 60_000L
+
+/** Robolectric otherwise frames every wrap-content window (dialogs, menus) at full screen size; a dialog
+ *  whose content keeps requesting layout under that mismatched frame never settles. */
+private const val REQUESTED_WINDOW_SIZE = "robolectric.windowManager.useRequestedSize"

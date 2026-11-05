@@ -1,0 +1,207 @@
+{
+  "seat": "sheet-number-ime",
+  "capture": "checkpoints",
+  "steps": [
+    {
+      "advance": "1d2h3m4s"
+    },
+    {
+      "advance": "23h8m"
+    },
+    {
+      "checkpoint": "first-open"
+    },
+    {
+      "tap": {
+        "text": "Strength-leaning"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "days-2"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "split-for-2"
+    },
+    {
+      "tap": {
+        "text": "Full-body rotation"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat / Bench / Deadlift / Row (Big 4)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Outdoor run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Separate days"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Placement",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "cardio-5k-switch"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "LB"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "150",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "29",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Intermediate"
+      }
+    },
+    {
+      "checkpoint": "about-you"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Cable",
+        "direction": "up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Ez Bar"
+      }
+    },
+    {
+      "checkpoint": "equipment"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "rotation-2day"
+    },
+    {
+      "swipe": {
+        "text": "Day B",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "rotation-2day-bottom"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "trap-bar-sheet"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "reps-typed-ime-done"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "after-save"
+    }
+  ]
+}

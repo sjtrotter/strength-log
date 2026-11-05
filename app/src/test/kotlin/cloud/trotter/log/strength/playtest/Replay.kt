@@ -2,16 +2,17 @@ package cloud.trotter.log.strength.playtest
 
 import android.os.Looper
 import android.os.SystemClock
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.requestFocus
@@ -19,6 +20,9 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toSize
 import androidx.test.espresso.Espresso
 import androidx.test.core.app.ActivityScenario
 import cloud.trotter.log.strength.MainActivity
@@ -31,6 +35,8 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Duration
+import kotlin.math.abs
+import kotlin.math.sign
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -112,6 +118,7 @@ internal class Replay(
 ) {
     private val selectors = Selectors(compose, compose.density.density)
     private var screen = "launch"
+    private var imeLog: JsonObject? = null
     private val lastMatches: JsonArray get() = selectors.lastMatches
 
     fun run(script: Script) {
@@ -129,6 +136,7 @@ internal class Replay(
             val started = System.nanoTime()
             artifacts.stepsRun++
             selectors.clear()
+            imeLog = null
             val deadline = StepDeadline(step.timeoutMs, index)
             deadline.withWatchdog(onTimeout = { error ->
                 try {
@@ -171,6 +179,7 @@ internal class Replay(
             put("matches", lastMatches)
             put("screen", screen)
             if (step.action == "note") put("note", step.payload)
+            imeLog?.let { put("ime", it) }
         })
     }
 
@@ -219,7 +228,14 @@ internal class Replay(
                 deadline.call { target.performTextReplacement(payload.string("value")) }
                 if ("ime" in payload) {
                     requireAction(node.config.contains(SemanticsActions.OnImeAction), "not-editable", "Node has no IME action")
-                    deadline.call { target.performImeAction() }
+                    val declared = node.config.getOrNull(SemanticsProperties.ImeAction)
+                    // Compose refuses performImeAction on Default; such a field has no action key and commits as it is typed.
+                    val perform = declared != null && declared != ImeAction.Default && declared != ImeAction.None
+                    imeLog = buildJsonObject {
+                        put("declared", declared?.toString() ?: "none")
+                        put("performed", perform)
+                    }
+                    if (perform) deadline.call { target.performImeAction() }
                 }
             }
             "swipe" -> deadline.call {
@@ -238,31 +254,87 @@ internal class Replay(
     private fun scrollTo(selector: Selector, deadline: StepDeadline) {
         val target = requireNotNull(selectors.await(selector, deadline, search = { searchLazy(selector, deadline) }))
         enabled(target.node)
-        requireAction(generateSequence(target.node.parent) { it.parent }.any { hasScrollAction().matches(it) },
-            "not-scrollable", "Node has no scrollable ancestor")
-        deadline.call { target.interaction.performScrollTo() }
+        requireAction(target.node.scrollContainer() != null, "not-scrollable", "Node has no scrollable ancestor")
+        var moves = 0
+        while (true) {
+            val node = deadline.call { target.interaction.fetchSemanticsNode() }
+            val container = node.scrollContainer() ?: return
+            val (dx, dy) = scrollDelta(node, container)
+            if (dx == 0f && dy == 0f) return
+            if (moves++ >= MAX_SCROLL_MOVES) {
+                throw PlaytestError("not-scrollable", "Target stayed outside its scroll container after $MAX_SCROLL_MOVES scrolls")
+            }
+            val before = node.positionInRoot
+            scrollBy(container, dx, dy, deadline)
+            val after = deadline.call { target.interaction.fetchSemanticsNode() }.positionInRoot
+            requireAction(after != before, "not-scrollable", "The scroll container did not move toward the target")
+        }
     }
 
-    /** Scrolls every lazy container on screen in turn until one brings the target into the tree.
-     *  A screen can hold several (a lazy list with a pager inside), so none is assumed. */
+    /** Pages each lazy container on screen until one composes the target; the Compose clock is advanced
+     *  by hand, so an endless animation cannot stall it. */
     private fun searchLazy(selector: Selector, deadline: StepDeadline) {
-        val containers = compose.onAllNodes(hasScrollAction())
-        val nodes = deadline.call { containers.fetchSemanticsNodes(atLeastOneRootRequired = false) }
-        nodes.indices.filter { nodes[it].config.contains(SemanticsActions.ScrollToIndex) }.forEach { index ->
-            try {
-                // A lazy list composes newly scrolled rows on the next frame, so the clock runs here.
-                compose.mainClock.autoAdvance = true
-                try {
-                    deadline.call { containers[index].performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
-                } finally {
-                    compose.mainClock.autoAdvance = false
-                }
-                return
-            } catch (error: AssertionError) {
-                if (error.isWaitTimeout()) throw deadline.timeout(error)
-                // Not in this container, or storage has not filled it yet; the selector retry loop runs again.
+        val matcher = selectors.matcher(selector)
+        val ids = deadline.call { compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes(atLeastOneRootRequired = false) }
+            .filter { it.config.contains(SemanticsActions.ScrollToIndex) }.map { it.id }
+        ids.forEach { id ->
+            val container = compose.onNode(SemanticsMatcher("node $id") { it.id == id })
+            fun current() = deadline.call { container.fetchSemanticsNode() }
+            if (current().containsMatch(matcher)) return
+            val start = current().let { it.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+                ?: it.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange) }
+            // ScrollToIndex(0) throws on an empty list, which is also already at its start.
+            if (start == null || start.value() > 0f) {
+                deadline.call { compose.runOnUiThread { current().config[SemanticsActions.ScrollToIndex].action?.invoke(0) } }
+                settleScroll(deadline)
+            }
+            repeat(MAX_LAZY_PAGES) {
+                val node = current()
+                if (node.containsMatch(matcher)) return
+                val vertical = node.config.contains(SemanticsProperties.VerticalScrollAxisRange)
+                val axisKey = if (vertical) SemanticsProperties.VerticalScrollAxisRange else SemanticsProperties.HorizontalScrollAxisRange
+                val axis = node.config.getOrNull(axisKey) ?: return@forEach
+                if (axis.value() >= axis.maxValue()) return@forEach
+                val page = (if (vertical) node.size.height else node.size.width).toFloat() * (if (axis.reverseScrolling) -1f else 1f)
+                val before = axis.value()
+                scrollBy(node, if (vertical) 0f else page, if (vertical) page else 0f, deadline)
+                if (current().config.getOrNull(axisKey)?.value() == before) return@forEach
             }
         }
+    }
+
+    private fun scrollBy(container: SemanticsNode, dx: Float, dy: Float, deadline: StepDeadline) {
+        deadline.call { compose.runOnUiThread { container.config[SemanticsActions.ScrollBy].action?.invoke(dx, dy) } }
+        settleScroll(deadline)
+    }
+
+    /** Scroll semantics animate with a spring, which moves only while the paused Compose clock advances. */
+    private fun settleScroll(deadline: StepDeadline) {
+        deadline.call { compose.mainClock.advanceTimeBy(SCROLL_SETTLE_MS) }
+        deadline.call { shadowOf(Looper.getMainLooper()).idle() }
+    }
+
+    private fun SemanticsNode.scrollContainer(): SemanticsNode? =
+        generateSequence(parent) { it.parent }.firstOrNull { hasScrollAction().matches(it) }
+
+    private fun SemanticsNode.containsMatch(matcher: SemanticsMatcher): Boolean =
+        matcher.matches(this) || children.any { it.containsMatch(matcher) }
+
+    /** Compose's scrolling rule: bring the nearer edge into the viewport, or nothing when the target
+     *  already fits or is larger than the viewport. */
+    private fun scrollDelta(target: SemanticsNode, container: SemanticsNode): Pair<Float, Float> {
+        val viewport = container.boundsInRoot
+        val bounds = Rect(target.positionInRoot, target.size.toSize())
+        fun delta(start: Float, end: Float): Float =
+            if (sign(start) == sign(end)) (if (abs(start) < abs(end)) start else end) else 0f
+        val horizontal = container.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)
+        val vertical = container.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+        var dx = if (horizontal != null) delta(bounds.left - viewport.left, bounds.right - viewport.right) else 0f
+        var dy = if (vertical != null) delta(bounds.top - viewport.top, bounds.bottom - viewport.bottom) else 0f
+        if (horizontal?.reverseScrolling == true) dx = -dx
+        if (container.layoutInfo.layoutDirection == LayoutDirection.Rtl) dx = -dx
+        if (vertical?.reverseScrolling == true) dy = -dy
+        return dx to dy
     }
 
     private fun enabled(node: SemanticsNode) {
@@ -333,3 +405,7 @@ internal class Replay(
         }
     }
 }
+
+private const val SCROLL_SETTLE_MS = 1_000L
+private const val MAX_SCROLL_MOVES = 20
+private const val MAX_LAZY_PAGES = 50

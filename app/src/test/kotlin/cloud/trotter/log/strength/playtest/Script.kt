@@ -126,20 +126,27 @@ internal data class Step(
         }
 
         private fun parseDuration(text: String): Duration {
-            val match = Regex("([1-9][0-9]*)([smhd])").matchEntire(text)
-                ?: throw PlaytestError("script", "advance needs a positive duration such as 90s, 15m, 2h, or 2d")
-            val count = match.groupValues[1].toLong()
-            val duration = when (match.groupValues[2]) {
-                "s" -> Duration.ofSeconds(count)
-                "m" -> Duration.ofMinutes(count)
-                "h" -> Duration.ofHours(count)
-                else -> Duration.ofDays(count)
+            val match = Regex("(?:([0-9]+)d)?(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?").matchEntire(text)
+                ?.takeIf { text.isNotEmpty() }
+                ?: throw PlaytestError("script", DURATION_HELP)
+            val (days, hours, minutes, seconds) = match.destructured
+            val duration = try {
+                Duration.ZERO.plusDays(days.toLongOrZero()).plusHours(hours.toLongOrZero())
+                    .plusMinutes(minutes.toLongOrZero()).plusSeconds(seconds.toLongOrZero())
+                    .also { it.toMillis() } // Rejects overflow before launch.
+            } catch (error: ArithmeticException) {
+                throw PlaytestError("script", "advance duration is too long", cause = error)
             }
-            duration.toMillis() // Reject overflow before launch.
+            scriptCheck(!duration.isZero, DURATION_HELP)
             return duration
         }
     }
 }
+
+private const val DURATION_HELP = "advance needs a positive duration such as 90s, 15m, 2h, 2d, or 23h8m"
+
+private fun String.toLongOrZero(): Long =
+    if (isEmpty()) 0 else toLongOrNull() ?: throw PlaytestError("script", "advance duration is too long")
 
 internal data class Script(
     val seat: String,

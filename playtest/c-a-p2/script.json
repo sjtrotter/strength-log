@@ -807,6 +807,20 @@
     },
     {
       "tap": {
+        "text": "Clear filters"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "plank"
+      }
+    },
+    {
+      "checkpoint": "thursday-plank-search-with-equipment-filters-cleared"
+    },
+    {
+      "tap": {
         "text": "Plank / Side Plank"
       }
     },
@@ -831,6 +845,258 @@
     },
     {
       "checkpoint": "thursday-side-plank-prescription-fields"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "4"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "0"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "thursday-four-unloaded-thirty-second-side-holds"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "30 s"
+      }
+    },
+    {
+      "note": "Two 30-second side planks per side: four separate holds, left/right/left/right. No suitcase carries performed."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "checkpoint": "thursday-all-ten-entries-logged"
+    },
+    {
+      "tap": {
+        "text": "Finish day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-finished-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Deadlift harder than warmups. Calves: 40 per hand. Side planks: 30s L/R twice. Short day is enough."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "thursday-context-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "after-thursday-next-day"
+    },
+    {
+      "advance": "47h17m"
+    },
+    {
+      "checkpoint": "saturday-november-14"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day C"
+      }
+    },
+    {
+      "checkpoint": "saturday-original-targets-and-previous-results"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "saturday-original-exercise-list"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-next-time-controls"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "145"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-145-eight-target-separate-from-tuesday165-five"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-starting-target"
+    },
+    {
+      "expect": {
+        "text": "145 lb × 8"
+      }
+    },
+    {
+      "note": "Saturday Upper B. Bench first while the rack is free; still doing the planned press, rows and curls afterward. Bench145 for three eights, not Tuesday165 for fives."
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 145 lb × 8"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 145 lb × 8"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 145 lb × 8"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-three-eights-recorded"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "saturday-remaining-exercises-to-configure"
     }
   ]
 }

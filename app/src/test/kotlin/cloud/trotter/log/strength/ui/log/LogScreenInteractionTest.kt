@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertHasNoClickAction
@@ -82,6 +83,43 @@ class LogScreenInteractionTest {
             }
         }
         if (restoration == null) composeTestRule.setContent(content) else restoration.setContent(content)
+    }
+
+    @Test
+    fun expandedHistoryShowsOnlyDoneRowsAndEditShowsEveryRow() {
+        val session = mutableStateOf(logSessionFixture(true).copy(setCount = 1, exerciseGroups = listOf(
+            SessionExerciseGroup("Back Squat", listOf(
+                SessionSetSummary("1", "100×8", id = 1, weightLb = 100.0, reps = 8, done = true),
+                SessionSetSummary("2", "90×10", id = 2, weightLb = 90.0, reps = 10, done = false),
+            )),
+            SessionExerciseGroup("Bench", listOf(
+                SessionSetSummary("1", "60×12", id = 3, weightLb = 60.0, reps = 12, done = false),
+            )),
+        )))
+        composeTestRule.setContent { AppTheme {
+            LogScreen(LogUiState(sessions = listOf(session.value)), LogActions(
+                onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onToggleEdit = { session.value = session.value.copy(editing = !session.value.editing) },
+                onStartSession = {}, onSetUpProgram = {},
+            ))
+        } }
+
+        composeTestRule.onNodeWithText("1 set").assertIsDisplayed()
+        composeTestRule.onNodeWithText("1: 100×8").assertIsDisplayed()
+        composeTestRule.onNodeWithText("90×10", substring = true).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Bench").assertDoesNotExist()
+
+        composeTestRule.onNodeWithText("Edit").performScrollTo().performClick()
+        composeTestRule.onNodeWithText("100").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("90").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Bench").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("60").performScrollTo().assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Done").performScrollTo().performClick()
+        composeTestRule.onNodeWithText("1: 100×8").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("90×10", substring = true).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Bench").assertDoesNotExist()
     }
 
     @Test

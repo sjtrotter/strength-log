@@ -8,6 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -31,6 +32,9 @@ import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.isPartial
+import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.glance.DayProgress
@@ -40,6 +44,8 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -331,6 +337,68 @@ class DayViewModelReceiptTest {
         assertEquals("B", repo.plans.suggestedDayFlow.first())
         // The completed day's accent, not the one the pointer now stands on.
         assertEquals(0, receipt.dayIndex)
+    }
+
+    @Test
+    fun midRunPrescriptionShrinkUsesTheEditedCountAndTargetsOnTheReceipt() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 6)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        assertEquals(6, vm.uiState.value.totalSets)
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 3)
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.doneSets)
+        assertEquals(3, vm.uiState.value.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(1, receipt.loggedSetCount)
+        assertEquals(3, receipt.plannedSetCount)
+        val planned = requireNotNull(receipt.groups.single().rows.single().planned)
+        assertEquals(3, planned.count)
+        assertEquals(30.0, planned.weightLb, 0.0)
+        assertEquals(8, planned.reps)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals("1 of 3 sets logged", context.getString(
+            R.string.operation_receipt_partial_count, receipt.loggedSetCount, receipt.plannedSetCount,
+        ))
+        assertEquals(1, repo.history.sessionSummariesFlow.first().single().setCount)
+        assertEquals(3, repo.history.sessionSets(receipt.sessionId).size)
+    }
+
+    @Test
+    fun completingAnEditedPrescriptionKeepsTheReceiptComplete() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 6)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 3)
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.doneSets)
+        assertEquals(3, vm.uiState.value.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(3, receipt.loggedSetCount)
+        assertEquals(3, receipt.plannedSetCount)
+        assertFalse(receipt.isPartial)
     }
 
     @Test

@@ -10,7 +10,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
- * One row of [SessionDao.observeSessionSummaries] — a session plus its total
+ * One row of [SessionDao.observeSessionSummaries] — a session plus its completed
  * set count, computed in the same aggregate query (the Log screen list would
  * otherwise need one extra query per row to show a count).
  */
@@ -97,13 +97,13 @@ interface SessionDao {
 
     /**
      * The Log screen's list: every session, newest first, each paired with its
-     * total set count via one aggregate query — no N+1 as history grows.
+     * completed set count via one aggregate query — no N+1 as history grows.
      */
     @Query(
         """
         SELECT ws.*, COUNT(ss.id) AS setCount
         FROM workout_session ws
-        LEFT JOIN session_set ss ON ss.sessionId = ws.id
+        LEFT JOIN session_set ss ON ss.sessionId = ws.id AND ss.done = 1
         GROUP BY ws.id
         ORDER BY ws.completedAt DESC, ws.id DESC
         """,

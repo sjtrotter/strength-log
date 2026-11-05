@@ -124,6 +124,26 @@ class TrackerRepositoryFinishArchiveTest {
     }
 
     @Test
+    fun finishedShortDayCountsFiveDoneSetsAndKeepsSixUndoneRows() = runTest {
+        val ids = seedTracks()
+        db.storeTestRows("A", ids.first(), Slot.MAIN, List(5) { LoggedSet(100.0, 8, SetKind.WORK) })
+        db.storeTestRows("A", ids.last(), Slot.MAIN, List(6) { LoggedSet(90.0, 10, SetKind.WORK) })
+        tickSets(ids.first(), (0 until 5).toSet())
+
+        val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
+
+        val summary = repo.history.sessionSummariesFlow.first().single()
+        assertEquals(sessionId, summary.session.id)
+        assertEquals(5, summary.setCount)
+        val archived = repo.history.sessionSets(sessionId)
+        assertEquals(11, archived.size)
+        assertEquals(5, archived.count { it.done })
+        assertEquals(6, archived.count { !it.done })
+        assertTrue(archived.filter { it.exerciseId == "bb_back_squat" }.all { it.done })
+        assertTrue(archived.filter { it.exerciseId == "bb_bench" }.none { it.done })
+    }
+
+    @Test
     fun finishClearsEarlierRunFlagsAndTimingForAnUntouchedTrack() = runTest {
         val ids = seedTracks()
         for (id in ids) tickSets(id, setOf(0, 1))

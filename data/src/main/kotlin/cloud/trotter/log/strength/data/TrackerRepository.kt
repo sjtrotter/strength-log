@@ -178,6 +178,10 @@ class TrackerRepository(
     }
 
     private suspend fun replanSlot(row: ProgramExerciseEntity, config: LifterConfig) {
+        fun plannedJson(rows: List<LoggedSet>, seed: List<LoggedSet>): String = SetJson.encodeSets(
+            CarryForward.cleared(rows.mapIndexed { index, set -> seed.getOrNull(index) ?: set }),
+        )
+
         val run = runDao.openRun() ?: return
         if (run.planId != row.planId || run.dayId != row.dayId) return
         val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id }
@@ -205,8 +209,10 @@ class TrackerRepository(
             val trackIsTimed = if (track.slot == Slot.MAIN) isTimed
                 else catalog.find(track.exerciseId)?.tracking == TrackingType.TIMED
             if (!track.canReplan(trackIsTimed)) continue
+            val rows = RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)
             runDao.updateTrack(track.copy(
-                setsJson = SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)),
+                plannedJson = plannedJson(rows, trackSeed),
+                setsJson = SetJson.encodeSets(rows),
                 updatedAt = clock.millis(),
             ))
         }
@@ -226,8 +232,10 @@ class TrackerRepository(
             if (rows.size > partnerRows.size) {
                 val partnerSeed = SlotSeeds.partner(catalog.find(partner.exerciseId), rows.size, config)
                     ?: partnerRows.ifEmpty { rows }
+                val aligned = RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second
                 runDao.updateTrack(partner.copy(
-                    setsJson = SetJson.encodeSets(RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second),
+                    plannedJson = plannedJson(aligned, partnerSeed),
+                    setsJson = SetJson.encodeSets(aligned),
                     updatedAt = clock.millis(),
                 ))
             }
@@ -240,12 +248,14 @@ class TrackerRepository(
                     current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
                 )
                 runDao.updateTrack(partner.copy(
+                    plannedJson = plannedJson(paired.second, partnerSeed),
                     setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
                 ))
                 paired.first
             }
         }
         runDao.updateTrack(main.copy(
+            plannedJson = plannedJson(mainRows, seeded),
             setsJson = SetJson.encodeSets(mainRows), updatedAt = clock.millis(),
         ))
     }

@@ -599,6 +599,63 @@
   },
   {
    "checkpoint": "lifts-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "all-sets-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-more-back"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-1"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-plank-skipped"
+  },
+  {
+   "recreate": true
+  },
+  {
+   "checkpoint": "after-recreate"
+  },
+  {
+   "tap": {
+    "text": "Finish"
+   }
+  },
+  {
+   "checkpoint": "finish-tapped"
   }
  ]
 }

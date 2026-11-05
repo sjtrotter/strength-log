@@ -151,21 +151,75 @@
   },
   {
    "tap": {
-    "role": "Tab",
-    "index": 3
+    "text": "New plan"
    }
   },
   {
-   "checkpoint": "tab-3"
+   "checkpoint": "new-plan"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-1"
   },
   {
    "tap": {
-    "role": "Tab",
-    "index": 4
+    "desc": "Plan options"
    }
   },
   {
-   "checkpoint": "tab-4"
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "6-day push/pull/legs"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "You"
+   }
+  },
+  {
+   "checkpoint": "you"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "other-days"
   }
  ]
 }

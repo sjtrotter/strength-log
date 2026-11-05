@@ -16,25 +16,24 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.LiftSheet
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.EquipmentFilterRow
+import cloud.trotter.log.strength.ui.day.LiftSheet
 import cloud.trotter.log.strength.ui.day.PartnerRowState
 import cloud.trotter.log.strength.ui.day.SetEditSheet
 import cloud.trotter.log.strength.ui.day.workoutActions
-import cloud.trotter.log.strength.ui.day.workoutEditActions
 import cloud.trotter.log.strength.ui.day.workoutDayFixture
+import cloud.trotter.log.strength.ui.day.workoutEditActions
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
 import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.dayAccent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -122,8 +121,8 @@ class A11ySemanticsTest {
             AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions(), onDismiss = {}) }
         }
         listOf(
-            "Weight, 5 less", "Weight, 5 more", "Reps, one less", "Reps, one more",
-            "Pull-up, Reps, one less", "Pull-up, Reps, one more",
+            "Decrease weight", "Increase weight", "Decrease reps", "Increase reps",
+            "Decrease pull-up, reps", "Increase pull-up, reps",
         ).forEach { composeTestRule.onNodeWithContentDescription(it).assertExists() }
     }
 
@@ -140,7 +139,7 @@ class A11ySemanticsTest {
         composeTestRule.setContent {
             AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions(), onDismiss = {}) }
         }
-        listOf("Seconds, 5 less", "Seconds, 5 more", "Plank, Seconds, 5 less", "Plank, Seconds, 5 more")
+        listOf("Decrease duration", "Increase duration", "Decrease plank, duration", "Increase plank, duration")
             .forEach { composeTestRule.onNodeWithContentDescription(it).assertExists() }
     }
 
@@ -207,14 +206,13 @@ class A11ySemanticsTest {
                 EquipmentFilterRow(
                     options = listOf(equipment),
                     selected = setOf(equipment),
-                    accent = dayAccent(0),
                     onToggle = { toggleCount++ },
                 )
             }
         }
 
         composeTestRule.onNodeWithText(equipment.name, substring = true, ignoreCase = true)
-            .assertIsOn()
+            .assertIsSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
             .performClick()
         assertEquals(1, toggleCount)

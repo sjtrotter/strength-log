@@ -1,13 +1,13 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -61,9 +61,12 @@ class DaySheetTest {
             DaySheet(state, workoutActions(), { edits++ }, { clears++ }, { dismissals++ }, { discards++ })
         } }
         rule.onNodeWithText("Done").assertIsDisplayed()
-        rule.onNodeWithText("Edit day").performScrollTo().performClick()
-        rule.onNodeWithText("Clear today's checks").performScrollTo().performClick()
-        rule.onNodeWithText("Discard workout").performScrollTo().performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Edit day").performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Clear today's checks").performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Discard workout").performClick()
         rule.runOnIdle {
             assertEquals(1, edits)
             assertEquals(1, clears)

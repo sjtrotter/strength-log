@@ -2,10 +2,8 @@ package cloud.trotter.log.strength.audit
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -122,7 +120,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         rule.auditShot("sheets/08-picker-matching", beforeCapture = {
             rule.onNode(hasSetTextAction()).performTextReplacement("squat")
             rule.mainClock.advanceTimeBy(300)
-            rule.onNodeWithText("No matching exercises.").assertDoesNotExist()
+            rule.onNodeWithText("No matching exercises").assertDoesNotExist()
         }) { AuditDay(state) }
     }
 
@@ -132,7 +130,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         rule.auditShot("sheets/09-picker-no-matches", beforeCapture = {
             rule.onNode(hasSetTextAction()).performTextReplacement("zzzz-no-such-exercise")
             rule.mainClock.advanceTimeBy(300)
-            rule.onNodeWithText("No matching exercises.").assertIsDisplayed()
+            rule.onNodeWithText("No matching exercises").assertIsDisplayed()
         }) { AuditDay(state) }
     }
 
@@ -177,7 +175,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         rule.auditShot("sheets/13-note-save-failed", beforeCapture = {
             rule.onNodeWithText("Edit note").performScrollTo().performClick()
             rule.mainClock.advanceTimeBy(500)
-            rule.onNode(hasText("Done") and hasAnyAncestor(isDialog())).performClick()
+            rule.onNodeWithText("Save note").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             DayScreen(state, workoutActions().copy(onSetSessionNote = { save.value = NoteSave.Failed(it) }),
@@ -325,7 +323,8 @@ class AuditSheetsShotsTest : UiAuditTest() {
         val state = mutableStateOf(workoutLiftSheetFixture().copy(
             openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)))
         rule.auditShot("sheets/32-workout-clear-checks-confirm", beforeCapture = {
-            rule.onNodeWithText("Clear today's checks").performScrollTo().performClick()
+            rule.onNodeWithContentDescription("More").performClick()
+            rule.onNodeWithText("Clear today's checks").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             AuditDay(state.value, actions = workoutActions().copy(onCloseAllSets = {
@@ -339,7 +338,8 @@ class AuditSheetsShotsTest : UiAuditTest() {
         val state = mutableStateOf(workoutLiftSheetFixture().copy(
             openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)))
         rule.auditShot("sheets/33-workout-discard-confirm", beforeCapture = {
-            rule.onNodeWithText("Discard workout").performScrollTo().performClick()
+            rule.onNodeWithContentDescription("More").performClick()
+            rule.onNodeWithText("Discard workout").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             AuditDay(state.value, actions = workoutActions().copy(onCloseAllSets = {
@@ -353,7 +353,8 @@ class AuditSheetsShotsTest : UiAuditTest() {
         val state = mutableStateOf(workoutSetCardioRecoveryFixture().copy(
             openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0, 0)))
         rule.auditShot("sheets/34-workout-end-cardio-confirm", beforeCapture = {
-            rule.onNodeWithText("End cardio").performScrollTo().performClick()
+            rule.onNodeWithContentDescription("More").performClick()
+            rule.onNodeWithText("End cardio").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             AuditDay(state.value, actions = workoutActions().copy(onCloseAllSets = {

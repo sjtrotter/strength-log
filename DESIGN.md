@@ -129,6 +129,17 @@ Guidance by name: Material Design 3 (m3.material.io) "Color roles", "Typography"
 "States", "Motion", "Layout" and "Dynamic color"; Android Developers "Material Design 3 in
 Compose", "Accessibility in Compose" and "Adaptive layouts".
 
+Round 1 sheet decisions (#454) supersede the compact sheet exceptions in the
+August KEEP inventory. Workout sheets use `AppModalBottomSheet` with a pinned
+header, scrolling body and optional footer; commits are filled M3 buttons at least
+56 dp tall above system and keyboard insets. Numeric entry uses labeled M3
+`OutlinedTextField` values in `DisplayXl`, at least 80 dp tall, with 48 dp minus/plus
+buttons that move below the field at narrow widths or large font scales. Durations
+use m:ss and 30-second steps. Lift and day utilities live in header overflow menus.
+Edit day and picker results are `ListItem` rows; equipment filters are `FilterChip`s.
+The compact `SheetButton` is retired. The capsule `Stepper` remains only outside
+these workout sheets until the other caller migrations.
+
 ### Watch
 
 Follow the Wear OS design guidelines (developer.android.com/design/ui/wear) and Material for

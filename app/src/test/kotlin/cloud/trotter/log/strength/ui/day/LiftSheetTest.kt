@@ -89,7 +89,8 @@ class LiftSheetTest {
         rule.onNodeWithText("Now").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("lift-check-${Slot.MAIN}-1").performScrollTo().performClick()
         rule.onNodeWithTag("lift-set-3").performScrollTo().performClick()
-        rule.onNodeWithText("Swap exercise").performScrollTo().performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap exercise").performClick()
         rule.runOnIdle {
             assertEquals(listOf(1L, 1, true, Slot.MAIN), tick)
             assertEquals(1L to 3, edited)
@@ -111,7 +112,8 @@ class LiftSheetTest {
         rule.onNodeWithText("Superset with DB Bench Press.").assertIsDisplayed()
         rule.onNodeWithText("80 × 10", substring = true).assertDoesNotExist()
         rule.onNodeWithTag("lift-check-${Slot.SS}-1").performClick()
-        rule.onNodeWithText("Swap exercise").performScrollTo().performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap exercise").performClick()
         rule.runOnIdle {
             assertEquals(listOf(1L, 1, true, Slot.SS), tick)
             assertEquals(0 to Slot.SS, swapped)
@@ -158,7 +160,7 @@ class LiftSheetTest {
                     onWorkoutSwapHalf = { _, _, _ -> error("Workout swap") },
                 ))
         } }
-        rule.onNodeWithText("Swap — Seated Cable Row").assertIsDisplayed()
+        rule.onNodeWithText("Swap Seated Cable Row").assertIsDisplayed()
         rule.onNodeWithText("Barbell Row").performClick()
         rule.onNodeWithText("The plan").performClick()
         rule.onNodeWithText("Swap").performClick()
@@ -250,7 +252,8 @@ class LiftSheetTest {
             ), true, null, {}, {}, { dismissals++ }, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").performScrollTo().performClick()
-        rule.onNodeWithText("Skip for this workout").performScrollTo().performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Skip for this workout").performClick()
         rule.runOnIdle {
             assertEquals(1L to Slot.MAIN, skipped)
             assertEquals(1L to Slot.MAIN, setSkipped)
@@ -291,7 +294,8 @@ class LiftSheetTest {
                 true, null, {}, {}, {}, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").assertDoesNotExist()
-        rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Skip for this workout").assertIsDisplayed()
     }
 
     @Test fun lastPlainLiftHasNoSkipWorkoutRowButKeepsSkipSet() {
@@ -300,7 +304,8 @@ class LiftSheetTest {
             WorkoutSetHost(base.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
         } }
         rule.onNodeWithText("Skip this set").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Note").performScrollTo()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Note").assertIsDisplayed()
         rule.onNodeWithText("Skip for this workout").assertDoesNotExist()
     }
 
@@ -310,8 +315,11 @@ class LiftSheetTest {
         rule.setContent { AppTheme {
             WorkoutSetHost(base.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0, slot = half)))
         } }
-        rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Skip for this workout").assertIsDisplayed()
+        rule.onNodeWithText("Skip for this workout").performClick()
         rule.runOnIdle { half = Slot.SS }
-        rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Skip for this workout").assertIsDisplayed()
     }
 }

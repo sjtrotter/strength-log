@@ -11,9 +11,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -23,7 +20,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSet
@@ -31,6 +27,7 @@ import cloud.trotter.log.strength.ui.day.receipt.ValueLine
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.cardioReceiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
+import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -238,7 +235,7 @@ class SessionLifecycleScreenTest {
         }
         composeTestRule.onNodeWithText("Add a note").performClick()
         composeTestRule.onNodeWithText("Note").performTextReplacement("Felt steady")
-        composeTestRule.onNode(hasText("Done") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.onNodeWithText("Save note").performClick()
         assertEquals("Felt steady", savedNote)
         composeTestRule.onNodeWithText("Note").assertDoesNotExist()
     }

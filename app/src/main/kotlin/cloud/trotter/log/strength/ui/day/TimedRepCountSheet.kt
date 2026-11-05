@@ -3,10 +3,6 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 
@@ -42,17 +39,32 @@ internal fun TimedRepCountSheet(
     AppModalBottomSheet(
         onDismissRequest = actions.onCloseSetEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(stringResource(R.string.timed_rep_time_up), style = MaterialTheme.typography.titleLarge)
-            Text(
-                stringResource(R.string.timed_rep_set_identity, card.title, event.setIndex + 1),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        footer = {
+            val reps = pluralStringResource(R.plurals.timed_rep_count, count ?: 0, count ?: 0)
+            val log = if (count == null) {
+                stringResource(R.string.timed_rep_log_empty)
+            } else if (card.isSuperset) {
+                stringResource(R.string.day_log_exercise_set, card.title, reps)
+            } else stringResource(R.string.day_log_set, reps)
+            SheetCommitButton(
+                label = log,
+                onClick = actions.onLogTimedRepCount,
+                enabled = event.count != null,
+                modifier = Modifier.semantics { if (card.isSuperset) contentDescription = log },
+                colors = ButtonDefaults.buttonColors(containerColor = dayAccent(dayIndex), contentColor = onDayAccent(dayIndex)),
             )
+        },
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.timed_rep_time_up), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.timed_rep_set_identity, card.title, event.setIndex + 1),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        body = {
             NumericSetField(
                 identity = "timed-reps:${event.programExerciseId}:${event.setIndex}:${event.wallStart}",
                 value = (count ?: 0).toDouble(),
@@ -73,23 +85,6 @@ internal fun TimedRepCountSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val reps = pluralStringResource(R.plurals.timed_rep_count, count ?: 0, count ?: 0)
-            val log = if (count == null) {
-                stringResource(R.string.timed_rep_log_empty)
-            } else if (card.isSuperset) {
-                stringResource(R.string.day_log_exercise_set, card.title, reps)
-            } else stringResource(R.string.day_log_set, reps)
-            Button(
-                onClick = actions.onLogTimedRepCount,
-                enabled = event.count != null,
-                modifier = Modifier.fillMaxWidth().semantics { if (card.isSuperset) contentDescription = log },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = dayAccent(dayIndex),
-                    contentColor = onDayAccent(dayIndex),
-                ),
-            ) {
-                Text(log)
-            }
-        }
-    }
+        },
+    )
 }

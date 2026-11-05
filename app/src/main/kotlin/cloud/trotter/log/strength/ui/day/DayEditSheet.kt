@@ -1,20 +1,15 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -22,27 +17,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.ListItem
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,39 +56,37 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
-import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.AppSheetLayout
 import cloud.trotter.log.strength.ui.components.DialogAction
-import cloud.trotter.log.strength.ui.components.SelectionCard
-import cloud.trotter.log.strength.ui.components.SelectionMode
-import cloud.trotter.log.strength.ui.components.disabledAlpha
-import cloud.trotter.log.strength.ui.components.pressable
-import cloud.trotter.log.strength.ui.components.pressableToggleable
+import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.theme.Border
-import cloud.trotter.log.strength.ui.theme.CardTitle
-import cloud.trotter.log.strength.ui.theme.CardTitleSmall
-import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextPrimary
@@ -93,7 +94,7 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
 import kotlin.math.roundToInt
 
 /**
- * The day-edit sheet (spec §8.3): a [ModalBottomSheet] living inside the day
+ * The day-edit sheet (spec §8.3): a [AppModalBottomSheet] living inside the day
  * feature and sharing [DayViewModel] (brief D1) — it is not a nav destination.
  * Internal navigation between the slot list, the substitution/add picker and
  * the pattern picker is plain Compose state; only the page identity is
@@ -223,7 +224,7 @@ fun DayEditSheet(
                     patterns
                 }
                 PatternPickerScreen(
-                    title = stringResource(R.string.day_edit_superset_pattern_title),
+                    title = stringResource(R.string.sheet_superset_pattern_title),
                     patterns = ordered,
                     onPick = { pattern -> ssPatternName = pattern.name },
                     onBack = onBack,
@@ -233,7 +234,7 @@ fun DayEditSheet(
                 val pattern = MovementPattern.valueOf(ssPatternName!!)
                 ExercisePickerScreen(
                     key = "ss-${ssSlot.programExerciseId}-$ssPatternName",
-                    title = stringResource(R.string.day_edit_superset_exercise_title, ssSlot.title),
+                    title = stringResource(R.string.sheet_superset_exercise_title, ssSlot.title),
                     pattern = pattern,
                     candidates = state.catalog.byPattern(pattern)
                         .filter { it.id != ssSlot.exerciseId && it.id != ssSlot.partnerExerciseId },
@@ -249,7 +250,7 @@ fun DayEditSheet(
                 )
             }
             pickingPattern -> PatternPickerScreen(
-                title = stringResource(R.string.day_edit_add_pattern_title),
+                title = stringResource(R.string.sheet_add_pattern_title),
                 patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
                 onPick = { pattern -> addPatternName = pattern.name; pickingPattern = false },
                 onBack = onBack,
@@ -258,7 +259,7 @@ fun DayEditSheet(
                 val pattern = MovementPattern.valueOf(addPatternName!!)
                 ExercisePickerScreen(
                     key = "add-${pattern.name}",
-                    title = stringResource(R.string.day_edit_add_exercise_title, patternLabel(pattern)),
+                    title = stringResource(R.string.sheet_add_exercise_title, patternLabel(pattern)),
                     pattern = pattern,
                     candidates = state.catalog.byPattern(pattern),
                     defaultEquipment = state.defaultEquipmentFilter,
@@ -288,8 +289,9 @@ fun DayEditSheet(
             )
             else -> DaySlotList(
                 state = state,
-                accent = accent,
-                onEditClick = { slotId -> optionsSlotId = slotId },
+                onEditClick = actions.onOpenPrescription,
+                onOptionsClick = { slotId -> optionsSlotId = slotId },
+                onSwapClick = { slotId -> swapHalf = Slot.MAIN; swapSlotId = slotId },
                 onRemoveClick = actions.onRemove,
                 onAddClick = { pickingPattern = true },
                 onResetClick = { confirmingReset = true },
@@ -312,73 +314,143 @@ fun DayEditSheet(
 @Composable
 private fun DaySlotList(
     state: DayEditUiState,
-    accent: Color,
     onEditClick: (Long) -> Unit,
+    onOptionsClick: (Long) -> Unit,
+    onSwapClick: (Long) -> Unit,
     onRemoveClick: (Int) -> Unit,
     onAddClick: () -> Unit,
     onResetClick: () -> Unit,
     onOpenCardio: () -> Unit,
     onRemoveCardio: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-        Text(stringResource(R.string.day_edit_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.size(12.dp))
-        LazyColumn(
-            modifier = Modifier.heightIn(max = 420.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.day_edit_title), style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f))
+            if (state.canResetToTemplate) Box {
+                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
+                DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_reset_button)) },
+                        onClick = { menuOpen = false; onResetClick() })
+                }
+            }
+        }
+        LazyColumn(Modifier.weight(1f, fill = false), contentPadding = PaddingValues(bottom = 16.dp)) {
             items(state.slots, key = { it.programExerciseId }) { slot ->
                 DaySlotRow(
                     slot = slot,
-                    canRemove = state.canRemove,
-                    accent = accent,
+                    summary = daySlotSummary(slot, state),
+                    canRemove = DayEditRules.canRemove(state.slots.size, state.cardioBlock != null),
                     onEditClick = { onEditClick(slot.programExerciseId) },
+                    onOptionsClick = { onOptionsClick(slot.programExerciseId) },
+                    onSwapClick = { onSwapClick(slot.programExerciseId) },
                     onRemoveClick = { onRemoveClick(slot.position) },
                 )
             }
-        }
-        Spacer(Modifier.size(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SheetButton(stringResource(R.string.day_edit_add_exercise_button), onClick = onAddClick, modifier = Modifier.weight(1f))
-        }
-        TextButton(onClick = onOpenCardio) {
-            Text(stringResource(if (state.cardioBlock == null) R.string.day_edit_add_cardio else R.string.day_edit_edit_cardio))
-        }
-        if (state.cardioBlock != null) {
-            TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty()) {
-                Text(stringResource(R.string.day_edit_remove_cardio))
+            item { AddExerciseRow(stringResource(R.string.sheet_add_exercise), onAddClick) }
+            item {
+                if (state.cardioBlock == null) AddExerciseRow(stringResource(R.string.day_edit_add_cardio), onOpenCardio)
+                else ListItem(headlineContent = { Text(stringResource(R.string.day_edit_edit_cardio)) },
+                    modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onOpenCardio))
             }
-        }
-        if (state.canResetToTemplate) {
-            Spacer(Modifier.size(8.dp))
-            SheetButton(stringResource(R.string.day_edit_reset_button), onClick = onResetClick, outlined = true, textColor = TextSecondary)
+            if (state.cardioBlock != null) item {
+                TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty(), modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(stringResource(R.string.day_edit_remove_cardio))
+                }
+            }
         }
     }
 }
 
 @Composable
+private fun AddExerciseRow(label: String, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(label, color = MaterialTheme.colorScheme.primary) },
+        leadingContent = { Icon(Icons.Filled.Add, null, tint = MaterialTheme.colorScheme.primary) },
+        modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onClick),
+    )
+}
+
+@Composable
+private fun daySlotSummary(slot: DayEditSlotState, state: DayEditUiState): String {
+    if (slot.isSuperset) return stringResource(R.string.sheet_superset_with, slot.partnerTitle.orEmpty())
+    if (slot.targetSets == 0) return stringResource(R.string.sheet_no_sets)
+    val entry = state.catalog.find(slot.exerciseId)
+    val exercise = ProgramExercise(slot.exerciseId, structure = slot.structure,
+        targetSets = slot.targetSets, prescription = slot.prescription)
+    // Use the workout's seed policy; the prescription editor's defaults are only input drafts.
+    val sets = SlotSeeds.main(exercise, entry, state.config)
+        ?: return stringResource(when (slot.structure) {
+            SetStructure.STRAIGHT -> R.string.day_edit_structure_straight
+            SetStructure.RAMP_TOP -> R.string.day_edit_structure_ramp_top
+            SetStructure.RAMP_TOP_BACKOFF -> R.string.day_edit_structure_ramp_top_backoff
+        })
+    val first = sets.firstOrNull() ?: return stringResource(R.string.sheet_no_sets)
+    val top = sets.firstOrNull { it.kind == SetKind.TOP }
+    if (top != null && sets.any { it.kind == SetKind.RAMP }) {
+        val ramp = stringResource(R.string.sheet_ramp_prescription,
+            WeightStepper.format(state.unit.fromLb(top.weightLb)), state.unit.name.lowercase())
+        val backoffs = sets.count { it.kind == SetKind.BACKOFF }
+        return if (backoffs == 0) ramp else pluralStringResource(R.plurals.sheet_ramp_backoffs, backoffs, ramp, backoffs)
+    }
+    val target = slot.prescription?.target ?: when (entry?.tracking) {
+        TrackingType.WEIGHTED -> PrescribedTarget.LoadReps(first.weightLb, first.reps)
+        TrackingType.TIMED -> PrescribedTarget.Hold(first.seconds, first.weightLb)
+        TrackingType.REPS, null -> PrescribedTarget.Reps(first.reps)
+    }
+    val value = when (target) {
+        is PrescribedTarget.LoadReps -> stringResource(R.string.sheet_load_prescription,
+            target.reps, WeightStepper.format(state.unit.fromLb(target.lb)), state.unit.name.lowercase())
+        is PrescribedTarget.Reps -> target.reps.toString()
+        is PrescribedTarget.Hold -> if (target.addedLb > 0.0) stringResource(R.string.sheet_loaded_hold_prescription,
+            target.seconds, WeightStepper.format(state.unit.fromLb(target.addedLb)), state.unit.name.lowercase())
+            else stringResource(R.string.sheet_hold_prescription, target.seconds)
+        is PrescribedTarget.RepsInTime -> target.repAim?.let { aim ->
+            stringResource(R.string.sheet_timed_prescription, aim, formatCardioTime(target.seconds))
+        } ?: formatCardioTime(target.seconds)
+    }
+    return stringResource(R.string.sheet_sets_prescription, sets.size, value)
+}
+
+@Composable
 private fun DaySlotRow(
     slot: DayEditSlotState,
+    summary: String,
     canRemove: Boolean,
-    accent: Color,
     onEditClick: () -> Unit,
+    onOptionsClick: () -> Unit,
+    onSwapClick: () -> Unit,
     onRemoveClick: () -> Unit,
 ) {
-    AppCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(slot.title, color = TextPrimary, style = CardTitleSmall)
-                Text(
-                    if (slot.isSuperset) stringResource(R.string.day_edit_superset_with_label, slot.partnerTitle ?: "") else slot.pattern?.let { patternLabel(it) } ?: stringResource(R.string.day_edit_unknown_exercise),
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodySmall,
-                )
+    var expanded by remember(slot.programExerciseId) { mutableStateOf(false) }
+    ListItem(
+        headlineContent = { Text(slot.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        supportingContent = { Text(summary) },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_lift_menu, slot.title))
+                }
+                DropdownMenu(expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.day_swap_apply)) },
+                        enabled = slot.pattern != null, onClick = { expanded = false; onSwapClick() })
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(stringResource(R.string.day_edit_remove_button))
+                                if (!canRemove) Text(stringResource(R.string.sheet_keep_one_lift), style = MaterialTheme.typography.bodySmall)
+                            }
+                        },
+                        enabled = canRemove, onClick = { expanded = false; onRemoveClick() },
+                    )
+                    DropdownMenuItem(text = { Text(stringResource(R.string.sheet_lift_options)) },
+                        onClick = { expanded = false; onOptionsClick() })
+                }
             }
-            SheetButton(stringResource(R.string.day_edit_edit_button), onClick = onEditClick, compact = true)
-            Spacer(Modifier.size(8.dp))
-            SheetButton(stringResource(R.string.day_edit_remove_button), onClick = onRemoveClick, enabled = canRemove, compact = true, textColor = Error)
-        }
-    }
+        },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClick = onEditClick),
+    )
 }
 
 // --- page: per-slot options ----------------------------------------------
@@ -416,7 +488,7 @@ private fun SlotOptionsScreen(
     val title = slot.partnerTitle?.let { stringResource(R.string.day_edit_slot_pair_title, slot.title, it) } ?: slot.title
     Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(title = title, onBack = onBack)
-        Spacer(Modifier.size(12.dp))
+        Spacer(Modifier.size(24.dp))
         Text(stringResource(R.string.day_edit_next_time), style = MaterialTheme.typography.titleSmall)
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             listOf(false, true).forEachIndexed { index, keep ->
@@ -434,7 +506,7 @@ private fun SlotOptionsScreen(
             }
         }
         if (slot.weightedTarget) {
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(24.dp))
             Text(stringResource(R.string.day_edit_set_structure), style = MaterialTheme.typography.titleSmall)
             Column(Modifier.selectableGroup()) {
                 listOf(SetStructure.STRAIGHT, SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF).forEach { structure ->
@@ -461,33 +533,15 @@ private fun SlotOptionsScreen(
                 }
             }
         }
-        Spacer(Modifier.size(12.dp))
-        SheetButton(
-            stringResource(R.string.day_edit_swap_exercise_button),
-            onClick = onSwapClick,
-            enabled = slot.pattern != null,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.size(8.dp))
-        SheetButton(stringResource(R.string.day_edit_prescription), onClick = onPrescriptionClick, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.size(8.dp))
-        SheetButton(stringResource(R.string.day_edit_move_up), onClick = { onMove(true) }, enabled = slot.canMoveUp, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.size(8.dp))
-        SheetButton(stringResource(R.string.day_edit_move_down), onClick = { onMove(false) }, enabled = slot.canMoveDown, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.size(8.dp))
-        SheetButton(
-            stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button),
-            onClick = onSupersetClick,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (slot.partnerExerciseId != null) {
-            Spacer(Modifier.size(8.dp))
-            SheetButton(
-                stringResource(R.string.day_edit_remove_superset_button),
-                onClick = onRemoveSupersetClick,
-                textColor = Error,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        TextButton(onClick = onSwapClick, enabled = slot.pattern != null) { Text(stringResource(R.string.day_edit_swap_exercise_button)) }
+        TextButton(onClick = onPrescriptionClick) { Text(stringResource(R.string.day_edit_prescription)) }
+        TextButton(onClick = { onMove(true) }, enabled = slot.canMoveUp) { Text(stringResource(R.string.day_edit_move_up)) }
+        TextButton(onClick = { onMove(false) }, enabled = slot.canMoveDown) { Text(stringResource(R.string.day_edit_move_down)) }
+        TextButton(onClick = onSupersetClick) {
+            Text(stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button))
+        }
+        if (slot.partnerExerciseId != null) TextButton(onClick = onRemoveSupersetClick) {
+            Text(stringResource(R.string.day_edit_remove_superset_button), color = MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -502,23 +556,28 @@ internal fun PrescriptionPage(
     onBack: () -> Unit,
     structure: SetStructure = SetStructure.STRAIGHT,
 ) {
-    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-        PickerHeader(stringResource(R.string.day_edit_prescription), onBack)
-        Spacer(Modifier.size(12.dp))
-        val kinds = PrescriptionKind.entries
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            kinds.forEachIndexed { index, kind ->
-                SegmentedButton(
-                    selected = draft.kind == kind,
-                    onClick = { onChange(draft.copy(kind = kind)) },
-                    shape = SegmentedButtonDefaults.itemShape(index, kinds.size),
-                    label = { Text(stringResource(when (kind) {
-                        PrescriptionKind.LOAD_REPS -> R.string.prescription_load_reps
-                        PrescriptionKind.REPS -> R.string.prescription_reps
-                        PrescriptionKind.HOLD -> R.string.prescription_hold
-                        PrescriptionKind.REPS_IN_TIME -> R.string.prescription_reps_in_time
-                    })) },
-                )
+    AppSheetLayout(
+        title = { PickerHeader(stringResource(R.string.day_edit_prescription), onBack) },
+        footer = {
+            SheetCommitButton(stringResource(R.string.plans_save), onSave,
+                cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
+        },
+    ) {
+        var trackingExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = trackingExpanded, onExpandedChange = { trackingExpanded = it }) {
+            OutlinedTextField(
+                value = prescriptionKindLabel(draft.kind), onValueChange = {}, readOnly = true,
+                label = { Text(stringResource(R.string.sheet_tracking)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(trackingExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
+            )
+            ExposedDropdownMenu(expanded = trackingExpanded, onDismissRequest = { trackingExpanded = false }) {
+                PrescriptionKind.entries.forEach { kind ->
+                    DropdownMenuItem(text = { Text(prescriptionKindLabel(kind)) }, onClick = {
+                        trackingExpanded = false
+                        onChange(draft.copy(kind = kind))
+                    })
+                }
             }
         }
         if (structure == SetStructure.STRAIGHT) {
@@ -528,26 +587,17 @@ internal fun PrescriptionPage(
             PrescriptionNumber(stringResource(R.string.prescription_reps), draft.reps, 1, 999) { onChange(draft.copy(reps = it)) }
         }
         if (draft.kind == PrescriptionKind.HOLD || draft.kind == PrescriptionKind.REPS_IN_TIME) {
-            PrescriptionNumber(stringResource(R.string.prescription_seconds), draft.seconds, 5, 3600, 5) { onChange(draft.copy(seconds = it)) }
+            PrescriptionNumber(stringResource(R.string.sheet_duration), draft.seconds, 5, 3600, 30, duration = true) { onChange(draft.copy(seconds = it)) }
         }
         if (draft.kind == PrescriptionKind.LOAD_REPS || draft.kind == PrescriptionKind.HOLD) {
-            val label = stringResource(R.string.prescription_load, unit.name.lowercase())
-            ListItem(
-                headlineContent = { Text(label) },
-                trailingContent = {
-                    Stepper(
-                        value = unit.fromLb(draft.loadLb),
-                        onValueChange = { onChange(draft.copy(loadLb = unit.toLb(it).coerceIn(0.0, 2000.0))) },
-                        step = { WeightStepper.increment(it, unit) },
-                        round = { if (it <= 0.0) 0.0 else WeightStepper.round(it, unit) },
-                        format = WeightStepper::format,
-                        minValue = 0.0,
-                        maxValue = unit.fromLb(2000.0),
-                        inputLabel = label,
-                        inputUnit = unit.name.lowercase(),
-                        decimalInput = true,
-                    )
-                },
+            val label = stringResource(R.string.sheet_weight, unit.name.lowercase())
+            NumericSetField(
+                identity = "prescription:${draft.slotId}:weight", value = unit.fromLb(draft.loadLb),
+                label = label, field = stringResource(R.string.set_edit_weight_field), partnerName = null,
+                modifier = Modifier.fillMaxWidth(), minimum = 0.0, maximum = unit.fromLb(2000.0), decimal = true,
+                step = { WeightStepper.increment(it, unit) },
+                round = { if (it <= 0.0) 0.0 else WeightStepper.round(it, unit) },
+                onChange = { onChange(draft.copy(loadLb = unit.toLb(it).coerceIn(0.0, 2000.0))) },
             )
         }
         if (draft.kind == PrescriptionKind.REPS_IN_TIME) {
@@ -584,27 +634,26 @@ internal fun PrescriptionPage(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.size(12.dp))
-        SheetButton(stringResource(R.string.plans_save), onClick = onSave, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
-private fun PrescriptionNumber(label: String, value: Int, min: Int, max: Int, increment: Int = 1, onChange: (Int) -> Unit) {
-    ListItem(
-        headlineContent = { Text(label) },
-        trailingContent = {
-            Stepper(
-                value = value.toDouble(),
-                onValueChange = { onChange(it.toInt()) },
-                step = { increment.toDouble() },
-                round = { (it / increment).roundToInt().toDouble() * increment },
-                format = { it.toInt().toString() },
-                minValue = min.toDouble(),
-                maxValue = max.toDouble(),
-                inputLabel = label,
-            )
-        },
+private fun prescriptionKindLabel(kind: PrescriptionKind): String = stringResource(when (kind) {
+    PrescriptionKind.LOAD_REPS -> R.string.sheet_weight_reps
+    PrescriptionKind.REPS -> R.string.prescription_reps
+    PrescriptionKind.HOLD -> R.string.sheet_hold_time
+    PrescriptionKind.REPS_IN_TIME -> R.string.prescription_reps_in_time
+})
+
+@Composable
+private fun PrescriptionNumber(label: String, value: Int, min: Int, max: Int, increment: Int = 1,
+    duration: Boolean = false, onChange: (Int) -> Unit) {
+    NumericSetField(
+        identity = "prescription:$label", value = value.toDouble(), label = label, field = label,
+        partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = min.toDouble(), maximum = max.toDouble(),
+        step = { increment.toDouble() }, duration = duration,
+        round = { if (duration) it else (it / increment).roundToInt().toDouble() * increment },
+        onChange = { onChange(it.toInt()) },
     )
 }
 
@@ -617,14 +666,19 @@ internal fun CardioBlockPage(
     onBack: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
-        PickerHeader(stringResource(R.string.day_edit_edit_cardio), onBack)
+    AppSheetLayout(
+        title = { PickerHeader(stringResource(R.string.day_edit_edit_cardio), onBack) },
+        footer = {
+            SheetCommitButton(stringResource(R.string.plans_save), onSave,
+                cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
+        },
+    ) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             OutlinedTextField(
                 value = cardioActivityName(draft.activity), onValueChange = {}, readOnly = true,
                 label = { Text(stringResource(R.string.cardio_edit_activity)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 CardioActivity.entries.forEach { activity ->
@@ -669,7 +723,6 @@ internal fun CardioBlockPage(
             }
         }
         TextButton(onClick = { onChange(draft.addSet()) }) { Text(stringResource(R.string.cardio_add_set)) }
-        TextButton(onClick = onSave) { Text(stringResource(R.string.plans_save)) }
     }
 }
 
@@ -681,8 +734,13 @@ internal fun CardioSetPage(
     onSave: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
-        PickerHeader(stringResource(R.string.cardio_edit_set), onBack)
+    AppSheetLayout(
+        title = { PickerHeader(stringResource(R.string.cardio_edit_set), onBack) },
+        footer = {
+            SheetCommitButton(stringResource(R.string.plans_save), onSave,
+                cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
+        },
+    ) {
         Text(stringResource(R.string.cardio_edit_role))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             CardioRole.entries.forEachIndexed { index, role ->
@@ -707,6 +765,7 @@ internal fun CardioSetPage(
         val aimLabel = stringResource(R.string.cardio_edit_aim)
         ListItem(
             headlineContent = { Text(aimLabel) },
+            supportingContent = { Text(stringResource(if (draft.endIsTime) R.string.sheet_aim_distance else R.string.sheet_aim_time)) },
             trailingContent = {
                 Switch(checked = draft.hasAim, onCheckedChange = { onChange(draft.copy(hasAim = it)) },
                     modifier = Modifier.semantics { contentDescription = aimLabel })
@@ -716,32 +775,27 @@ internal fun CardioSetPage(
         val hardLabel = stringResource(R.string.cardio_edit_hard)
         ListItem(
             headlineContent = { Text(hardLabel) },
+            supportingContent = { Text(stringResource(R.string.sheet_hard_description)) },
             trailingContent = {
                 Switch(checked = draft.hard, onCheckedChange = { onChange(draft.copy(hard = it)) },
                     modifier = Modifier.semantics { contentDescription = hardLabel })
             },
         )
-        TextButton(onClick = onSave) { Text(stringResource(R.string.plans_save)) }
     }
 }
 
 @Composable
 private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, onChange: (CardioSetDraft) -> Unit) {
-    val label = stringResource(if (isTime) R.string.cardio_edit_seconds else R.string.cardio_distance_label)
-    val increment = if (isTime) 5 else 10
-    ListItem(
-        headlineContent = { Text(label) },
-        trailingContent = {
-            Stepper(
-                value = (if (isTime) draft.seconds else draft.metres).toDouble(),
-                onValueChange = { onChange(if (isTime) draft.copy(seconds = it.toInt()) else draft.copy(metres = it.toInt())) },
-                step = { increment.toDouble() },
-                round = { (it / increment).roundToInt().toDouble() * increment },
-                format = { it.toInt().toString() },
-                minValue = increment.toDouble(), maxValue = if (isTime) 86_400.0 else 200_000.0,
-                inputLabel = label,
-            )
-        },
+    val label = stringResource(if (isTime) R.string.sheet_duration else R.string.cardio_distance_label)
+    val increment = if (isTime) 30 else 10
+    NumericSetField(
+        identity = "cardio:$isTime", value = (if (isTime) draft.seconds else draft.metres).toDouble(),
+        label = label, field = stringResource(if (isTime) R.string.sheet_duration else R.string.sheet_distance_field),
+        partnerName = null, modifier = Modifier.fillMaxWidth(),
+        minimum = if (isTime) 5.0 else 10.0, maximum = if (isTime) 86_400.0 else 200_000.0,
+        step = { increment.toDouble() }, duration = isTime,
+        round = { if (isTime) it else (it / increment).roundToInt().toDouble() * increment },
+        onChange = { onChange(if (isTime) draft.copy(seconds = it.toInt()) else draft.copy(metres = it.toInt())) },
     )
 }
 
@@ -776,12 +830,8 @@ private fun PatternPickerScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(patterns) { pattern ->
-                SelectionCard(
-                    title = patternLabel(pattern),
-                    selected = false,
-                    onClick = { onPick(pattern) },
-                    mode = SelectionMode.Action,
-                )
+                ListItem(headlineContent = { Text(patternLabel(pattern)) },
+                    modifier = Modifier.heightIn(min = 72.dp).clickable { onPick(pattern) })
             }
         }
     }
@@ -814,10 +864,12 @@ private fun SwapPickerPage(
     if (picked != null) {
         val resetPick = { pickedId = null }
         BackHandler(onBack = resetPick)
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            BackAction(onClick = resetPick)
-            Text(picked.name,
-                style = MaterialTheme.typography.titleLarge)
+        AppSheetLayout(
+            title = { PickerHeader(picked.name, resetPick) },
+            footer = { SheetCommitButton(stringResource(R.string.day_swap_apply),
+                onClick = { if (workoutOnly) onWorkoutPick(picked) else onPick(picked) }) },
+        ) {
+            Text(stringResource(R.string.sheet_swap_for), style = MaterialTheme.typography.bodyMedium)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf(true, false).forEachIndexed { index, workout ->
                     SegmentedButton(
@@ -827,17 +879,11 @@ private fun SwapPickerPage(
                     ) { Text(stringResource(if (workout) R.string.day_swap_this_workout else R.string.day_swap_the_plan)) }
                 }
             }
-            FilledTonalButton(
-                onClick = {
-                    if (workoutOnly) onWorkoutPick(picked) else onPick(picked)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.day_swap_apply)) }
         }
     } else {
         ExercisePickerScreen(
             key = "swap-${slot.programExerciseId}-$half",
-            title = stringResource(R.string.day_edit_swap_title, slot.title),
+            title = stringResource(R.string.sheet_swap_title, slot.title),
             pattern = pattern,
             candidates = state.swapCandidates(slot, half),
             defaultEquipment = state.defaultEquipmentFilter,
@@ -914,69 +960,52 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
         ExercisePicker.filter(candidates, query, equipmentFilter)
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+    Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PickerHeader(title = title, onBack = onBack)
-        Spacer(Modifier.size(10.dp))
-        SearchField(query = query, onQueryChange = { query = it })
+        SearchField(query = query, onQueryChange = { query = it }, accent = accent)
         if (allEquipment.isNotEmpty()) {
-            Spacer(Modifier.size(8.dp))
             EquipmentFilterRow(
-                options = allEquipment,
-                selected = equipmentFilter,
-                accent = accent,
+                options = allEquipment, selected = equipmentFilter,
                 onToggle = { equip ->
                     equipmentFilter = if (equip in equipmentFilter) equipmentFilter - equip else equipmentFilter + equip
                 },
             )
         }
-        Spacer(Modifier.size(10.dp))
-        if (results.isEmpty()) {
-            Text(stringResource(R.string.day_edit_no_matches), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-        } else {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 360.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(results, key = { it.id }) { entry ->
-                    SelectionCard(
-                        title = entry.name,
-                        subtitle = listOf(
-                            patternLabel(entry.pattern),
-                            entry.equipment.joinToString(", ") { equipmentLabel(it) },
-                        ).filter(String::isNotBlank).joinToString(stringResource(R.string.day_edit_metadata_separator)),
-                        selected = false,
-                        onClick = { onPick(entry) },
-                        mode = SelectionMode.Action,
-                    )
+        LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
+            if (results.isEmpty()) item {
+                Column(Modifier.padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.sheet_no_matching_exercises), style = MaterialTheme.typography.bodyMedium)
+                    if (!equipmentFilter.containsAll(allEquipment)) TextButton(onClick = { equipmentFilter = allEquipment.toSet() }) {
+                        Text(stringResource(R.string.sheet_clear_filters))
+                    }
                 }
             }
+            items(results, key = { it.id }) { entry ->
+                ListItem(
+                    headlineContent = { Text(entry.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = { Text(entry.equipment.joinToString(", ") { equipmentLabel(it) }) },
+                    modifier = Modifier.heightIn(min = 72.dp).clickable { onPick(entry) },
+                )
+            }
+            item { AddExerciseRow(stringResource(R.string.sheet_create_exercise)) { onCreateExercise(pattern) } }
         }
-        Spacer(Modifier.size(10.dp))
-        // Navigates to the customExercise route (D1) with this picker's pattern
-        // pre-filled; on save the route pops back and the picker re-shows with
-        // the new custom entry visible, ranked after the catalog per
-        // ExerciseCatalog.CUSTOM_SUBRANK.
-        SheetButton(stringResource(R.string.day_edit_create_exercise_button), onClick = { onCreateExercise(pattern) }, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
 private fun PickerHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        BackAction(
-            onClick = onBack,
-            visualSize = 32.dp,
-            outlined = false,
-            shape = MaterialTheme.shapes.small,
-            iconSize = 18.dp,
-        )
-        Spacer(Modifier.size(10.dp))
-        Text(title, color = TextPrimary, style = CardTitle)
+        IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_edit_back_action))
+        }
+        Spacer(Modifier.size(8.dp))
+        Text(title, color = TextPrimary, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+private fun SearchField(query: String, onQueryChange: (String) -> Unit, accent: Color) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -988,7 +1017,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = TextPrimary,
             unfocusedTextColor = TextPrimary,
-            cursorColor = TextPrimary,
+            cursorColor = accent,
             focusedBorderColor = MaterialTheme.colorScheme.outline,
             unfocusedBorderColor = Border,
             focusedContainerColor = Surface2,
@@ -1000,41 +1029,21 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-/**
- * Compact equipment filters. Material 3 FilterChip does not expose its
- * 16dp-per-side label padding, while this row's pinned geometry requires 12dp.
- */
 internal fun EquipmentFilterRow(
     options: List<Equipment>,
     selected: Set<Equipment>,
-    accent: Color,
     onToggle: (Equipment) -> Unit,
 ) {
-    // Material 3 exposes a height override, but not its 16 dp-per-side label
-    // padding; this row uses 12 dp and widening every pill would change its
-    // compact geometry.
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { equip ->
             val isOn = equip in selected
-            Box(
-                modifier = Modifier
-                    .minimumInteractiveComponentSize()
-                    .clip(RoundedCornerShape(50))
-                    .background(if (isOn) accent.copy(alpha = 0.18f) else Surface2, RoundedCornerShape(50))
-                    .border(1.dp, if (isOn) accent else Border, RoundedCornerShape(50))
-                    .pressableToggleable(
-                        value = isOn,
-                        role = Role.Checkbox,
-                        shape = RoundedCornerShape(50),
-                        onValueChange = { onToggle(equip) },
-                    )
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Text(equipmentLabel(equip), color = if (isOn) accent else TextSecondary, style = MaterialTheme.typography.labelSmall)
-            }
+            FilterChip(
+                selected = isOn, onClick = { onToggle(equip) },
+                label = { Text(equipmentLabel(equip)) },
+                leadingIcon = if (isOn) { { Icon(Icons.Filled.Check, null) } } else null,
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer),
+                modifier = Modifier.heightIn(min = 48.dp),
+            )
         }
     }
 }
@@ -1044,77 +1053,13 @@ private fun ResetToTemplateDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.day_edit_reset_confirm_title)) },
-        text = { Text(stringResource(R.string.day_edit_reset_confirm_body)) },
+        text = { Text(stringResource(R.string.sheet_reset_confirm_body)) },
         confirmButton = { DialogAction(stringResource(R.string.day_edit_reset_confirm_button), Error, onConfirm) },
         dismissButton = { DialogAction(stringResource(R.string.day_edit_cancel_button), TextSecondary, onDismiss) },
     )
 }
 
 // --- small pieces --------------------------------------------------------------
-
-/**
- * Sheet action. The compact slot-row branch stays bespoke because Material 3
- * Button has a 58dp internal minimum width that cannot be capped externally;
- * the regular branch delegates to M3 buttons.
- */
-@Composable
-private fun SheetButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    outlined: Boolean = false,
-    compact: Boolean = false,
-    textColor: Color = Done,
-) {
-    if (compact) {
-        // The slot-row Edit/Remove pair stays bespoke (audit §8's compact-row
-        // exception): an outer modifier cannot cap M3 Button's internal 58dp
-        // minimum width, so migrating would visibly widen every slot row.
-        Box(
-            modifier = modifier
-                .disabledAlpha(enabled)
-                .minimumInteractiveComponentSize()
-                .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(8.dp)) else Modifier)
-                .background(if (outlined) Color.Transparent else Surface2, RoundedCornerShape(8.dp))
-                .pressable(enabled = enabled, onClick = onClick, shape = RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text, color = textColor, style = MaterialTheme.typography.labelLarge)
-        }
-        return
-    }
-    val contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
-    if (outlined) {
-        OutlinedButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier.disabledAlpha(enabled),
-            shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, Border),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = textColor,
-                disabledContentColor = textColor,
-            ),
-            contentPadding = contentPadding,
-        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
-    } else {
-        FilledTonalButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier.disabledAlpha(enabled),
-            shape = MaterialTheme.shapes.small,
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = Surface2,
-                contentColor = textColor,
-                disabledContainerColor = Surface2,
-                disabledContentColor = textColor,
-            ),
-            contentPadding = contentPadding,
-        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
-    }
-}
 
 @Composable
 private fun patternLabel(pattern: MovementPattern): String = stringResource(when (pattern) {

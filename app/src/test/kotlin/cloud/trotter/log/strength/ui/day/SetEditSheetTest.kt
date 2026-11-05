@@ -1,8 +1,13 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -11,13 +16,15 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,9 +69,9 @@ class SetEditSheetTest {
             }), onDismiss = { dismissed++ })
         } }
         rule.onNodeWithText("25 lb a side on the bar. Only this set changes.").assertExists()
-        rule.onNodeWithText("Weight, lb").performTextReplacement("100")
+        rule.onNodeWithText("Weight (lb)").performTextReplacement("100")
         rule.runOnIdle { assertEquals(listOf(100.0), writes) }
-        rule.onNodeWithText("Done").performClick()
+        rule.onNodeWithText("Save set").performClick()
         assertEquals(1, dismissed)
         assertEquals(listOf(100.0), writes)
     }
@@ -88,7 +95,7 @@ class SetEditSheetTest {
                 )
             }
         }
-        val field = rule.onNodeWithText("Weight, lb")
+        val field = rule.onNodeWithText("Weight (lb)")
         field.performClick().performTextClearance()
         for (digit in listOf("1", "3", "5")) {
             field.performTextInput(digit)
@@ -96,7 +103,7 @@ class SetEditSheetTest {
         }
         field.assertTextContains("135")
         rule.runOnIdle { assertEquals(listOf(2.5, 12.5, 135.0), writes) }
-        rule.onNodeWithContentDescription("Weight, 5 more").performClick()
+        rule.onNodeWithContentDescription("Increase weight").performClick()
         field.assertTextContains("140")
         rule.runOnIdle { assertEquals(140.0, writes.last(), 0.0) }
     }
@@ -109,7 +116,7 @@ class SetEditSheetTest {
                 removed = Triple(id, index, paired)
             }), onDismiss = {})
         } }
-        rule.onNodeWithText("Weight, lb").assertDoesNotExist()
+        rule.onNodeWithText("Weight (lb)").assertDoesNotExist()
         rule.onNodeWithText("Reps").assertExists()
         rule.onNodeWithContentDescription("Set menu").performClick()
         rule.onNodeWithText("Remove set").performClick()
@@ -137,16 +144,50 @@ class SetEditSheetTest {
                 },
             ), onDismiss = {})
         } }
-        rule.onNodeWithContentDescription("Seconds, 5 more").performClick()
-        rule.onNodeWithContentDescription("Pull-up, Reps, one more").performClick()
-        assertEquals(listOf(Slot.MAIN to 50, Slot.SS to 7), changes)
+        rule.onNodeWithContentDescription("Increase duration").performClick()
+        rule.onNodeWithContentDescription("Increase pull-up, reps").performClick()
+        assertEquals(listOf(Slot.MAIN to 75, Slot.SS to 7), changes)
     }
 
     @Test fun timedFieldsOnlyOfferWeightWhenThePrescriptionCarriesIt() {
         val card = workoutDayFixture().exercises[1].copy(tracking = TrackingType.TIMED, timedShowsWeight = false)
         rule.setContent { AppTheme { SetEditSheet(card, card.rows[1].copy(seconds = 45), WeightUnit.LB, 3, workoutActions(), {}) } }
-        rule.onNodeWithText("Seconds").assertExists()
-        rule.onNodeWithText("Weight, lb").assertDoesNotExist()
+        rule.onNodeWithText("Duration").assertExists()
+        rule.onNodeWithText("Weight (lb)").assertDoesNotExist()
         rule.onNodeWithText("Reps").assertDoesNotExist()
     }
+    @Test fun blankWeightDraftStaysBlankWhenFocusLeavesAndDoesNotWriteZero() {
+        val writes = mutableListOf<Double>()
+        val card = workoutDayFixture().exercises[1]
+        rule.setContent { AppTheme {
+            SetEditSheet(card, card.rows[1], WeightUnit.LB, 0,
+                workoutActions().copy(onWeightChange = { _, _, _, value -> writes += value }), {})
+        } }
+        val field = rule.onNodeWithText("Weight (lb)")
+        field.performClick().performTextClearance()
+        rule.onNodeWithText("Reps").performClick()
+        assertEquals("", field.fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
+    }
+
+    @Test fun narrowNumericFieldPutsTheButtonsBelowAnEightyDpField() {
+        rule.setContent { AppTheme {
+            NumericSetField("narrow", 5.0, "Reps", "Reps", null, Modifier.width(260.dp),
+                minimum = 1.0, step = { 1.0 }, onChange = {})
+        } }
+        val field = rule.onNodeWithText("Reps").assertHeightIsAtLeast(80.dp).fetchSemanticsNode().boundsInRoot
+        val minus = rule.onNodeWithContentDescription("Decrease reps").assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        val plus = rule.onNodeWithContentDescription("Increase reps").assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        assertTrue(minus.top >= field.bottom)
+        assertTrue(plus.top >= field.bottom)
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontSupersetKeepsSaveVisibleOutsideTheScrollingFields() {
+        val card = workoutSetSupersetFixture().exercises.single()
+        rule.setContent { AppTheme { SetEditSheet(card, card.rows[1], WeightUnit.LB, 0, workoutActions(), {}) } }
+        rule.onNodeWithText("Save set").assertIsDisplayed().assertHeightIsAtLeast(56.dp)
+    }
+
 }

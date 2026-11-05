@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -80,6 +81,7 @@ internal fun SessionReceiptScreen(
     modifier: Modifier = Modifier,
 ) {
     var noteOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
+    val noteDrafts = rememberSaveableStateHolder()
     var played by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
     val reducedMotion = !ValueAnimator.areAnimatorsEnabled()
     val animate = remember(receipt.sessionId) { !played && !reducedMotion }
@@ -160,9 +162,16 @@ internal fun SessionReceiptScreen(
     }
     // A closed sheet consumes the result, including one that lands after it closed, so the next
     // sheet never opens on a stale Saved or Failed.
-    LaunchedEffect(noteOpen, noteSave) { if (!noteOpen && noteSave != null) onNoteSaveHandled() }
+    LaunchedEffect(noteOpen, noteSave) {
+        if (!noteOpen && noteSave != null) {
+            if (noteSave is NoteSave.Saved) noteDrafts.removeState(receipt.sessionId)
+            onNoteSaveHandled()
+        }
+    }
     if (noteOpen && !receipt.cardio) {
-        NoteSheet(initialText = receipt.note, onSave = onSetNote, save = noteSave, onDismiss = { noteOpen = false })
+        noteDrafts.SaveableStateProvider(receipt.sessionId) {
+            NoteSheet(initialText = receipt.note, onSave = onSetNote, save = noteSave, onDismiss = { noteOpen = false })
+        }
     }
 }
 

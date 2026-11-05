@@ -84,8 +84,8 @@ class KeepScreenOnAndRotationTest {
         restoration.setContent { AppTheme { DayScreen(state.value, actions, DayEditUiState(), workoutEditActions()) } }
         composeTestRule.onNodeWithContentDescription("Edit set 2").performClick()
         restoration.emulateSavedInstanceStateRestore()
-        composeTestRule.onNodeWithText("Weight, lb").assertExists()
-        composeTestRule.onNodeWithText("Done").assertExists()
+        composeTestRule.onNodeWithText("Weight (lb)").assertExists()
+        composeTestRule.onNodeWithText("Save set").assertExists()
     }
 
     private fun setDayContent(

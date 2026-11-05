@@ -1384,16 +1384,18 @@ A shorter enforcement sentence can be added beneath it:
 
 # Component summary — final KEEP inventory
 
+Round 1, #454: the compact `SheetButton` is deleted. Equipment filters now use M3
+`FilterChip`; both are retired from KEEP. No workout sheet calls the capsule
+`Stepper`. Its public API remains available to the other callers listed below.
+
 | Remaining bespoke component/family | M3 base used where faithful | KEEP reason (also stated in KDoc) |
 |---|---|---|
 | `pressable*` foundation leaves | Theme ripple configuration | M3 has no modifier-level component that preserves compound-control geometry plus the shared inset focus ring |
 | `SelectionCard` internals | `OutlinedCard` | Selection semantics, authored checkmark, and subtitle treatment remain custom inside the M3 container |
 | `SwitchToggle` / compact keep-screen-on switch | None | M3 `Switch` does not expose the authored 40×24 track geometry |
 | `CheckmarkToggle` | None | M3 `Checkbox` does not expose the 28 dp rounded shape, fills, glyph treatment, or completion pop |
-| `Stepper` | None | M3 has no compound capsule/value stepper with overlapping targets and long-press auto-repeat |
+| `Stepper` (outside workout sheets) | None | Legacy compound capsule/value control remains for Settings, You, wizard, History corrections and custom-exercise callers; workout sheets use a shared M3 `OutlinedTextField` with 48 dp icon buttons |
 | `SetRow`, including remove leaf | M3 text leaves | M3 has no equivalent for the width budget, exact-overlap map, TOP/cascade motion, or dashed superset structure; `IconButton` would widen the remove slot from 24 to 48 dp |
-| `EquipmentFilterRow` | None | M3 `FilterChip` does not expose the compact 12 dp label padding |
-| Compact `SheetButton` branch | M3 buttons for non-compact branch | M3 Button's 58 dp internal minimum width cannot fit the pinned slot-row geometry |
 | Compact header/calendar actions | M3 theme/state layer | M3 button/icon-button layout minima cannot preserve their 40 dp or 28 dp visual slots and pinned gaps |
 | Authored edge states, Day tab decoration, progress/dashed rules, cascade/receipt/journal visuals | M3 actions/containers where applicable | Their loading/reveal motion, suggested-day marks, semantic progress/superset rules, ceremonies, and charts have no M3 equivalent |
 | Static badges/override pills and disclosure regions | M3 `Surface`/`OutlinedCard` containers where applicable | Chip APIs would add false interaction semantics; whole-card actions would conflict with nested actions |

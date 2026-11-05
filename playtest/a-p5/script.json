@@ -1551,7 +1551,7 @@
     },
     {
       "tap": {
-        "text": "Road run"
+        "text": "Edit cardio"
       }
     },
     {
@@ -1563,45 +1563,133 @@
       }
     },
     {
-      "checkpoint": "road-run-set-fields-distance-duration-and-intensity"
+      "checkpoint": "road-run-set-fields-distance-duration-intensity"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Cancel"
       }
     },
     {
-      "checkpoint": "cardio-prescription-return-to-day-editor"
+      "checkpoint": "return-to-day-editor-without-saving-a-target-as-actual"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "c1-screen-after-closing-editor-check-active-run-controls"
+      "checkpoint": "check-screen-under-preview-editor"
     },
     {
-      "note": "Edit day previously opened the workout beneath its sheet. Read the visible C1 screen rather than assuming a second Start day C1 button exists."
+      "back": true
     },
     {
-      "checkpoint": "tuesday-easy-run-live-controls"
+      "checkpoint": "return-to-c1-preview-to-start-explicitly"
     },
     {
-      "advance": "2530s"
+      "tap": {
+        "text": "Start day C1"
+      }
     },
     {
-      "checkpoint": "tuesday-seven-km-forty-two-ten-elapsed-controls"
+      "checkpoint": "tuesday-actual-start-c1-workout-controls"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "edit-c1-after-actually-starting-session"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-editor-from-active-session"
+    },
+    {
+      "tap": {
+        "text": "Intervals 5 \u00d7 2:00"
+      }
+    },
+    {
+      "checkpoint": "interval-preset-editable-rounds-and-recovery"
+    },
+    {
+      "tap": {
+        "text": "Easy 25:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "available-cardio-activities-and-running-mode"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "easy-run-prescription-fields-from-active-session"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "checkpoint": "discard-preset-exploration-keep-easy-run"
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "remove-core-after-actual-session-start-check-result"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "standalone-run-hero-and-recording-controls"
     },
     {
       "recreate": true
     },
     {
-      "checkpoint": "run-timer-and-session-survive-recreation"
-    },
-    {
-      "note": "Actual Tuesday run was 7.00 km in 42:10 elapsed, RPE3. Quads noticeable for first kilometer then fine. Inspect observed logging controls next; do not claim distance or time saved until confirmed."
+      "checkpoint": "active-c1-survives-recreation-before-run"
     }
   ]
 }

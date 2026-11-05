@@ -142,7 +142,8 @@
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
+        "index": 0,
         "value": "press"
       }
     },
@@ -151,7 +152,8 @@
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
+        "index": 0,
         "value": "pulldown"
       }
     },
@@ -160,7 +162,8 @@
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
+        "index": 0,
         "value": "split"
       }
     },
@@ -169,7 +172,8 @@
     },
     {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
+        "index": 0,
         "value": "row"
       }
     },
@@ -177,40 +181,7 @@
       "checkpoint": "catalog-search-row"
     },
     {
-      "tap": {
-        "desc": "Close sheet"
-      }
-    },
-    {
       "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "text": "Full Body"
-      }
-    },
-    {
-      "checkpoint": "monday-history-detail-and-earlier-notes"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Resume day C"
-      }
     },
     {
       "tap": {
@@ -241,23 +212,11 @@
       "checkpoint": "reopen-dated-deadlift-note"
     },
     {
-      "tap": {
-        "desc": "Close sheet"
-      }
+      "back": true
     },
     {
       "tap": {
         "desc": "Day C lifts, 4 of 22 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
       }
     },
     {
@@ -267,17 +226,194 @@
     },
     {
       "tap": {
-        "text": "Swap exercise"
+        "text": "Edit day"
       }
     },
     {
+      "checkpoint": "wednesday-editor-before-actual-exercises"
+    },
+    {
+      "tap": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "wednesday-remove-unused-hack-squat"
+    },
+    {
+      "tap": {
+        "desc": "More options for Standing Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "wednesday-remove-unused-calf-raise"
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Crunch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "wednesday-remove-unused-cable-crunch"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "wednesday-cardio-editor"
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-options-for-rower"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "wednesday-after-removing-unperformed-extras"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 13 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-catalog-for-wednesday"
+    },
+    {
       "type": {
-        "text": "Search exercises",
+        "editable": true,
+        "index": 0,
         "value": "shoulder"
       }
     },
     {
-      "checkpoint": "shoulder-search-ready-to-select"
+      "checkpoint": "add-catalog-shoulder-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "press"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-press-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "pulldown"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-pulldown-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "split"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-split-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-row-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "overhead"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-overhead-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "seated"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-seated-results"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "shoulder"
+      }
+    },
+    {
+      "checkpoint": "add-catalog-back-to-shoulder"
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "checkpoint": "create-exercise-fields-if-shoulder-needs-own-entry"
+    },
+    {
+      "note": "I need seated dumbbell shoulder press, 30 lb EACH for 8 then 6, then 25 lb EACH for 8; lat pulldown 100 for three tens; split squat 20 each for two eights per leg; and 12 minutes rowing, 2220 meters, effort 6/10. Inspect the catalog results before deciding whether a custom entry is needed; do not save an incorrect movement or log generated targets."
     }
   ]
 }

@@ -90,6 +90,29 @@
     },
     {
       "checkpoint": "setup-question-six"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "pounds-and-novice"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-seven"
     }
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "seat": "a-p1",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "capture": "checkpoints",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    { "checkpoint": "first-open-before-gym" }
+  ]
+}

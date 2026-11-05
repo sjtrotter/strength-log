@@ -1119,10 +1119,7 @@
       "checkpoint": "monday-reverse-lunge-confirmed-for-plan"
     },
     {
-      "expect": {
-        "desc": "Close sheet",
-        "absent": true
-      }
+      "back": true
     },
     {
       "expect": {

@@ -1,45 +1,190 @@
 {
-  "seat": "f-p2",
-  "start": { "date": "2026-11-08", "time": "20:00", "zone": "America/Chicago" },
-  "steps": [
-    { "note": "Sunday night, setting up for tomorrow's squat day. Strength-leaning, that's me." },
-    { "tap": { "text": "Strength-leaning" } },
-    { "tap": { "text": "Next" } },
-    { "note": "4 days is already the default. Good." },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Upper / Lower" } },
-    { "tap": { "text": "Next" } },
-    { "note": "Squat/Bench/Deadlift/OHP is my four. Conventional deadlift, I don't own a trap bar." },
-    { "tap": { "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)" } },
-    { "scrollTo": { "text": "Conventional" } },
-    { "tap": { "text": "Conventional" } },
-    { "checkpoint": "main-lifts-chosen" },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Outdoor run" } },
-    { "tap": { "text": "Separate days" } },
-    { "checkpoint": "cardio-chosen" },
-    { "tap": { "text": "Next" } },
-    { "note": "Bodyweight 235 and age 40 are not me. Nothing here asks what I squat. Hm." },
-    { "tap": { "text": "LB" } },
-    { "type": { "text": "Bodyweight (lb)", "value": "190", "ime": "done" } },
-    { "type": { "text": "Age", "value": "34", "ime": "done" } },
-    { "tap": { "text": "Intermediate" } },
-    { "checkpoint": "about-you" },
-    { "tap": { "text": "Next" } },
-    { "tap": { "text": "Clear all" } },
-    { "tap": { "text": "Barbell" } },
-    { "tap": { "text": "Dumbbell" } },
-    { "tap": { "text": "Bodyweight" } },
-    { "tap": { "text": "Bench" } },
-    { "scrollTo": { "text": "Pullup Bar" } },
-    { "tap": { "text": "Rack" } },
-    { "tap": { "text": "Pullup Bar" } },
-    { "checkpoint": "equipment" },
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "rotation-top" },
-    { "scrollTo": { "text": "Missing a day never skips the next workout." } },
-    { "checkpoint": "rotation-bottom" },
-    { "tap": { "text": "Start" } },
-    { "checkpoint": "after-start" }
-  ]
+ "seat": "f-p2",
+ "start": {
+  "date": "2026-11-08",
+  "time": "20:00",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "note": "Sunday night, setting up for tomorrow's squat day. Strength-leaning, that's me."
+  },
+  {
+   "tap": {
+    "text": "Strength-leaning"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "note": "4 days is already the default. Good."
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Upper / Lower"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "note": "Squat/Bench/Deadlift/OHP is my four. Conventional deadlift, I don't own a trap bar."
+  },
+  {
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
+  },
+  {
+   "checkpoint": "main-lifts-chosen"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Outdoor run"
+   }
+  },
+  {
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "checkpoint": "cardio-chosen"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "note": "Bodyweight 235 and age 40 are not me. Nothing here asks what I squat. Hm."
+  },
+  {
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "34",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "about-you"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Clear all"
+   }
+  },
+  {
+   "tap": {
+    "text": "Barbell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Dumbbell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bodyweight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bench"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Machine",
+    "direction": "up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Rack"
+   }
+  },
+  {
+   "tap": {
+    "text": "Pullup Bar"
+   }
+  },
+  {
+   "checkpoint": "equipment"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "rotation-top"
+  },
+  {
+   "swipe": {
+    "text": "Day B",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Your rotation",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "rotation-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "after-start"
+  }
+ ]
 }

@@ -293,7 +293,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -365,7 +365,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -382,7 +382,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -519,7 +519,7 @@
     },
     {
       "expect": {
-        "text": "Log 60 kg × 5"
+        "text": "Log 60 kg \u00d7 5"
       }
     },
     {
@@ -621,7 +621,7 @@
     },
     {
       "expect": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -634,7 +634,7 @@
     },
     {
       "tap": {
-        "text": "Undo 100 × 5"
+        "text": "Undo 100 \u00d7 5"
       }
     },
     {
@@ -642,7 +642,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -685,7 +685,7 @@
     },
     {
       "expect": {
-        "text": "Log 140 kg × 3"
+        "text": "Log 140 kg \u00d7 3"
       }
     },
     {
@@ -725,7 +725,7 @@
     },
     {
       "expect": {
-        "text": "Log 170 kg × 1"
+        "text": "Log 170 kg \u00d7 1"
       }
     },
     {
@@ -738,7 +738,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
@@ -790,7 +790,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -826,7 +826,23 @@
       "checkpoint": "squat-note-field-for-rpe-and-video-reference"
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "Nov 9 squat: 190 kg x 1 at RPE 7. Side video on my phone from today: depth is there. Backoffs 165 kg x 5 for four sets; final set about RPE 7.5, with nearly five minutes before it."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "squat-effort-and-video-reference-saved"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {
@@ -851,20 +867,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -872,7 +880,15 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -880,7 +896,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -890,7 +906,7 @@
       "advance": "3m"
     },
     {
-      "note": "Monday squat complete: 190 x 1 at RPE 7, then 165 x 5 for four sets, last RPE 7.5. Five minutes before final backoff. Side video from this session shows depth. These remain intent notes until the actual app Note field is filled next run."
+      "note": "Monday squat complete if all four preceding logs passed: 190 x 1 at RPE 7, then 165 x 5 for four sets, last RPE 7.5. Actual lift Note was entered at194 and saved195; verify it in later history."
     },
     {
       "tap": {
@@ -923,6 +939,20 @@
     },
     {
       "checkpoint": "exercise-choices-for-monday-competition-bench"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "inspect-finish-review-with-bench-still-unlogged"
+    },
+    {
+      "note": "Inspect only: Monday still needs competition bench 100 x 5 for five sets, lying leg curls and ab wheel. Do not confirm a finished Monday yet. Swap chooser above is the next route to correct the generated dumbbell bench."
     }
   ]
 }

@@ -2771,6 +2771,380 @@
     },
     {
       "checkpoint": "dec2-settings-bottom-looking-for-backup-export"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "47h7m"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "checkpoint": "dec4-preview-after-lowered-leg-and-chest-ten-ten-eight"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "dec4-opening-leg-offer-before-trying-eighty-again"
+    },
+    {
+      "note": "Dec 4: Ate something before going. Good day, not wiped out. My choice is leg80/chest25/row35/curl25, all tens. Physical five-minute warmup and twelve-minute finishing walk;56 minutes total. I still want machines, not barbells."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "dec4-reading-my-tired-slept-badly-note"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 13: Felt pretty light. Everything feels a little less awkward.\nNov 30: tired, slept badly. Everything felt heavy after missing Friday.\nDec 4: Good day. Ate something before going and did not feel wiped out."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "80"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "dec4-chest-offer-after-twenty-five-ten-ten-eight"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "dec4-all-chest-targets-before-third-set-recovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "dec4-machine-row-target"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "dec4-leg-curl-target"
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "dec4-all-eleven-sets-all-tens"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "checkpoint": "dec4-twelve-minute-finishing-walk-running"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "dec4-end-of-month-saved-eleven-visits"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "dec4-sharing-final-visit-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "dec4-plans-looking-for-backup-or-export"
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "dec4-month-end-history"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "dec4-month-end-weekly-volume"
+    },
+    {
+      "scrollTo": {
+        "text": "Week of Oct 19"
+      }
+    },
+    {
+      "checkpoint": "dec4-trends-further-down"
+    },
+    {
+      "scrollTo": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "dec4-history-after-collapsing-trends"
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 25, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 25, 2026"
+      }
+    },
+    {
+      "checkpoint": "dec4-looking-inside-the-short-nov25-visit"
     }
   ]
 }

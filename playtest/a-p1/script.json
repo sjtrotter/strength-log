@@ -197,7 +197,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "text": "3-day full body \u00b7 Day A"
       }
     },
     {
@@ -326,7 +326,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A",
+        "text": "3-day full body \u00b7 Day A",
         "index": 1
       }
     },
@@ -541,22 +541,19 @@
     {
       "type": {
         "text": "Sets",
-        "value": "2",
-        "ime": "done"
+        "value": "2"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20",
-        "ime": "done"
+        "value": "20"
       }
     },
     {
@@ -593,22 +590,19 @@
     {
       "type": {
         "text": "Sets",
-        "value": "3",
-        "ime": "done"
+        "value": "3"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
+        "value": "30"
       }
     },
     {
@@ -642,22 +636,19 @@
     {
       "type": {
         "text": "Sets",
-        "value": "3",
-        "ime": "done"
+        "value": "3"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
-        "ime": "done"
+        "value": "10"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
+        "value": "30"
       }
     },
     {
@@ -686,7 +677,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -741,6 +732,86 @@
     },
     {
       "checkpoint": "leg-press-prescription-after-changing-structure"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "60"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "leg-press-starting-prescription-saved"
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "checkpoint": "machine-workout-ready-to-train"
+    },
+    {
+      "expect": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "first-leg-press-set-and-rest"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "logged-set-and-rest-after-reopening"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "actual-leg-press-set-and-remaining-targets"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "logged-exercise-options-looking-for-seat-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "checkpoint": "next-leg-press-set-editor"
     }
   ]
 }

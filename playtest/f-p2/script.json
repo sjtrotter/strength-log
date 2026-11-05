@@ -185,6 +185,75 @@
   },
   {
    "checkpoint": "after-start"
+  },
+  {
+   "note": "Day A is Upper and Monday is squat day for me. Let's see what this plan actually is before I start anything."
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day A"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "other-days"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plans-tab"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "history-tab"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "back-on-today"
   }
  ]
 }

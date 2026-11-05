@@ -124,11 +124,6 @@
    "checkpoint": "rotation-6-day"
   },
   {
-   "scrollTo": {
-    "text": "Start"
-   }
-  },
-  {
    "tap": {
     "text": "Start"
    }

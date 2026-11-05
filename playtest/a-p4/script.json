@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -650,28 +650,27 @@
       }
     },
     {
-      "tap": {
-        "text": "3 × 10 at 80 lb"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
       }
     },
     {
-      "checkpoint": "monday-bench-prescription-form"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 1 of 21 sets"
+      "type": {
+        "text": "Reps",
+        "value": "8"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Save"
       }
     },
     {
-      "tap": {
+      "checkpoint": "squat-prescription-saved-at-my-actual-target"
+    },
+    {
+      "expect": {
         "text": "Edit day"
       }
     },
@@ -681,15 +680,32 @@
       }
     },
     {
-      "checkpoint": "monday-exercise-replacement-menu"
+      "checkpoint": "bench-replacement-and-set-count-options"
     },
     {
-      "recreate": true
+      "back": true
     },
     {
       "tap": {
-        "desc": "Day A lifts, 1 of 21 sets"
+        "desc": "More options for Barbell Back Squat"
       }
+    },
+    {
+      "checkpoint": "squat-working-set-count-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "checkpoint": "remove-unwanted-extra-lift-options"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -697,9 +713,13 @@
       }
     },
     {
-      "tap": {
-        "text": "Edit day"
-      }
+      "checkpoint": "day-editor-scope-and-other-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "I have set my squat target to135x8. Check whether saving replaced the ramp prescription and preserved the95x5 warm-up. I still need three working sets, barbell bench105, cable row90, dumbbell RDL40, and12minutes of bike; none of those should be logged at suggested loads."
     },
     {
       "tap": {
@@ -707,62 +727,13 @@
       }
     },
     {
-      "checkpoint": "monday-bike-plan-form"
+      "checkpoint": "bike-finisher-plan-editor"
     },
     {
-      "recreate": true
+      "note": "Monday bike target is12steady minutes at conversational effort, with111average watts and6/10 actual effort. Use the visible cardio fields next, then finish customizing and train."
     },
     {
-      "tap": {
-        "desc": "Day A lifts, 1 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "day-editor-options-and-scope"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 1 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "exercise-picker-for-my-own-routine"
-    },
-    {
-      "note": "Use the captured prescription forms and exercise picker to enter squat135 3x8, barbell bench105 3x8, cable row90 3x10, dumbbell RDL40 2x10, and12min bike on the next turn. The95x5 warm-up must remain my only logged set until I really log the work sets."
+      "checkpoint": "ready-to-enter-twelve-minute-steady-bike"
     }
   ]
 }

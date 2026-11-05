@@ -58,13 +58,17 @@ fun NumberField(
     val parsed = resolveNumberCommit(draft, minValue, maxValue, round)
     val invalid = dirty && parsed == null
     SideEffect { onValidityChange(parsed != null) }
+    var seenValue by remember { mutableStateOf(value) }
     // Keyed on focus too, so a value that changed while the field was focused shows once focus leaves.
     LaunchedEffect(value, label, focused) {
-        val acknowledged = value == pendingCommit
-        // An older write can arrive after the user has started the next edit, and the field's own
-        // write is still in flight until its value comes back; neither may overwrite the draft.
-        if (!dirty && (acknowledged || (!focused && pendingCommit == null))) draft = format(value)
-        if (acknowledged) pendingCommit = null
+        // Any new persisted value answers the field's own write, even when storage normalized it
+        // (80 kg comes back as 79.83). Until it answers, the draft stays as typed; a dirty draft
+        // always wins over an older write that lands mid-edit.
+        if (value != seenValue) {
+            seenValue = value
+            pendingCommit = null
+        }
+        if (!dirty && pendingCommit == null && !focused) draft = format(value)
     }
     val rangeError = if (maxValue.isFinite()) {
         stringResource(if (weightInput) R.string.form_weight_range else R.string.form_number_range,
@@ -77,7 +81,8 @@ fun NumberField(
         val committed = resolveNumberCommit(draft, minValue, maxValue, round) ?: return
         dirty = false
         draft = format(committed)
-        pendingCommit = committed
+        // A commit equal to the stored value produces no new value to wait for.
+        if (committed != value) pendingCommit = committed
         onValueChange(committed)
     }
     OutlinedTextField(

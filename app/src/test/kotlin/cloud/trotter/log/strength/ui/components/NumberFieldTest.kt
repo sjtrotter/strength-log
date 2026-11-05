@@ -120,6 +120,21 @@ class NumberFieldTest {
         rule.onNodeWithText("250").assertExists()
     }
 
+    @Test fun normalizedSaveStillAcknowledgesSoLaterUpdatesShow() {
+        val persisted = mutableStateOf(75.0)
+        rule.setContent { AppTheme {
+            NumberField(persisted.value, { persisted.value = 79.83 }, "Bodyweight (kg)", decimalInput = true,
+                format = { "%.1f".format(it) })
+        } }
+        rule.onNodeWithText("Bodyweight (kg)").performClick().performTextReplacement("80")
+        rule.onNodeWithText("Bodyweight (kg)").performImeAction()
+        rule.onNodeWithText("79.8").assertExists()
+
+        rule.runOnIdle { persisted.value = 85.0 }
+
+        rule.onNodeWithText("85.0").assertExists()
+    }
+
     @Test fun externalValueUpdatesAnIdleField() {
         val persisted = mutableStateOf(135.0)
         rule.setContent { AppTheme { NumberField(persisted.value, {}, "Weight (lb)") } }

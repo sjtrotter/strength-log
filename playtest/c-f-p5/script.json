@@ -426,12 +426,24 @@
    }
   },
   {
+   "expect": {
+    "text": "Log 25 lb \u00d7 10"
+   },
+   "timeoutMs": 15000
+  },
+  {
    "checkpoint": "c2-back-on-pallof"
   },
   {
    "tap": {
     "tag": "workout-action-filled"
    }
+  },
+  {
+   "expect": {
+    "desc": "Day C2 lifts, 1 of 3 sets"
+   },
+   "timeoutMs": 15000
   },
   {
    "advance": "5s"
@@ -510,6 +522,103 @@
   },
   {
    "checkpoint": "day-b-editor"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Hip"
+   }
+  },
+  {
+   "checkpoint": "hinge-hip"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-search-back"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Knee flexion"
+   }
+  },
+  {
+   "checkpoint": "knee-flexion-list"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Nordic"
+   }
+  },
+  {
+   "checkpoint": "knee-nordic"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat bilateral"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Goblet"
+   }
+  },
+  {
+   "checkpoint": "squat-goblet"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single leg"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Step"
+   }
+  },
+  {
+   "checkpoint": "single-leg-step"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "editor-again"
   }
  ]
 }

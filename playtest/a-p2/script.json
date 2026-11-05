@@ -535,6 +535,12 @@
       "checkpoint": "return-home-without-logging-the-wrong-workout"
     },
     {
+      "back": true
+    },
+    {
+      "checkpoint": "today-after-leaving-upper-day-preview"
+    },
+    {
       "tap": {
         "text": "Other days"
       }

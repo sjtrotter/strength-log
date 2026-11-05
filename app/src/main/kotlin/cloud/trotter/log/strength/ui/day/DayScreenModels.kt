@@ -71,6 +71,7 @@ data class DayUiState(
     val cardio: CardioCardState? = null,
     val timedRep: TimedRepState? = null,
     val executionBusy: Boolean = false,
+    val executionBlockedReason: WorkoutBlockedReason? = null,
     val cardioRunning: Boolean = false,
     val keepScreenOn: Boolean = false,
     val rest: RestUiState? = null,
@@ -90,6 +91,18 @@ data class DayUiState(
     val canFinish: Boolean = exercises.any { card ->
         card.rows.any { it.done || it.partner?.done == true }
     } || retiredTracks.any { it.doneCount > 0 }
+
+    val finishBlockedReason: WorkoutBlockedReason? get() =
+        if (canFinish) null else WorkoutBlockedReason.NO_LOGGED_SETS
+
+    val cardioStartBlockedReason: WorkoutBlockedReason? get() = when {
+        cardioStartEnabled -> null
+        executionBlockedReason != null -> executionBlockedReason
+        timedRepRunning || cardio?.run?.running == true -> WorkoutBlockedReason.TIMER_RUNNING
+        cardio?.run?.saveFailed == true -> WorkoutBlockedReason.CARDIO_NOT_SAVED
+        cardio?.run?.complete == true -> WorkoutBlockedReason.CARDIO_SAVING
+        else -> null
+    }
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
     val totalSets: Int = exercises.sumOf { it.rows.size } + retiredRoundDoneCount
@@ -140,6 +153,8 @@ data class DayUiState(
                 cardioActivityName(run.block.activity), formatCardioTime(seconds)))
         }
 }
+
+enum class WorkoutBlockedReason { NO_LOGGED_SETS, TIMER_RUNNING, CARDIO_NOT_SAVED, CARDIO_SAVING, CARDIO_IN_PROGRESS }
 
 @Immutable
 data class ClockChip(val key: String, val label: String)

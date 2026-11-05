@@ -49,6 +49,7 @@ data class WizardUiState(
     val finishError: UiText? = null,
     val finishInFlight: Boolean = false,
 ) {
+    val emptyRotation: Boolean get() = isLastStep && previewProgram?.days.isNullOrEmpty()
     val totalSteps: Int get() = WizardStep.entries.size
     val isFirstStep: Boolean get() = stepIndex == 0
     val isLastStep: Boolean get() = stepIndex == totalSteps - 1

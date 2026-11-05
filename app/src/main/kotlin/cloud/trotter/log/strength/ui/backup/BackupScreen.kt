@@ -24,6 +24,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Switch
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -37,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,8 +59,7 @@ import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
-import cloud.trotter.log.strength.ui.components.SelectionMode
-import cloud.trotter.log.strength.ui.components.SwitchToggle
+import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -67,6 +70,10 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * The Data/Backup screen (PLAN.md A2, D9): full
@@ -94,7 +101,8 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
-                item { AutomaticBackupCard(state.automatic, actions.onAutomaticBackupChange) }
+                item { AutomaticBackupCard(state.automatic, enabled = state.operation != BackupOperation.Restore && !state.automaticChangeInFlight,
+                    onCheckedChange = actions.onAutomaticBackupChange) }
                 item {
                     SectionCard(
                         title = stringResource(R.string.backup_full_title),
@@ -114,6 +122,11 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
                             Text(stringResource(R.string.backup_restore_button))
+                        }
+                        when (state.operation) {
+                            BackupOperation.ExportBackup -> LoadingState(stringResource(R.string.operation_export_backup))
+                            BackupOperation.Restore -> LoadingState(stringResource(R.string.operation_restore_backup))
+                            else -> Unit
                         }
                     }
                 }
@@ -137,6 +150,11 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                         ) {
                             Text(stringResource(R.string.backup_csv_import_button))
                         }
+                        when (state.operation) {
+                            BackupOperation.ExportCsv -> LoadingState(stringResource(R.string.operation_export_csv))
+                            BackupOperation.ImportCsv -> LoadingState(stringResource(R.string.operation_import_csv))
+                            else -> Unit
+                        }
                     }
                 }
                 state.message?.let { message ->
@@ -157,6 +175,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
 @Composable
 private fun AutomaticBackupCard(
     state: AutomaticBackupUiState,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     AppCard {
@@ -164,19 +183,38 @@ private fun AutomaticBackupCard(
         Spacer(Modifier.size(6.dp))
         Text(stringResource(R.string.backup_automatic_body), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.size(10.dp))
-        SwitchToggle(
-            label = stringResource(R.string.backup_automatic_toggle),
-            checked = state.enabled,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        val toggleLabel = stringResource(R.string.backup_automatic_toggle)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(toggleLabel, modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge)
+            Switch(checked = state.enabled, onCheckedChange = onCheckedChange, enabled = enabled,
+                modifier = Modifier.semantics { contentDescription = toggleLabel })
+        }
         state.detailLine?.let {
             Spacer(Modifier.size(6.dp))
             Text(it, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
         }
-        state.resultLine?.let {
-            Spacer(Modifier.size(4.dp))
-            Text(it, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        if (state.lastAttemptFailed) {
+            Text(stringResource(R.string.operation_automatic_backup_failed), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error)
+        }
+        if (state.permissionLost) {
+            Text(stringResource(R.string.operation_backup_folder_unavailable), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(onClick = { onCheckedChange(true) }, enabled = enabled,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.operation_choose_folder))
+            }
+        }
+        if (state.enabled || state.lastAttemptFailed || state.permissionLost || state.lastSuccessAtMillis != null) {
+            val date = state.lastSuccessAtMillis?.let {
+                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a", Locale.US))
+            }
+            Text(if (date == null) stringResource(R.string.operation_backup_no_success)
+                else stringResource(R.string.operation_backup_last_success, date),
+                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -277,7 +315,9 @@ private fun CsvImportPreviewOverlay(state: CsvImportUiState, actions: BackupActi
                             UnmatchedNameRow(
                                 unmatched = unmatched,
                                 selected = state.approvedPatterns[unmatched.name] ?: unmatched.suggestedPattern,
+                                confirmed = unmatched.name in state.approvedPatterns,
                                 onClick = { editingName = unmatched.name },
+                                onConfirm = { actions.onUnmatchedPatternChange(unmatched.name, unmatched.suggestedPattern) },
                             )
                         }
                     }
@@ -331,14 +371,26 @@ private fun CsvPreviewSummary(state: CsvImportUiState) {
 }
 
 @Composable
-private fun UnmatchedNameRow(unmatched: UnmatchedExerciseName, selected: MovementPattern, onClick: () -> Unit) {
-    SelectionCard(
-        title = unmatched.name,
-        subtitle = patternLabel(selected),
-        selected = false,
-        onClick = onClick,
-        mode = SelectionMode.Action,
-    )
+private fun UnmatchedNameRow(
+    unmatched: UnmatchedExerciseName,
+    selected: MovementPattern,
+    confirmed: Boolean,
+    onClick: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Column {
+        ListItem(
+            headlineContent = { Text(unmatched.name) },
+            supportingContent = { Text(patternLabel(selected)) },
+            trailingContent = {
+                if (confirmed) Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.CheckCircle, contentDescription = null)
+                    Text(stringResource(R.string.operation_csv_confirmed))
+                } else TextButton(onClick = onConfirm) { Text(stringResource(R.string.operation_csv_confirm)) }
+            },
+        )
+        TextButton(onClick = onClick) { Text(stringResource(R.string.operation_csv_change_movement)) }
+    }
 }
 
 /**
@@ -398,6 +450,9 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
                 Text(stringResource(R.string.backup_csv_confirm_button), style = DoneButtonLabel.copy(fontSize = 13.sp))
             }
         }
+        if (!canCommit) Text(stringResource(R.string.operation_csv_confirmation_required),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

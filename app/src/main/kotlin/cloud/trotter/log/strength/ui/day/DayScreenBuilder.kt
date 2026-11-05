@@ -99,7 +99,9 @@ object DayScreenBuilder {
 
     fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.complete }
 
-    fun allDone(rows: List<SetRowState>): Boolean = rows.isNotEmpty() && rows.all { it.complete }
+    fun allDone(rows: List<SetRowState>): Boolean = allDone(rows.count { it.complete }, rows.size)
+
+    fun allDone(done: Int, available: Int): Boolean = available > 0 && done >= available
 
     fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
         if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }

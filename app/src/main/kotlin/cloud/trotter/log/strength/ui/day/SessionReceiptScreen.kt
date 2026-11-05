@@ -58,6 +58,10 @@ import cloud.trotter.log.strength.ui.day.receipt.StrengthReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.SupersetGroup
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.receiptMeta
+import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.isPartial
+import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
@@ -97,7 +101,7 @@ internal fun SessionReceiptScreen(
     }
     val backProgress = rememberBackGestureProgress(enabled = !noteOpen, onBack = onFinishSession)
     ReceiptScaffold(
-        title = stringResource(R.string.receipt_title_done, receipt.dayTitle),
+        title = stringResource(if (receipt.isPartial) R.string.operation_receipt_saved else R.string.receipt_title_done, receipt.dayTitle),
         planLine = receipt.planName,
         metaLine = receiptMeta(receipt.completedAt, receipt.minutes),
         showShare = !receipt.cardio,
@@ -105,7 +109,7 @@ internal fun SessionReceiptScreen(
         onShare = onShare,
         modifier = modifier.backGesturePreview { backProgress.value },
         bottomBar = {
-            if (receipt.allPlansDone) {
+            if (receipt.allPlansDone && !receipt.isPartial) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 12.dp).heightIn(min = 40.dp)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Done)
@@ -115,6 +119,11 @@ internal fun SessionReceiptScreen(
             ReceiptDoneButton(receipt.dayIndex, onFinishSession)
         },
     ) {
+        if (receipt.isPartial) Text(if (receipt.hasPlannedSetCount) {
+                stringResource(R.string.operation_receipt_partial_count, receipt.loggedSetCount, receipt.plannedSetCount)
+            } else stringResource(R.string.operation_receipt_plan_count_missing, receipt.loggedSetCount),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         if (!receipt.recordsChecked) Text(stringResource(R.string.receipt_records_not_checked),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))

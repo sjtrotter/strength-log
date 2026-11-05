@@ -93,15 +93,78 @@ class ReceiptScreenTest {
     @Test
     fun headerNamesTheFinishedDayPlanDateAndDuration() {
         setReceipt()
-        listOf("Squat focus, done.", "Four-day strength", "Tuesday, Nov 3, 58 min").forEach {
+        listOf("Squat focus, saved.", "Four-day strength", "Tuesday, Nov 3, 58 min").forEach {
             rule.onNodeWithText(it).assertExists()
         }
     }
 
     @Test
-    fun unknownDurationShowsOnlyTheDate() {
+    fun partialReceiptSaysSavedWithTheExactLoggedAndPlannedCount() {
+        val row = receiptFixture().groups.first().rows.single().copy(
+            sets = List(2) { ReceiptSet(130.0, 5, 0) }, lines = listOf(ValueLine(130.0, listOf(0, 1))),
+            planned = PlannedSets(6, 130.0, 5, 0), record = null,
+        )
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))), allPlansDone = true))
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("2 of 6 sets logged").assertExists()
+        rule.onNodeWithText("Squat focus, done.").assertDoesNotExist()
+        rule.onNodeWithText("All plans done for today.").assertDoesNotExist()
+    }
+
+    @Test
+    fun oldSkippedReceiptDoesNotInventAPlannedSetCount() {
+        val skipped = ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED,
+            emptyList(), emptyList(), 0, null, null)
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(skipped)))))
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("Logged 0 sets. Planned set count not recorded.").assertExists()
+    }
+
+    @Test
+    fun completeReceiptKeepsTheDoneTitle() {
+        setReceipt(receiptFixture().let { it.copy(groups = it.groups.take(1)) })
+        rule.onNodeWithText("Squat focus, done.").assertExists()
+        rule.onNodeWithText("Squat focus, saved.").assertDoesNotExist()
+    }
+
+    @Test
+    fun skippedFirstSupersetHalfSaysSavedAndSuppressesAllPlansDone() {
+        setReceipt(skippedSupersetReceiptFixture())
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("3 of 6 sets logged").assertExists()
+        rule.onNodeWithText("Squat focus, done.").assertDoesNotExist()
+        rule.onNodeWithText("All plans done for today.").assertDoesNotExist()
+    }
+
+    @Test
+    fun completedReplacementKeepsTheDoneTitle() {
+        setReceipt(swappedReceiptFixture())
+        rule.onNodeWithText("Squat focus, done.").assertExists()
+        rule.onNodeWithText("Squat focus, saved.").assertDoesNotExist()
+        rule.onNodeWithText("5 of 6 sets logged").assertDoesNotExist()
+    }
+
+    @Test
+    fun partialAuditFixtureShowsFewerLoggedSetsThanPlanned() {
+        setReceipt(partialReceiptFixture())
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        rule.onNodeWithText("1 of 6 sets logged").assertExists()
+    }
+
+    @Test
+    fun skippedCardioSuppressesTheCompletionFooter() {
+        val receipt = timeTargetFixture()
+        val row = receipt.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.SKIPPED, 0, null)), record = null)
+        setReceipt(receipt.copy(cardioRows = listOf(row), allPlansDone = true))
+        rule.onNodeWithText("Easy run, saved.").assertExists()
+        rule.onNodeWithText("0 of 1 sets logged").assertExists()
+        rule.onNodeWithText("All plans done for today.").assertDoesNotExist()
+    }
+
+    @Test
+    fun unknownDurationSaysItWasNotRecorded() {
         setReceipt(receiptFixture().copy(minutes = null))
-        rule.onNodeWithText("Tuesday, Nov 3").assertExists()
+        rule.onNodeWithText("Tuesday, Nov 3, Duration not recorded").assertExists()
         rule.onNodeWithText("Tuesday, Nov 3, 58 min").assertDoesNotExist()
     }
 
@@ -183,14 +246,14 @@ class ReceiptScreenTest {
     @Test
     fun uncheckedRecordsSaySoAndSuppressAllRecordLabels() {
         setReceipt(receiptFixture().copy(recordsChecked = false))
-        rule.onNodeWithText("Records weren't checked for this workout.").assertExists()
+        rule.onNodeWithText("Workout saved. Records weren't checked.").assertExists()
         rule.onAllNodesWithText("PR", substring = true, useUnmergedTree = true).assertCountEquals(0)
         rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps.").assertExists()
     }
 
     @Test
     fun allPlansDoneAppearsOnlyWhenTheFrozenReceiptSaysSo() {
-        val receipt = mutableStateOf(receiptFixture())
+        val receipt = mutableStateOf(receiptFixture().let { it.copy(groups = it.groups.filter { group -> group.rows.none { row -> row.shape == ReceiptRow.Shape.SKIPPED } }) })
         rule.setContent { AppTheme { Receipt(receipt.value) } }
         rule.onNodeWithText("All plans done for today.").assertDoesNotExist()
         rule.runOnIdle { receipt.value = receipt.value.copy(allPlansDone = true) }
@@ -297,8 +360,8 @@ class ReceiptScreenTest {
             listOf(90, 120, 90), CardioRecordMark(PrKind.FASTER, 1, 102, null))
         setReceipt(cardioReceiptFixture().copy(cardioRows = listOf(row)))
         rule.onNodeWithContentDescription("4 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds.").performClick()
-        rule.onNodeWithText("1:20, shortened", useUnmergedTree = true).assertExists()
-        rule.onNodeWithContentDescription("Interval 3, 1 minute 20 seconds, shortened.").assertExists()
+        rule.onNodeWithText("Shortened: 300 m of 400 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Set 3. Shortened: 300 meters of 400 meters.").assertExists()
         rule.onNodeWithContentDescription("Interval 4, skipped.").assertExists()
         rule.onNodeWithText("Recovery 1:30, 2:00, 1:30", useUnmergedTree = true).assertExists()
     }
@@ -307,8 +370,8 @@ class ReceiptScreenTest {
     fun entirelySkippedWorkStillOpensToItsIntervals() {
         val row = cardioReceiptFixture().cardioRows[1].copy(intervals = List(6) { CardioInterval(CardioSetStatus.SKIPPED, 0, null) }, record = null)
         setReceipt(cardioReceiptFixture().copy(cardioRows = listOf(row)))
-        rule.onNodeWithText("No interval finished", useUnmergedTree = true).assertExists()
-        rule.onNodeWithContentDescription("6 by 400 meters. No interval finished.").assertHasClickAction().performClick()
+        rule.onNodeWithText("Skipped", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("6 × 400 m, skipped.").assertHasClickAction().performClick()
         rule.onNodeWithContentDescription("Interval 1, skipped.").assertExists()
     }
 
@@ -422,8 +485,11 @@ class ReceiptScreenTest {
         }
         listOf("Squat focus", "Couldn't finish the workout.",
             "Every set you logged is saved. Try again, or go back to the workout.").forEach { rule.onNodeWithText(it).assertExists() }
-        rule.onNodeWithText("Squat focus, done.").assertDoesNotExist()
-        rule.onNodeWithText("Try again").performClick()
+        rule.onNodeWithText("Squat focus, saved.").assertDoesNotExist()
+        val retry = rule.onNodeWithText("Try again")
+        val back = rule.onNodeWithText("Back to workout")
+        assertTrue(abs(retry.fetchSemanticsNode().boundsInRoot.width - back.fetchSemanticsNode().boundsInRoot.width) < 1f)
+        retry.performClick()
         assertEquals(1, retries)
         rule.onNodeWithText("Back to workout").performClick()
         assertEquals(1, backs)
@@ -539,7 +605,7 @@ class ReceiptScreenTest {
         val root = rule.onRoot().fetchSemanticsNode().size
         assertEquals("the receipt must cover the whole window", root, rule.onNodeWithTag("receipt").fetchSemanticsNode().size)
         val readable = with(rule.density) { ReadableWidth.toPx() }
-        val headline = rule.onNodeWithText("Squat focus, done.").fetchSemanticsNode().boundsInRoot
+        val headline = rule.onNodeWithText("Squat focus, saved.").fetchSemanticsNode().boundsInRoot
         val back = rule.onNodeWithText("Done").fetchSemanticsNode().boundsInRoot
         assertTrue("the ledger is ${back.right - headline.left}px wide, past the $readable px cap", back.right - headline.left <= readable)
         assertTrue("the ledger drifted off center: ${headline.left}px left, ${root.width - back.right}px right",

@@ -89,7 +89,7 @@ class WindowSizeTest {
         assertEquals("the receipt must cover the whole window", root,
             composeTestRule.onNodeWithTag("receipt").fetchSemanticsNode().size)
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
-        val headline = composeTestRule.onNodeWithText("Squat focus, done.").fetchSemanticsNode().boundsInRoot
+        val headline = composeTestRule.onNodeWithText("Squat focus, saved.").fetchSemanticsNode().boundsInRoot
         val back = composeTestRule.onNodeWithText("Done").fetchSemanticsNode().boundsInRoot
 
         assertTrue(

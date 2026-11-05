@@ -11,7 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +34,6 @@ import cloud.trotter.log.strength.ui.day.receipt.GhostRow
 import cloud.trotter.log.strength.ui.day.receipt.SkippedReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.SupersetGroup
 import cloud.trotter.log.strength.ui.day.receipt.receiptMeta
-import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import kotlin.math.roundToInt
@@ -85,12 +84,11 @@ internal fun FinishFailedScreen(attempt: FinishAttempt, onRetry: () -> Unit, onB
         onShare = {},
         modifier = modifier.backGesturePreview { backProgress.value },
         bottomBar = {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accentEmphasis(attempt.dayIndex))) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.receipt_back_to_workout))
                 }
-                Button(onClick = onRetry, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                Button(onClick = onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = dayAccent(attempt.dayIndex), contentColor = onDayAccent(attempt.dayIndex))) {
                     Text(stringResource(R.string.receipt_try_again))
                 }

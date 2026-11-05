@@ -48,6 +48,9 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.components.EmptyState
+import cloud.trotter.log.strength.ui.components.LoadingState
+import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BodyweightStepper
 import cloud.trotter.log.strength.ui.components.LiftListItem
@@ -143,7 +146,7 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
                 WizardStep.CARDIO -> CardioStep(stepState.answers, actions)
                 WizardStep.ABOUT_YOU -> AboutYouStep(stepState, actions)
                 WizardStep.EQUIPMENT -> EquipmentStep(stepState.answers, actions)
-                WizardStep.ROTATION -> RotationStep(stepState)
+                WizardStep.ROTATION -> RotationStep(stepState, actions)
             }
         }
     }
@@ -190,12 +193,13 @@ private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> U
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
-            if (restore.inFlight) stringResource(R.string.wizard_restore_in_progress) else stringResource(R.string.wizard_restore_button),
+            stringResource(R.string.wizard_restore_button),
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,
         )
     }
+    if (restore.inFlight) LoadingState(stringResource(R.string.operation_restore_backup))
     restore.error?.let { message ->
         Text(message.resolve(), color = Error, style = MaterialTheme.typography.bodySmall)
     }
@@ -497,7 +501,16 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
 // --- step 8: generated rotation -------------------------------------------------
 
 @Composable
-private fun RotationStep(state: WizardUiState) {
+private fun RotationStep(state: WizardUiState, actions: WizardActions) {
+    if (state.emptyRotation) {
+        EmptyState(
+            title = stringResource(R.string.operation_wizard_empty_rotation),
+            action = ScreenStateAction(stringResource(R.string.operation_wizard_review_answers), {
+                repeat(state.stepIndex) { actions.onBack() }
+            }),
+        )
+        return
+    }
     state.previewProgram?.days.orEmpty().forEach { day ->
         val accent = accentEmphasis(Program.accentIndex(day.id))
         val main = day.exercises.firstOrNull { it.structure.hasTopSet } ?: day.exercises.firstOrNull()
@@ -544,7 +557,11 @@ private fun WizardFooter(
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
         HorizontalDivider(thickness = 1.dp, color = Border)
+        if (state.finishInFlight) LoadingState(stringResource(R.string.operation_wizard_creating))
         state.finishError?.let { message ->
+            Text(stringResource(R.string.operation_wizard_create_failed),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp),
+                color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             Text(
                 message.resolve(),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp),
@@ -570,13 +587,17 @@ private fun WizardFooter(
             }
             Button(
                 onClick = actions.onNext,
-                enabled = !state.restore.inFlight && !state.finishInFlight,
+                enabled = !state.restore.inFlight && !state.finishInFlight && !state.emptyRotation,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f).heightIn(min = 52.dp),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 Text(
-                    if (state.isLastStep) stringResource(R.string.wizard_start_button) else stringResource(R.string.wizard_next_button),
+                    when {
+                        state.isLastStep && state.finishError != null -> stringResource(R.string.receipt_try_again)
+                        state.isLastStep -> stringResource(R.string.wizard_start_button)
+                        else -> stringResource(R.string.wizard_next_button)
+                    },
                     style = DoneButtonLabel,
                     textAlign = TextAlign.Center,
                     maxLines = 2,

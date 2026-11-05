@@ -139,7 +139,6 @@
 <string name="wizard_emphasis_balanced_description">The default — even mix of heavy work and volume.</string>
 <string name="wizard_emphasis_physique_title">Physique-leaning</string>
 <string name="wizard_emphasis_physique_description">More volume and isolation work.</string>
-<string name="wizard_restore_in_progress">Restoring…</string>
 <string name="wizard_restore_button">Have a backup? Restore it</string>
 <string name="wizard_days_per_week_label">Days per week</string>
 <string name="wizard_decrease_days_description">Decrease days per week</string>
@@ -438,7 +437,6 @@
 <string name="receipt_planned_at">Planned %1$d × %2$s at %3$s</string>
 <string name="receipt_planned">Planned %1$d × %2$s</string>
 <string name="receipt_set_pr_note">PR, up from %1$s</string>
-<string name="receipt_records_not_checked">Records weren\'t checked for this workout.</string>
 <string name="receipt_all_plans_done">All plans done for today.</string>
 <string name="receipt_finishing">Finishing workout</string>
 <string name="receipt_finish_failed_title">Couldn\'t finish the workout.</string>
@@ -453,7 +451,6 @@
 <string name="receipt_cardio_distance">Distance</string>
 <string name="receipt_cardio_distance_missing">Distance not entered</string>
 <string name="receipt_cardio_not_finished">No interval finished</string>
-<string name="receipt_cardio_shortened">%1$s, shortened</string>
 <string name="receipt_cardio_recovery_each">Recovery %1$s each</string>
 <string name="receipt_cardio_recovery">Recovery %1$s</string>
 <string name="receipt_say_pounds">pounds</string>
@@ -482,7 +479,6 @@
 <string name="receipt_say_cardio_value">%1$s, %2$s.</string>
 <string name="receipt_say_cardio_distance_missing">Distance not entered.</string>
 <string name="receipt_say_interval">Interval %1$d, %2$s</string>
-<string name="receipt_say_interval_shortened">Interval %1$d, %2$s, shortened.</string>
 <string name="receipt_say_interval_skipped">Interval %1$d, skipped.</string>
 <string name="receipt_say_recovery_each">Recovery %1$s each</string>
 <string name="receipt_pr_weight">Weight PR</string>
@@ -795,7 +791,6 @@
     <string name="workout_cardio_position">%1$s, set %2$d of %3$d</string>
     <string name="workout_cardio_aim">Aim %1$s</string>
     <string name="workout_cardio_to">to %1$s</string>
-    <string name="workout_cardio_save_failed">Couldn’t save the cardio. The sets are still here.</string>
     <string name="workout_cardio_status_distance">%1$s, %2$d m</string>
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
@@ -857,6 +852,42 @@
     <string name="log_top_set_date_range">%1$s to %2$s</string>
     <string name="log_top_set_series_description">%1$s top sets: %2$s, %3$s %6$s; %4$s, %5$s %6$s. Goal %7$s %6$s.</string>
 
+    <!-- Round 1 operation, blocked-action and incomplete-session states. -->
+    <string name="operation_export_backup">Exporting backup…</string>
+    <string name="operation_export_csv">Exporting CSV…</string>
+    <string name="operation_restore_backup">Restoring backup. Keep this screen open.</string>
+    <string name="operation_import_csv">Importing workouts…</string>
+    <string name="operation_backup_folder_unavailable">Backup folder is unavailable.</string>
+    <string name="operation_choose_folder">Choose folder</string>
+    <string name="operation_automatic_backup_failed">Automatic backup failed.</string>
+    <string name="operation_backup_no_success">No successful backup yet</string>
+    <string name="operation_backup_last_success">Last successful backup: %1$s</string>
+    <string name="operation_csv_confirm">Confirm</string>
+    <string name="operation_csv_confirmed">Confirmed</string>
+    <string name="operation_csv_change_movement">Change movement</string>
+    <string name="operation_csv_confirmation_required">Confirm a movement for each exercise above.</string>
+    <string name="operation_wizard_creating">Creating your plan…</string>
+    <string name="operation_wizard_create_failed">Couldn\'t create your plan.</string>
+    <string name="operation_wizard_empty_rotation">These answers don\'t produce any days. Go back and add days or equipment.</string>
+    <string name="operation_wizard_review_answers">Review answers</string>
+    <string name="operation_finish_log_set">Log a set to finish this workout.</string>
+    <string name="operation_stop_timer">Stop the timer to continue.</string>
+    <string name="operation_cardio_retry_before_start">Save the recorded cardio before starting again.</string>
+    <string name="operation_cardio_saving">Cardio is being saved.</string>
+    <string name="operation_cardio_not_saved">Cardio not saved</string>
+    <string name="operation_cardio_recorded_time">Recorded time: %1$s</string>
+    <string name="operation_receipt_saved">%1$s, saved.</string>
+    <string name="operation_receipt_partial_count">%1$d of %2$d sets logged</string>
+    <string name="operation_receipt_duration_missing">%1$s, Duration not recorded</string>
+    <string name="operation_receipt_shortened">Shortened: %1$s of %2$s</string>
+    <string name="operation_receipt_shortened_unknown">Shortened: %1$s</string>
+    <string name="operation_receipt_shortened_interval">Set %1$d. %2$s.</string>
+    <string name="receipt_records_not_checked">Workout saved. Records weren\'t checked.</string>
+    <string name="operation_session_no_details">No set details saved for this session.</string>
+    <string name="operation_health_publishing">Publishing %1$d workouts to Health Connect…</string>
+    <string name="operation_custom_exercise_name_required">Name the exercise to save it.</string>
+    <string name="operation_cardio_in_progress">Resume the current cardio set to continue.</string>
+    <string name="operation_receipt_plan_count_missing">Logged %1$d sets. Planned set count not recorded.</string>
     <!-- Round 1 sheets: shared entry layout and plain exercise lists. -->
     <string name="sheet_save_set">Save set</string>
     <string name="sheet_save_note">Save note</string>

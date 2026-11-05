@@ -14,7 +14,7 @@ import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupUiState
 import cloud.trotter.log.strength.ui.backup.CsvImportUiState
 import cloud.trotter.log.strength.ui.backup.StatusMessage
-import cloud.trotter.log.strength.ui.backup.automaticBackupResultLine
+import cloud.trotter.log.strength.ui.backup.BackupOperation
 import cloud.trotter.log.strength.ui.backup.csvPreviewFixture
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseScreen
@@ -51,12 +51,12 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot03BackupAutomaticOn() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/03-backup-automatic-on") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", resultLine = automaticBackupResultLine(1_000, false, false, 1_000))), backupActions()) }
+        rule.auditShot("settings/03-backup-automatic-on") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", lastSuccessAtMillis = 1_000)), backupActions()) }
     }
 
     @Test fun shot04BackupCsvRunning() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/04-backup-csv-running", beforeCapture = { rule.onNode(hasScrollAction()).performScrollToNode(hasText("CSV history")) }) { BackupScreen(BackupUiState(isBusy = true), backupActions()) }
+        rule.auditShot("settings/04-backup-csv-running", beforeCapture = { rule.onNode(hasScrollAction()).performScrollToNode(hasText("CSV history")) }) { BackupScreen(BackupUiState(operation = BackupOperation.ExportCsv), backupActions()) }
     }
 
     @Test fun shot05BackupCsvFailed() {
@@ -108,7 +108,7 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot13BackupRestoreRunning() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/13-backup-restore-running") { BackupScreen(BackupUiState(isBusy = true, restoreInFlight = true), backupActions()) }
+        rule.auditShot("settings/13-backup-restore-running") { BackupScreen(BackupUiState(operation = BackupOperation.Restore, restoreInFlight = true), backupActions()) }
     }
 
     @Test fun shot14BackupRestoreConfirm() {
@@ -128,12 +128,12 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot17BackupFolderUnavailable() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/17-backup-folder-unavailable") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", resultLine = automaticBackupResultLine(null, false, true, 1_000))), backupActions()) }
+        rule.auditShot("settings/17-backup-folder-unavailable") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", permissionLost = true)), backupActions()) }
     }
 
     @Test fun shot18BackupAutomaticFailed() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/18-backup-automatic-failed") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", resultLine = automaticBackupResultLine(null, true, false, 1_000))), backupActions()) }
+        rule.auditShot("settings/18-backup-automatic-failed") { BackupScreen(BackupUiState(automatic = AutomaticBackupUiState(enabled = true, folderName = "Training backups", lastAttemptFailed = true)), backupActions()) }
     }
 
     @Test fun shot19CustomReps() {

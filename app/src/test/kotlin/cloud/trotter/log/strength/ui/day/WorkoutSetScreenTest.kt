@@ -510,7 +510,7 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(1, nexts); assertEquals(0, logs) }
     }
 
-    @Test fun allLoggedArmsFinishAtThreeSeconds() {
+    @Test fun allLoggedFinishStaysEnabledButDropsEarlyAndRepeatedTaps() {
         rule.mainClock.autoAdvance = false
         val state = workoutSetSingleFixture()
         val completed = state.exercises.single().copy(allDone = true, rows = state.exercises.single().rows.map { it.copy(done = true) })
@@ -524,12 +524,20 @@ class WorkoutSetScreenTest {
         } }
         rule.onNodeWithText("All 6 sets logged").assertIsDisplayed()
         rule.onNodeWithText("Finish").assertDoesNotExist()
-        rule.mainClock.advanceTimeBy(2_999L - rule.mainClock.currentTime, ignoreFrameDuration = true)
-        rule.onNodeWithText("Finish day A").assertIsNotEnabled()
-        rule.mainClock.advanceTimeBy(1L, ignoreFrameDuration = true)
-        rule.mainClock.advanceTimeByFrame()
-        rule.onNodeWithText("Finish day A").assertIsEnabled().performClick()
+        val finish = rule.onNodeWithText("Finish day A").assertIsEnabled()
+        finish.performClick()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        // An early tap must not restart either the three-second guard or the 600 ms tap guard.
+        rule.mainClock.advanceTimeBy(2_900L - rule.mainClock.currentTime, ignoreFrameDuration = true)
+        finish.assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        rule.mainClock.advanceTimeBy(3_000L - rule.mainClock.currentTime, ignoreFrameDuration = true)
+        finish.assertIsEnabled().performClick()
+        finish.assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(1, finishes) }
+        rule.mainClock.advanceTimeBy(700L)
+        finish.performClick()
+        rule.runOnIdle { assertEquals(2, finishes) }
     }
 
     @Test fun loadedHoldShowsSecondsAndLoadAndLogsSeconds() {
@@ -900,14 +908,69 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(running.copy(cardio = cardio.copy(run = cardio.run?.copy(saveFailed = true))))
         var retries = 0
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onRetryCardioSave = { retries++ })) } }
-        rule.onNodeWithText("Couldn’t save the cardio. The sets are still here.").assertIsDisplayed()
-        rule.onNodeWithText("Retry").performClick()
+        rule.onNodeWithText("Cardio not saved").assertIsDisplayed()
+        rule.onNodeWithText("Try again").performClick()
         rule.runOnIdle { state = state.copy(workout = workoutSetSingleFixture().workout) }
         rule.onNodeWithTag("workout-cardio-failed").assertIsDisplayed()
         rule.runOnIdle { assertEquals(1, retries) }
         rule.runOnIdle { state = state.copy(cardio = cardio.copy(run = null,
             distanceRuns = listOf(requireNotNull(cardio.run).copy(sessionId = 42L, saveFailed = true)))) }
         rule.onNodeWithTag("workout-cardio-failed").assertIsDisplayed()
+    }
+
+    @Test fun completedCardioWithSaveFailureShowsRetainedTimeWithoutSuccessCopy() {
+        val state = workoutSetCardioDoneFixture()
+        val running = workoutSetCardioRunningFixture().cardio!!.run!!
+        val run = running.copy(results = listOf(SavedCardioResult("FINISHED", 300)), wallStart = null, saveFailed = true)
+        var retries = 0
+        show(state.copy(cardio = state.cardio!!.copy(run = run)), workoutActions().copy(onRetryCardioSave = { retries++ }))
+        rule.onNodeWithText("Cardio not saved").assertIsDisplayed()
+        rule.onNodeWithText("Recorded time: 5:00").assertIsDisplayed()
+        rule.onNodeWithText("Done").assertDoesNotExist()
+        rule.onNodeWithText("Logged 5:00").assertDoesNotExist()
+        rule.onNodeWithText("Try again").performClick()
+        rule.runOnIdle { assertEquals(1, retries) }
+    }
+
+    @Test fun cardioStartExplainsTheOtherRunningTimer() {
+        show(workoutSetCardioBlockedByTimedRepFixture())
+        rule.onNodeWithText("Start").assertIsNotEnabled()
+        rule.onNodeWithText("Stop the timer to continue.").assertIsDisplayed()
+    }
+
+    @Test fun finishBeforeAnyLoggedSetExplainsItsRequirement() {
+        val state = workoutSetSingleFixture()
+        show(state.copy(exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { it.copy(done = false) }) }))
+        rule.onNodeWithText("Finish").assertIsNotEnabled()
+        rule.onNodeWithText("Log a set to finish this workout.").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun finishReasonWrapsBelowTheToolbarAtFontScaleTwo() {
+        val base = workoutSetSingleFixture()
+        val state = base.copy(exercises = base.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(done = false) })
+        })
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val title = rule.onNodeWithText("Day A").assertIsDisplayed()
+        val finish = rule.onNodeWithTag("workout-finish").assertIsDisplayed().assertIsNotEnabled()
+        val reason = rule.onNodeWithText("Log a set to finish this workout.").assertIsDisplayed()
+        val reasonBounds = reason.fetchSemanticsNode().boundsInRoot
+        assertTrue(reasonBounds.top >= title.fetchSemanticsNode().boundsInRoot.bottom)
+        assertTrue(reasonBounds.top >= finish.fetchSemanticsNode().boundsInRoot.bottom)
+        val layouts = mutableListOf<TextLayoutResult>()
+        reason.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        assertTrue(layout.layoutInput.softWrap)
+        assertTrue(layout.lineCount > 1)
+        assertFalse(layout.hasVisualOverflow)
     }
 
     @Test fun clockChipReturnsToTimedRepAndReportsPendingCount() {

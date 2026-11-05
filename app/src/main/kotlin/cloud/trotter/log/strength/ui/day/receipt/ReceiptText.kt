@@ -25,7 +25,7 @@ internal fun receiptMeta(completedAt: Long, minutes: Int?): String {
         Instant.ofEpochMilli(completedAt).atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US))
     }
-    return if (minutes == null) date else stringResource(R.string.receipt_meta_minutes, date, minutes)
+    return if (minutes == null) stringResource(R.string.operation_receipt_duration_missing, date) else stringResource(R.string.receipt_meta_minutes, date, minutes)
 }
 
 internal fun visibleWeight(lb: Double, unit: WeightUnit): String = SetFormatter.weight(lb, unit)
@@ -148,6 +148,7 @@ internal fun spokenPlan(plan: PlannedSets, tracking: TrackingType, unit: WeightU
 internal fun cardioRowName(row: CardioReceiptRow): String = when (row.role) {
     CardioRole.WARMUP -> stringResource(R.string.cardio_warmup)
     CardioRole.COOLDOWN -> stringResource(R.string.cardio_cooldown)
+    CardioRole.RECOVERY -> stringResource(R.string.cardio_recovery)
     else -> {
         val measure = row.endSeconds?.let(ClockText::minutesSeconds)
             ?: stringResource(R.string.cardio_metres, requireNotNull(row.endMetres))
@@ -176,6 +177,10 @@ internal fun spokenMetres(metres: Int): String = String.format(Locale.US, "%,d",
 
 @Composable
 internal fun cardioValue(row: CardioReceiptRow): String {
+    if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.cardio_skipped)
+    if (row.intervals.size == 1 && row.intervals.single().status == CardioSetStatus.SHORTENED) {
+        return shortenedInterval(row, row.intervals.single())
+    }
     if (row.role != CardioRole.WORK) return ClockText.minutesSeconds(row.intervals.sumOf { it.elapsedSeconds })
     val best = bestInterval(row)
     return if (row.endMetres != null) best?.let { ClockText.minutesSeconds(it.elapsedSeconds) }
@@ -193,7 +198,10 @@ private fun spokenCardioPrevious(mark: CardioRecordMark): String = mark.previous
 
 @Composable
 internal fun spokenCardioRow(row: CardioReceiptRow): String {
-    if (row.role != CardioRole.WORK && row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.receipt_say_skipped, cardioRowName(row))
+    if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.receipt_say_skipped, cardioRowName(row))
+    if (row.intervals.size == 1 && row.intervals.single().status == CardioSetStatus.SHORTENED) {
+        return stringResource(R.string.receipt_say_cardio_value, cardioRowName(row), shortenedInterval(row, row.intervals.single(), spoken = true))
+    }
     if (row.role != CardioRole.WORK) return stringResource(R.string.receipt_say_cardio_value,
         cardioRowName(row), spokenDuration(row.intervals.sumOf { it.elapsedSeconds }))
     val measure = row.endSeconds?.let { spokenDuration(it) } ?: spokenMetres(requireNotNull(row.endMetres))
@@ -213,7 +221,7 @@ internal fun cardioIntervalValue(row: CardioReceiptRow, interval: CardioInterval
     if (interval.status == CardioSetStatus.SKIPPED) return stringResource(R.string.cardio_skipped)
     val value = if (row.endMetres != null) ClockText.minutesSeconds(interval.elapsedSeconds)
         else interval.metres?.let { visibleMetres(it) } ?: stringResource(R.string.receipt_cardio_not_entered)
-    return if (interval.status == CardioSetStatus.SHORTENED) stringResource(R.string.receipt_cardio_shortened, value) else value
+    return if (interval.status == CardioSetStatus.SHORTENED) shortenedInterval(row, interval) else value
 }
 
 @Composable
@@ -226,7 +234,7 @@ internal fun spokenInterval(row: CardioReceiptRow, index: Int): String {
     return when {
         record != null -> stringResource(R.string.receipt_say_interval_record, index + 1, value,
             spokenRecord(record.kind).replaceFirstChar(Char::lowercase), spokenCardioPrevious(record))
-        interval.status == CardioSetStatus.SHORTENED -> stringResource(R.string.receipt_say_interval_shortened, index + 1, value)
+        interval.status == CardioSetStatus.SHORTENED -> stringResource(R.string.operation_receipt_shortened_interval, index + 1, shortenedInterval(row, interval, spoken = true))
         else -> stringResource(R.string.receipt_say_interval, index + 1, value)
     }
 }
@@ -238,4 +246,25 @@ internal fun recoveryText(seconds: List<Int>, spoken: Boolean = false): String {
     return stringResource(if (each) {
         if (spoken) R.string.receipt_say_recovery_each else R.string.receipt_cardio_recovery_each
     } else R.string.receipt_cardio_recovery, values.joinToString(", "))
+}
+
+@Composable
+private fun shortenedInterval(row: CardioReceiptRow, interval: CardioInterval, spoken: Boolean = false): String {
+    val plannedSeconds = row.endSeconds
+    val plannedMetres = row.endMetres
+    val actual: String
+    val planned: String
+    if (plannedSeconds != null) {
+        actual = if (spoken) spokenDuration(interval.elapsedSeconds) else ClockText.minutesSeconds(interval.elapsedSeconds)
+        planned = if (spoken) spokenDuration(plannedSeconds) else ClockText.minutesSeconds(plannedSeconds)
+    } else if (plannedMetres != null) {
+        actual = interval.metres?.let { if (spoken) spokenMetres(it) else visibleMetres(it) }
+            ?: stringResource(R.string.receipt_cardio_not_entered)
+        planned = if (spoken) spokenMetres(plannedMetres) else visibleMetres(plannedMetres)
+    } else {
+        // Receipts restored from older bundles may not carry the captured target.
+        return stringResource(R.string.operation_receipt_shortened_unknown,
+            if (spoken) spokenDuration(interval.elapsedSeconds) else ClockText.minutesSeconds(interval.elapsedSeconds))
+    }
+    return stringResource(R.string.operation_receipt_shortened, actual, planned)
 }

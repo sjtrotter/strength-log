@@ -105,7 +105,7 @@ class BackupBusyGateTest {
 
     @Test
     fun theBackChevronIsDeadWhileARestoreIsInFlight() {
-        setContent(BackupUiState(isBusy = true, restoreInFlight = true))
+        setContent(BackupUiState(operation = BackupOperation.Restore, restoreInFlight = true))
 
         composeTestRule.onNodeWithContentDescription("Back").performClick()
 
@@ -115,7 +115,7 @@ class BackupBusyGateTest {
     @Test
     fun systemBackIsSwallowedWhileARestoreIsInFlight() {
         val fallback = registerFallback()
-        setContent(BackupUiState(isBusy = true, restoreInFlight = true))
+        setContent(BackupUiState(operation = BackupOperation.Restore, restoreInFlight = true))
 
         pressSystemBack()
 
@@ -138,7 +138,7 @@ class BackupBusyGateTest {
         // isBusy without restoreInFlight: an export is running. Nothing it writes
         // can be torn by leaving, so both exits stay open.
         val fallback = registerFallback()
-        setContent(BackupUiState(isBusy = true))
+        setContent(BackupUiState(operation = BackupOperation.ExportBackup))
 
         composeTestRule.onNodeWithContentDescription("Back").performClick()
         pressSystemBack()

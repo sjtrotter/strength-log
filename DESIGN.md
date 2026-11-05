@@ -233,7 +233,8 @@ Phone:
 - One primary action per surface; the rest is tonal, outlined or text.
 - Sentence case. Caps only for set notation (R1, TOP, B/O). No tracked-caps eyebrows, no
   dot-joined meta strings. The same verb runs through a flow: Start day A, Finish day A,
-  Day A, done.
+  Day A, done. A partial workout says "Day A, saved." with the logged and planned set counts
+  (owner decision, #454); skipped work suppresses the "All plans done" footer.
 - The app states at most one derived sentence of fact; it never advises.
 - Nothing on the workout page scrolls or moves with scroll in portrait.
 - Settings, Backup and Licenses carry no day accent.

@@ -418,6 +418,21 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun reviewingRotationReturnsToTheFirstStepWithTheDraftPreserved() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setDaysPerWeek(3)
+        vm.setEmphasis(GoalEmphasis.PHYSIQUE)
+        repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
+        advanceUntilIdle()
+        val answers = vm.uiState.value.answers
+        repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.EMPHASIS, vm.uiState.value.step)
+        assertEquals(answers, vm.uiState.value.answers)
+    }
+
+    @Test
     fun finish_onExistingInstall_createsAndSelectsSecondPlanWithoutChangingOriginal() = runVmTest {
         repo.replaceProgram(restoredProgram())
         settings.setWizardComplete(true)

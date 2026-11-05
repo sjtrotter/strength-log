@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
 import cloud.trotter.log.strength.ui.day.workoutLiftSheetFixture
 import cloud.trotter.log.strength.ui.day.workoutRest
+import cloud.trotter.log.strength.ui.day.workoutSetCardioBlockedByTimedRepFixture
 import cloud.trotter.log.strength.ui.day.workoutSetCardioDistanceFixture
 import cloud.trotter.log.strength.ui.day.workoutSetCardioDoneFixture
 import cloud.trotter.log.strength.ui.day.workoutSetCardioFixture
@@ -221,7 +222,7 @@ class AuditWorkoutShotsTest : UiAuditTest() {
 
     @Test fun shot29WorkoutCardioDisabled() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("workout/29-workout-cardio-disabled") { AuditDay(workoutSetCardioFixture().copy(executionBusy = true)) }
+        rule.auditShot("workout/29-workout-cardio-disabled") { AuditDay(workoutSetCardioBlockedByTimedRepFixture()) }
     }
 
     @Test fun shot30WorkoutCompletedLift() {

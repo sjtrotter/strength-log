@@ -197,6 +197,7 @@ class DayScreenBuilderTest {
             val rows = listOf(row.copy(done = mainDone, partner = row.partner!!.copy(done = partnerDone)))
             assertEquals(if (mainDone && partnerDone) -1 else 0, DayScreenBuilder.focusIndex(rows))
             assertEquals(mainDone && partnerDone, rows.single().complete)
+            assertEquals(mainDone && partnerDone, DayScreenBuilder.allDone(rows))
             assertEquals(if (mainDone && !partnerDone) Slot.SS else Slot.MAIN, rows.single().nextSlot)
         }
     }
@@ -206,6 +207,15 @@ class DayScreenBuilderTest {
         val row = SetRowState(0, "1", false, 100.0, 10, false)
         assertEquals(false, row.complete)
         assertTrue(row.copy(done = true).complete)
+        assertEquals(false, DayScreenBuilder.allDone(emptyList()))
+    }
+
+    @Test
+    fun completionCountsRequireAllAvailableSetsAndAllowExtraLoggedSets() {
+        assertEquals(false, DayScreenBuilder.allDone(0, 0))
+        assertEquals(false, DayScreenBuilder.allDone(2, 3))
+        assertTrue(DayScreenBuilder.allDone(3, 3))
+        assertTrue(DayScreenBuilder.allDone(4, 3))
     }
 
     // --- kind labels from raw kinds (Log screen reuse) -----------------------

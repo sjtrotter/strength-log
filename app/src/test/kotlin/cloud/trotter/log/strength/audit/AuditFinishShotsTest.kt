@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.attemptFixture
 import cloud.trotter.log.strength.ui.day.receipt.cardioReceiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.finishingFixture
+import cloud.trotter.log.strength.ui.day.receipt.partialReceiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.timeTargetFixture
 import org.junit.Assume.assumeTrue
@@ -115,7 +116,7 @@ class AuditFinishShotsTest : UiAuditTest() {
 
     @Test fun shot15ReceiptPartial() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("finish/15-receipt-partial") { AuditDay(finishingFixture(), receipt = receiptFixture().let { it.copy(minutes = 31, groups = it.groups.take(1).map { group -> group.copy(rows = group.rows.map { row -> row.copy(shape = ReceiptRow.Shape.HEAVIEST_NO_TOP, record = null) }) }) }) }
+        rule.auditShot("finish/15-receipt-partial") { AuditDay(finishingFixture(), receipt = partialReceiptFixture()) }
     }
 
     @Test fun shot16ReceiptWithNote() {

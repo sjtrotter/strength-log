@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
  * Pure logic behind the Data/Backup screen: every typed [BackupError]/
  * [CsvImportError] case maps to non-blank, non-generic copy (PLAN.md A2:
  * "surface the typed BackupError cases as clear user-facing messages"), and
- * [CsvImportUiState] pre-seeds/gates commit exactly the way
+ * [CsvImportUiState] explicitly approves/gates commit exactly the way
  * [cloud.trotter.log.strength.transfer.csv.CsvHistoryImporter.commit]
  * requires — never silent-guessing, never blocking on an already-approved name.
  */
@@ -64,18 +64,22 @@ class BackupModelsTest {
     // --- CsvImportUiState: seeding + commit gate --------------------------------
 
     @Test
-    fun of_seedsApprovedPatterns_withEveryUnmatchedNamesSuggestion() {
+    fun of_leavesEverySuggestionUnapproved() {
         val state = CsvImportUiState.of(csvPreviewFixture())
-        assertEquals(MovementPattern.SQUAT_BILATERAL, state.approvedPatterns.getValue("Cable Hack Squat"))
+        assertTrue(state.approvedPatterns.isEmpty())
+        assertFalse(state.canCommit)
     }
 
     @Test
-    fun canCommit_isTrue_assoonAs_seeded_withoutAnyUserEdit() {
-        // The user still has to view and confirm the screen (never silent-
-        // guessing), but the default suggestion alone is enough to enable
-        // the confirm button once it's on screen.
-        val state = CsvImportUiState.of(csvPreviewFixture())
-        assertTrue(state.canCommit)
+    fun canCommit_requiresExplicitApprovalForEveryUnmatchedName() {
+        val preview = csvPreviewFixture().copy(unmatchedNames = listOf(
+            cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName("First", MovementPattern.HINGE),
+            cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName("Second", MovementPattern.H_PUSH),
+        ))
+        val state = CsvImportUiState.of(preview)
+        val oneApproved = state.copy(approvedPatterns = mapOf("First" to MovementPattern.HINGE))
+        assertFalse(oneApproved.canCommit)
+        assertTrue(oneApproved.copy(approvedPatterns = oneApproved.approvedPatterns + ("Second" to MovementPattern.H_PUSH)).canCommit)
     }
 
     @Test

@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
@@ -35,15 +36,15 @@ object ReceiptBuilder {
             // one with done work is already a single row.
             val main = mains.firstOrNull { !it.retired }
                 ?: mains.lastOrNull { it.dropped }?.takeIf { it.sets.none { set -> set.done } }
-            val partners = captured.filter {
-                it.slot == Slot.SS && ((!it.retired && !it.dropped) || it.sets.any { set -> set.done })
-            }
-            // Skipping the first half drops that MAIN and promotes the partner's exercise into it;
-            // the retired SS work is then a lift of its own, not the second half of the pair.
+            // Skipping the first half promotes its partner; that partner was kept, not skipped.
             val promoted = mains.any { it.retired && it.dropped }
+            val partners = captured.filter {
+                it.slot == Slot.SS && ((!it.retired && !it.dropped) || it.sets.any { set -> set.done } ||
+                    it.dropped && (!promoted || it.exerciseId != main?.exerciseId))
+            }
             val partner = partners.firstOrNull { !it.retired }
                 ?: partners.lastOrNull()?.takeIf { !promoted || it.exerciseId != main?.exerciseId }
-            val singles = mains.filter { it.retired && it.sets.any { set -> set.done } } +
+            val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
                 add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing))))
@@ -72,9 +73,15 @@ object ReceiptBuilder {
         standing: Map<String, PersonalRecord>,
     ): ReceiptRow {
         val done = track.sets.filter { it.done }
+        val planned = track.planned.firstOrNull()?.let {
+            // Like the workout's retired rounds, a replaced prescription contributes only done work.
+            // Dropped work keeps its prescription so skips still make the receipt partial.
+            val count = if (track.retired && !track.dropped) done.size else track.planned.size
+            PlannedSets(count, it.weightLb, it.reps, it.seconds)
+        }
         if (done.isEmpty()) {
             val tracking = track.planned.firstOrNull()?.let(PersonalBests::tracking) ?: TrackingType.WEIGHTED
-            return ReceiptRow(name, tracking, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, null, null)
+            return ReceiptRow(name, tracking, ReceiptRow.Shape.SKIPPED, emptyList(), emptyList(), 0, planned, null)
         }
         val bestIndex = PersonalBests.bestIndex(done)
         val tracking = PersonalBests.tracking(done[bestIndex ?: 0])
@@ -86,15 +93,12 @@ object ReceiptBuilder {
             // With no top set, a record set must be the one shown: these rows never open.
             val index = top ?: record?.setIndex ?: requireNotNull(highestIndex(done, indices))
             val shape = if (top == null) ReceiptRow.Shape.HEAVIEST_NO_TOP else ReceiptRow.Shape.TOP_SET
-            return ReceiptRow(name, tracking, shape, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, null, record)
+            return ReceiptRow(name, tracking, shape, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, planned, record)
         }
         val lines = valueLines(done, indices, tracking)
         val lighterSets = if (tracking == TrackingType.WEIGHTED && indices.map { done[it].weightLb }.distinct().size >= 3) {
             sets.size - 1
         } else 0
-        val planned = track.planned.firstOrNull()?.let {
-            PlannedSets(track.planned.size, it.weightLb, it.reps, it.seconds)
-        }
         return ReceiptRow(name, tracking, ReceiptRow.Shape.STRAIGHT, sets, lines, lighterSets, planned, record)
     }
 
@@ -131,9 +135,13 @@ object ReceiptBuilder {
         for (result in results) {
             val role = result.spec.role
             when (role) {
-                CardioRole.RECOVERY -> latestWork?.let { index ->
-                    val row = rows[index]
-                    rows[index] = row.copy(recoverySeconds = row.recoverySeconds + result.elapsedSeconds)
+                CardioRole.RECOVERY -> {
+                    if (result.status != CardioSetStatus.FINISHED) {
+                        rows += cardioRow(result).copy(intervals = listOf(result.interval()))
+                    } else latestWork?.let { index ->
+                        val row = rows[index]
+                        rows[index] = row.copy(recoverySeconds = row.recoverySeconds + result.elapsedSeconds)
+                    }
                 }
                 CardioRole.WORK -> {
                     val index = workRows.getOrPut(result.spec.end) {
@@ -145,12 +153,12 @@ object ReceiptBuilder {
                     latestWork = index
                 }
                 CardioRole.WARMUP, CardioRole.COOLDOWN -> {
-                    if (previousRole == role) {
-                        val row = rows.last()
-                        rows[rows.lastIndex] = row.copy(intervals = row.intervals + result.interval())
-                    } else {
-                        rows += cardioRow(result).copy(intervals = listOf(result.interval()))
-                    }
+                    val previous = rows.lastOrNull()
+                    if (previousRole == role && previous != null &&
+                        previous.intervals.all { it.status == CardioSetStatus.FINISHED } &&
+                        result.status == CardioSetStatus.FINISHED) {
+                        rows[rows.lastIndex] = previous.copy(intervals = previous.intervals + result.interval())
+                    } else rows += cardioRow(result).copy(intervals = listOf(result.interval()))
                 }
             }
             previousRole = role
@@ -174,8 +182,8 @@ object ReceiptBuilder {
         return CardioReceiptRow(
             role = result.spec.role,
             count = if (work) 0 else 1,
-            endSeconds = if (work) (result.spec.end as? Measure.Time)?.seconds else null,
-            endMetres = if (work) (result.spec.end as? Measure.Distance)?.metres else null,
+            endSeconds = (result.spec.end as? Measure.Time)?.seconds,
+            endMetres = (result.spec.end as? Measure.Distance)?.metres,
             intervals = emptyList(),
             recoverySeconds = emptyList(),
             record = null,

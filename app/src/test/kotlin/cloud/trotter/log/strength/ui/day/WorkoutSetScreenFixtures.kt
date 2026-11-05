@@ -100,6 +100,16 @@ internal fun workoutSetCardioFixture(): DayUiState {
         workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false), focus = null))
 }
 
+internal fun workoutSetCardioBlockedByTimedRepFixture(): DayUiState {
+    val state = workoutSetCardioFixture()
+    val timed = workoutSetTimedRepRunningFixture()
+    return state.copy(
+        exercises = state.exercises + timed.exercises.single().copy(programExerciseId = 2L, position = 1),
+        executionBusy = true,
+        timedRep = timed.timedRep?.let { it.copy(event = it.event.copy(programExerciseId = 2L)) },
+    )
+}
+
 internal fun workoutSetCardioRunningFixture(): DayUiState = workoutSetCardioFixture().copy(
     cardio = runningCardioFixture(), cardioRunning = true, executionBusy = true,
 )

@@ -985,6 +985,19 @@
     },
     {
       "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "bench-swap-confirmed-before-logging"
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },
@@ -1138,7 +1151,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Nov 9 competition bench: 100 kg x 5 for five sets, with a real pause. First set felt stiff, then fine."
+        "value": "Nov 9 competition bench: 100 kg x 5 for five sets, with a real pause. First set felt stiff, then fine. Monday accessories also completed: lying leg curl 3 x 12 at about RPE 8, ab wheel 3 x 8 controlled. These accessories are recorded here because this generated day has the wrong exercises. No RDL, rows, lateral raises, planks or bike today."
       }
     },
     {
@@ -1175,6 +1188,95 @@
     },
     {
       "note": "Squat and bench are now logged if preceding actions passed. The generated RDL, row, lateral raise, plank and bike are not my Monday accessories. Use the day editor to add lying leg curl and ab wheel; do not log the generated work or claim Monday complete yet. Need finish Monday and progress through at least Nov21 urgently."
+    },
+    {
+      "note": "Corrected the earlier script error: explicitly confirm the bench swap before logging. Monday accessories are in the saved lift note, not structured sets; finish the actual main work without checking off the unrelated generated work."
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-final-confirmation-actual-main-work-only"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved-first-workout"
+    },
+    {
+      "advance": "23h"
+    },
+    {
+      "checkpoint": "tuesday-nov10-1717-next-day-state"
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "saved-monday-history-summary"
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Accessory work",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-below-rest-timers-export-and-backup-search"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "plans-after-first-session"
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "own-program-empty-plan-setup"
+    },
+    {
+      "note": "I have my own five-day four-week block. Use this empty-plan screen to build actual Tuesday paused deadlift, Thursday competition bench/paused squat, Friday deadlift/paused bench and Saturday close grip rather than continuing the generated rotation. The next diary session is Tuesday Nov10; first two weeks remain required."
     }
   ]
 }

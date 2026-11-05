@@ -1223,8 +1223,47 @@
     },
     {
       "tap": {
-        "text": "History",
-        "role": "Tab"
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "monday-share-reached-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "saved-bench-expanded-looking-for-notes-and-rpe"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "saved-session-note-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "tuesday-home-after-closing-monday-summary"
+    },
+    {
+      "tap": {
+        "text": "History"
       }
     },
     {
@@ -1232,8 +1271,8 @@
     },
     {
       "tap": {
-        "text": "Today",
-        "role": "Tab"
+        "role": "Tab",
+        "index": 0
       }
     },
     {
@@ -1255,8 +1294,7 @@
     },
     {
       "tap": {
-        "text": "Plans",
-        "role": "Tab"
+        "text": "Plans"
       }
     },
     {
@@ -1276,7 +1314,7 @@
       "checkpoint": "own-program-empty-plan-setup"
     },
     {
-      "note": "I have my own five-day four-week block. Use this empty-plan screen to build actual Tuesday paused deadlift, Thursday competition bench/paused squat, Friday deadlift/paused bench and Saturday close grip rather than continuing the generated rotation. The next diary session is Tuesday Nov10; first two weeks remain required."
+      "note": "Next build my actual Tuesday and remaining week from this empty-plan screen. My real Tuesday is paused deadlift170x3x4, one-arm DBrow40kg per hand8x4 per side today only, pulldown3x10,rear delt3x15,bike20m RPE3. The first two weeks still need to be lived; avoid more rounds just exploring unrelated screens."
     }
   ]
 }

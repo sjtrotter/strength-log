@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb × 5"
+        "text": "165 lb \u00d7 5"
       }
     },
     {
@@ -267,7 +267,7 @@
     },
     {
       "expect": {
-        "text": "10 lb × 12"
+        "text": "10 lb \u00d7 12"
       }
     },
     {
@@ -275,7 +275,7 @@
     },
     {
       "expect": {
-        "text": "10 lb × 12"
+        "text": "10 lb \u00d7 12"
       }
     },
     {
@@ -429,7 +429,7 @@
     },
     {
       "expect": {
-        "text": "115 lb × 8"
+        "text": "115 lb \u00d7 8"
       }
     },
     {
@@ -528,7 +528,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -623,7 +623,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -636,7 +636,7 @@
     },
     {
       "expect": {
-        "text": "265 lb × 5"
+        "text": "265 lb \u00d7 5"
       }
     },
     {
@@ -647,7 +647,7 @@
     },
     {
       "tap": {
-        "text": "Log 265 lb × 5"
+        "text": "Log 265 lb \u00d7 5"
       }
     },
     {
@@ -808,7 +808,7 @@
     },
     {
       "expect": {
-        "text": "185 lb × 6"
+        "text": "185 lb \u00d7 6"
       }
     },
     {
@@ -816,7 +816,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -824,7 +824,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -832,7 +832,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -840,7 +840,7 @@
     },
     {
       "expect": {
-        "text": "40 lb × 15"
+        "text": "40 lb \u00d7 15"
       }
     },
     {
@@ -851,7 +851,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -859,7 +859,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -971,7 +971,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day C"
+        "text": "4-day upper/lower \u00b7 Day C"
       }
     },
     {
@@ -1048,7 +1048,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day C"
+        "text": "4-day upper/lower \u00b7 Day C"
       }
     },
     {
@@ -1061,7 +1061,7 @@
     },
     {
       "expect": {
-        "text": "145 lb × 8"
+        "text": "145 lb \u00d7 8"
       }
     },
     {
@@ -1072,7 +1072,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1080,7 +1080,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1088,7 +1088,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb × 8"
+        "text": "Log 145 lb \u00d7 8"
       }
     },
     {
@@ -1319,7 +1319,7 @@
     },
     {
       "expect": {
-        "text": "50 lb × 10"
+        "text": "50 lb \u00d7 10"
       }
     },
     {
@@ -1327,7 +1327,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 10"
+        "text": "Log 50 lb \u00d7 10"
       }
     },
     {
@@ -1335,7 +1335,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 10"
+        "text": "Log 50 lb \u00d7 10"
       }
     },
     {
@@ -1343,7 +1343,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 10"
+        "text": "Log 50 lb \u00d7 10"
       }
     },
     {
@@ -1351,7 +1351,7 @@
     },
     {
       "expect": {
-        "text": "85 lb × 5"
+        "text": "85 lb \u00d7 5"
       }
     },
     {
@@ -1359,7 +1359,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb × 5"
+        "text": "Log 85 lb \u00d7 5"
       }
     },
     {
@@ -1367,7 +1367,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb × 5"
+        "text": "Log 85 lb \u00d7 5"
       }
     },
     {
@@ -1375,7 +1375,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb × 5"
+        "text": "Log 85 lb \u00d7 5"
       }
     },
     {
@@ -1383,7 +1383,7 @@
     },
     {
       "expect": {
-        "text": "25 lb × 10"
+        "text": "25 lb \u00d7 10"
       }
     },
     {
@@ -1391,7 +1391,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 10"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
@@ -1399,7 +1399,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 10"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
@@ -1451,7 +1451,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -1639,7 +1639,7 @@
     },
     {
       "expect": {
-        "text": "220 lb × 5"
+        "text": "220 lb \u00d7 5"
       }
     },
     {
@@ -1647,7 +1647,7 @@
     },
     {
       "expect": {
-        "text": "220 lb × 5"
+        "text": "220 lb \u00d7 5"
       }
     },
     {
@@ -1658,7 +1658,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -1676,7 +1676,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -1713,7 +1713,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 4"
+        "text": "Log 220 lb \u00d7 4"
       }
     },
     {
@@ -1721,7 +1721,7 @@
     },
     {
       "expect": {
-        "text": "135 lb × 9"
+        "text": "135 lb \u00d7 9"
       }
     },
     {
@@ -1729,7 +1729,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 9"
+        "text": "Log 135 lb \u00d7 9"
       }
     },
     {
@@ -1737,7 +1737,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 9"
+        "text": "Log 135 lb \u00d7 9"
       }
     },
     {
@@ -1745,12 +1745,12 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 9"
+        "text": "Log 135 lb \u00d7 9"
       }
     },
     {
       "expect": {
-        "text": "25 lb × 9"
+        "text": "25 lb \u00d7 9"
       }
     },
     {
@@ -1758,7 +1758,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 9"
+        "text": "Log 25 lb \u00d7 9"
       }
     },
     {
@@ -1766,7 +1766,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 9"
+        "text": "Log 25 lb \u00d7 9"
       }
     },
     {
@@ -1870,7 +1870,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -1980,7 +1980,7 @@
     },
     {
       "expect": {
-        "text": "170 lb × 5"
+        "text": "170 lb \u00d7 5"
       }
     },
     {
@@ -1988,7 +1988,7 @@
     },
     {
       "expect": {
-        "text": "170 lb × 5"
+        "text": "170 lb \u00d7 5"
       }
     },
     {
@@ -1996,7 +1996,7 @@
     },
     {
       "expect": {
-        "text": "170 lb × 5"
+        "text": "170 lb \u00d7 5"
       }
     },
     {
@@ -2004,7 +2004,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 lb × 5"
+        "text": "Log 170 lb \u00d7 5"
       }
     },
     {
@@ -2022,7 +2022,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 lb × 5"
+        "text": "Log 170 lb \u00d7 5"
       }
     },
     {
@@ -2040,7 +2040,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 lb × 5"
+        "text": "Log 170 lb \u00d7 5"
       }
     },
     {
@@ -2048,7 +2048,7 @@
     },
     {
       "expect": {
-        "text": "115 lb × 9"
+        "text": "115 lb \u00d7 9"
       }
     },
     {
@@ -2056,7 +2056,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 9"
+        "text": "Log 115 lb \u00d7 9"
       }
     },
     {
@@ -2074,7 +2074,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 9"
+        "text": "Log 115 lb \u00d7 9"
       }
     },
     {
@@ -2092,7 +2092,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 9"
+        "text": "Log 115 lb \u00d7 9"
       }
     },
     {
@@ -2166,7 +2166,7 @@
     },
     {
       "expect": {
-        "text": "10 lb × 13"
+        "text": "10 lb \u00d7 13"
       }
     },
     {
@@ -2174,7 +2174,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb × 13"
+        "text": "Log 10 lb \u00d7 13"
       }
     },
     {
@@ -2192,7 +2192,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb × 13"
+        "text": "Log 10 lb \u00d7 13"
       }
     },
     {
@@ -2241,7 +2241,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day B"
+        "text": "4-day upper/lower \u00b7 Day B"
       }
     },
     {
@@ -2295,7 +2295,7 @@
     },
     {
       "expect": {
-        "text": "270 lb × 5"
+        "text": "270 lb \u00d7 5"
       }
     },
     {
@@ -2303,7 +2303,7 @@
     },
     {
       "expect": {
-        "text": "270 lb × 5"
+        "text": "270 lb \u00d7 5"
       }
     },
     {
@@ -2311,7 +2311,7 @@
     },
     {
       "expect": {
-        "text": "270 lb × 5"
+        "text": "270 lb \u00d7 5"
       }
     },
     {
@@ -2338,7 +2338,7 @@
     },
     {
       "tap": {
-        "text": "Log 255 lb × 5"
+        "text": "Log 255 lb \u00d7 5"
       }
     },
     {
@@ -2346,7 +2346,7 @@
     },
     {
       "expect": {
-        "text": "185 lb × 6"
+        "text": "185 lb \u00d7 6"
       }
     },
     {
@@ -2354,7 +2354,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -2367,7 +2367,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
@@ -2380,12 +2380,12 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 6"
+        "text": "Log 185 lb \u00d7 6"
       }
     },
     {
       "expect": {
-        "text": "40 lb × 15"
+        "text": "40 lb \u00d7 15"
       }
     },
     {
@@ -2393,7 +2393,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -2406,7 +2406,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 15"
+        "text": "Log 40 lb \u00d7 15"
       }
     },
     {
@@ -2480,7 +2480,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day C"
+        "text": "4-day upper/lower \u00b7 Day C"
       }
     },
     {
@@ -2668,7 +2668,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -2703,7 +2703,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -2738,7 +2738,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -2756,7 +2756,7 @@
     },
     {
       "expect": {
-        "text": "150 lb × 8"
+        "text": "150 lb \u00d7 8"
       }
     },
     {
@@ -2764,7 +2764,7 @@
     },
     {
       "tap": {
-        "text": "Log 150 lb × 8"
+        "text": "Log 150 lb \u00d7 8"
       }
     },
     {
@@ -2777,7 +2777,7 @@
     },
     {
       "tap": {
-        "text": "Log 150 lb × 8"
+        "text": "Log 150 lb \u00d7 8"
       }
     },
     {
@@ -2806,7 +2806,7 @@
     },
     {
       "tap": {
-        "text": "Log 150 lb × 7"
+        "text": "Log 150 lb \u00d7 7"
       }
     },
     {
@@ -2814,7 +2814,7 @@
     },
     {
       "expect": {
-        "text": "50 lb × 11"
+        "text": "50 lb \u00d7 11"
       }
     },
     {
@@ -2822,7 +2822,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 11"
+        "text": "Log 50 lb \u00d7 11"
       }
     },
     {
@@ -2835,7 +2835,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 11"
+        "text": "Log 50 lb \u00d7 11"
       }
     },
     {
@@ -2848,12 +2848,12 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb × 11"
+        "text": "Log 50 lb \u00d7 11"
       }
     },
     {
       "expect": {
-        "text": "25 lb × 11"
+        "text": "25 lb \u00d7 11"
       }
     },
     {
@@ -2861,7 +2861,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 11"
+        "text": "Log 25 lb \u00d7 11"
       }
     },
     {
@@ -2874,7 +2874,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 11"
+        "text": "Log 25 lb \u00d7 11"
       }
     },
     {
@@ -2923,7 +2923,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -3077,7 +3077,7 @@
     },
     {
       "expect": {
-        "text": "220 lb × 5"
+        "text": "220 lb \u00d7 5"
       }
     },
     {
@@ -3085,7 +3085,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -3103,7 +3103,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -3132,7 +3132,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -3140,7 +3140,7 @@
     },
     {
       "expect": {
-        "text": "135 lb × 10"
+        "text": "135 lb \u00d7 10"
       }
     },
     {
@@ -3148,7 +3148,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 10"
+        "text": "Log 135 lb \u00d7 10"
       }
     },
     {
@@ -3161,7 +3161,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 10"
+        "text": "Log 135 lb \u00d7 10"
       }
     },
     {
@@ -3174,12 +3174,12 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 10"
+        "text": "Log 135 lb \u00d7 10"
       }
     },
     {
       "expect": {
-        "text": "25 lb × 10"
+        "text": "25 lb \u00d7 10"
       }
     },
     {
@@ -3187,7 +3187,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 10"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
@@ -3200,7 +3200,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 10"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
@@ -3295,15 +3295,494 @@
       "checkpoint": "reopen-last-monday-missed-rep-and-bad-sleep-note"
     },
     {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "advance": "23h5m"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "175"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
       "back": true
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 175 lb \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 2 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 175 lb \u00d7 4"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 3 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 175 lb \u00d7 4"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Row, set 1 of 3"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Row, set 2 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Row, set 3 of 3"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Pull-Up / Chin-Up, set 1 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov24-leaving-after-six-sets-with-accessories-unlogged"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench175:5,4,4; four-minute rests. Rows115x10x3. Left to pick up my kid. No pull-ups, raises or walk. Repeat175."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h29m"
+    },
+    {
+      "checkpoint": "nov26-thanksgiving-skip-no-workout-started"
+    },
+    {
+      "advance": "2d"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day C"
+      }
+    },
+    {
+      "checkpoint": "nov28-check-temporary-press-reverted-and-bench150-after-miss"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Incline DB Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 4"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Overhead Press (Barbell), set 2 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 85 lb \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Overhead Press (Barbell), set 3 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 85 lb \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "nov28-press90x4-then85x5-and85x5"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 2 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 3 of 3"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 150 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 1 of 3"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 2 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 3 of 3"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 50 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Incline DB Curl, set 1 of 2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Incline DB Curl, set 2 of 2"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day C"
+      }
+    },
+    {
+      "checkpoint": "nov28-complete-recap-mixed-press-and-successful-repeat-bench"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Press90x4 felt wrong; backed off85x5,5. Bench150x8x3. Rows50x12 each arm, curls25x12x2 per hand. No jog: cold rain."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
     },
     {
       "tap": {
         "text": "Trends and calendar"
       }
-    },
-    {
-      "checkpoint": "third-week-trends-with-nine-sessions"
     },
     {
       "swipe": {
@@ -3312,10 +3791,7 @@
       }
     },
     {
-      "checkpoint": "third-week-trends-after-scroll-for-lift-results-and-calendar"
-    },
-    {
-      "back": true
+      "checkpoint": "nov28-scrolled-trends-and-calendar"
     },
     {
       "tap": {
@@ -3329,15 +3805,9 @@
       }
     },
     {
-      "checkpoint": "settings-looking-for-backup-and-export"
-    },
-    {
       "scrollTo": {
         "text": "Reset to defaults"
       }
-    },
-    {
-      "checkpoint": "settings-bottom-for-backup-and-export"
     },
     {
       "swipe": {

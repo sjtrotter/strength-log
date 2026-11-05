@@ -84,7 +84,7 @@
     },
     {
       "tap": {
-        "text": "Intervals 5 × 2:00"
+        "text": "Intervals 5 \u00d7 2:00"
       }
     },
     {
@@ -106,7 +106,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -548,7 +548,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -556,7 +556,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -603,7 +603,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 8"
+        "text": "Log 20 lb \u00d7 8"
       }
     },
     {
@@ -611,7 +611,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 8"
+        "text": "Log 20 lb \u00d7 8"
       }
     },
     {
@@ -725,7 +725,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -733,7 +733,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -760,7 +760,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 8"
+        "text": "Log 40 lb \u00d7 8"
       }
     },
     {
@@ -789,7 +789,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 10"
+        "text": "Log 15 lb \u00d7 10"
       }
     },
     {
@@ -797,7 +797,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 10"
+        "text": "Log 15 lb \u00d7 10"
       }
     },
     {
@@ -929,7 +929,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -959,7 +959,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -989,7 +989,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1039,7 +1039,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 9"
+        "text": "Log 30 lb \u00d7 9"
       }
     },
     {
@@ -1063,7 +1063,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 9"
+        "text": "Log 30 lb \u00d7 9"
       }
     },
     {
@@ -1087,7 +1087,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 9"
+        "text": "Log 30 lb \u00d7 9"
       }
     },
     {
@@ -1109,7 +1109,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -1117,7 +1117,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -1183,7 +1183,7 @@
     },
     {
       "tap": {
-        "text": "Finish"
+        "text": "Finish day A"
       }
     },
     {
@@ -1259,6 +1259,26 @@
       "checkpoint": "week-two-today-after-skipped-friday"
     },
     {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Reset to defaults",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "week-two-settings-lower-options-export-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "week-two-return-from-settings"
+    },
+    {
       "advance": "33h30m"
     },
     {
@@ -1323,7 +1343,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1347,7 +1367,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1371,7 +1391,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1398,7 +1418,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1422,7 +1442,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1446,7 +1466,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1457,7 +1477,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -1465,7 +1485,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb × 8"
+        "text": "Log 15 lb \u00d7 8"
       }
     },
     {
@@ -1495,7 +1515,7 @@
     },
     {
       "tap": {
-        "text": "Finish"
+        "text": "Finish day A"
       }
     },
     {
@@ -1555,8 +1575,109 @@
       "checkpoint": "nov27-different-gym-short-session-start"
     },
     {
+      "advance": "5m"
+    },
+    {
       "tap": {
         "desc": "Day B lifts, 0 of 24 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "checkpoint": "nov27-step-up-last-time-and-offer"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov27-single-leg-rdl-offer-after-stepups"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "nov27-read-back-rack-balance-note"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "25min today, different gym. Curl occupied: floor bridges2x15 BW. Calf45x12 once; no Pallof."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "nov27-four-set-session-note-saved-before-rdl"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "nov27-four-actual-sets-before-bridge-swap"
+    },
+    {
+      "note": "11 minutes elapsed of 25. Four actual sets logged:Step-Up15x8x2,Single-LegRDL20x8x2. Bridges and one calf set still unentered; no Pallof performed."
+    },
+    {
+      "checkpoint": "nov27-partial-session-remains-open"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 4 of 24 sets"
       }
     },
     {
@@ -1594,7 +1715,7 @@
       "checkpoint": "nov27-today-only-bridge-swap-choices"
     },
     {
-      "note": "Nov27:25minutes available; occupied curl machine, actual BW floorbridges2x15 TODAY ONLY, stepups15x8x2 and singlelegRDL20x8x2, seatedcalf45x12 once, noPallof. Nothing logged yet. Inspect swap choices; do not log bridges as curls or permanently replace curl. Need finish partial session, easier week4, history/notes/export."
+      "note": "Nov27:11 of25minutes elapsed; Step-Up15x8x2 and Single-LegRDL20x8x2 logged. Still need actual BW floorbridges2x15 TODAY ONLY and seatedcalf45x12 once, noPallof. Inspect swap choices; never log bridges as curls. Finish short session after remaining14min, then easier week4 and history/export."
     }
   ]
 }

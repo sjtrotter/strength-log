@@ -1469,16 +1469,14 @@
     },
     {
       "tap": {
-        "text": "Goblet Squat"
+        "desc": "Goblet Squat. 35 pounds: 8 and 6 reps. 30 pounds: 8 reps."
       }
     },
     {
       "checkpoint": "saved-squat-set-detail-before-sharing"
     },
     {
-      "tap": {
-        "text": "Goblet Squat"
-      }
+      "note": "Read expanded squat details, then share directly; no need to collapse the row."
     },
     {
       "tap": {
@@ -1582,12 +1580,10 @@
       "back": true
     },
     {
-      "checkpoint": "standalone-c1-preview-after-removing-core"
+      "checkpoint": "c1-screen-after-closing-editor-check-active-run-controls"
     },
     {
-      "tap": {
-        "text": "Start day C1"
-      }
+      "note": "Edit day previously opened the workout beneath its sheet. Read the visible C1 screen rather than assuming a second Start day C1 button exists."
     },
     {
       "checkpoint": "tuesday-easy-run-live-controls"

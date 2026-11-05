@@ -926,6 +926,9 @@
    "checkpoint": "wed-pulldown"
   },
   {
+   "note": "it wants 130 on the pulldown. No. 70."
+  },
+  {
    "tap": {
     "desc": "Edit set 1"
    }
@@ -949,6 +952,47 @@
   },
   {
    "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
   },
   {
    "tap": {
@@ -1004,6 +1048,11 @@
    }
   },
   {
+   "tap": {
+    "text": "End and log"
+   }
+  },
+  {
    "checkpoint": "cardio-ended"
   },
   {
@@ -1026,7 +1075,7 @@
   },
   {
    "tap": {
-    "textContains": "Barbell Bench Press",
+    "textContains": "Lat Pulldown",
     "role": "Button"
    }
   },

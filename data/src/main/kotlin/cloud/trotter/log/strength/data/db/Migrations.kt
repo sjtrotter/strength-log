@@ -462,6 +462,39 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
     }
 }
 
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE `workout_session_new` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `dayId` TEXT NOT NULL, " +
+                "`dayTitle` TEXT NOT NULL, `startedAt` INTEGER, `completedAt` INTEGER NOT NULL, " +
+                "`bodyweightLb` REAL, `planId` INTEGER, `planName` TEXT, `runId` TEXT, " +
+                "`plannedJson` TEXT, `note` TEXT NOT NULL)",
+        )
+        db.execSQL("INSERT INTO `workout_session_new` SELECT * FROM `workout_session`")
+        // Deleted sessions can leave the sequence above every surviving id.
+        db.execSQL(
+            "INSERT INTO sqlite_sequence(name, seq) " +
+                "SELECT 'workout_session_new', old.seq FROM sqlite_sequence AS old " +
+                "WHERE old.name = 'workout_session' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'workout_session_new')",
+        )
+        db.execSQL(
+            "UPDATE sqlite_sequence SET seq = " +
+                "(SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'workout_session') " +
+                "WHERE name = 'workout_session_new' " +
+                "AND seq < (SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'workout_session')",
+        )
+        db.execSQL(
+            "DELETE FROM sqlite_sequence WHERE name = 'workout_session_new' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'workout_session')",
+        )
+        db.execSQL("DROP TABLE `workout_session`")
+        db.execSQL("ALTER TABLE `workout_session_new` RENAME TO `workout_session`")
+        db.execSQL("CREATE UNIQUE INDEX `index_workout_session_runId` ON `workout_session` (`runId`)")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

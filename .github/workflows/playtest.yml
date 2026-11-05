@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        script: ${{ github.event_name == 'pull_request' && fromJSON('["playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json"]') || fromJSON(format('["{0}"]', inputs.script)) }}
+        script: ${{ github.event_name == 'pull_request' && fromJSON('["playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json","playtest/pilot/zero-size-tap.json","playtest/pilot/dropdown-tap.json","playtest/pilot/advance-tap.json"]') || fromJSON(format('["{0}"]', inputs.script)) }}
     steps:
       - uses: actions/checkout@v4
 

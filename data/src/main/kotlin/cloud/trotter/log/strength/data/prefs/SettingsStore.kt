@@ -35,8 +35,13 @@ import kotlinx.serialization.json.Json
  */
 class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
+    val hasLifterAnswersFlow: Flow<Boolean> = dataStore.data.map {
+        it[Keys.BODYWEIGHT_TENTHS_LB] != null || it[Keys.BODYWEIGHT] != null || it[Keys.AGE] != null
+    }
+
     private object Keys {
         val BODYWEIGHT = intPreferencesKey("bodyweight")
+        val BODYWEIGHT_TENTHS_LB = longPreferencesKey("bodyweight_tenths_lb")
         val AGE = intPreferencesKey("age")
         val LEVEL = stringPreferencesKey("level")
         // Pre-plan storage, read only by the plan-settings fixup.
@@ -469,7 +474,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     // --- read/write helpers --------------------------------------------------
 
     private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
-        bodyweightLb = this[Keys.BODYWEIGHT] ?: DEFAULT_CONFIG.bodyweightLb,
+        bodyweightLb = this[Keys.BODYWEIGHT_TENTHS_LB]?.div(10.0)
+            ?: this[Keys.BODYWEIGHT]?.toDouble() ?: DEFAULT_CONFIG.bodyweightLb,
         age = this[Keys.AGE] ?: DEFAULT_CONFIG.age,
         level = enum(Keys.LEVEL, DEFAULT_CONFIG.level),
         weightUnit = enum(Keys.WEIGHT_UNIT, WeightUnit.LB),
@@ -479,7 +485,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         readGlobalLifter().toConfig().copy(emphasis = enum(Keys.EMPHASIS, DEFAULT_CONFIG.emphasis))
 
     private fun androidx.datastore.preferences.core.MutablePreferences.writeGlobalLifter(global: GlobalLifter) {
-        this[Keys.BODYWEIGHT] = global.bodyweightLb
+        this[Keys.BODYWEIGHT_TENTHS_LB] = Math.round(global.bodyweightLb * 10.0)
+        remove(Keys.BODYWEIGHT)
         this[Keys.AGE] = global.age
         this[Keys.LEVEL] = global.level.name
     }

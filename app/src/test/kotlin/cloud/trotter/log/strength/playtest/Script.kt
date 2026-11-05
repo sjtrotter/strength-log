@@ -72,6 +72,19 @@ internal data class Step(
     val timeoutMs: Long,
     val json: JsonObject,
 ) {
+    val expectedError: String? get() = (json["expectError"] as? JsonPrimitive)?.content
+
+    fun assertExpectedError(block: () -> Unit) {
+        val expected = expectedError
+        try {
+            block()
+        } catch (error: PlaytestError) {
+            if (expected != null && error.kind == expected) return
+            throw error
+        }
+        if (expected != null) throw PlaytestError("script", "Expected $expected, but $action succeeded")
+    }
+
     val slug: String get() {
         val target = when (action) {
             "checkpoint" -> (payload as JsonPrimitive).content
@@ -87,9 +100,13 @@ internal data class Step(
 
         fun parse(value: JsonElement): Step {
             val step = value.objectValue("step")
-            val actionKeys = step.keys - "timeoutMs"
-            scriptCheck(actionKeys.size == 1 && actionKeys.single() in actions, "Each step must contain exactly one known action and optional timeoutMs")
+            val actionKeys = step.keys - setOf("timeoutMs", "expectError")
+            scriptCheck(actionKeys.size == 1 && actionKeys.single() in actions, "Each step must contain exactly one known action and optional timeoutMs or expectError")
             val action = actionKeys.single()
+            if ("expectError" in step) {
+                scriptCheck(action in setOf("tap", "longPress") && step.string("expectError") == "not-visible",
+                    "expectError supports not-visible on tap or longPress")
+            }
             val timeoutMs = if ("timeoutMs" in step) {
                 (step["timeoutMs"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull
                     ?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1_000_000 }

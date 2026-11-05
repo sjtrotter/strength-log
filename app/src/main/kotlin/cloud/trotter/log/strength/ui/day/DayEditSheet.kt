@@ -86,6 +86,7 @@ import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.AppSheetLayout
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.Surface2
@@ -891,6 +892,7 @@ private fun SwapPickerPage(
             onPick = { pickedId = it.id },
             onBack = onBack,
             onCreateExercise = onCreateExercise,
+            allCandidates = state.catalog.entries.filter { it.id != slot.exerciseId },
         )
     }
 }
@@ -944,8 +946,10 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
     onPick: (ExerciseEntry) -> Unit,
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
+    allCandidates: List<ExerciseEntry>? = null,
 ) {
     var query by rememberSaveable(key) { mutableStateOf("") }
+    var searchAll by rememberSaveable(key) { mutableStateOf(false) }
     var equipmentFilter by rememberSaveable(
         key,
         stateSaver = listSaver(
@@ -955,9 +959,10 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
             restore = { names -> names.mapNotNullTo(mutableSetOf()) { n -> Equipment.entries.find { it.name == n } } },
         ),
     ) { mutableStateOf(defaultEquipment) }
-    val allEquipment = remember(candidates) { candidates.flatMap { it.equipment }.distinct() }
-    val results = remember(candidates, query, equipmentFilter) {
-        ExercisePicker.filter(candidates, query, equipmentFilter)
+    val searchCandidates = if (searchAll && allCandidates != null) allCandidates else candidates
+    val allEquipment = remember(searchCandidates) { searchCandidates.flatMap { it.equipment }.distinct() }
+    val results = remember(searchCandidates, query, equipmentFilter) {
+        ExercisePicker.filter(searchCandidates, query, equipmentFilter)
     }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(horizontal = 16.dp),
@@ -976,6 +981,9 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
             if (results.isEmpty()) item {
                 Column(Modifier.padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.sheet_no_matching_exercises), style = MaterialTheme.typography.bodyMedium)
+                    if (allCandidates != null && !searchAll) TextButton(onClick = { searchAll = true }) {
+                        Text(stringResource(R.string.sheet_search_all_exercises))
+                    }
                     if (!equipmentFilter.containsAll(allEquipment)) TextButton(onClick = { equipmentFilter = allEquipment.toSet() }) {
                         Text(stringResource(R.string.sheet_clear_filters))
                     }
@@ -1060,29 +1068,6 @@ private fun ResetToTemplateDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
 }
 
 // --- small pieces --------------------------------------------------------------
-
-@Composable
-private fun patternLabel(pattern: MovementPattern): String = stringResource(when (pattern) {
-    MovementPattern.SQUAT_BILATERAL -> R.string.day_edit_pattern_squat_bilateral
-    MovementPattern.SINGLE_LEG -> R.string.day_edit_pattern_single_leg
-    MovementPattern.HINGE -> R.string.day_edit_pattern_hinge
-    MovementPattern.KNEE_FLEXION -> R.string.day_edit_pattern_knee_flexion
-    MovementPattern.KNEE_EXTENSION -> R.string.day_edit_pattern_knee_extension
-    MovementPattern.H_PUSH -> R.string.day_edit_pattern_horizontal_push
-    MovementPattern.V_PUSH -> R.string.day_edit_pattern_vertical_push
-    MovementPattern.H_PULL -> R.string.day_edit_pattern_horizontal_pull
-    MovementPattern.V_PULL -> R.string.day_edit_pattern_vertical_pull
-    MovementPattern.SIDE_DELT -> R.string.day_edit_pattern_side_delt
-    MovementPattern.REAR_DELT -> R.string.day_edit_pattern_rear_delt
-    MovementPattern.BICEPS -> R.string.day_edit_pattern_biceps
-    MovementPattern.TRICEPS -> R.string.day_edit_pattern_triceps
-    MovementPattern.CALF_GASTROC -> R.string.day_edit_pattern_calf_gastroc
-    MovementPattern.CALF_SOLEUS -> R.string.day_edit_pattern_calf_soleus
-    MovementPattern.CORE_ANTI_EXT -> R.string.day_edit_pattern_core_anti_ext
-    MovementPattern.CORE_ANTI_ROT -> R.string.day_edit_pattern_core_anti_rot
-    MovementPattern.CORE_FLEX -> R.string.day_edit_pattern_core_flex
-    MovementPattern.CARDIO -> R.string.day_edit_pattern_cardio
-})
 
 private fun equipmentLabel(equipment: Equipment): String = enumLabel(equipment.name)
 

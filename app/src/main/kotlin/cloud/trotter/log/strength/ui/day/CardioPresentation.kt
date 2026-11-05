@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.cardio.cardioActivityLabel
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -22,6 +23,8 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import java.time.Instant
+import java.time.ZoneId
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
 internal fun activityLabel(activity: CardioActivity): String =
@@ -68,6 +71,16 @@ internal fun formatCardioTime(seconds: Int): String = ClockText.minutesSeconds(s
 internal fun CardioBlock.plannedTimeDetail(): String {
     if (sets.any { it.end !is Measure.Time }) return ""
     return formatCardioTime(sets.sumOf { (it.end as Measure.Time).seconds })
+}
+
+/** The day's cardio session committed on the civil day of [nowMillis]: what the day screen shows as logged. */
+internal fun List<CardioSessionEntity>.loggedToday(planId: Long?, dayId: String?, nowMillis: Long): CardioSessionEntity? {
+    val zone = ZoneId.systemDefault()
+    val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+    return firstOrNull {
+        it.planId == planId && it.dayId == dayId &&
+            Instant.ofEpochMilli(it.completedAt).atZone(zone).toLocalDate() == today
+    }
 }
 
 @Composable

@@ -38,7 +38,7 @@ internal fun resolveNumberCommit(
  */
 @Composable
 fun NumberField(
-    value: Double,
+    value: Double?,
     onValueChange: (Double) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
@@ -49,8 +49,9 @@ fun NumberField(
     decimalInput: Boolean = false,
     weightInput: Boolean = false,
     onValidityChange: (Boolean) -> Unit = {},
+    onDraftChange: (Double?) -> Unit = {},
 ) {
-    var draft by rememberSaveable(label) { mutableStateOf(format(value)) }
+    var draft by rememberSaveable(label) { mutableStateOf(value?.let(format).orEmpty()) }
     var dirty by rememberSaveable(label) { mutableStateOf(false) }
     var pendingCommit by rememberSaveable(label) { mutableStateOf<Double?>(null) }
     var focused by remember { mutableStateOf(false) }
@@ -68,7 +69,7 @@ fun NumberField(
             seenValue = value
             pendingCommit = null
         }
-        if (!dirty && pendingCommit == null && !focused) draft = format(value)
+        if (!dirty && pendingCommit == null && !focused) draft = value?.let(format).orEmpty()
     }
     val rangeError = if (maxValue.isFinite()) {
         stringResource(if (weightInput) R.string.form_weight_range else R.string.form_number_range,
@@ -87,7 +88,11 @@ fun NumberField(
     }
     OutlinedTextField(
         value = draft,
-        onValueChange = { draft = it; dirty = true },
+        onValueChange = {
+            draft = it
+            dirty = true
+            onDraftChange(resolveNumberCommit(it, minValue, maxValue, round))
+        },
         label = { Text(label) },
         modifier = modifier.fillMaxWidth().onFocusChanged {
             if (focused && !it.isFocused) commit()

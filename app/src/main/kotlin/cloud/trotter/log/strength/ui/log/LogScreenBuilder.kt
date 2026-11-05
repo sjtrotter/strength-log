@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
@@ -43,8 +44,8 @@ object LogScreenBuilder {
     /** Bodyweight display in [unit], matching the day screen's own convention, or
      *  null for a session that recorded none (imported history): the row drops
      *  the line rather than printing a placeholder. */
-    fun bodyweightDisplay(bodyweightLb: Int?, unit: WeightUnit): String? =
-        bodyweightLb?.let { WeightStepper.format(unit.fromLb(it.toDouble())) }
+    fun bodyweightDisplay(bodyweightLb: Double?, unit: WeightUnit): String? =
+        bodyweightLb?.let { WeightStepper.format(Bodyweight.display(it, unit)) }
 
     fun cardioModeDisplay(session: CardioSessionEntity): String = when (session.decodedCardioMode()) {
         CardioMode.OUTDOOR_RUN -> "OUTDOOR RUN"

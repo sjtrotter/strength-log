@@ -90,7 +90,7 @@ data class DayUiState(
 
     val canFinish: Boolean = exercises.any { card ->
         card.rows.any { it.done || it.partner?.done == true }
-    } || retiredTracks.any { it.doneCount > 0 }
+    } || retiredTracks.any { it.doneCount > 0 } || cardio?.loggedSeconds != null
 
     val finishBlockedReason: WorkoutBlockedReason? get() =
         if (canFinish) null else WorkoutBlockedReason.NO_LOGGED_SETS

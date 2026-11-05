@@ -40,6 +40,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -271,6 +272,22 @@ class ReceiptScreenTest {
         assertEquals(1, finishes)
         pressBack()
         assertEquals(2, finishes)
+    }
+
+    @Test
+    fun aMixedReceiptListsTheLiftsThenTheCardioAndKeepsNoteAndShare() {
+        setReceipt(receiptFixture().copy(activity = CardioActivity.ROAD_RUN, cardioRows = timeTargetFixture().cardioRows))
+        rule.onNodeWithText("Squat focus, saved.").assertExists()
+        val lift = rule.onNodeWithText("Barbell Back Squat", useUnmergedTree = true)
+        val cardio = rule.onNodeWithText("Road run", useUnmergedTree = true)
+        lift.assertExists()
+        cardio.assertExists()
+        assertTrue(lift.fetchSemanticsNode().positionInRoot.y < cardio.fetchSemanticsNode().positionInRoot.y)
+        listOf("30:00", "Distance", "5,210 m").forEach {
+            rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
+        }
+        rule.onNodeWithText("Add a note").assertExists()
+        rule.onNodeWithContentDescription("Share").assertExists()
     }
 
     @Test

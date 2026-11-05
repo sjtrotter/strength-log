@@ -123,6 +123,7 @@ internal class DayEditor(
         savedState[KEY_DAY_EDITOR_OPEN] = open
         if (!open) {
             discardPrescription()
+            savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
             savedState[KEY_CARDIO_DRAFT] = null
         }
     }
@@ -131,6 +132,7 @@ internal class DayEditor(
         val state = dayEditState.value
         val plan = state.planId ?: return
         val day = state.dayId ?: return
+        savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
         savedState[KEY_CARDIO_DRAFT] = state.cardioBlock?.let { CardioBlockDraft.from(plan, day, it) }
             ?: CardioBlockDraft.new(plan, day)
     }
@@ -140,12 +142,22 @@ internal class DayEditor(
         if (draft.planId != current.planId || draft.dayId != current.dayId) return
         draft.block() // Validate before keeping a draft that a later Save will commit.
         require(draft.editingSet == null || draft.editingSet in draft.sets.indices)
+        if (current.editingSet == null && draft.editingSet != null) {
+            savedState[KEY_CARDIO_SET_BEFORE_EDIT] = draft.sets[draft.editingSet]
+        }
         savedState[KEY_CARDIO_DRAFT] = draft
     }
 
     fun backCardioBlock() {
         val draft = cardioDraft.value ?: return
-        savedState[KEY_CARDIO_DRAFT] = if (draft.editingSet != null) draft.copy(editingSet = null) else null
+        val editing = draft.editingSet
+        val before = savedState.get<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
+        savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
+        savedState[KEY_CARDIO_DRAFT] = when {
+            editing == null -> null
+            before == null -> draft.copy(editingSet = null)
+            else -> draft.copy(editingSet = null, sets = draft.sets.mapIndexed { index, set -> if (index == editing) before else set })
+        }
     }
 
     /** Both set-page Save and block-page Save commit immediately to the owning day. */
@@ -154,6 +166,7 @@ internal class DayEditor(
         mutate {
             repo.setCardioBlock(draft.planId, draft.dayId, draft.block())
             if (cardioDraft.value == draft) {
+                savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
                 savedState[KEY_CARDIO_DRAFT] = if (draft.editingSet != null) draft.copy(editingSet = null) else null
             }
         }
@@ -377,6 +390,7 @@ internal class DayEditor(
 
     private companion object {
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
+        const val KEY_CARDIO_SET_BEFORE_EDIT = "day_cardio_set_before_edit"
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_PENDING_PLAN_SWAP = "day_pending_plan_swap"

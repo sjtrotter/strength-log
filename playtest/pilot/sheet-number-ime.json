@@ -127,6 +127,11 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Ez Bar"
+      }
+    },
+    {
       "tap": {
         "text": "Ez Bar"
       }

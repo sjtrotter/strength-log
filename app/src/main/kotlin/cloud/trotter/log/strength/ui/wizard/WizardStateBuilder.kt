@@ -40,6 +40,9 @@ object WizardStateBuilder {
         previewProgram: Program? = null,
         finishError: UiText? = null,
         finishInFlight: Boolean = false,
+        initialized: Boolean = true,
+        bodyweightLb: Double? = null,
+        age: Int? = null,
     ): WizardUiState {
         val clamped = stepIndex.coerceIn(0, WizardStep.entries.lastIndex)
         return WizardUiState(
@@ -54,6 +57,9 @@ object WizardStateBuilder {
             restore = restore,
             finishError = finishError,
             finishInFlight = finishInFlight,
+            initialized = initialized,
+            bodyweightLb = bodyweightLb,
+            age = age,
         )
     }
 }

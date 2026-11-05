@@ -30,5 +30,5 @@ data class BodyweightPromptData(
     /** Latest bodyweight from Health Connect, canonical pounds. */
     val healthConnectLb: Double,
     /** The app's current configured bodyweight, pounds. */
-    val currentConfigLb: Int,
+    val currentConfigLb: Double,
 )

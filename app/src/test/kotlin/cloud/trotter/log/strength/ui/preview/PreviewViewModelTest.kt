@@ -44,14 +44,14 @@ class PreviewViewModelTest : OverviewFixture() {
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
         assertTrue(vm.uiState.value.lifts.single().previous.single().comparable)
 
-        val weightedSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 1000, 235, planId = plan))
+        val weightedSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 1000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, weightedSession, "plank", "Plank", Slot.MAIN, 0,
             SetKind.WORK.name, 235.0, 5, true)))
         advanceUntilIdle()
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
         assertFalse(vm.uiState.value.lifts.single().previous.single().comparable)
 
-        val holdSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 2000, 235, planId = plan))
+        val holdSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 2000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, holdSession, "plank", "Plank", Slot.MAIN, 0,
             SetKind.WORK.name, 0.0, 0, true, seconds = 45)))
         advanceUntilIdle()
@@ -147,7 +147,7 @@ class PreviewViewModelTest : OverviewFixture() {
         assertEquals("Hack Squat", vm.uiState.value.lifts.single().name)
         assertEquals("180 lb × 8", vm.uiState.value.lifts.single().working)
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
-        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235, planId = plan))
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "hack_squat", "Hack Squat", Slot.MAIN, 0,
             SetKind.WORK.name, 170.0, 9, true)))
         advanceUntilIdle()
@@ -174,7 +174,7 @@ class PreviewViewModelTest : OverviewFixture() {
     @Test fun supersetKeepsMainHistoryWhenPartnerHasNoHistory() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235, planId = plan))
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "ez_curl", "EZ-Bar Curl", Slot.MAIN, 0,
             SetKind.WORK.name, 50.0, 10, true)))
         val vm = preview(plan, "B")
@@ -193,7 +193,7 @@ class PreviewViewModelTest : OverviewFixture() {
     @Test fun supersetKeepsMainHistoryWhenPartnerHistoryHasMismatchedTracking() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235, planId = plan))
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(
             SessionSetEntity(0, session, "ez_curl", "EZ-Bar Curl", Slot.MAIN, 0, SetKind.WORK.name, 50.0, 10, true),
             SessionSetEntity(0, session, "rope_pushdown", "Rope Pushdown", Slot.SS, 0, SetKind.WORK.name,

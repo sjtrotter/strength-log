@@ -124,7 +124,7 @@ class TrackerRepositoryRunEditsTest {
     ) {
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "B", dayTitle = "Day B", startedAt = null,
-            completedAt = completedAt, bodyweightLb = 235, planId = planId,
+            completedAt = completedAt, bodyweightLb = 235.0, planId = planId,
         ))
         db.sessionDao().insertSets(listOf(SessionSetEntity(
             id = 0, sessionId = session, exerciseId = exerciseId, exerciseName = exerciseId,

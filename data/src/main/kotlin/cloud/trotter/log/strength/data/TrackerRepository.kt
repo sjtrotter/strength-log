@@ -1392,7 +1392,7 @@ class TrackerRepository(
     private suspend fun archiveRun(
         run: WorkoutRunEntity,
         tracks: List<RunTrackEntity>,
-        bodyweight: Int,
+        bodyweight: Double,
         catalog: ExerciseCatalog,
         now: Long,
     ): Long {
@@ -1480,7 +1480,7 @@ class TrackerRepository(
         true
     }
 
-    private suspend fun closeRemovedRun(planId: Long, dayIds: Set<String>, bodyweight: Int, catalog: ExerciseCatalog) {
+    private suspend fun closeRemovedRun(planId: Long, dayIds: Set<String>, bodyweight: Double, catalog: ExerciseCatalog) {
         val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId in dayIds } ?: return
         val tracks = runDao.tracks(run.id)
         if (tracks.any { track -> SetJson.decodeSets(track.setsJson).any { it.done } }) {

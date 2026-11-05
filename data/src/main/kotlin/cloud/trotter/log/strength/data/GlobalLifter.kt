@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 data class GlobalLifter(
-    val bodyweightLb: Int = LifterConfig().bodyweightLb,
+    val bodyweightLb: Double = LifterConfig().bodyweightLb,
     val age: Int = LifterConfig().age,
     val level: ExperienceLevel = LifterConfig().level,
     val weightUnit: WeightUnit = WeightUnit.LB,

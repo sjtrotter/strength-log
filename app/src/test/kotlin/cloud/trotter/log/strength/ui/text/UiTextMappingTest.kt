@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.Rule
@@ -95,5 +96,35 @@ class UiTextMappingTest {
     @Test
     fun widget_default_resource_is_the_only_copy() {
         assertEquals("Set up a plan", context.getString(R.string.widget_no_program))
+    }
+
+    @Test
+    fun every_movement_pattern_resolves_to_its_spelled_out_label() {
+        val expected = mapOf(
+            MovementPattern.SQUAT_BILATERAL to "Squat (bilateral)",
+            MovementPattern.SINGLE_LEG to "Single-leg",
+            MovementPattern.HINGE to "Hinge",
+            MovementPattern.KNEE_FLEXION to "Knee flexion (leg curl)",
+            MovementPattern.KNEE_EXTENSION to "Knee extension (leg extension)",
+            MovementPattern.H_PUSH to "Horizontal push",
+            MovementPattern.V_PUSH to "Vertical push",
+            MovementPattern.H_PULL to "Horizontal pull",
+            MovementPattern.V_PULL to "Vertical pull",
+            MovementPattern.SIDE_DELT to "Side deltoid",
+            MovementPattern.REAR_DELT to "Rear deltoid",
+            MovementPattern.BICEPS to "Biceps",
+            MovementPattern.TRICEPS to "Triceps",
+            MovementPattern.CALF_GASTROC to "Calf: gastrocnemius",
+            MovementPattern.CALF_SOLEUS to "Calf: soleus",
+            MovementPattern.CORE_ANTI_EXT to "Core: anti-extension",
+            MovementPattern.CORE_ANTI_ROT to "Core: anti-rotation",
+            MovementPattern.CORE_FLEX to "Core: flexion",
+            MovementPattern.CARDIO to "Cardio",
+        )
+        assertEquals(MovementPattern.entries.toSet(), expected.keys)
+        lateinit var actual: List<String>
+        composeTestRule.setContent { actual = expected.keys.map { patternLabel(it) } }
+        composeTestRule.waitForIdle()
+        assertEquals(expected.values.toList(), actual)
     }
 }

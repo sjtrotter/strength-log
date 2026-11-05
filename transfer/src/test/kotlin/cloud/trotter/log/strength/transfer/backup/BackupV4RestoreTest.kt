@@ -34,13 +34,13 @@ class BackupV4RestoreTest {
     fun `it restores into a snapshot carrying the absence, not a zero`() {
         val snapshot = codec.decode(v4Json()).toSnapshot()
         assertNull(snapshot.sessions.first { it.id == 2L }.bodyweightLb)
-        assertEquals(235, snapshot.sessions.first { it.id == 1L }.bodyweightLb)
+        assertEquals(235.0, snapshot.sessions.first { it.id == 1L }.bodyweightLb)
     }
 
     @Test
     fun `everything else in the v4 document is preserved`() {
         val snapshot = codec.decode(v4Json()).toSnapshot()
-        assertEquals(235, snapshot.answers.config.bodyweightLb)
+        assertEquals(235.0, snapshot.answers.config.bodyweightLb)
         assertEquals("A", snapshot.suggestedDay)
         assertTrue(snapshot.keepScreenOn)
         assertEquals(1500L, snapshot.sessions.first { it.id == 1L }.startedAt)

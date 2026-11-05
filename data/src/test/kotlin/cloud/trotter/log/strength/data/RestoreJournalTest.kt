@@ -147,7 +147,7 @@ class RestoreJournalTest {
     )
 
     private suspend fun assertSettingsRestored() {
-        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertEquals(28, settings.globalLifterFlow.first().age)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue("the wizard flag is what keeps setup from reopening", settings.wizardCompleteFlow.first())
@@ -161,7 +161,7 @@ class RestoreJournalTest {
     }
 
     private suspend fun assertSettingsUntouched() {
-        assertEquals(LifterConfig().bodyweightLb, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(LifterConfig().bodyweightLb, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertFalse(settings.wizardCompleteFlow.first())
         assertNull(settings.legacySuggestedDayFlow.first())
         assertNull(settings.selectedPlanIdFlow.first())
@@ -251,8 +251,8 @@ class RestoreJournalTest {
     fun settingsFailureAfterTheCommit_preservesRoomNotesForBothSessions() = runTest {
         val restored = snapshot().copy(
             sessions = listOf(
-                WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190, note = "Easy first session"),
-                WorkoutSessionEntity(12, "R", "Restored", null, 2_000, 190, note = "Add weight next time"),
+                WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190.0, note = "Easy first session"),
+                WorkoutSessionEntity(12, "R", "Restored", null, 2_000, 190.0, note = "Add weight next time"),
             ),
         )
         settingsStore.failOnUpdate = 1
@@ -276,7 +276,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournalMovesItsNotesIntoRoomBeforeClearingTheMarker() = runTest {
         val restored = snapshot().copy(sessions = listOf(
-            WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190),
+            WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190.0),
         ))
         val nonce = "legacy-notes-journal"
         stagePreviousBuild(restored, nonce)
@@ -487,7 +487,7 @@ class RestoreJournalTest {
         val keys = journalStore.data.first().asMap().keys.map { it.name }.toSet()
         assertTrue(keys.intersect(LEGACY_PLAN_KEYS).isEmpty())
         assertTrue(backupRepository.reconcilePendingRestore(journal))
-        assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(205.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertEquals(plans, db.planDao().allPlans())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertTrue(settings.planSettingsFixupDoneFlow.first())
@@ -616,7 +616,7 @@ class RestoreJournalTest {
         backupRepository.importSnapshot(second, journal)
 
         assertEquals(listOf("S"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(205.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(backupRepository.reconcilePendingRestore(journal))
     }
@@ -628,7 +628,7 @@ class RestoreJournalTest {
         journalStore.edit { prefs ->
             prefs.clear()
             val answers = snapshot.answers
-            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb
+            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb.toInt()
             prefs[intPreferencesKey("age")] = answers.config.age
             prefs[stringPreferencesKey("level")] = answers.config.level.name
             prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name

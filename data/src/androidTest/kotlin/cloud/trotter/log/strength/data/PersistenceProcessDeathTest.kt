@@ -228,7 +228,7 @@ class PersistenceProcessDeathTest {
         val session = repository.history.sessionsFlow.first().single()
         assertEquals("A", session.dayId)
         assertEquals("Day A", session.dayTitle)
-        assertEquals(210, session.bodyweightLb) // from the wizard answers' config
+        assertEquals(210.0, session.bodyweightLb ?: Double.NaN, 0.0) // from the wizard answers' config
         assertTrue(session.completedAt > 0)
         val sessionSets = db.sessionDao().setsForSession(session.id)
         assertEquals(

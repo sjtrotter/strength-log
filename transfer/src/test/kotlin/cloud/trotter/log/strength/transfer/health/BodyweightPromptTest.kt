@@ -13,33 +13,33 @@ class BodyweightPromptTest {
 
     @Test
     fun noReading_noPrompt() {
-        assertNull(BodyweightPrompt.evaluate(latestWeightLb = null, configBodyweightLb = 180))
+        assertNull(BodyweightPrompt.evaluate(latestWeightLb = null, configBodyweightLb = 180.0))
     }
 
     @Test
     fun withinThreshold_noPrompt() {
-        // 180.4 rounds to the same pound the user already has configured.
-        assertNull(BodyweightPrompt.evaluate(latestWeightLb = 180.4, configBodyweightLb = 180))
+        // A change below the prompt threshold keeps the configured weight.
+        assertNull(BodyweightPrompt.evaluate(latestWeightLb = 180.4, configBodyweightLb = 180.0))
     }
 
     @Test
     fun meaningfulChange_prompts() {
-        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 187.6, configBodyweightLb = 180)
-        assertEquals(180, prompt?.currentConfigLb)
+        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 187.6, configBodyweightLb = 180.0)
+        assertEquals(180.0, prompt?.currentConfigLb)
         assertEquals(187.6, prompt?.healthConnectLb)
     }
 
     @Test
-    fun appliedValueRoundsToWholePound() {
-        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 187.6, configBodyweightLb = 180)!!
-        assertEquals(188, BodyweightPrompt.appliedBodyweightLb(prompt))
+    fun appliedValueKeepsTenthsOfAPound() {
+        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 187.6, configBodyweightLb = 180.0)!!
+        assertEquals(187.6, BodyweightPrompt.appliedBodyweightLb(prompt))
     }
 
     @Test
     fun neverAutoApplies_evaluateDoesNotReturnConfig() {
         // The decision surfaces the Health Connect value; it must NOT quietly
         // hand back the config value as if nothing changed.
-        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 165.0, configBodyweightLb = 180)!!
+        val prompt = BodyweightPrompt.evaluate(latestWeightLb = 165.0, configBodyweightLb = 180.0)!!
         assertEquals(165.0, prompt.healthConnectLb)
     }
 }

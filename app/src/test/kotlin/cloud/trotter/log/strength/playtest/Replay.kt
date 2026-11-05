@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.playtest
 import android.os.Looper
 import android.os.SystemClock
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -27,7 +28,6 @@ import androidx.test.espresso.Espresso
 import androidx.test.core.app.ActivityScenario
 import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.audit.dumpSemantics
-import cloud.trotter.log.strength.audit.writeShot
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -35,6 +35,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Duration
+import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlinx.coroutines.flow.first
@@ -102,6 +103,8 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
             put("error_class", errorClass)
             backupError?.let { put("backup_error", it) }
             put("clock_at_exit", time?.clock?.instant()?.toString())
+            put("clock_at_exit_local", time?.clock?.let { LocalDateTime.ofInstant(it.instant(), it.zone).toString() })
+            put("clock_zone", script?.start?.zone?.id)
             put("capture_from", captureFrom)
         }.toString() + "\n")
     }
@@ -115,6 +118,7 @@ internal class Replay(
     private val settings: SettingsStore,
     private val database: StrengthDatabase,
     private val artifacts: RunArtifacts,
+    private val crashes: AppCrashes,
 ) {
     private val selectors = Selectors(compose, compose.density.density)
     private var screen = "launch"
@@ -123,10 +127,12 @@ internal class Replay(
 
     fun run(script: Script) {
         try {
-            val deadline = StepDeadline(10_000)
-            deadline.run(compose) {
-                settle(deadline)
-                deadline.call { capture("000-launch", png = true) }
+            crashes.step(compose) {
+                val deadline = StepDeadline(20_000)
+                deadline.run(compose) {
+                    settle(deadline)
+                    deadline.call { capture("000-launch", png = true) }
+                }
             }
         } catch (error: Throwable) {
             captureFailure("000-FAILED-launch", error)
@@ -146,14 +152,22 @@ internal class Replay(
                 }
             }) {
                 try {
-                    if (step.action != "note") {
-                        deadline.run(compose) {
-                            perform(step, deadline)
-                            settle(deadline)
-                            if (index >= artifacts.captureFrom || step.action == "checkpoint") {
-                                deadline.call {
-                                    capture("%03d-%s".format(index, step.slug),
-                                        png = !script.checkpointsOnly || step.action == "checkpoint")
+                    crashes.step(compose) {
+                        if (step.action != "note") {
+                            deadline.run(compose) {
+                                step.assertExpectedError {
+                                    perform(step, deadline)
+                                    settle(deadline)
+                                    if (step.action == "advance") {
+                                        deadline.call { shadowOf(Looper.getMainLooper()).idle() }
+                                        settle(deadline)
+                                    }
+                                }
+                                if (index >= artifacts.captureFrom || step.action == "checkpoint") {
+                                    deadline.call {
+                                        capture("%03d-%s".format(index, step.slug),
+                                            png = !script.checkpointsOnly || step.action == "checkpoint")
+                                    }
                                 }
                             }
                         }
@@ -178,6 +192,7 @@ internal class Replay(
             put("ms", (System.nanoTime() - started) / 1_000_000)
             put("matches", lastMatches)
             put("screen", screen)
+            step.expectedError?.let { put("expected_error", it) }
             if (step.action == "note") put("note", step.payload)
             imeLog?.let { put("ime", it) }
         })
@@ -208,7 +223,10 @@ internal class Replay(
         val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true))
         val target = resolved.interaction
         val node = resolved.node
-        if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText)) {
+        if (step.action == "tap" || step.action == "longPress") {
+            requireAction(node.visibleForTouch(), "not-visible", "Node has empty or off-screen bounds; use scrollTo first")
+        }
+        if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText) && !node.dropdownAnchor()) {
             throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
         }
         when (step.action) {
@@ -385,7 +403,7 @@ internal class Replay(
 
     private fun capture(name: String, png: Boolean) {
         val file = File(artifacts.directory, "steps/$name.png")
-        if (png) compose.writeShot(file, compose.density.density) else {
+        if (png) compose.writePlaytestShot(file, compose.density.density) else {
             check(file.parentFile.mkdirs() || file.parentFile.isDirectory)
             File(file.parentFile, "$name.json").writeText(compose.dumpSemantics(compose.density.density))
         }
@@ -409,3 +427,14 @@ internal class Replay(
 private const val SCROLL_SETTLE_MS = 1_000L
 private const val MAX_SCROLL_MOVES = 20
 private const val MAX_LAZY_PAGES = 50
+
+internal fun SemanticsNode.dropdownAnchor(): Boolean =
+    !config.contains(SemanticsActions.SetText) && config.contains(SemanticsActions.OnClick) &&
+        (config.getOrNull(SemanticsProperties.Role) == Role.DropdownList ||
+            config.contains(SemanticsActions.Expand) || config.contains(SemanticsActions.Collapse))
+
+internal fun SemanticsNode.visibleForTouch(): Boolean {
+    val bounds = boundsInWindow
+    val window = generateSequence(this) { it.parent }.last().boundsInWindow
+    return !bounds.isEmpty && bounds.overlaps(window)
+}

@@ -72,7 +72,7 @@
 <string name="settings_title">Settings</string>
 <string name="settings_units">Units</string>
 <string name="settings_custom_exercise">Create custom exercise</string>
-<string name="settings_backup">Backup</string>
+<string name="settings_backup">Backup and export</string>
 <string name="settings_licenses">Licenses</string>
 <string name="you_title">You</string>
 <string name="you_goals_note">Generated plans set their goals from these.</string>
@@ -237,25 +237,6 @@
 <string name="backup_csv_pattern_title">Movement pattern</string>
 <string name="backup_csv_cancel_button">Cancel</string>
 <string name="backup_csv_confirm_button">Import</string>
-<string name="backup_pattern_squat_bilateral">Squat (bilateral)</string>
-<string name="backup_pattern_single_leg">Single-leg</string>
-<string name="backup_pattern_hinge">Hinge</string>
-<string name="backup_pattern_knee_flexion">Knee flexion (leg curl)</string>
-<string name="backup_pattern_knee_extension">Knee extension (leg extension)</string>
-<string name="backup_pattern_horizontal_push">Horizontal push</string>
-<string name="backup_pattern_vertical_push">Vertical push</string>
-<string name="backup_pattern_horizontal_pull">Horizontal pull</string>
-<string name="backup_pattern_vertical_pull">Vertical pull</string>
-<string name="backup_pattern_side_delt">Side delt</string>
-<string name="backup_pattern_rear_delt">Rear delt</string>
-<string name="backup_pattern_biceps">Biceps</string>
-<string name="backup_pattern_triceps">Triceps</string>
-<string name="backup_pattern_calf_gastroc">Calf (gastroc)</string>
-<string name="backup_pattern_calf_soleus">Calf (soleus)</string>
-<string name="backup_pattern_core_anti_extension">Core (anti-extension)</string>
-<string name="backup_pattern_core_anti_rotation">Core (anti-rotation)</string>
-<string name="backup_pattern_core_flexion">Core (flexion)</string>
-<string name="backup_pattern_cardio">Cardio</string>
 <string name="backup_status_exported">Backup exported.</string>
 <string name="backup_status_restored">Backup restored.</string>
 <string name="backup_status_history_exported">History exported.</string>
@@ -380,6 +361,7 @@
 <string name="day_finish_partial_dismiss_button">Keep going</string>
 <string name="day_clear_checks_confirm_title">Discard this workout?</string>
 <string name="day_clear_checks_confirm_body">Everything you logged in this workout is dropped, including weight and rep changes.</string>
+<string name="day_clear_checks_confirm_body_cardio_saved">The lifts you logged in this workout are dropped, including weight and rep changes. Your saved cardio stays in History.</string>
 <string name="day_clear_checks_confirm_button">Discard</string>
 
 <!-- Day edit -->
@@ -408,25 +390,25 @@
 <string name="day_edit_reset_confirm_body">This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded — logged history is not affected.</string>
 <string name="day_edit_reset_confirm_button">Reset</string>
 <string name="day_edit_cancel_button">Cancel</string>
-<string name="day_edit_pattern_squat_bilateral">Squat bilateral</string>
-<string name="day_edit_pattern_single_leg">Single leg</string>
-<string name="day_edit_pattern_hinge">Hinge</string>
-<string name="day_edit_pattern_knee_flexion">Knee flexion</string>
-<string name="day_edit_pattern_knee_extension">Knee extension</string>
-<string name="day_edit_pattern_horizontal_push">H push</string>
-<string name="day_edit_pattern_vertical_push">V push</string>
-<string name="day_edit_pattern_horizontal_pull">H pull</string>
-<string name="day_edit_pattern_vertical_pull">V pull</string>
-<string name="day_edit_pattern_side_delt">Side delt</string>
-<string name="day_edit_pattern_rear_delt">Rear delt</string>
-<string name="day_edit_pattern_biceps">Biceps</string>
-<string name="day_edit_pattern_triceps">Triceps</string>
-<string name="day_edit_pattern_calf_gastroc">Calf gastroc</string>
-<string name="day_edit_pattern_calf_soleus">Calf soleus</string>
-<string name="day_edit_pattern_core_anti_ext">Core anti ext</string>
-<string name="day_edit_pattern_core_anti_rot">Core anti rot</string>
-<string name="day_edit_pattern_core_flex">Core flex</string>
-<string name="day_edit_pattern_cardio">Cardio</string>
+<string name="movement_pattern_squat_bilateral">Squat (bilateral)</string>
+<string name="movement_pattern_single_leg">Single-leg</string>
+<string name="movement_pattern_hinge">Hinge</string>
+<string name="movement_pattern_knee_flexion">Knee flexion (leg curl)</string>
+<string name="movement_pattern_knee_extension">Knee extension (leg extension)</string>
+<string name="movement_pattern_horizontal_push">Horizontal push</string>
+<string name="movement_pattern_vertical_push">Vertical push</string>
+<string name="movement_pattern_horizontal_pull">Horizontal pull</string>
+<string name="movement_pattern_vertical_pull">Vertical pull</string>
+<string name="movement_pattern_side_deltoid">Side deltoid</string>
+<string name="movement_pattern_rear_deltoid">Rear deltoid</string>
+<string name="movement_pattern_biceps">Biceps</string>
+<string name="movement_pattern_triceps">Triceps</string>
+<string name="movement_pattern_calf_gastrocnemius">Calf: gastrocnemius</string>
+<string name="movement_pattern_calf_soleus">Calf: soleus</string>
+<string name="movement_pattern_core_anti_extension">Core: anti-extension</string>
+<string name="movement_pattern_core_anti_rotation">Core: anti-rotation</string>
+<string name="movement_pattern_core_flexion">Core: flexion</string>
+<string name="movement_pattern_cardio">Cardio</string>
 
 <!-- Session receipt -->
 <string name="receipt_title_done">%1$s, done.</string>
@@ -543,25 +525,6 @@
 <string name="custom_exercise_increase_value_action">Increase %1$s</string>
 <string name="custom_exercise_cancel_button">Cancel</string>
 <string name="custom_exercise_save_button">Save</string>
-<string name="custom_exercise_pattern_squat_bilateral">Squat (bilateral)</string>
-<string name="custom_exercise_pattern_single_leg">Single-leg</string>
-<string name="custom_exercise_pattern_hinge">Hinge</string>
-<string name="custom_exercise_pattern_knee_flexion">Knee flexion (leg curl)</string>
-<string name="custom_exercise_pattern_knee_extension">Knee extension (leg extension)</string>
-<string name="custom_exercise_pattern_horizontal_push">Horizontal push</string>
-<string name="custom_exercise_pattern_vertical_push">Vertical push</string>
-<string name="custom_exercise_pattern_horizontal_pull">Horizontal pull</string>
-<string name="custom_exercise_pattern_vertical_pull">Vertical pull</string>
-<string name="custom_exercise_pattern_side_delt">Side delt</string>
-<string name="custom_exercise_pattern_rear_delt">Rear delt</string>
-<string name="custom_exercise_pattern_biceps">Biceps</string>
-<string name="custom_exercise_pattern_triceps">Triceps</string>
-<string name="custom_exercise_pattern_calf_gastroc">Calf (gastroc)</string>
-<string name="custom_exercise_pattern_calf_soleus">Calf (soleus)</string>
-<string name="custom_exercise_pattern_core_anti_extension">Core (anti-extension)</string>
-<string name="custom_exercise_pattern_core_anti_rotation">Core (anti-rotation)</string>
-<string name="custom_exercise_pattern_core_flexion">Core (flexion)</string>
-<string name="custom_exercise_pattern_cardio">Cardio</string>
 
     <!-- Health rationale -->
     <string name="health_rationale_title">Health Connect</string>
@@ -795,20 +758,25 @@
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
+    <string name="day_finish_save_cardio_title">Finish and save %1$s?</string>
     <string name="workout_plates_with_unit">%1$s %2$s a side</string>
     <string name="workout_log_measurement">Log %1$s</string>
     <string name="workout_clock_remaining">Remaining</string>
     <string name="workout_clock_elapsed">Elapsed</string>
-    <string name="workout_rest_remaining_clock">Rest remaining: %1$s</string>
+    <string name="workout_rest_duration">Rest %1$s</string>
     <string name="workout_timed_rep_target">%1$d reps in %2$s</string>
     <string name="timed_rep_log_empty">Log reps</string>
     <string name="preview_no_previous_result">No previous result</string>
     <string name="preview_no_comparable_result">No comparable previous result</string>
     <string name="set_edit_plates_with_unit">%1$s %2$s a side on the bar.</string>
     <string name="set_edit_empty_bar">Empty bar.</string>
-    <plurals name="workout_rest_remaining_minutes">
-        <item quantity="one">Rest remaining: %d minute</item>
-        <item quantity="other">Rest remaining: %d minutes</item>
+    <plurals name="workout_rest_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="workout_rest_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
     </plurals>
     <!-- Round 1 screen states and Today action slot. -->
     <string name="screen_no_plan_title">No plan yet</string>
@@ -918,6 +886,7 @@
     <string name="sheet_aim_time">Adds a time target without changing the distance.</string>
     <string name="sheet_hard_description">Marks work sets as hard cardio in history.</string>
     <string name="sheet_no_matching_exercises">No matching exercises</string>
+    <string name="sheet_search_all_exercises">Search all exercises</string>
     <string name="sheet_clear_filters">Clear filters</string>
     <string name="sheet_swap_for">Swap for</string>
     <string name="sheet_note_label">Note</string>

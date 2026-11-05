@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -45,6 +46,7 @@ internal class SessionFinisher(
     private val clock: Clock,
     private val afterCommit: suspend (dayId: String, nextDayId: String?) -> Unit,
     private val executionActive: () -> Boolean,
+    private val loggedCardio: suspend (planId: Long, dayId: String) -> CardioSessionEntity?,
 ) {
     val attempt = savedState.getStateFlow<FinishAttempt?>(KEY_FINISH, null)
     val receipt = savedState.getStateFlow<WorkoutReceipt?>(KEY_WORKOUT_RECEIPT, null)
@@ -100,7 +102,8 @@ internal class SessionFinisher(
             plans.plansFlow.first().firstOrNull { it.id == planId }?.name.orEmpty(),
             run.startedAt, clock.millis(),
         ).also { savedState[KEY_FINISH] = it }
-        if (run.tracks.none { track -> track.sets.any { it.done } }) {
+        val cardio = loggedCardio(planId, dayId)
+        if (cardio == null && run.tracks.none { track -> track.sets.any { it.done } }) {
             savedState[KEY_FINISH] = null
             return
         }
@@ -126,6 +129,10 @@ internal class SessionFinisher(
             standing = baseline(swappedIn, runId)?.let { standing.orEmpty() + it }
         }
         val groups = ReceiptBuilder.strength(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty())
+        val cardioSets = cardio?.let { historyRepository.cardioSetsFor(it.id) }.orEmpty()
+        val activity = cardio?.activity?.let { name -> CardioActivity.entries.firstOrNull { it.name == name } }
+        val cardioStanding = if (cardio != null && activity != null) cardioBaseline(activity, dayId, cardio.startedAt) else null
+        val cardioRows = if (activity != null) ReceiptBuilder.cardio(activity, cardioSets, cardioStanding.orEmpty()) else emptyList()
         val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
         afterCommit(dayId, nextDayId)
         val session = historyRepository.session(sessionId)
@@ -136,8 +143,8 @@ internal class SessionFinisher(
             dayTitle = program.days.firstOrNull { it.id == dayId }?.title ?: current.dayTitle,
             planName = current.planName, completedAt = completedAt,
             minutes = session?.startedAt?.let { ((completedAt - it) / 60_000.0).roundToInt().coerceAtLeast(1) },
-            unit = unit, recordsChecked = standing != null, allPlansDone = allPlansDone,
-            groups = groups, activity = null, cardioRows = emptyList(),
+            unit = unit, recordsChecked = standing != null && (cardioStanding != null || activity == null), allPlansDone = allPlansDone,
+            groups = groups, activity = activity, cardioRows = cardioRows,
         )
         savedState[KEY_FINISH] = null
     }
@@ -146,6 +153,14 @@ internal class SessionFinisher(
      *  weren't checked instead of showing none. */
     private suspend fun baseline(ids: List<String>, runId: String): Map<String, PersonalRecord>? = try {
         historyRepository.personalRecords(ids, excludingRunId = runId)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
+    }
+
+    private suspend fun cardioBaseline(activity: CardioActivity, dayId: String, startedAt: Long): Map<CardioRecordKey, CardioSetResult>? = try {
+        historyRepository.cardioBestsFor(activity, excludedDayId = dayId, excludedStartedAt = startedAt)
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (_: Exception) {

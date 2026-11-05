@@ -1,0 +1,226 @@
+{
+  "seat": "dropdown-tap",
+  "capture": "checkpoints",
+  "steps": [
+    {
+      "tap": {
+        "text": "Balanced strength + muscle"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "wiz-3-split"
+    },
+    {
+      "tap": {
+        "text": "Full-body rotation"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "checkpoint": "wiz-5-cardio"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "LB"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "190",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "38",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Intermediate"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trap Bar"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Kettlebell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Kettlebell"
+      }
+    },
+    {
+      "checkpoint": "equipment-bottom"
+    },
+    {
+      "scrollTo": {
+        "text": "Trap Bar"
+      }
+    },
+    {
+      "checkpoint": "equipment-top-again"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "rotation-bottom"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "expect": {
+        "text": "Activity"
+      }
+    },
+    {
+      "tap": {
+        "role": "DropdownList",
+        "editable": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Trail run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trail run"
+      }
+    },
+    {
+      "expect": {
+        "text": "Trail run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "activity-selected"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "cardio-saved"
+    }
+  ]
+}

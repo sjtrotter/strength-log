@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
 import cloud.trotter.log.strength.data.db.MIGRATION_17_18
+import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -68,7 +69,7 @@ class Migration15To16Test {
         val before = tables.associateWith { rows(helper.writableDatabase, it) }
         helper.close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries().build()
         try {
             assertTrue(db.planDao().allPlans().none { it.onToday })
             tables.forEach { table ->
@@ -82,7 +83,9 @@ class Migration15To16Test {
         db.query("SELECT * FROM $table ORDER BY rowid").use { cursor ->
             buildList {
                 while (cursor.moveToNext()) add(List(cursor.columnCount) { index ->
-                    if (cursor.isNull(index)) null else cursor.getString(index)
+                    if (cursor.isNull(index)) null
+                    else if (cursor.getColumnName(index) == "bodyweightLb") cursor.getDouble(index).toString()
+                    else cursor.getString(index)
                 })
             }
         }

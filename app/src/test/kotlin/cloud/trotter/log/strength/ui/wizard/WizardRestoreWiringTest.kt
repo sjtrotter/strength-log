@@ -199,6 +199,8 @@ class WizardRestoreWiringTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         vm.awaitOffered()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         // Initialization retires legacy settings; Finish's fourth write is completion.
         settingsStore.failOnUpdate = 5
         repeat(WizardStep.entries.size) { vm.onNext() }
@@ -240,7 +242,7 @@ class WizardRestoreWiringTest {
         val nonce = "previous-build-restore"
         journalStore.edit { prefs ->
             prefs.clear()
-            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb
+            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb.toInt()
             prefs[intPreferencesKey("age")] = answers.config.age
             prefs[stringPreferencesKey("level")] = answers.config.level.name
             prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name
@@ -271,7 +273,7 @@ class WizardRestoreWiringTest {
         // isComplete is what AppNavHost's WizardRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190, repo.plans.wizardAnswersFlow.first().config.bodyweightLb)
+        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
         assertEquals(1, repo.plans.programFlow.first().days.size)
     }
 
@@ -314,6 +316,27 @@ class WizardRestoreWiringTest {
     }
 
     @Test
+    fun restoringAMidFirstRunBackup_prefillsAboutYouFields() = runBlocking {
+        val uri = pickable(BackupCodec().encode(backup(wizardComplete = false)))
+        val vm = newViewModel()
+        val initial = vm.awaitOffered()
+        assertNull(initial.bodyweightLb)
+        assertNull(initial.age)
+
+        vm.restoreFromBackup(uri)
+
+        val state = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+        }
+        assertNull(state.restore.error)
+        assertEquals(190.0, state.bodyweightLb ?: Double.NaN, 0.0)
+        assertEquals(33, state.age)
+        repeat(WizardStep.ABOUT_YOU.ordinal) { vm.onNext() }
+        val aboutYou = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.step == WizardStep.ABOUT_YOU } }
+        assertTrue(aboutYou.canContinue)
+    }
+
+    @Test
     fun restoringAMidFirstRunBackup_staysInTheWizardOnTheRestoredAnswers() = runBlocking {
         // wizardComplete=false means the backup was taken part-way through a first
         // run: leaving for the day screen would strand it on an empty program.
@@ -333,7 +356,7 @@ class WizardRestoreWiringTest {
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)
-        assertEquals(190, state.answers.config.bodyweightLb)
+        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
         assertEquals(33, state.answers.config.age)
         assertFalse(settings.wizardCompleteFlow.first())
     }
@@ -352,7 +375,7 @@ class WizardRestoreWiringTest {
         }
         assertFalse(state.isComplete)
         assertEquals(null, state.restore.error)
-        assertEquals(190, state.answers.config.bodyweightLb)
+        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
         assertEquals("STRENGTH", state.answers.config.emphasis.name)
         assertEquals(cloud.trotter.log.strength.domain.units.WeightUnit.KG, state.unit)
         assertEquals(state.unit, state.answers.config.weightUnit)
@@ -369,6 +392,8 @@ class WizardRestoreWiringTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         vm.awaitOffered()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         // Update 1 retires legacy settings during initialization; Finish writes
         // global lifter, selection, unit, then completion in updates 2 through 5.
         settingsStore.failOnUpdate = 5
@@ -445,6 +470,8 @@ class WizardRestoreWiringTest {
         assertTrue(db.planDao().allPlans().isEmpty())
         val vm = newViewModel()
         vm.awaitOffered()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setDaysPerWeek(6)
 
         // No startup reconcile has run: finish must settle the journal first.
@@ -467,6 +494,8 @@ class WizardRestoreWiringTest {
         assertTrue(db.planDao().allPlans().isEmpty())
         val vm = newViewModel()
         vm.awaitOffered()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setDaysPerWeek(6)
         vm.setCardioMode(CardioMode.NONE)
         vm.setCardioPlacement(CardioPlacement.NONE)
@@ -494,6 +523,8 @@ class WizardRestoreWiringTest {
         assertTrue(failure is RestoreInterruption.SettingsPending)
         val vm = newViewModel()
         vm.awaitOffered()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setDaysPerWeek(6)
         val before = backupRepository.exportSnapshot()
         settingsStore.failOnUpdate = 2 // the recovery's settings write
@@ -516,7 +547,7 @@ class WizardRestoreWiringTest {
         assertNull(completed.restore.error)
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(190, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -533,6 +564,8 @@ class WizardRestoreWiringTest {
 
         val vm = newViewModel()
         vm.awaitOffered() // the wizard has latched firstRun = true
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
 
         // Park the reconcile inside its settings write, holding the restore lock.
         val open = CompletableDeferred<Unit>()
@@ -560,7 +593,7 @@ class WizardRestoreWiringTest {
             repo.plans.programFlow.first().days.map { it.id },
         )
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
     }
 
     private companion object {

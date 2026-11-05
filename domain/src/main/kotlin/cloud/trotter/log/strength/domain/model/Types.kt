@@ -107,12 +107,20 @@ data class Program(val days: List<ProgramDay>) {
 }
 
 data class LifterConfig(
-    val bodyweightLb: Int = 235,
+    val bodyweightLb: Double = 235.0,
     val age: Int = 40,
     val level: ExperienceLevel = ExperienceLevel.INTERMEDIATE,
     val emphasis: GoalEmphasis = GoalEmphasis.BALANCED,
     val weightUnit: WeightUnit = WeightUnit.LB,
-)
+) {
+    constructor(
+        bodyweightLb: Int,
+        age: Int = LifterConfig().age,
+        level: ExperienceLevel = LifterConfig().level,
+        emphasis: GoalEmphasis = LifterConfig().emphasis,
+        weightUnit: WeightUnit = LifterConfig().weightUnit,
+    ) : this(bodyweightLb.toDouble(), age, level, emphasis, weightUnit)
+}
 
 enum class CardioMode { OUTDOOR_RUN, TREADMILL, LOW_IMPACT, NONE }
 

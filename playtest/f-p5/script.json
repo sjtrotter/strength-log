@@ -167,12 +167,52 @@
    "checkpoint": "today-first"
   },
   {
+   "note": "Today knows it's Day A. Two tabs besides Today: History and Plans. Looking around before I touch anything."
+  },
+  {
    "tap": {
-    "text": "Plan"
+    "text": "Other days"
    }
   },
   {
-   "checkpoint": "plan-first"
+   "checkpoint": "other-days"
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-empty"
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "textContains": "full body"
+   }
+  },
+  {
+   "checkpoint": "plan-open"
   }
  ]
 }

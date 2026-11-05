@@ -281,17 +281,22 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
       }
     },
     {
       "checkpoint": "wednesday-finish-review"
     },
     {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
+      "expect": {
+        "text": "Full Body, saved."
+      },
+      "timeoutMs": 20000
     },
     {
       "checkpoint": "wednesday-saved"
@@ -497,17 +502,22 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
       }
     },
     {
       "checkpoint": "friday-finish-review"
     },
     {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
+      "expect": {
+        "text": "Full Body, saved."
+      },
+      "timeoutMs": 20000
     },
     {
       "checkpoint": "friday-saved"

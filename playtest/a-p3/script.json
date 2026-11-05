@@ -1190,7 +1190,7 @@
       "note": "Squat and bench are now logged if preceding actions passed. The generated RDL, row, lateral raise, plank and bike are not my Monday accessories. Use the day editor to add lying leg curl and ab wheel; do not log the generated work or claim Monday complete yet. Need finish Monday and progress through at least Nov21 urgently."
     },
     {
-      "note": "Corrected the earlier script error: explicitly confirm the bench swap before logging. Monday accessories are in the saved lift note, not structured sets; finish the actual main work without checking off the unrelated generated work."
+      "note": "Corrected the earlier script error by confirming the bench swap before logging. Finish actual main work without checking off unrelated generated work. Intended accessory details were truncated from the lift note, so Monday accessories are NOT saved in this record."
     },
     {
       "back": true
@@ -1231,7 +1231,7 @@
     },
     {
       "tap": {
-        "text": "Barbell Bench Press"
+        "desc": "Barbell Bench Press. 100 kilograms: 5, 5, 5, 5 and 5 reps."
       }
     },
     {
@@ -1239,7 +1239,7 @@
     },
     {
       "tap": {
-        "text": "Barbell Bench Press"
+        "desc": "Barbell Bench Press. 100 kilograms: 5, 5, 5, 5 and 5 reps."
       }
     },
     {

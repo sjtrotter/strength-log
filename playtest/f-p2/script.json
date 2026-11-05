@@ -1474,6 +1474,55 @@
   },
   {
    "checkpoint": "bss-skipped-set3"
+  },
+  {
+   "tap": {
+    "textContains": "Next: Swiss Ball"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "No Swiss ball in my garage. Hanging leg raises off the bar instead."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Swap exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "swap-legcurl"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Leg Raise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "swap-search-legraise"
+  },
+  {
+   "tap": {
+    "textContains": "Leg Raise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "after-legraise-swap"
   }
  ]
 }

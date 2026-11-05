@@ -38,7 +38,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day B"
+        "text": "5-day full body · Day B"
       }
     },
     {
@@ -317,7 +317,8 @@
     },
     {
       "tap": {
-        "text": "Squat bilateral"
+        "text": "Squat (bilateral)",
+        "role": "RadioButton"
       }
     },
     {
@@ -332,6 +333,12 @@
     },
     {
       "checkpoint": "custom-paused-squat-created"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": ""
+      }
     },
     {
       "tap": {
@@ -648,6 +655,220 @@
     },
     {
       "checkpoint": "friday-ready-for-day-c"
+    },
+    {
+      "tap": {
+        "text": "5-day full body · Day C"
+      }
+    },
+    {
+      "checkpoint": "friday-repeat-day-c-offered-weight-and-tuesday-result"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday-deadlift-original-sets-after-tuesday-paused-work"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "225"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "195"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "friday-deadlift-225-single-three-195-backoffs"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "friday-four-deadlift-work-sets-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "225x1 @7; 195x4x3. Grip solid. Competition pulls today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 23 sets"
+      }
+    },
+    {
+      "checkpoint": "friday-lineup-after-deadlifts"
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "friday-bench-variation-picker"
+    },
+    {
+      "type": {
+        "editable": true,
+        "value": "paused"
+      }
+    },
+    {
+      "checkpoint": "friday-search-three-second-paused-bench"
     }
   ]
 }

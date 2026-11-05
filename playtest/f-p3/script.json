@@ -460,7 +460,28 @@
    "checkpoint": "create-custom"
   },
   {
-   "back": true
+   "type": {
+    "text": "Name",
+    "value": "Paused Squat (2 ct)"
+   }
+  },
+  {
+   "type": {
+    "text": "Starting weight (kg)",
+    "value": "152.5",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "custom-filled"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "custom-saved"
   },
   {
    "back": true
@@ -469,11 +490,6 @@
    "tap": {
     "text": "Today",
     "role": "Tab"
-   }
-  },
-  {
-   "tap": {
-    "text": "Other days"
    }
   },
   {

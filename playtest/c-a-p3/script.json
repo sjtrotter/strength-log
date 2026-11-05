@@ -241,7 +241,8 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 5 of 24 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -369,7 +370,8 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 5 of 27 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -731,22 +733,66 @@
     },
     {
       "scrollTo": {
-        "text": "Add a set"
+        "tag": "lift-set-6"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "195"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
       "scrollTo": {
-        "text": "Add a set"
+        "tag": "lift-set-7"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "195"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -830,7 +876,8 @@
     },
     {
       "tap": {
-        "desc": "Day C lifts, 4 of 23 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -1191,7 +1238,8 @@
     },
     {
       "tap": {
-        "desc": "Day D lifts, 0 of 21 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -1293,7 +1341,8 @@
     },
     {
       "tap": {
-        "desc": "Day D lifts, 0 of 24 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -1492,7 +1541,8 @@
     },
     {
       "tap": {
-        "desc": "Day D lifts, 4 of 25 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -1541,7 +1591,8 @@
     },
     {
       "tap": {
-        "desc": "Day D lifts, 4 of 25 sets"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -1696,32 +1747,98 @@
     },
     {
       "scrollTo": {
-        "text": "Add a set"
+        "tag": "lift-set-6"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
       "scrollTo": {
-        "text": "Add a set"
+        "tag": "lift-set-7"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
       "scrollTo": {
-        "text": "Add a set"
+        "tag": "lift-set-8"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -1958,6 +2075,383 @@
     },
     {
       "checkpoint": "week2-monday-open-workout-after-recreate"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "week2-monday-lineup-before-bench"
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-monday-bench-inherited-rows-before-edit"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-monday-five-bench-sets-at-102-point-5"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "102.5x5x5. Last set @8. Squat fatigue did not need extra work."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "5h sleep. Squat @8.5;170 to165 backoffs. Lying curl3x10-12, ab wheel3x8."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week2-monday-saved-reduced-backoffs"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d4h25m"
+    },
+    {
+      "checkpoint": "tuesday-nov17-work-trip-no-workout"
+    },
+    {
+      "note": "Work trip; home after10pm. No paused pulls, accessories or bike. Leave Thursday in place. No in-app skipped-day reason has been saved."
+    },
+    {
+      "advance": "1d19h5m"
+    },
+    {
+      "checkpoint": "thursday-nov19-after-skipped-tuesday"
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day B"
+      }
+    },
+    {
+      "checkpoint": "week2-thursday-offered-bench-after-125-single"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-thursday-inherited-bench-rows-before-127-point-5"
     }
   ]
 }

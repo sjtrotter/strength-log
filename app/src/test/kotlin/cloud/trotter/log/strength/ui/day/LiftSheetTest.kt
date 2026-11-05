@@ -104,7 +104,8 @@ class LiftSheetTest {
             ), true, null, {}, {}, {})
         } }
         rule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
-        rule.onNodeWithText("Target TOP × 5 · 235 lb. Goal 235. Last time 235 × 5, Oct 21.").assertIsDisplayed()
+        rule.onNodeWithText("Goal 235. Last time 235 × 5, Oct 21.").assertIsDisplayed()
+        rule.onNodeWithText("Target", substring = true).assertDoesNotExist()
         listOf("R1", "R2", "R3", "R4", "TOP", "B/O").forEach { label ->
             rule.onNodeWithText(label, substring = true).performScrollTo().assertIsDisplayed()
         }

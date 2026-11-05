@@ -66,7 +66,7 @@ internal fun LiftSheet(
     val last = if (partner) card.partnerLastTimeDisplay else card.lastTimeDisplay
     val date = if (partner) card.partnerLastTimeDate else card.lastTimeDate
     val support = listOfNotNull(
-        workingHeading?.let { stringResource(R.string.lift_sheet_target, it) },
+        workingHeading?.takeUnless { target is HeaderTarget.Goal }?.let { stringResource(R.string.lift_sheet_target, it) },
         (target as? HeaderTarget.Goal)?.takeIf { it.display.isNotBlank() && it.display.any { digit -> digit in '1'..'9' } }?.let {
             stringResource(R.string.lift_sheet_goal, it.display)
         },

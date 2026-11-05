@@ -501,6 +501,89 @@
     },
     {
       "checkpoint": "session-menu-find-add-exercise-and-overall-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "swap-picker-find-goblet-squat-and-today-only-scope"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "exercise-note-entry-before-recording-real-lifts"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "set-menu-for-working-set-type-and-corrections"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "edit-day-build-my-running-support-strength-a"
     }
   ]
 }

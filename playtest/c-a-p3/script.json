@@ -241,8 +241,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -370,8 +370,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -876,8 +876,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -1238,8 +1238,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -1341,8 +1341,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -1541,8 +1541,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -1591,8 +1591,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -2078,8 +2078,8 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "role": "Image",
+        "index": 1
       }
     },
     {
@@ -2452,6 +2452,505 @@
     },
     {
       "checkpoint": "week2-thursday-inherited-bench-rows-before-127-point-5"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "127.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "checkpoint": "week2-bench-127-point-5-single-110-backoffs-4-4-4-3"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "127.5x1 @8. Last110:3 done; failed4th, spotter. Lost upper back position."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-paused-squat-previous-145-and-offered-rows"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "150x4x4, all fine. Bench miss did not affect squat work."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench last110:3 done+failed4th; lost upper back. Pressdown3x12; Pallof3x10/side."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week2-thursday-saved-three-completed-one-failed-note"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

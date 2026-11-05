@@ -1592,6 +1592,467 @@
     },
     {
       "checkpoint": "friday-legpress-catalog-choices"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress-added-structure"
+    },
+    {
+      "scrollTo": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "180"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress-rows-before-logging"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "180"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov13: Leg press 180 plates, no sled. Bike 17min: 3easy,6x(30s hard/90s easy),2easy. 210W->170W; start180 next."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress-work-and-interval-note"
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Intervals 5 \u00d7 2:00"
+      }
+    },
+    {
+      "checkpoint": "friday-interval-preset-controls-before-discarding"
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "17:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "note": "I use the bike clock for my 3 easy + six 30s hard/90s easy + 2 easy minutes. The app gets a total-time record and the exact intervals in my note, not a claimed structured six-round result."
+    },
+    {
+      "advance": "39m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "17m"
+    },
+    {
+      "checkpoint": "friday-bike-total17min-six-rounds-in-note"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "friday-finish-review74minutes"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "friday-nov13-saved"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "friday-share-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "2d22h46m"
+    },
+    {
+      "checkpoint": "second-monday-nov16-after-bad-sleep"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "second-monday-targets-and-last-results"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "second-monday-squat-offer-before-actual-miss"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "7"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "checkpoint": "second-monday-squat135x9-8-7-actuals"
     }
   ]
 }

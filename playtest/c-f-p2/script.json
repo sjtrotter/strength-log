@@ -2151,21 +2151,6 @@
   },
   {
    "tap": {
-    "text": "All sets"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
-    "text": "Add a set"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "desc": "Edit set 6"
    },
    "timeoutMs": 20000
@@ -2421,27 +2406,6 @@
   },
   {
    "advance": "90s"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
-    "textContains": "Next:"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "advance": "5s"
   },
   {
    "tap": {

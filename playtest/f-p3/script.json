@@ -423,13 +423,50 @@
    "checkpoint": "left-workout"
   },
   {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Warm-up",
+    "direction": "up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create custom exercise"
+   }
+  },
+  {
+   "checkpoint": "create-custom"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
    "tap": {
     "text": "Today",
     "role": "Tab"
    }
-  },
-  {
-   "checkpoint": "today-after-edit"
   },
   {
    "tap": {
@@ -443,6 +480,30 @@
   },
   {
    "checkpoint": "day-f"
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "checkpoint": "workout-f"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "f-all-sets"
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "f-lift-more"
   }
  ]
 }

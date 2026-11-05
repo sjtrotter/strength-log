@@ -293,7 +293,8 @@
   {
    "tap": {
     "text": "Start empty"
-   }
+   },
+   "timeoutMs": 40000
   },
   {
    "checkpoint": "empty-plan"

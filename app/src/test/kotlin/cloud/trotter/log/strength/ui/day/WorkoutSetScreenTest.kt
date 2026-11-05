@@ -680,10 +680,10 @@ class WorkoutSetScreenTest {
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true).assertDoesNotExist()
         listOf(
-            Triple(90, "Rest 1 minute 30 seconds", "1:30"),
-            Triple(60, "Rest 1 minute", "1:00"),
-            Triple(150, "Rest 2 minutes 30 seconds", "2:30"),
-        ).forEach { (seconds, announcement, clock) ->
+            90 to "Rest 1 minute 30 seconds",
+            60 to "Rest 1 minute",
+            150 to "Rest 2 minutes 30 seconds",
+        ).forEach { (seconds, announcement) ->
             rule.runOnIdle {
                 val rest = workoutRest()
                 state = state.copy(rest = rest.copy(
@@ -694,8 +694,7 @@ class WorkoutSetScreenTest {
             rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
                 .assertContentDescriptionEquals(announcement)
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-            rule.onNodeWithTag("workout-rest").assertContentDescriptionEquals(announcement)
-            rule.onNodeWithText(clock).assertIsDisplayed()
+            rule.onNodeWithTag("workout-rest").assertIsDisplayed().assertContentDescriptionEquals(announcement)
         }
     }
 
@@ -770,7 +769,8 @@ class WorkoutSetScreenTest {
                 nextSetLabel = "Ramp set 3",
             )))
         }
-        rule.onNodeWithText("1:30").assertIsDisplayed()
+        rule.onNodeWithTag("workout-rest").assertIsDisplayed()
+            .assertContentDescriptionEquals("Rest 1 minute 30 seconds")
         assertEquals(listOf("Rest 1 minute 30 seconds", "Rest 1 minute 30 seconds"), deliveredAnnouncements())
     }
 

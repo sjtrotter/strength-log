@@ -390,25 +390,15 @@
    }
   },
   {
-   "tap": {
-    "text": "Start empty"
-   },
-   "timeoutMs": 40000
+   "note": "Start empty does nothing, twice. Fine. I'll gut the generated plan and put mine in it."
   },
   {
-   "checkpoint": "after-start-empty",
-   "timeoutMs": 30000
-  },
-  {
-   "checkpoint": "empty-plan"
+   "back": true
   },
   {
    "tap": {
-    "text": "Add day"
+    "text": "2-day full body"
    }
-  },
-  {
-   "checkpoint": "empty-plan-add-day"
   },
   {
    "tap": {
@@ -416,15 +406,75 @@
    }
   },
   {
-   "checkpoint": "empty-day-a"
-  },
-  {
    "tap": {
     "text": "Edit"
    }
   },
   {
-   "checkpoint": "empty-day-a-edit"
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "after-first-remove"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Seated Cable Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "day-a-emptied"
   },
   {
    "tap": {
@@ -437,20 +487,47 @@
    }
   },
   {
-   "checkpoint": "pick-hinge"
-  },
-  {
-   "scrollTo": {
-    "textContains": "Trap"
-   }
+   "checkpoint": "hinge-list"
   },
   {
    "tap": {
-    "textContains": "Trap"
+    "textContains": "Trap-Bar"
    }
   },
   {
    "checkpoint": "after-pick-trap"
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "trap-prescription"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "day-a-with-trap"
   }
  ]
 }

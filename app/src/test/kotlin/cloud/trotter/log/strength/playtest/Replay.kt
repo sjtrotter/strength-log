@@ -19,6 +19,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
+import androidx.test.espresso.Espresso
 import androidx.test.core.app.ActivityScenario
 import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.audit.dumpSemantics
@@ -159,7 +160,8 @@ internal class Replay(
 
     private fun perform(step: Step, deadline: StepDeadline) {
         when (step.action) {
-            "back" -> deadline.call { scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() } }
+            // Like the system key: the focused window (an open sheet or dialog) gets it first.
+            "back" -> deadline.call { Espresso.pressBackUnconditionally() }
             "recreate" -> deadline.call { scenario.recreate() }
             "advance" -> advance(requireNotNull(step.duration), deadline)
             "checkpoint" -> Unit

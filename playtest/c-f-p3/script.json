@@ -145,17 +145,6 @@
   },
   {
    "tap": {
-    "text": "Today",
-    "role": "Tab"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Day C"
-   }
-  },
-  {
-   "tap": {
     "text": "Start day C"
    }
   },
@@ -505,6 +494,42 @@
   },
   {
    "back": true
+  },
+  {
+   "note": "Thursday evening look at Friday. Can I make their Day D bench 3x3 at 125 before I walk in?"
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "6-day push/pull/legs"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "lifts,",
+    "index": 3
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "day-d-edit-mode"
+  },
+  {
+   "tap": {
+    "textContains": "Ramp to"
+   }
+  },
+  {
+   "checkpoint": "bench-prescription"
   }
  ]
 }

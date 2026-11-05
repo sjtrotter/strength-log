@@ -3046,6 +3046,32 @@
    "checkpoint": "history-edit"
   },
   {
+   "note": "that third bench set on day one was 7, not 8, I was being generous"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "index": 5,
+    "value": "7"
+   }
+  },
+  {
+   "checkpoint": "history-edit-typed"
+  },
+  {
+   "scrollTo": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "history-after-edit"
+  },
+  {
    "back": true
   },
   {
@@ -3092,25 +3118,23 @@
    "checkpoint": "lift-options"
   },
   {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "lift-options-plan"
+  },
+  {
+   "tap": {
+    "text": "Last results"
+   }
+  },
+  {
    "back": true
   },
   {
    "checkpoint": "after-lift-options-back"
-  },
-  {
-   "tap": {
-    "desc": "Day A lifts, 0 of 9 sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Edit day"
-   }
   },
   {
    "tap": {

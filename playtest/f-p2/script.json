@@ -782,6 +782,18 @@
    "checkpoint": "vpull-list"
   },
   {
+   "note": "Vertical pull with my gear = a DB pullover and nothing else? I have a pull-up bar bolted to the rack. Did it lose that?"
+  },
+  {
+   "tap": {
+    "text": "Pullup Bar"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "vpull-pullupbar-chip"
+  },
+  {
    "tap": {
     "textContains": "Pull-Up"
    },

@@ -344,6 +344,12 @@
       "checkpoint": "nov13-friday-strength-b"
     },
     {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-discarded-workout-return-to-tabs"
+    },
+    {
       "tap": {
         "role": "Tab",
         "index": 2
@@ -389,6 +395,11 @@
       "checkpoint": "strength-b-editor-before-own-exercises"
     },
     {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
       "tap": {
         "text": "Add exercise"
       }
@@ -405,6 +416,11 @@
     },
     {
       "checkpoint": "step-up-added"
+    },
+    {
+      "scrollTo": {
+        "text": "Step-Up"
+      }
     },
     {
       "tap": {
@@ -443,6 +459,11 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
       "tap": {
         "text": "Add exercise"
       }
@@ -459,6 +480,11 @@
     },
     {
       "checkpoint": "single-leg-rdl-added"
+    },
+    {
+      "scrollTo": {
+        "text": "Single-Leg RDL"
+      }
     },
     {
       "tap": {
@@ -505,6 +531,11 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Step-Up"
+      }
+    },
+    {
       "tap": {
         "text": "Step-Up"
       }
@@ -537,6 +568,11 @@
     {
       "tap": {
         "desc": "Day B lifts, 2 of 25 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Single-Leg RDL"
       }
     },
     {
@@ -615,6 +651,169 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion"
+      }
+    },
+    {
+      "checkpoint": "knee-flexion-catalog-for-seated-hamstring-curl"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Seated"
+      }
+    },
+    {
+      "checkpoint": "seated-hamstring-curl-search-results"
+    },
+    {
+      "tap": {
+        "textContains": "Seated ",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "seated-hamstring-curl-added-to-friday"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Seated ",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Seated ",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "checkpoint": "curl-prescription-three-by-ten-at-forty"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 4 of 28 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Seated ",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Seated ",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "first-curl-target-forty-by-ten"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "curl-last-set-actual-eight-of-ten"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "friday-curl-ten-ten-eight-saved"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 7 of 28 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
       "tap": {
         "text": "Add exercise"
       }
@@ -626,10 +825,16 @@
       }
     },
     {
-      "checkpoint": "friday-remaining-movement-groups-for-curl-calves-pallof"
+      "swipe": {
+        "text": "Hinge",
+        "direction": "up"
+      }
     },
     {
-      "note": "Nov13 workout still open. Four actual sets logged if above succeeds; finish remaining curl40x10,10,8, seated calf45x12x3, Pallof15x10x2 per side before36min total. No generated exercises were performed. Next priority Nov17 second A after miss/weight drop, Nov20 skipped B, then week3 swap and week4 easier. Runs remain in outside diary unless a real standalone save route is found."
+      "checkpoint": "friday-movement-groups-for-calf-and-pallof"
+    },
+    {
+      "note": "Nov13 workout remains OPEN after step-ups, single-leg RDL and curl actual40x10,10,8 if these steps succeed. Need calf45x12x3 and Pallof15x10x2, remove generated exercises from normal B, finish36min total. Curl machine search is an unverified UI branch: inspect catalog/results if selector fails. No calf or Pallof logged by this script; do not imply complete diary entry."
     }
   ]
 }

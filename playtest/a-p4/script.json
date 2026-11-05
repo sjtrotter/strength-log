@@ -1041,6 +1041,178 @@
     },
     {
       "checkpoint": "monday-barbell-bench-replacement-picker"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-swap-result-and-scope"
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "checkpoint": "monday-bench-three-sets-at-105"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 7 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "bench-note-entry-for-slow-last-set"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 7 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "monday-cable-row-replacement-picker"
     }
   ]
 }

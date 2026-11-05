@@ -340,6 +340,9 @@
    "checkpoint": "after-leaving-workout"
   },
   {
+   "back": true
+  },
+  {
    "tap": {
     "text": "Plans",
     "role": "Tab"
@@ -384,6 +387,93 @@
   },
   {
    "checkpoint": "plans-after"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day A"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-lift-options-back"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-swap"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Rows: I use the 70s. Fix that one at least."
+  },
+  {
+   "tap": {
+    "textContains": "3 \u00d7 10 at 60 lb"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70",
+    "ime": "done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "row-typed-70"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "row-saved"
   }
  ]
 }

@@ -716,11 +716,16 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
     "text": "Skip this set"
    }
   },
   {
-   "checkpoint": "after-skip-6"
+   "checkpoint": "bss-first"
   },
   {
    "tap": {
@@ -734,11 +739,206 @@
   },
   {
    "tap": {
-    "text": "Swap exercise"
+    "text": "Note"
    }
   },
   {
-   "checkpoint": "swap-sheet"
+   "checkpoint": "note-sheet"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "after-skip-bss"
+  },
+  {
+   "note": "No belt squat in here and no time to hunt. Logging it under leg curl at 100 and moving on."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "100"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "legcurl-done"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "after-skip-calf"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-mon"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-after-mon"
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "checkpoint": "session-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "advance": "18h"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "tue-today"
   }
  ]
 }

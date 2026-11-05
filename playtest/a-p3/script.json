@@ -293,7 +293,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -365,7 +365,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -382,7 +382,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -485,6 +485,110 @@
     },
     {
       "note": "Monday has not been trained yet. Preview Edit opened a workout under the day editor, without my tapping Start day A. Inspect the captured prescription and logging controls, then enter my real squat and bench work. Start empty is available from Plans > New plan if editing this generated day cannot express my own block."
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "set-menu-warmup-rpe-notes-and-failure-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Beginning Monday squat. My diary lists working sets only; 60 kg x 5 is a normal first loaded warm-up, not an extra work set. I need to see whether Ramp sets stay separate from work."
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 60 kg × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "first-squat-warmup-logged-rest-and-undo"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "active-workout-after-recreation-first-warmup"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-list-after-first-warmup"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "lift-options-ramp-top-backoff-and-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "190",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "monday-top-single-edited-to-190-for-one"
     }
   ]
 }

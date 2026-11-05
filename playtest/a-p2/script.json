@@ -524,6 +524,126 @@
     },
     {
       "checkpoint": "individual-set-input-before-any-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "return-home-without-logging-the-wrong-workout"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day D"
+      }
+    },
+    {
+      "checkpoint": "monday-use-squat-day-before-upper-day"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "lower-day-exercises-to-match-my-monday"
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options-find-working-sets-and-progression"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "textContains": "Ramp to"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-squat-prescription-set-to-my-working-weight"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "note": "Monday November 9: cold garage. Start with moving around and the empty 45-pound bar for 10, as in my diary. This is a warm-up, not one of my three 215-pound working sets. Remaining warm-ups are95x5,135x5,185x3. Configure the rest of Lower A from the observed editor next."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "monday-first-squat-warmup-logged-rest-controls"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "monday-warmup-survives-activity-recreation"
     }
   ],
   "capture": "checkpoints"

@@ -89,6 +89,137 @@
     },
     {
       "checkpoint": "setup-review-before-accepting"
+    },
+    {
+      "note": "The preview is not my plan: four days and road running. Go back and set three days, bike finishers, conventional deadlift, and age 38. No 75-minute total-duration field appeared."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "three-days-per-week"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "bike-finisher-setup"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "38",
+        "ime": "done"
+      }
+    },
+    {
+      "note": "Pounds are already selected. The app supplied bodyweight 235; I have no bodyweight goal and have not provided that measurement. Leaving it for now, but it should not be treated as my measured weight."
+    },
+    {
+      "checkpoint": "pounds-and-age"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "revised-plan-preview"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "rotation-preview-bottom"
+    },
+    {
+      "note": "Accept this as a starting point to reach the plan editor. I still want my own named days, sets and weights, 12-minute steady cardio and Friday intervals."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-complete-find-plan-editor"
     }
   ]
 }

@@ -147,7 +147,7 @@ class PlaytestReplayTest {
         Thread({
             try {
                 Thread.sleep(RUN_LIMIT_MS)
-            } catch (_: InterruptedException) {
+            } catch (interrupted: InterruptedException) {
                 return@Thread
             }
             try {

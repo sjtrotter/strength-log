@@ -246,7 +246,13 @@ internal class Replay(
         val nodes = deadline.call { containers.fetchSemanticsNodes(atLeastOneRootRequired = false) }
         nodes.indices.filter { nodes[it].config.contains(SemanticsActions.ScrollToIndex) }.forEach { index ->
             try {
-                deadline.call { containers[index].performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
+                // A lazy list composes newly scrolled rows on the next frame, so the clock runs here.
+                compose.mainClock.autoAdvance = true
+                try {
+                    deadline.call { containers[index].performScrollToNode(selectors.matcher(selector, deadline = deadline)) }
+                } finally {
+                    compose.mainClock.autoAdvance = false
+                }
                 return
             } catch (error: AssertionError) {
                 if (error.isWaitTimeout()) throw deadline.timeout(error)

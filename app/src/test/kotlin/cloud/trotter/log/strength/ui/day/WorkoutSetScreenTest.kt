@@ -1,6 +1,10 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
 import android.view.View
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +39,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -56,6 +61,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -693,7 +699,7 @@ class WorkoutSetScreenTest {
         }
     }
 
-    @Test fun restDescriptionTracksSecondsWithoutRepeatingTheStartAnnouncement() {
+    @Test fun restDescriptionTracksSecondsWhileLiveRegionChangesAtMinuteBoundaries() {
         var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest()))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         fun description() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
@@ -710,18 +716,17 @@ class WorkoutSetScreenTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         assertEquals(listOf("Rest 1 minute 30 seconds"), description())
         assertEquals(listOf("Rest 1 minute 30 seconds"), announced())
-        val startAnnouncement = announced()
         val startText = announcementText()
         listOf(
-            89 to "Rest 1 minute 29 seconds",
-            61 to "Rest 1 minute 1 second",
-            60 to "Rest 1 minute",
-            59 to "Rest 59 seconds",
-            45 to "Rest 45 seconds",
-        ).forEach { (seconds, expected) ->
+            Triple(89, "Rest 1 minute 29 seconds", "Rest 1 minute 30 seconds"),
+            Triple(61, "Rest 1 minute 1 second", "Rest 1 minute 30 seconds"),
+            Triple(60, "Rest 1 minute", "Rest 1 minute"),
+            Triple(59, "Rest 59 seconds", "Rest 1 minute"),
+            Triple(45, "Rest 45 seconds", "Rest 1 minute"),
+        ).forEach { (seconds, expected, minuteAnnouncement) ->
             rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = seconds)) }
             assertEquals(listOf(expected), description())
-            assertEquals(startAnnouncement, announced())
+            assertEquals(listOf(minuteAnnouncement), announced())
             assertEquals(startText, announcementText())
         }
         rule.runOnIdle {
@@ -733,6 +738,40 @@ class WorkoutSetScreenTest {
         }
         assertEquals(listOf("Rest 1 minute"), description())
         assertEquals(listOf("Rest 1 minute"), announced())
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun consecutiveEqualDurationRestsDeliverSeparateStartAnnouncements() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val accessibility = shadowOf(context.getSystemService(AccessibilityManager::class.java))
+        accessibility.setEnabledAccessibilityServiceList(listOf(AccessibilityServiceInfo().apply {
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN
+        }))
+        accessibility.setEnabled(true)
+        var state by mutableStateOf(workoutSetSingleFixture())
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        fun deliveredAnnouncements() = rule.runOnIdle {
+            accessibility.sentAccessibilityEvents
+                .filter { it.eventType == AccessibilityEvent.TYPE_ANNOUNCEMENT }
+                .flatMap { event -> event.text.map { it.toString() } }
+        }
+
+        rule.runOnIdle { state = state.copy(rest = workoutRest()) }
+        assertEquals(listOf("Rest 1 minute 30 seconds"), deliveredAnnouncements())
+        listOf(89, 61, 60, 59, 45).forEach { seconds ->
+            rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = seconds)) }
+            assertEquals(listOf("Rest 1 minute 30 seconds"), deliveredAnnouncements())
+        }
+        rule.runOnIdle {
+            val rest = workoutRest()
+            state = state.copy(rest = rest.copy(rest = rest.rest.copy(
+                deadlineEpochMillis = rest.rest.deadlineEpochMillis + 45_000L,
+                nextSetLabel = "Ramp set 3",
+            )))
+        }
+        rule.onNodeWithText("1:30").assertIsDisplayed()
+        assertEquals(listOf("Rest 1 minute 30 seconds", "Rest 1 minute 30 seconds"), deliveredAnnouncements())
     }
 
     @Test

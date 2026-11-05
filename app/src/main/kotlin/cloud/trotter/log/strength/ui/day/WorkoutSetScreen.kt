@@ -59,6 +59,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -68,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -757,14 +759,23 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
         }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
-                val startedSeconds = remember(rest.rest) { rest.remainingSeconds }
-                val startAnnouncement = formatRestAnnouncement(resources, startedSeconds)
-                Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("workout-rest-announcement").semantics {
-                        liveRegion = LiveRegionMode.Polite
-                        contentDescription = startAnnouncement
-                    })
+                val view = LocalView.current
+                LaunchedEffect(rest.rest) {
+                    // Equal-duration rests need separate events even when their descriptions match.
+                    @Suppress("DEPRECATION")
+                    view.announceForAccessibility(formatRestAnnouncement(resources, rest.remainingSeconds))
+                }
+                // A fresh live region leaves each start announcement to the identity-keyed event.
+                key(rest.rest) {
+                    val announcedSeconds = remember((rest.remainingSeconds - 1) / 60) { rest.remainingSeconds }
+                    val minuteAnnouncement = formatRestAnnouncement(resources, announcedSeconds)
+                    Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("workout-rest-announcement").semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = minuteAnnouncement
+                        })
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.clearAndSetSemantics { })

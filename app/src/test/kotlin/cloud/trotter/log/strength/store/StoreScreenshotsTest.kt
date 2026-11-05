@@ -56,7 +56,6 @@ import cloud.trotter.log.strength.ui.log.LogScreenBuilder
 import cloud.trotter.log.strength.ui.log.LogUiState
 import cloud.trotter.log.strength.ui.log.SessionListItem
 import cloud.trotter.log.strength.ui.log.TrajectoryCard
-import cloud.trotter.log.strength.ui.log.TrajectoryGridline
 import cloud.trotter.log.strength.ui.log.TrajectoryPoint
 import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
@@ -280,16 +279,15 @@ class StoreScreenshotsTest {
                         exerciseName = catalog.get("bb_back_squat").name,
                         dayIndex = 0,
                         points = listOf(215f, 220f, 220f, 225f, 230f, 235f).mapIndexed { index, weight ->
-                            TrajectoryPoint(weight, newHigh = index != 2)
+                            TrajectoryPoint(weight, newHigh = index != 2, date = java.time.LocalDate.of(2026, 2, 9).plusDays(index * 4L))
                         },
                         goalValue = 235f,
-                        goalLabel = "GOAL 235",
+                        goalLabel = "235",
                         goalMet = true,
                         latestLabel = "235",
-                        caption = "6 SESSIONS · SINCE FEB 9",
+                        unit = WeightUnit.LB,
                         axisMin = 210f,
                         axisMax = 240f,
-                        gridlines = listOf(TrajectoryGridline(215f, "215"), TrajectoryGridline(235f, "235")),
                     ),
                 ),
             ),

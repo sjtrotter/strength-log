@@ -23,7 +23,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
-import kotlin.math.roundToLong
 
 /**
  * The journal's pure derivations (docs/briefs/journal.md §3): trajectory series
@@ -36,14 +35,11 @@ import kotlin.math.roundToLong
  */
 object JournalBuilder {
 
-    /** Weeks of tonnage the volume chart shows, including the current one. */
+    /** Weeks of tonnage the volume section shows, including the current one. */
     const val VOLUME_WEEKS = 12
 
-    // Locale.US, not the device default: these are caps display tokens next to
-    // English section headers, and Locale.ROOT abbreviates "MMMM" to "Jul".
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
     private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
-    private val CAPTION_DATE = DateTimeFormatter.ofPattern("MMM d", Locale.US)
 
     /** One ramped main lift and its read-only GOAL — the input to [trajectories]. */
     data class MainLift(
@@ -108,30 +104,30 @@ object JournalBuilder {
             // The chart marks a lift's first session even though first times are not PRs.
             val newHigh = standing == null || PersonalBests.prKind(candidate, standing) != null
             if (newHigh) standing = candidate
-            TrajectoryPoint(unit.fromLb(row.topWeightLb).toFloat(), newHigh)
+            TrajectoryPoint(
+                unit.fromLb(row.topWeightLb).toFloat(), newHigh,
+                Instant.ofEpochMilli(row.completedAt).atZone(zone).toLocalDate(),
+            )
         }
         val goal = unit.fromLb(lift.goalLb).toFloat()
         val values = points.map { it.value }
-        val since = CAPTION_DATE.format(Instant.ofEpochMilli(rows.first().completedAt).atZone(zone))
-        val sessionWord = if (rows.size == 1) "SESSION" else "SESSIONS"
         return TrajectoryCard(
             exerciseId = lift.exerciseId,
             exerciseName = lift.name,
             dayIndex = lift.dayIndex,
             points = points,
             goalValue = goal,
-            goalLabel = "GOAL ${WeightStepper.format(unit.fromLb(lift.goalLb))}",
+            goalLabel = WeightStepper.format(unit.fromLb(lift.goalLb)),
             goalMet = rows.maxOf { it.topWeightLb } >= lift.goalLb,
             latestLabel = WeightStepper.format(unit.fromLb(rows.last().topWeightLb)),
-            caption = "${rows.size} $sessionWord · SINCE ${since.uppercase(Locale.US)}",
+            unit = unit,
             axisMin = axisBound(values, goal, low = true),
             axisMax = axisBound(values, goal, low = false),
-            gridlines = gridlines(values),
         )
     }
 
     /** Plot bounds over the points and the goal line, with 8% headroom so neither
-     *  a marker nor the goal label sits flush against the card edge. A flat
+     *  a marker nor the goal line sits flush against the plot edge. A flat
      *  series (every session the same weight) still needs a non-zero span. */
     private fun axisBound(values: List<Float>, goal: Float, low: Boolean): Float {
         val min = minOf(values.min(), goal)
@@ -141,17 +137,8 @@ object JournalBuilder {
         return if (low) min - pad else max + pad
     }
 
-    /** At most two faint y-gridlines: the lightest and heaviest top set actually
-     *  performed. A flat series collapses to one. */
-    private fun gridlines(values: List<Float>): List<TrajectoryGridline> {
-        val min = values.min()
-        val max = values.max()
-        val marks = if (min == max) listOf(min) else listOf(min, max)
-        return marks.map { TrajectoryGridline(it, WeightStepper.format(it.toDouble())) }
-    }
-
     /**
-     * The last [VOLUME_WEEKS] ISO weeks ending with [today]'s, oldest first.
+     * The last [VOLUME_WEEKS] ISO weeks ending with [today]'s, newest first.
      * Untrained weeks are present but empty — a missed week is part of the
      * rhythm, not a gap to close up. Returns null when nothing was ever
      * completed in the window, so the section simply doesn't render.
@@ -176,30 +163,16 @@ object JournalBuilder {
         }
         if (trained.none { it }) return null
 
-        val peak = totals.max()
-        val peakIndex = totals.indexOfFirst { it == peak }
-        val labelled = setOfNotNull(peakIndex, (VOLUME_WEEKS - 1).takeIf { trained[it] })
         return VolumeChart(
-            bars = List(VOLUME_WEEKS) { i ->
-                VolumeBar(
-                    fraction = if (peak > 0.0) (totals[i] / peak).toFloat() else 0f,
+            weeks = (VOLUME_WEEKS - 1 downTo 0).map { i ->
+                VolumeWeek(
+                    startDate = firstWeek.plusWeeks(i.toLong()),
+                    total = totals[i],
+                    unit = unit,
                     trained = trained[i],
-                    label = if (i in labelled && trained[i]) tonnageLabel(totals[i]) else null,
                 )
             },
         )
-    }
-
-    /** Compact tonnage: "840", "12.4K", "124K". Bars carry at most two of these,
-     *  so precision matters less than staying one glanceable token wide. */
-    fun tonnageLabel(value: Double): String {
-        if (value < 1_000) return value.roundToLong().toString()
-        val thousands = value / 1_000
-        return if (thousands >= 100) {
-            "${thousands.roundToLong()}K"
-        } else {
-            String.format(Locale.ROOT, "%.1fK", thousands)
-        }
     }
 
     /**
@@ -231,8 +204,7 @@ object JournalBuilder {
             val date = month.atDay(dayOfMonth)
             val onDate = byDate[date]
             val first = onDate?.first()
-            // The drawn cell is only a letter or a numeral; its month, its today
-            // state and its session count exist solely in this spoken label.
+            // The spoken label adds the month, today state and session count.
             val label = buildList {
                 add(CELL_DATE.format(date))
                 if (date == today) add("today")
@@ -254,7 +226,7 @@ object JournalBuilder {
             )
         }
         return CalendarMonth(
-            title = MONTH_TITLE.format(month).uppercase(Locale.US),
+            title = MONTH_TITLE.format(month),
             monthOffset = offset,
             canPageBack = YearMonth.from(earliest) < month,
             canPageForward = offset < 0,

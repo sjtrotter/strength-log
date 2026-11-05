@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -935,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb \u00d7 8"
+        "text": "135 lb × 8"
       }
     },
     {
@@ -1163,13 +1163,60 @@
     },
     {
       "tap": {
-        "text": "Reverse Lunge"
+        "text": "Reverse Lunge",
+        "index": 1
       }
     },
     {
       "expect": {
-        "text": "25 lb \u00d7 8"
+        "text": "25 lb × 8"
       }
+    },
+    {
+      "note": "I entered 20 instead of 25 for my first lunge set. Correct it before logging; I actually used a 25 in each hand."
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "lunge-weight-entry-mistake-before-logging"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "25 lb × 8"
+      }
+    },
+    {
+      "checkpoint": "lunge-weight-corrected-before-logging"
     },
     {
       "advance": "5m"

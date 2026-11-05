@@ -316,9 +316,9 @@
   },
   {
    "swipe": {
-    "textContains": "Knee extension"
-   },
-   "direction": "up"
+    "textContains": "Knee extension",
+    "direction": "up"
+   }
   },
   {
    "checkpoint": "add-ex-scrolled"
@@ -342,6 +342,40 @@
   },
   {
    "checkpoint": "sets-after-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-after-edit"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-1"
+  },
+  {
+   "advance": "30s"
+  },
+  {
+   "checkpoint": "rest-30s"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rest-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-2"
   }
  ]
 }

@@ -1348,6 +1348,11 @@
     },
     {
       "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "tap": {
         "text": "Trends and calendar"
       }
     },
@@ -1416,6 +1421,99 @@
     },
     {
       "note": "Tuesday Nov10: need 170kg x3 for four paused sets. If no exact variation exists, inspect the custom exercise route. Then one-arm DB rows40kg x8 for four sets each side TODAY ONLY, pulldown3x10, rear delts3x15, bike20min easy RPE3. First pause rushed. No generated bench or squat work is to be logged as Tuesday."
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "close"
+      }
+    },
+    {
+      "checkpoint": "variation-search-close-grip-bench"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pause"
+      }
+    },
+    {
+      "checkpoint": "variation-search-pause-word-for-bench-squat-and-pulls"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "tuesday-row-substitution-catalog-options"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": ""
+      }
+    },
+    {
+      "checkpoint": "unfiltered-exercise-picker-looking-for-custom-name-action"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov10: PAUSED deadlift, pause just off floor. 170kg x3 for 4 sets. First pause rushed. Keep separate from competition pulls."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-pause-definition-in-note-awaiting-correct-exercise-identity"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "tuesday-first-working-prescription-prepared-not-logged"
     }
   ]
 }

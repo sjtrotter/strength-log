@@ -1250,15 +1250,16 @@
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "desc": "Share"
       }
     },
     {
-      "checkpoint": "monday-finished-summary"
+      "checkpoint": "monday-share-entry-harness-cannot-show-system-sheet"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Done"
+      }
     },
     {
       "checkpoint": "home-after-first-finished-workout"

@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -100,6 +102,22 @@ class NumberFieldTest {
         rule.runOnIdle { persisted.value = 250.0 }
 
         rule.onNodeWithText("135").assertExists()
+    }
+
+    @Test fun externalValueAppearsOnceAFocusedFieldWithoutEditsLosesFocus() {
+        val persisted = mutableStateOf(135.0)
+        lateinit var focusManager: FocusManager
+        rule.setContent { AppTheme {
+            focusManager = LocalFocusManager.current
+            NumberField(persisted.value, {}, "Weight (lb)")
+        } }
+        rule.onNodeWithText("Weight (lb)").performClick()
+        rule.runOnIdle { persisted.value = 250.0 }
+        rule.onNodeWithText("135").assertExists()
+
+        rule.runOnIdle { focusManager.clearFocus() }
+
+        rule.onNodeWithText("250").assertExists()
     }
 
     @Test fun externalValueUpdatesAnIdleField() {

@@ -58,10 +58,12 @@ fun NumberField(
     val parsed = resolveNumberCommit(draft, minValue, maxValue, round)
     val invalid = dirty && parsed == null
     SideEffect { onValidityChange(parsed != null) }
-    LaunchedEffect(value, label) {
+    // Keyed on focus too, so a value that changed while the field was focused shows once focus leaves.
+    LaunchedEffect(value, label, focused) {
         val acknowledged = value == pendingCommit
-        // An older write can arrive after the user has started the next edit.
-        if (!dirty && (!focused || acknowledged)) draft = format(value)
+        // An older write can arrive after the user has started the next edit, and the field's own
+        // write is still in flight until its value comes back; neither may overwrite the draft.
+        if (!dirty && (acknowledged || (!focused && pendingCommit == null))) draft = format(value)
         if (acknowledged) pendingCommit = null
     }
     val rangeError = if (maxValue.isFinite()) {

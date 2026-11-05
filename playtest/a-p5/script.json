@@ -581,27 +581,24 @@
       "checkpoint": "day-editor-before-logging-find-own-exercises-sets-and-loads"
     },
     {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "role": "Tab",
-        "index": 0
+        "desc": "More options for Goblet Squat"
       }
     },
     {
-      "tap": {
-        "text": "Resume day A"
-      }
+      "checkpoint": "goblet-plan-options-find-set-structure-controls"
     },
     {
-      "checkpoint": "resume-confirmed-goblet-workout-after-viewing-day-editor"
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Closing the edit-day sheet returns directly to the active goblet workout. Do not navigate to nonexistent tabs here."
+    },
+    {
+      "checkpoint": "goblet-workout-after-closing-plan-options"
     },
     {
       "note": "Goblet squat uses one dumbbell. Plan swap is intentional: this belongs in my normal A, not merely today."
@@ -767,15 +764,7 @@
       "back": true
     },
     {
-      "tap": {
-        "role": "Tab",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "text": "2-day full body"
-      }
+      "back": true
     },
     {
       "tap": {
@@ -788,7 +777,89 @@
       }
     },
     {
+      "note": "The workout was opened through the Day A preview; return through that preview and the plan list before reopening Edit."
+    },
+    {
       "checkpoint": "actual-day-editor-after-recording-goblet-squats"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "remove-unwanted-press-options-in-own-A"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "add-exercise-picker-for-rdl-lunge-and-calf"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-prescription-controls-for-separate-running-days"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "goblet-plan-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "squat-note-entry-start-at-30-next-time"
     }
   ]
 }

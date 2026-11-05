@@ -459,8 +459,7 @@
   {
    "type": {
     "text": "Weight (lb)",
-    "value": "70",
-    "ime": "done"
+    "value": "70"
    },
    "timeoutMs": 20000
   },
@@ -512,16 +511,14 @@
   {
    "type": {
     "text": "Weight (lb)",
-    "value": "175",
-    "ime": "done"
+    "value": "175"
    },
    "timeoutMs": 20000
   },
   {
    "type": {
     "text": "Reps",
-    "value": "5",
-    "ime": "done"
+    "value": "5"
    },
    "timeoutMs": 20000
   },

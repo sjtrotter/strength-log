@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.playtest
 
 import android.graphics.BitmapFactory
+import android.os.Looper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -41,6 +43,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -99,6 +102,7 @@ class ReplaySafetyTest {
             }
         }
         fun capture(name: String) {
+            assertFalse(compose.mainClock.autoAdvance)
             val file = File(temporary.root, "$name.png")
             compose.writePlaytestShot(file, compose.density.density)
             val bitmap = checkNotNull(BitmapFactory.decodeFile(file.absolutePath))
@@ -113,7 +117,12 @@ class ReplaySafetyTest {
         }
         capture("single")
         compose.runOnIdle { dialog.value = true }
-        compose.mainClock.advanceTimeByFrame()
+        compose.waitUntil(5_000) {
+            compose.mainClock.advanceTimeByFrame()
+            shadowOf(Looper.getMainLooper()).idle()
+            compose.onAllNodesWithText("Dialog content").fetchSemanticsNodes()
+                .singleOrNull()?.visibleForTouch() == true
+        }
         capture("dialog")
         capture("dialog-again")
     }

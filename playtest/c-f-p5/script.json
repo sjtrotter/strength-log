@@ -883,6 +883,7 @@
   {
    "type": {
     "text": "Reps",
+    "editable": true,
     "value": "5"
    }
   },

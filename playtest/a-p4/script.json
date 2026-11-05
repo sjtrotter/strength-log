@@ -332,6 +332,79 @@
     },
     {
       "note": "Inspect the workout before entering sets; the suggested preview had six squat sets and a 25-minute bike ride, which are not my intended prescription."
+    },
+    {
+      "note": "Before lifting, inspect how individual sets, the full exercise, and the whole day can be changed. I still need my own 3x8 squat prescription and named Monday plan."
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "set-editor-fields-and-effort-help"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "all-squat-sets-warmups-and-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "checkpoint": "whole-day-exercises-swap-order-and-cardio"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-unlogged-workout-to-edit-plan"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-edit-or-copy"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "checkpoint": "plan-detail-find-own-named-days"
+    },
+    {
+      "note": "No lifting has been logged yet. Use the visible plan controls on the next pass to replace the generated prescription with my Monday, Wednesday, and Friday routine."
+    },
+    {
+      "checkpoint": "ready-to-customize-plan"
     }
   ]
 }

@@ -1051,6 +1051,19 @@
       "checkpoint": "monday-bench-swap-result-and-scope"
     },
     {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "monday-barbell-bench-swap-confirmed"
+    },
+    {
       "expect": {
         "desc": "Close sheet",
         "absent": true
@@ -1148,43 +1161,6 @@
     },
     {
       "checkpoint": "monday-bench-three-sets-at-105"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 7 of 16 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "checkpoint": "bench-note-entry-for-slow-last-set"
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "desc": "Close sheet",
-        "absent": true
-      }
     },
     {
       "tap": {

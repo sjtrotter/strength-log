@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb \u00d7 5"
+        "text": "165 lb × 5"
       }
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "expect": {
-        "text": "10 lb \u00d7 12"
+        "text": "10 lb × 12"
       }
     },
     {
@@ -359,7 +359,7 @@
     },
     {
       "expect": {
-        "text": "115 lb \u00d7 8"
+        "text": "115 lb × 8"
       }
     },
     {
@@ -438,7 +438,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day B"
+        "text": "4-day upper/lower · Day B"
       }
     },
     {
@@ -533,7 +533,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day B"
+        "text": "4-day upper/lower · Day B"
       }
     },
     {
@@ -546,7 +546,7 @@
     },
     {
       "expect": {
-        "text": "265 lb \u00d7 5"
+        "text": "265 lb × 5"
       }
     },
     {
@@ -557,7 +557,7 @@
     },
     {
       "tap": {
-        "text": "Log 265 lb \u00d7 5"
+        "text": "Log 265 lb × 5"
       }
     },
     {
@@ -718,7 +718,7 @@
     },
     {
       "expect": {
-        "text": "185 lb \u00d7 6"
+        "text": "185 lb × 6"
       }
     },
     {
@@ -726,7 +726,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 6"
+        "text": "Log 185 lb × 6"
       }
     },
     {
@@ -734,7 +734,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 6"
+        "text": "Log 185 lb × 6"
       }
     },
     {
@@ -742,7 +742,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 6"
+        "text": "Log 185 lb × 6"
       }
     },
     {
@@ -750,7 +750,7 @@
     },
     {
       "expect": {
-        "text": "40 lb \u00d7 15"
+        "text": "40 lb × 15"
       }
     },
     {
@@ -761,7 +761,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 15"
+        "text": "Log 40 lb × 15"
       }
     },
     {
@@ -769,7 +769,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 15"
+        "text": "Log 40 lb × 15"
       }
     },
     {
@@ -881,7 +881,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day C"
+        "text": "4-day upper/lower · Day C"
       }
     },
     {
@@ -958,7 +958,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day C"
+        "text": "4-day upper/lower · Day C"
       }
     },
     {
@@ -971,7 +971,7 @@
     },
     {
       "expect": {
-        "text": "145 lb \u00d7 8"
+        "text": "145 lb × 8"
       }
     },
     {
@@ -982,7 +982,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb \u00d7 8"
+        "text": "Log 145 lb × 8"
       }
     },
     {
@@ -990,7 +990,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb \u00d7 8"
+        "text": "Log 145 lb × 8"
       }
     },
     {
@@ -998,7 +998,7 @@
     },
     {
       "tap": {
-        "text": "Log 145 lb \u00d7 8"
+        "text": "Log 145 lb × 8"
       }
     },
     {
@@ -1030,7 +1030,7 @@
     },
     {
       "tap": {
-        "desc": "More options for DB Lateral Raise"
+        "desc": "More options for Chest-Supported Reverse Fly"
       }
     },
     {
@@ -1040,7 +1040,7 @@
     },
     {
       "tap": {
-        "desc": "More options for Plank / Side Plank"
+        "desc": "More options for Hanging Leg Raise"
       }
     },
     {
@@ -1126,7 +1126,25 @@
     },
     {
       "tap": {
-        "text": "Incline DB Curl"
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "saturday-curl-superset-options"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Prescription"
       }
     },
     {
@@ -1151,6 +1169,12 @@
       "tap": {
         "text": "Save"
       }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "saturday-curl-now-straight-sets"
     },
     {
       "tap": {
@@ -1192,7 +1216,7 @@
     },
     {
       "expect": {
-        "text": "50 lb \u00d7 10"
+        "text": "50 lb × 10"
       }
     },
     {
@@ -1200,7 +1224,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb \u00d7 10"
+        "text": "Log 50 lb × 10"
       }
     },
     {
@@ -1208,7 +1232,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb \u00d7 10"
+        "text": "Log 50 lb × 10"
       }
     },
     {
@@ -1216,7 +1240,7 @@
     },
     {
       "tap": {
-        "text": "Log 50 lb \u00d7 10"
+        "text": "Log 50 lb × 10"
       }
     },
     {
@@ -1224,7 +1248,7 @@
     },
     {
       "expect": {
-        "text": "85 lb \u00d7 5"
+        "text": "85 lb × 5"
       }
     },
     {
@@ -1232,7 +1256,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb \u00d7 5"
+        "text": "Log 85 lb × 5"
       }
     },
     {
@@ -1240,7 +1264,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb \u00d7 5"
+        "text": "Log 85 lb × 5"
       }
     },
     {
@@ -1248,7 +1272,7 @@
     },
     {
       "tap": {
-        "text": "Log 85 lb \u00d7 5"
+        "text": "Log 85 lb × 5"
       }
     },
     {
@@ -1256,7 +1280,7 @@
     },
     {
       "expect": {
-        "text": "25 lb \u00d7 10"
+        "text": "25 lb × 10"
       }
     },
     {
@@ -1264,7 +1288,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 10"
+        "text": "Log 25 lb × 10"
       }
     },
     {
@@ -1272,7 +1296,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 10"
+        "text": "Log 25 lb × 10"
       }
     },
     {
@@ -1324,7 +1348,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -1345,6 +1369,363 @@
     },
     {
       "checkpoint": "second-lower-a-all-set-slots-and-previous-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-plan-before-manual-progression"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-next-time-policy"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "220"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "0"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:35"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-targets-220-rdl-nine-lunge-nine-plank35"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day D"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-squat-ready"
+    },
+    {
+      "expect": {
+        "text": "220 lb × 5"
+      }
+    },
+    {
+      "note": "Nov16: bad sleep. Squat220 for5,5,4. Longer rest before final set; stop before an ugly rep. Repeat220 next week."
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-missed-rep-ready"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 4"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-five-five-four-recorded"
+    },
+    {
+      "expect": {
+        "text": "135 lb × 9"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb × 9"
+      }
+    },
+    {
+      "expect": {
+        "text": "25 lb × 9"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 9"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 9"
+      }
+    },
+    {
+      "expect": {
+        "text": "35 s"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 s"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 s"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 s"
+      }
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "checkpoint": "week-two-monday-all-actual-results"
+    },
+    {
+      "tap": {
+        "text": "Finish day D"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-recap-miss-preserved"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bad sleep. Squat220:5,5,4; rested4min before last. Repeat220. Lunges25 per hand,9 each leg. Planks35s x3."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-bad-sleep-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "23h10m"
+    },
+    {
+      "checkpoint": "tuesday-nov17-second-upper-a"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day A"
+      }
+    },
+    {
+      "checkpoint": "second-upper-a-targets-after-saturday-bench145"
     }
   ]
 }

@@ -35,7 +35,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot04PreviewLong() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/04-preview-long") { PreviewScreen(auditPreviewFixture().copy(planName = LONG_PLAN, title = LONG_DAY, lifts = listOf(PreviewLift(longestExercise.name, "35 × 10", null))), PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/04-preview-long") { PreviewScreen(auditPreviewFixture().copy(planName = LONG_PLAN, title = LONG_DAY, lifts = listOf(PreviewLift(longestExercise.name, "35 lb × 10", null))), PreviewActions({}, {}, {})) }
     }
 
     @Config(fontScale = 2f)

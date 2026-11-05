@@ -266,7 +266,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 |---|---|---|
 | 2026-10-12, `ui-redesign-2026-10-12.md` Round 2 | Day index (letter on an accent block); Today / Log / Plan bar; coach states facts only; M3 `Checkbox`; edits in a `ModalBottomSheet`; rotation 2 to 6 days; no bespoke components | Owner: it did not feel like an app; both reviewers found captions carrying the hierarchy and reference outranking the action; an instructing coach line read as condescending |
 | 2026-10-12, HANDOFF rule 4 | Retire tracked caps and dot-joined meta; caps only as set notation | Seven caps captions turned Today into a readout. Reverses the July convention |
-| 2026-10-12 evening, pager decision | Workout is Fable's variant B: one lift per page, one set in focus, `Button` "Log 95 × 5", next card peeking, R1/TOP/B/O, no day selector, "Day D, done." | Owner: "looks like a pro workout app"; removes the vertical list behind the scroll jank (#260); shares the watch's grammar |
+| 2026-10-12 evening, pager decision | Workout is Fable's variant B: one lift per page, one set in focus, `Button` "Log 95 lb × 5", next card peeking, R1/TOP/B/O, no day selector, "Day D, done." | Owner: "looks like a pro workout app"; removes the vertical list behind the scroll jank (#260); shares the watch's grammar |
 | 2026-10-12 late, #262 | Segments are indicators, not buttons; the rest pill is a time button with a menu | 48 dp targets do not fit six to eight segments on a 360 dp phone |
 
 ### Watch

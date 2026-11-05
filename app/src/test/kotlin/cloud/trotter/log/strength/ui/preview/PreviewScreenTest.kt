@@ -17,6 +17,19 @@ import org.robolectric.annotation.Config
 class PreviewScreenTest {
     @get:Rule val rule = createComposeRule()
 
+    @Test fun absentAndIncomparableHistoryHaveDistinctMessages() {
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
+            loading = false, lifts = listOf(
+                PreviewLift("Plank", "45 s", "45 s"),
+                PreviewLift("Push-up", "12 reps", null),
+                PreviewLift("Side plank", "30 s", null, comparable = false),
+            ),
+        ), PreviewActions({}, {}, {})) } }
+        rule.onNodeWithText("Last 45 s").assertExists()
+        rule.onNodeWithText("No previous result").assertExists()
+        rule.onNodeWithText("No comparable previous result").assertExists()
+    }
+
     @Test fun loadingKeepsStartAndEditHidden() {
         rule.mainClock.autoAdvance = false
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
@@ -30,11 +43,11 @@ class PreviewScreenTest {
     @Test fun liftsShowPerformedNamesWorkingLoadLastAndSuperset() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "A"), planName = "Strength", title = "Upper",
-            lifts = listOf(PreviewLift("Bench + Row", "135 × 5 + 95 × 8", "130 × 5 + 90 × 8")),
+            lifts = listOf(PreviewLift("Bench + Row", "135 lb × 5 + 95 lb × 8", "130 lb × 5 + 90 lb × 8")),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Bench + Row").assertExists()
-        rule.onNodeWithText("Today 135 × 5 + 95 × 8").assertExists()
-        rule.onNodeWithText("Last 130 × 5 + 90 × 8").assertExists()
+        rule.onNodeWithText("Today 135 lb × 5 + 95 lb × 8").assertExists()
+        rule.onNodeWithText("Last 130 lb × 5 + 90 lb × 8").assertExists()
     }
 
     @Test fun emptyDayOffersEditAndNoStart() {
@@ -53,7 +66,7 @@ class PreviewScreenTest {
         var edited = false
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "B"), title = "Upper",
-            lifts = listOf(PreviewLift("Bench", "135 × 5", null)),
+            lifts = listOf(PreviewLift("Bench", "135 lb × 5", null)),
         ), PreviewActions({}, { edited = true }, { started = true })) } }
         rule.onNodeWithText("Edit").performClick()
         rule.onNodeWithText("Start day B").performClick()

@@ -64,8 +64,16 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                     } }
                     items(state.lifts) { lift -> ListItem(
                         headlineContent = { Text(lift.name) },
-                        supportingContent = lift.working?.let { working -> { Text(stringResource(R.string.preview_working, working)) } },
-                        trailingContent = lift.last?.let { last -> { Text(stringResource(R.string.preview_last, last)) } },
+                        supportingContent = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                lift.working?.let { Text(stringResource(R.string.preview_working, it)) }
+                                Text(when {
+                                    !lift.comparable -> stringResource(R.string.preview_no_comparable_result)
+                                    lift.last == null -> stringResource(R.string.preview_no_previous_result)
+                                    else -> stringResource(R.string.preview_last, lift.last)
+                                })
+                            }
+                        },
                     ) }
                     state.cardio?.let { cardio -> item { ListItem(
                         headlineContent = { Text(cardio.activity) },

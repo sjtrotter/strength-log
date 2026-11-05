@@ -42,7 +42,7 @@ class TouchTargetTest {
         rule.onNodeWithContentDescription("Day D lifts", substring = true).assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         // The hero that opens the editor is checked by the sweep below; the legacy text stub
         // measures its numerals too small for a layout-height check (the renders show its size).
-        rule.onNodeWithText("Log 95 × 5").assertHeightIsAtLeast(56.dp)
+        rule.onNodeWithText("Log 95 lb × 5").assertHeightIsAtLeast(56.dp)
         rule.assertEveryTouchTargetIsAtLeast48dp()
         rule.assertNoOverlappingTouchTargets()
         rule.onNodeWithContentDescription("Edit set 2").performClick()

@@ -55,11 +55,13 @@ internal fun auditPreviewFixture(day: DayUiState = workoutLiftSheetFixture()) = 
         PreviewLift(
             listOfNotNull(card.title, card.partnerTitle).joinToString(" + "),
             listOfNotNull(
-                SetFormatter.summary(card.tracking, row.weightDisplay, row.reps, row.seconds, day.unit, spaced = true).trim(),
-                row.partner?.let { partner -> SetFormatter.summary(requireNotNull(card.partnerTracking),
-                    partner.weightDisplay, partner.reps, partner.seconds, day.unit, spaced = true).trim() },
+                SetFormatter.display(card.tracking, day.unit.toLb(row.weightDisplay), row.reps, row.seconds, day.unit),
+                row.partner?.let { partner -> SetFormatter.display(requireNotNull(card.partnerTracking),
+                    day.unit.toLb(partner.weightDisplay), partner.reps, partner.seconds, day.unit) },
             ).joinToString(" + "),
-            card.lastTimeDisplay,
+            card.lastTimeDisplay?.let {
+                SetFormatter.display(card.tracking, day.unit.toLb(row.weightDisplay), row.reps, row.seconds, day.unit)
+            },
         )
     },
 )

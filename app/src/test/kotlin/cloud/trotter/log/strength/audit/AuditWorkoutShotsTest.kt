@@ -115,7 +115,7 @@ class AuditWorkoutShotsTest : UiAuditTest() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         val state = mutableStateOf(workoutSetSingleFixture())
         rule.auditShot("workout/12-workout-undo-after-log", beforeCapture = {
-            rule.onNodeWithText("Log 190 × 5").performClick()
+            rule.onNodeWithText("Log 190 lb × 5").performClick()
             rule.mainClock.advanceTimeBy(300)
         }) {
             AuditDay(state.value, actions = workoutActions().copy(onLogFocusedSet = {

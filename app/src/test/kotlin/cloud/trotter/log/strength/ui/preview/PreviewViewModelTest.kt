@@ -35,6 +35,29 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun lastHoldUsesSecondsAndSuppressesMismatchedLegacyHistory() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("plank"))))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().last)
+        assertTrue(vm.uiState.value.lifts.single().comparable)
+
+        val weightedSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 1000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, weightedSession, "plank", "Plank", Slot.MAIN, 0,
+            SetKind.WORK.name, 235.0, 5, true)))
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().last)
+        assertFalse(vm.uiState.value.lifts.single().comparable)
+
+        val holdSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 2000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, holdSession, "plank", "Plank", Slot.MAIN, 0,
+            SetKind.WORK.name, 0.0, 0, true, seconds = 45)))
+        advanceUntilIdle()
+        assertEquals("45 s", vm.uiState.value.lifts.single().last)
+        assertTrue(vm.uiState.value.lifts.single().comparable)
+    }
+
     @Test fun aGapInDayLettersKeepsTheThirdAccentInPreview() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -52,7 +75,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("235 × 5", vm.uiState.value.lifts.single().working)
+        assertEquals("235 lb × 5", vm.uiState.value.lifts.single().working)
         assertEquals("Barbell Back Squat", vm.uiState.value.lifts.single().name)
         assertNull(vm.uiState.value.lifts.single().last)
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.isEmpty())
@@ -61,7 +84,7 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(vm.uiState.value.lifts.single().working,
             workout.uiState.value.exercises.single().rows.first { it.kind == SetKind.TOP }.let {
-                "${it.weightDisplay.toInt()} × ${it.reps}"
+                "${it.weightDisplay.toInt()} lb × ${it.reps}"
             })
     }
 
@@ -91,7 +114,7 @@ class PreviewViewModelTest : OverviewFixture() {
         db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("× 8", vm.uiState.value.lifts.single().working)
+        assertEquals("8 reps", vm.uiState.value.lifts.single().working)
     }
 
     @Test fun previewUsesStoredFirstWorkingValuesRatherThanTheGoalOrRamp() = runTest(dispatcher) {
@@ -103,7 +126,7 @@ class PreviewViewModelTest : OverviewFixture() {
         ))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("225 × 7", vm.uiState.value.lifts.single().working)
+        assertEquals("225 lb × 7", vm.uiState.value.lifts.single().working)
         vm.start()
         advanceUntilIdle()
         val track = repo.openRunFlow.first()!!.tracks.single()
@@ -121,13 +144,13 @@ class PreviewViewModelTest : OverviewFixture() {
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("Hack Squat", vm.uiState.value.lifts.single().name)
-        assertEquals("180 × 8", vm.uiState.value.lifts.single().working)
+        assertEquals("180 lb × 8", vm.uiState.value.lifts.single().working)
         assertNull(vm.uiState.value.lifts.single().last)
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "hack_squat", "Hack Squat", Slot.MAIN, 0,
             SetKind.WORK.name, 170.0, 9, true)))
         advanceUntilIdle()
-        assertEquals("170 × 9", vm.uiState.value.lifts.single().last)
+        assertEquals("170 lb × 9", vm.uiState.value.lifts.single().last)
         assertEquals("bb_back_squat", repo.plans.slotsFor(plan, "A").first().single().exercise.exerciseId)
     }
 

@@ -45,7 +45,7 @@ class TimedRepSetScreenTest {
 
     private fun state() = workoutSetTimedRepFixture().copy(viewDayId = "D", exercises = listOf(card())).withWorkoutSelection()
 
-    @Test fun countControlsStartAtZeroAllowZeroDisableBlankAndShowTheAim() {
+    @Test fun countControlsStartAtAimAllowZeroDisableBlankAndShowTheAim() {
         var event by mutableStateOf(event(awaiting = true))
         val logged = mutableListOf<Int>()
         val actions = workoutActions().copy(
@@ -56,15 +56,17 @@ class TimedRepSetScreenTest {
         rule.onNodeWithText("Time’s up").assertExists()
         rule.onNodeWithText("Push-ups · Set 1").assertExists()
         rule.onNodeWithText("Reps").assertIsNotFocused()
-        rule.onNodeWithText("0 / 40 reps").assertExists()
-        rule.onNodeWithText("Log 0 reps").assertIsEnabled()
+        rule.onNodeWithText("40 / 40 reps").assertExists()
+        rule.onNodeWithText("Log 40 reps").assertIsEnabled()
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription)).performClick()
         rule.onNodeWithText("Reps").performTextReplacement("1")
         rule.onNodeWithText("Log 1 rep").assertIsEnabled()
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
         rule.onNodeWithText("Log 1 reps").assertDoesNotExist()
         rule.onNodeWithText("Reps").performTextReplacement("")
-        rule.onNodeWithText("Log 0 reps").assertIsNotEnabled()
+        rule.onNodeWithText("Log reps").assertIsNotEnabled()
+        rule.onNodeWithText("Reps").performTextReplacement("0")
+        rule.onNodeWithText("Log 0 reps").assertIsEnabled()
         rule.onNodeWithText("Reps").performTextReplacement("38")
         rule.onNodeWithText("38 / 40 reps").assertExists()
         rule.onNodeWithText("Log 38 reps").performClick()
@@ -72,7 +74,25 @@ class TimedRepSetScreenTest {
         rule.onNodeWithText("Log 37 reps").assertIsEnabled()
         rule.onNodeWithContentDescription("Reps, one more").performClick()
         rule.onNodeWithText("Log 38 reps").assertIsEnabled()
-        assertEquals(listOf(0, 38), logged)
+        assertEquals(listOf(40, 38), logged)
+    }
+
+    @Test fun reopeningTheCountSheetPreservesExplicitZeroAndBlank() {
+        var countEvent by mutableStateOf(event(awaiting = true))
+        var visible by mutableStateOf(true)
+        val actions = workoutActions().copy(onTimedRepDraftChange = { countEvent = countEvent.copy(draft = it) })
+        rule.setContent { AppTheme {
+            if (visible) TimedRepCountSheet(card(), countEvent, 3, actions)
+        } }
+        rule.onNodeWithText("Log 40 reps").assertIsEnabled()
+        rule.onNodeWithText("Reps").performTextReplacement("0")
+        rule.runOnIdle { visible = false }
+        rule.runOnIdle { visible = true }
+        rule.onNodeWithText("Log 0 reps").assertIsEnabled()
+        rule.onNodeWithText("Reps").performTextReplacement("")
+        rule.runOnIdle { visible = false }
+        rule.runOnIdle { visible = true }
+        rule.onNodeWithText("Log reps").assertIsNotEnabled()
     }
 
     @Test fun supersetCountConfirmationNamesTheMainExercise() {
@@ -121,13 +141,13 @@ class TimedRepSetScreenTest {
         rule.setContent { AppTheme { WorkoutSetHost(state.withWorkoutSelection(), actions, DayEditUiState(), workoutEditActions()) } }
         rule.runOnIdle { assertEquals(0, requests) }
         rule.onNodeWithText("Done").performClick()
-        rule.onNodeWithText("Time’s up").assertExists()
+        rule.onNodeWithText("Push-ups · Set 1").assertExists()
         rule.runOnIdle { assertEquals(1, requests) }
         rule.runOnIdle { state = state.copy(watchStatus = WatchStatus(WatchStatusKind.ACTIVE)) }
         rule.runOnIdle { assertEquals(1, requests) }
         rule.runOnIdle { actions.onCloseSetEditor() }
         rule.onNodeWithText("Enter reps").assertExists()
-        rule.onNodeWithText("Time’s up").assertDoesNotExist()
+        rule.onNodeWithText("Time’s up").assertExists()
         rule.runOnIdle { assertEquals(1, requests) }
     }
 

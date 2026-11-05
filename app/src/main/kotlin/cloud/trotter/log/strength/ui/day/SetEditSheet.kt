@@ -138,8 +138,13 @@ internal fun SetEditSheet(
                 ),
                 equipment = card.equipment,
                 unit = unit,
+                tracking = card.tracking,
+                focusedIndex = 0,
             )
-            val plateText = plate?.let { stringResource(R.string.set_edit_plates, it) }
+            val plateText = plate?.let {
+                if (it == "0") stringResource(R.string.set_edit_empty_bar)
+                else stringResource(R.string.set_edit_plates_with_unit, it, unit.name.lowercase())
+            }
             val effectText = stringResource(
                 when {
                     !row.isTop -> R.string.set_edit_only_this

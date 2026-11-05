@@ -103,7 +103,7 @@ class A11ySemanticsTest {
         composeTestRule.setContent {
             AppTheme { DayScreen(workoutDayFixture(), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
-        composeTestRule.onNodeWithText("Log 95 × 5")
+        composeTestRule.onNodeWithText("Log 95 lb × 5")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
         composeTestRule.onNodeWithContentDescription("Log Lift 2 95 × 5").assertDoesNotExist()

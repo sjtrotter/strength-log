@@ -458,7 +458,6 @@ class StoreScreenshotsTest {
                 sets, partnerSets, entry.tracking, partnerEntry?.tracking ?: entry.tracking, WeightUnit.LB,
             ),
             topSetComparison = DayScreenBuilder.topSetComparison(sets, null, WeightUnit.LB),
-            plateLine = DayScreenBuilder.plateLine(sets, entry.equipment, WeightUnit.LB),
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
     }

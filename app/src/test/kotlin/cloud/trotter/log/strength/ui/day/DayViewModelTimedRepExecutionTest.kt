@@ -679,6 +679,7 @@ class DayViewModelTimedRepExecutionTest {
     @Test
     fun finishingTheDayClearsTheRemainingTimedRepAttempt() = test {
         val vm = awaitingVm()
+        vm.changeTimedRepDraft("38")
         vm.logTimedRepCount()
         runCurrent()
         vm.start()

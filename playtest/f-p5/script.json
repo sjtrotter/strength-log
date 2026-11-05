@@ -994,6 +994,9 @@
    "checkpoint": "after-12-logs"
   },
   {
+   "advance": "5s"
+  },
+  {
    "tap": {
     "tag": "workout-action-filled"
    }

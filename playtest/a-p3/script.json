@@ -107,6 +107,135 @@
     },
     {
       "checkpoint": "setup-step-8-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "five-days-requested"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat / Bench / Deadlift / Row (Big 4)"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "KG"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "41",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Advanced"
+      }
+    },
+    {
+      "checkpoint": "kilograms-and-experience-set"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "corrected-rotation-still-not-my-program"
+    },
+    {
+      "note": "No existing-program route appeared in the eight setup screens. I am entering the app to look for an editor, not adopting this generated rotation as my powerlifting block. Bodyweight was not specified in my diary; the prefilled value is not a verified personal measurement."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "first-home-looking-for-program-editor"
     }
   ]
 }

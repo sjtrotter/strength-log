@@ -12,7 +12,6 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -95,8 +94,7 @@ class PlansViewModelTest {
         repo.plans.updateLifter { it.copy(bodyweightLb = 220.0, age = 41, level = ExperienceLevel.ADVANCED) }
         settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
-        val weight = WeightStepper.format(WeightUnit.KG.fromLb(220.0))
-        assertEquals(YouSummary("$weight kg", 41, "advanced"), vm.uiState.value.you)
+        assertEquals(YouSummary("99.8 kg", 41, "advanced"), vm.uiState.value.you)
     }
 
     @Test

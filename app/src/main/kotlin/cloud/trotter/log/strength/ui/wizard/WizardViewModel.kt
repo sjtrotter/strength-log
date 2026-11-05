@@ -249,6 +249,7 @@ class WizardViewModel @Inject constructor(
     fun onNext() {
         if (!initialized.value) return
         val current = stepIndex.value
+        if (current == WizardStep.ABOUT_YOU.ordinal && !hasValidAboutYouAnswers()) return
         if (current >= WizardStep.entries.lastIndex) {
             finish()
         } else {
@@ -354,6 +355,7 @@ class WizardViewModel @Inject constructor(
      * publish it, the unit and completion.
      */
     private fun finish() {
+        if (!hasValidAboutYouAnswers()) return
         if (finishProgress.value.inFlight || isComplete.value || previewProgram.value?.days.isNullOrEmpty()) return
         finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
@@ -435,7 +437,7 @@ class WizardViewModel @Inject constructor(
                 }
                 // Discard the retry id only once Room has been replaced.
                 savedState.remove<Long>(Keys.CREATED_PLAN_ID)
-                applyAnswers(repo.wizardAnswersFlow.first())
+                applyAnswers(repo.wizardAnswersFlow.first(), prefillAboutYou = true)
                 if (settings.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
                     // with it. Nothing is owed the user — the app finishes the
@@ -463,6 +465,9 @@ class WizardViewModel @Inject constructor(
     }
 
     // --- helpers ---------------------------------------------------------------
+
+    private fun hasValidAboutYouAnswers(): Boolean =
+        bodyweight.value?.let { it.isFinite() && it >= 1.0 } == true && (age.value ?: 0) >= 1
 
     private fun <T> setAnswer(key: String, value: T) {
         if (!initialized.value) {

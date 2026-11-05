@@ -321,9 +321,70 @@ class WizardViewModelWiringTest {
     // --- navigation --------------------------------------------------------------
 
     @Test
+    fun queuedNextFromCardio_stopsAtAboutYouUntilBothAnswersAreEntered() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        repeat(WizardStep.CARDIO.ordinal) { vm.onNext() }
+        advanceUntilIdle()
+
+        vm.onNext()
+        vm.onNext()
+        assertEquals(WizardStep.ABOUT_YOU.ordinal, handle.get<Int>("wizard_step"))
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.canContinue)
+
+        vm.setAge(33)
+        vm.onNext()
+        assertEquals(WizardStep.ABOUT_YOU.ordinal, handle.get<Int>("wizard_step"))
+        vm.setAge(null)
+        vm.setBodyweight(210.5)
+        vm.onNext()
+        assertEquals(WizardStep.ABOUT_YOU.ordinal, handle.get<Int>("wizard_step"))
+        vm.setAge(33)
+        vm.onNext()
+        assertEquals(WizardStep.EQUIPMENT.ordinal, handle.get<Int>("wizard_step"))
+    }
+
+    @Test
+    fun finish_refusesMissingOrInvalidAboutYouAnswersInRestoredDrafts() = runVmTest {
+        val invalidAnswers = listOf(
+            null to null,
+            210.5 to null,
+            null to 33,
+            0.0 to 33,
+            Double.NaN to 33,
+            Double.POSITIVE_INFINITY to 33,
+            210.5 to 0,
+        )
+        for ((bodyweight, age) in invalidAnswers) {
+            val handle = SavedStateHandle(mapOf(
+                "wizard_initialized" to true,
+                "wizard_step" to WizardStep.ROTATION.ordinal,
+                "wizard_bodyweight_lb" to bodyweight,
+                "wizard_age" to age,
+            ))
+            val vm = newViewModel(handle)
+            advanceUntilIdle()
+            assertFalse(vm.uiState.value.emptyRotation)
+
+            vm.onNext()
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.value.isComplete)
+            assertFalse(vm.uiState.value.finishInFlight)
+            assertFalse(settings.wizardCompleteFlow.first())
+            assertTrue(db.planDao().allPlans().isEmpty())
+            assertEquals(null, handle.get<Long>("wizard_created_plan_id"))
+        }
+    }
+
+    @Test
     fun onNext_advances_through_every_step_and_onBack_returns() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
 
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
         advanceUntilIdle()
@@ -347,6 +408,8 @@ class WizardViewModelWiringTest {
     fun enteringRotation_generatesTheCurrentAnswersPreview() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setDaysPerWeek(3)
 
         repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
@@ -363,6 +426,8 @@ class WizardViewModelWiringTest {
     fun backThenNext_regeneratesTheRotationPreview() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
         advanceUntilIdle()
 
@@ -443,6 +508,8 @@ class WizardViewModelWiringTest {
     fun finish_persists_answers_and_creates_a_plan() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
         vm.setUnit(WeightUnit.KG)
 
@@ -461,6 +528,8 @@ class WizardViewModelWiringTest {
     fun reviewingRotationReturnsToTheFirstStepWithTheDraftPreserved() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setDaysPerWeek(3)
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
         repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
@@ -599,6 +668,8 @@ class WizardViewModelWiringTest {
         val recording = newRecordingRepo()
         val vm = newViewModel(repository = recording)
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         failCompletionWrite()
         repeat(WizardStep.entries.size) { vm.onNext() }
         advanceUntilIdle()
@@ -694,6 +765,8 @@ class WizardViewModelWiringTest {
         val recording = newRecordingRepo()
         val vm = newViewModel(repository = recording)
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
 
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
         vm.onNext() // last step -> finish()
@@ -707,6 +780,8 @@ class WizardViewModelWiringTest {
     fun finish_persists_standalone_cardio_days() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         vm.setCardioMode(cloud.trotter.log.strength.domain.model.CardioMode.OUTDOOR_RUN)
         vm.setCardioPlacement(cloud.trotter.log.strength.domain.model.CardioPlacement.SEPARATE_DAYS)
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
@@ -727,6 +802,8 @@ class WizardViewModelWiringTest {
         val recording = newRecordingRepo()
         val vm = newViewModel(repository = recording)
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
 
         // What the startup reconciliation does: the restored program is already in
         // Room, and the settings replay flips the flag under the open wizard.
@@ -754,6 +831,8 @@ class WizardViewModelWiringTest {
         // and pin the persisted squat log end to end.
         val vm = newViewModel()
         advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
         vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
         advanceUntilIdle()

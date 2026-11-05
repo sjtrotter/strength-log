@@ -88,6 +88,162 @@
     },
     {
       "note": "Preview only: inspect setup answers and plan before accepting. Revise defaults to my two short lifts, equipment and running schedule wherever the captured screens permit."
+    },
+    {
+      "note": "The preview is not my plan: four lifting days, 25-minute runs and barbell mains. Go back to choose two strength days, separate runs, and the equipment I use."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "two-strength-days"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 5
+      }
+    },
+    {
+      "checkpoint": "outdoor-runs-on-separate-days"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "note": "Pounds is already selected. Setup has default age 40 and bodyweight 235; my diary did not specify these. Leave them for now, and do not treat them as my own measurements in the report."
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 3
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 5
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 6
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Rack"
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 7
+      }
+    },
+    {
+      "checkpoint": "equipment-for-my-running-support-lifts"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "review-revised-two-day-plan"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "review-bottom-and-rotation-behavior"
+    },
+    {
+      "note": "There was no duration question, weekly running mileage or editable exercise list in setup. Continue to the app to try making my own A and B before training."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-complete-look-for-plan-editing"
     }
   ]
 }

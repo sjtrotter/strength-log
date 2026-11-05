@@ -72,6 +72,8 @@ android {
     testOptions {
         val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
         val recordUiAudit = providers.gradleProperty("uiAudit").orNull == "true"
+        val playtestScript = providers.gradleProperty("playtest").orNull
+        val playtestDir = layout.buildDirectory.dir("outputs/playtest").get().asFile
         val uiAuditDir = layout.buildDirectory.dir("outputs/ui-audit").get().asFile
         val previewShotsDir = layout.buildDirectory.dir("outputs/preview").get().asFile
         val storeShotsDir = layout.buildDirectory.dir("outputs/store").get().asFile
@@ -84,7 +86,17 @@ android {
             it.systemProperty("listing.dir", rootProject.file("play/listing/en-US").absolutePath)
             it.systemProperty("uiAudit.record", recordUiAudit.toString())
             it.systemProperty("uiAudit.dir", uiAuditDir.absolutePath)
-            it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit).toString())
+            it.systemProperty("playtest.script", playtestScript ?: "")
+            it.systemProperty("playtest.dir", playtestDir.absolutePath)
+            it.systemProperty("playtest.captureFrom", providers.gradleProperty("playtestCaptureFrom").orNull ?: "0")
+            it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit || playtestScript != null).toString())
+            if (playtestScript != null) {
+                it.outputs.dir(playtestDir)
+                it.outputs.upToDateWhen { false }
+                it.outputs.cacheIf { false }
+            } else {
+                it.exclude("**/playtest/PlaytestReplayTest.class")
+            }
             if (recordUiAudit) {
                 it.outputs.dir(uiAuditDir)
                 it.outputs.upToDateWhen { false }
@@ -203,6 +215,11 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
+    testImplementation(libs.kotlinx.serialization.json)
+    // The null Health Connect provider's SAM return type is not exposed by :transfer.
+    testImplementation(libs.androidx.health.connect.client)
     // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)
     // for ViewModel wiring tests against a real in-memory Room DB.
     testImplementation(libs.robolectric)

@@ -1,0 +1,76 @@
+name: Playtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: Path to the script JSON
+        required: true
+        type: string
+        default: playtest/script.json
+      capture_from:
+        description: First step index to capture (earlier steps replay silently)
+        required: false
+        type: string
+        default: '0'
+  # A change to the harness replays the pilot scripts, so it is proven before merge.
+  pull_request:
+    paths:
+      - 'app/src/test/kotlin/cloud/trotter/log/strength/playtest/**'
+      - 'playtest/pilot/**'
+      - '.github/workflows/playtest.yml'
+
+concurrency:
+  group: playtest-${{ github.ref }}-${{ inputs.script || 'pilots' }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        script: ${{ github.event_name == 'pull_request' && fromJSON('["playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/day-crossing.json"]') || fromJSON(format('["{0}"]', inputs.script)) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      - name: Replay
+        id: replay
+        continue-on-error: true
+        env:
+          PLAYTEST_SCRIPT: ${{ matrix.script }}
+          PLAYTEST_CAPTURE_FROM: ${{ inputs.capture_from || '0' }}
+        run: >-
+          ./gradlew :app:testDebugUnitTest
+          --tests 'cloud.trotter.log.strength.playtest.PlaytestReplayTest'
+          -Pplaytest="$GITHUB_WORKSPACE/$PLAYTEST_SCRIPT"
+          -PplaytestCaptureFrom="$PLAYTEST_CAPTURE_FROM"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playtest-${{ github.run_id }}-${{ strategy.job-index }}
+          path: app/build/outputs/playtest/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Report
+        if: always()
+        env:
+          REPLAY_OUTCOME: ${{ steps.replay.outcome }}
+        run: |
+          cat app/build/outputs/playtest/summary.json
+          test "$REPLAY_OUTCOME" = success

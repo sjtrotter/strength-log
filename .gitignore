@@ -27,3 +27,9 @@ keystore.properties
 Thumbs.db
 
 __pycache__/
+
+# Playtest seat scripts and host artifacts (pilots stay checked in)
+playtest/*/
+!playtest/pilot/
+playtest-runs/
+.playtest-wt/

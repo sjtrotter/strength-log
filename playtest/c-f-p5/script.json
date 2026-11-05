@@ -329,21 +329,10 @@
    "checkpoint": "thu-other-days"
   },
   {
-   "tap": {
-    "text": "2-day full body \u00b7 Day C2"
-   }
+   "checkpoint": "c2-started-from-today"
   },
   {
-   "checkpoint": "c2-page"
-  },
-  {
-   "tap": {
-    "text": "Start day C2"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "checkpoint": "c2-started"
+   "note": "Tapping the day row on Today starts the workout right away, no day page. It wants Pallof press first. I ran intervals, I didn't do pallof. Looking for a skip."
   },
   {
    "tap": {
@@ -351,7 +340,91 @@
    }
   },
   {
-   "checkpoint": "c2-edit-set-1"
+   "tap": {
+    "desc": "Set menu"
+   }
+  },
+  {
+   "checkpoint": "set-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day C2 lifts, 0 of 3 sets"
+   }
+  },
+  {
+   "checkpoint": "c2-lifts-sheet"
+  },
+  {
+   "tap": {
+    "desc": "More options for Pallof Press"
+   }
+  },
+  {
+   "checkpoint": "c2-pallof-options"
+  },
+  {
+   "tap": {
+    "text": "Skip"
+   }
+  },
+  {
+   "checkpoint": "after-skip-pallof"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "c2-after-skip-back"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "40m"
+  },
+  {
+   "checkpoint": "c2-run-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Intervals, 8.3 km. 4:28 4:31 4:35 4:41. Faded on the last one, legs still had Monday in them."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "thu-after-intervals-today"
   }
  ]
 }

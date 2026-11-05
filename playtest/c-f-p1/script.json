@@ -3007,6 +3007,11 @@
    "checkpoint": "calendar-nov"
   },
   {
+   "scrollTo": {
+    "desc": "November 21, day C, 1 session"
+   }
+  },
+  {
    "tap": {
     "desc": "November 21, day C, 1 session"
    }
@@ -3026,6 +3031,11 @@
   },
   {
    "checkpoint": "history-nov9"
+  },
+  {
+   "scrollTo": {
+    "text": "Edit"
+   }
   },
   {
    "tap": {
@@ -3062,25 +3072,45 @@
   },
   {
    "tap": {
-    "text": "Barbell Back Squat"
-   }
-  },
-  {
-   "checkpoint": "plan-squat-tapped"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-squat-tap-back"
-  },
-  {
-   "tap": {
     "text": "Edit"
    }
   },
   {
    "checkpoint": "plan-edit-day-a"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-lift-options-back"
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 0 of 9 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
   },
   {
    "tap": {
@@ -3102,6 +3132,22 @@
   },
   {
    "checkpoint": "picker-elbow"
+  },
+  {
+   "tap": {
+    "textContains": "lbow"
+   }
+  },
+  {
+   "checkpoint": "picker-elbow-tapped"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Curl"
+   }
+  },
+  {
+   "checkpoint": "picker-curl"
   }
  ]
 }

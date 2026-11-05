@@ -1,0 +1,143 @@
+{
+  "seat": "c-a-p4",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-11",
+    "time": "17:43:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-wednesday-open-on-today"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "history-with-monday-saved"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "trends-before-second-finished-visit"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-before-export-check"
+    },
+    {
+      "scrollTo": {
+        "text": "Reset to defaults"
+      }
+    },
+    {
+      "checkpoint": "settings-export-and-backup-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Resume day C"
+      }
+    },
+    {
+      "checkpoint": "resume-wednesday-deadlifts-preserved"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov 11: 185 lb for 5/5/5 after 95 x 5 warm-up. Work sets done; moving on to shoulders."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "checkpoint": "deadlift-note-saved"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 22 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "wednesday-press-before-replacement"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "wednesday-shoulder-replacement-picker"
+    },
+    {
+      "tap": {
+        "text": "Search exercises"
+      }
+    },
+    {
+      "checkpoint": "search-for-my-seated-dumbbell-shoulder-press"
+    }
+  ]
+}

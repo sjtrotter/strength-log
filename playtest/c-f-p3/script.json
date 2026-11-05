@@ -1083,6 +1083,769 @@
   },
   {
    "checkpoint": "bench-prescription"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "127.5"
+   }
+  },
+  {
+   "checkpoint": "prescription-filled"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "day-d-prescribed"
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-d-workout-after-prescription"
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "checkpoint": "day-d-preview-after"
+  },
+  {
+   "advance": "2d2h"
+  },
+  {
+   "note": "Mon Nov 16, week 2. Squat 4x5 at 182.5. Their Day F squat will say whatever I logged Saturday."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "mon-wk2-today"
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "checkpoint": "mon-f-preview-wk2"
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "mon-wk2-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "mon-wk2-3-sets"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "checkpoint": "after-add-a-set"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "mon-wk2-4x5"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Set 3 rep 3 slow out of the hole, set 4 fine. RPE 7.5. Paused 152.5 3x3. Right knee grumpy on the stairs after."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "mon-legcurl"
+  },
+  {
+   "note": "Belt squat under leg curl again. 110, last set ugly, staying at 110."
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "110"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "mon-legcurl-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "mon-cardio"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "mon-wk2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "16h"
+  },
+  {
+   "note": "Tue Nov 17. Bench 5x5 at 112.5 on Day A. Bike 20 min after, going to try their timer."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "checkpoint": "tue-a-preview-wk2"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "tue-wk2-workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "112.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "112.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "112.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "112.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "112.5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "tue-wk2-5x5"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Fine. Close grip 97.5 3x6, rows, face pulls. Bike 20 min at 130."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "tue-cardio"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bike-started"
+  },
+  {
+   "advance": "20m"
+  },
+  {
+   "checkpoint": "bike-20m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bike-after-tap"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "tue-wk2-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
   }
  ]
 }

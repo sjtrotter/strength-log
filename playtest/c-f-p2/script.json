@@ -71,6 +71,12 @@
    "checkpoint": "receipt-A"
   },
   {
+   "scrollTo": {
+    "text": "Add a note"
+   },
+   "timeoutMs": 20000
+  },
+  {
    "tap": {
     "text": "Add a note"
    },

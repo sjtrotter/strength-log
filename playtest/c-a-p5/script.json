@@ -125,9 +125,9 @@
       "checkpoint": "distance-target-units-with-pound-lifting-setting"
     },
     {
-      "tap": {
-        "desc": "Aim",
-        "role": "Switch"
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
       }
     },
     {
@@ -169,7 +169,7 @@
       "checkpoint": "road-run-selection-after-reopening"
     },
     {
-      "note": "Inspect actual running controls before logging. Target42:10 is not a saved elapsed time, and no7km distance has been entered. Do not fabricate core sets to finish a run."
+      "note": "Run prescription is 42:10 with a 7000m target. These are targets until the run has actually been completed and checked in History."
     },
     {
       "back": true
@@ -193,49 +193,12 @@
     },
     {
       "tap": {
-        "desc": "Goblet Squat. 35 pounds: 8 and 6 reps. 30 pounds: 8 reps."
+        "text": "Share",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "monday-squat-actual-versus-planned"
-    },
-    {
-      "tap": {
-        "desc": "Plank / Side Plank. Holds of 30 seconds."
-      }
-    },
-    {
-      "checkpoint": "look-for-mondays-saved-exercise-note"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "overall-workout-note-entry"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Share"
-      }
-    },
-    {
-      "checkpoint": "share-single-workout-system-sheet-limit"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 1
-      }
+      "checkpoint": "history-share-entry-system-sheet-unavailable"
     },
     {
       "tap": {
@@ -243,10 +206,12 @@
       }
     },
     {
-      "checkpoint": "trends-and-calendar-with-mondays-real-sets"
+      "checkpoint": "first-trends-calendar-with-real-monday-results"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Trends and calendar"
+      }
     },
     {
       "tap": {
@@ -260,7 +225,7 @@
       }
     },
     {
-      "checkpoint": "settings-look-for-backup-export-and-watch"
+      "checkpoint": "settings-backup-export-watch-available-controls"
     },
     {
       "back": true
@@ -281,7 +246,81 @@
       }
     },
     {
-      "checkpoint": "ready-to-enter-tuesdays-actual-run-next-batch"
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "checkpoint": "easy-run-twenty-minutes-countdown-and-distance"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "easy-run-clock-after-recreation"
+    },
+    {
+      "advance": "22m10s"
+    },
+    {
+      "checkpoint": "easy-run-actual-forty-two-ten-end-controls"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "easy-run-actual-results-and-distance-entry-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "finish-run-with-core-deliberately-unlogged"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "tuesday-run-saved-summary-verify-7000m-and-4210"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "tuesday-run-share-harness-boundary"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-run-overall-note-fields"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "7.00 km in 42:10. Easy, effort 3/10. Quads noticeable for the first kilometer, then fine. Glad I stopped those squat reps yesterday."
+      }
+    },
+    {
+      "checkpoint": "tuesday-note-draft-check-save-control"
     }
   ]
 }

@@ -763,16 +763,20 @@
     <string name="workout_log_measurement">Log %1$s</string>
     <string name="workout_clock_remaining">Remaining</string>
     <string name="workout_clock_elapsed">Elapsed</string>
-    <string name="workout_rest_remaining_clock">Rest remaining: %1$s</string>
+    <string name="workout_rest_duration">Rest %1$s</string>
     <string name="workout_timed_rep_target">%1$d reps in %2$s</string>
     <string name="timed_rep_log_empty">Log reps</string>
     <string name="preview_no_previous_result">No previous result</string>
     <string name="preview_no_comparable_result">No comparable previous result</string>
     <string name="set_edit_plates_with_unit">%1$s %2$s a side on the bar.</string>
     <string name="set_edit_empty_bar">Empty bar.</string>
-    <plurals name="workout_rest_remaining_minutes">
-        <item quantity="one">Rest remaining: %d minute</item>
-        <item quantity="other">Rest remaining: %d minutes</item>
+    <plurals name="workout_rest_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="workout_rest_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
     </plurals>
     <!-- Round 1 screen states and Today action slot. -->
     <string name="screen_no_plan_title">No plan yet</string>

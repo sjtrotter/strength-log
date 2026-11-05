@@ -1609,18 +1609,28 @@
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "finish-confirm-D"
+   "checkpoint": "receipt-D"
+  },
+  {
+   "note": "No dialog, no sticker, no mood. Straight to the receipt. Good."
   },
   {
    "tap": {
-    "role": "Button",
-    "inDialog": true,
-    "index": 1
+    "desc": "Share"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "receipt-D"
+   "checkpoint": "share-from-receipt"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
   },
   {
    "back": true
@@ -1926,24 +1936,74 @@
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "finish-confirm-A"
+   "checkpoint": "receipt-A"
   },
   {
    "tap": {
-    "role": "Button",
-    "inDialog": true,
-    "index": 1
+    "text": "Add a note"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "receipt-A"
+   "checkpoint": "receipt-note"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Rest was 2 min on bench, not 3. Fix that next week."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-note-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
   },
   {
    "back": true
   },
   {
    "checkpoint": "today-after-tuesday"
+  },
+  {
+   "note": "Wednesday, Veterans Day. Easy run, 28 min."
+  },
+  {
+   "advance": "24h"
+  },
+  {
+   "checkpoint": "wednesday"
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day C1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "cardio-day-detail"
+  },
+  {
+   "tap": {
+    "textContains": "Start day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "cardio-start"
   }
  ]
 }

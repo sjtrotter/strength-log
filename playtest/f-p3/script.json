@@ -548,6 +548,169 @@
   },
   {
    "checkpoint": "f-lift-more"
+  },
+  {
+   "note": "Mon Nov 9. Their Day F is the closest thing to my squat day. Overriding every set."
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Set menu"
+   }
+  },
+  {
+   "checkpoint": "set-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "set1-edited"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-1"
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "after-rest-1"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "squat-4x5-logged"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets-after-4"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-5"
   }
  ]
 }

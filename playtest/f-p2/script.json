@@ -1163,12 +1163,6 @@
   },
   {
    "tap": {
-    "text": "Other days"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
     "text": "4-day upper/lower \u00b7 Day D"
    },
    "timeoutMs": 20000

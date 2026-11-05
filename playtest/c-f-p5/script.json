@@ -335,10 +335,32 @@
    "checkpoint": "thu-other-days"
   },
   {
-   "checkpoint": "c2-started-from-today"
+   "note": "Thursday 6:30 am, intervals done, 8.3 km, reps 4:28 4:31 4:35 4:41. Logging it as C2 since C1 is used. Going through Plans because the Other days row did nothing this time."
   },
   {
-   "note": "Tapping the day row on Today starts the workout right away, no day page. It wants Pallof press first. I ran intervals, I didn't do pallof. Looking for a skip."
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body"
+   }
+  },
+  {
+   "tap": {
+    "text": "Day C2"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day C2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "c2-started"
   },
   {
    "tap": {
@@ -390,6 +412,12 @@
    "checkpoint": "c2-after-skip-back"
   },
   {
+   "expect": {
+    "text": "Start"
+   },
+   "timeoutMs": 15000
+  },
+  {
    "tap": {
     "tag": "workout-action-filled"
    }
@@ -431,6 +459,39 @@
   },
   {
    "checkpoint": "thu-after-intervals-today"
+  },
+  {
+   "advance": "10h45m"
+  },
+  {
+   "note": "Thursday evening. Lift B tonight, but Day B in the app is still the bench-press day it generated. Rebuilding it before I start."
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body"
+   }
+  },
+  {
+   "tap": {
+    "text": "Day B"
+   }
+  },
+  {
+   "checkpoint": "day-b-page"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "day-b-editor"
   }
  ]
 }

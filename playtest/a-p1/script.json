@@ -326,7 +326,8 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body \u00b7 Day A",
+        "index": 1
       }
     },
     {
@@ -336,6 +337,83 @@
     },
     {
       "checkpoint": "edit-day-a-to-match-my-machine-workout"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "unlogged-workout-after-reopening"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "exercise-menu-for-replacement-notes-and-help"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "workout-menu-for-changing-or-abandoning-plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "empty-plan-builder-for-my-four-machines"
     }
   ]
 }

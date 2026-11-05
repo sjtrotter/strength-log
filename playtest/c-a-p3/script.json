@@ -267,6 +267,387 @@
     },
     {
       "checkpoint": "thursday-add-paused-squat-picker"
+    },
+    {
+      "tap": {
+        "text": "Squat bilateral"
+      }
+    },
+    {
+      "checkpoint": "squat-picker-for-pause-variation"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Two-second Paused Squat"
+      }
+    },
+    {
+      "checkpoint": "search-my-exact-paused-squat"
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Two-second Paused Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "145"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "checkpoint": "custom-squat-movement-options"
+    },
+    {
+      "tap": {
+        "text": "Squat bilateral"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "custom-paused-squat-created"
+    },
+    {
+      "tap": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "checkpoint": "adding-paused-squat-prescription"
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "145"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "day-with-paused-squat-added"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 5 of 27 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Two-second Paused Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "paused-squat-starting-rows"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "145"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "145"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "145"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "four-paused-squat-work-sets"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "paused-squats-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "2-second pauses. More quad fatigue than expected; nothing alarming."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "thursday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "thursday-saved-summary"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench 125x1 @7.5, clean pauses. Pressdown 3x12; Pallof 3x10/side @7."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "23h28m"
+    },
+    {
+      "checkpoint": "friday-nov13-before-deadlifts"
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Backup"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "export-json-system-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "export-csv-system-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "checkpoint": "restore-system-picker-boundary"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "friday-ready-for-day-c"
     }
   ]
 }

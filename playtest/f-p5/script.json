@@ -1102,9 +1102,7 @@
    "checkpoint": "tuesday-today"
   },
   {
-   "tap": {
-    "text": "Other days"
-   }
+   "note": "Tuesday. Up next says Day B, but today is a run. Picking C1 from Other days myself."
   },
   {
    "tap": {
@@ -1143,6 +1141,144 @@
   },
   {
    "checkpoint": "c1-after-tap-2"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-3"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-4"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-5"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "tuesday-done"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-after-tuesday"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "advance": "2d"
+  },
+  {
+   "checkpoint": "thursday-today"
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "checkpoint": "day-b-started"
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "checkpoint": "day-b-lifts-sheet"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap-sheet"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-b-hero"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "day-b-3-logged"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "early-finish-dialog"
   }
  ]
 }

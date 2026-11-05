@@ -79,8 +79,12 @@
   },
   {
    "tap": {
-    "text": "History",
-    "role": "Tab"
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "Nov 9, 2026"
    }
   },
   {

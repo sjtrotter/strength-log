@@ -164,7 +164,7 @@
       }
     },
     {
-      "scrollTo": {
+      "expect": {
         "text": "Conventional"
       }
     },
@@ -172,6 +172,9 @@
       "tap": {
         "text": "Conventional"
       }
+    },
+    {
+      "checkpoint": "conventional-deadlift-selected"
     },
     {
       "tap": {
@@ -187,6 +190,9 @@
       "tap": {
         "text": "Finishers after lifting"
       }
+    },
+    {
+      "checkpoint": "bike-finisher-selected"
     },
     {
       "tap": {
@@ -236,6 +242,12 @@
     },
     {
       "checkpoint": "first-home-looking-for-program-editor"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "home-after-reopening-app"
     }
   ]
 }

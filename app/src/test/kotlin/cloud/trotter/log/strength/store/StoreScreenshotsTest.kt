@@ -61,6 +61,7 @@ import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.preview.PreviewActions
 import cloud.trotter.log.strength.ui.preview.PreviewLift
+import cloud.trotter.log.strength.ui.preview.PreviewPreviousResult
 import cloud.trotter.log.strength.ui.preview.PreviewScreen
 import cloud.trotter.log.strength.ui.preview.PreviewUiState
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -174,7 +175,9 @@ class StoreScreenshotsTest {
                 PreviewLift(
                     name = listOfNotNull(card.title, card.partnerTitle).joinToString(" + "),
                     working = listOfNotNull(working, partner).joinToString(" + "),
-                    last = if (card.exerciseId == "bb_back_squat") "230 × 5" else null,
+                    previous = listOfNotNull(card.exerciseId, card.partnerExerciseId).map { exerciseId ->
+                        PreviewPreviousResult(if (exerciseId == "bb_back_squat") "230 × 5" else null)
+                    },
                 )
             },
         )
@@ -242,7 +245,7 @@ class StoreScreenshotsTest {
             beforeCapture = {
                 composeTestRule.onNodeWithText("Squat focus, done.").assertIsDisplayed()
                 composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertIsDisplayed()
-                composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+                composeTestRule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
             },
         )
     }
@@ -456,7 +459,6 @@ class StoreScreenshotsTest {
                 sets, partnerSets, entry.tracking, partnerEntry?.tracking ?: entry.tracking, WeightUnit.LB,
             ),
             topSetComparison = DayScreenBuilder.topSetComparison(sets, null, WeightUnit.LB),
-            plateLine = DayScreenBuilder.plateLine(sets, entry.equipment, WeightUnit.LB),
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
     }

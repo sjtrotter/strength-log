@@ -1933,7 +1933,6 @@ class DayViewModel @Inject constructor(
             partnerLastTimeDate = partner?.exerciseId?.let(history.lastPerformedDates::get)?.let(::lastTimeDate),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[performed.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
-            plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
             allDone = DayScreenBuilder.allDone(rows),
             focusIndex = DayScreenBuilder.focusIndex(rows),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),

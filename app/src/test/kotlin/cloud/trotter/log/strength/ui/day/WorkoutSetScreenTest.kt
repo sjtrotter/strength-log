@@ -64,14 +64,103 @@ import org.robolectric.annotation.GraphicsMode
 class WorkoutSetScreenTest {
     @get:Rule val rule = createComposeRule()
 
+    @Test fun plateLineFollowsTheShownRampRatherThanTheFirstUndoneSet() {
+        val base = workoutSetSingleFixture()
+        val weights = listOf(130.0, 165.0, 190.0, 210.0)
+        val card = base.exercises.single().copy(rows = weights.mapIndexed { index, weight ->
+            SetRowState(index, "R${index + 1}", false, weight, 5, false, kind = SetKind.RAMP, rampIndex = index + 1)
+        })
+        var state by mutableStateOf(base.copy(exercises = listOf(card),
+            workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 1))))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("45 + 10 + 5 lb a side").assertIsDisplayed()
+        rule.onNodeWithText("25 + 10 + 5 + 2.5 lb a side").assertDoesNotExist()
+        rule.runOnIdle { state = state.copy(workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 3))) }
+        rule.onNodeWithText("45 + 25 + 10 + 2.5 lb a side").assertIsDisplayed()
+    }
+
+    @Test fun plateMeasurementsUseTheUnitAndKeepTheEmptyBar() {
+        val base = workoutSetSingleFixture()
+        var state by mutableStateOf(base.copy(exercises = base.exercises.map {
+            it.copy(rows = listOf(SetRowState(0, "1", false, 135.0, 5, false)))
+        }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 0))))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("45 lb a side").assertIsDisplayed()
+        rule.onNodeWithText("Log 135 lb × 5").assertIsEnabled()
+        rule.runOnIdle { state = state.copy(exercises = state.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(weightDisplay = 45.0) })
+        }) }
+        rule.onNodeWithText("Empty bar").assertIsDisplayed()
+        rule.runOnIdle { state = state.copy(unit = WeightUnit.KG, exercises = state.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(weightDisplay = 102.5, reps = 12) })
+        }) }
+        rule.onNodeWithText("25 + 15 + 1.25 kg a side").assertIsDisplayed()
+        rule.onNodeWithText("Log 102.5 kg × 12").assertIsEnabled()
+        rule.runOnIdle { state = state.copy(exercises = state.exercises.map { it.copy(tracking = TrackingType.TIMED) }) }
+        rule.onNodeWithText("25 + 15 + 1.25 kg a side").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun longestLogLabelFitsAtFontScaleTwoWithoutEllipsis() {
+        val base = workoutSetSingleFixture()
+        val state = base.copy(unit = WeightUnit.KG, exercises = base.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(weightDisplay = 102.5, reps = 12) })
+        })
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val label = "Log 102.5 kg × 12"
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(label).assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        val layout = results.single()
+        assertEquals(label, layout.layoutInput.text.text)
+        assertFalse(layout.hasVisualOverflow)
+        repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
+        rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun longNextLabelWrapsFullyAtFontScaleTwo() {
+        val base = workoutSetSingleFixture()
+        val completed = base.exercises.single().copy(allDone = true, rows = base.exercises.single().rows.map { it.copy(done = true) })
+        val nextTitle = "Single-Arm Dumbbell Bulgarian Split Squat"
+        val state = base.copy(
+            exercises = listOf(completed, base.exercises.single().copy(programExerciseId = 2L, title = nextTitle)),
+            workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true), focus = null, completedView = true),
+        )
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val label = "Next: $nextTitle"
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(label).assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        val layout = results.single()
+        assertEquals(label, layout.layoutInput.text.text)
+        assertFalse(layout.hasVisualOverflow)
+        repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
+        rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)
+    }
+
     @Test fun singleLiftShowsSetAndPlatesAndGuardsDoubleTaps() {
         var logs = 0
         show(workoutSetSingleFixture(), workoutActions().copy(onLogFocusedSet = { logs++ }))
         rule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
         rule.onNodeWithText("Set 3 of 6 (R3)").assertIsDisplayed()
-        rule.onNodeWithText("45 + 25 + 2.5 a side").assertIsDisplayed()
+        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertIsDisplayed()
         rule.mainClock.autoAdvance = false
-        val log = rule.onNodeWithText("Log 190 × 5").assertIsEnabled()
+        val log = rule.onNodeWithText("Log 190 lb × 5").assertIsEnabled()
         log.performClick()
         log.performClick()
         rule.runOnIdle { assertEquals(1, logs) }
@@ -90,15 +179,15 @@ class WorkoutSetScreenTest {
         val name = rule.onNodeWithText("DB Bench Press").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val hero = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
             .fetchSemanticsNode().boundsInRoot
-        rule.onNodeWithText("80 × 10").assertIsDisplayed()
+        rule.onNodeWithText("80 lb × 10").assertIsDisplayed()
         val card = rule.onNodeWithTag("workout-partner-card").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(name.bottom < hero.top)
         assertTrue(hero.bottom < card.top)
         rule.onNodeWithText("Next", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("Seated Cable Row", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("120 × 10", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("120 lb × 10", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithTag("workout-half-${Slot.SS}")
-            .assertContentDescriptionEquals("Seated Cable Row, next, 120 × 10, open sets")
+            .assertContentDescriptionEquals("Seated Cable Row, next, 120 lb × 10, open sets")
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
 
@@ -119,11 +208,11 @@ class WorkoutSetScreenTest {
         var enabled by mutableStateOf(true)
         rule.setContent { AppTheme { WorkoutSetHost(ss.withWorkoutRestHint(enabled, emptyMap())) } }
         rule.onNodeWithText("Seated Cable Row").assertIsDisplayed()
-        rule.onNodeWithText("120 × 10").assertIsDisplayed()
+        rule.onNodeWithText("120 lb × 10").assertIsDisplayed()
         rule.onNodeWithText("Done", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("80 × 10", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("80 lb × 10", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithTag("workout-half-${Slot.MAIN}")
-            .assertContentDescriptionEquals("DB Bench Press, done, 80 × 10, open sets")
+            .assertContentDescriptionEquals("DB Bench Press, done, 80 lb × 10, open sets")
         val card = rule.onNodeWithTag("workout-partner-card").fetchSemanticsNode().boundsInRoot
         val hint = rule.onNodeWithText("Then rest").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(card.bottom < hint.top)
@@ -150,7 +239,7 @@ class WorkoutSetScreenTest {
         rule.onNode(outgoingName).assertDoesNotExist()
         rule.onNodeWithTag("workout-half-${Slot.SS}").assertDoesNotExist()
         rule.onNodeWithTag("workout-half-${Slot.MAIN}")
-            .assertContentDescriptionEquals("DB Bench Press, done, 80 × 10, open sets")
+            .assertContentDescriptionEquals("DB Bench Press, done, 80 lb × 10, open sets")
         rule.onNodeWithTag("workout-superset-content")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         rule.mainClock.advanceTimeBy(150)
@@ -203,7 +292,7 @@ class WorkoutSetScreenTest {
         }) }).withWorkoutRestHint(true, emptyMap())
         show(state)
         rule.onNodeWithTag("workout-half-${Slot.SS}")
-            .assertContentDescriptionEquals("Seated Cable Row, done, 115 × 9, open sets")
+            .assertContentDescriptionEquals("Seated Cable Row, done, 115 lb × 9, open sets")
         rule.onNodeWithText("Then rest").assertIsDisplayed()
     }
 
@@ -250,9 +339,9 @@ class WorkoutSetScreenTest {
         }) }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2)), rest = workoutRest()))
         rule.onNodeWithText("Superset, round 3 of 3").assertIsDisplayed()
         rule.onNodeWithText("DB Bench Press").assertIsDisplayed()
-        rule.onNodeWithText("80 × 10").assertIsDisplayed()
+        rule.onNodeWithText("80 lb × 10").assertIsDisplayed()
         rule.onNodeWithTag("workout-half-${Slot.SS}")
-            .assertContentDescriptionEquals("Seated Cable Row, next, 120 × 10, open sets")
+            .assertContentDescriptionEquals("Seated Cable Row, next, 120 lb × 10, open sets")
         rule.onNodeWithTag("workout-action-tonal").assertIsDisplayed()
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
@@ -313,20 +402,20 @@ class WorkoutSetScreenTest {
         val base = workoutSetSupersetFixture()
         var state by mutableStateOf(base.copy(workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1))))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
-        rule.onNodeWithText("45 + 25 + 2.5 a side").assertDoesNotExist()
+        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertDoesNotExist()
         rule.runOnIdle {
             val card = state.exercises.single().copy(
-                partnerTitle = "Barbell Bench Press", partnerExerciseId = "bb_bench", plateLine = "10",
+                partnerTitle = "Barbell Bench Press", partnerExerciseId = "bb_bench",
                 rows = state.exercises.single().rows.map { row -> row.copy(
                     done = row.index <= 1, partner = row.partner?.copy(weightDisplay = 190.0),
                 ) },
             )
             state = state.copy(exercises = listOf(card))
         }
-        rule.onNodeWithText("45 + 25 + 2.5 a side").assertIsDisplayed()
-        rule.onNodeWithText("10 a side").assertDoesNotExist()
+        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertIsDisplayed()
+        rule.onNodeWithText("10 lb a side").assertDoesNotExist()
         val hero = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val plates = rule.onNodeWithText("45 + 25 + 2.5 a side").fetchSemanticsNode().boundsInRoot
+        val plates = rule.onNodeWithText("45 + 25 + 2.5 lb a side").fetchSemanticsNode().boundsInRoot
         val card = rule.onNodeWithTag("workout-partner-card").fetchSemanticsNode().boundsInRoot
         assertTrue(hero.bottom < plates.top)
         assertTrue(plates.bottom < card.top)
@@ -357,7 +446,7 @@ class WorkoutSetScreenTest {
         val card = state.exercises.single().copy(headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = "Red band"))
         show(state.copy(exercises = listOf(card)))
         rule.onNodeWithText("Each side, Red band").assertIsDisplayed()
-        rule.onNodeWithText("45 + 25 + 2.5 a side").assertDoesNotExist()
+        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertDoesNotExist()
     }
 
     @Test fun liveRestOffersUndoAdjustmentAndSkipAndKeepsLogTonal() {
@@ -446,7 +535,7 @@ class WorkoutSetScreenTest {
     @Test fun loadedHoldShowsSecondsAndLoadAndLogsSeconds() {
         val state = workoutSetSingleFixture()
         val card = state.exercises.single().copy(
-            title = "Weighted Plank", tracking = TrackingType.TIMED, timedShowsWeight = true, plateLine = null,
+            title = "Weighted Plank", tracking = TrackingType.TIMED, timedShowsWeight = true,
             rows = listOf(SetRowState(0, "1", false, 25.0, 0, false, seconds = 45)),
         )
         show(state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 0))))
@@ -459,7 +548,7 @@ class WorkoutSetScreenTest {
     @Config(qualifiers = "w320dp-h891dp")
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun supersetLogStaysReachableAtLargeFont() {
-        assertSupersetFitsAtLargeFont(workoutSetSupersetFixture(), "DB Bench Press", "Seated Cable Row", "80 × 10", "120 × 10")
+        assertSupersetFitsAtLargeFont(workoutSetSupersetFixture(), "DB Bench Press", "Seated Cable Row", "80 lb × 10", "120 lb × 10")
     }
 
     @Test
@@ -472,7 +561,7 @@ class WorkoutSetScreenTest {
         }) }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1),
             undo = undo().copy(title = "DB Bench Press", set = LoggedSet(80.0, 10, SetKind.WORK))))
             .withWorkoutRestHint(true, emptyMap())
-        assertSupersetFitsAtLargeFont(ss, "Seated Cable Row", "DB Bench Press", "120 × 10", "80 × 10")
+        assertSupersetFitsAtLargeFont(ss, "Seated Cable Row", "DB Bench Press", "120 lb × 10", "80 lb × 10")
         rule.onNodeWithTag("workout-rest").assertIsDisplayed()
         rule.onNodeWithText("Undo DB Bench Press 80 × 10").assertIsDisplayed().assertIsEnabled()
     }
@@ -568,22 +657,43 @@ class WorkoutSetScreenTest {
         rule.setContent { AppTheme { WorkoutSetHost(base.copy(exercises = listOf(card),
             workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1), undo = offer)),
             dayEditState = DayEditUiState(catalog = catalog)) } }
-        rule.onNodeWithText("45 + 25 + 2.5 a side").assertIsDisplayed()
+        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertIsDisplayed()
         rule.onNodeWithText("Undo Bench Press 165 × 5").assertIsDisplayed()
     }
 
-    @Test fun restLiveRegionChangesOnlyAtMinuteBoundary() {
-        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 62)))
+    @Test fun restDescriptionMatchesSecondsWhileLiveRegionChangesOnlyAtMinuteBoundaries() {
+        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 64)))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
-        fun announced() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
-        rule.onNodeWithTag("workout-rest").assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-        val initial = announced()
+        fun description() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        fun announced() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        fun announcementText() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .fetchSemanticsNode().config[SemanticsProperties.Text]
+        var node: SemanticsNode? = rule.onNodeWithTag("workout-rest").fetchSemanticsNode()
+        while (node != null) {
+            assertFalse(node.config.contains(SemanticsProperties.LiveRegion))
+            node = node.parent
+        }
+        rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        assertEquals(listOf("Rest remaining: 1:04"), description())
+        assertEquals(listOf("Rest remaining: 2 minutes"), announced())
+        val minuteAnnouncement = announced()
+        val minuteText = announcementText()
+        rule.onNodeWithContentDescription("Rest remaining: 1:04").assertIsDisplayed()
+        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 63)) }
+        assertEquals(listOf("Rest remaining: 1:03"), description())
+        assertEquals(minuteAnnouncement, announced())
+        assertEquals(minuteText, announcementText())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 61)) }
-        assertEquals(initial, announced())
+        assertEquals(listOf("Rest remaining: 1:01"), description())
+        assertEquals(minuteAnnouncement, announced())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 60)) }
-        assertEquals(listOf("1 minute of rest remaining"), announced())
+        assertEquals(listOf("Rest remaining: 1:00"), description())
+        assertEquals(listOf("Rest remaining: 1 minute"), announced())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 59)) }
-        assertEquals(listOf("1 minute of rest remaining"), announced())
+        assertEquals(listOf("Rest remaining: 0:59"), description())
+        assertEquals(listOf("Rest remaining: 1 minute"), announced())
     }
 
     @Test
@@ -601,7 +711,7 @@ class WorkoutSetScreenTest {
         val results = mutableListOf<TextLayoutResult>()
         rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-        assertEquals("1235 × 12", results.single().layoutInput.text.text)
+        assertEquals("1235 lb × 12", results.single().layoutInput.text.text)
         assertEquals(1, results.single().lineCount)
         assertFalse(results.single().hasVisualOverflow)
     }
@@ -614,7 +724,8 @@ class WorkoutSetScreenTest {
             onOpenSetEditor = { id, index -> edited = id to index },
         ))
         rule.onNodeWithText("0:40").assertIsDisplayed()
-        rule.onNodeWithText("Aim 20").assertIsDisplayed()
+        rule.onNodeWithText("20 reps in 0:40").assertIsDisplayed()
+        rule.onNodeWithText("Remaining").assertIsDisplayed()
         rule.onNodeWithText("Set 1 of 2").assertIsDisplayed()
         rule.onNodeWithContentDescription("Edit set 1").performClick()
         rule.onNodeWithText("Start").performClick()
@@ -649,7 +760,7 @@ class WorkoutSetScreenTest {
     @Test fun dismissedCountCanBeRequestedAgain() {
         var requests = 0
         show(workoutSetTimedRepRunningFixture(awaiting = true), workoutActions().copy(onRequestTimedRepCount = { requests++ }))
-        rule.onNodeWithText("0:00").assertIsDisplayed()
+        rule.onNodeWithText("Time’s up").assertIsDisplayed()
         rule.onNodeWithTag("workout-action-filled").assertIsDisplayed()
         rule.onNodeWithText("Enter reps").performClick()
         rule.runOnIdle { assertEquals(1, requests) }
@@ -677,7 +788,7 @@ class WorkoutSetScreenTest {
             rows = base.exercises.single().rows.map { it.copy(partner = PartnerRowState(120.0, 10)) })
         show(base.copy(exercises = listOf(card)))
         rule.onNodeWithText("0:40").assertIsDisplayed()
-        rule.onNodeWithText("Aim 20").assertIsDisplayed()
+        rule.onNodeWithText("20 reps in 0:40").assertIsDisplayed()
         rule.onNodeWithTag("workout-half-${Slot.SS}").assertIsDisplayed()
         rule.onNodeWithText("Start").assertIsEnabled()
     }
@@ -689,6 +800,7 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Road run").assertIsDisplayed()
         rule.onNodeWithText("Work, set 1 of 1").assertIsDisplayed()
         rule.onNodeWithText("5:00").assertIsDisplayed()
+        rule.onNodeWithText("Remaining").assertIsDisplayed()
         rule.onNodeWithText("All sets").performClick()
         rule.onNodeWithText("Start").performClick()
         rule.runOnIdle { assertEquals(1, starts); assertEquals(1, sheets) }
@@ -699,6 +811,7 @@ class WorkoutSetScreenTest {
         var stopped: CardioSetAction? = null
         show(state, workoutActions().copy(onStopCardio = { stopped = it }))
         rule.onNodeWithText("1:00").assertIsDisplayed()
+        rule.onNodeWithText("Remaining").assertIsDisplayed()
         rule.onNodeWithTag("workout-action-tonal").performClick()
         rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
     }
@@ -709,6 +822,7 @@ class WorkoutSetScreenTest {
         var stopped: CardioSetAction? = null
         show(state, workoutActions().copy(onReachCardioTarget = { reached = it }, onStopCardio = { stopped = it }))
         rule.onNodeWithText("0:27").assertIsDisplayed()
+        rule.onNodeWithText("Elapsed").assertIsDisplayed()
         rule.onNodeWithText("Aim 1:45").assertIsDisplayed()
         rule.onNodeWithText("to 400 m").assertIsDisplayed()
         rule.mainClock.autoAdvance = false

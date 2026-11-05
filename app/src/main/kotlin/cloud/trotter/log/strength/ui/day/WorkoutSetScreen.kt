@@ -46,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -66,8 +67,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -77,9 +78,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -99,6 +100,7 @@ import kotlinx.coroutines.delay
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
 private const val HERO_MIN_SP = 48
+private const val ACTION_MIN_SP = 14
 
 @Composable
 fun WorkoutSetScreen(
@@ -233,7 +235,7 @@ private fun WorkoutSetContent(
                             }
                         }
                         values != null && card != null -> WorkoutActionSpec(
-                            stringResource(R.string.day_log_set, workoutValue(values, card.tracking(slot))), resting, true,
+                            stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
                             actions.onLogFocusedSet)
                         else -> null
                     }
@@ -297,7 +299,12 @@ private fun WorkoutClockProgress(fraction: Float) {
 @Composable
 private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, index: Int, actions: DayActions) {
     val duration = card.timedRepDurationSeconds ?: return
-    val seconds = if (timed?.event?.awaitingCount == true) 0 else timed?.remainingSeconds ?: duration
+    if (timed?.event?.awaitingCount == true) {
+        Text(stringResource(R.string.timed_rep_time_up), style = MaterialTheme.typography.headlineLarge,
+            modifier = Modifier.fillMaxWidth().testTag("workout-hero"))
+        return
+    }
+    val seconds = timed?.remainingSeconds ?: duration
     if (timed == null) {
         val editLabel = stringResource(R.string.workout_edit_set, index + 1)
         TextButton(onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
@@ -307,10 +314,12 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
         }
     } else {
         WorkoutHeroText(formatCardioTime(seconds))
-        if (!timed.event.awaitingCount) WorkoutClockProgress(seconds.toFloat() / duration)
+        WorkoutClockProgress(seconds.toFloat() / duration)
     }
+    Text(stringResource(R.string.workout_clock_remaining), style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
     card.timedRepAim?.let {
-        Text(stringResource(R.string.workout_aim_reps, it), style = MaterialTheme.typography.titleLarge,
+        Text(stringResource(R.string.workout_timed_rep_target, it, formatCardioTime(duration)), style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -343,10 +352,15 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             when (val end = spec.end) {
                 is Measure.Time -> {
                     WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.stepSecondsLeft else end.seconds))
+                    Text(stringResource(R.string.workout_clock_remaining), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (run?.running == true) WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
                 }
-                is Measure.Distance -> if (run?.running == true) WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
-                    else WorkoutHeroText(end.metres.toString(), stringResource(R.string.workout_metres_unit))
+                is Measure.Distance -> if (run?.running == true) {
+                    WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
+                    Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else WorkoutHeroText(end.metres.toString(), stringResource(R.string.workout_metres_unit))
             }
             spec.aim?.let {
                 Text(stringResource(R.string.workout_cardio_aim, measureText(it)), style = MaterialTheme.typography.titleLarge,
@@ -459,14 +473,14 @@ private fun WorkoutLift(
                             targetState = values to card.tracking(slot),
                             animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
                             label = "workoutHero",
-                        ) { (set, tracking) -> WorkoutHero(set, tracking) }
+                        ) { (set, tracking) -> WorkoutHero(set, tracking, state.unit) }
                     }
                 }
                 if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
                     Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
                         style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                workoutDetail(card, slot, state.unit, catalog)?.let {
+                workoutDetail(card, slot, index, state.unit, catalog)?.let {
                     Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -559,14 +573,14 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
                 colors = neutralTextButtonColors(),
                 contentPadding = PaddingValues(0.dp),
             ) {
-                WorkoutHero(values, card.tracking(slot))
+                WorkoutHero(values, card.tracking(slot), state.unit)
             }
         }
         if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
             Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
                 style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        workoutDetail(card, slot, state.unit, catalog)?.let {
+        workoutDetail(card, slot, index, state.unit, catalog)?.let {
             Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -626,14 +640,14 @@ private fun WorkoutPartnerCard(card: ExerciseCardState, row: SetRowState, slot: 
 }
 
 @Composable
-private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType) {
+private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit) {
     val primary = when (tracking) {
         TrackingType.WEIGHTED -> WeightStepper.format(values.weightDisplay)
         TrackingType.REPS -> values.reps.toString()
         TrackingType.TIMED -> values.seconds.toString()
     }
     val secondary = when (tracking) {
-        TrackingType.WEIGHTED -> stringResource(R.string.workout_times_reps, values.reps)
+        TrackingType.WEIGHTED -> "${unit.name.lowercase()} ${stringResource(R.string.workout_times_reps, values.reps)}"
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
@@ -647,8 +661,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null) {
             append(primary)
             if (secondary != null) {
                 append(" ")
-                withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(
-                    fontSize = 0.5.em,
+                withStyle(MaterialTheme.typography.titleLarge.toSpanStyle().copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )) {
                     append(secondary)
@@ -667,7 +680,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null) {
 }
 
 @Composable
-private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUnit, catalog: ExerciseCatalog): String? {
+private fun workoutDetail(card: ExerciseCardState, slot: String, index: Int, unit: WeightUnit, catalog: ExerciseCatalog): String? {
     if (slot == Slot.MAIN) {
         val target = card.headerTarget as? HeaderTarget.Prescribed
         val eachSide = if (target?.eachSide == true) stringResource(R.string.day_target_each_side) else null
@@ -678,14 +691,18 @@ private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUni
         }
         if (detail != null) return detail
     }
-    val plates = if (slot == Slot.MAIN) card.plateLine else {
-        val equipment = card.partnerExerciseId?.let(catalog::find)?.equipment.orEmpty()
-        DayScreenBuilder.plateLine(card.rows.mapNotNull { it.partner?.let { partner ->
-            LoggedSet(unit.toLb(partner.weightDisplay), partner.reps, SetKind.WORK, done = partner.done, seconds = partner.seconds)
-        } }, equipment, unit)
+    val values = card.rows.getOrNull(index)?.values(slot) ?: return null
+    val equipment = if (slot == Slot.MAIN) card.equipment else {
+        card.partnerExerciseId?.let(catalog::find)?.equipment.orEmpty()
     }
+    val plates = DayScreenBuilder.plateLine(
+        listOf(LoggedSet(unit.toLb(values.weightDisplay), values.reps, SetKind.WORK,
+            done = values.done, seconds = values.seconds)),
+        equipment, unit, card.tracking(slot), focusedIndex = 0,
+    )
     return plates?.let {
-        if (it == "0") stringResource(R.string.workout_empty_bar) else stringResource(R.string.workout_plates, it)
+        if (it == "0") stringResource(R.string.workout_empty_bar)
+        else stringResource(R.string.workout_plates_with_unit, it, unit.name.lowercase())
     }
 }
 
@@ -694,19 +711,25 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     val rest = state.rest?.takeUnless { it.over }
     val undo = state.workout?.undo
     if (rest == null && undo == null) return
-    val minutes = rest?.let { (it.remainingSeconds + 59) / 60 }
-    val announcement = minutes?.let { pluralStringResource(R.plurals.workout_rest_remaining, it, it) }
+    val announcement = rest?.let {
+        stringResource(R.string.workout_rest_remaining_clock, formatCardioTime(it.remainingSeconds))
+    }
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
             if (announcement != null) {
-                liveRegion = LiveRegionMode.Polite
                 contentDescription = announcement
             }
         }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
+                val minutes = (rest.remainingSeconds + 59) / 60
+                val minuteAnnouncement = pluralStringResource(R.plurals.workout_rest_remaining_minutes, minutes, minutes)
                 Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("workout-rest-announcement").semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = minuteAnnouncement
+                    })
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.clearAndSetSemantics { })
@@ -778,7 +801,16 @@ private fun WorkoutAction(
         val modifier = Modifier.weight(1f).heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
         val content: @Composable () -> Unit = {
             Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
-                Text(it, style = MaterialTheme.typography.titleLarge)
+                // The action row's height is bounded by the non-scrolling page, so a long label at a
+                // large font scale wraps and then shrinks to fit rather than clipping or ellipsizing.
+                BasicText(
+                    it,
+                    style = MaterialTheme.typography.titleLarge.copy(color = LocalContentColor.current, textAlign = TextAlign.Center),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = ACTION_MIN_SP.sp,
+                        maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    ),
+                )
             }
         }
         if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
@@ -794,14 +826,14 @@ private fun WorkoutAction(
 @Composable
 private fun neutralTextButtonColors() = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
 
-@Composable
-private fun workoutValue(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit? = null): String = when (tracking) {
-    TrackingType.WEIGHTED -> stringResource(R.string.workout_weight_reps, WeightStepper.format(values.weightDisplay), values.reps)
-    TrackingType.REPS -> pluralStringResource(R.plurals.timed_rep_count, values.reps, values.reps)
-    TrackingType.TIMED -> if (unit != null && values.weightDisplay > 0.0) {
-        stringResource(R.string.workout_hold_load, values.seconds, WeightStepper.format(values.weightDisplay), unit.name.lowercase())
-    } else stringResource(R.string.workout_seconds, values.seconds)
-}
+private fun workoutValue(
+    values: PartnerRowState,
+    tracking: TrackingType,
+    unit: WeightUnit,
+    includeTimedWeight: Boolean = true,
+): String = SetFormatter.display(tracking,
+    if (tracking == TrackingType.TIMED && !includeTimedWeight) 0.0 else unit.toLb(values.weightDisplay),
+    values.reps, values.seconds, unit)
 
 internal fun SetRowState.values(slot: String): PartnerRowState? =
     if (slot == Slot.SS) partner else PartnerRowState(weightDisplay, reps, done, seconds)

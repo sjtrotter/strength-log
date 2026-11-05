@@ -12,7 +12,6 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.ui.Routes
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.WorkoutStart
 import cloud.trotter.log.strength.ui.day.activityLabel
@@ -59,12 +58,22 @@ class PreviewViewModel @Inject constructor(
                 val tracks = listOfNotNull(slot.main, slot.partner)
                 val working = tracks.mapNotNull { track ->
                     track.sets.firstOrNull { it.kind != SetKind.RAMP }?.let { set ->
-                        SetFormatter.summary(track.tracking, set.weightLb, set.reps, set.seconds, unit, spaced = true).trim()
+                        SetFormatter.display(track.tracking, set.weightLb, set.reps, set.seconds, unit)
                     }
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                val lastDisplay = tracks.mapNotNull { DayScreenBuilder.lastTimeDisplay(last[it.performed.exerciseId], unit) }
-                    .takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId }, working, lastDisplay)
+                val previousResults = tracks.map { track ->
+                    val previous = last[track.performed.exerciseId]
+                    val comparable = previous == null ||
+                        SetFormatter.trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == track.tracking
+                    PreviewPreviousResult(
+                        last = previous?.takeIf { comparable }?.let {
+                            SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
+                        },
+                        comparable = comparable,
+                    )
+                }
+                PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },
+                    working, previousResults)
             },
             cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
         )

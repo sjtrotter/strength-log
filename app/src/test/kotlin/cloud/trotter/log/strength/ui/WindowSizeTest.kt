@@ -164,7 +164,7 @@ class WindowSizeTest {
         composeTestRule.setContent {
             AppTheme { DayScreen(workoutDayFixture(), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
-        assertFullyInsideWindow("Log 95 × 5")
+        assertFullyInsideWindow("Log 95 lb × 5")
         assertFullyInsideWindow("All sets")
     }
 

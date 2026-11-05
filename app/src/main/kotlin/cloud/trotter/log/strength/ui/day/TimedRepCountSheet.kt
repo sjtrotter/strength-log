@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +33,12 @@ internal fun TimedRepCountSheet(
     dayIndex: Int,
     actions: DayActions,
 ) {
+    val count = if (event.draft == UNINITIALIZED_TIMED_REP_DRAFT) card.timedRepAim ?: 0 else event.count
+    LaunchedEffect(event.wallStart, event.draft) {
+        if (event.draft == UNINITIALIZED_TIMED_REP_DRAFT) {
+            actions.onTimedRepDraftChange((card.timedRepAim ?: 0).toString())
+        }
+    }
     AppModalBottomSheet(
         onDismissRequest = actions.onCloseSetEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -48,7 +55,7 @@ internal fun TimedRepCountSheet(
             )
             NumericSetField(
                 identity = "timed-reps:${event.programExerciseId}:${event.setIndex}:${event.wallStart}",
-                value = (event.count ?: 0).toDouble(),
+                value = (count ?: 0).toDouble(),
                 label = stringResource(R.string.set_edit_reps),
                 field = stringResource(R.string.set_edit_reps),
                 partnerName = null,
@@ -56,10 +63,9 @@ internal fun TimedRepCountSheet(
                 minimum = 0.0,
                 step = { 1.0 },
                 onChange = { actions.onTimedRepDraftChange(it.toLong().coerceAtMost(Int.MAX_VALUE.toLong()).toString()) },
-                textOverride = event.draft,
+                textOverride = if (event.draft == UNINITIALIZED_TIMED_REP_DRAFT) count.toString() else event.draft,
                 onTextChange = actions.onTimedRepDraftChange,
             )
-            val count = event.count
             if (card.timedRepAim != null && count != null) {
                 Text(
                     stringResource(R.string.timed_rep_aim, count, card.timedRepAim),
@@ -68,7 +74,9 @@ internal fun TimedRepCountSheet(
                 )
             }
             val reps = pluralStringResource(R.plurals.timed_rep_count, count ?: 0, count ?: 0)
-            val log = if (card.isSuperset) {
+            val log = if (count == null) {
+                stringResource(R.string.timed_rep_log_empty)
+            } else if (card.isSuperset) {
                 stringResource(R.string.day_log_exercise_set, card.title, reps)
             } else stringResource(R.string.day_log_set, reps)
             Button(

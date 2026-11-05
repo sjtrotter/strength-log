@@ -223,18 +223,17 @@ object DayScreenBuilder {
         return WeightSwapAffordance(bodyweightId, target.name, isRemove = true)
     }
 
-    /**
-     * The "Plates: …" line (docs/briefs/plate-math.md §2): the bar load for
-     * the first undone MAIN-slot set — the one the lifter loads next, so it
-     * tracks a ramp set by set. Silent (`null`) whenever there's nothing
-     * useful to say: not a barbell exercise, every set is already done, or
-     * [PlateMath.perSide] can't load the weight exactly. Superset partners
-     * aren't considered (spec: main slot only in v1).
-     */
-    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): String? {
-        if (Equipment.BARBELL !in equipment) return null
-        val next = main.firstOrNull { !it.done } ?: return null
-        val perSide = PlateMath.perSide(unit.fromLb(next.weightLb), unit) ?: return null
+    /** Exact per-side plates for the displayed set; "0" denotes an empty bar. */
+    fun plateLine(
+        main: List<LoggedSet>,
+        equipment: List<Equipment>,
+        unit: WeightUnit,
+        tracking: TrackingType,
+        focusedIndex: Int,
+    ): String? {
+        if (tracking != TrackingType.WEIGHTED || Equipment.BARBELL !in equipment) return null
+        val focused = main.getOrNull(focusedIndex)?.takeIf { it.weightLb > 0.0 } ?: return null
+        val perSide = PlateMath.perSide(unit.fromLb(focused.weightLb), unit) ?: return null
         return perSide.joinToString(" + ") { WeightStepper.format(it) }.ifEmpty { "0" }
     }
 

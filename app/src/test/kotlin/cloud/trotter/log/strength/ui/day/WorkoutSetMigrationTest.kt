@@ -43,7 +43,7 @@ class WorkoutSetMigrationTest {
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
             onLogFocusedSet = { state.workout?.focus?.let { writes += it.index to it.slot } },
         )) } }
-        rule.onNodeWithText("Log 90 × 12").assertIsEnabled().performClick()
+        rule.onNodeWithText("Log 90 lb × 12").assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(listOf(0 to Slot.SS), writes) }
     }
 
@@ -82,7 +82,7 @@ class WorkoutSetMigrationTest {
     @Test fun blankResistanceAddsNoAuthoredDetail() {
         val base = workoutSetSingleFixture()
         val card = base.exercises.single().copy(
-            plateLine = null, headerTarget = HeaderTarget.Prescribed("3 × 12", resistance = "  "),
+            headerTarget = HeaderTarget.Prescribed("3 × 12", resistance = "  "),
         )
         rule.setContent { AppTheme { WorkoutSetHost(base.copy(exercises = listOf(card))) } }
         rule.onNodeWithText("Each side", substring = true).assertDoesNotExist()

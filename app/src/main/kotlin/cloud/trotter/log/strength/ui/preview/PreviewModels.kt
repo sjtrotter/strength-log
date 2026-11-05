@@ -13,6 +13,14 @@ data class PreviewUiState(
     val cardio: PreviewCardio? = null,
 )
 
-data class PreviewLift(val name: String, val working: String?, val last: String?)
+data class PreviewLift(
+    val name: String,
+    val working: String?,
+    val previous: List<PreviewPreviousResult>,
+)
+data class PreviewPreviousResult(
+    val last: String?,
+    val comparable: Boolean = true,
+)
 data class PreviewCardio(val activity: String, val time: String)
 data class PreviewActions(val onBack: () -> Unit, val onEdit: () -> Unit, val onStart: () -> Unit)

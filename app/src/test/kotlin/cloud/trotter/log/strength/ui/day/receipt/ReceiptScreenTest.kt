@@ -107,8 +107,8 @@ class ReceiptScreenTest {
         setReceipt()
         rule.onNodeWithContentDescription(SQUAT).assertExists().assertHasNoClickAction()
         rule.onNodeWithText("Weight PR", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -116,14 +116,14 @@ class ReceiptScreenTest {
         setReceipt()
         val curl = rule.onNodeWithContentDescription(CURL)
         curl.assertHasClickAction().assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
-        rule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Planned 3 × 10 at 35 lb", useUnmergedTree = true).assertDoesNotExist()
         curl.performScrollTo().performClick()
         curl.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
-        rule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("PR, up from 35 × 9", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Planned 3 × 10 at 35 lb", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("PR, up from 35 lb × 9", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Set 1, 35 pounds for 10 reps, rep record, up from 35 pounds for 9 reps.").assertExists()
         curl.performClick()
-        rule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Planned 3 × 10 at 35 lb", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -131,9 +131,9 @@ class ReceiptScreenTest {
         setReceipt()
         rule.onNodeWithText("and 3 lighter sets", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Dumbbell Lateral Raise. Heaviest set, 25 pounds for 12 reps, and 3 lighter sets.").assertExists()
-        rule.onNodeWithText("12, 10, 9", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("12 reps, 10 reps, 9 reps", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Pull-up. 12, 10 and 9 reps.").assertExists()
-        rule.onNodeWithText("75s, 70s", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("75 s, 70 s", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("Hold PR", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Plank. Holds of 1 minute 15 seconds and 1 minute 10 seconds. Hold record on set 1, up from 1 minute 10 seconds.").assertExists()
     }
@@ -160,8 +160,8 @@ class ReceiptScreenTest {
             record = RecordMark(PrKind.WEIGHT, null, 0, ReceiptSet(220.462, 5, 0)),
         )
         setReceipt(receiptFixture().copy(unit = WeightUnit.KG, groups = listOf(ReceiptGroup(null, listOf(row)))))
-        rule.onNodeWithText("105 × 5", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("100 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("105 kg × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("100 kg × 5", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 105 kilograms for 5 reps. Weight record, up from 100 kilograms for 5 reps.").assertExists()
     }
 
@@ -255,7 +255,7 @@ class ReceiptScreenTest {
             shape = ReceiptRow.Shape.HEAVIEST_NO_TOP, sets = listOf(ReceiptSet(210.0, 3, 0)),
             lines = listOf(ValueLine(210.0, listOf(0))), record = null)
         setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
-        listOf("Heaviest", "210 × 3", "top set not logged").forEach { rule.onNodeWithText(it, useUnmergedTree = true).assertExists() }
+        listOf("Heaviest", "210 lb × 3", "top set not logged").forEach { rule.onNodeWithText(it, useUnmergedTree = true).assertExists() }
         rule.onNodeWithContentDescription("Romanian Deadlift. Top set not logged. Heaviest set, 210 pounds for 3 reps.").assertHasNoClickAction()
     }
 
@@ -267,8 +267,8 @@ class ReceiptScreenTest {
             listOf(ReceiptSet(25.0, 0, 90)), listOf(ValueLine(null, listOf(0))), 0, null,
             RecordMark(PrKind.HOLD, PrKind.WEIGHT, 0, ReceiptSet(0.0, 0, 75)))
         setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(dip)), ReceiptGroup(null, listOf(hold)))))
-        rule.onNodeWithText("25 × 8, 8, 6", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("1:30 +25", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("25 lb × 8, 8, 6", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("90 s at 25 lb", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Loaded Plank. Holds of 1 minute 30 seconds with 25 pounds added. Hold record and weight record on set 1, up from 1 minute 15 seconds.").assertExists()
     }
 
@@ -278,7 +278,7 @@ class ReceiptScreenTest {
             listOf(ReceiptSet(0.0, 60, 0), ReceiptSet(0.0, 0, 60)), listOf(ValueLine(null, listOf(1))),
             0, PlannedSets(2, 0.0, 0, 60), null)
         setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
-        rule.onNodeWithText("60s", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("60 s", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Plank. Holds of 1 minute.").performClick()
         rule.onNodeWithContentDescription("Set 1, 60 reps").assertExists()
         rule.onNodeWithContentDescription("Set 2, 1 minute").assertExists()
@@ -322,16 +322,16 @@ class ReceiptScreenTest {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) { AppTheme { Receipt(receiptFixture()) } }
         }
         rule.mainClock.advanceTimeBy(100)
-        rule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(SQUAT).assertExists()
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
         rule.mainClock.advanceTimeBy(800)
-        rule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(SQUAT).assertExists()
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
         restoration.emulateSavedInstanceStateRestore()
-        rule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
     }
 
@@ -339,8 +339,8 @@ class ReceiptScreenTest {
     fun reducedMotionShowsFinalValuesImmediately() {
         setAnimatorScale(0f)
         setReceipt()
-        rule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(SQUAT).assertExists()
     }
 
@@ -350,7 +350,7 @@ class ReceiptScreenTest {
         restoration.setContent { AppTheme { Receipt(receiptFixture()) } }
         rule.onNodeWithContentDescription(CURL).performScrollTo().performClick()
         restoration.emulateSavedInstanceStateRestore()
-        rule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Planned 3 × 10 at 35 lb", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(CURL).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
     }
 

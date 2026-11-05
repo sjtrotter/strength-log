@@ -28,11 +28,10 @@ internal fun receiptMeta(completedAt: Long, minutes: Int?): String {
     return if (minutes == null) date else stringResource(R.string.receipt_meta_minutes, date, minutes)
 }
 
-internal fun visibleWeight(lb: Double, unit: WeightUnit): String = WeightStepper.format(unit.fromLb(lb))
+internal fun visibleWeight(lb: Double, unit: WeightUnit): String = SetFormatter.weight(lb, unit)
 
 internal fun visibleSet(set: ReceiptSet, tracking: TrackingType, unit: WeightUnit): String =
-    if (tracking == TrackingType.REPS) set.reps.toString()
-    else SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit, spaced = true)
+    SetFormatter.display(tracking, set.weightLb, set.reps, set.seconds, unit)
 
 internal fun ReceiptSet.tracking(): TrackingType = SetFormatter.trackingOfValues(weightLb, reps, seconds)
 
@@ -46,7 +45,7 @@ internal fun visiblePlan(plan: PlannedSets, tracking: TrackingType, unit: Weight
 
 @Composable
 internal fun spokenWeight(lb: Double, unit: WeightUnit): String =
-    visibleWeight(lb, unit) + " " + stringResource(
+    WeightStepper.format(unit.fromLb(lb)) + " " + stringResource(
         if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms,
     )
 

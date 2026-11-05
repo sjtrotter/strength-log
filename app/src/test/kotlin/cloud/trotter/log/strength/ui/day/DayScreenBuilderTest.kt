@@ -329,53 +329,66 @@ class DayScreenBuilderTest {
 
     @Test
     fun plateLine_shows_the_load_for_a_barbell_exercise() {
-        val main = listOf(work(235.0, 5))
-        assertEquals("45 + 45 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("45", DayScreenBuilder.plateLine(listOf(work(135.0, 5)), barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     @Test
     fun plateLine_is_null_for_a_non_barbell_exercise() {
-        val main = listOf(work(60.0, 8))
-        val ezBarEquipment = catalog.get("ez_curl").equipment
-        assertNull(DayScreenBuilder.plateLine(main, ezBarEquipment, WeightUnit.LB))
+        assertNull(DayScreenBuilder.plateLine(listOf(work(60.0, 8)), catalog.get("ez_curl").equipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     @Test
-    fun plateLine_follows_the_first_undone_set_through_a_ramp() {
-        val main = listOf(
-            work(130.0, 5, done = true),
-            work(165.0, 5, done = true),
-            work(190.0, 3),
-            work(210.0, 1),
-        )
-        // First two ramp sets are ticked, so the line reads the next one (190), not the TOP.
-        assertEquals("45 + 25 + 2.5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    fun plateLine_follows_the_second_focused_ramp_even_when_the_first_is_undone() {
+        val main = listOf(work(130.0, 5), work(165.0, 5), work(190.0, 3), work(210.0, 1))
+        assertEquals("45 + 10 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 1))
     }
 
     @Test
-    fun plateLine_updates_when_the_next_sets_weight_is_edited() {
+    fun plateLine_updates_when_the_focused_sets_weight_is_edited() {
         val main = listOf(work(235.0, 5))
-        assertEquals("45 + 45 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
-        val edited = listOf(work(245.0, 5))
-        assertEquals("45 + 45 + 10", DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
+        assertEquals("45 + 45 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
+        assertEquals("45 + 45 + 10", DayScreenBuilder.plateLine(listOf(work(245.0, 5)), barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     @Test
     fun plateLine_reads_empty_bar_at_bar_weight() {
-        val main = listOf(work(45.0, 5))
-        assertEquals("0", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("0", DayScreenBuilder.plateLine(listOf(work(45.0, 5)), barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     @Test
-    fun plateLine_is_null_when_every_set_is_done() {
-        val main = listOf(work(235.0, 5, done = true))
-        assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    fun plateLine_can_show_a_completed_focused_set() {
+        assertEquals("45", DayScreenBuilder.plateLine(listOf(work(135.0, 5, done = true)), barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     @Test
-    fun plateLine_is_null_when_the_weight_cannot_be_loaded_exactly() {
-        val main = listOf(work(137.0, 5))
-        assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    fun plateLine_requires_a_positive_exactly_loadable_weight_and_a_real_focus() {
+        for (weight in listOf(0.0, -45.0, 137.0)) {
+            assertNull(DayScreenBuilder.plateLine(listOf(work(weight, 5)), barbellEquipment, WeightUnit.LB,
+                TrackingType.WEIGHTED, focusedIndex = 0))
+        }
+        assertNull(DayScreenBuilder.plateLine(emptyList(), barbellEquipment, WeightUnit.LB,
+            TrackingType.WEIGHTED, focusedIndex = -1))
+    }
+
+    @Test
+    fun plateLine_rejects_holds_and_reps_even_with_barbell_equipment_and_weight() {
+        for (tracking in listOf(TrackingType.TIMED, TrackingType.REPS)) {
+            assertNull(DayScreenBuilder.plateLine(listOf(work(135.0, 5, seconds = 45)), barbellEquipment, WeightUnit.LB,
+                tracking, focusedIndex = 0))
+        }
+    }
+
+    @Test
+    fun plateLine_uses_kg_denominations() {
+        assertEquals("25 + 15 + 1.25", DayScreenBuilder.plateLine(listOf(work(WeightUnit.KG.toLb(102.5), 12)),
+            barbellEquipment, WeightUnit.KG, TrackingType.WEIGHTED, focusedIndex = 0))
     }
 
     // --- TOP set comparison -------------------------------------------------

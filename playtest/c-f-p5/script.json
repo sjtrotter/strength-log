@@ -390,26 +390,15 @@
    "checkpoint": "c2-lifts-sheet"
   },
   {
-   "tap": {
-    "desc": "More options for Pallof Press"
-   }
-  },
-  {
-   "checkpoint": "c2-pallof-options"
+   "note": "Set menu only has Remove set. The lifts sheet lists Pallof then Road run; tapping the run row to jump past the pallof I didn't do."
   },
   {
    "tap": {
-    "text": "Skip"
+    "text": "Road run"
    }
   },
   {
-   "checkpoint": "after-skip-pallof"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "c2-after-skip-back"
+   "checkpoint": "c2-jumped-to-run"
   },
   {
    "expect": {
@@ -430,7 +419,16 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "c2-finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
    }
   },
   {
@@ -444,7 +442,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Intervals, 8.3 km. 4:28 4:31 4:35 4:41. Faded on the last one, legs still had Monday in them."
+    "value": "Intervals, 8.3 km. 4:28 4:31 4:35 4:41. Faded on the last one, legs still had Monday in them. No pallof, it was 6 am."
    }
   },
   {

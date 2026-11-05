@@ -1207,8 +1207,25 @@
    "advance": "5s"
   },
   {
+   "note": "Two more carries on the plan. Not doing them. Finish from the top."
+  },
+  {
    "tap": {
-    "textContains": "Finish day"
+    "text": "Skip rest"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "role": "Button",
+    "inDialog": true
    },
    "timeoutMs": 20000
   },

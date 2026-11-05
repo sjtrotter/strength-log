@@ -290,6 +290,133 @@
   },
   {
    "checkpoint": "cardio-set-edit"
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease duration"
+   }
+  },
+  {
+   "checkpoint": "cardio-duration-minus10"
+  },
+  {
+   "tap": {
+    "desc": "Aim"
+   }
+  },
+  {
+   "checkpoint": "cardio-aim-on"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "cardio-after-set-save"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "editday-after-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-after-edits"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rest-2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-squat-3"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "next-exercise"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set-sheet"
   }
  ]
 }

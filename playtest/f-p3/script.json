@@ -355,11 +355,42 @@
   },
   {
    "tap": {
-    "textContains": "Barbell Bench Press"
+    "desc": "More options for Barbell Bench Press"
    }
   },
   {
-   "checkpoint": "edit-lift-tapped"
+   "checkpoint": "lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "sheet-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-exercise"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-sheet-closed"
   }
  ]
 }

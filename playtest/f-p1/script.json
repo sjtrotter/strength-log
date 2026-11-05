@@ -527,7 +527,7 @@
   },
   {
    "tap": {
-    "text": "Save"
+    "text": "Save note"
    }
   },
   {
@@ -646,8 +646,9 @@
   },
   {
    "tap": {
-    "text": "Finish",
-    "inDialog": true
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
    }
   },
   {

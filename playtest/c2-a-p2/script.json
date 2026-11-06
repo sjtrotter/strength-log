@@ -1,0 +1,482 @@
+{
+  "seat": "c2-a-p2",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-17",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-tuesday-nov17-home"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "bench-offered-after-165-five-five-five"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "bench-all-sets-before-any-week-two-edits"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "week-two-upper-a-prescriptions-before-edits"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "bench-next-time-mode-and-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "170",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "115",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "13",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "17:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "upper-a-week-two-targets-set"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb \u00d7 9"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "checkpoint": "pullups-complete-raises-offered"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb \u00d7 13"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb \u00d7 13"
+      }
+    },
+    {
+      "expect": {
+        "text": "Outdoor walk"
+      }
+    },
+    {
+      "checkpoint": "walk-ready-no-distance"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "17m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "seventeen-minute-walk-stopped"
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Upper, done."
+      }
+    },
+    {
+      "checkpoint": "nov17-full-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench 170: 5/5/5. Pull-ups 6/6/6. Longer block: 17-minute walk. Better than yesterday. Add 5 to bench next week.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "nov17-saved-home"
+    }
+  ]
+}

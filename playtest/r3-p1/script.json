@@ -175,6 +175,15 @@
   },
   {
    "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
     "desc": "Edit set 3"
    }
   },
@@ -203,7 +212,7 @@
    "checkpoint": "lat-done"
   },
   {
-   "advance": "1m"
+   "advance": "2m"
   },
   {
    "tap": {

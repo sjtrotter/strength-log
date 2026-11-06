@@ -1918,7 +1918,19 @@
       "checkpoint": "wednesday-session-note-entry-controls"
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "Split squat 20s: 2x8 each leg. Shoulder estimate too high; start25 next week. Row effort6/10. Visit76min.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "wednesday-note-saved"
     },
     {
       "tap": {
@@ -2076,7 +2088,401 @@
       "checkpoint": "friday-leg-press-search"
     },
     {
-      "note": "Next insert Wednesday visit note using observed fields, then configure Friday leg press180x10x3, incline35x8x3, cable row90x10x3 with this-workout substitution Chest-Supported DB Row30x10x3, leg curl70x12x2. Need 3min easy + six 30s hard/90s easy +2min easy. No unperformed suggested lifts should be logged."
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for EZ-Bar Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Pallof Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "180",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Seated Cable Row",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Search all exercises"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "friday-today-only-row-substitution-and-own-loads"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "17:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Friday: record the lifting after each exercise. Follow bike console for 3 easy + six 30s hard/90s easy + 2 easy, since editing every preset segment is too much setup today. App timer is a single17min block; note will preserve all six efforts honestly."
+    },
+    {
+      "expect": {
+        "text": "Incline DB Press"
+      }
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb \u00d7 12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "advance": "14m"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "advance": "18m"
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "17m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day B"
+      }
+    },
+    {
+      "checkpoint": "friday-actual-lifting-and-seventeen-minute-bike"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bike:3easy,6x30s hard/90s easy,2easy; all6. First210W,last170W. Start180 nexttime. Legpress plates only; DB each.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

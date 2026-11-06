@@ -435,6 +435,141 @@
     },
     {
       "checkpoint": "exercise-picker-looking-for-my-machine-names"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "desc": "More options for Back Extension",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "desc": "More options for Cable Lateral Raise",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "desc": "More options for Plank / Side Plank",
+        "absent": true
+      }
+    },
+    {
+      "checkpoint": "extra-exercises-removed-for-my-short-machine-routine"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "replacement-choices-looking-for-leg-press"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "replacement-choices-looking-for-chest-press-machine"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "replacement-choices-looking-for-seated-row-machine"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices-looking-for-walking"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion (leg curl)"
+      }
+    },
+    {
+      "checkpoint": "leg-curl-machine-choices"
     }
   ]
 }

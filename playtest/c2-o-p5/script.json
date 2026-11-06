@@ -30,6 +30,69 @@
   },
   {
    "checkpoint": "finish-tap"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "checkpoint": "note-open"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Copenhagen made my groin feel weird, cut the 3rd set. Lost balance twice on left SL RDL. Left calf gave out at 11. Side planks 3x30s done. 48 min door to door."
+   }
+  },
+  {
+   "checkpoint": "note-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-mon"
+  },
+  {
+   "advance": "1d10m"
+  },
+  {
+   "checkpoint": "tue-nov10-today"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "other-days"
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-tue"
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "history-more"
   }
  ]
 }

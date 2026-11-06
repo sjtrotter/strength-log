@@ -97,7 +97,7 @@ object LogScreenBuilder {
      * touches live `exercise_log` rows, never history), so a legacy plank
      * logged as reps must still read as reps, never a manufactured "0s".
      */
-    fun groupByExercise(sets: List<SessionSetEntity>, unit: WeightUnit, liftNotes: Map<Long, String> = emptyMap()): List<SessionExerciseGroup> {
+    fun groupByExercise(sets: List<SessionSetEntity>, unit: WeightUnit): List<SessionExerciseGroup> {
         val byExercise = LinkedHashMap<String, MutableList<SessionSetEntity>>()
         for (set in sets) byExercise.getOrPut(set.exerciseId) { mutableListOf() }.add(set)
 
@@ -106,7 +106,6 @@ object LogScreenBuilder {
             val labels = DayScreenBuilder.kindLabelsForKinds(kinds)
             SessionExerciseGroup(
                 exerciseName = group.first().exerciseName,
-                note = group.mapNotNull { liftNotes[it.id] }.filter { it.isNotBlank() }.distinct().joinToString("\n"),
                 sets = group.mapIndexed { i, s ->
                     SessionSetSummary(
                         kindLabel = labels[i],

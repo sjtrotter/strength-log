@@ -278,6 +278,8 @@
 <string name="log_session_bodyweight">BW %1$s</string>
 <string name="log_session_plan_date">%1$s · %2$s</string>
 <string name="log_session_loading">Loading…</string>
+<string name="log_lift_notes">Lift notes</string>
+<string name="log_lift_note">%1$s: %2$s</string>
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>
 <string name="log_share_button">Share</string>

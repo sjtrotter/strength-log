@@ -94,13 +94,15 @@ data class SessionListItem(
     val unit: WeightUnit = WeightUnit.LB,
     val planName: String? = null,
     val planId: Long? = null,
+    val liftNotes: List<SessionLiftNote> = emptyList(),
 )
+
+data class SessionLiftNote(val exerciseName: String, val note: String)
 
 /** One exercise's sets within an expanded session, in first-appearance order. */
 data class SessionExerciseGroup(
     val exerciseName: String,
     val sets: List<SessionSetSummary>,
-    val note: String = "",
 )
 
 /** One logged set's display: its kind label (R1/TOP/B/O/plain number) and `w×r`. */

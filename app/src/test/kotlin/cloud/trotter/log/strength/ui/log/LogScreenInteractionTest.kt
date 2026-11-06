@@ -86,11 +86,15 @@ class LogScreenInteractionTest {
     }
 
     @Test
-    fun expandedHistoryShowsLiftNotesUnderTheirNamesAndKeepsTheSessionNote() {
-        val session = mutableStateOf(logSessionFixture(true).copy(note = "Felt steady", exerciseGroups = listOf(
-            SessionExerciseGroup("Back Squat", listOf(SessionSetSummary("TOP", "225×5", done = true)), note = "Belt on top"),
-            SessionExerciseGroup("Bench", listOf(SessionSetSummary("1", "135×8", done = true))),
-        )))
+    fun expandedHistoryShowsLiftNotesAfterExerciseGroupsAndKeepsTheSessionNote() {
+        val session = mutableStateOf(logSessionFixture(true).copy(
+            note = "Felt steady",
+            exerciseGroups = listOf(
+                SessionExerciseGroup("Back Squat", listOf(SessionSetSummary("TOP", "225×5", done = true))),
+                SessionExerciseGroup("Bench", listOf(SessionSetSummary("1", "135×8", done = true))),
+            ),
+            liftNotes = listOf(SessionLiftNote("Back Squat", "Belt on top"), SessionLiftNote("Bench", "Bench 2")),
+        ))
         composeTestRule.setContent { AppTheme {
             LogScreen(LogUiState(sessions = listOf(session.value)), LogActions(
                 onToggleExpanded = { session.value = session.value.copy(expanded = !session.value.expanded) },
@@ -99,14 +103,30 @@ class LogScreenInteractionTest {
                 onStartSession = {}, onSetUpProgram = {},
             ))
         } }
-        composeTestRule.onNodeWithText("Belt on top").assertIsDisplayed()
         composeTestRule.onNodeWithText("Felt steady").assertIsDisplayed()
-        val nameBounds = composeTestRule.onNodeWithText("Back Squat").getUnclippedBoundsInRoot()
-        val noteBounds = composeTestRule.onNodeWithText("Belt on top").getUnclippedBoundsInRoot()
-        assertTrue(noteBounds.top >= nameBounds.bottom)
+        composeTestRule.onNodeWithText("Lift notes").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Back Squat: Belt on top").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Bench: Bench 2").assertIsDisplayed()
+        val setsBounds = composeTestRule.onNodeWithText("1: 135×8").getUnclippedBoundsInRoot()
+        val headingBounds = composeTestRule.onNodeWithText("Lift notes").getUnclippedBoundsInRoot()
+        val firstNoteBounds = composeTestRule.onNodeWithText("Back Squat: Belt on top").getUnclippedBoundsInRoot()
+        val secondNoteBounds = composeTestRule.onNodeWithText("Bench: Bench 2").getUnclippedBoundsInRoot()
+        assertTrue(headingBounds.top >= setsBounds.bottom)
+        assertTrue(firstNoteBounds.top >= headingBounds.bottom)
+        assertTrue(secondNoteBounds.top >= firstNoteBounds.bottom)
         composeTestRule.runOnIdle { session.value = session.value.copy(expanded = false) }
-        composeTestRule.onNodeWithText("Belt on top").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Lift notes").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Back Squat: Belt on top").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Bench: Bench 2").assertDoesNotExist()
         composeTestRule.onNodeWithText("Felt steady").assertDoesNotExist()
+    }
+
+    @Test
+    fun expandedHistoryOmitsLiftNotesBlockWhenEmpty() {
+        setContent(true, sessions = listOf(logSessionFixture(true).copy(note = "Felt steady")))
+
+        composeTestRule.onNodeWithText("Felt steady").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Lift notes").assertDoesNotExist()
     }
 
     @Test

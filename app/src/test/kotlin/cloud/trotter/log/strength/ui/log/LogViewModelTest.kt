@@ -330,24 +330,34 @@ class LogViewModelTest {
         val collect = launch { vm.uiState.collect {} }
         vm.toggleExpanded(id)
         advanceUntilIdle()
-        assertEquals(listOf("Seat 5", "Seat 5"), vm.uiState.value.sessions.single().exerciseGroups?.map { it.note })
+        val expected = listOf(
+            SessionLiftNote("Barbell Back Squat", "Seat 5"),
+            SessionLiftNote("Barbell Row", "Seat 5"),
+        )
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         assertEquals("Felt steady", vm.uiState.value.sessions.single().note)
 
         repo.setExerciseNote(slot, "Seat 6")
         advanceUntilIdle()
-        assertEquals(listOf("Seat 5", "Seat 5"), vm.uiState.value.sessions.single().exerciseGroups?.map { it.note })
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         repo.setExerciseNote(slot, "")
         advanceUntilIdle()
-        assertEquals(listOf("Seat 5", "Seat 5"), vm.uiState.value.sessions.single().exerciseGroups?.map { it.note })
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         assertEquals("Felt steady", repo.history.session(id)?.note)
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.sessions.single().liftNotes.isEmpty())
         collect.cancel()
     }
 
     @Test
-    fun repeatedSlotNoteSurvivesWhenOnlyTheFirstSlotIsLogged() = runVmTest {
+    fun expandedLiftNotesDeduplicateNameAndNotePairsInSnapshotOrderIncludingUnloggedTracks() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
             ProgramExercise("seated_curl", note = "Seat 4"),
-            ProgramExercise("seated_curl"),
+            ProgramExercise("seated_curl", note = "Seat 5"),
+            ProgramExercise("seated_curl", note = "Seat 4"),
+            ProgramExercise("seated_curl", note = "  "),
+            ProgramExercise("bb_bench", note = "Seat 4"),
         )))))
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slots = repo.plans.slotsFor(plan, "A").first()
@@ -360,46 +370,21 @@ class LogViewModelTest {
         vm.toggleExpanded(id)
         advanceUntilIdle()
 
-        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
-        repo.setExerciseNote(slots.last().programExerciseId, "Seat 5")
-        advanceUntilIdle()
-        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        val expected = listOf(
+            SessionLiftNote("Seated Leg Curl", "Seat 4"),
+            SessionLiftNote("Seated Leg Curl", "Seat 5"),
+            SessionLiftNote("Barbell Bench Press", "Seat 4"),
+        )
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
+        slots.forEach { repo.setExerciseNote(it.programExerciseId, "Changed") }
         vm.toggleEdit(id)
         advanceUntilIdle()
-        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         collect.cancel()
     }
 
     @Test
-    fun expandedHistoryPreservesDistinctNotesWhenRepeatedSlotsShareAnExerciseGroup() = runVmTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
-            ProgramExercise("seated_curl", note = "Seat 4"),
-            ProgramExercise("seated_curl", note = "Seat 5"),
-            ProgramExercise("seated_curl", note = "Seat 4"),
-        )))))
-        val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val slots = repo.plans.slotsFor(plan, "A").first()
-        repo.startRun(plan, "A")
-        val runId = repo.openRunFlow.first()!!.id
-        slots.forEach { logFirstSet(runId, plan, it.programExerciseId) }
-        val id = repo.finishRun(runId)!!
-        val vm = newViewModel()
-        val collect = launch { vm.uiState.collect {} }
-        vm.toggleExpanded(id)
-        advanceUntilIdle()
-
-        val group = vm.uiState.value.sessions.single().exerciseGroups!!.single()
-        assertEquals("Seated Leg Curl", group.exerciseName)
-        assertEquals(3, group.sets.count { it.done })
-        assertEquals("Seat 4\nSeat 5", group.note)
-        slots.forEach { repo.setExerciseNote(it.programExerciseId, "Changed") }
-        advanceUntilIdle()
-        assertEquals("Seat 4\nSeat 5", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
-        collect.cancel()
-    }
-
-    @Test
-    fun reorderingDuplicateLegCurlSlotsAfterFinishKeepsTheLoggedTracksNote() = runVmTest {
+    fun reorderingDuplicateLegCurlSlotsAfterFinishKeepsSnapshotNoteOrder() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
             ProgramExercise("seated_curl", note = "Seat 4"),
             ProgramExercise("seated_curl", note = "Seat 5"),
@@ -419,12 +404,47 @@ class LogViewModelTest {
         vm.toggleExpanded(id)
         advanceUntilIdle()
 
-        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        assertEquals(listOf(
+            SessionLiftNote("Seated Leg Curl", "Seat 4"),
+            SessionLiftNote("Seated Leg Curl", "Seat 5"),
+        ), vm.uiState.value.sessions.single().liftNotes)
         collect.cancel()
     }
 
     @Test
-    fun workoutOnlyMainAndSupersetSwapsKeepTheOwningSlotNoteInHistory() = runVmTest {
+    fun reorderAndWorkoutOnlySwapKeepBothCurlNotesAtTheSameArchivedPosition() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
+            ProgramExercise("seated_curl", note = "Seat 4"),
+            ProgramExercise("db_bench", note = "Bench 2"),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slots = repo.plans.slotsFor(plan, "A").first()
+        repo.startRun(plan, "A")
+        val runId = repo.openRunFlow.first()!!.id
+        logFirstSet(runId, plan, slots.first().programExerciseId)
+        repo.moveExercise(slots.last().programExerciseId, up = true)
+        assertTrue(repo.swapInRun(runId, slots.last().programExerciseId, Slot.MAIN, "seated_curl"))
+        logFirstSet(runId, plan, slots.last().programExerciseId)
+        val id = repo.finishRun(runId)!!
+        val snapshot = SessionPlanJson.decode(repo.history.session(id)!!.plannedJson!!)
+        assertEquals(listOf(0, 0), snapshot.filter { !it.retired }.map { it.position })
+        assertEquals(listOf("seated_curl", "seated_curl"), snapshot.filter { !it.retired }.map { it.exerciseId })
+        assertEquals(listOf(0, 0), repo.history.sessionSets(id).filter { it.done }.map { it.trackPosition })
+
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(
+            SessionLiftNote("Seated Leg Curl", "Seat 4"),
+            SessionLiftNote("Seated Leg Curl", "Bench 2"),
+        ), vm.uiState.value.sessions.single().liftNotes)
+        collect.cancel()
+    }
+
+    @Test
+    fun workoutOnlyMainAndSupersetSwapsShowPerformedNamesAndExcludeRetiredTracks() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Upper", "", listOf(
             ProgramExercise("db_bench", superset = SupersetPartner("cable_row"), note = "Bench 2"),
             ProgramExercise("bb_bench", note = "Rack 3"),
@@ -440,26 +460,31 @@ class LogViewModelTest {
         val id = repo.finishRun(runId)!!
         assertEquals(slot, repo.plans.slotsFor(plan, "A").first().first())
         val snapshot = SessionPlanJson.decode(repo.history.session(id)!!.plannedJson!!)
-        val swapped = snapshot.filter { it.position == slot.position }
+        val swapped = snapshot.filter { it.position == slot.position && !it.retired }
         assertEquals(setOf("bb_bench", "bb_row"), swapped.map { it.exerciseId }.toSet())
         assertTrue(swapped.all { it.note == "Bench 2" })
+        val retired = snapshot.filter { it.retired }
+        assertEquals(setOf("db_bench", "cable_row"), retired.map { it.exerciseId }.toSet())
+        assertTrue(retired.all { it.note == "Bench 2" })
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         vm.toggleExpanded(id)
         advanceUntilIdle()
 
-        val groups = vm.uiState.value.sessions.single().exerciseGroups!!.filter { group -> group.sets.any { it.done } }
-        assertEquals(setOf("Barbell Bench Press", "Barbell Row"), groups.map { it.exerciseName }.toSet())
-        assertEquals(listOf("Bench 2", "Bench 2"), groups.map { it.note })
+        val expected = listOf(
+            SessionLiftNote("Barbell Bench Press", "Bench 2"),
+            SessionLiftNote("Barbell Row", "Bench 2"),
+            SessionLiftNote("Barbell Bench Press", "Rack 3"),
+        )
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         repo.setExerciseNote(slot.programExerciseId, "Bench 3")
         advanceUntilIdle()
-        assertEquals(listOf("Bench 2", "Bench 2"), vm.uiState.value.sessions.single().exerciseGroups
-            ?.filter { group -> group.sets.any { it.done } }?.map { it.note })
+        assertEquals(expected, vm.uiState.value.sessions.single().liftNotes)
         collect.cancel()
     }
 
     @Test
-    fun legacyHistoryWithoutASnapshotShowsNoLiftNote() = runVmTest {
+    fun legacyHistoryWithoutASnapshotShowsNoLiftNotes() = runVmTest {
         insertProgram()
         val slot = repo.plans.daySlotsFlow("A").first().single().programExerciseId
         repo.setExerciseNote(slot, "Belt on top")
@@ -470,16 +495,16 @@ class LogViewModelTest {
         val lowerId = vm.uiState.value.sessions.first { it.dayLetter == "A" }.sessionId
         vm.toggleExpanded(lowerId)
         advanceUntilIdle()
-        assertEquals("", vm.uiState.value.sessions.first { it.sessionId == lowerId }.exerciseGroups?.single()?.note)
+        assertTrue(vm.uiState.value.sessions.first { it.sessionId == lowerId }.liftNotes.isEmpty())
         val upperId = vm.uiState.value.sessions.first { it.dayLetter == "B" }.sessionId
         vm.toggleExpanded(upperId)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.sessions.first { it.sessionId == upperId }.exerciseGroups!!.all { it.note.isEmpty() })
+        assertTrue(vm.uiState.value.sessions.first { it.sessionId == upperId }.liftNotes.isEmpty())
         collect.cancel()
     }
 
     @Test
-    fun oldSnapshotWithoutTheNoteFieldShowsNoCurrentLiftNote() = runVmTest {
+    fun oldSnapshotWithoutTheNoteFieldShowsNoCurrentLiftNotes() = runVmTest {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = repo.plans.slotsFor(plan, "A").first().single()
@@ -497,7 +522,43 @@ class LogViewModelTest {
         vm.toggleExpanded(id)
         advanceUntilIdle()
 
-        assertEquals("", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        assertTrue(vm.uiState.value.sessions.single().liftNotes.isEmpty())
+        collect.cancel()
+    }
+
+    @Test
+    fun blankSnapshotNoteShowsNoLiftNotes() = runVmTest {
+        val id = db.sessionDao().insertSession(session("A", "Lower", 1_000).copy(
+            plannedJson = """[{"position":0,"exerciseId":"bb_back_squat","slot":"main","sets":[],"note":"   "}]""",
+        ))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.sessions.single().liftNotes.isEmpty())
+        collect.cancel()
+    }
+
+    @Test
+    fun malformedSnapshotShowsNoLiftNotesWithoutThrowing() = runVmTest {
+        val id = db.sessionDao().insertSession(session("A", "Lower", 1_000).copy(
+            plannedJson = "{}", note = "Felt steady",
+        ))
+        db.sessionDao().insertSets(listOf(set("bb_back_squat", "Barbell Back Squat").copy(sessionId = id)))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        val expanded = vm.uiState.value.sessions.single()
+        assertTrue(expanded.expanded)
+        assertTrue(expanded.liftNotes.isEmpty())
+        assertEquals("Barbell Back Squat", expanded.exerciseGroups!!.single().exerciseName)
+        assertEquals("Felt steady", expanded.note)
+        vm.toggleEdit(id)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.sessions.single().liftNotes.isEmpty())
         collect.cancel()
     }
 

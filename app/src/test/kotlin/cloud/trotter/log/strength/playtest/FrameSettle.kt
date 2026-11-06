@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.playtest
 internal fun <T> settleFrames(
     frameTimeMillis: () -> Long,
     awaitPendingWork: () -> Unit,
+    isIdle: () -> Boolean = { true },
     nextFrame: () -> T,
 ): Int {
     val started = frameTimeMillis()
@@ -13,7 +14,11 @@ internal fun <T> settleFrames(
     while (frameTimeMillis() - started < 2_000L) {
         val current = nextFrame()
         frames++
-        stable = if (frames > 1 && current == previous) stable + 1 else 1
+        stable = when {
+            !isIdle() -> 0
+            frames > 1 && current == previous -> stable + 1
+            else -> 1
+        }
         if (stable >= 3) {
             if (waited) return frames
             awaitPendingWork()

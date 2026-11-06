@@ -1,50 +1,35 @@
 package cloud.trotter.log.strength.playtest
 
-import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
-import androidx.test.core.app.ActivityScenario
-import cloud.trotter.log.strength.MainActivity
-import cloud.trotter.log.strength.data.db.StrengthDatabase
-import cloud.trotter.log.strength.data.prefs.SettingsStore
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
-import java.util.Locale
-import java.util.TimeZone
-import javax.inject.Inject
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.CoroutineExceptionHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-@HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w360dp-h720dp-night-xxhdpi", application = HiltTestApplication::class,
-    shadows = [PlaytestHandler::class])
+@Config(sdk = [35], qualifiers = "w360dp-h720dp-night-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ReplayArtifactsTest {
-    private val hilt = HiltAndroidRule(this)
-    private lateinit var crashes: AppCrashes
-    private val compose = createEmptyComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
-    private val temporary = TemporaryFolder()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(hilt).around(temporary).around(compose)
-
-    @Inject internal lateinit var time: PlaytestTime
-    @Inject internal lateinit var cardioAlarm: PlaytestCardioAlarm
-    @Inject lateinit var settings: SettingsStore
-    @Inject lateinit var database: StrengthDatabase
+    @get:Rule val compose = createComposeRule()
+    @get:Rule val temporary = TemporaryFolder()
 
     @Test fun compactReplayWritesTextOnlyBetweenFullLaunchCheckpointAndFinalCaptures() {
         val artifacts = runArtifacts()
-        replay(artifacts, """[
+        captureSteps(artifacts, """[
             {"tap":{"text":"Next"}},
             {"checkpoint":"days-per-week"},
             {"tap":{"text":"Next"}},
@@ -67,7 +52,7 @@ class ReplayArtifactsTest {
     @Test fun compactReplayWritesFullFailureCaptureForAnIntermediateStep() {
         val artifacts = runArtifacts()
         val error = assertFailsWith<PlaytestError> {
-            replay(artifacts, """[
+            captureSteps(artifacts, """[
                 {"tap":{"text":"Next"}},
                 {"expect":{"text":"Missing control"},"timeoutMs":1000},
                 {"note":"Unreached final step"}
@@ -82,7 +67,7 @@ class ReplayArtifactsTest {
 
     @Test fun compactReplayKeepsFullCheckpointAndFinalNoteBeforeCaptureCutoff() {
         val artifacts = runArtifacts(captureFrom = 100)
-        replay(artifacts, """[
+        captureSteps(artifacts, """[
             {"tap":{"text":"Next"}},
             {"checkpoint":"days-per-week"},
             {"note":"Final note"}
@@ -103,33 +88,40 @@ class ReplayArtifactsTest {
         assertTrue(files.all { it.length() > 0 })
     }
 
-    private fun replay(artifacts: RunArtifacts, steps: String) {
+    private fun captureSteps(artifacts: RunArtifacts, steps: String) {
         val scriptFile = temporary.newFile("script.json").apply {
             writeText("""{"seat":"compact-artifacts","capture":"compact","steps":$steps}""")
         }
         val script = Script.parse(scriptFile)
         artifacts.script = script
-        val locale = Locale.getDefault()
-        val zone = TimeZone.getDefault()
-        val requestedSize = System.getProperty("robolectric.windowManager.useRequestedSize")
-        try {
-            Locale.setDefault(Locale.US)
-            TimeZone.setDefault(TimeZone.getTimeZone(script.start.zone))
-            System.setProperty("robolectric.windowManager.useRequestedSize", "true")
-            hilt.inject()
-            time.set(script.start.instant(), script.start.zone)
-            compose.mainClock.autoAdvance = false
-            AppCrashes().use { crashes ->
-                this.crashes = crashes
-                crashes.step { ActivityScenario.launch(MainActivity::class.java) }.use { scenario ->
-                    Replay(compose, scenario, time, cardioAlarm, settings, database, artifacts, crashes).run(script)
+        val page = mutableStateOf(0)
+        compose.setContent {
+            AppTheme {
+                Column {
+                    Text("Page ${page.value}")
+                    Button(onClick = { page.value++ }) { Text("Next") }
                 }
             }
-        } finally {
-            Locale.setDefault(locale)
-            TimeZone.setDefault(zone)
-            if (requestedSize == null) System.clearProperty("robolectric.windowManager.useRequestedSize")
-            else System.setProperty("robolectric.windowManager.useRequestedSize", requestedSize)
+        }
+        val captures = ReplayCaptures(compose, artifacts, script)
+        val launchDeadline = StepDeadline(20_000)
+        launchDeadline.run(compose) { captures.launch(launchDeadline) }
+        script.steps.forEachIndexed { index, step ->
+            val deadline = StepDeadline(step.timeoutMs, index)
+            try {
+                deadline.run(compose) {
+                    when (step.action) {
+                        "tap" -> compose.onNodeWithText(requireNotNull(step.selector?.text("text"))).performClick()
+                        "expect" -> Selectors(compose, compose.density.density).await(requireNotNull(step.selector), deadline)
+                        "checkpoint", "note" -> Unit
+                        else -> error("Unsupported capture fixture action: ${step.action}")
+                    }
+                    captures.step(index, step, deadline)
+                }
+            } catch (error: Throwable) {
+                captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
+                throw error
+            }
         }
     }
 }

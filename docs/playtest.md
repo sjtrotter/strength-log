@@ -83,8 +83,12 @@ a positive integer. Lookup, action, screen settling, and capture share that budg
 Launch has a separate 20,000 ms budget.
 After `tap`, `longPress`, `swipe`, `back`, and `scrollTo`, the harness advances
 the paused Compose clock one frame at a time until the merged semantics tree is
-unchanged across three consecutive frames, or two seconds of frame time have
-passed. After the first stable pass, it waits for pending workout mutations
+unchanged across three consecutive frames and window transitions have finished,
+or two seconds of frame time have passed. Root-window identity, visibility,
+focus, and bounds must also stay stable. Pending Compose animation frames,
+window layout, and window animations prevent stability, including when a
+dismissed sheet has moved off screen but still owns its window.
+After the first stable pass, it waits for pending workout mutations
 through the step's storage wait, then requires three stable frames again.
 Both passes share the frame cap and the step deadline.
 It compares text, tags, structure, and bounds rounded to dp. The cap

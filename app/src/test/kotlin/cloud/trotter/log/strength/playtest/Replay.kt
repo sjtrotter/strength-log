@@ -128,18 +128,17 @@ internal class Replay(
     private val lastMatches: JsonArray get() = selectors.lastMatches
 
     fun run(script: Script) {
-        var previousTexts = emptyList<CaptureText>()
+        val captures = ReplayCaptures(compose, artifacts, script)
         try {
             crashes.step(compose) {
                 val deadline = StepDeadline(20_000)
                 deadline.run(compose) {
                     settle(deadline)
-                    deadline.call { capture("000-launch", png = true) }
-                    if (script.compactCapture) previousTexts = deadline.call { snapshotTexts() }
+                    captures.launch(deadline)
                 }
             }
         } catch (error: Throwable) {
-            captureFailure("000-FAILED-launch", error)
+            captures.failure("000-FAILED-launch", error)
             throw error
         }
         script.steps.forEachIndexed { index, step ->
@@ -170,30 +169,14 @@ internal class Replay(
                                         }
                                     }
                                 }
-                                val name = "%03d-%s".format(index, step.slug)
-                                if (script.compactCapture) {
-                                    val texts = deadline.call { snapshotTexts() }
-                                    if (step.action == "checkpoint" || index == script.steps.lastIndex) {
-                                        deadline.call { capture(name, png = true) }
-                                    } else if (index >= artifacts.captureFrom) {
-                                        deadline.call {
-                                            val file = File(artifacts.directory, "steps/$name.txt")
-                                            file.writeText(formatCompactDiff(name, previousTexts, texts))
-                                        }
-                                    }
-                                    previousTexts = texts
-                                } else if (index >= artifacts.captureFrom || step.action == "checkpoint") {
-                                    deadline.call {
-                                        capture(name, png = !script.checkpointsOnly || step.action == "checkpoint")
-                                    }
-                                }
+                                captures.step(index, step, deadline)
                             }
                         }
                     }
                     log(index, step, started, ok = true)
                 } catch (error: Throwable) {
                     artifacts.failure(error.playtestError(), index, step.json)
-                    captureFailure("%03d-FAILED-%s".format(index, step.slug), error)
+                    captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
                     log(index, step, started, ok = false)
                     throw error
                 }
@@ -434,30 +417,6 @@ internal class Replay(
         }) { settledFrames++ }
         screen = shapes.asSequence().flatMap { it.texts.asSequence() }
             .firstOrNull { it.isNotBlank() } ?: "unknown"
-    }
-
-    private fun snapshotTexts(): List<CaptureText> = compose.semanticsSnapshot(compose.density.density).captureTexts()
-
-    private fun capture(name: String, png: Boolean) {
-        val file = File(artifacts.directory, "steps/$name.png")
-        if (png) compose.writePlaytestShot(file, compose.density.density) else {
-            check(file.parentFile.mkdirs() || file.parentFile.isDirectory)
-            File(file.parentFile, "$name.json").writeText(compose.dumpSemantics(compose.density.density))
-        }
-    }
-
-    private fun captureFailure(name: String, error: Throwable) {
-        val deadline = StepDeadline(1_000)
-        try {
-            deadline.run(compose) { capture(name, png = true) }
-        } catch (captureError: Throwable) {
-            error.addSuppressed(captureError)
-            try {
-                deadline.run(compose) { capture(name, png = false) }
-            } catch (dumpError: Throwable) {
-                error.addSuppressed(dumpError)
-            }
-        }
     }
 }
 

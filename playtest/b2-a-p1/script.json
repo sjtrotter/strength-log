@@ -958,6 +958,321 @@
     },
     {
       "checkpoint": "first-set-entry-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Nov 9: I walk five minutes using the treadmill display while looking for a way to include both walks in this visit. This note does not count as an app cardio record."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "workout-lift-list-before-first-set"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "leg-press-first-despite-editor-order"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "first-real-set-and-rest-timer"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "three-leg-press-sets-complete"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "7"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "chest-first-attempt-six-reps"
+    },
+    {
+      "expect": {
+        "text": "Log 30 lb \u00d7 6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 6"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "lower-weight-second-set-and-rest"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "workout-and-rest-after-recreation"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "does-third-set-remember-twenty"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "chest-three-attempts-thirty-six-then-twenty-ten-twice"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "looking-for-seat-note-and-instructions"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 6 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "row-three-sets-complete"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "eleven-lifting-sets-complete"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "looking-for-treadmill-finisher-and-workout-note"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-review-before-saving-and-before-finishing-walk"
+    },
+    {
+      "back": true
     }
   ]
 }

@@ -425,23 +425,150 @@
    "checkpoint": "after-save-copenhagen"
   },
   {
+   "scrollTo": {
+    "text": "Copenhagen plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Copenhagen plank"
+   }
+  },
+  {
+   "checkpoint": "day-a-with-copenhagen"
+  },
+  {
    "tap": {
     "text": "Add exercise"
    }
   },
   {
+   "scrollTo": {
+    "textContains": "alves",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "calves-category-visible"
+  },
+  {
    "tap": {
-    "text": "Hinge"
+    "textContains": "alves",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "calves-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "sheet-closed"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
    }
   },
   {
    "type": {
-    "text": "Search exercises",
-    "value": "Calf"
+    "text": "Weight (lb)",
+    "value": "185"
    }
   },
   {
-   "checkpoint": "search-calf-global"
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-set1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-set3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets-after3"
   }
  ]
 }

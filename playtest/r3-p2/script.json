@@ -161,6 +161,60 @@
     },
     {
       "checkpoint": "saturday-add-cardio"
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "saturday-close-editing-before-finish"
+    },
+    {
+      "tap": {
+        "text": "Finish day B"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-final-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench 155: 8/8/6; repeat. Easy jog 20m, no walking or distance; cardio and other lifts remain in paper diary."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "saturday-bench-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "month-end-history"
     }
   ]
 }

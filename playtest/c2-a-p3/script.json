@@ -1,0 +1,156 @@
+{
+  "seat": "c2-a-p3",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-10",
+    "time": "17:42",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-tuesday-at-1742"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "text": "Meet prep Nov 9-Dec 6"
+      }
+    },
+    {
+      "checkpoint": "restored-own-plan"
+    },
+    {
+      "tap": {
+        "textContains": "lifts,"
+      }
+    },
+    {
+      "checkpoint": "restored-paused-pull-preview"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "restored-four-sets-ready-to-finish"
+    },
+    {
+      "advance": "4s"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "tuesday-finish-gate"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "tuesday-saved-after-restore"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "First pull pause rushed. DB row40x8x4/side today only; row station busy. Bike20min easy RPE3. Accessories done."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-context-and-cardio-note"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "tuesday-share-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-two-saved-sessions"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "trends-with-paused-pulls"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "1d23h47m56s"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "text": "Meet prep Nov 9-Dec 6"
+      }
+    },
+    {
+      "checkpoint": "thursday-own-plan-before-new-day"
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "add-thursday-bench-priority-day-fields"
+    },
+    {
+      "note": "Thursday Nov12 17:30. Next: bench125x1@7.5 +107.5x4x4; paused squat145x4x4; pressdown and Pallof. Tuesday row/bike recorded only as a note, not structured sets/cardio. Inspect all completion and restore evidence before claiming save."
+    }
+  ]
+}

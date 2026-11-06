@@ -93,6 +93,65 @@
   },
   {
    "checkpoint": "history-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends-tue"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Nov 9, 2026"
+   }
+  },
+  {
+   "checkpoint": "history-nov9-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans-tue"
+  },
+  {
+   "tap": {
+    "text": "Run + lift week"
+   }
+  },
+  {
+   "checkpoint": "my-plan"
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body \u00b7 Day C1"
+   }
+  },
+  {
+   "checkpoint": "c1-open"
   }
  ]
 }

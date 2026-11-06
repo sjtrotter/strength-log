@@ -52,8 +52,7 @@
     },
     {
       "tap": {
-        "text": "Day A",
-        "index": 1
+        "textContains": "0 lifts, 0 sets"
       }
     },
     {

@@ -127,16 +127,60 @@
    }
   },
   {
-   "checkpoint": "prescription"
-  },
-  {
    "type": {
     "text": "Sets",
     "value": "4"
    }
   },
   {
-   "checkpoint": "typed-sets"
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
+   }
+  },
+  {
+   "tap": {
+    "text": "Tracking"
+   }
+  },
+  {
+   "checkpoint": "tracking-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "saved"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat (bilateral)"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Paused squat"
+   }
+  },
+  {
+   "checkpoint": "search-paused"
   }
  ]
 }

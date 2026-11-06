@@ -1533,6 +1533,14 @@
       "checkpoint": "wednesday-search-shoulder-press"
     },
     {
+      "tap": {
+        "text": "Search all exercises"
+      }
+    },
+    {
+      "checkpoint": "all-exercises-shoulder-results"
+    },
+    {
       "back": true
     },
     {
@@ -1554,6 +1562,14 @@
     },
     {
       "checkpoint": "wednesday-search-pulldown"
+    },
+    {
+      "tap": {
+        "text": "Search all exercises"
+      }
+    },
+    {
+      "checkpoint": "all-exercises-pulldown-results"
     },
     {
       "back": true
@@ -1579,6 +1595,14 @@
       "checkpoint": "wednesday-search-split-squat"
     },
     {
+      "tap": {
+        "text": "Search all exercises"
+      }
+    },
+    {
+      "checkpoint": "all-exercises-split-results"
+    },
+    {
       "back": true
     },
     {
@@ -1596,6 +1620,11 @@
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
     },
     {
       "swipe": {
@@ -1624,6 +1653,22 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "tap": {
+        "text": "Undo Deadlift 185 \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "deadlift-accidental-log-undone"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "deadlift-first-set-restored-once"
     },
     {
       "advance": "2m"
@@ -1673,6 +1718,39 @@
     },
     {
       "note": "Monday saved eleven working sets and a 12:01 bike ride. Summary says65min because first logged set17:38, versus gym entry17:30 and finish18:43. After Wednesday deadlifts, configure shoulder30x8,30x6,25x8; pulldown100x10x3; split20x8x2eachleg; rower12min2220m. Need Add a note from saved summary for bench slow/111W/effort6. No watts/effort app field found yet."
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "lift-all-sets-more-warmup-history-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 12 sets"
+      }
+    },
+    {
+      "checkpoint": "wednesday-lift-list-after-three-deadlifts"
     }
   ]
 }

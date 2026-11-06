@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -569,7 +569,7 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     },
     {
       "tap": {
@@ -592,7 +592,7 @@
     },
     {
       "tap": {
-        "text": "Log 102.5 kg \u00d7 5"
+        "text": "Log 102.5 kg × 5"
       }
     },
     {
@@ -600,7 +600,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 kg \u00d7 5"
+        "text": "Log 115 kg × 5"
       }
     },
     {
@@ -633,7 +633,7 @@
     },
     {
       "tap": {
-        "text": "Log 160 kg \u00d7 2"
+        "text": "Log 160 kg × 2"
       }
     },
     {
@@ -666,7 +666,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -674,18 +674,18 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
       "checkpoint": "monday-single-logged-rpe-seven"
     },
     {
-      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 × 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
     },
     {
       "tap": {
-        "text": "Undo 190 \u00d7 1"
+        "text": "Undo 190 × 1"
       }
     },
     {
@@ -693,7 +693,7 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -746,7 +746,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -847,12 +847,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -887,12 +887,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -927,12 +927,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -1076,7 +1076,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1111,7 +1111,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1146,7 +1146,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1181,7 +1181,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1250,7 +1250,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1708,6 +1708,28 @@
       }
     },
     {
+      "swipe": {
+        "text": "170",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "custom-exercise-required-movement-below-fold"
+    },
+    {
+      "scrollTo": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-movement-selected"
+    },
+    {
       "tap": {
         "text": "Save"
       }
@@ -1807,7 +1829,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1842,7 +1864,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1877,7 +1899,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1912,7 +1934,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1992,7 +2014,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {

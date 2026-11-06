@@ -101,7 +101,25 @@
    }
   },
   {
-   "checkpoint": "wiz7"
+   "checkpoint": "wiz7-equipment"
+  },
+  {
+   "tap": {
+    "text": "Machine"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "checkpoint": "wiz7-equipment-mine"
   },
   {
    "tap": {
@@ -109,15 +127,28 @@
    }
   },
   {
-   "checkpoint": "wiz8"
-  },
-  {
-   "tap": {
-    "text": "Next"
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
    }
   },
   {
-   "checkpoint": "after-wizard"
+   "checkpoint": "wiz8-rotation-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today-first"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-tab"
   }
  ]
 }

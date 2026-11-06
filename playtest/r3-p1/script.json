@@ -223,6 +223,19 @@
   },
   {
    "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "bench-swapped"
+  },
+  {
+   "tap": {
     "desc": "More options for Chest-Supported Row"
    }
   },
@@ -239,6 +252,71 @@
   },
   {
    "checkpoint": "search-pulldown"
+  },
+  {
+   "tap": {
+    "text": "Lat Pulldown"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "row-swapped"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Bench Press"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "65"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "checkpoint": "bench-rx"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Lat Pulldown"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "checkpoint": "lat-rx"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "day-edited"
   }
  ]
 }

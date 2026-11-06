@@ -43,9 +43,6 @@
    "back": true
   },
   {
-   "checkpoint": "run-screen"
-  },
-  {
    "tap": {
     "text": "Start"
    }
@@ -54,11 +51,14 @@
    "advance": "40m12s"
   },
   {
-   "checkpoint": "running"
+   "type": {
+    "text": "Distance (m)",
+    "value": "7100"
+   }
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "text": "Stop"
    }
   },
   {
@@ -73,22 +73,46 @@
    }
   },
   {
-   "checkpoint": "run-finish"
+   "checkpoint": "run-receipt"
   },
   {
    "tap": {
-    "text": "Add a note"
+    "text": "Done"
    }
   },
   {
-   "type": {
-    "editable": true,
-    "index": 0,
-    "value": "Easy run 7.1 km, 40:12, 5:40/km. Nice out, felt good."
+   "advance": "4d"
+  },
+  {
+   "checkpoint": "sat-today"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
    }
   },
   {
-   "checkpoint": "note-typed"
+   "checkpoint": "sat-history"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "sat-trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Cardio + Core"
+   }
+  },
+  {
+   "checkpoint": "run-detail"
   }
  ]
 }

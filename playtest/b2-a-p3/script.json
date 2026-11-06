@@ -314,6 +314,87 @@
     },
     {
       "note": "Inspect the plan controls next. The generated squat day is still not my actual Monday prescription; no default sets have been claimed as completed."
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-own-block-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-copy-and-scheduling-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "5-day full body"
+      }
+    },
+    {
+      "checkpoint": "existing-plan-editing-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "note": "The preview shows a 145 kg triple and dumbbell bench, not my Monday. Open Edit to enter the 190 kg single, 165 kg backoffs, and competition bench."
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "monday-day-editor"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "day-editor-after-reopen"
     }
   ]
 }

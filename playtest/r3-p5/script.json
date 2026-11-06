@@ -46,6 +46,11 @@
    }
   },
   {
+   "tap": {
+    "text": "Search all exercises"
+   }
+  },
+  {
    "checkpoint": "search-trap"
   },
   {
@@ -70,6 +75,11 @@
    "type": {
     "text": "Search exercises",
     "value": "Bulgarian"
+   }
+  },
+  {
+   "tap": {
+    "text": "Search all exercises"
    }
   },
   {
@@ -104,7 +114,8 @@
   },
   {
    "tap": {
-    "text": "Single-Leg Romanian Deadlift"
+    "textContains": "Romanian",
+    "inDialog": true
    }
   },
   {
@@ -127,11 +138,17 @@
    }
   },
   {
+   "tap": {
+    "text": "Search all exercises"
+   }
+  },
+  {
    "checkpoint": "search-calf"
   },
   {
    "tap": {
-    "text": "Single-Leg Calf Raise"
+    "textContains": "Single-Leg",
+    "inDialog": true
    }
   },
   {
@@ -154,7 +171,12 @@
    }
   },
   {
-   "checkpoint": "search-copen"
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "checkpoint": "create-ex"
   }
  ]
 }

@@ -9,7 +9,7 @@
   },
   "steps": [
     {
-      "note": "Friday Nov27 reduced sample. Template has Bulgarian Split Squat, not intended Leg Press. Use its slot for today-only Hack Squat; log90x10 then70x10x2 and15m easy bike."
+      "note": "Nov27 reduced sample. Hack Squat not found in Bulgarian swap list; keep actual hack sets in note, log actual leg curls and steady bike. This is a workaround, not a verified temporary swap."
     },
     {
       "tap": {
@@ -59,30 +59,17 @@
       "checkpoint": "split-squat-substitutes-for-friday-machine"
     },
     {
-      "scrollTo": {
-        "text": "Hack Squat"
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 24 sets"
       }
     },
     {
       "tap": {
-        "text": "Hack Squat"
+        "text": "Seated Leg Curl"
       }
-    },
-    {
-      "checkpoint": "hack-squat-swap-scope"
-    },
-    {
-      "tap": {
-        "text": "This workout"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "temporary-hack-squat-ready"
     },
     {
       "advance": "5m"
@@ -95,13 +82,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "90"
+        "value": "70"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10"
+        "value": "12"
       }
     },
     {
@@ -131,7 +118,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "10"
+        "value": "12"
       }
     },
     {
@@ -148,41 +135,11 @@
       "advance": "3m"
     },
     {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "70"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
+      "checkpoint": "friday-leg-curl-two-sets"
     },
     {
       "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "checkpoint": "hack-squat-actual-weight-drop"
-    },
-    {
-      "tap": {
-        "desc": "Day B lifts, 3 of 24 sets"
+        "desc": "Day B lifts, 2 of 24 sets"
       }
     },
     {
@@ -191,7 +148,7 @@
       }
     },
     {
-      "advance": "39m"
+      "advance": "42m"
     },
     {
       "tap": {
@@ -230,7 +187,7 @@
       }
     },
     {
-      "checkpoint": "friday-machine-and-bike-saved"
+      "checkpoint": "friday-curls-and-bike-saved"
     },
     {
       "scrollTo": {
@@ -245,7 +202,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Busy leg press; hack squat plates 90 then70. Sluggish; steady bike instead of intervals:15m,103W,effort5/10."
+        "value": "Busy leg press: hack squat90x10,70x10/10 plates. Sluggish; steady bike15m,103W,effort5/10 instead of intervals."
       }
     },
     {

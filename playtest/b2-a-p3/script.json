@@ -9,14 +9,14 @@
   },
   "steps": [
     {
-      "note": "First look at setup. I have my own five-day powerlifting program in kilograms. Discover the setup screens before committing to any generated plan."
+      "note": "I already have a five-day powerlifting program. No custom-program option is visible on the first setup screen; try the closest setup choices and inspect whether I can replace its plan."
     },
     {
       "checkpoint": "initial-setup"
     },
     {
-      "expect": {
-        "text": "Next"
+      "tap": {
+        "text": "Strength-leaning"
       }
     },
     {
@@ -25,12 +25,14 @@
       }
     },
     {
-      "checkpoint": "setup-page-1"
+      "type": {
+        "text": "Days per week",
+        "value": "5",
+        "ime": "done"
+      }
     },
     {
-      "expect": {
-        "text": "Next"
-      }
+      "checkpoint": "five-training-days"
     },
     {
       "tap": {
@@ -38,12 +40,7 @@
       }
     },
     {
-      "checkpoint": "setup-page-2"
-    },
-    {
-      "expect": {
-        "text": "Next"
-      }
+      "checkpoint": "five-day-split-choices"
     },
     {
       "tap": {
@@ -51,12 +48,22 @@
       }
     },
     {
-      "checkpoint": "setup-page-3"
+      "tap": {
+        "text": "Squat / Bench / Deadlift / Row (Big 4)"
+      }
     },
     {
-      "expect": {
-        "text": "Next"
+      "scrollTo": {
+        "text": "Conventional"
       }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "conventional-main-lifts"
     },
     {
       "tap": {
@@ -64,12 +71,22 @@
       }
     },
     {
-      "checkpoint": "setup-page-4"
+      "tap": {
+        "text": "Bike / elliptical"
+      }
     },
     {
-      "expect": {
-        "text": "Next"
+      "tap": {
+        "text": "Finishers after lifting"
       }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "cardio-setup-options"
     },
     {
       "tap": {
@@ -77,12 +94,34 @@
       }
     },
     {
-      "checkpoint": "setup-page-5"
+      "tap": {
+        "text": "KG"
+      }
     },
     {
-      "expect": {
-        "text": "Next"
+      "note": "Phase A gave no bodyweight. Use 100 kg as a plausible persona detail because setup requires a value; age 41 and advanced experience are established."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (kg)",
+        "value": "100",
+        "ime": "done"
       }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "41",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Advanced"
+      }
+    },
+    {
+      "checkpoint": "kilograms-and-experience"
     },
     {
       "tap": {
@@ -90,7 +129,15 @@
       }
     },
     {
-      "checkpoint": "setup-page-6"
+      "checkpoint": "setup-page-seven"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-eight"
     }
   ]
 }

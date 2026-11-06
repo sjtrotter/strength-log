@@ -1175,6 +1175,12 @@
    }
   },
   {
+   "back": true
+  },
+  {
+   "checkpoint": "history-list"
+  },
+  {
    "tap": {
     "text": "Nov 9, 2026"
    }
@@ -1198,17 +1204,19 @@
   },
   {
    "tap": {
-    "text": "Trends and calendar"
+    "desc": "Settings"
    }
   },
   {
-   "swipe": {
-    "text": "Weekly volume",
-    "direction": "up"
+   "scrollTo": {
+    "text": "Reset to defaults"
    }
   },
   {
-   "checkpoint": "trends-down"
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -1228,16 +1236,66 @@
   },
   {
    "tap": {
-    "desc": "Settings"
+    "text": "History"
    }
   },
   {
-   "scrollTo": {
-    "text": "Reset to defaults"
+   "tap": {
+    "text": "Trends and calendar"
    }
   },
   {
-   "checkpoint": "settings-bottom"
+   "checkpoint": "trends2"
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-down"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "text": "3-day full body \u00b7 Day A"
+   }
+  },
+  {
+   "tap": {
+    "text": "+5 lb",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "plus5-tap"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "recreate": true
+  },
+  {
+   "checkpoint": "after-recreate"
   }
  ]
 }

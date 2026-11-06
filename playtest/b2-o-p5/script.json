@@ -444,24 +444,25 @@
   },
   {
    "scrollTo": {
-    "textContains": "alves",
-    "index": 0
+    "text": "Calf: gastrocnemius"
    }
-  },
-  {
-   "checkpoint": "calves-category-visible"
   },
   {
    "tap": {
-    "textContains": "alves",
+    "text": "Calf: gastrocnemius"
+   }
+  },
+  {
+   "checkpoint": "calf-list"
+  },
+  {
+   "tap": {
+    "textContains": "Calf Raise",
     "index": 0
    }
   },
   {
-   "checkpoint": "calves-list"
-  },
-  {
-   "back": true
+   "checkpoint": "day-a-built"
   },
   {
    "back": true

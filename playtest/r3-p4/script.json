@@ -18,6 +18,14 @@
     },
     {
       "checkpoint": "monday-day-details"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "monday-edit-day"
     }
   ]
 }

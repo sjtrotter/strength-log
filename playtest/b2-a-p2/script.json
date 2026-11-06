@@ -379,7 +379,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -456,7 +456,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -549,7 +549,7 @@
     },
     {
       "tap": {
-        "text": "3 \u00d7 10 at 150 lb"
+        "text": "3 × 10 at 150 lb"
       }
     },
     {
@@ -825,7 +825,7 @@
     },
     {
       "tap": {
-        "text": "Log 45 lb \u00d7 10"
+        "text": "Log 45 lb × 10"
       }
     },
     {
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 5"
+        "text": "Log 135 lb × 5"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 3"
+        "text": "Log 185 lb × 3"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1077,7 +1077,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1155,7 +1155,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1166,7 +1166,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1177,7 +1177,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1228,7 +1228,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1268,7 +1268,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1291,7 +1291,9 @@
       "checkpoint": "monday-extra-lunge-set-skipped"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Next: Plank / Side Plank"
+      }
     },
     {
       "expect": {
@@ -1331,7 +1333,115 @@
       }
     },
     {
-      "note": "Still need three 30-second planks, cold-garage session note and saved recap before Tuesday. Two reverse-lunge sets mean eight reps each leg with a 25-pound dumbbell in each hand. No completed session is claimed yet."
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "plank-set-menu-for-notes-and-duration-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 12 of 15 sets"
+      }
+    },
+    {
+      "checkpoint": "exercise-navigation-before-monday-finish"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-and-restore-available-actions"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "return-home-with-monday-entered-sets"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "monday-return-to-planks-after-data-options"
+    },
+    {
+      "note": "Monday lifting actuals remain four warmups and squat215x5x3, RDL135x8x3, lunge25x8x2 eachleg. Need inspect timed fields then log30s holds, add cold-garage note, save at52min. Backup and set-menu visits are actual task attempts, not completed export or notes."
     }
   ]
 }

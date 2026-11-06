@@ -61,11 +61,9 @@ object JournalBuilder {
             for (pe in day.exercises) {
                 if (!pe.structure.hasTopSet || pe.exerciseId in lifts) continue
                 val entry = catalog.find(pe.exerciseId) ?: continue
-                val goalLb = when (val target = pe.prescription?.target) {
-                    null -> (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb ?: continue
-                    is PrescribedTarget.LoadReps -> target.lb
-                    else -> continue
-                }
+                val target = pe.prescription?.target
+                if (target != null && target !is PrescribedTarget.LoadReps) continue
+                val goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb ?: continue
                 lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, Program.accentIndex(day.id), goalLb)
             }
         }

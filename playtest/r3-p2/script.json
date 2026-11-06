@@ -153,6 +153,14 @@
     },
     {
       "checkpoint": "saturday-day-controls-for-cardio"
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "saturday-add-cardio"
     }
   ]
 }

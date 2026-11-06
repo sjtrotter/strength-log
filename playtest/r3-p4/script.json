@@ -166,6 +166,76 @@
     },
     {
       "checkpoint": "squat-all-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "three-actual-squat-sets"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "checkpoint": "unused-squat-set-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-menu"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 21 sets"
+      }
+    },
+    {
+      "checkpoint": "workout-exercise-navigation"
     }
   ]
 }

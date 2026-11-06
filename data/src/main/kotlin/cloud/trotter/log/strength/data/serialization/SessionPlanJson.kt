@@ -13,6 +13,7 @@ data class PlannedTrackDto(
     val sets: List<SetDto>,
     /** Finish-time rows; null in snapshots saved before this count was recorded. */
     val liveSetCount: Int? = null,
+    val note: String? = null,
 )
 
 /** Codec for the prescriptions captured in a workout session. */

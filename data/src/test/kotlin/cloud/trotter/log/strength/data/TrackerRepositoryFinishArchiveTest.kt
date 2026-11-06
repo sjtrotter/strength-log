@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -121,6 +122,30 @@ class TrackerRepositoryFinishArchiveTest {
                 }
             },
         )
+    }
+
+    @Test
+    fun finishSnapshotsTheSlotsNoteAtFinishAndStoresNullForBlankNotes() = runTest {
+        val ids = seedTracks()
+        repo.setExerciseNote(ids.first(), "Seat 4")
+        repo.setExerciseNote(ids.last(), "  ")
+        ids.forEach { tickSets(it, setOf(0)) }
+        repo.setExerciseNote(ids.first(), "Seat 5")
+
+        val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
+        val plannedJson = repo.history.session(sessionId)!!.plannedJson!!
+        val snapshot = SessionPlanJson.decode(plannedJson)
+        assertEquals(listOf("Seat 5", null), snapshot.map { it.note })
+        val archived = repo.history.sessionSets(sessionId)
+        snapshot.forEach { track ->
+            assertTrue(archived.any {
+                it.trackPosition == track.position && it.slot == track.slot && it.exerciseId == track.exerciseId
+            })
+        }
+
+        repo.setExerciseNote(ids.first(), "Seat 6")
+        repo.setExerciseNote(ids.last(), "Bench 2")
+        assertEquals(plannedJson, repo.history.session(sessionId)!!.plannedJson)
     }
 
     @Test

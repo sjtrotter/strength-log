@@ -8,16 +8,14 @@ import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
-import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
-import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
@@ -128,30 +126,16 @@ class LogViewModel @Inject constructor(
         summaries to notes
     }
 
-    private val expandedLiftSlots = combine(expandedSessionId, repo.sessionsFlow) { id, sessions ->
-        sessions.firstOrNull { it.id == id }
-    }.distinctUntilChanged().flatMapLatest { session ->
-        if (session == null) flowOf(null to emptyList<ProgramSlot>())
-        else plans.slotsFor(session.planId ?: PlanEntity.LEGACY_ID, session.dayId).map { slots ->
-            session.id to slots
-        }
-    }
-
-    private val expandedSetsWithSlots = combine(expandedSets, expandedLiftSlots) { sets, slots -> sets to slots }
-
     private val ownSessions = combine(
         summariesWithNotes,
         settings.unitFlow,
         expandedSessionId,
-        expandedSetsWithSlots,
+        expandedSets,
         editingSessionId,
-    ) { summariesAndNotes, unit, expandedId, content, editingId ->
-        val (setsCache, sessionSlots) = content
-        val (slotSessionId, liftSlots) = sessionSlots
+    ) { summariesAndNotes, unit, expandedId, setsCache, editingId ->
         summariesAndNotes.first.map { summary ->
             buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId,
-                summariesAndNotes.second[summary.session.id].orEmpty(),
-                liftSlots.takeIf { slotSessionId == summary.session.id }.orEmpty())
+                summariesAndNotes.second[summary.session.id].orEmpty())
         }
     }
 
@@ -471,7 +455,6 @@ class LogViewModel @Inject constructor(
         cachedSets: List<SessionSetEntity>?,
         editingId: Long?,
         note: String,
-        liftSlots: List<ProgramSlot>,
     ): SessionListItem {
         val session = summary.session
         val expanded = session.id == expandedId
@@ -485,20 +468,12 @@ class LogViewModel @Inject constructor(
             bodyweightDisplay = LogScreenBuilder.bodyweightDisplay(session.bodyweightLb, unit),
             expanded = expanded,
             exerciseGroups = if (expanded && cachedSets != null) {
+                val tracks = session.plannedJson?.let(SessionPlanJson::decode).orEmpty()
+                    .associateBy { Triple(it.position, it.slot, it.exerciseId) }
                 val liftNotes = cachedSets.filter { it.done || session.id == editingId }.associate { set ->
-                    val owner = if (set.trackPosition != null) {
-                        liftSlots.firstOrNull { it.position == set.trackPosition }
-                    } else {
-                        // Older history has no slot position; only an unambiguous match identifies its owner.
-                        liftSlots.singleOrNull {
-                            when (set.slot) {
-                                Slot.MAIN -> it.exercise.exerciseId == set.exerciseId
-                                Slot.SS -> it.exercise.superset?.exerciseId == set.exerciseId
-                                else -> false
-                            }
-                        }
-                    }
-                    set.id to owner?.exercise?.note.orEmpty()
+                    set.id to set.trackPosition?.let { position ->
+                        tracks[Triple(position, set.slot, set.exerciseId)]?.note
+                    }.orEmpty()
                 }
                 LogScreenBuilder.groupByExercise(cachedSets, unit, liftNotes)
             } else {

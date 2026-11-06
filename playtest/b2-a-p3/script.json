@@ -1761,7 +1761,8 @@
     },
     {
       "tap": {
-        "text": "Paused Deadlift - off floor"
+        "text": "Paused Deadlift - off floor",
+        "index": 1
       }
     },
     {
@@ -2006,8 +2007,47 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 4 of 4 sets"
+        "text": "Finish"
       }
+    },
+    {
+      "checkpoint": "tuesday-finish-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "tuesday-saved-paused-pulls-only"
+    },
+    {
+      "note": "Only the four entered paused-deadlift sets are claimed. Rows, other accessories and bike are missing from this log. Inspect actual set kinds and saved count; do not call these four WORK sets without that evidence."
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-after-tuesday-paused-pulls"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "training-totals-after-two-partial-sessions"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -2016,42 +2056,14 @@
     },
     {
       "tap": {
-        "text": "Edit day"
+        "text": "Backup and export"
       }
     },
     {
-      "expect": {
-        "text": "Add cardio"
-      }
+      "checkpoint": "backup-and-export-after-custom-lift-session"
     },
     {
-      "tap": {
-        "text": "Add cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Activity"
-      }
-    },
-    {
-      "tap": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "checkpoint": "tuesday-bike-prescription"
-    },
-    {
-      "tap": {
-        "text": "Set 1 \u00b7 Work"
-      }
-    },
-    {
-      "checkpoint": "bike-duration-and-effort-fields"
-    },
-    {
-      "note": "Inspect cardio fields next. Tuesday custom paused170x3x4 must be verified as WORK sets before claiming completion; no rows or bike completed yet."
+      "note": "Final replay ends here. Whole-log artifact can verify custom naming, actual sets, dates and retained notes. Two-week diary coverage was not achieved; report this plainly and distinguish untested features from missing ones."
     }
   ]
 }

@@ -334,28 +334,19 @@
   },
   {
    "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "checkpoint": "all-sets"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "tag": "workout-action-filled"
    }
-  },
-  {
-   "checkpoint": "after-log-1"
   },
   {
    "advance": "2m"
   },
   {
-   "checkpoint": "rested"
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
   },
   {
    "tap": {
@@ -363,7 +354,33 @@
    }
   },
   {
-   "checkpoint": "after-log-2"
+   "note": "3 sets of 5 with the empty bar is my plan; skip the rest"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "skip-1"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "skip-3"
   }
  ]
 }

@@ -298,18 +298,23 @@
    }
   },
   {
-   "checkpoint": "activity-menu"
-  },
-  {
-   "back": true
-  },
-  {
    "tap": {
-    "text": "Cancel"
+    "text": "Rower"
    }
   },
   {
-   "checkpoint": "after-cancel-cardio"
+   "checkpoint": "cardio-rower"
+  },
+  {
+   "note": "want: rower 15 min steady"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-cardio-save"
   },
   {
    "tap": {
@@ -322,13 +327,51 @@
    }
   },
   {
-   "checkpoint": "lift-options"
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Progress"
+   }
+  },
+  {
+   "checkpoint": "squat-opts-set"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "squat-presc"
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "squat-saved"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back-liftopts"
+   "checkpoint": "back-to-edit-day"
   },
   {
    "tap": {
@@ -341,7 +384,12 @@
    }
   },
   {
-   "checkpoint": "swap-sheet"
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "after-bench-swap"
   }
  ]
 }

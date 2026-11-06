@@ -1428,7 +1428,12 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
       }
     },
     {
@@ -1676,11 +1681,16 @@
       "checkpoint": "wednesday-ten-minute-walk-recorded"
     },
     {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
       "advance": "22m"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day A"
       }
     },
     {
@@ -1694,6 +1704,49 @@
     },
     {
       "checkpoint": "wednesday-saved-second-visit"
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "first-two-visits-history"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "history-menu-looking-for-share-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Reset to defaults"
+      }
+    },
+    {
+      "checkpoint": "settings-bottom-looking-for-reminders-and-backup"
+    },
+    {
+      "back": true
     }
   ]
 }

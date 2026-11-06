@@ -1,0 +1,19 @@
+{"seat":"c2-o-p1",
+ "start":{"restore":"start-backup.json","date":"2026-11-18","time":"17:30","zone":"America/Chicago"},
+ "steps":[
+  {"checkpoint":"today-wed18"},
+  {"tap":{"textContains":"Day B"}},
+  {"checkpoint":"dayB-detail"},
+  {"back":true},
+  {"tap":{"text":"History"}},
+  {"checkpoint":"history"},
+  {"tap":{"desc":"More"}},
+  {"checkpoint":"hist-more"},
+  {"back":true},
+  {"tap":{"text":"Trends and calendar"}},
+  {"checkpoint":"trends"},
+  {"back":true},
+  {"tap":{"text":"Today"}},
+  {"tap":{"text":"Start day B"}},
+  {"checkpoint":"b2-start"}
+ ]}

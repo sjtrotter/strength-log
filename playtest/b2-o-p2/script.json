@@ -105,6 +105,11 @@
    "checkpoint": "wizard-6-filled"
   },
   {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
    "checkpoint": "equipment-default"
   },
   {

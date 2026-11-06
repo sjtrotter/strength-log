@@ -271,35 +271,18 @@
    "checkpoint": "edit-day-a"
   },
   {
-   "scrollTo": {
-    "textContains": "Add"
+   "tap": {
+    "text": "Add exercise"
    }
   },
   {
-   "checkpoint": "edit-day-a-scrolled"
+   "checkpoint": "add-exercise-picker"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back-1"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Day options",
-    "index": 0
-   }
-  },
-  {
-   "tap": {
-    "text": "Rename"
-   }
-  },
-  {
-   "checkpoint": "rename-dialog"
+   "checkpoint": "after-back-picker"
   }
  ]
 }

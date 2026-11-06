@@ -2,110 +2,14 @@
  "seat": "r3-p1",
  "capture": "compact",
  "start": {
-  "date": "2026-11-09",
+  "restore": "start-backup.json",
+  "date": "2026-11-11",
   "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "tap": {
-    "textContains": "Strength-leaning",
-    "role": "RadioButton"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "type": {
-    "text": "Days per week",
-    "value": "3",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "Conventional"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Conventional"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Treadmill"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Finishers after lifting"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "LB"
-   }
-  },
-  {
-   "type": {
-    "text": "Bodyweight (lb)",
-    "value": "170",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Age",
-    "value": "26",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Novice"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "rotation"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
+   "checkpoint": "today"
   },
   {
    "tap": {
@@ -123,7 +27,29 @@
    }
   },
   {
-   "checkpoint": "day-a"
+   "checkpoint": "day-a-next"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day C"
+   }
+  },
+  {
+   "checkpoint": "day-c"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day B"
+   }
+  },
+  {
+   "checkpoint": "day-b"
   },
   {
    "tap": {
@@ -131,374 +57,7 @@
    }
   },
   {
-   "checkpoint": "edit-day"
-  },
-  {
-   "note": "Parking lot: 160 lb top squat is scary, 6 lifts too many. Empty bar for squat."
-  },
-  {
-   "tap": {
-    "textContains": "Ramp to 160"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "45"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "5"
-   }
-  },
-  {
-   "checkpoint": "squat-rx-45"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "after-save"
-  },
-  {
-   "tap": {
-    "desc": "More options for Cable Lateral Raise"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "checkpoint": "after-remove"
-  },
-  {
-   "tap": {
-    "desc": "More options for Plank / Side Plank"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Romanian Deadlift"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "checkpoint": "after-removes"
-  },
-  {
-   "tap": {
-    "desc": "More options for DB Bench Press"
-   }
-  },
-  {
-   "tap": {
-    "text": "Swap"
-   }
-  },
-  {
-   "checkpoint": "swap"
-  },
-  {
-   "tap": {
-    "text": "Barbell Bench Press"
-   }
-  },
-  {
-   "checkpoint": "after-swap-pick"
-  },
-  {
-   "tap": {
-    "text": "The plan"
-   }
-  },
-  {
-   "tap": {
-    "text": "Swap"
-   }
-  },
-  {
-   "checkpoint": "bench-swapped"
-  },
-  {
-   "tap": {
-    "desc": "More options for Chest-Supported Row"
-   }
-  },
-  {
-   "tap": {
-    "text": "Swap"
-   }
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "pulldown"
-   }
-  },
-  {
-   "checkpoint": "search-pulldown"
-  },
-  {
-   "tap": {
-    "text": "Search all exercises"
-   }
-  },
-  {
-   "checkpoint": "search-all"
-  },
-  {
-   "tap": {
-    "text": "Lat Pulldown (wide)"
-   }
-  },
-  {
-   "tap": {
-    "text": "The plan"
-   }
-  },
-  {
-   "tap": {
-    "text": "Swap"
-   }
-  },
-  {
-   "checkpoint": "row-swapped"
-  },
-  {
-   "tap": {
-    "textContains": "Barbell Bench Press"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "65"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "5"
-   }
-  },
-  {
-   "checkpoint": "bench-rx"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Lat Pulldown"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "70"
-   }
-  },
-  {
-   "checkpoint": "lat-rx"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "day-edited"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "workout-ready"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "note": "3 sets of 5 with the empty bar is my plan; skip the rest"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "checkpoint": "squat-done"
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "bench-page"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "checkpoint": "edit-set-sheet"
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "4"
-   }
-  },
-  {
-   "checkpoint": "edit-set-4"
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "checkpoint": "bench-3-logged"
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "checkpoint": "lat-done"
-  },
-  {
-   "note": "Skipped treadmill, 7:10, going home"
-  },
-  {
-   "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "checkpoint": "finish"
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "after-finish"
+   "checkpoint": "edit-day-b"
   }
  ]
 }

@@ -150,6 +150,114 @@
     },
     {
       "checkpoint": "setup-page-8-before-any-plan-acceptance"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "tap": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "walking-not-training-for-a-5k"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "What equipment do you have?"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine"
+      }
+    },
+    {
+      "tap": {
+        "text": "Cable"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bodyweight"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bench"
+      }
+    },
+    {
+      "checkpoint": "comfortable-gym-equipment-without-barbells"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "revised-rotation-top"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "revised-rotation-bottom"
+    },
+    {
+      "note": "I have reached the end of the preview. I want to get into the app to change any remaining unwanted lifts and set up my machine routine; I am not going to perform barbell squats or log invented sets."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "first-home-looking-for-plan-editing"
     }
   ]
 }

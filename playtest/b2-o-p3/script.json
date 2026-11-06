@@ -194,15 +194,41 @@
    "checkpoint": "planview"
   },
   {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "checkpoint": "dayA"
+  },
+  {
    "back": true
   },
   {
    "tap": {
-    "text": "New plan"
+    "desc": "Day options",
+    "index": 0
    }
   },
   {
-   "checkpoint": "newplan"
+   "checkpoint": "dayopts"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "137.5"
+   }
+  },
+  {
+   "checkpoint": "goal-squat"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-goal"
   }
  ]
 }

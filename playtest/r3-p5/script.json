@@ -260,7 +260,16 @@
    }
   },
   {
-   "checkpoint": "after-save"
+   "type": {
+    "text": "Search exercises",
+    "value": "Copenhagen"
+   }
+  },
+  {
+   "tap": {
+    "text": "Copenhagen Plank",
+    "inDialog": true
+   }
   },
   {
    "tap": {
@@ -325,6 +334,14 @@
   },
   {
    "checkpoint": "after-log"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
   }
  ]
 }

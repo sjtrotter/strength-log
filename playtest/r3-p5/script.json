@@ -456,6 +456,7 @@
   {
    "type": {
     "text": "Reps",
+    "index": 1,
     "value": "12"
    }
   },

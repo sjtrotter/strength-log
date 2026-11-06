@@ -261,6 +261,45 @@
   },
   {
    "checkpoint": "day-a-editor"
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "checkpoint": "edit-day-a"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Add"
+   }
+  },
+  {
+   "checkpoint": "edit-day-a-scrolled"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-1"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "checkpoint": "rename-dialog"
   }
  ]
 }

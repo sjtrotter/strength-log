@@ -63,6 +63,41 @@
     },
     {
       "checkpoint": "squat-options"
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "monday-cardio-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "bench-swap-choices"
     }
   ]
 }

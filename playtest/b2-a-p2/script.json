@@ -468,7 +468,7 @@
       "checkpoint": "squat-day-before-customizing"
     },
     {
-      "scrollTo": {
+      "expect": {
         "text": "Edit"
       }
     },
@@ -481,10 +481,85 @@
       "checkpoint": "squat-day-editor"
     },
     {
-      "note": "Monday is my squat day even though this rotation calls it Day D. I want squat 3x5 at215, RDL3x8 at135, reverse lunge2x8 per leg with25 per hand, plank3x30s, no running. Inspect the editor fields next and customize before starting."
+      "back": true
     },
     {
-      "note": "The accepted Upper day contains five exercises including60lb dumbbell rows and55lb seated presses. The setup preview showed only bench. I could not evaluate the full suggested week before accepting; these dumbbell targets are higher than the actual work I planned."
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-and-export-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "monday-squat-workout-before-first-set"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "monday-workout-after-reopening"
+    },
+    {
+      "note": "I have opened Monday lower day, but have not performed or logged any sets. Next replay will use the observed editor to set my actual squat/RDL/lunge/plank prescription before this start. I do not own a Swiss ball, despite that exercise appearing in the garage-filtered suggestion."
     }
   ]
 }

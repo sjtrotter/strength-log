@@ -257,6 +257,19 @@
       }
     },
     {
+      "expect": {
+        "text": "Start day A"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "expect": {
+        "text": "Your rotation",
+        "absent": true
+      },
+      "timeoutMs": 20000
+    },
+    {
       "checkpoint": "first-home-looking-for-plan-editing"
     },
     {

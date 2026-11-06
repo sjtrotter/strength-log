@@ -101,6 +101,9 @@ it's how Fitbit/Samsung Health/Garmin interop now works.
   Wizard gains one **optional** "what equipment do you have?" step (default:
   everything) that filters generator picks and sorts substitutions —
   skippable so "next-next-next" still works.
+- Generated plans use only ticked equipment: an unavailable anchor becomes its
+  pattern's best available weighted lift, a slot nothing available can fill is
+  left out, and a day left empty is dropped (#499).
 
 ### A5. Units: lb and kg
 

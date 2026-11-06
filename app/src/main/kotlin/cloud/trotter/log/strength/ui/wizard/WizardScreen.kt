@@ -533,7 +533,6 @@ private fun RotationStep(state: WizardUiState, actions: WizardActions) {
     }
     state.previewProgram?.days.orEmpty().forEach { day ->
         val accent = accentEmphasis(Program.accentIndex(day.id))
-        val main = day.exercises.firstOrNull { it.structure.hasTopSet } ?: day.exercises.firstOrNull()
         AppCard(borderColor = accent) {
             Text(
                 if (day.kind == cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) stringResource(R.string.wizard_rotation_cardio_day, day.id)
@@ -553,11 +552,12 @@ private fun RotationStep(state: WizardUiState, actions: WizardActions) {
                 Spacer(Modifier.size(4.dp))
                 Text(day.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
-            main?.let { exercise ->
-                val entry = ExerciseLibrary.get(exercise.exerciseId)
+            if (state.previewLifts[day.id].orEmpty().isNotEmpty()) {
                 Spacer(Modifier.size(8.dp))
                 HorizontalDivider(thickness = 1.dp, color = Border)
-                LiftListItem(number = 1, name = entry.name, setCount = exercise.targetSets)
+            }
+            state.previewLifts[day.id].orEmpty().forEachIndexed { index, lift ->
+                LiftListItem(index + 1, lift.name, lift.setCount, lift.detail)
             }
         }
     }

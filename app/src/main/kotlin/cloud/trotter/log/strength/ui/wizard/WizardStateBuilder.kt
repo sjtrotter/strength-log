@@ -4,8 +4,13 @@ import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.text.UiText
 
 /**
@@ -30,6 +35,22 @@ object WizardStateBuilder {
         return if (current == options.default || current == options.alternative) current else options.default
     }
 
+    fun previewLifts(program: Program?, config: LifterConfig, unit: WeightUnit): Map<String, List<WizardPreviewLift>> =
+        program?.days.orEmpty().associate { day ->
+            day.id to day.exercises.map { pe ->
+                val entry = ExerciseLibrary.get(pe.exerciseId)
+                val name = entry.name + pe.superset?.let { " + " + ExerciseLibrary.get(it.exerciseId).name }.orEmpty()
+                val rows = SlotSeeds.main(pe, entry, config)
+                WizardPreviewLift(
+                    name = name,
+                    setCount = rows?.size ?: pe.targetSets,
+                    detail = rows?.let {
+                        DayScreenBuilder.workingHeading(it, pe.prescription?.tracking ?: entry.tracking, unit)
+                    },
+                )
+            }
+        }
+
     /** Assembles the screen's full render state for one step of [answers]. */
     fun buildUiState(
         stepIndex: Int,
@@ -53,6 +74,7 @@ object WizardStateBuilder {
             activeAnchorIds = ProgramGenerator.activeAnchorIds(answers),
             unit = unit,
             previewProgram = previewProgram,
+            previewLifts = previewLifts(previewProgram, answers.config, unit),
             isComplete = isComplete,
             restore = restore,
             finishError = finishError,

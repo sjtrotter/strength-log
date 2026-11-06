@@ -23,7 +23,10 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
@@ -304,6 +307,58 @@ class TrackerRepositoryAuthoredPlanTest {
         assertFalse(repo.removeExercise(slots[0].programExerciseId))
         assertTrue(repo.removeDay(id, "B"))
         assertFalse(repo.removeDay(id, "A"))
+    }
+
+    @Test
+    fun `existing PPL plan resets Pull B and Legs C without changing their stored identities`() = runTest {
+        val answers = WizardAnswers(
+            daysPerWeek = 3, split = SplitTemplate.PPL, equipment = setOf(Equipment.PULLUP_BAR),
+            cardio = CardioPrefs(mode = CardioMode.NONE),
+        )
+        val legacy = ProgramGenerator.generate(answers.copy(equipment = Equipment.entries.toSet()))
+        val plan = repo.plans.createGeneratedPlan("Existing", answers, legacy)
+        repo.plans.publishCreatedPlan(plan, answers)
+        val compact = ProgramGenerator.generate(answers)
+        for ((index, dayId) in listOf("B", "C").withIndex()) {
+            repo.renameDay(plan, dayId, "Renamed")
+            val before = db.programDao().daysForPlan(plan)
+            val otherSlots = db.programDao().exercisesForDay(plan, "A")
+
+            repo.resetDayToTemplate(dayId)
+
+            assertEquals(compact.days[index].copy(id = dayId),
+                repo.plans.programFor(plan).first().days.single { it.id == dayId })
+            val stored = before.single { it.dayId == dayId }
+            val reset = db.programDao().day(plan, dayId)!!
+            assertEquals(stored.nextRunId, reset.nextRunId)
+            assertEquals(stored.closedAt, reset.closedAt)
+            assertEquals(stored.position, reset.position)
+            assertEquals(before.filter { it.dayId != dayId },
+                db.programDao().daysForPlan(plan).filter { it.dayId != dayId })
+            assertEquals(otherSlots, db.programDao().exercisesForDay(plan, "A"))
+        }
+    }
+
+    @Test
+    fun `ambiguous existing day reset leaves the day slots and working values untouched`() = runTest {
+        val answers = WizardAnswers(
+            daysPerWeek = 6, split = SplitTemplate.UPPER_LOWER, equipment = setOf(Equipment.PULLUP_BAR),
+            cardio = CardioPrefs(mode = CardioMode.NONE),
+        )
+        val legacy = ProgramGenerator.generate(answers.copy(equipment = Equipment.entries.toSet()))
+        val plan = repo.plans.createGeneratedPlan("Existing", answers, legacy)
+        repo.plans.publishCreatedPlan(plan, answers)
+        repo.ensureSeeded(plan, "C")
+        val before = repo.plans.programFor(plan).first()
+        val slots = db.programDao().exercisesForDay(plan, "C")
+        val logs = db.programDao().logsForDay(plan, "C")
+        assertTrue(logs.isNotEmpty())
+
+        repo.resetDayToTemplate("C")
+
+        assertEquals(before, repo.plans.programFor(plan).first())
+        assertEquals(slots, db.programDao().exercisesForDay(plan, "C"))
+        assertEquals(logs, db.programDao().logsForDay(plan, "C"))
     }
 
     @Test

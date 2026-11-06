@@ -38,10 +38,12 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 /**
  * Turns [WizardAnswers] into a concrete, editable [Program] (spec §6.3). Each
  * day is a fixed skeleton of pattern slots. Anchor mains come from the wizard's
- * chosen scheme; every other slot takes the pattern's best-ranked entry that is
- * equipment-available and not Std-sourced (spec §4: accessory GOALs come from
+ * chosen scheme, substituting available weighted lifts by pattern when needed;
+ * every other slot takes the pattern's best-ranked available entry that is
+ * not Std-sourced (spec §4: accessory GOALs come from
  * flatGoal or a fraction of a main, never a full strength standard). Muscle-angle
  * emphasis and the core pattern rotate across the cycle (§12 "calves principle").
+ * Slots with no available candidate are left out.
  */
 object ProgramGenerator {
 
@@ -50,9 +52,11 @@ object ProgramGenerator {
     private val LEG_MAIN_PATTERNS = setOf(SQUAT_BILATERAL, HINGE, SINGLE_LEG)
     private val INCLINE_CHEST_IDS = setOf("incline_db", "incline_bb")
 
-    fun generate(answers: WizardAnswers): Program {
+    fun generate(answers: WizardAnswers): Program = generate(answers, preserveDayIds = false)
+
+    private fun generate(answers: WizardAnswers, preserveDayIds: Boolean): Program {
         val kinds = SplitDefaults.dayKinds(answers.split, answers.daysPerWeek)
-        val anchors = anchorIds(answers)
+        val anchors = availableAnchorIds(answers)
         val occurrences = mutableMapOf<DayKind, Int>()
 
         val days = kinds.mapIndexed { i, kind ->
@@ -60,7 +64,26 @@ object ProgramGenerator {
             occurrences[kind] = occ + 1
             buildDay(DAY_IDS[i], i, occ, kind, anchors, answers)
         }
-        return Program(days + standaloneCardio(answers))
+        // A day nothing available can fill is left out.
+        val remaining = (days + standaloneCardio(answers)).filter {
+            it.exercises.isNotEmpty() || it.cardioBlock != null
+        }
+        val strengthDayDropped = days.any { it !in remaining }
+        var strengthIndex = 0
+        return Program(if (strengthDayDropped && !preserveDayIds) remaining.map { day ->
+            if (day.kind == ProgramDayKind.CARDIO) day else day.copy(id = DAY_IDS[strengthIndex++])
+        } else remaining)
+    }
+
+    /** Existing plans can use either the original letters or the compact letters.
+     *  Titles and exercises are editable; emphasis and kind can disambiguate a shifted letter. */
+    fun templateFor(answers: WizardAnswers, day: ProgramDay): ProgramDay? {
+        val compact = generate(answers).days.firstOrNull { it.id == day.id }
+        val original = generate(answers, preserveDayIds = true).days.firstOrNull { it.id == day.id }
+        if (compact == original) return compact
+        return listOfNotNull(compact, original).singleOrNull {
+            it.emphasisLine == day.emphasisLine && it.kind == day.kind
+        }
     }
 
     // --- anchors -------------------------------------------------------------
@@ -81,6 +104,22 @@ object ProgramGenerator {
         }
     }
 
+    /** The scheme's anchors, each unavailable one replaced by its pattern's best
+     *  available weighted lift or left out. */
+    fun availableAnchorIds(a: WizardAnswers): List<String> {
+        val result = mutableListOf<String>()
+        for (id in anchorIds(a)) {
+            val entry = ExerciseLibrary.get(id)
+            val availableId = if (entry.availableWith(a.equipment)) id else {
+                ExerciseLibrary.byPattern(entry.pattern).firstOrNull {
+                    it.tracking == TrackingType.WEIGHTED && it.availableWith(a.equipment) && it.id !in result
+                }?.id
+            }
+            if (availableId != null) result += availableId
+        }
+        return result
+    }
+
     /**
      * The anchor ids that actually rotate for [a] (spec §6.1 step 4: "for
      * 2–3-day splits only the first N anchors are used in rotation"). Only the
@@ -92,7 +131,7 @@ object ProgramGenerator {
      * program (SSOT — the narrowing rule lives in exactly one place).
      */
     fun activeAnchorIds(a: WizardAnswers): List<String> {
-        val anchors = anchorIds(a)
+        val anchors = availableAnchorIds(a)
         return if (a.split == SplitTemplate.FULL_BODY && a.daysPerWeek <= anchors.size) {
             anchors.take(a.daysPerWeek)
         } else {
@@ -116,7 +155,7 @@ object ProgramGenerator {
         DayKind.FULL_BODY -> fullBodyDay(id, dayIndex, answers)
         DayKind.UPPER -> upperDay(id, dayIndex, occ, anchors, answers)
         DayKind.LOWER -> lowerDay(id, dayIndex, occ, anchors, answers)
-        DayKind.PUSH -> pushDay(id, dayIndex, answers)
+        DayKind.PUSH -> pushDay(id, dayIndex, anchors, answers)
         DayKind.PULL -> pullDay(id, dayIndex, anchors, answers)
         DayKind.LEGS -> legsDay(id, dayIndex, occ, anchors, answers)
     }
@@ -133,8 +172,8 @@ object ProgramGenerator {
         // The narrowing rule itself lives in [activeAnchorIds] (SSOT with the
         // wizard preview).
         val used = activeAnchorIds(answers)
-        val anchorId = used[i % used.size]
-        val mainPattern = ExerciseLibrary.get(anchorId).pattern
+        val anchorId = if (used.isEmpty()) null else used[i % used.size]
+        val mainPattern: MovementPattern? = anchorId?.let { ExerciseLibrary.get(it).pattern }
         val lowerMain = mainPattern in LEG_MAIN_PATTERNS
 
         val incline = i % 2 == 1
@@ -143,33 +182,35 @@ object ProgramGenerator {
         val soleus = i % 2 == 1
         val singleLeg = i % 2 == 1
 
-        val slots = mutableListOf(main(anchorId))
+        val slots = listOfNotNull(
+            anchorId?.let(::main),
 
-        // Opposing-region compound.
-        slots += if (lowerMain) {
-            accessory(pickChest(incline, equip))
-        } else {
-            accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
-        }
+            // Opposing-region compound.
+            if (lowerMain) {
+                accessory(pickChest(incline, equip))
+            } else {
+                accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
+            },
 
-        // Hinge-or-squat leg complement. When the main is already the hinge, the
-        // complement is a quad move; otherwise it is a posterior move so every
-        // day carries a hinge OR knee-flexion (§12 hamstrings rule).
-        slots += if (mainPattern == HINGE) {
-            accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
-        } else {
-            accessory(pickAccessory(if (kneeFlex) KNEE_FLEXION else HINGE, equip))
-        }
+            // Hinge-or-squat leg complement. When the main is already the hinge, the
+            // complement is a quad move; otherwise it is a posterior move so every
+            // day carries a hinge OR knee-flexion (§12 hamstrings rule).
+            if (mainPattern == HINGE) {
+                accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
+            } else {
+                accessory(pickAccessory(if (kneeFlex) KNEE_FLEXION else HINGE, equip))
+            },
 
-        // A pull — or a push, when the main already is a pull.
-        slots += if (mainPattern == H_PULL || mainPattern == V_PULL) {
-            accessory(pickChest(incline, equip))
-        } else {
-            accessory(pickAccessory(if (vertPull) V_PULL else H_PULL, equip))
-        }
+            // A pull — or a push, when the main already is a pull.
+            if (mainPattern == H_PULL || mainPattern == V_PULL) {
+                accessory(pickChest(incline, equip))
+            } else {
+                accessory(pickAccessory(if (vertPull) V_PULL else H_PULL, equip))
+            },
 
-        slots += fullBodyIsolation(i, soleus, equip)
-        slots += accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip))
+            fullBodyIsolation(i, soleus, equip),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+        )
 
         return ProgramDay(
             id = id,
@@ -182,7 +223,7 @@ object ProgramGenerator {
 
     /** FB isolation slot rotates delts → arms superset → calves across days
      *  (the prototype ran its arms as a superset — spec §8.2's worked examples). */
-    private fun fullBodyIsolation(i: Int, soleus: Boolean, equip: Set<Equipment>): ProgramExercise =
+    private fun fullBodyIsolation(i: Int, soleus: Boolean, equip: Set<Equipment>): ProgramExercise? =
         when (i % 3) {
             0 -> accessory(pickAccessory(SIDE_DELT, equip))
             1 -> armsSuperset(equip)
@@ -213,9 +254,9 @@ object ProgramGenerator {
         answers: WizardAnswers,
     ): ProgramDay {
         val equip = answers.equipment
-        val mainId = anchorFor(H_PUSH, anchors) ?: pick(H_PUSH, equip).id
-        val slots = listOf(
-            main(mainId),
+        val mainId = anchorFor(H_PUSH, anchors) ?: pickMain(H_PUSH, equip)?.id
+        val slots = listOfNotNull(
+            mainId?.let(::main),
             accessory(pickAccessory(H_PULL, equip)),
             accessory(pickAccessory(V_PUSH, equip)),
             accessory(pickAccessory(V_PULL, equip)),
@@ -244,9 +285,9 @@ object ProgramGenerator {
         val hingeMain = occ % 2 == 0
         val mainPattern = if (hingeMain) HINGE else SQUAT_BILATERAL
         val otherPattern = if (hingeMain) SQUAT_BILATERAL else HINGE
-        val mainId = anchorFor(mainPattern, anchors) ?: pick(mainPattern, equip).id
-        val slots = listOf(
-            main(mainId),
+        val mainId = anchorFor(mainPattern, anchors) ?: pickMain(mainPattern, equip)?.id
+        val slots = listOfNotNull(
+            mainId?.let(::main),
             accessory(pickAccessory(otherPattern, equip)),
             accessory(pickAccessory(SINGLE_LEG, equip)),
             accessory(pickAccessory(KNEE_FLEXION, equip)),
@@ -261,11 +302,11 @@ object ProgramGenerator {
         )
     }
 
-    private fun pushDay(id: String, i: Int, answers: WizardAnswers): ProgramDay {
+    private fun pushDay(id: String, i: Int, anchors: List<String>, answers: WizardAnswers): ProgramDay {
         val equip = answers.equipment
-        val mainId = "bb_bench"
-        val slots = listOf(
-            main(mainId),
+        val mainId = anchorFor(H_PUSH, anchors) ?: pickMain(H_PUSH, equip)?.id
+        val slots = listOfNotNull(
+            mainId?.let(::main),
             accessory(pickChest(incline = true, equip)),
             accessory(pickAccessory(V_PUSH, equip)),
             accessory(pickAccessory(SIDE_DELT, equip)),
@@ -287,9 +328,9 @@ object ProgramGenerator {
         answers: WizardAnswers,
     ): ProgramDay {
         val equip = answers.equipment
-        val mainId = anchorFor(H_PULL, anchors) ?: pick(H_PULL, equip).id
-        val slots = listOf(
-            main(mainId),
+        val mainId = anchorFor(H_PULL, anchors) ?: pickMain(H_PULL, equip)?.id
+        val slots = listOfNotNull(
+            mainId?.let(::main),
             accessory(pickAccessory(V_PULL, equip)),
             accessory(pickAccessory(REAR_DELT, equip)),
             accessory(pickAccessory(BICEPS, equip)),
@@ -313,9 +354,9 @@ object ProgramGenerator {
         val equip = answers.equipment
         // Lead with the hinge so a solo legs day still carries one (§12).
         val mainPattern = if (occ % 2 == 0) HINGE else SQUAT_BILATERAL
-        val mainId = anchorFor(mainPattern, anchors) ?: pick(mainPattern, equip).id
-        val slots = listOf(
-            main(mainId),
+        val mainId = anchorFor(mainPattern, anchors) ?: pickMain(mainPattern, equip)?.id
+        val slots = listOfNotNull(
+            mainId?.let(::main),
             accessory(pickAccessory(SINGLE_LEG, equip)),
             accessory(pickAccessory(KNEE_FLEXION, equip)),
             accessory(pickAccessory(if (occ % 2 == 0) CALF_GASTROC else CALF_SOLEUS, equip)),
@@ -342,44 +383,43 @@ object ProgramGenerator {
         )
     }
 
-    private fun accessory(entry: ExerciseEntry): ProgramExercise =
-        ProgramExercise(exerciseId = entry.id, targetSets = 3)
+    private fun accessory(entry: ExerciseEntry?): ProgramExercise? =
+        entry?.let { ProgramExercise(exerciseId = it.id, targetSets = 3) }
 
     /** Arms superset: BICEPS primary paired with a TRICEPS partner (spec §6.3). */
-    private fun armsSuperset(equip: Set<Equipment>): ProgramExercise =
-        ProgramExercise(
-            exerciseId = pickAccessory(BICEPS, equip).id,
-            targetSets = 3,
-            superset = SupersetPartner(pickAccessory(TRICEPS, equip).id),
-        )
-
-    /** Best-ranked entry for [pattern] whose equipment is all available, else
-     *  the rank-1 entry regardless — a slot is never left empty. Only main-slot
-     *  fallbacks use this; accessories go through [pickAccessory]. */
-    private fun pick(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry {
-        val ranked = ExerciseLibrary.byPattern(pattern)
-        return ranked.firstOrNull { it.availableWith(equip) } ?: ranked.first()
+    private fun armsSuperset(equip: Set<Equipment>): ProgramExercise? {
+        val biceps = pickAccessory(BICEPS, equip)
+        val triceps = pickAccessory(TRICEPS, equip)
+        return if (biceps != null && triceps != null) {
+            ProgramExercise(
+                exerciseId = biceps.id,
+                targetSets = 3,
+                superset = SupersetPartner(triceps.id),
+            )
+        } else accessory(biceps ?: triceps)
     }
 
-    /** Accessory pick: like [pick], but skips Std-sourced (main-capable) entries
+    /** Best-ranked available weighted entry for a main slot, or no lift. */
+    private fun pickMain(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry? =
+        ExerciseLibrary.byPattern(pattern).firstOrNull {
+            it.tracking == TrackingType.WEIGHTED && it.availableWith(equip)
+        }
+
+    /** Accessory pick: skips Std-sourced (main-capable) entries
      *  — spec §4: accessory GOALs come from flatGoal or a fraction of a main,
      *  never a full strength-standard weight. */
-    private fun pickAccessory(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry =
+    private fun pickAccessory(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry? =
         bestAccessory(ExerciseLibrary.byPattern(pattern), equip)
 
     /** Chest press accessory slot, biased flat or incline, equipment-aware. */
-    private fun pickChest(incline: Boolean, equip: Set<Equipment>): ExerciseEntry {
+    private fun pickChest(incline: Boolean, equip: Set<Equipment>): ExerciseEntry? {
         val press = ExerciseLibrary.byPattern(H_PUSH)
         val pool = press.filter { (it.id in INCLINE_CHEST_IDS) == incline }
-        return bestAccessory(pool.ifEmpty { press }, equip)
+        return bestAccessory(pool, equip) ?: bestAccessory(press, equip)
     }
 
-    private fun bestAccessory(ranked: List<ExerciseEntry>, equip: Set<Equipment>): ExerciseEntry {
-        val nonStd = ranked.filter { it.goal !is GoalSource.Std }
-        return nonStd.firstOrNull { it.availableWith(equip) }
-            ?: nonStd.firstOrNull()
-            ?: ranked.first() // never leave a hole
-    }
+    private fun bestAccessory(ranked: List<ExerciseEntry>, equip: Set<Equipment>): ExerciseEntry? =
+        ranked.filter { it.goal !is GoalSource.Std }.firstOrNull { it.availableWith(equip) }
 
     // --- cardio --------------------------------------------------------------
 
@@ -400,7 +440,7 @@ object ProgramGenerator {
                 id = "C${k + 1}",
                 title = "Cardio + Core",
                 emphasisLine = CardioPlanner.standaloneDetail(prefs),
-                exercises = listOf(accessory(pickAccessory(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment))),
+                exercises = listOfNotNull(accessory(pickAccessory(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment))),
                 cardioBlock = cardio,
                 kind = ProgramDayKind.CARDIO,
             )

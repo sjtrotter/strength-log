@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -32,6 +34,9 @@ import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
@@ -564,6 +569,36 @@ class DayViewModelWiringTest {
         assertFalse(vm.dayEditState.value.canResetToTemplate)
         collectEdit.cancel()
         collectUi.cancel()
+    }
+
+    @Test
+    fun resetToTemplateChecksStoredIdentityAfterDayLettersShift() = runVmTest {
+        val answers = WizardAnswers(
+            daysPerWeek = 3, split = SplitTemplate.PPL, equipment = setOf(Equipment.PULLUP_BAR),
+            cardio = CardioPrefs(mode = CardioMode.NONE),
+        )
+        val repeated = answers.copy(daysPerWeek = 6, split = SplitTemplate.UPPER_LOWER)
+        for ((recipe, dayId, enabled) in listOf(
+            Triple(answers, "B", true),
+            Triple(answers, "C", true),
+            Triple(answers, "A", false),
+            Triple(repeated, "C", false),
+        )) {
+            val legacy = ProgramGenerator.generate(recipe.copy(equipment = Equipment.entries.toSet()))
+            val plan = repo.plans.createGeneratedPlan("Existing", recipe, legacy)
+            repo.plans.publishCreatedPlan(plan, recipe)
+            repo.renameDay(plan, dayId, "Renamed")
+            val vm = newViewModel()
+            val collectUi = launch { vm.uiState.collect {} }
+            val collectEdit = launch { vm.dayEditState.collect {} }
+            vm.selectDay(DaySelection(plan, dayId))
+            advanceUntilIdle()
+
+            assertEquals("${recipe.split} day $dayId", enabled, vm.dayEditState.value.canResetToTemplate)
+
+            collectEdit.cancel()
+            collectUi.cancel()
+        }
     }
 
     @Test

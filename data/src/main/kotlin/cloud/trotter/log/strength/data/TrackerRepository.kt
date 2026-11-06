@@ -500,25 +500,24 @@ class TrackerRepository(
     }
 
     /** Regenerates one day from the stored wizard answers (spec §8.3), leaving the
-     *  other days untouched. No-op if answers regenerate no such day. */
+     *  other days untouched. No-op if the stored day has no unambiguous template. */
     suspend fun resetDayToTemplate(dayId: String, targetPlanId: Long? = null) {
         plans.ensurePlanSettingsMigrated()
         val planId = targetPlanId ?: plans.selectedPlanId() ?: return
         if (planDao.plan(planId)?.origin != PlanOrigin.GENERATED.name) return
         val answers = plans.wizardAnswersFor(planId).first()
-        val regenerated = ProgramGenerator.generate(answers)
-        val newDay = regenerated.days.firstOrNull { it.id == dayId } ?: return
         db.withTransaction {
-            val existing = programDao.day(planId, dayId)
-            val position = existing?.position ?: regenerated.days.indexOfFirst { it.id == dayId }
+            val existing = programDao.day(planId, dayId) ?: return@withTransaction
+            val newDay = ProgramGenerator.templateFor(answers, existing.toDomain(emptyList()))
+                ?: return@withTransaction
             for (slot in programDao.exercisesForDay(planId, dayId)) {
                 retireActiveTrack(planId, dayId, slot.id, Slot.MAIN)
                 retireActiveTrack(planId, dayId, slot.id, Slot.SS)
             }
             programDao.deleteLogsForDay(planId, dayId)
             programDao.deleteExercisesForDay(planId, dayId)
-            val replacement = newDay.toEntity(planId).copy(position = position)
-            programDao.upsertDay(if (existing == null) replacement.freshRunId(mintRunId) else replacement.copy(
+            val replacement = newDay.toEntity(planId).copy(position = existing.position)
+            programDao.upsertDay(replacement.copy(
                 nextRunId = existing.nextRunId, closedAt = existing.closedAt,
             ))
             newDay.exercises.forEachIndexed { pos, pe ->

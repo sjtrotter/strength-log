@@ -230,19 +230,21 @@
    }
   },
   {
-   "checkpoint": "squat-rx-straight"
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-rx-back"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "editday-after-straight"
+   "checkpoint": "editday-squat3"
   },
   {
    "tap": {
@@ -287,9 +289,6 @@
    }
   },
   {
-   "checkpoint": "editday-weights"
-  },
-  {
    "tap": {
     "text": "Edit cardio"
    }
@@ -305,15 +304,72 @@
    }
   },
   {
-   "checkpoint": "cardio-walk"
-  },
-  {
    "tap": {
     "text": "25:00"
    }
   },
   {
-   "checkpoint": "cardio-time-tap"
+   "type": {
+    "text": "Duration",
+    "value": "10:00"
+   }
+  },
+  {
+   "checkpoint": "cardio-10min"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "cardio-after-setsave"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "editday-final"
+  },
+  {
+   "tap": {
+    "desc": "Close sheet"
+   }
+  },
+  {
+   "checkpoint": "workout-squat1"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rest-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-squat3"
   }
  ]
 }

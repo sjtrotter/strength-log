@@ -1376,6 +1376,48 @@
     },
     {
       "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "saved-bench-expanded-details"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "saved-session-note-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "session-share-harness-boundary"
+    },
+    {
+      "expect": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
         "text": "History"
       }
     },
@@ -1411,25 +1453,6 @@
     },
     {
       "tap": {
-        "desc": "Settings"
-      }
-    },
-    {
-      "checkpoint": "settings-before-backup-search"
-    },
-    {
-      "scrollTo": {
-        "text": "Reset to defaults"
-      }
-    },
-    {
-      "checkpoint": "settings-lower-after-timer-defaults"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
         "text": "New plan"
       }
     },
@@ -1442,7 +1465,7 @@
       "checkpoint": "own-program-start-empty"
     },
     {
-      "note": "I already have the four-week program. Inspect the empty-plan fields next so Tuesday uses paused pulls rather than the generated bench day. No Tuesday training has happened yet."
+      "note": "Monday main lifts are saved. Inspect empty-plan fields next and build Tuesday paused deadlift, rows and bike. Saved summary only showed squat top single, while bench showed all five sets. Check history before calling the backoffs missing."
     }
   ]
 }

@@ -3044,7 +3044,7 @@
     },
     {
       "tap": {
-        "text": "Undo"
+        "text": "Undo 20 × 9"
       }
     },
     {
@@ -3124,13 +3124,339 @@
       "note": "Skipped November 27 for Thanksgiving family travel. No zero-rep workout and no Start. I cannot see a day-level skip/reason control on the Today page inspected earlier."
     },
     {
+      "advance": "3d"
+    },
+    {
+      "checkpoint": "nov30-back-after-skipped-friday"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "checkpoint": "nov30-targets-after-short-visit"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Tired, slept badly. Everything feels heavy today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "nov30-bad-sleep-note"
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 80 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "expect": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "expect": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "expect": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "advance": "23m"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "nov30-fatigue-visit-actual-missed-reps-saved"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "share-picture-and-private-note-options"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
       "tap": {
         "text": "History",
         "role": "Tab"
       }
     },
     {
-      "checkpoint": "history-after-short-visit-and-skipped-friday"
+      "checkpoint": "history-after-short-skipped-and-fatigue-visits"
     },
     {
       "tap": {
@@ -3138,7 +3464,7 @@
       }
     },
     {
-      "checkpoint": "progress-after-six-full-visits-and-one-short-visit"
+      "checkpoint": "progress-after-seven-full-visits-and-one-short-visit"
     },
     {
       "swipe": {
@@ -3166,15 +3492,7 @@
       }
     },
     {
-      "checkpoint": "short-visit-history-detail"
-    },
-    {
-      "tap": {
-        "desc": "Share"
-      }
-    },
-    {
-      "checkpoint": "share-picture-and-private-note-options"
+      "checkpoint": "most-recent-visit-history-detail"
     },
     {
       "tap": {
@@ -3182,7 +3500,7 @@
       }
     },
     {
-      "checkpoint": "short-visit-session-note-entry"
+      "checkpoint": "most-recent-visit-session-note-entry"
     }
   ]
 }

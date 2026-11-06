@@ -178,8 +178,7 @@
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Done"
       }
     },
     {

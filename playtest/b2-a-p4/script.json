@@ -380,7 +380,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "text": "3-day full body \u00b7 Day A"
       }
     },
     {
@@ -473,7 +473,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "text": "3-day full body \u00b7 Day A"
       }
     },
     {
@@ -678,7 +678,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -756,7 +756,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -992,7 +992,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1003,7 +1003,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1014,7 +1014,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1119,7 +1119,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1140,7 +1140,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1148,7 +1148,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1164,7 +1164,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1172,7 +1172,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1188,7 +1188,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1196,7 +1196,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1204,7 +1204,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1215,6 +1215,78 @@
     },
     {
       "checkpoint": "monday-after-lifting-rest-cardio-controls"
+    },
+    {
+      "note": "Monday lifting is complete. Find the cardio record fields, ride twelve steady minutes, and enter 111 average watts and effort 6/10 once those fields are visible. Last bench set slowed down."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "monday-all-lifts-done-before-bike"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "bike-all-sets-find-metrics-and-notes"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "bike-timer-started"
+    },
+    {
+      "advance": "6m"
+    },
+    {
+      "checkpoint": "bike-six-minutes"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "bike-timer-after-phone-interruption"
+    },
+    {
+      "expect": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "advance": "6m"
+    },
+    {
+      "checkpoint": "bike-twelve-minutes-ready-to-record"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "bike-end-action-result-and-actual-metrics"
+    },
+    {
+      "note": "Inspect the end action before finishing the visit: actual bike 12 minutes, 111 W, effort 6/10. Need save a real note about slow bench; script notes are not app records. Monday should end 18:43 for 73 minutes total."
     }
   ]
 }

@@ -62,12 +62,45 @@
       "checkpoint": "setup-page-6"
     },
     {
+      "note": "Before accepting, change four lifting days to my two and put outdoor runs on separate days. The main-lift presets are all barbell programs; I will look for exercise edits at review."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "two-strength-days"
+    },
+    {
       "tap": {
         "text": "Next"
       }
     },
     {
-      "checkpoint": "setup-page-7"
+      "checkpoint": "two-day-split"
     },
     {
       "tap": {
@@ -75,16 +108,73 @@
       }
     },
     {
-      "checkpoint": "setup-page-8-review-before-accepting"
+      "tap": {
+        "text": "Next"
+      }
     },
     {
-      "recreate": true
+      "tap": {
+        "text": "Outdoor run"
+      }
     },
     {
-      "checkpoint": "setup-review-after-reopen"
+      "tap": {
+        "text": "Separate days"
+      }
     },
     {
-      "note": "Review the setup screens and provisional defaults before accepting a plan; my target remains two short lifts plus three separate runs."
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "outdoor-runs-separate-from-lifting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "note": "Phase A did not specify age or bodyweight. Use consistent fictional persona details: age 35, 150 lb. Relatively novice at lifting despite regular running."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "150",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Novice"
+      }
+    },
+    {
+      "checkpoint": "about-me-pounds"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7-after-personal-details"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-preview"
     }
   ]
 }

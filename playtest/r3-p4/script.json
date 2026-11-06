@@ -1,0 +1,10 @@
+{
+  "seat": "r3-p4",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": []
+}

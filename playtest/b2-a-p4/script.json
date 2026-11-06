@@ -917,12 +917,24 @@
       }
     },
     {
-      "tap": {
-        "text": "Dumbbell"
+      "type": {
+        "text": "Search exercises",
+        "value": "dumbbell",
+        "ime": "done"
       }
     },
     {
-      "checkpoint": "dumbbell-hinge-filter"
+      "checkpoint": "search-dumbbell-hinge"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Romanian",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "search-romanian-hinge"
     },
     {
       "back": true
@@ -999,6 +1011,31 @@
     },
     {
       "checkpoint": "workout-saved-after-interruption"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-review-after-three-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "partial-workout-review-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "return-to-monday-in-progress"
     }
   ]
 }

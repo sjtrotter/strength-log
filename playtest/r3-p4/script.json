@@ -9,7 +9,7 @@
   },
   "steps": [
     {
-      "note": "Friday Nov27. Busy leg press: try hack squat for today; 90x10 then70x10x2. Reduced sample plus15m easy bike."
+      "note": "Friday Nov27 reduced sample. Template has Bulgarian Split Squat, not intended Leg Press. Use its slot for today-only Hack Squat; log90x10 then70x10x2 and15m easy bike."
     },
     {
       "tap": {
@@ -29,7 +29,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 0 of 21 sets"
+        "desc": "Day B lifts, 0 of 24 sets"
       }
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "tap": {
-        "text": "Leg Press"
+        "text": "Bulgarian Split Squat"
       }
     },
     {
@@ -56,7 +56,12 @@
       }
     },
     {
-      "checkpoint": "leg-press-substitutes"
+      "checkpoint": "split-squat-substitutes-for-friday-machine"
+    },
+    {
+      "scrollTo": {
+        "text": "Hack Squat"
+      }
     },
     {
       "tap": {
@@ -78,6 +83,183 @@
     },
     {
       "checkpoint": "temporary-hack-squat-ready"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "hack-squat-actual-weight-drop"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 3 of 24 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "advance": "39m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "checkpoint": "friday-steady-bike-fifteen"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Finish",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "friday-machine-and-bike-saved"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Busy leg press; hack squat plates 90 then70. Sluggish; steady bike instead of intervals:15m,103W,effort5/10."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "friday-context-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

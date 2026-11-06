@@ -162,6 +162,47 @@
   },
   {
    "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "desc": "Plan options"
+   }
+  },
+  {
+   "checkpoint": "planopts"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "95.6 kg, age 41, advanced"
+   }
+  },
+  {
+   "checkpoint": "you"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "5-day full body"
+   }
+  },
+  {
+   "checkpoint": "planview"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "checkpoint": "newplan"
   }
  ]
 }

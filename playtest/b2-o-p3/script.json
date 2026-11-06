@@ -1,0 +1,7 @@
+{
+  "seat": "b2-o-p3",
+  "start": {"date": "2026-11-09", "time": "06:30", "zone": "America/Chicago"},
+  "steps": [
+    {"checkpoint": "launch"}
+  ]
+}

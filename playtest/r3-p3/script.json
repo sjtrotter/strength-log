@@ -180,7 +180,214 @@
    }
   },
   {
-   "checkpoint": "create-form"
+   "type": {
+    "text": "Name",
+    "value": "Paused squat (2 ct)"
+   }
+  },
+  {
+   "type": {
+    "text": "Starting weight (kg)",
+    "value": "152.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "paused-created"
+  },
+  {
+   "tap": {
+    "desc": "More options for Paused squat (2 ct)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "152.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "paused-pres"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat (bilateral)"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Belt squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Belt squat"
+   }
+  },
+  {
+   "type": {
+    "text": "Starting weight (kg)",
+    "value": "100"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Belt squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "100"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayA-built"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout"
+  },
+  {
+   "note": "Mon Nov 9 squats 4x5 @175"
+  },
+  {
+   "tap": {
+    "text": "Log 175 kg \u00d7 5"
+   }
+  },
+  {
+   "checkpoint": "after-set1"
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "text": "Log 175 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "text": "Log 175 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "text": "Log 175 kg \u00d7 5"
+   }
+  },
+  {
+   "checkpoint": "squat-done"
   }
  ]
 }

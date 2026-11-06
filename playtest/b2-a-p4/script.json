@@ -1279,14 +1279,97 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Stop"
       }
     },
     {
-      "checkpoint": "bike-end-action-result-and-actual-metrics"
+      "checkpoint": "monday-bike-stopped-actual-record"
     },
     {
-      "note": "Inspect the end action before finishing the visit: actual bike 12 minutes, 111 W, effort 6/10. Need save a real note about slow bench; script notes are not app records. Monday should end 18:43 for 73 minutes total."
+      "advance": "12m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-whole-visit-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved-visit"
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-first-lifting-and-bike-visit"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "history-menu-after-first-visit"
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-available-formats"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "advance": "1d22h47m"
+    },
+    {
+      "checkpoint": "wednesday-choose-diary-deadlift-day"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "wednesday-available-days"
+    },
+    {
+      "tap": {
+        "text": "3-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "checkpoint": "wednesday-deadlift-day-preview"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "wednesday-day-c-editor-before-own-prescription"
+    },
+    {
+      "note": "Wednesday November 11: use this deadlift day for my actual diary. Need 3x5x185 deadlift, DB shoulder press 30x8 then30x6 then25x8, pulldown100 for3x10, split squat20 for2x8 each leg, rower12min2220m effort6. Monday actual bike watts111/effort6 and slow bench note still need a place in the app; do not claim script notes saved them."
     }
   ]
 }

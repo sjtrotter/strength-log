@@ -176,12 +176,11 @@
   },
   {
    "tap": {
-    "textContains": "Paused squat",
-    "index": 1
+    "text": "Create exercise"
    }
   },
   {
-   "checkpoint": "create"
+   "checkpoint": "create-form"
   }
  ]
 }

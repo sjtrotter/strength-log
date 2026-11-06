@@ -289,8 +289,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 1
+        "desc": "Day A lifts, 0 of 21 sets"
       }
     },
     {
@@ -1045,7 +1044,8 @@
     {
       "expect": {
         "text": "seat 4",
-        "index": 0
+        "inDialog": true,
+        "editable": true
       }
     },
     {

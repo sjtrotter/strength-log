@@ -1839,6 +1839,30 @@
    "checkpoint": "fri-ex-f"
   },
   {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "5s"
+  },
+  {
    "expect": {
     "text": "Finish day C"
    }
@@ -1887,6 +1911,24 @@
   },
   {
    "checkpoint": "trends-calendar"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "history-back"
+  },
+  {
+   "tap": {
+    "textContains": "Overhead Press",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "history-session-detail"
+  },
+  {
+   "back": true
   },
   {
    "back": true

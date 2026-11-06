@@ -252,6 +252,50 @@
     },
     {
       "checkpoint": "workout-exercise-navigation"
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-logging-screen"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "bench-workout-swap-picker"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "barbell-bench-swap-result"
     }
   ]
 }

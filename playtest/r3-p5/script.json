@@ -10,34 +10,6 @@
  "steps": [
   {
    "tap": {
-    "text": "History",
-    "role": "Tab"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "checkpoint": "history-more"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Trends and calendar"
-   }
-  },
-  {
-   "checkpoint": "trends"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "text": "Plans",
     "role": "Tab"
    }
@@ -68,23 +40,6 @@
    }
   },
   {
-   "checkpoint": "remove-dialog"
-  },
-  {
-   "tap": {
-    "text": "The plan"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "after-remove"
-  },
-  {
    "back": true
   },
   {
@@ -92,12 +47,48 @@
   },
   {
    "tap": {
-    "textContains": "Log ",
-    "role": "Button"
+    "text": "Start"
    }
   },
   {
-   "checkpoint": "run-logged"
+   "advance": "40m12s"
+  },
+  {
+   "checkpoint": "running"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "run-stopped"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "run-finish"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "index": 0,
+    "value": "Easy run 7.1 km, 40:12, 5:40/km. Nice out, felt good."
+   }
+  },
+  {
+   "checkpoint": "note-typed"
   }
  ]
 }

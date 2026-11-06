@@ -307,66 +307,282 @@
    }
   },
   {
-   "checkpoint": "prescription"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "workout"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
-   }
-  },
-  {
-   "checkpoint": "edit-set"
-  },
-  {
    "type": {
-    "editable": true,
-    "index": 0,
-    "value": "185"
+    "text": "Sets",
+    "value": "3"
    }
   },
   {
    "type": {
-    "editable": true,
-    "index": 1,
+    "text": "Reps",
     "value": "5"
    }
   },
   {
-   "checkpoint": "edit-set-typed"
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "after-presc-save"
+  },
+  {
+   "tap": {
+    "desc": "More options for Bulgarian Split Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Each side",
+    "role": "Switch"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save",
+    "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Single-Leg RDL"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Each side",
+    "role": "Switch"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save",
+    "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Single-Leg Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "calf-presc"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "12"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Each side",
+    "role": "Switch"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "plan-edited"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-edit"
+   "checkpoint": "workout-start"
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "after-log1"
+   "advance": "2m"
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "after-log2"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-trap"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "after-bss"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "after-slrdl"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "checkpoint": "calf-set3"
   }
  ]
 }

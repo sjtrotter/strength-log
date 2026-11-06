@@ -385,25 +385,49 @@
   },
   {
    "tap": {
-    "desc": "More options for Barbell Back Squat"
+    "text": "Ramp to 125 kg, then 1 back-off"
    }
   },
   {
-   "checkpoint": "squat-more"
+   "tap": {
+    "role": "DropdownList"
+   }
+  },
+  {
+   "checkpoint": "tracking-menu"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back"
+   "checkpoint": "after-menu"
   },
   {
-   "tap": {
-    "text": "Ramp to 125 kg, then 1 back-off"
+   "type": {
+    "text": "Weight (kg)",
+    "value": "175"
    }
   },
   {
-   "checkpoint": "squat-presc"
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "saved175"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
   }
  ]
 }

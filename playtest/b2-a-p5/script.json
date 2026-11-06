@@ -431,6 +431,161 @@
     },
     {
       "checkpoint": "exercise-picker-after-interruption"
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "checkpoint": "squat-library-find-goblet"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "hinge-library-find-dumbbell-rdl"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "checkpoint": "single-leg-library-find-lunges-stepups"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Knee flexion (leg curl)"
+      }
+    },
+    {
+      "checkpoint": "curl-library-for-strength-b"
+    },
+    {
+      "back": true
+    },
+    {
+      "swipe": {
+        "text": "Hinge",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "remaining-movement-categories-find-calves"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "checkpoint": "my-side-planks-two-thirty-second-rounds-per-side"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "side-plank-prescription-saved"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-db-bench-press"
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-back-extension"
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-chest-supported-row"
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-cable-lateral-raise"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "replace-barbell-squat-with-my-goblet-squat"
     }
   ]
 }

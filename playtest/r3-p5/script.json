@@ -697,7 +697,7 @@
   },
   {
    "tap": {
-    "textContains": "Finish",
+    "text": "Finish",
     "inDialog": true
    }
   },

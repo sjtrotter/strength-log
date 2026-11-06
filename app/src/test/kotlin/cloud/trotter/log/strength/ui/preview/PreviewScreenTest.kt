@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
@@ -96,6 +97,20 @@ class PreviewScreenTest {
         rule.onNodeWithText("Last 45 s").assertExists()
         rule.onNodeWithText("No previous result").assertDoesNotExist()
         rule.onNodeWithText("No comparable previous result").assertExists()
+    }
+
+    @Test fun repeatRemainsPlainTextBesideTheWorkingWeight() {
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
+            loading = false, lifts = listOf(PreviewLift("Bench", "3 × 5 · 70 lb",
+                listOf(PreviewPreviousResult("70 lb × 4")), nextTime = NextTime.Repeat)),
+        ), PreviewActions({}, {}, {})) } }
+        rule.onNodeWithText("Repeat").assertHasNoClickAction()
+        val working = rule.onNodeWithText("Today 3 × 5 · 70 lb", useUnmergedTree = true).assertIsDisplayed()
+            .fetchSemanticsNode().boundsInRoot
+        val repeat = rule.onNodeWithText("Repeat", useUnmergedTree = true).assertIsDisplayed()
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(working.right <= repeat.left)
+        assertTrue(working.top < repeat.bottom && repeat.top < working.bottom)
     }
 
     @Test fun loadingKeepsStartAndEditHidden() {

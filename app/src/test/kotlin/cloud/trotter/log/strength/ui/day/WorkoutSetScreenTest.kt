@@ -24,6 +24,8 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
@@ -251,6 +253,40 @@ class WorkoutSetScreenTest {
             .assertHeightIsAtLeast(48.dp).assertHasClickAction().performClick()
         rule.onNodeWithText("All sets").assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals(listOf(1L to Slot.SS, 1L to Slot.MAIN), opened) }
+    }
+
+    @Test fun supersetPartnerOfferSitsBesideHeroAndAppliesAndUndoesItsOwnWeight() {
+        val base = workoutSetSupersetFixture()
+        val offer = NextTime.Offer("+5 lb", false, 125.0, 120.0)
+        var state by mutableStateOf(base.copy(
+            exercises = base.exercises.map { card -> card.copy(
+                nextTime = NextTime.Repeat, partnerNextTime = offer,
+                rows = card.rows.map { it.copy(done = true, partner = it.partner?.copy(done = false)) },
+            ) },
+            workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 0)),
+        ))
+        var written: List<Any>? = null
+        var edited: Pair<Long, Int>? = null
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
+            onNextTime = { id, slot, weight -> written = listOf(id, slot, weight) },
+            onOpenSetEditor = { id, index -> edited = id to index },
+        )) } }
+        val chip = rule.onNodeWithTag("next-time-offer-${Slot.SS}")
+        val chipBounds = chip.assertIsDisplayed().assertIsNotSelected().fetchSemanticsNode().boundsInRoot
+        val hero = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(hero.right <= chipBounds.left)
+        assertTrue(hero.top < chipBounds.bottom && chipBounds.top < hero.bottom)
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Edit set 1").performClick()
+        rule.runOnIdle { assertEquals(1L to 0, edited) }
+        chip.performClick()
+        rule.runOnIdle {
+            assertEquals(listOf(1L, Slot.SS, 125.0), written)
+            state = state.copy(exercises = state.exercises.map { it.copy(partnerNextTime = offer.copy(applied = true)) })
+        }
+        chip.assertIsSelected().performClick()
+        rule.runOnIdle { assertEquals(listOf(1L, Slot.SS, 120.0), written) }
     }
 
     @Test fun supersetSecondHalfShowsRecordedPartnerAndThenRestOnlyWithTimerOn() {

@@ -335,7 +335,7 @@ class OverviewNavigationTest {
         waitForText("Today 3 × 5 · 75 lb")
         rule.onNodeWithText("Start day A").performClick()
         waitForText("Log 75 lb × 5")
-        rule.onNodeWithTag("workout-hero").assertIsDisplayed()
+        rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
         assertEquals(List(3) { 75.0 }, runBlocking { repo.openRunFlow.first()!!.tracks.single().sets.map { it.weightLb } })
     }
 

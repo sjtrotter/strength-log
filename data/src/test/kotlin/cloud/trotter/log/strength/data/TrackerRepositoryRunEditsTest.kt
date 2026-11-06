@@ -147,6 +147,26 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(rows.none { it.done })
     }
 
+    @Test fun `plan swap into a prescribed destination uses same plan working weight without changing goals`() = runTest {
+        val plan = generated()
+        val source = slot(plan)
+        repo.setPrescription(source, Prescription(PrescribedTarget.LoadReps(65.0, 5)))
+        db.storeTestRows("A", source, Slot.MAIN, squat().map { it.copy(weightLb = 45.0) })
+        loggedWeight(plan, "bb_back_squat", 100.0, 1_000)
+        val destination = db.programDao().exercisesForDay(plan, "B").single().id
+        repo.setPrescription(destination, Prescription(PrescribedTarget.LoadReps(95.0, 8)), sets = 2)
+        repo.setStructure(destination, SetStructure.RAMP_TOP_BACKOFF)
+        val before = db.programDao().exercise(destination)!!
+
+        assertTrue(repo.swapExerciseById("B", destination, "bb_back_squat"))
+        repo.ensureSeeded(plan, "B")
+
+        val rows = SetJson.decodeSets(db.programDao().logForSlot(plan, "B", destination, Slot.MAIN)!!.setsJson)
+        assertEquals(45.0, rows.single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertTrue(rows.none { it.done })
+        assertEquals(before.copy(exerciseId = "bb_back_squat"), db.programDao().exercise(destination))
+    }
+
     @Test fun `added exercise prefers same plan working rows over prescription and history`() = runTest {
         val plan = generated()
         val source = slot(plan)

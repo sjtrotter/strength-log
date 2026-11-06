@@ -373,7 +373,7 @@ class TrackerRepository(
             val id = programDao.insertExercise(exercise.toEntity(planId, dayId, position))
             val row = programDao.exercise(id) ?: return@withTransaction
             val config = answersForPlan(planDao.plan(planId), global).config
-            seedFromHistory(row, Slot.MAIN, config, catalog)
+            if (exercise.prescription == null) seedFromHistory(row, Slot.MAIN, config, catalog)
             if (exercise.superset != null) seedFromHistory(row, Slot.SS, config, catalog)
         }
     }
@@ -1404,7 +1404,6 @@ class TrackerRepository(
         config: LifterConfig,
         catalog: ExerciseCatalog,
     ) {
-        if (slot == Slot.MAIN && row.toDomain().prescription != null) return
         val exerciseId = row.exerciseIdFor(slot) ?: return
         val programSlot = ProgramSlot(row.id, row.position, row.toDomain())
         val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == row.dayId }

@@ -742,6 +742,82 @@
   },
   {
    "checkpoint": "row-after-allsets"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 55 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 55 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Plank / Side Plank"
+   }
+  },
+  {
+   "checkpoint": "plank-page"
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 12 of 15 sets"
+   }
+  },
+  {
+   "checkpoint": "day-overview"
+  },
+  {
+   "back": true
+  },
+  {
+   "swipe": {
+    "text": "Plank / Side Plank",
+    "direction": "left"
+   }
+  },
+  {
+   "checkpoint": "after-swipe-plank"
   }
  ]
 }

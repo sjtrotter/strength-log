@@ -13,7 +13,9 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.LocalTime
@@ -87,6 +89,71 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun editing_starting_weight_changes_working_sets_without_replacing_the_goal() {
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val cfg = LifterConfig()
+        for (structure in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
+            val exercise = ProgramExercise("bb_back_squat", structure = structure)
+            val day = ProgramDay("A", "Lower", "", listOf(exercise))
+            val before = JournalBuilder.mainLifts(Program(listOf(day)), catalog, cfg).single()
+            val edited = exercise.copy(prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+            val program = Program(listOf(day.copy(exercises = listOf(edited))))
+
+            val after = JournalBuilder.mainLifts(program, catalog, cfg).single()
+            val sets = assertNotNull(SlotSeeds.main(edited, catalog.get(edited.exerciseId), cfg))
+            val card = JournalBuilder.trajectories(
+                listOf(after), listOf(top(edited.exerciseId, today, 45.0)), WeightUnit.LB, zone,
+            ).single()
+
+            assertEquals(45.0, sets.single { it.kind == SetKind.TOP }.weightLb)
+            assertEquals(before, after)
+            assertEquals(235.0, after.goalLb)
+            assertEquals(235f, card.goalValue)
+            assertEquals("235", card.goalLabel)
+            assertFalse(card.goalMet)
+        }
+    }
+
+    @Test
+    fun weighted_prescriptions_keep_trajectories_after_swaps_to_reps_or_time_goals() {
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val cfg = LifterConfig()
+        for (structure in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
+            val exercise = ProgramExercise(
+                "weighted_pullup", structure = structure,
+                prescription = Prescription(PrescribedTarget.LoadReps(25.0, 5)),
+            )
+            for (replacementId in listOf("pullup", "dead_hang")) {
+                val swapped = exercise.copy(exerciseId = replacementId)
+                val day = ProgramDay("A", "Pull", "", listOf(swapped))
+                val sets = assertNotNull(SlotSeeds.main(swapped, catalog.get(replacementId), cfg))
+                val mains = JournalBuilder.mainLifts(Program(listOf(day)), catalog, cfg)
+                val card = JournalBuilder.trajectories(
+                    mains,
+                    listOf(top(replacementId, today.minusDays(5), 30.0), top(replacementId, today, 35.0)),
+                    WeightUnit.LB, zone,
+                ).single()
+
+                assertEquals(25.0, sets.single { it.kind == SetKind.TOP }.weightLb)
+                assertEquals(replacementId, mains.single().exerciseId)
+                assertNull(mains.single().goalLb)
+                assertNull(card.goalValue)
+                assertNull(card.goalLabel)
+                assertFalse(card.goalMet)
+                assertEquals(listOf(30f, 35f), card.points.map { it.value })
+                assertEquals(listOf(true, true), card.points.map { it.newHigh })
+                assertEquals("35", card.latestLabel)
+                assertTrue(card.plotted)
+                assertTrue(card.axisMin > 25f && card.axisMin < 30f)
+                assertTrue(card.axisMax > 35f)
+                assertTrue(JournalBuilder.mainLifts(
+                    Program(listOf(day.copy(exercises = listOf(swapped.copy(prescription = null))))), catalog, cfg,
+                ).isEmpty())
+            }
+        }
+    }
+
+    @Test
     fun mainLifts_includes_only_weighted_prescriptions_under_ramped_structures() {
         val targets = listOf(
             PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),
@@ -107,7 +174,7 @@ class JournalBuilderTest {
             assertEquals(expectedIds, mains.map { it.exerciseId })
             assertEquals(expectedIds, JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone).map { it.exerciseId })
             if (target is PrescribedTarget.LoadReps) {
-                assertEquals(target.lb, mains.first().goalLb)
+                assertEquals(235.0, mains.first().goalLb)
             }
         }
     }

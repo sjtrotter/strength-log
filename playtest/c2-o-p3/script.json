@@ -145,12 +145,11 @@
   },
   {
    "tap": {
-    "desc": "Back",
-    "index": 1
+    "text": "Add exercise"
    }
   },
   {
-   "checkpoint": "patterns-again"
+   "checkpoint": "picker2"
   },
   {
    "swipe": {
@@ -169,6 +168,30 @@
   },
   {
    "checkpoint": "patterns-swipe2"
+  },
+  {
+   "scrollTo": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Close grip bench"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "checkpoint": "create-form"
   }
  ]
 }

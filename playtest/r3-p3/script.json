@@ -89,13 +89,20 @@
    "checkpoint": "add-ex"
   },
   {
-   "type": {
-    "editable": true,
-    "value": "Spoto"
+   "tap": {
+    "text": "Squat (bilateral)"
    }
   },
   {
-   "checkpoint": "search-spoto"
+   "checkpoint": "squat-list"
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "after-pick"
   }
  ]
 }

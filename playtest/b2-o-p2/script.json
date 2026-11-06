@@ -280,10 +280,18 @@
    }
   },
   {
-   "checkpoint": "squat-options"
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "squat-lift-options"
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "after-liftopts-back"
   },
   {
    "tap": {
@@ -291,34 +299,54 @@
    }
   },
   {
-   "checkpoint": "legcurl-options"
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap-legcurl"
   },
   {
    "back": true
   },
   {
    "tap": {
-    "desc": "More",
-    "inDialog": true
+    "text": "Add exercise"
    }
   },
   {
-   "checkpoint": "editday-more"
+   "checkpoint": "add-exercise"
   },
   {
    "back": true
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "after-edit-close"
+   "checkpoint": "after-add-back"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-edit-close2"
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set-1"
+  },
+  {
+   "back": true
   }
  ]
 }

@@ -1,20 +1,209 @@
 {
-  "seat": "c2-o-p2",
-  "start": {"restore": "start-backup.json", "date": "2026-11-18", "time": "19:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "wed-today"},
-    {"tap": {"text": "History", "role": "Tab"}},
-    {"checkpoint": "wed-history"},
-    {"tap": {"desc": "More"}},
-    {"checkpoint": "wed-hist-more"},
-    {"back": true},
-    {"tap": {"text": "Trends and calendar"}},
-    {"checkpoint": "wed-trends"},
-    {"back": true},
-    {"tap": {"text": "Plans", "role": "Tab"}},
-    {"checkpoint": "wed-plans"},
-    {"tap": {"text": "Today", "role": "Tab"}},
-    {"tap": {"text": "Other days"}},
-    {"checkpoint": "wed-other-days"}
-  ]
+ "seat": "c2-o-p2",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-18",
+  "time": "19:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "wed-today"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "wed-history"
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "wed-hist-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "wed-trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "wed-plans"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "wed-other-days"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-swiped"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Week of Sep"
+   }
+  },
+  {
+   "checkpoint": "trends-scrolled-far"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Nov 17",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "nov17-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day C1"
+   }
+  },
+  {
+   "checkpoint": "dayC1-view"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "4-day upper/lower"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day B",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "dayB-view"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "dayB-editsheet"
+  },
+  {
+   "tap": {
+    "desc": "More options for Goblet Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "front squat"
+   }
+  },
+  {
+   "checkpoint": "swap-frontsquat"
+  },
+  {
+   "tap": {
+    "textContains": "Front Squat",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "dayB-front-swapped"
+  }
+ ]
 }

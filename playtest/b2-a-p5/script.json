@@ -1445,8 +1445,8 @@
       "checkpoint": "today-after-dismissing-saved-summary"
     },
     {
-      "tap": {
-        "text": "Other days"
+      "expect": {
+        "text": "2-day full body \u00b7 Day C1"
       }
     },
     {
@@ -1467,6 +1467,19 @@
     },
     {
       "checkpoint": "cardio-day-editor"
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "run-without-attached-core-work"
     },
     {
       "tap": {
@@ -1517,11 +1530,18 @@
     },
     {
       "tap": {
-        "text": "Today"
+        "text": "Today",
+        "role": "Tab"
       }
     },
     {
       "checkpoint": "ready-for-first-run-after-history-check"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "standalone-run-draft-after-reopening"
     }
   ]
 }

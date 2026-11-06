@@ -786,11 +786,13 @@ class TrackerRepositoryRunTest {
         repo.applyToRun(id, plan, "A", listOf(tick(slots.first().id)))
         assertTrue(db.runDao().tracks(id).any { it.programExerciseId == slots.last().id })
         repo.swapExerciseById("A", slots.first().id, "bb_bench")
+        val replacement = db.programDao().logForSlot(plan, "A", slots.first().id, Slot.MAIN)!!
+        assertEquals(50.0, SetJson.decodeSets(replacement.setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
         db.programDao().deleteExercise(slots.last().id)
         repo.finishRun(id)
         // Unchanged tracks (a kept superset partner, say) carry forward; the swapped half and the removed slot do not.
         val logs = db.programDao().logsForDay(plan, "A")
-        assertTrue(logs.none { it.programExerciseId == slots.first().id && it.slot == Slot.MAIN })
+        assertEquals(replacement, logs.single { it.programExerciseId == slots.first().id && it.slot == Slot.MAIN })
         assertTrue(logs.none { it.programExerciseId == slots.last().id })
         assertTrue(logs.any { it.programExerciseId == slots.first().id && it.slot == Slot.SS })
     }

@@ -1,0 +1,7 @@
+{
+  "seat": "c2-o-p4",
+  "start": {"restore": "start-backup.json", "date": "2026-11-13", "time": "17:31", "zone": "America/Chicago"},
+  "steps": [
+    {"checkpoint": "today-open"}
+  ]
+}

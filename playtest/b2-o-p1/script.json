@@ -177,6 +177,53 @@
   },
   {
    "checkpoint": "edit-dayA"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "squat-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back1"
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "editday-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back2"
+  },
+  {
+   "tap": {
+    "text": "Ramp to 160 lb, then 1 back-off"
+   }
+  },
+  {
+   "checkpoint": "squat-rx"
   }
  ]
 }

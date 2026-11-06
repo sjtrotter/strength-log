@@ -2,8 +2,106 @@
   "seat": "b2-a-p2",
   "device": "w360dp-h720dp-night-xxhdpi",
   "capture": "checkpoints",
-  "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
   "steps": [
-    { "checkpoint": "first-open-before-setup" }
+    {
+      "checkpoint": "first-open-before-setup"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-2-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-3-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-4-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-5-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7-before-personalizing"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-before-personalizing"
+    }
   ]
 }

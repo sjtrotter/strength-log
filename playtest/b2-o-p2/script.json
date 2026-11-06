@@ -268,12 +268,58 @@
   },
   {
    "tap": {
-    "textContains": "Back Squat",
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "edit-dayD"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Back Squat",
     "index": 0
    }
   },
   {
-   "checkpoint": "plan-squat"
+   "checkpoint": "edit-squat"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "edit-dayD-after-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "plan-detail-again"
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 3
+   }
+  },
+  {
+   "checkpoint": "day-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "checkpoint": "new-plan"
   }
  ]
 }

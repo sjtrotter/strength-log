@@ -175,6 +175,98 @@
     },
     {
       "checkpoint": "setup-page-8-preview"
+    },
+    {
+      "note": "The preview is not my plan: two barbell lifts and two 25-minute cardio/core days. Set the equipment I use, then enter the app to look for exercise and schedule editing."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine"
+      }
+    },
+    {
+      "tap": {
+        "text": "Cable"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bodyweight"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bench"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Rack"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rack"
+      }
+    },
+    {
+      "checkpoint": "my-gym-equipment-selected"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "preview-after-equipment-filter"
+    },
+    {
+      "scrollTo": {
+        "text": "C2 \u00b7 Cardio"
+      }
+    },
+    {
+      "checkpoint": "second-cardio-day-preview"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "rotation-scheduling-explanation"
+    },
+    {
+      "note": "I need three separate runs, my own short strength sessions, and a skipped workout to stay skipped. Accept this starting point to look for editing controls; this is not agreement to train the suggested barbell routine."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-finished-first-home"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-survives-reopening"
     }
   ]
 }

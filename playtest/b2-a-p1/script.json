@@ -600,7 +600,20 @@
       }
     },
     {
-      "checkpoint": "replaced-with-leg-press"
+      "checkpoint": "leg-press-swap-scope-choice"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "leg-press-plan-swap-confirmed"
     },
     {
       "expect": {
@@ -623,7 +636,20 @@
       }
     },
     {
-      "checkpoint": "replaced-with-machine-chest-press"
+      "checkpoint": "chest-press-swap-scope-choice"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "chest-press-plan-swap-confirmed"
     },
     {
       "expect": {
@@ -646,7 +672,20 @@
       }
     },
     {
-      "checkpoint": "replaced-with-machine-row"
+      "checkpoint": "machine-row-swap-scope-choice"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "machine-row-plan-swap-confirmed"
     },
     {
       "expect": {

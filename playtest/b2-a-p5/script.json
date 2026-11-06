@@ -1419,6 +1419,33 @@
     },
     {
       "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "saved-workout-overall-note-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "share-workout-reachable-endpoint"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "today-after-dismissing-saved-summary"
+    },
+    {
+      "tap": {
         "text": "Other days"
       }
     },
@@ -1440,6 +1467,17 @@
     },
     {
       "checkpoint": "cardio-day-editor"
+    },
+    {
+      "tap": {
+        "text": "Road run"
+      }
+    },
+    {
+      "checkpoint": "road-run-prescription-fields"
+    },
+    {
+      "back": true
     },
     {
       "back": true

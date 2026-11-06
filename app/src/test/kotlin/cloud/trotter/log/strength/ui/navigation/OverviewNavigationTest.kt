@@ -339,6 +339,36 @@ class OverviewNavigationTest {
         assertEquals(List(3) { 75.0 }, runBlocking { repo.openRunFlow.first()!!.tracks.single().sets.map { it.weightLb } })
     }
 
+    @Test fun previewOfferWithAnotherWorkoutOpenConfirmsDiscardAndStartsAtTheAcceptedWeight() {
+        val id = prepareBenchOffer()
+        val oldId = runBlocking {
+            repo.startRun(other, "B")
+            repo.openRunFlow.first()!!.id
+        }
+        render()
+        rule.onNodeWithText("Strength · Day A").performClick()
+        waitForText("Today 3 × 5 · 70 lb")
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}")
+            .assertIsDisplayed().assertIsNotSelected().performClick()
+        waitForText("Workout open")
+        rule.onNode(hasText("Other · Day B Arms") and hasAnyAncestor(isDialog())).assertExists()
+        rule.onNodeWithText("Discard and start").performClick()
+        rule.onNodeWithText("Discard workout?").assertExists()
+        assertEquals(oldId, runBlocking { repo.openRunFlow.first()!!.id })
+        rule.onNodeWithText("Discard and start").performClick()
+        waitForText("Log 75 lb × 5")
+        rule.runOnIdle {
+            assertEquals(Routes.DAY_IN_PLAN, nav.currentDestination?.route)
+            assertEquals(preferred, dayVm.uiState.value.planId)
+            assertEquals("A", dayVm.uiState.value.viewDayId)
+        }
+        val open = runBlocking { repo.openRunFlow.first()!! }
+        assertNotEquals(oldId, open.id)
+        assertEquals(preferred, open.planId)
+        assertEquals("A", open.dayId)
+        assertEquals(List(3) { 75.0 }, open.tracks.single { it.programExerciseId == id }.sets.map { it.weightLb })
+    }
+
     @Test fun workoutOfferTapAppliesUndoesAndDisappearsAfterOneLoggedRow() {
         prepareBenchOffer()
         render()

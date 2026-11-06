@@ -717,15 +717,17 @@ private fun WorkoutEditableHero(
 ) {
     val editLabel = stringResource(R.string.workout_edit_set, index + 1)
     val offer = (if (slot == Slot.SS) card.partnerNextTime else card.nextTime) as? NextTime.Offer
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TextButton(
             onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
-            modifier = Modifier.weight(1f).semantics { contentDescription = editLabel },
+            modifier = Modifier.align(Alignment.CenterVertically).semantics { contentDescription = editLabel },
             colors = neutralTextButtonColors(),
             contentPadding = PaddingValues(0.dp),
         ) { hero() }
-        if (offer != null) NextTimeOfferChip(offer, slot) {
-            actions.onNextTime(card.programExerciseId, slot, it)
+        if (offer != null) Box(Modifier.align(Alignment.CenterVertically)) {
+            NextTimeOfferChip(offer, slot) {
+                actions.onNextTime(card.programExerciseId, slot, it)
+            }
         }
     }
 }
@@ -742,11 +744,11 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: W
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
-    WorkoutHeroText(primary, secondary)
+    WorkoutHeroText(primary, secondary, Modifier)
 }
 
 @Composable
-private fun WorkoutHeroText(primary: String, secondary: String? = null) {
+private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier: Modifier = Modifier.fillMaxWidth()) {
     BasicText(
         buildAnnotatedString {
             append(primary)
@@ -759,7 +761,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null) {
                 }
             }
         },
-        modifier = Modifier.fillMaxWidth().testTag("workout-hero"),
+        modifier = modifier.testTag("workout-hero"),
         style = SetNumerals.copy(color = MaterialTheme.colorScheme.onSurface),
         maxLines = 1,
         softWrap = false,

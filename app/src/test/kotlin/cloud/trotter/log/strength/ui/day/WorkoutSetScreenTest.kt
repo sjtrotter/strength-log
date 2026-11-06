@@ -896,9 +896,12 @@ class WorkoutSetScreenTest {
     @Test
     @Config(qualifiers = "w320dp-h891dp")
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun heroFitsOneLineAtLargeFont() {
+    fun heroFitsOneLineAtLargeFontWithOfferBelow() {
         val base = workoutSetSingleFixture()
-        val state = base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map { it.copy(weightDisplay = 1235.0, reps = 12) }) })
+        val state = base.copy(exercises = base.exercises.map { card -> card.copy(
+            nextTime = NextTime.Offer("+5 lb", false, 1240.0, 1235.0),
+            rows = card.rows.map { it.copy(weightDisplay = 1235.0, reps = 12, done = false) },
+        ) })
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
@@ -906,8 +909,12 @@ class WorkoutSetScreenTest {
             }
         }
         val results = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
+        val hero = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+            .fetchSemanticsNode().boundsInRoot
+        val chip = rule.onNodeWithTag("next-time-offer-${Slot.MAIN}").assertIsDisplayed()
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(chip.top >= hero.bottom)
         assertEquals("1235 lb × 12", results.single().layoutInput.text.text)
         assertEquals(1, results.single().lineCount)
         assertFalse(results.single().hasVisualOverflow)

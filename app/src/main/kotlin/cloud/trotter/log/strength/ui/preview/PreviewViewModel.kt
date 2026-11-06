@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -101,6 +102,10 @@ class PreviewViewModel @Inject constructor(
 
     fun setWorkingWeight(programExerciseId: Long, weightLb: Double) {
         val runId = uiState.value.runId ?: return
-        viewModelScope.launch { repo.setWorkingWeight(runId, planId, dayId, programExerciseId, Slot.MAIN, weightLb) }
+        viewModelScope.launch {
+            if (repo.setWorkingWeight(runId, planId, dayId, programExerciseId, Slot.MAIN, weightLb) == RunWriteResult.Rejected) {
+                workoutStart.startWithWorkingWeight(selection, programExerciseId, weightLb)
+            }
+        }
     }
 }

@@ -3,7 +3,9 @@ package cloud.trotter.log.strength.ui.day
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.rest.PhoneRestController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -39,6 +41,14 @@ class WorkoutStart(
         scope.launch { lock.withLock { startNow(target) } }
     }
 
+    fun startWithWorkingWeight(target: DaySelection, programExerciseId: Long, weightLb: Double) {
+        scope.launch { lock.withLock {
+            savedState["start_offer_exercise"] = programExerciseId
+            savedState["start_offer_weight_lb"] = weightLb
+            startNow(target)
+        } }
+    }
+
     private suspend fun startNow(target: DaySelection) {
         val planId = target.planId ?: return
         when (val result = repo.startRun(planId, target.dayId)) {
@@ -48,6 +58,21 @@ class WorkoutStart(
                 savedState["start_confirming"] = false
             }
             is RunStartResult.Started, is RunStartResult.AlreadyOpen, RunStartResult.NoStrengthSlots -> {
+                val runId = when (result) {
+                    is RunStartResult.Started -> result.runId
+                    is RunStartResult.AlreadyOpen -> result.runId
+                    else -> null
+                }
+                val exerciseId = savedState.get<Long>("start_offer_exercise")
+                val weightLb = savedState.get<Double>("start_offer_weight_lb")
+                if (runId != null && exerciseId != null && weightLb != null &&
+                    repo.setWorkingWeight(runId, planId, target.dayId, exerciseId, Slot.MAIN, weightLb) == RunWriteResult.Rejected) {
+                    val open = repo.openRunFlow.first()
+                    if (open != null && (open.planId != planId || open.dayId != target.dayId)) {
+                        startNow(target)
+                        return
+                    }
+                }
                 dismiss()
                 destinations.send(target)
             }
@@ -58,6 +83,8 @@ class WorkoutStart(
         savedState["start_target"] = null
         savedState["start_conflict"] = null
         savedState["start_confirming"] = false
+        savedState["start_offer_exercise"] = null
+        savedState["start_offer_weight_lb"] = null
     }
 
     fun confirmDiscard() { savedState["start_confirming"] = true }

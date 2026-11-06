@@ -367,11 +367,8 @@
    }
   },
   {
-   "checkpoint": "skip-1"
-  },
-  {
    "tap": {
-    "text": "Skip this set"
+    "text": "All sets"
    }
   },
   {
@@ -380,7 +377,65 @@
    }
   },
   {
-   "checkpoint": "skip-3"
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "squat-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bench-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "checkpoint": "edit-set-sheet"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   }
+  },
+  {
+   "checkpoint": "edit-set-4"
+  },
+  {
+   "tap": {
+    "textContains": "Log",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "bench-3-logged"
   }
  ]
 }

@@ -403,6 +403,88 @@
     },
     {
       "note": "Inspect the returned plan and day controls next. My intended first session is Lower A: squat 215 for three fives, RDL 135 for three eights, reverse lunge 25 per hand for two eights each leg, plank three 30-second holds."
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "existing-plan-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "custom-plan-entry-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "history-data-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Lower"
+      }
+    },
+    {
+      "checkpoint": "squat-day-before-customizing"
+    },
+    {
+      "scrollTo": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "squat-day-editor"
+    },
+    {
+      "note": "Monday is my squat day even though this rotation calls it Day D. I want squat 3x5 at215, RDL3x8 at135, reverse lunge2x8 per leg with25 per hand, plank3x30s, no running. Inspect the editor fields next and customize before starting."
+    },
+    {
+      "note": "The accepted Upper day contains five exercises including60lb dumbbell rows and55lb seated presses. The setup preview showed only bench. I could not evaluate the full suggested week before accepting; these dumbbell targets are higher than the actual work I planned."
     }
   ]
 }

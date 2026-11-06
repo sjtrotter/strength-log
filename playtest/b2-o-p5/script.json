@@ -333,7 +333,32 @@
    }
   },
   {
-   "checkpoint": "added-bss"
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Single"
+   }
+  },
+  {
+   "checkpoint": "search-single-hinge"
+  },
+  {
+   "tap": {
+    "textContains": "Single-Leg R",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "added-slrdl"
   },
   {
    "tap": {
@@ -375,40 +400,29 @@
   },
   {
    "scrollTo": {
-    "text": "Added load, optional (lb)"
+    "text": "Choose a movement pattern"
    }
-  },
-  {
-   "checkpoint": "copenhagen-form-bottom"
-  },
-  {
-   "swipe": {
-    "text": "Added load, optional (lb)",
-    "direction": "up"
-   }
-  },
-  {
-   "checkpoint": "copenhagen-form-bottom2"
   },
   {
    "tap": {
-    "text": "Cancel"
+    "text": "Choose a movement pattern"
    }
   },
   {
-   "checkpoint": "after-cancel-form"
+   "checkpoint": "pattern-menu"
   },
   {
-   "back": true
+   "tap": {
+    "text": "Single-leg"
+   }
   },
   {
-   "checkpoint": "after-cancel-back1"
+   "tap": {
+    "text": "Save"
+   }
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "after-cancel-back2"
+   "checkpoint": "after-save-copenhagen"
   },
   {
    "tap": {
@@ -416,12 +430,18 @@
    }
   },
   {
-   "scrollTo": {
-    "textContains": "alf"
+   "tap": {
+    "text": "Hinge"
    }
   },
   {
-   "checkpoint": "calf-category"
+   "type": {
+    "text": "Search exercises",
+    "value": "Calf"
+   }
+  },
+  {
+   "checkpoint": "search-calf-global"
   }
  ]
 }

@@ -81,6 +81,14 @@
     },
     {
       "checkpoint": "squat-exercise-options"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-added-prescription-controls"
     }
   ]
 }

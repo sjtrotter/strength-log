@@ -1540,12 +1540,89 @@
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Add a note"
       }
     },
     {
-      "checkpoint": "monday-completed-recap"
+      "checkpoint": "monday-session-note-entry"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Lower, done."
+      }
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "monday-share-system-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-after-first-completed-session"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "expect": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "export-backup-file-picker-boundary"
+    },
+    {
+      "expect": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "tap": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "checkpoint": "restore-backup-file-picker-boundary"
+    },
+    {
+      "expect": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "export-csv-file-picker-boundary"
     },
     {
       "back": true
@@ -1556,7 +1633,7 @@
       }
     },
     {
-      "checkpoint": "home-after-first-completed-workout"
+      "checkpoint": "home-after-first-completed-workout-and-data-options"
     },
     {
       "advance": "23h8m"
@@ -1808,7 +1885,7 @@
       "checkpoint": "tuesday-barbell-row-search"
     },
     {
-      "note": "Monday full session and Tuesday bench are queued, not yet verified. Need pick actual barbell-row result, enter115x8, log rows/pullups/raises and15min walk. Cardio editor checkpoint reveals actual controls. Cold-garage note still has no discovered in-app field. Do not claim unperformed diary sessions."
+      "note": "Monday save verified in prior replay. Note entry and sharing/data-picker boundaries are being explored before Tuesday. Need use returned note field to save cold-garage context, complete Tuesday rows/pullups/raises/walk, then prioritize remaining diary sessions. No unperformed sessions claimed."
     }
   ]
 }

@@ -318,7 +318,58 @@
    }
   },
   {
-   "checkpoint": "after-pick-trapbar"
+   "tap": {
+    "desc": "More options for Trap-Bar Deadlift"
+   }
+  },
+  {
+   "checkpoint": "trapbar-more-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-more"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single-leg"
+   }
+  },
+  {
+   "checkpoint": "single-leg-list"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Copenhagen"
+   }
+  },
+  {
+   "checkpoint": "search-copenhagen"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Nordic"
+   }
+  },
+  {
+   "checkpoint": "search-nordic"
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Calf"
+   }
+  },
+  {
+   "checkpoint": "search-calf"
   }
  ]
 }

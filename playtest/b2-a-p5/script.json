@@ -267,6 +267,78 @@
     },
     {
       "checkpoint": "setup-survives-reopening"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "find-plan-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-units-backup-watch-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-calendar-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choose-separate-strength-and-run-days"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "inspect-day-a-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Inspect the workout controls before entering my real sets. I still need to replace the suggested barbell routine with my own exercises."
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "first-strength-session-controls"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "active-session-after-interruption"
     }
   ]
 }

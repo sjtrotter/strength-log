@@ -115,6 +115,45 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun weighted_prescriptions_keep_trajectories_after_swaps_to_reps_or_time_goals() {
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val cfg = LifterConfig()
+        for (structure in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
+            val exercise = ProgramExercise(
+                "weighted_pullup", structure = structure,
+                prescription = Prescription(PrescribedTarget.LoadReps(25.0, 5)),
+            )
+            for (replacementId in listOf("pullup", "dead_hang")) {
+                val swapped = exercise.copy(exerciseId = replacementId)
+                val day = ProgramDay("A", "Pull", "", listOf(swapped))
+                val sets = assertNotNull(SlotSeeds.main(swapped, catalog.get(replacementId), cfg))
+                val mains = JournalBuilder.mainLifts(Program(listOf(day)), catalog, cfg)
+                val card = JournalBuilder.trajectories(
+                    mains,
+                    listOf(top(replacementId, today.minusDays(5), 30.0), top(replacementId, today, 35.0)),
+                    WeightUnit.LB, zone,
+                ).single()
+
+                assertEquals(25.0, sets.single { it.kind == SetKind.TOP }.weightLb)
+                assertEquals(replacementId, mains.single().exerciseId)
+                assertNull(mains.single().goalLb)
+                assertNull(card.goalValue)
+                assertNull(card.goalLabel)
+                assertFalse(card.goalMet)
+                assertEquals(listOf(30f, 35f), card.points.map { it.value })
+                assertEquals(listOf(true, true), card.points.map { it.newHigh })
+                assertEquals("35", card.latestLabel)
+                assertTrue(card.plotted)
+                assertTrue(card.axisMin > 25f && card.axisMin < 30f)
+                assertTrue(card.axisMax > 35f)
+                assertTrue(JournalBuilder.mainLifts(
+                    Program(listOf(day.copy(exercises = listOf(swapped.copy(prescription = null))))), catalog, cfg,
+                ).isEmpty())
+            }
+        }
+    }
+
+    @Test
     fun mainLifts_includes_only_weighted_prescriptions_under_ramped_structures() {
         val targets = listOf(
             PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),

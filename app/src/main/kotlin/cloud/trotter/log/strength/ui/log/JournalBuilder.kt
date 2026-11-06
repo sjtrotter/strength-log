@@ -41,19 +41,19 @@ object JournalBuilder {
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
     private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
 
-    /** One ramped main lift and its read-only GOAL — the input to [trajectories]. */
+    /** One ramped main lift and its optional read-only weight GOAL — the input to [trajectories]. */
     data class MainLift(
         val exerciseId: String,
         val name: String,
         val dayIndex: Int,
-        val goalLb: Double,
+        val goalLb: Double?,
     )
 
     /**
      * The program's ramped mains in day order, de-duplicated by exercise (a lift
      * anchored on two days keeps its first day's accent).
      *
-     * REPS/TIMED targets have no top-set weight to plot.
+     * REPS/TIMED prescriptions have no top-set weight to plot.
      */
     fun mainLifts(program: Program, catalog: ExerciseCatalog, cfg: LifterConfig): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
@@ -63,7 +63,8 @@ object JournalBuilder {
                 val entry = catalog.find(pe.exerciseId) ?: continue
                 val target = pe.prescription?.target
                 if (target != null && target !is PrescribedTarget.LoadReps) continue
-                val goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb ?: continue
+                val goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb
+                if (target == null && goalLb == null) continue
                 lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, Program.accentIndex(day.id), goalLb)
             }
         }
@@ -107,7 +108,8 @@ object JournalBuilder {
                 Instant.ofEpochMilli(row.completedAt).atZone(zone).toLocalDate(),
             )
         }
-        val goal = unit.fromLb(lift.goalLb).toFloat()
+        val goalLb = lift.goalLb
+        val goal = goalLb?.let { unit.fromLb(it).toFloat() }
         val values = points.map { it.value }
         return TrajectoryCard(
             exerciseId = lift.exerciseId,
@@ -115,8 +117,8 @@ object JournalBuilder {
             dayIndex = lift.dayIndex,
             points = points,
             goalValue = goal,
-            goalLabel = WeightStepper.format(unit.fromLb(lift.goalLb)),
-            goalMet = rows.maxOf { it.topWeightLb } >= lift.goalLb,
+            goalLabel = goalLb?.let { WeightStepper.format(unit.fromLb(it)) },
+            goalMet = goalLb != null && rows.maxOf { it.topWeightLb } >= goalLb,
             latestLabel = WeightStepper.format(unit.fromLb(rows.last().topWeightLb)),
             unit = unit,
             axisMin = axisBound(values, goal, low = true),
@@ -127,9 +129,9 @@ object JournalBuilder {
     /** Plot bounds over the points and the goal line, with 8% headroom so neither
      *  a marker nor the goal line sits flush against the plot edge. A flat
      *  series (every session the same weight) still needs a non-zero span. */
-    private fun axisBound(values: List<Float>, goal: Float, low: Boolean): Float {
-        val min = minOf(values.min(), goal)
-        val max = maxOf(values.max(), goal)
+    private fun axisBound(values: List<Float>, goal: Float?, low: Boolean): Float {
+        val min = minOf(values.min(), goal ?: values.min())
+        val max = maxOf(values.max(), goal ?: values.max())
         val span = max - min
         val pad = if (span > 0f) span * AXIS_HEADROOM else maxOf(max * AXIS_HEADROOM, 1f)
         return if (low) min - pad else max + pad

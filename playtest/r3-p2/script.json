@@ -49,6 +49,15 @@
     },
     {
       "checkpoint": "created-custom-plan"
+    },
+    {
+      "tap": {
+        "text": "Day A",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "custom-day-exercise-editor"
     }
   ]
 }

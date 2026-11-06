@@ -153,239 +153,13 @@
    "back": true
   },
   {
-   "checkpoint": "after-back"
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "tap": {
-    "text": "Squat (bilateral)"
-   }
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Paused squat"
-   }
-  },
-  {
-   "checkpoint": "search-paused"
-  },
-  {
-   "tap": {
-    "text": "Create exercise"
-   }
-  },
-  {
-   "type": {
-    "text": "Name",
-    "value": "Paused squat (2 ct)"
-   }
-  },
-  {
-   "type": {
-    "text": "Starting weight (kg)",
-    "value": "152.5"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "checkpoint": "pattern"
-  },
-  {
-   "tap": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "paused-created"
-  },
-  {
-   "tap": {
-    "desc": "More options for Paused squat (2 ct)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Lift options"
-   }
-  },
-  {
-   "tap": {
-    "text": "Straight sets"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "tap": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "type": {
-    "text": "Sets",
-    "value": "3"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "152.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "paused-pres"
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "tap": {
-    "text": "Squat (bilateral)"
-   }
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Belt squat"
-   }
-  },
-  {
-   "tap": {
-    "text": "Create exercise"
-   }
-  },
-  {
-   "type": {
-    "text": "Name",
-    "value": "Belt squat"
-   }
-  },
-  {
-   "type": {
-    "text": "Starting weight (kg)",
-    "value": "100"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Belt squat"
-   }
-  },
-  {
-   "tap": {
-    "text": "Lift options"
-   }
-  },
-  {
-   "tap": {
-    "text": "Straight sets"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "tap": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "type": {
-    "text": "Sets",
-    "value": "3"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "10"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "100"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Squat (bilateral)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "dayA-built"
-  },
-  {
    "back": true
   },
   {
    "checkpoint": "workout"
   },
   {
-   "note": "Mon Nov 9 squats 4x5 @175"
+   "note": "Mon Nov 9 squats 4x5 @175. Paused squat + belt squat not in catalog; could not save custom."
   },
   {
    "tap": {
@@ -421,6 +195,26 @@
   },
   {
    "checkpoint": "squat-done"
+  },
+  {
+   "advance": "10s"
+  },
+  {
+   "tap": {
+    "text": "Finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "receipt"
   }
  ]
 }

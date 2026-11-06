@@ -249,16 +249,9 @@
    }
   },
   {
-   "checkpoint": "pattern-picker"
-  },
-  {
-   "scrollTo": {
-    "textContains": "ore"
-   }
-  },
-  {
    "tap": {
-    "textContains": "ore"
+    "text": "Single-leg",
+    "inDialog": true
    }
   },
   {
@@ -321,6 +314,17 @@
   },
   {
    "checkpoint": "edit-set"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log"
   }
  ]
 }

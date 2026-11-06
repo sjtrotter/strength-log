@@ -3,153 +3,44 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-24",
-  "time": "06:00",
+  "date": "2026-11-29",
+  "time": "10:00",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "tap": {
-    "text": "Plans"
-   }
+   "note": "Sun Nov 29: doing Friday's heavy bench (Day D) on Sunday"
   },
   {
    "tap": {
-    "textContains": "Block 1 accumulation"
+    "text": "Other days"
    }
   },
   {
    "tap": {
-    "textContains": "0 lifts",
-    "index": 0
+    "text": "Block 1 accumulation \u00b7 Day D"
    }
+  },
+  {
+   "checkpoint": "dayD-picked"
   },
   {
    "tap": {
-    "text": "Edit day"
+    "textContains": "Start day D"
    }
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Horizontal push"
-   }
-  },
-  {
-   "tap": {
-    "text": "Horizontal push"
-   }
-  },
-  {
-   "tap": {
-    "text": "Barbell Bench Press"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Barbell Bench Press"
-   }
-  },
-  {
-   "tap": {
-    "text": "Lift options"
-   }
-  },
-  {
-   "tap": {
-    "text": "Straight sets"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "tap": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "type": {
-    "text": "Sets",
-    "value": "5"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "5"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "115"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
   },
   {
    "checkpoint": "workout"
   },
   {
    "tap": {
-    "text": "Log 115 kg \u00d7 5"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "text": "Log 115 kg \u00d7 5"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "text": "Log 115 kg \u00d7 5"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "tap": {
-    "text": "Log 115 kg \u00d7 5"
-   }
-  },
-  {
-   "advance": "3m"
-  },
-  {
-   "note": "Set 5: got 4, racked it"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 5"
+    "desc": "Edit set 1"
    }
   },
   {
    "type": {
-    "text": "Reps",
-    "value": "4"
+    "text": "Weight (kg)",
+    "value": "130"
    }
   },
   {
@@ -158,22 +49,64 @@
    }
   },
   {
-   "checkpoint": "set5-edited"
-  },
-  {
    "tap": {
-    "textContains": "Log 115 kg \u00d7 4"
+    "textContains": "Log 130"
    }
   },
   {
-   "checkpoint": "bench-done"
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "130"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log 130"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "130"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log 130"
+   }
   },
   {
    "advance": "10s"
   },
   {
    "tap": {
-    "text": "Finish day B"
+    "text": "Finish day D"
    }
   },
   {
@@ -187,7 +120,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Wk3 Tue. Set 5 got 4, first miss. Close grip 100 3x6, shouldn't have. Rows, face pulls. No bike, packing."
+    "value": "Fri bench done Sun. Set 3 RPE 9, grinder rep 3. 2nd heavy >RPE8: bench TM -> 147.5 blk 2."
    }
   },
   {
@@ -201,7 +134,20 @@
    }
   },
   {
-   "checkpoint": "today"
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "history-bench"
   }
  ]
 }

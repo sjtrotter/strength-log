@@ -217,13 +217,32 @@
    }
   },
   {
-   "checkpoint": "lift-options"
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "checkpoint": "squat-straight"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "squat-rx-straight"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-liftopt-back"
+   "checkpoint": "after-rx-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "editday-after-straight"
   },
   {
    "tap": {
@@ -236,7 +255,39 @@
    }
   },
   {
-   "checkpoint": "removed-lateral"
+   "tap": {
+    "text": "3 \u00d7 10 at 50 lb"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "text": "3 \u00d7 10 at 105 lb"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "70"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "editday-weights"
   },
   {
    "tap": {
@@ -249,13 +300,20 @@
    }
   },
   {
-   "checkpoint": "cardio-activity-menu"
+   "tap": {
+    "text": "Treadmill walk"
+   }
   },
   {
-   "back": true
+   "checkpoint": "cardio-walk"
   },
   {
-   "checkpoint": "after-activity-back"
+   "tap": {
+    "text": "25:00"
+   }
+  },
+  {
+   "checkpoint": "cardio-time-tap"
   }
  ]
 }

@@ -577,7 +577,17 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
     "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
    }
   },
   {
@@ -587,12 +597,6 @@
   },
   {
    "checkpoint": "after-skip-3"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "next-exercise?"
   },
   {
    "expect": {

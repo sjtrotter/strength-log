@@ -373,20 +373,20 @@ class DayScreenBuilderTest {
 
     @Test
     fun lastTimeDisplay_formats_weight_and_reps_in_the_display_unit() {
-        assertEquals("185 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(185.0, 8), WeightUnit.LB))
+        assertEquals("185 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(185.0, 8), emptyList(), WeightUnit.LB))
         // 44.092452436 lb == exactly 20 kg — an even round trip so the assertion
         // isn't sensitive to WeightStepper's decimal formatting.
-        assertEquals("20 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(44.092452436, 8), WeightUnit.KG))
+        assertEquals("20 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(44.092452436, 8), emptyList(), WeightUnit.KG))
     }
 
     @Test
     fun lastTimeDisplay_is_null_when_never_performed() {
-        assertNull(DayScreenBuilder.lastTimeDisplay(null, WeightUnit.LB))
+        assertNull(DayScreenBuilder.lastTimeDisplay(null, emptyList(), WeightUnit.LB))
     }
 
     @Test
     fun lastTimeDisplay_reads_a_hold_from_seconds_when_present() {
-        assertEquals("45s", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 0, seconds = 45), WeightUnit.LB))
+        assertEquals("45s", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 0, seconds = 45), emptyList(), WeightUnit.LB))
     }
 
     @Test
@@ -394,7 +394,7 @@ class DayScreenBuilderTest {
         // Logged before the exercise's reclassification to TIMED: seconds is
         // still 0, the hold sits in reps — the history chip must read the
         // value, not "0s".
-        assertEquals(" × 45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), WeightUnit.LB))
+        assertEquals(" × 45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), emptyList(), WeightUnit.LB))
     }
 
     // --- "Best" profile chip (performance-profile.md) ------------------------

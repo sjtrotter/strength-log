@@ -275,7 +275,8 @@ opening prescription is the baseline when its local archive is absent or retired
 Archived tracks keep their own rep targets and row identities; Last stays per day
 and slot.
 On screen the heading is built from the working rows, 'Repeat' or a '+5 lb' chip
-sits beside the weight, the Today preview's Last is the same plan, day and slot
+sits beside the weight, the Today preview's Last lists every working set of the
+same plan, day and slot's last session (#501)
 (falling back to the exercise anywhere, labeled with its day), and the Next time
 control reads Progress / Plan with the disclosure 'Planned reps; increases need
 your approval.'

@@ -85,7 +85,8 @@ class PreviewViewModel @Inject constructor(
                     val samePlan = source?.planId == planId || (planId == PlanEntity.LEGACY_ID && source?.planId == null)
                     PreviewPreviousResult(
                         last = previous?.takeIf { comparable }?.let {
-                            SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
+                            slotLast?.sets?.takeIf { sets -> sets.isNotEmpty() }?.let { sets -> SetFormatter.performed(sets, unit) }
+                                ?: SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
                         },
                         comparable = comparable,
                         exerciseName = track.performed.entry?.name ?: track.performed.exerciseId,

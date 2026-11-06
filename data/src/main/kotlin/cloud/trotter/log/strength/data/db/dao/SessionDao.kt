@@ -40,6 +40,9 @@ data class LastPerformedSourceRow(
     val planId: Long?,
     val planName: String?,
     val dayId: String,
+    val sessionId: Long,
+    val setIndex: Int,
+    val kind: String,
 )
 
 data class LastPerformedDateRow(val exerciseId: String, val completedAt: Long)
@@ -181,7 +184,8 @@ interface SessionDao {
         """
         SELECT ss.exerciseId AS exerciseId, ss.slot AS slot, ss.weightLb AS weightLb,
             ss.reps AS reps, ss.seconds AS seconds, ws.planId AS planId,
-            ws.planName AS planName, ws.dayId AS dayId
+            ws.planName AS planName, ws.dayId AS dayId,
+            ss.sessionId AS sessionId, ss.setIndex AS setIndex, ss.kind AS kind
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
         WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1

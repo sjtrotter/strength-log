@@ -188,16 +188,13 @@ object DayScreenBuilder {
     }
 
     /**
-     * The "last time: …" chip's value (PLAN.md A1 bonus) — `null` when [last]
-     * is `null` (the exercise has no prior completed performance), in which
-     * case the card shows no chip at all. Formats by the logged VALUE
-     * ([SetFormatter.summaryOfValues]), not the exercise's current tracking
-     * type: a `session_set`/last-performed row can be legacy reps-shaped for
-     * an exercise reclassified TIMED (history is never touched by the legacy
-     * reps→seconds fixup, only live logs are).
+     * Every working set from the last session, or the single [last] performance
+     * when no working sets were done. Null when neither exists. Formats by the
+     * logged values, since archived rows can predate a tracking-type change.
      */
-    fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
-        last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
+    fun lastTimeDisplay(last: LastPerformed?, sets: List<LoggedSet>, unit: WeightUnit): String? =
+        if (sets.isNotEmpty()) SetFormatter.performed(sets, unit)
+        else last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
 
     /**
      * The "Best: …" chip's value (docs/briefs/performance-profile.md Phase 1)

@@ -1,12 +1,42 @@
 package cloud.trotter.log.strength.domain.standards
 
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /** [SetFormatter] is the SSOT for rendering a performed set per tracking type. */
 class SetFormatterTest {
+
+    @Test
+    fun `performed sets merge neighbors at one weight`() {
+        val success = List(3) { LoggedSet(225.0, 5, SetKind.WORK, done = true) }
+        val miss = success.dropLast(1) + success.last().copy(reps = 4)
+        assertEquals("225 lb × 5, 5, 5", SetFormatter.performed(success, WeightUnit.LB))
+        assertEquals("225 lb × 5, 5, 4", SetFormatter.performed(miss, WeightUnit.LB))
+        assertEquals(SetFormatter.weight(225.0, WeightUnit.KG) + " × 5, 5, 4", SetFormatter.performed(miss, WeightUnit.KG))
+        assertEquals("235 lb × 5, 175 lb × 8", SetFormatter.performed(listOf(
+            LoggedSet(235.0, 5, SetKind.TOP, done = true),
+            LoggedSet(175.0, 8, SetKind.BACKOFF, done = true),
+        ), WeightUnit.LB))
+        assertEquals("12 reps, 12 reps, 11 reps", SetFormatter.performed(
+            listOf(12, 12, 11).map { LoggedSet(0.0, it, SetKind.WORK, done = true) }, WeightUnit.LB))
+    }
+
+    @Test
+    fun `performed sets preserve weight changes and tracking changes in logged order`() {
+        assertEquals("225 lb × 5, 175 lb × 8, 225 lb × 4, 12 reps, 45 s, 30 s at 25 lb", SetFormatter.performed(listOf(
+            LoggedSet(225.0, 5, SetKind.TOP),
+            LoggedSet(175.0, 8, SetKind.BACKOFF),
+            LoggedSet(225.0, 4, SetKind.EXTRA),
+            LoggedSet(0.0, 12, SetKind.WORK),
+            LoggedSet(0.0, 0, SetKind.WORK, seconds = 45),
+            LoggedSet(25.0, 0, SetKind.WORK, seconds = 30),
+        ), WeightUnit.LB))
+        assertEquals("", SetFormatter.performed(emptyList(), WeightUnit.LB))
+    }
 
     @Test
     fun `explicit measurements include the unit for every tracking type in lb and kg`() {

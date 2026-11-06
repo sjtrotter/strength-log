@@ -753,15 +753,7 @@
       "advance": "30s"
     },
     {
-      "tap": {
-        "text": "Log 165 kg \u00d7 5"
-      }
-    },
-    {
-      "checkpoint": "monday-first-of-four-backoffs-logged"
-    },
-    {
-      "advance": "5m"
+      "note": "The prior replay moved to DB Bench immediately after the final prescribed squat set. Add the three missing squat backoffs BEFORE completing set 6 so they belong to squat. The unintended DB set is removed from this replay."
     },
     {
       "tap": {
@@ -769,7 +761,10 @@
       }
     },
     {
-      "checkpoint": "squat-single-and-backoff-review"
+      "expect": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
     },
     {
       "scrollTo": {
@@ -782,10 +777,211 @@
       }
     },
     {
-      "checkpoint": "add-second-squat-backoff"
+      "scrollTo": {
+        "text": "Add a set"
+      }
     },
     {
-      "note": "Next enter or verify the added backoff as 165 \u00d7 5, then add the third and fourth. Do not finish Monday before logging competition bench100 \u00d7 5 \u00d7 5 and attempting the intended accessories. Video reference to store when a note field is found: Nov9 side-view squat190 single, depth is there."
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "squat-three-extra-backoffs-added-before-completion"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "monday-first-backoff-with-three-more-planned"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 9"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "monday-squat-single-and-all-four-backoffs-completed"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "lift-note-entry-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "replace-generated-db-bench-with-competition-bench"
+    },
+    {
+      "note": "Inspect the swap catalogue and note fields next. Monday still needs competition bench100\u00d75\u00d75, lying leg curl3\u00d710\u201312, ab wheel3\u00d78. Squat target/actual RPE7 and last backoff7.5; video reference Nov9 side-view190 single, depth is there. These words are not yet stored in the app."
     }
   ]
 }

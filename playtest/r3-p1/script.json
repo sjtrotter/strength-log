@@ -2,8 +2,8 @@
  "seat": "r3-p1",
  "capture": "compact",
  "start": {
-  "date": "2026-11-08",
-  "time": "20:30",
+  "date": "2026-11-09",
+  "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
@@ -26,15 +26,9 @@
    }
   },
   {
-   "checkpoint": "days-3"
-  },
-  {
    "tap": {
     "text": "Next"
    }
-  },
-  {
-   "checkpoint": "split"
   },
   {
    "tap": {
@@ -52,9 +46,6 @@
    }
   },
   {
-   "checkpoint": "lifts"
-  },
-  {
    "tap": {
     "text": "Next"
    }
@@ -68,9 +59,6 @@
    "tap": {
     "textContains": "Finishers after lifting"
    }
-  },
-  {
-   "checkpoint": "cardio"
   },
   {
    "tap": {
@@ -102,7 +90,9 @@
    }
   },
   {
-   "checkpoint": "about-you"
+   "tap": {
+    "text": "Next"
+   }
   },
   {
    "tap": {
@@ -110,15 +100,31 @@
    }
   },
   {
-   "checkpoint": "wiz-7"
+   "checkpoint": "rotation"
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Start"
    }
   },
   {
-   "checkpoint": "wiz-8"
+   "checkpoint": "today"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Squat"
+   }
+  },
+  {
+   "checkpoint": "today-scrolled"
+  },
+  {
+   "tap": {
+    "textContains": "Start day"
+   }
+  },
+  {
+   "checkpoint": "workout"
   }
  ]
 }

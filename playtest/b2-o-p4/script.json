@@ -246,6 +246,51 @@
   },
   {
    "checkpoint": "edit-dayA"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
+   }
+  },
+  {
+   "checkpoint": "ex-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back"
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "squat-presc"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "day-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
   }
  ]
 }

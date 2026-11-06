@@ -1064,6 +1064,157 @@
     },
     {
       "checkpoint": "return-to-monday-in-progress"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "actual-set-fields-and-effort-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "checkpoint": "can-choose-row-before-bench"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "bench-rest-extended-to-two-minutes"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "bench-complete-db-weight-display"
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "checkpoint": "db-rdl-complete"
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb × 10"
+      }
+    },
+    {
+      "checkpoint": "monday-lifting-complete-cardio-next"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "monday-after-lifting-rest-cardio-controls"
     }
   ]
 }

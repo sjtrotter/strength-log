@@ -792,6 +792,19 @@
   },
   {
    "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swapped-plan"
+  },
+  {
+   "tap": {
     "desc": "Edit set 1"
    }
   },
@@ -831,10 +844,103 @@
    }
   },
   {
-   "advance": "90s"
+   "checkpoint": "after-pulldown"
   },
   {
-   "checkpoint": "superset-page"
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dlg"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary-b"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d"
+  },
+  {
+   "checkpoint": "today-fri"
+  },
+  {
+   "tap": {
+    "text": "3-day full body \u00b7 Day C"
+   }
+  },
+  {
+   "checkpoint": "dayC-fri"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Conventional Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "1"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayC-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dl-page"
   },
   {
    "tap": {
@@ -842,53 +948,7 @@
    }
   },
   {
-   "advance": "30s"
-  },
-  {
-   "checkpoint": "superset-after1"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "30s"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "30s"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "checkpoint": "pallof-page"
+   "advance": "2m"
   },
   {
    "tap": {
@@ -897,28 +957,74 @@
   },
   {
    "tap": {
-    "desc": "More",
+    "text": "Add a set"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "dl-extra"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dlg"
+  },
+  {
+   "tap": {
+    "text": "Finish",
     "inDialog": true
    }
   },
   {
-   "tap": {
-    "text": "Skip for this workout"
-   }
-  },
-  {
-   "checkpoint": "cardio-page-b"
+   "checkpoint": "summary-c"
   },
   {
    "tap": {
-    "text": "Start"
+    "text": "Done"
    }
   },
   {
-   "advance": "10m"
+   "advance": "2d23h"
   },
   {
-   "checkpoint": "cardio-10m"
+   "checkpoint": "today-mon16"
+  },
+  {
+   "tap": {
+    "text": "3-day full body \u00b7 Day A"
+   }
+  },
+  {
+   "checkpoint": "dayA-week2"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-wk2"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
   }
  ]
 }

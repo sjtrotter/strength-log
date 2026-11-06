@@ -1250,6 +1250,240 @@
     },
     {
       "checkpoint": "side-plank-note-entry-for-unequal-sides"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Round 1: 30s/side. Round 2: 24s left, 30s right. Also standing calves: 20 lb EACH hand, 3x12; not in set log."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "saved-unequal-plank-and-unlisted-calf-details"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "35x8, 35x6, 30x8. Form faded at six. Start at 30 next time. One dumbbell."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "15 lb EACH hand; 8 reps per leg. Left side wobbly."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "30 lb EACH hand, 3x8. Felt fine."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "monday-notes-saved-before-finish"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "first-strength-session-saved"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "saved-monday-session-after-reopening"
+    },
+    {
+      "advance": "12h52m"
+    },
+    {
+      "checkpoint": "tuesday-morning-before-easy-seven-km"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choosing-a-standalone-run-day"
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day C1"
+      }
+    },
+    {
+      "checkpoint": "standalone-cardio-day-detail"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "cardio-workout-live-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-after-first-strength-save"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-and-restore-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "ready-for-first-run-after-history-check"
     }
   ]
 }

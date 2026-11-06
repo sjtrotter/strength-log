@@ -189,6 +189,27 @@
    "checkpoint": "plan-options-menu"
   },
   {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-empty"
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail-generated"
+  },
+  {
    "back": true
   },
   {
@@ -197,7 +218,12 @@
    }
   },
   {
-   "checkpoint": "new-plan"
+   "tap": {
+    "text": "Start empty"
+   }
+  },
+  {
+   "checkpoint": "empty-plan"
   }
  ]
 }

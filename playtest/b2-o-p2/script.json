@@ -592,6 +592,137 @@
   },
   {
    "checkpoint": "mon-squat-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Set menu"
+   }
+  },
+  {
+   "checkpoint": "set-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-set-menu-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "expect": {
+    "text": "Romanian Deadlift",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "mon-lunge"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "mon-legraise"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "60s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "mon-legraise-8"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "checkpoint": "mon-all-logged"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "mon-finish-tapped"
   }
  ]
 }

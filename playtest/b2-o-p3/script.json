@@ -464,6 +464,54 @@
   },
   {
    "checkpoint": "allsets"
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "checkpoint": "4sets"
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "allsets-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "ws-after-back"
+  },
+  {
+   "tap": {
+    "textContains": "Day A lifts"
+   }
+  },
+  {
+   "checkpoint": "lifts-btn"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "left-workout"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "left2"
   }
  ]
 }

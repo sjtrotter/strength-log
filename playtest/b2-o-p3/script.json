@@ -165,54 +165,16 @@
   },
   {
    "tap": {
-    "desc": "Plan options"
-   }
-  },
-  {
-   "checkpoint": "planopts"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "95.6 kg, age 41, advanced"
-   }
-  },
-  {
-   "checkpoint": "you"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "5-day full body"
-   }
-  },
-  {
-   "checkpoint": "planview"
-  },
-  {
-   "tap": {
-    "text": "Day A"
+    "text": "New plan"
    }
   },
   {
    "tap": {
-    "text": "Edit"
+    "text": "Start empty"
    }
   },
   {
-   "checkpoint": "editdayA"
-  },
-  {
-   "tap": {
-    "text": "Barbell Back Squat"
-   }
-  },
-  {
-   "checkpoint": "edit-squat"
+   "checkpoint": "empty"
   }
  ]
 }

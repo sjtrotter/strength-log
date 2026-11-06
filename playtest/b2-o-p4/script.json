@@ -643,6 +643,105 @@
   },
   {
    "checkpoint": "edit-set-sheet"
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "bench-set3-edited"
+  },
+  {
+   "tap": {
+    "textContains": "Log 155 lb \u00d7 4"
+   }
+  },
+  {
+   "checkpoint": "bench-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "expect": {
+    "text": "Lat Pulldown (wide)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 120 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 120 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 120 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "One-Arm DB Row"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log 55"
+   }
+  },
+  {
+   "checkpoint": "row-set1"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "row-all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "row-after-allsets"
   }
  ]
 }

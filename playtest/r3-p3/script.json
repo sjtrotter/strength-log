@@ -3,8 +3,8 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-09",
-  "time": "05:45",
+  "date": "2026-11-13",
+  "time": "06:00",
   "zone": "America/Chicago"
  },
  "steps": [
@@ -15,61 +15,16 @@
   },
   {
    "tap": {
-    "text": "New plan"
+    "textContains": "Block 1 accumulation"
    }
   },
   {
-   "tap": {
-    "text": "Start empty"
-   }
-  },
-  {
-   "type": {
-    "text": "Name",
-    "value": "Block 1 accumulation"
-   }
-  },
-  {
-   "tap": {
-    "text": "Create"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add day"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add day"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add day"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add day"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Day options",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "day-options"
-  },
-  {
-   "back": true
+   "checkpoint": "plan"
   },
   {
    "tap": {
     "textContains": "0 lifts",
-    "index": 0
+    "index": 2
    }
   },
   {
@@ -78,32 +33,28 @@
    }
   },
   {
-   "checkpoint": "edit"
-  },
-  {
    "tap": {
     "text": "Add exercise"
    }
   },
   {
-   "checkpoint": "add-ex"
-  },
-  {
-   "tap": {
-    "text": "Squat (bilateral)"
-   }
-  },
-  {
-   "checkpoint": "squat-list"
-  },
-  {
-   "tap": {
-    "text": "Barbell Back Squat"
+   "scrollTo": {
+    "text": "Horizontal push"
    }
   },
   {
    "tap": {
-    "desc": "More options for Barbell Back Squat"
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
    }
   },
   {
@@ -129,19 +80,19 @@
   {
    "type": {
     "text": "Sets",
-    "value": "4"
+    "value": "3"
    }
   },
   {
    "type": {
     "text": "Reps",
-    "value": "5"
+    "value": "3"
    }
   },
   {
    "type": {
     "text": "Weight (kg)",
-    "value": "175"
+    "value": "125"
    }
   },
   {
@@ -159,53 +110,67 @@
    "checkpoint": "workout"
   },
   {
-   "note": "Mon Nov 9 squats 4x5 @175. Paused squat + belt squat not in catalog; could not save custom."
-  },
-  {
    "tap": {
-    "text": "Log 175 kg \u00d7 5"
+    "text": "Log 125 kg \u00d7 3"
    }
   },
   {
-   "checkpoint": "after-set1"
-  },
-  {
-   "advance": "3m30s"
+   "advance": "4m"
   },
   {
    "tap": {
-    "text": "Log 175 kg \u00d7 5"
+    "text": "Log 125 kg \u00d7 3"
    }
   },
   {
-   "advance": "3m30s"
+   "advance": "4m"
   },
   {
    "tap": {
-    "text": "Log 175 kg \u00d7 5"
+    "desc": "Edit set 3"
    }
   },
   {
-   "advance": "3m30s"
+   "checkpoint": "edit-set3"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
-    "text": "Log 175 kg \u00d7 5"
+    "text": "Log 125 kg \u00d7 3"
    }
   },
   {
-   "checkpoint": "squat-done"
+   "checkpoint": "bench-done"
   },
   {
    "advance": "10s"
   },
   {
    "tap": {
-    "text": "Finish day A"
+    "text": "Finish day D"
    }
   },
   {
-   "checkpoint": "after-finish"
+   "checkpoint": "receipt"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "checkpoint": "note"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Bench last set RPE 8 on the nose. Spoto 3x5 105, pull-ups 4x6 +10, triceps rope."
+   }
+  },
+  {
+   "checkpoint": "note-typed"
   }
  ]
 }

@@ -1,7 +1,10 @@
 {"seat":"r3-p3","capture":"compact","start":{"restore":"start-backup.json","date":"2026-11-09","time":"05:45","zone":"America/Chicago"},
 "steps":[
- {"tap":{"text":"Other days"}},{"checkpoint":"other-days"},{"back":true},
- {"tap":{"text":"Plans"}},{"checkpoint":"plans"},
- {"tap":{"textContains":"5-day full body"}},{"checkpoint":"plan"},
- {"tap":{"text":"Day A"}},{"checkpoint":"dayA"}
+ {"tap":{"text":"Plans"}},
+ {"tap":{"desc":"Plan options"}},{"checkpoint":"plan-options"},{"back":true},
+ {"tap":{"text":"New plan"}},{"checkpoint":"new-plan"},{"back":true},
+ {"tap":{"textContains":"5-day full body"}},
+ {"tap":{"text":"Barbell Back Squat"}},{"checkpoint":"goal-squat"},{"back":true},
+ {"tap":{"text":"Day A"}},{"tap":{"text":"Edit"}},{"checkpoint":"edit-dayA"},
+ {"tap":{"text":"Barbell Back Squat"}},{"checkpoint":"edit-squat"}
 ]}

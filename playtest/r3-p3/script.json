@@ -146,22 +146,14 @@
   },
   {
    "tap": {
-    "text": "Tracking"
+    "text": "Save"
    }
-  },
-  {
-   "checkpoint": "tracking-menu"
   },
   {
    "back": true
   },
   {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "saved"
+   "checkpoint": "after-back"
   },
   {
    "tap": {
@@ -181,6 +173,15 @@
   },
   {
    "checkpoint": "search-paused"
+  },
+  {
+   "tap": {
+    "textContains": "Paused squat",
+    "index": 1
+   }
+  },
+  {
+   "checkpoint": "create"
   }
  ]
 }

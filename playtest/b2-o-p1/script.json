@@ -394,7 +394,18 @@
    }
   },
   {
-   "checkpoint": "lifts-list"
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "lifts-list-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-more-back"
   },
   {
    "back": true
@@ -405,7 +416,25 @@
    }
   },
   {
-   "checkpoint": "edit-set3"
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "after-save-set"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
   }
  ]
 }

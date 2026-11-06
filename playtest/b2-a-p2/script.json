@@ -718,7 +718,7 @@
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Save set"
       }
     },
     {
@@ -772,7 +772,312 @@
       }
     },
     {
-      "note": "Still Monday, only the first warmup is queued as completed here. Next use the captured lift options and All sets to configure three work sets at 215x5 and remaining warmups 95x5,135x5,185x3; swap Bulgarian to reverse lunge, use25s for two eights each leg, and plank3x30s. Do not accept the ramp as my intended work."
+      "note": "Cold garage Monday: finish the other three warmups, then my actual three work sets at 215 for five. The app labels the first work set TOP and the next B/O; I am overriding the lighter back-off because my plan calls for equal work sets."
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "95",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 95 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb \u00d7 3"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "four-squat-warmups-completed"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "two-squat-work-sets-completed"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-needs-third-work-set"
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "added-third-squat-work-set"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "monday-all-three-squat-work-sets"
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "monday-lift-navigation-after-squats"
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "expect": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "monday-rdl-ready"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "monday-rdl-three-eights-complete"
+    },
+    {
+      "note": "Next finish Monday reverse lunges25x8x2 each leg and plank30sx3, then save cold-garage context in an actual app note field if available. Script notes are not workout notes. Monday is not finished until those exercises and the recap are verified."
     }
   ]
 }

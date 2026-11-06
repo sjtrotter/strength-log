@@ -683,8 +683,89 @@
    "checkpoint": "after-bench"
   },
   {
+   "advance": "90s"
+  },
+  {
    "tap": {
-    "desc": "Day B lifts, 3 of 18 sets"
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "legcurl-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "checkpoint": "legcurl-added"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "pullup-page"
+  },
+  {
+   "tap": {
+    "text": "All sets"
    }
   },
   {
@@ -695,21 +776,11 @@
   },
   {
    "tap": {
-    "text": "Edit day"
+    "text": "Swap exercise"
    }
   },
   {
-   "tap": {
-    "desc": "More options for Pull-Up / Chin-Up"
-   }
-  },
-  {
-   "tap": {
-    "text": "Swap"
-   }
-  },
-  {
-   "checkpoint": "pullup-swap"
+   "checkpoint": "swap-sheet"
   }
  ]
 }

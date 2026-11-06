@@ -261,6 +261,10 @@ Ramp and back-off rows carry as logged when the top held.
 An increase is offered (opening plus one stepper increment on full success, or a
 heavier set that made its reps; the larger, never stacked) and applied only when
 the lifter accepts; §11 numbers do not move.
+The offer reads the lift's latest qualifying evidence from each day's newest
+session in the same plan (#502): a heavier full-rep working set anywhere, or full
+success at the opening weight. A miss on another day earns no increase. Archived
+tracks keep their own rep targets and row identities; Last stays per day and slot.
 On screen the heading is built from the working rows, 'Repeat' or a '+5 lb' chip
 sits beside the weight, the Today preview's Last is the same plan, day and slot
 (falling back to the exercise anywhere, labeled with its day), and the Next time

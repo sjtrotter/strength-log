@@ -256,6 +256,96 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     @Test
+    fun `progressionSessions offers a heavier Day B squat on Day A while Last stays per slot`() = runTest {
+        val opening = listOf(LoggedSet(45.0, 5, SetKind.WORK))
+        val elsewhere = listOf(LoggedSet(30.0, 5, SetKind.RAMP), LoggedSet(50.0, 5, SetKind.WORK))
+        val ownJson = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = opening.map(SetDto::of)),
+        ))
+        val otherJson = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(2, "bb_back_squat", Slot.SS, sets = elsewhere.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = ownJson), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 45.0, 4, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+            ImportedSession(session(2_000L).copy(planId = 10L, dayId = "B", plannedJson = otherJson), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 55.0, 5, true).copy(
+                    slot = Slot.SS, setIndex = 1, trackPosition = 2, plannedIndex = 1),
+            )),
+            ImportedSession(session(3_000L).copy(planId = 20L, dayId = "B", plannedJson = ownJson), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 100.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+            ImportedSession(session(4_000L).copy(plannedJson = ownJson), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 100.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+        ), emptyList())
+
+        val evidence = repo.progressionSessions(10L, listOf("bb_back_squat", "unknown"))
+        assertEquals(setOf("bb_back_squat"), evidence.keys)
+        assertEquals(listOf(elsewhere, opening), evidence.getValue("bb_back_squat").map { it.planned })
+        assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, evidence.getValue("bb_back_squat"))!!, 0.0)
+        val own = repo.slotSessions(10L, "A").getValue("bb_back_squat" to Slot.MAIN)
+        assertNull(CarryForward.offer(own.planned, own.actual, WeightUnit.LB))
+        assertEquals(opening, CarryForward.next(own.planned, own.actual))
+        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A"),
+            repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat"))["bb_back_squat" to Slot.MAIN])
+        assertTrue(repo.progressionSessions(10L, emptyList()).isEmpty())
+        assertTrue(repo.progressionSessions(30L, listOf("bb_back_squat")).isEmpty())
+    }
+
+    @Test
+    fun `progressionSessions replaces an older success with a miss elsewhere and respects archive identities`() = runTest {
+        val opening = listOf(LoggedSet(45.0, 5, SetKind.WORK))
+        val planned = listOf(LoggedSet(50.0, 5, SetKind.WORK))
+        val encoded = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = planned.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 55.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+        ), emptyList())
+        assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB,
+            repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat"))!!, 0.0)
+
+        for (row in listOf(
+            set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 4, true).copy(trackPosition = 0, plannedIndex = 0),
+            set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, false).copy(trackPosition = 0, plannedIndex = 0),
+            set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, true).copy(trackPosition = 0),
+            set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, true).copy(trackPosition = 1, plannedIndex = 0),
+        )) {
+            repo.importSessionHistory(listOf(
+                ImportedSession(session(2_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), listOf(row)),
+            ), emptyList())
+            val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
+            assertEquals(1, evidence.size)
+            assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence))
+        }
+
+        val duplicate = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = planned.map(SetDto::of)),
+            PlannedTrackDto(1, "bb_back_squat", Slot.MAIN, sets = planned.map(SetDto::of)),
+            PlannedTrackDto(2, "bb_back_squat", Slot.SS, retired = true, sets = planned.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B", plannedJson = duplicate), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+                set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 4, true).copy(trackPosition = 1, plannedIndex = 0),
+                set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, true).copy(slot = Slot.SS, trackPosition = 2, plannedIndex = 0),
+            )),
+        ), emptyList())
+        val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
+        assertEquals(1, evidence.size)
+        assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence))
+
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B"), emptyList()),
+        ), emptyList())
+        assertTrue(repo.progressionSessions(10L, listOf("bb_back_squat")).isEmpty())
+    }
+
+    @Test
     fun `lastPerformedForSlots prefers the same plan day and slot and labels the fallback`() = runTest {
         repo.importSessionHistory(listOf(
             ImportedSession(session(1_000L).copy(planId = 10L, planName = "Own"), listOf(

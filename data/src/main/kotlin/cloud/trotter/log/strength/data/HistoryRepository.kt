@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -243,9 +244,33 @@ class HistoryRepository(
      *  For duplicate keys, the last archived track wins. */
     suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
-        val plannedJson = session.plannedJson ?: return@withTransaction emptyMap()
-        val sets = sessionDao.setsForSession(session.id)
-        SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
+        archivedTracks(session, sessionDao.setsForSession(session.id))
+    }
+
+    /** Each day's newest tracks in this plan, grouped by lift with newest evidence first. */
+    suspend fun progressionSessions(planId: Long, exerciseIds: List<String>): Map<String, List<CarryForward.Session>> {
+        if (exerciseIds.isEmpty()) return emptyMap()
+        return db.withTransaction {
+            val sessions = sessionDao.latestSessionsForPlan(planId)
+            if (sessions.isEmpty()) return@withTransaction emptyMap()
+            val sets = sessionDao.setsForSessions(sessions.map { it.id }, exerciseIds).groupBy { it.sessionId }
+            val result = mutableMapOf<String, MutableList<CarryForward.Session>>()
+            for (session in sessions) {
+                for ((key, track) in archivedTracks(session, sets[session.id].orEmpty())) {
+                    if (key.first !in exerciseIds || track.retired) continue
+                    result.getOrPut(key.first) { mutableListOf() }.add(CarryForward.Session(track.planned, track.actual))
+                }
+            }
+            result
+        }
+    }
+
+    private fun archivedTracks(
+        session: WorkoutSessionEntity,
+        sets: List<SessionSetEntity>,
+    ): Map<Pair<String, String>, SlotSession> {
+        val plannedJson = session.plannedJson ?: return emptyMap()
+        return SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
             SlotSession(
                 dto.sets.map(SetDto::toDomain),
                 sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot && it.trackPosition == dto.position }

@@ -132,6 +132,22 @@ interface SessionDao {
     @Query("SELECT * FROM workout_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
     suspend fun lastSessionForDay(planId: Long, dayId: String): WorkoutSessionEntity?
 
+    @Query(
+        """
+        SELECT ws.* FROM workout_session ws
+        WHERE ws.planId = :planId AND NOT EXISTS (
+            SELECT 1 FROM workout_session newer
+            WHERE newer.planId = ws.planId AND newer.dayId = ws.dayId
+                AND (newer.completedAt > ws.completedAt OR (newer.completedAt = ws.completedAt AND newer.id > ws.id))
+        )
+        ORDER BY ws.completedAt DESC, ws.id DESC
+        """,
+    )
+    suspend fun latestSessionsForPlan(planId: Long): List<WorkoutSessionEntity>
+
+    @Query("SELECT * FROM session_set WHERE sessionId IN (:sessionIds) AND exerciseId IN (:exerciseIds) ORDER BY id")
+    suspend fun setsForSessions(sessionIds: List<Long>, exerciseIds: List<String>): List<SessionSetEntity>
+
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of
      * [exerciseIds], newest session first (ties — i.e. rows from the same session

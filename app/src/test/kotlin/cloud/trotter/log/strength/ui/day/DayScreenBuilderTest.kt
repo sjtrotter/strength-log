@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -86,6 +87,20 @@ class DayScreenBuilderTest {
         val applied = rows.map { it.copy(weightLb = WeightUnit.KG.toLb(62.501)) }
         assertEquals(true, (DayScreenBuilder.nextTime(applied, success, false, WeightUnit.KG) as NextTime.Offer).applied)
         assertEquals(NextTime.Repeat, DayScreenBuilder.nextTime(opening, success.copy(actual = emptyList()), false, WeightUnit.KG))
+    }
+
+    @Test
+    fun `next time uses another day's evidence and preserves accepting and restoring the offer`() {
+        val opening = List(3) { work(45.0, 5) }
+        val own = SlotSession(opening, opening.mapIndexed { i, row -> row.copy(done = true, reps = 4, plannedIndex = i) }, false)
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, own, false, WeightUnit.LB, evidence))
+        assertNull(DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, own, false, WeightUnit.LB, evidence))
+        assertNull(DayScreenBuilder.nextTime(opening, own, true, WeightUnit.LB, evidence))
     }
 
     @Test

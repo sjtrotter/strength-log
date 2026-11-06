@@ -47,6 +47,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -1712,7 +1713,8 @@ class DayViewModel @Inject constructor(
      *  — never one query per exercise for either. */
     private suspend fun fetchDayHistory(ids: List<String>, planId: Long, dayId: String): DayHistory {
         return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
-            historyRepository.lastPerformedDates(ids), historyRepository.slotSessions(planId, dayId))
+            historyRepository.lastPerformedDates(ids), historyRepository.slotSessions(planId, dayId),
+            historyRepository.progressionSessions(planId, ids))
     }
 
     private fun buildState(
@@ -1979,9 +1981,11 @@ class DayViewModel @Inject constructor(
                 else DayScreenBuilder.workingHeading(main, tracking, unit),
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
-            nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[performed.exerciseId to Slot.MAIN], pe.keepToPlan, unit),
+            nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[performed.exerciseId to Slot.MAIN], pe.keepToPlan, unit,
+                history.progressionSessions[performed.exerciseId].orEmpty()),
             partnerNextTime = slot.partner?.let {
-                DayScreenBuilder.nextTime(it.sets, history.slotSessions[it.performed.exerciseId to Slot.SS], pe.keepToPlan, unit)
+                DayScreenBuilder.nextTime(it.sets, history.slotSessions[it.performed.exerciseId to Slot.SS], pe.keepToPlan, unit,
+                    history.progressionSessions[it.performed.exerciseId].orEmpty())
             },
             perHand = entry?.perHand == true,
             tracking = tracking,
@@ -2016,6 +2020,7 @@ class DayViewModel @Inject constructor(
         val personalRecords: Map<String, PersonalRecord>,
         val lastPerformedDates: Map<String, Long> = emptyMap(),
         val slotSessions: Map<Pair<String, String>, SlotSession> = emptyMap(),
+        val progressionSessions: Map<String, List<CarryForward.Session>> = emptyMap(),
     )
 
     private data class DayContext(

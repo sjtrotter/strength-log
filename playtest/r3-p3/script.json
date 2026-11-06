@@ -3,14 +3,11 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-16",
+  "date": "2026-11-24",
   "time": "06:00",
   "zone": "America/Chicago"
  },
  "steps": [
-  {
-   "checkpoint": "today"
-  },
   {
    "tap": {
     "text": "Plans"
@@ -23,29 +20,136 @@
   },
   {
    "tap": {
-    "textContains": "1 lift, 4 sets"
+    "textContains": "0 lifts",
+    "index": 0
    }
-  },
-  {
-   "checkpoint": "dayA-preview"
   },
   {
    "tap": {
-    "text": "Start day A"
+    "text": "Edit day"
    }
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "115"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
   },
   {
    "checkpoint": "workout"
   },
   {
    "tap": {
-    "desc": "Edit set 1"
+    "text": "Log 115 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "Log 115 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "Log 115 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "Log 115 kg \u00d7 5"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "note": "Set 5: got 4, racked it"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
    }
   },
   {
    "type": {
-    "text": "Weight (kg)",
-    "value": "182.5"
+    "text": "Reps",
+    "value": "4"
    }
   },
   {
@@ -54,97 +158,22 @@
    }
   },
   {
-   "checkpoint": "after-edit"
+   "checkpoint": "set5-edited"
   },
   {
    "tap": {
-    "textContains": "Log 182.5"
+    "textContains": "Log 115 kg \u00d7 4"
    }
   },
   {
-   "checkpoint": "set2"
-  },
-  {
-   "advance": "3m30s"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 2"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "182.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 182.5"
-   }
-  },
-  {
-   "advance": "3m30s"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "182.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 182.5"
-   }
-  },
-  {
-   "advance": "3m30s"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 4"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "182.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 182.5"
-   }
-  },
-  {
-   "checkpoint": "squat-done"
+   "checkpoint": "bench-done"
   },
   {
    "advance": "10s"
   },
   {
    "tap": {
-    "text": "Finish day A"
+    "text": "Finish day B"
    }
   },
   {
@@ -158,7 +187,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Wk2. Set 3 rep 3 slow out of hole. RPE 7.5. Paused 152.5 3x3. Belt sq 110. R knee grumpy."
+    "value": "Wk3 Tue. Set 5 got 4, first miss. Close grip 100 3x6, shouldn't have. Rows, face pulls. No bike, packing."
    }
   },
   {
@@ -167,15 +196,12 @@
    }
   },
   {
-   "checkpoint": "note-saved"
-  },
-  {
    "tap": {
     "text": "Done"
    }
   },
   {
-   "checkpoint": "today-after"
+   "checkpoint": "today"
   }
  ]
 }

@@ -172,17 +172,6 @@
   },
   {
    "tap": {
-    "text": "Barbell Back Squat"
-   }
-  },
-  {
-   "checkpoint": "squat-row-tap"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "text": "Edit"
    }
   },

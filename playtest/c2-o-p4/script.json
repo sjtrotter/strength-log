@@ -2,6 +2,23 @@
   "seat": "c2-o-p4",
   "start": {"restore": "start-backup.json", "date": "2026-11-13", "time": "17:31", "zone": "America/Chicago"},
   "steps": [
-    {"checkpoint": "today-open"}
+    {"checkpoint": "today-open"},
+    {"tap": {"text": "Resume day C"}},
+    {"checkpoint": "resumed-c"},
+    {"tap": {"desc": "Day C lifts, 12 of 15 sets"}},
+    {"checkpoint": "c-overview"},
+    {"tap": {"text": "Rower"}},
+    {"checkpoint": "c-rower-page"},
+    {"tap": {"text": "Start"}},
+    {"advance": "8m11s"},
+    {"type": {"text": "Distance (m)", "value": "2000"}},
+    {"tap": {"text": "Stop"}},
+    {"checkpoint": "c-rower-stopped"},
+    {"tap": {"tag": "workout-finish"}},
+    {"checkpoint": "c-finish-dialog"},
+    {"tap": {"text": "Finish", "inDialog": true}},
+    {"checkpoint": "c-summary"},
+    {"tap": {"text": "Add a note"}},
+    {"checkpoint": "c-note-dialog"}
   ]
 }

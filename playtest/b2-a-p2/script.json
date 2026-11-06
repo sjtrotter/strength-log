@@ -2293,6 +2293,336 @@
     },
     {
       "checkpoint": "tuesday-walk-fifteen-minutes"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "tuesday-walk-stopped-without-distance"
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "tuesday-full-session-recap"
+    },
+    {
+      "expect": {
+        "text": "Upper, done."
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench 165: 5/5/5. Pull-ups 6/6/5. Walked 15 minutes, distance unknown. Comfortable bench; add 5 next Tuesday.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d23h18m"
+    },
+    {
+      "checkpoint": "thursday-nov12-home"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day B"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-lower-b-prescription-before-editing"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "thursday-lower-b-editor"
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "265",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-prescription-265"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "checkpoint": "thursday-first-deadlift-warmup"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "95",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 95 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb \u00d7 3"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 225 lb \u00d7 3"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "265",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 265 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "thursday-deadlift-four-warmups-and-one-work-set"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "thursday-remaining-deadlift-prescription"
+    },
+    {
+      "tap": {
+        "text": "Skip this set"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-done-with-one-work-set"
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "thursday-lifts-to-do-next"
     }
   ]
 }

@@ -183,6 +183,129 @@
     },
     {
       "note": "Pause here to inspect the final setup screen and any equipment or working-set inputs before accepting a plan."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "tap": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "easy-cardio-no-5k-target"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bodyweight"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bench"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Rack"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rack"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "checkpoint": "my-garage-equipment"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "personalized-rotation-top"
+    },
+    {
+      "scrollTo": {
+        "text": "Day D"
+      }
+    },
+    {
+      "checkpoint": "personalized-rotation-bottom"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "note": "I wanted Monday lower, Tuesday upper, Thursday lower, Saturday upper. This rotation starts upper, and says missing a day never skips the next workout. I will look for day editing and scheduling after setup. No working-set input was offered in the eight setup pages."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "first-home-after-setup"
     }
   ]
 }

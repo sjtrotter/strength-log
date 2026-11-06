@@ -592,6 +592,57 @@
   },
   {
    "checkpoint": "after-2m-rest"
+  },
+  {
+   "tap": {
+    "text": "Log 185 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Log 185 lb \u00d7 5"
+   }
+  },
+  {
+   "checkpoint": "squat-done"
+  },
+  {
+   "advance": "2m30s"
+  },
+  {
+   "checkpoint": "after-squat-rest"
+  },
+  {
+   "expect": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 155 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Log 155 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m30s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "checkpoint": "edit-set-sheet"
   }
  ]
 }

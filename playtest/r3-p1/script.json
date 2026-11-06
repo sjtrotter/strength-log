@@ -1,9 +1,80 @@
 {
-  "seat": "r3-p1",
-  "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "first-open"},
-    {"tap": {"text": "Get started"}}
-  ]
+ "seat": "r3-p1",
+ "capture": "compact",
+ "start": {
+  "date": "2026-11-08",
+  "time": "20:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "tap": {
+    "text": "Strength-leaning\nFewer reps, more weight on the mains."
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-2"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-3"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-4"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-5"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-6"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz-8"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "after-wizard"
+  }
+ ]
 }

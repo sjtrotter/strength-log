@@ -105,28 +105,84 @@
    "checkpoint": "wizard-6-filled"
   },
   {
+   "checkpoint": "equipment-default"
+  },
+  {
+   "tap": {
+    "text": "Trap Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Machine"
+   }
+  },
+  {
+   "tap": {
+    "text": "Cable"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "checkpoint": "equipment-mine"
+  },
+  {
    "tap": {
     "text": "Next"
    }
   },
   {
-   "checkpoint": "wizard-7"
+   "checkpoint": "rotation-top"
   },
   {
-   "tap": {
-    "text": "Next"
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
    }
   },
   {
-   "checkpoint": "wizard-8"
+   "checkpoint": "rotation-bottom"
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Barbell Bench Press",
+    "index": 0
    }
   },
   {
-   "checkpoint": "after-wizard"
+   "checkpoint": "rotation-tap-bench"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2s"
+  },
+  {
+   "checkpoint": "today-first"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-tab"
   }
  ]
 }

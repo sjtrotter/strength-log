@@ -540,16 +540,7 @@
    "back": true
   },
   {
-   "tap": {
-    "desc": "More",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "daysheet-more"
-  },
-  {
-   "back": true
+   "advance": "5s"
   },
   {
    "tap": {
@@ -560,7 +551,10 @@
    "checkpoint": "finish1"
   },
   {
-   "back": true
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
   },
   {
    "checkpoint": "finish-back"

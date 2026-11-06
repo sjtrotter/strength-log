@@ -1466,6 +1466,98 @@
     },
     {
       "note": "Monday main lifts are saved. Inspect empty-plan fields next and build Tuesday paused deadlift, rows and bike. Saved summary only showed squat top single, while bench showed all five sets. Check history before calling the backoffs missing."
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day options",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "day-options-scheduling-copy-discovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Meet prep Nov 9-Dec 6",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create"
+      }
+    },
+    {
+      "checkpoint": "own-program-created"
+    },
+    {
+      "tap": {
+        "text": "Meet prep Nov 9-Dec 6"
+      }
+    },
+    {
+      "checkpoint": "own-program-detail"
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "own-program-add-tuesday-fields"
     }
   ]
 }

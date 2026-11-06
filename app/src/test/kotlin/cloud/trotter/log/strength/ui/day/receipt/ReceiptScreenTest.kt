@@ -123,6 +123,21 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun `a ramped row speaks its collapsed working-set count`() {
+        val top = receiptFixture().groups.first().rows.single()
+        val row = top.copy(sets = top.sets + listOf(185.0, 175.0, 165.0).map { ReceiptSet(it, 8, 0) },
+            lines = top.lines + ValueLine(185.0, listOf(1)), lighterSets = 2)
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+
+        rule.onAllNodesWithText("Top set", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("185 lb × 8", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("and 2 lighter sets", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. 185 pounds: 8 reps. and 2 lighter sets. Weight record, up from 240 pounds for 5 reps.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
     fun `next times for another session are ignored`() {
         val receipt = receiptFixture().copy(groups = receiptFixture().groups.take(1))
         setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId + 1, listOf(ReceiptNextTime(0, 0, 250.0, 245.0))))

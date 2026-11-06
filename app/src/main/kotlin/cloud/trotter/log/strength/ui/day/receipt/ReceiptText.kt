@@ -110,7 +110,9 @@ internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptNextT
                 spokenSet(row.sets[line.setIndices.first()], row.tracking, unit))
             else stringResource(R.string.receipt_say_weight_group, spokenWeight(requireNotNull(line.weightLb), unit),
                 spokenList(line.setIndices.map { row.sets[it].reps.toString() }))
-        }.joinToString(" ")
+        }.joinToString(" ") + if (row.lighterSets > 0) {
+            " " + pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets) + "."
+        } else ""
         ReceiptRow.Shape.HEAVIEST_NO_TOP -> stringResource(R.string.receipt_say_top_set_not_logged) + " " +
             stringResource(R.string.receipt_say_heaviest, spokenSet(row.sets[row.lines.first().setIndices.first()], row.tracking, unit))
         else -> when {

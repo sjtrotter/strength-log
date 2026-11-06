@@ -390,6 +390,16 @@
     },
     {
       "tap": {
+        "desc": "Day A lifts, 6 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },
@@ -441,6 +451,33 @@
     },
     {
       "checkpoint": "monday-bike-twelve-minutes"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-stopped-at-twelve"
+    },
+    {
+      "tap": {
+        "textContains": "Log "
+      }
+    },
+    {
+      "checkpoint": "monday-bike-recorded"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-review"
     }
   ]
 }

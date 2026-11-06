@@ -488,11 +488,49 @@
    "back": true
   },
   {
-   "checkpoint": "ws-after-back"
+   "note": "Mon Nov 9 squat: set up the plan and the app put me in a live session; just lift"
   },
   {
    "tap": {
-    "textContains": "Day A lifts"
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "set1-logged"
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "checkpoint": "rest-after"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "set4-logged"
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 4 of 4 sets"
    }
   },
   {
@@ -502,16 +540,12 @@
    "back": true
   },
   {
-   "back": true
+   "tap": {
+    "tag": "workout-finish"
+   }
   },
   {
-   "checkpoint": "left-workout"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "left2"
+   "checkpoint": "finish-tap"
   }
  ]
 }

@@ -102,7 +102,20 @@
    }
   },
   {
-   "checkpoint": "after-pick"
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "ex-options"
+  },
+  {
+   "tap": {
+    "textContains": "rescription"
+   }
+  },
+  {
+   "checkpoint": "prescription"
   }
  ]
 }

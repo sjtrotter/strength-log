@@ -9,16 +9,32 @@
  },
  "steps": [
   {
-   "checkpoint": "tue-today"
-  },
-  {
    "tap": {
     "text": "History",
     "role": "Tab"
    }
   },
   {
-   "checkpoint": "history"
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "history-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -38,20 +54,50 @@
   },
   {
    "tap": {
-    "text": "Start day C1"
+    "text": "Edit"
    }
   },
   {
-   "checkpoint": "c1-started"
-  },
-  {
-   "swipe": {
-    "desc": "Plank / Side Plank, set 1 of 3",
-    "direction": "left"
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
    }
   },
   {
-   "checkpoint": "c1-run-card"
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "remove-dialog"
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "after-remove"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "run-screen"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "run-logged"
   }
  ]
 }

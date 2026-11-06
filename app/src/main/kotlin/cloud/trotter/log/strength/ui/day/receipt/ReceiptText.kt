@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -101,11 +102,15 @@ private fun spokenRecords(mark: RecordMark): String {
 }
 
 @Composable
-internal fun spokenRow(row: ReceiptRow, unit: WeightUnit): String {
+internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptNextTime? = null): String {
     if (row.shape == ReceiptRow.Shape.SKIPPED) return stringResource(R.string.receipt_say_skipped, row.name)
     val work = when (row.shape) {
-        ReceiptRow.Shape.TOP_SET -> stringResource(R.string.receipt_say_top_set,
-            spokenSet(row.sets[row.lines.first().setIndices.first()], row.tracking, unit))
+        ReceiptRow.Shape.TOP_SET -> row.lines.mapIndexed { index, line ->
+            if (index == 0) stringResource(R.string.receipt_say_top_set,
+                spokenSet(row.sets[line.setIndices.first()], row.tracking, unit))
+            else stringResource(R.string.receipt_say_weight_group, spokenWeight(requireNotNull(line.weightLb), unit),
+                spokenList(line.setIndices.map { row.sets[it].reps.toString() }))
+        }.joinToString(" ")
         ReceiptRow.Shape.HEAVIEST_NO_TOP -> stringResource(R.string.receipt_say_top_set_not_logged) + " " +
             stringResource(R.string.receipt_say_heaviest, spokenSet(row.sets[row.lines.first().setIndices.first()], row.tracking, unit))
         else -> when {
@@ -127,7 +132,14 @@ internal fun spokenRow(row: ReceiptRow, unit: WeightUnit): String {
         if (row.shape == ReceiptRow.Shape.STRAIGHT) stringResource(R.string.receipt_say_record_on_set, spokenRecords(it), it.setIndex + 1, previous)
         else stringResource(R.string.receipt_say_record_up_from, spokenRecords(it), previous)
     }
-    return listOfNotNull("${row.name}.", work, record).joinToString(" ")
+    val next = nextTime?.let {
+        val offer = it.offerLb
+        if (offer == null) stringResource(R.string.receipt_say_next_time_repeat)
+        else stringResource(R.string.receipt_say_next_time_add,
+            WeightStepper.format(DayScreenBuilder.offerDelta(offer, it.openingLb, unit)) + " " + stringResource(
+                if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms))
+    }
+    return listOfNotNull("${row.name}.", work, record, next).joinToString(" ")
 }
 
 @Composable

@@ -272,6 +272,7 @@ control reads Progress / Plan with the disclosure 'Planned reps; increases need
 your approval.'
 Choosing Plan parks the slot's Progress values on the slot and choosing Progress
 again restores them.
+The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as the preview; a ramped lift's receipt row lists its top set and then its other working sets (#501).
 
 Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
 Backup v18 carries the optional field; older backups restore it as null.

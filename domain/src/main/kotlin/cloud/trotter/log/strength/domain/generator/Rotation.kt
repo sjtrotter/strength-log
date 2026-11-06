@@ -16,7 +16,7 @@ object Rotation {
         }
 
     fun nextFor(program: Program, currentId: String): String? {
-        val days = program.strengthDays.ifEmpty { program.days }
+        val days = program.rotationDays
         val index = days.indexOfFirst { it.id == currentId }
         return if (index < 0) null else days[(index + 1) % days.size].id
     }

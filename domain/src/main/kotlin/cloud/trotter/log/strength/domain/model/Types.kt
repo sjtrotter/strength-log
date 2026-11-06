@@ -94,8 +94,14 @@ data class Program(val days: List<ProgramDay>) {
     val strengthDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.STRENGTH }
     val cardioDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.CARDIO }
 
+    /** C1/C2 marked CARDIO are generated extras, not training days in the rotation.
+     *  Keep the legacy fallback for programs containing only those extras. */
+    val rotationDays: List<ProgramDay> get() = days.filterNot {
+        it.kind == ProgramDayKind.CARDIO && (it.id == "C1" || it.id == "C2")
+    }.ifEmpty { days }
+
     fun dayToShow(suggested: String?): ProgramDay? =
-        days.firstOrNull { it.id == suggested } ?: strengthDays.firstOrNull() ?: days.firstOrNull()
+        days.firstOrNull { it.id == suggested } ?: rotationDays.firstOrNull()
 
     companion object {
         /** History can outlive its program; the letter cycles through [DayAccentColors.count] accents. */

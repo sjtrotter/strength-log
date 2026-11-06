@@ -134,7 +134,8 @@ class TrackerRepository(
             programDao.deleteDay(planId, dayId)
             if (plan.suggestedDayId == dayId) {
                 val remaining = days.filter { it.dayId != dayId }
-                val rotation = remaining.filter { it.kind == ProgramDayKind.STRENGTH.name }.ifEmpty { remaining }
+                val rotationIds = assemble(remaining, emptyList()).rotationDays.map { it.id }.toSet()
+                val rotation = remaining.filter { it.dayId in rotationIds }
                 val next = rotation.firstOrNull { it.position > removed.position } ?: rotation.first()
                 planDao.updateSuggestedDay(planId, next.dayId)
             }
@@ -288,7 +289,7 @@ class TrackerRepository(
                     programDao.insertExercise(pe.toEntity(planId, day.id, pos))
                 }
             }
-            program.strengthDays.firstOrNull()?.let { planDao.updateSuggestedDay(planId, it.id) }
+            program.rotationDays.firstOrNull()?.let { planDao.updateSuggestedDay(planId, it.id) }
         }
     }
 

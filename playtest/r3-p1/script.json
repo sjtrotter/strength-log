@@ -443,7 +443,8 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -454,31 +455,26 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "lat-page"
+   "advance": "2m"
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "advance": "1m"
+   "advance": "2m"
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "1m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {

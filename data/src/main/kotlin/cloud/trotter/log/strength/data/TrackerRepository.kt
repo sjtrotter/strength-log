@@ -22,6 +22,8 @@ import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
@@ -401,9 +403,43 @@ class TrackerRepository(
     suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {
         db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.keepToPlan == keep) return@withTransaction
             programDao.setKeepToPlan(row.id, keep)
-            if (keep) deleteSlotWorkingValues(row)
+            if (keep) {
+                parkWorkingValues(row)
+                deleteSlotWorkingValues(row)
+            } else {
+                restoreParkedValues(row)
+            }
         }
+    }
+
+    private suspend fun parkWorkingValues(row: ProgramExerciseEntity) {
+        val tracks = listOf(Slot.MAIN, Slot.SS).mapNotNull { slot ->
+            val exerciseId = row.exerciseIdFor(slot) ?: return@mapNotNull null
+            val log = programDao.logForSlot(row.planId, row.dayId, row.id, slot) ?: return@mapNotNull null
+            ParkedTrackDto(slot, exerciseId, log.setsJson)
+        }
+        if (tracks.isNotEmpty()) programDao.setParkedLogs(row.id, ParkedLogsJson.encode(tracks))
+    }
+
+    private suspend fun restoreParkedValues(row: ProgramExerciseEntity) {
+        val parked = row.parkedLogsJson ?: return
+        val catalog = this.catalog.snapshot()
+        val prescription = PrescriptionJson.decode(row.prescriptionJson)
+        for (track in ParkedLogsJson.decode(parked)) {
+            if (track.exerciseId != row.exerciseIdFor(track.slot)) continue
+            val sets = SetJson.decodeSets(track.setsJson)
+            val first = sets.firstOrNull() ?: continue
+            val tracking = if (track.slot == Slot.MAIN) {
+                prescription?.tracking ?: catalog.find(track.exerciseId)?.tracking
+            } else {
+                catalog.find(track.exerciseId)?.tracking
+            }
+            if ((first.seconds > 0) != (tracking == TrackingType.TIMED)) continue
+            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, track.slot, sets))
+        }
+        programDao.setParkedLogs(row.id, null)
     }
 
     suspend fun resetSlotToPlan(programExerciseId: Long): Boolean = db.withTransaction {

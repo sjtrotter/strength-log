@@ -8,6 +8,7 @@ import kotlin.test.assertNull
 class BackupV17Test {
     private val codec = BackupCodec()
     private fun document() = BackupDocument(
+        schemaVersion = 17,
         settings = SettingsBackup(211, 33, "INTERMEDIATE", weightUnit = "KG", wizardComplete = true,
             bodyweightLbPrecise = 210.5),
         sessions = listOf(
@@ -35,7 +36,7 @@ class BackupV17Test {
     @Test fun `v17 round trip preserves precise settings sessions and unknown bodyweight`() {
         val snapshot = codec.decode(codec.encode(document())).toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(17, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(211, exported.settings.bodyweightLb)
         assertEquals(210.5, exported.settings.bodyweightLbPrecise)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
@@ -77,7 +78,7 @@ class BackupV17Test {
                 assertEquals(listOf(211.0, null), snapshot.sessions.map { it.bodyweightLb }, "schema v$version")
 
                 val exported = snapshot.toDocument()
-                assertEquals(17, exported.schemaVersion)
+                assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
                 assertEquals(185, exported.settings.bodyweightLb)
                 assertEquals(185.0, exported.settings.bodyweightLbPrecise)
                 assertEquals(listOf(211, null), exported.sessions.map { it.bodyweightLb })

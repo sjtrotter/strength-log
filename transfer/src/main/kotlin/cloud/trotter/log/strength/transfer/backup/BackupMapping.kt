@@ -115,6 +115,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 note = ex.note,
                                 prescriptionJson = ex.prescriptionJson,
                                 keepToPlan = ex.keepToPlan,
+                                parkedLogsJson = ex.parkedLogsJson,
                             )
                         },
                     )
@@ -265,6 +266,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     note = ex.note,
                     prescriptionJson = if (schemaVersion >= 10) ex.prescriptionJson else null,
                     keepToPlan = ex.keepToPlan ?: (schemaVersion >= 10 && ex.prescriptionJson != null),
+                    parkedLogsJson = if (schemaVersion >= 18) ex.parkedLogsJson else null,
                 )
             }
         }

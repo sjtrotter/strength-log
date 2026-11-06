@@ -266,6 +266,11 @@ sits beside the weight, the Today preview's Last is the same plan, day and slot
 (falling back to the exercise anywhere, labeled with its day), and the Next time
 control reads Progress / Plan with the disclosure 'Planned reps; increases need
 your approval.'
+Choosing Plan parks the slot's Progress values on the slot and choosing Progress
+again restores them.
+
+Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
+Backup v18 carries the optional field; older backups restore it as null.
 
 ## Architecture
 

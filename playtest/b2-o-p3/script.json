@@ -541,11 +541,69 @@
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "desc": "More",
+    "index": 0
    }
   },
   {
-   "checkpoint": "finish-tap"
+   "checkpoint": "daysheet-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Finish day A"
+   }
+  },
+  {
+   "checkpoint": "finish1"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "finish-back"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "hist1"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "hist-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "today-after"
   }
  ]
 }

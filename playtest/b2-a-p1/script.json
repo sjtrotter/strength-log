@@ -570,6 +570,278 @@
     },
     {
       "checkpoint": "leg-curl-machine-choices"
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "checkpoint": "seated-leg-curl-added-looking-for-prescription"
+    },
+    {
+      "expect": {
+        "desc": "More options for Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "replaced-with-leg-press"
+    },
+    {
+      "expect": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "checkpoint": "replaced-with-machine-chest-press"
+    },
+    {
+      "expect": {
+        "desc": "More options for Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "checkpoint": "replaced-with-machine-row"
+    },
+    {
+      "expect": {
+        "desc": "More options for Machine Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "checkpoint": "machine-chest-press-my-starting-target"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "checkpoint": "machine-row-my-starting-target"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "checkpoint": "seated-leg-curl-my-starting-target"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "leg-press-prescription-after-replacing-squat"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "60"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "my-four-machine-routine"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "checkpoint": "walking-selected-instead-of-running"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "machine-workout-ready-before-first-set"
+    },
+    {
+      "advance": "1h"
+    },
+    {
+      "note": "Monday gym: five minutes easy treadmill walking before the machines. I want to record it too; checking whether the workout exposes a cardio route."
+    },
+    {
+      "checkpoint": "monday-workout-controls-looking-for-warmup-walk"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "first-leg-press-set-entry"
     }
   ]
 }

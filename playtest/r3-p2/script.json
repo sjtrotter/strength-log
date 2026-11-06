@@ -18,6 +18,14 @@
     },
     {
       "checkpoint": "plans-customization-entry"
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-builder"
     }
   ]
 }

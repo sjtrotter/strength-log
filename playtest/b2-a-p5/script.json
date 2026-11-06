@@ -1123,26 +1123,39 @@
       "checkpoint": "editing-an-already-logged-set"
     },
     {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More"
+      "type": {
+        "text": "Reps",
+        "value": "5"
       }
     },
     {
       "tap": {
-        "text": "Note"
+        "text": "Save set"
       }
     },
     {
-      "checkpoint": "goblet-note-entry-for-next-time-thirty"
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
-      "back": true
+      "tap": {
+        "tag": "lift-set-1"
+      }
     },
     {
-      "back": true
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "corrected-mistyped-completed-squat-back-to-six"
     },
     {
       "tap": {
@@ -1171,7 +1184,7 @@
       "back": true
     },
     {
-      "note": "Second plank round was 24 seconds left and 30 right. Leaving it unlogged while looking for a truthful way to record unequal sides. Standing calves were 20 lb each hand, 3x12, still looking for their category."
+      "note": "Second plank round was 24 seconds left and 30 right. Leaving it unlogged until I can record unequal sides truthfully. Standing calves were 20 lb each hand, 3x12; still looking for their category. Harness notes are not saved app notes."
     },
     {
       "back": true
@@ -1216,6 +1229,27 @@
     },
     {
       "checkpoint": "monday-finish-review-with-unrepresented-plank-and-calves"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "side-plank-note-entry-for-unequal-sides"
     }
   ]
 }

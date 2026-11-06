@@ -244,7 +244,17 @@
    }
   },
   {
-   "checkpoint": "copen-form"
+   "tap": {
+    "text": "Movement pattern"
+   }
+  },
+  {
+   "checkpoint": "pattern-picker"
+  },
+  {
+   "scrollTo": {
+    "textContains": "ore"
+   }
   },
   {
    "tap": {

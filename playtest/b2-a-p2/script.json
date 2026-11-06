@@ -379,7 +379,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -456,7 +456,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -549,7 +549,7 @@
     },
     {
       "tap": {
-        "text": "3 \u00d7 10 at 150 lb"
+        "text": "3 × 10 at 150 lb"
       }
     },
     {
@@ -825,7 +825,7 @@
     },
     {
       "tap": {
-        "text": "Log 45 lb \u00d7 10"
+        "text": "Log 45 lb × 10"
       }
     },
     {
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 5"
+        "text": "Log 135 lb × 5"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 3"
+        "text": "Log 185 lb × 3"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1077,7 +1077,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1155,7 +1155,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1166,7 +1166,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1177,7 +1177,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1228,7 +1228,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1268,7 +1268,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1419,7 +1419,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -1652,7 +1652,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -1824,7 +1824,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -1835,7 +1835,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -1843,7 +1843,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -2039,7 +2039,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb \u00d7 8"
+        "text": "Log 115 lb × 8"
       }
     },
     {
@@ -2047,7 +2047,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb \u00d7 8"
+        "text": "Log 115 lb × 8"
       }
     },
     {
@@ -2055,7 +2055,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb \u00d7 8"
+        "text": "Log 115 lb × 8"
       }
     },
     {
@@ -2125,7 +2125,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb \u00d7 12"
+        "text": "Log 10 lb × 12"
       }
     },
     {
@@ -2133,7 +2133,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb \u00d7 12"
+        "text": "Log 10 lb × 12"
       }
     },
     {
@@ -2193,7 +2193,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -2303,11 +2303,22 @@
       "checkpoint": "tuesday-walk-stopped-without-distance"
     },
     {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "expect": {
+        "text": "Time’s up",
+        "absent": true
+      }
+    },
+    {
       "advance": "3s"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day A"
       }
     },
     {
@@ -2348,7 +2359,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day B"
+        "text": "4-day upper/lower · Day B"
       }
     },
     {
@@ -2450,7 +2461,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -2485,7 +2496,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 5"
+        "text": "Log 135 lb × 5"
       }
     },
     {
@@ -2520,7 +2531,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 3"
+        "text": "Log 185 lb × 3"
       }
     },
     {
@@ -2555,7 +2566,7 @@
     },
     {
       "tap": {
-        "text": "Log 225 lb \u00d7 3"
+        "text": "Log 225 lb × 3"
       }
     },
     {
@@ -2590,7 +2601,7 @@
     },
     {
       "tap": {
-        "text": "Log 265 lb \u00d7 5"
+        "text": "Log 265 lb × 5"
       }
     },
     {
@@ -2623,6 +2634,210 @@
     },
     {
       "checkpoint": "thursday-lifts-to-do-next"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "thursday-add-light-squat-picker"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "squat",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "thursday-squat-search-results"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "thursday-added-squat-return"
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "thursday-light-squat-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "thursday-light-squat-ready"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "checkpoint": "thursday-three-light-squat-sets-logged"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "calf",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "thursday-standing-dumbbell-calf-search"
     }
   ]
 }

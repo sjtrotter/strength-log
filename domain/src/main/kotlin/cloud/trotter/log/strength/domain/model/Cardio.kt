@@ -62,3 +62,6 @@ data class CardioBlock(val activity: CardioActivity, val sets: List<CardioSetSpe
         require(sets.isNotEmpty()) { "cardio block must have at least one set" }
     }
 }
+
+/** What a cardio block's increase changes. Stored by name; new constants go at the end. */
+enum class ProgressMeasure { DISTANCE, TIME, PACE }

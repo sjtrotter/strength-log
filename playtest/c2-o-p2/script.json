@@ -124,6 +124,14 @@
    }
   },
   {
+   "checkpoint": "after-cal-tap"
+  },
+  {
+   "tap": {
+    "textContains": "Nov 17, 2026"
+   }
+  },
+  {
    "checkpoint": "nov17-detail"
   },
   {
@@ -136,8 +144,8 @@
    }
   },
   {
-   "tap": {
-    "text": "Other days"
+   "expect": {
+    "text": "4-day upper/lower \u00b7 Day C1"
    }
   },
   {

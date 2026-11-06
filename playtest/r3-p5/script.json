@@ -21,7 +21,7 @@
   },
   {
    "tap": {
-    "desc": "Day C1"
+    "desc": "Day A"
    }
   },
   {
@@ -30,29 +30,44 @@
    }
   },
   {
+   "checkpoint": "a-editday"
+  },
+  {
    "tap": {
-    "text": "Edit cardio"
+    "desc": "More options for Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "edit-cardio"
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back1"
-  },
-  {
    "tap": {
-    "desc": "More options for Plank / Side Plank"
+    "desc": "More options for Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "ex-more"
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap"
   },
   {
    "back": true
+  },
+  {
+   "scrollTo": {
+    "text": "Add exercise"
+   }
   },
   {
    "tap": {
@@ -60,41 +75,21 @@
    }
   },
   {
-   "checkpoint": "add-ex"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "where"
-  },
-  {
-   "tap": {
-    "text": "Plans",
-    "role": "Tab"
+   "swipe": {
+    "text": "Hinge",
+    "direction": "up"
    }
   },
   {
-   "tap": {
-    "text": "New plan"
-   }
+   "checkpoint": "movements-lower"
   },
   {
    "tap": {
-    "text": "Start empty"
+    "text": "Single-leg"
    }
   },
   {
-   "checkpoint": "empty"
+   "checkpoint": "single-leg"
   }
  ]
 }

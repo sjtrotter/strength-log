@@ -206,6 +206,14 @@
    "checkpoint": "settings"
   },
   {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
    "back": true
   },
   {
@@ -214,7 +222,40 @@
    }
   },
   {
-   "checkpoint": "plans-tab"
+   "tap": {
+    "desc": "Plan options"
+   }
+  },
+  {
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "190 lb"
+   }
+  },
+  {
+   "checkpoint": "you"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "4-day upper/lower"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
   },
   {
    "tap": {
@@ -223,29 +264,16 @@
    }
   },
   {
-   "checkpoint": "plans-dayD"
-  },
-  {
-   "back": true
+   "checkpoint": "plan-dayD"
   },
   {
    "tap": {
-    "text": "Today",
-    "role": "Tab"
+    "textContains": "Back Squat",
+    "index": 0
    }
   },
   {
-   "tap": {
-    "desc": "Settings"
-   }
-  },
-  {
-   "scrollTo": {
-    "textContains": "xport"
-   }
-  },
-  {
-   "checkpoint": "settings-export"
+   "checkpoint": "plan-squat"
   }
  ]
 }

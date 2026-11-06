@@ -379,7 +379,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -456,7 +456,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -549,7 +549,7 @@
     },
     {
       "tap": {
-        "text": "3 × 10 at 150 lb"
+        "text": "3 \u00d7 10 at 150 lb"
       }
     },
     {
@@ -825,7 +825,7 @@
     },
     {
       "tap": {
-        "text": "Log 45 lb × 10"
+        "text": "Log 45 lb \u00d7 10"
       }
     },
     {
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 5"
+        "text": "Log 135 lb \u00d7 5"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 3"
+        "text": "Log 185 lb \u00d7 3"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1077,7 +1077,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1155,7 +1155,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1166,7 +1166,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1177,7 +1177,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1228,7 +1228,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -1268,7 +1268,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -1419,7 +1419,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -1441,7 +1441,287 @@
       "checkpoint": "monday-return-to-planks-after-data-options"
     },
     {
-      "note": "Monday lifting actuals remain four warmups and squat215x5x3, RDL135x8x3, lunge25x8x2 eachleg. Need inspect timed fields then log30s holds, add cold-garage note, save at52min. Backup and set-menu visits are actual task attempts, not completed export or notes."
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "checkpoint": "monday-all-prescribed-work-logged"
+    },
+    {
+      "advance": "8m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-at-52-minutes"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-completed-recap"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "home-after-first-completed-workout"
+    },
+    {
+      "advance": "23h8m"
+    },
+    {
+      "checkpoint": "tuesday-nov10-home"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "tuesday-upper-a-editor"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-straight-set-structure"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "165",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-prescription-165-for-five"
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for One-Arm DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "tuesday-barbell-row-search"
+    },
+    {
+      "note": "Monday cold garage context still needs an in-app note; no note field seen in set menu or finish confirmation. Tuesday plan is bench165x5x3, barbell row115x8x3, pullups6/6/5, raises10x12x2 and walk15m. Need choose actual displayed barbell-row result and set walk cardio before training."
     }
   ]
 }

@@ -799,6 +799,19 @@
     },
     {
       "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "bench-swap-confirmed"
+    },
+    {
+      "tap": {
         "text": "Barbell Bench Press"
       }
     },
@@ -848,6 +861,19 @@
     },
     {
       "checkpoint": "cable-row-swap-result"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "row-swap-confirmed"
     },
     {
       "tap": {

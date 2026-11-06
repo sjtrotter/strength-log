@@ -114,9 +114,13 @@
    }
   },
   {
+   "scrollTo": {
+    "desc": "November 17, day A, 1 session"
+   }
+  },
+  {
    "tap": {
-    "textContains": "Nov 17",
-    "index": 0
+    "desc": "November 17, day A, 1 session"
    }
   },
   {

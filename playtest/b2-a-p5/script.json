@@ -1462,11 +1462,24 @@
     },
     {
       "tap": {
-        "text": "Edit"
+        "desc": "Day C1 lifts, 0 of 3 sets"
       }
     },
     {
-      "checkpoint": "cardio-day-editor"
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-menu-looking-for-edit-and-run-controls"
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-editor-from-workout-menu"
     },
     {
       "tap": {
@@ -1479,15 +1492,15 @@
       }
     },
     {
-      "checkpoint": "run-without-attached-core-work"
+      "checkpoint": "cardio-day-after-removing-unwanted-planks"
     },
     {
       "tap": {
-        "text": "Road run"
+        "text": "Add cardio"
       }
     },
     {
-      "checkpoint": "road-run-prescription-fields"
+      "checkpoint": "adding-my-standalone-road-run"
     },
     {
       "back": true
@@ -1496,21 +1509,19 @@
       "back": true
     },
     {
-      "checkpoint": "cardio-workout-live-controls"
-    },
-    {
-      "back": true
+      "checkpoint": "run-only-workout-controls"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "History"
+        "text": "History",
+        "role": "Tab"
       }
     },
     {
-      "checkpoint": "history-after-first-strength-save"
+      "checkpoint": "history-with-monday-strength"
     },
     {
       "tap": {
@@ -1523,7 +1534,24 @@
       }
     },
     {
-      "checkpoint": "backup-export-and-restore-options"
+      "checkpoint": "readable-export-backup-and-restore-entry-points"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "checkpoint": "plan-details-to-edit-future-sessions-and-run-days"
     },
     {
       "back": true
@@ -1535,13 +1563,7 @@
       }
     },
     {
-      "checkpoint": "ready-for-first-run-after-history-check"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "checkpoint": "standalone-run-draft-after-reopening"
+      "checkpoint": "tuesday-run-draft-and-next-strength-day"
     }
   ]
 }

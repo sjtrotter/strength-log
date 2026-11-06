@@ -465,31 +465,12 @@
    "checkpoint": "rdl-allsets-more"
   },
   {
-   "back": true
-  },
-  {
    "tap": {
-    "text": "Skip this set"
+    "text": "Skip for this workout"
    }
   },
   {
-   "checkpoint": "rdl-skip1"
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "checkpoint": "rdl-skip3"
-  },
-  {
-   "back": true
+   "checkpoint": "rdl-skipped"
   },
   {
    "checkpoint": "after-rdl-skip"

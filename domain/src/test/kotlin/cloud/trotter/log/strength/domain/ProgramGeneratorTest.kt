@@ -12,6 +12,9 @@ import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.availableWith
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -316,6 +319,80 @@ class ProgramGeneratorTest {
     }
 
     // --- equipment profile (PLAN.md A4) --------------------------------------
+
+    @Test
+    fun `generated plans use only ticked equipment`() {
+        val all = Equipment.entries.toSet()
+        val equipmentSets = listOf(
+            all - setOf(Equipment.BARBELL, Equipment.TRAP_BAR),
+            setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.BENCH, Equipment.RACK, Equipment.PULLUP_BAR),
+            all - setOf(Equipment.MACHINE, Equipment.CABLE, Equipment.TRAP_BAR, Equipment.EZ_BAR, Equipment.KETTLEBELL),
+            all - Equipment.BODYWEIGHT,
+        )
+        for (days in 2..6) {
+            for (split in listOfNotNull(SplitDefaults.defaultFor(days), SplitDefaults.alternativeFor(days))) {
+                for (equipment in equipmentSets) {
+                    val program = ProgramGenerator.generate(
+                        WizardAnswers(daysPerWeek = days, split = split, equipment = equipment),
+                    )
+                    for (day in program.days) {
+                        for (pe in day.exercises) {
+                            for (id in listOfNotNull(pe.exerciseId, pe.superset?.exerciseId)) {
+                                val entry = ExerciseLibrary.get(id)
+                                assertTrue(entry.availableWith(equipment), "Unavailable $id on day ${day.id} ($split, $days days, $equipment)")
+                                if (!pe.structure.hasTopSet) {
+                                    assertTrue(entry.goal !is GoalSource.Std, "Std-sourced accessory $id")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `an unavailable anchor becomes its pattern's best available weighted lift`() {
+        val answers = WizardAnswers(equipment = Equipment.entries.toSet() - setOf(Equipment.BARBELL, Equipment.TRAP_BAR))
+        val program = ProgramGenerator.generate(answers)
+        val first = ExerciseLibrary.get(ids(program.days.first()).first())
+
+        assertTrue(first.id != "bb_back_squat")
+        assertEquals(MovementPattern.SQUAT_BILATERAL, first.pattern)
+        assertEquals(TrackingType.WEIGHTED, first.tracking)
+        assertTrue(first.availableWith(answers.equipment))
+        assertEquals(
+            ExerciseLibrary.byPattern(MovementPattern.SQUAT_BILATERAL)
+                .first { it.tracking == TrackingType.WEIGHTED && it.availableWith(answers.equipment) }.id,
+            first.id,
+        )
+        for (id in ProgramGenerator.availableAnchorIds(answers)) {
+            val entry = ExerciseLibrary.get(id)
+            assertTrue(Equipment.BARBELL !in entry.equipment && Equipment.TRAP_BAR !in entry.equipment)
+        }
+    }
+
+    @Test
+    fun `a day nothing available can fill is left out`() {
+        val answers = WizardAnswers(equipment = emptySet(), cardio = CardioPrefs(mode = CardioMode.NONE))
+        assertTrue(ProgramGenerator.generate(answers).days.isEmpty())
+
+        val cardioOnly = ProgramGenerator.generate(answers.copy(
+            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
+        ))
+        assertEquals(listOf("C1", "C2"), cardioOnly.days.map { it.id })
+        assertTrue(cardioOnly.days.all { it.exercises.isEmpty() && it.cardioBlock != null })
+    }
+
+    @Test
+    fun `full equipment anchors are the scheme anchors`() {
+        for (scheme in AnchorScheme.entries) {
+            for (variant in DeadliftVariant.entries) {
+                val answers = WizardAnswers(anchorScheme = scheme, deadliftVariant = variant)
+                assertEquals(ProgramGenerator.anchorIds(answers), ProgramGenerator.availableAnchorIds(answers))
+            }
+        }
+    }
 
     @Test
     fun `excluding machines swaps a machine rank-1 pick for the best non-machine one`() {

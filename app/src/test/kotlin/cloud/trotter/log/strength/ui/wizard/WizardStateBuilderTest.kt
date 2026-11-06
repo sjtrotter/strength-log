@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,6 +51,28 @@ class WizardStateBuilderTest {
         val state = WizardStateBuilder.buildUiState(last, WizardAnswers(), isComplete = false)
         assertEquals(WizardStep.ROTATION, state.step)
         assertTrue(state.isLastStep)
+    }
+
+    @Test
+    fun `rotation preview lists every exercise of each day`() {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val state = WizardStateBuilder.buildUiState(
+            WizardStep.ROTATION.ordinal, answers, false, previewProgram = program,
+        )
+
+        for (day in program.days) {
+            val lifts = state.previewLifts.getValue(day.id)
+            val names = day.exercises.map { pe ->
+                ExerciseLibrary.get(pe.exerciseId).name +
+                    pe.superset?.let { " + " + ExerciseLibrary.get(it.exerciseId).name }.orEmpty()
+            }
+            assertEquals(names, lifts.map { it.name })
+            assertEquals(day.exercises.map { it.targetSets }, lifts.map { it.setCount })
+        }
+        assertEquals(6, state.previewLifts.getValue("A").size)
+        assertEquals("TOP × 5 · 235 lb", state.previewLifts.getValue("A").first().detail)
+        assertTrue(state.previewLifts.getValue("B")[4].name.contains(" + "))
     }
 
     // --- anchor-set narrowing surfaces the :domain SSOT (spec §6.1) -----------

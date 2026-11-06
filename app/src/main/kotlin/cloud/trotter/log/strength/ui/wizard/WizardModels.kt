@@ -29,10 +29,12 @@ enum class WizardStep {
     ROTATION,
 }
 
+data class WizardPreviewLift(val name: String, val setCount: Int, val detail: String?)
+
 /**
  * Everything [cloud.trotter.log.strength.ui.wizard.WizardScreen] renders:
- * the current step, the in-progress [answers] draft, and the two pieces of
- * per-step derived preview ([splitOptions], [activeAnchorIds]) so the screen
+ * the current step, the in-progress [answers] draft, and the
+ * per-step derived previews ([splitOptions], [activeAnchorIds], [previewLifts]) so the screen
  * never has to call into [SplitDefaults]/[cloud.trotter.log.strength.domain.generator.ProgramGenerator]
  * itself — [WizardStateBuilder] is the one place that happens.
  */
@@ -44,6 +46,7 @@ data class WizardUiState(
     val activeAnchorIds: List<String> = emptyList(),
     val unit: WeightUnit = WeightUnit.LB,
     val previewProgram: Program? = null,
+    val previewLifts: Map<String, List<WizardPreviewLift>> = emptyMap(),
     val isComplete: Boolean = false,
     val restore: WizardRestoreState = WizardRestoreState(),
     val finishError: UiText? = null,

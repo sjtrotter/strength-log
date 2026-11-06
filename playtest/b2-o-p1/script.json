@@ -554,7 +554,7 @@
   },
   {
    "tap": {
-    "text": "Save"
+    "text": "Save note"
    }
   },
   {
@@ -589,11 +589,127 @@
   },
   {
    "tap": {
-    "textContains": "Day B"
+    "text": "3-day full body \u00b7 Day B"
    }
   },
   {
    "checkpoint": "dayB-wed"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "dayB-edit"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "65"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayB-edit-bench65"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "bench-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-bench"
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 3 of 18 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More",
+    "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Pull-Up / Chin-Up"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "pullup-swap"
   }
  ]
 }

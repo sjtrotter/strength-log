@@ -534,6 +534,66 @@
   },
   {
    "checkpoint": "summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "checkpoint": "note-open"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Wear flat shoes, running shoes felt squishy on squats. Skipped treadmill, out of time."
+   }
+  },
+  {
+   "checkpoint": "note-typed"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-mon"
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "advance": "1d23h"
+  },
+  {
+   "checkpoint": "today-wed"
+  },
+  {
+   "tap": {
+    "textContains": "Day B"
+   }
+  },
+  {
+   "checkpoint": "dayB-wed"
   }
  ]
 }

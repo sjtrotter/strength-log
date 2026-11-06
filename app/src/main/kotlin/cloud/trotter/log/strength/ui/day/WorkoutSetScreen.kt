@@ -97,10 +97,12 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.WorkoutRestShape
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import kotlinx.coroutines.delay
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
@@ -219,7 +221,7 @@ private fun WorkoutSetContent(
                                         stringResource(R.string.day_next_exercise, nextTitle.orEmpty()), resting, true,
                                         actions.onNextWorkoutLift, guardKey = guardKey)
                                 run?.running == true && end is Measure.Distance -> WorkoutActionSpec(
-                                    stringResource(R.string.cardio_reached, end.metres), false, true,
+                                    stringResource(R.string.cardio_reached, distanceUnitFor(cardio.block?.activity).format(end.metres)), false, true,
                                     { actions.onReachCardioTarget(run.action()) },
                                     stringResource(R.string.day_cardio_stop_button) to { actions.onStopCardio(run.action()) }, guardKey)
                                 run?.running == true -> WorkoutActionSpec(
@@ -350,6 +352,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
     val run = cardio.run
     val done = cardio.completed || state.workoutCardioOnlyDone ||
         (state.workout?.shown as? WorkoutSelection.Shown.Group)?.complete == true
+    val entryUnit = DistanceUnit.forActivity(cardio.distanceUnit, block.activity)
     val spec = block.sets.getOrNull(cardio.position)
     val position = spec?.let { stringResource(R.string.workout_cardio_position, roleName(it.role), cardio.position + 1, block.sets.size) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -368,7 +371,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                 Icon(Icons.Default.Check, null)
                 Text(stringResource(R.string.set_edit_done), style = MaterialTheme.typography.titleMedium)
             }
-            CardioSummary(run?.resultSets ?: cardio.loggedSets, run?.results?.sumOf { it.seconds } ?: cardio.loggedSeconds ?: 0)
+            CardioSummary(run?.resultSets ?: cardio.loggedSets, run?.results?.sumOf { it.seconds } ?: cardio.loggedSeconds ?: 0, block.activity)
         } else if (spec != null) {
             Text(position.orEmpty(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when (val end = spec.end) {
@@ -376,12 +379,12 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                     WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.elapsedSeconds else 0))
                     Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(stringResource(R.string.workout_cardio_aim, measureText(end)), style = MaterialTheme.typography.titleLarge,
+                    Text(stringResource(R.string.workout_cardio_aim, measureText(end, block.activity)), style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (run?.running == true) OutlinedTextField(
                         value = cardio.runDistanceText, onValueChange = actions.onCardioRunDistanceChange,
-                        label = { Text(stringResource(R.string.cardio_distance_label)) }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        label = { Text(stringResource(R.string.cardio_distance_label, entryUnit.symbol)) }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = if (entryUnit == DistanceUnit.M) KeyboardType.Number else KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth().testTag("workout-cardio-distance"),
                     )
                 } else {
@@ -394,14 +397,14 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                     WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
                     Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else WorkoutHeroText(end.metres.toString(), stringResource(R.string.workout_metres_unit))
+                } else WorkoutHeroText(distanceUnitFor(block.activity).inputText(end.metres), distanceUnitFor(block.activity).symbol)
             }
             spec.aim?.let {
-                Text(stringResource(R.string.workout_cardio_aim, measureText(it)), style = MaterialTheme.typography.titleLarge,
+                Text(stringResource(R.string.workout_cardio_aim, measureText(it, block.activity)), style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (spec.end is Measure.Distance && run?.running == true) {
-                Text(stringResource(R.string.workout_cardio_to, measureText(spec.end)), style = MaterialTheme.typography.titleLarge,
+                Text(stringResource(R.string.workout_cardio_to, measureText(spec.end, block.activity)), style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

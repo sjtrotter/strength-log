@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.rest.PhoneRestController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,9 +23,9 @@ class SetupViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val preferences = combine(
-        settings.unitFlow, settings.restSettingsFlow, settings.phoneRestTimerEnabledFlow,
-    ) { unit, restSettings, phoneEnabled ->
-        SetupStateBuilder.buildUiState(unit, restSettings, phoneEnabled)
+        settings.unitFlow, settings.restSettingsFlow, settings.phoneRestTimerEnabledFlow, settings.distanceUnitFlow,
+    ) { unit, restSettings, phoneEnabled, distanceUnit ->
+        SetupStateBuilder.buildUiState(unit, restSettings, phoneEnabled, distanceUnit = distanceUnit)
     }
 
     val uiState: StateFlow<SetupUiState> = combine(preferences, settings.themePreferenceFlow, settings.keepScreenOnFlow) { state, theme, keepOn ->
@@ -33,6 +34,10 @@ class SetupViewModel @Inject constructor(
 
     fun setUnit(unit: WeightUnit) {
         viewModelScope.launch { settings.setUnit(unit) }
+    }
+
+    fun setDistanceUnit(unit: DistanceUnit) {
+        viewModelScope.launch { settings.setDistanceUnit(unit) }
     }
 
     fun setThemePreference(theme: ThemePreference) {

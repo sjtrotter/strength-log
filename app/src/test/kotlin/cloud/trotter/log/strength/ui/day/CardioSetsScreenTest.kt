@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,14 +57,14 @@ class CardioSetsScreenTest {
             onCardioDistanceChange = { text -> run = run.copy(drafts = listOf(run.drafts.single().copy(text = text))) },
             onSaveCardioDistance = { delivered = it; saved++ },
         )
-        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions) } }
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.MI) } }
         rule.onNodeWithText("Set stopped").assertExists()
         rule.onNodeWithText("Track run · Set 1").assertExists()
         rule.onNodeWithText("Distance (m)").assertIsNotFocused()
         rule.onNodeWithText("Continue without distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("0")
         rule.onNodeWithText("Save distance").assertIsNotEnabled()
-        rule.onNodeWithText("Enter meters greater than 0").assertExists()
+        rule.onNodeWithText("Enter a distance greater than 0").assertExists()
         rule.onNodeWithContentDescription("Increase distance").performClick()
         rule.onNodeWithText("Save distance").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("")
@@ -72,6 +73,19 @@ class CardioSetsScreenTest {
             assertEquals(1, saved)
             assertEquals(run.action(0), delivered)
         }
+    }
+
+    @Test fun roadDistanceSheetLabelsAndEditsTheProvidedUnit() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(300))))
+        var run by mutableStateOf(run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
+            results = listOf(SavedCardioResult("FINISHED", 300)), drafts = listOf(CardioDistanceDraft(0, false))))
+        val actions = workoutActions().copy(onCardioDistanceChange = { text ->
+            run = run.copy(drafts = listOf(run.drafts.single().copy(text = text)))
+        })
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.KM) } }
+        rule.onNodeWithText("Distance (km)").performTextReplacement("5.25")
+        rule.onNodeWithText("Save distance").assertIsEnabled()
+        rule.runOnIdle { assertEquals(5250, run.drafts.single().metres(DistanceUnit.KM)) }
     }
 
     @Test fun cardioSheetReportsStatusesAndThePrescribedAim() {

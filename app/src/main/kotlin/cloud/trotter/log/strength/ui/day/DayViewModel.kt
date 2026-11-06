@@ -55,6 +55,7 @@ import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
@@ -127,6 +128,9 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
+
+    val distanceUnit: StateFlow<DistanceUnit> = settings.distanceUnitFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DistanceUnit.MI)
 
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
         KEY_VIEW_SELECTION,
@@ -305,6 +309,7 @@ class DayViewModel @Inject constructor(
         cardioRun, cardioTick, cardioSecondTicker, timedRepEvent,
     ) { run, _, _, reps -> run to reps }.combine(pendingCardioDistances) { execution, _ -> execution }
         .combine(runDistance) { execution, _ -> execution }
+        .combine(distanceUnit) { execution, _ -> execution }
 
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
         sessions to sets
@@ -623,9 +628,16 @@ class DayViewModel @Inject constructor(
     private fun runDistanceFor(run: CardioRun): CardioRunDistance? =
         runDistance.value?.takeIf { it.runId == run.runId && it.position == run.position }
 
+    private fun distanceUnitFor(run: CardioRun): DistanceUnit =
+        DistanceUnit.forActivity(distanceUnit.value, run.block.activity)
+
+    private fun acceptsDistanceText(text: String, unit: DistanceUnit): Boolean =
+        if (unit == DistanceUnit.M) text.all { it in '0'..'9' }
+        else text.matches(Regex("[0-9]*(\\.[0-9]{0,2})?"))
+
     fun changeCardioRunDistance(text: String) {
         val run = cardioRun.value?.takeIf { it.running && it.block.openEnded } ?: return
-        if (text.isEmpty() || (text.all(Char::isDigit) && text.toIntOrNull() != null)) {
+        if (acceptsDistanceText(text, distanceUnitFor(run))) {
             savedState[KEY_CARDIO_RUN_DISTANCE] = CardioRunDistance(run.runId, run.position, text)
         }
     }
@@ -636,7 +648,7 @@ class DayViewModel @Inject constructor(
         cardioAlarm.cancel()
         cardioAlertAnchor = null
         val finished = if (run.block.openEnded) {
-            val metres = runDistanceFor(run)?.metres
+            val metres = runDistanceFor(run)?.metres(distanceUnitFor(run))
             run.finish(CardioSetStatus.FINISHED, cardioElapsedSeconds(run), cardioClock,
                 metres = metres, requestDistance = metres == null)
         } else run.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(run), cardioClock)
@@ -678,7 +690,7 @@ class DayViewModel @Inject constructor(
         if (ended.running) {
             ended = if (ended.block.openEnded) {
                 ended.finish(CardioSetStatus.FINISHED, cardioElapsedSeconds(ended), cardioClock,
-                    metres = runDistanceFor(ended)?.metres, requestDistance = false)
+                    metres = runDistanceFor(ended)?.metres(distanceUnitFor(ended)), requestDistance = false)
             } else ended.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(ended), cardioClock, requestDistance = false)
         }
         savedState[KEY_CARDIO_RUN_DISTANCE] = null
@@ -760,6 +772,7 @@ class DayViewModel @Inject constructor(
     fun changeCardioDistance(text: String) {
         val action = distanceSheetAction() ?: return
         val run = distanceRun(action) ?: return
+        if (!acceptsDistanceText(text, distanceUnitFor(run))) return
         saveDistanceRun(run.copy(drafts = run.drafts.map { if (it.position == action.setIndex) it.copy(text = text) else it }))
     }
 
@@ -768,8 +781,8 @@ class DayViewModel @Inject constructor(
             if (distanceSheetAction() != action) return@mutate
             val run = distanceRun(action) ?: return@mutate
             val position = action.setIndex
-            val draft = run.drafts.firstOrNull { it.position == position && it.valid && !it.saved } ?: return@mutate
-            val next = run.enterDistance(position, draft.metres).copy(
+            val draft = run.drafts.firstOrNull { it.position == position && it.valid(distanceUnitFor(run)) && !it.saved } ?: return@mutate
+            val next = run.enterDistance(position, draft.metres(distanceUnitFor(run))).copy(
                 drafts = run.drafts.map { if (it.position == position) it.copy(saved = true, amended = false) else it },
                 saveFailed = false,
             )
@@ -874,7 +887,7 @@ class DayViewModel @Inject constructor(
                     val id = requireNotNull(pending.sessionId)
                     standingBestsFor(pending)
                     pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
-                        historyRepository.amendCardioSetDistance(id, draft.position, draft.metres)
+                        historyRepository.amendCardioSetDistance(id, draft.position, pending.results[draft.position].metres)
                         val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
                         saveDistanceRun(latest.copy(drafts = latest.drafts.map {
                             if (it.position == draft.position && it.saved && it.text == draft.text) it.copy(amended = true) else it
@@ -1856,7 +1869,8 @@ class DayViewModel @Inject constructor(
             (savedRun.planId != state.planId || savedRun.dayId != state.viewDayId)
         ) {
             return CardioCardState(activityLabel(savedRun.block.activity), "", savedRun.block.sets.any { it.hard },
-                block = savedRun.block, run = savedRun, canAddSet = false, finishesDay = savedRun.finishesDay)
+                block = savedRun.block, run = savedRun, canAddSet = false, finishesDay = savedRun.finishesDay,
+                distanceUnit = distanceUnit.value)
         }
         val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
@@ -1871,7 +1885,7 @@ class DayViewModel @Inject constructor(
                 block = it.block, finishesDay = it.finishesDay)
         }
         val base = sourceCard?.let { source ->
-            source.copy(loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
+            source.copy(distanceUnit = distanceUnit.value, loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
                     cardioRun.value?.canAddSet != false &&

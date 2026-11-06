@@ -52,6 +52,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.day.receipt.CardioReceiptRowItem
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.StrengthReceiptRow
@@ -153,7 +154,7 @@ internal fun SessionReceiptScreen(
             receipt.cardioRows.forEachIndexed { index, row ->
                 key(receipt.sessionId, index) {
                     CardioReceiptRowItem(if (receipt.recordsChecked) row else row.copy(record = null), receipt.dayIndex,
-                        "${receipt.sessionId}:cardio:$index", { roll.value })
+                        "${receipt.sessionId}:cardio:$index", { roll.value }, distanceUnitFor(receipt.activity))
                 }
             }
         }

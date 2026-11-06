@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -50,13 +51,24 @@ class SetupSectionsTest {
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer",
             "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
         }
         list.performScrollToNode(hasText("Rest timer"))
         composeTestRule.onNodeWithText("Rest timer").assertHasNoClickAction()
+    }
+
+    @Test fun distanceSegmentsShowMiAndKmAndForwardTheChoice() {
+        var chosen: DistanceUnit? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { chosen = it }))
+        } }
+        composeTestRule.onNodeWithText("Distance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("mi").assertIsSelected()
+        composeTestRule.onNodeWithText("km").performClick()
+        assertEquals(DistanceUnit.KM, chosen)
     }
 
     @Test

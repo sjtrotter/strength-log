@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -28,14 +29,14 @@ data class CardioDistanceDraft(
     val saved: Boolean = false,
     val amended: Boolean = false,
 ) : Parcelable {
-    val metres: Int? get() = text.toIntOrNull()?.takeIf { it > 0 }
-    val valid: Boolean get() = text.isBlank() || (text.all(Char::isDigit) && metres != null)
+    fun metres(unit: DistanceUnit): Int? = text.toDoubleOrNull()?.let(unit::toMetres)
+    fun valid(unit: DistanceUnit): Boolean = text.isBlank() || metres(unit) != null
 }
 
-/** Metres typed on the running screen for a lone timed set. Its own saved key, so [CardioRun] keeps its layout. */
+/** Distance typed in the display unit on the running screen for a lone timed set. Its own saved key, so [CardioRun] keeps its layout. */
 @Parcelize
 data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
-    val metres: Int? get() = text.toIntOrNull()?.takeIf { it > 0 }
+    fun metres(unit: DistanceUnit): Int? = text.toDoubleOrNull()?.let(unit::toMetres)
 }
 
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */

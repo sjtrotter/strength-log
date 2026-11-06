@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -29,7 +30,7 @@ class CardioEditPageTest {
         val draft = mutableStateOf(CardioSetDraft())
         var saved: CardioSetSpec? = null
         rule.setContent { AppTheme {
-            CardioSetPage(draft.value, { draft.value = it }, { saved = draft.value.spec() }, {})
+            CardioSetPage(draft.value, DistanceUnit.M, { draft.value = it }, { saved = draft.value.spec() }, {})
         } }
         rule.onNodeWithText("Distance").performClick()
         rule.onNodeWithText("400").assertExists()
@@ -43,11 +44,29 @@ class CardioEditPageTest {
     @Test
     fun durationShowsMinutesAndSecondsAndStepsByThirtySeconds() {
         val draft = mutableStateOf(CardioSetDraft(seconds = 1500))
-        rule.setContent { AppTheme { CardioSetPage(draft.value, { draft.value = it }, {}, {}) } }
+        rule.setContent { AppTheme { CardioSetPage(draft.value, DistanceUnit.M, { draft.value = it }, {}, {}) } }
         rule.onNodeWithText("25:00").performScrollTo().assertExists()
         rule.onNodeWithContentDescription("Increase duration").performScrollTo().performClick()
         rule.onNodeWithText("25:30").assertExists()
         rule.runOnIdle { assertEquals(1530, draft.value.seconds) }
+    }
+
+    @Test fun milesInTheSetEditorConvertToCanonicalMetres() {
+        val draft = mutableStateOf(CardioSetDraft(endIsTime = false, metres = 4989))
+        rule.setContent { AppTheme { CardioSetPage(draft.value, DistanceUnit.MI, { draft.value = it }, {}, {}) } }
+        rule.onNodeWithText("Distance (mi)").assertExists()
+        rule.onNodeWithText("3.1").assertExists()
+        rule.onNodeWithContentDescription("Increase distance").performClick()
+        rule.runOnIdle { assertEquals(5069, draft.value.metres) }
+        rule.onNodeWithText("Distance (mi)").performTextReplacement("2.5")
+        rule.runOnIdle { assertEquals(4023, draft.value.metres) }
+    }
+
+    @Test fun kilometersInTheSetEditorConvertToCanonicalMetres() {
+        val draft = mutableStateOf(CardioSetDraft(endIsTime = false, metres = 5000))
+        rule.setContent { AppTheme { CardioSetPage(draft.value, DistanceUnit.KM, { draft.value = it }, {}, {}) } }
+        rule.onNodeWithText("Distance (km)").performTextReplacement("5.25")
+        rule.runOnIdle { assertEquals(5250, draft.value.metres) }
     }
 
     @Test

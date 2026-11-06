@@ -59,6 +59,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
@@ -78,7 +79,7 @@ fun SetupScreen(
     openRestTimer: Boolean = false,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val rows = listOf("units", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -116,6 +117,23 @@ fun SetupScreen(
                                             modifier = Modifier.heightIn(min = 48.dp),
                                             icon = {},
                                         ) { Text(unit.name.lowercase()) }
+                                    }
+                                }
+                            },
+                        )
+                        "distance" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_distance)) },
+                            supportingContent = {
+                                val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                    units.forEachIndexed { index, unit ->
+                                        SegmentedButton(
+                                            selected = state.distanceUnit == unit,
+                                            onClick = { actions.onDistanceUnitChange(unit) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, units.size),
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            icon = {},
+                                        ) { Text(unit.symbol) }
                                     }
                                 }
                             },
@@ -369,7 +387,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
             ),
             actions = SetupActions(
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
-                onThemePreferenceChange = {},
+                onThemePreferenceChange = {}, onDistanceUnitChange = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

@@ -68,6 +68,7 @@ class BackupRepository(
         val topSetHelperSeen = settings.topSetHelperSeenFlow.first()
         val supersetHelperSeen = settings.supersetHelperSeenFlow.first()
         val themePreference = settings.themePreferenceFlow.first()
+        val distanceUnit = settings.storedDistanceUnitFlow.first()
         return db.withTransaction {
             // Use this same plan list for the legacy settings projection, too.
             // Separate reads could otherwise straddle a restore's Room commit.
@@ -85,6 +86,7 @@ class BackupRepository(
                 topSetHelperSeen = topSetHelperSeen,
                 supersetHelperSeen = supersetHelperSeen,
                 themePreference = themePreference,
+                distanceUnit = distanceUnit,
                 plans = plans,
                 customExercises = customExerciseDao.allOrdered(),
                 days = programDao.allDays(),
@@ -237,6 +239,7 @@ class BackupRepository(
                     topSetHelperSeen = snapshot.topSetHelperSeen,
                     supersetHelperSeen = snapshot.supersetHelperSeen,
                     themePreference = snapshot.themePreference,
+                    distanceUnit = snapshot.distanceUnit,
                     onTodayFixupDone = true,
                 )
             } catch (e: IOException) {

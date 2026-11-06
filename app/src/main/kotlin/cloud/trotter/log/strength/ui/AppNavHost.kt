@@ -614,6 +614,7 @@ private fun SetupRoute(
         openRestTimer = openRestTimer,
         actions = SetupActions(
             onUnitToggle = viewModel::setUnit,
+            onDistanceUnitChange = viewModel::setDistanceUnit,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,
             onPhoneRestTimerEnabledChange = viewModel::setPhoneRestTimerEnabled,

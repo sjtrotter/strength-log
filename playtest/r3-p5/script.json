@@ -108,19 +108,42 @@
   },
   {
    "tap": {
-    "text": "Plan"
+    "desc": "Settings"
    }
   },
   {
-   "checkpoint": "plan"
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
-    "text": "Day A"
+    "text": "Other days"
    }
   },
   {
-   "checkpoint": "dayA"
+   "checkpoint": "otherdays"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "textContains": "2-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
   }
  ]
 }

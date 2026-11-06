@@ -3,186 +3,29 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
+    "date": "2026-11-16",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "monday-before-first-workout"
+      "checkpoint": "week-two-before-squat"
     },
     {
       "tap": {
-        "text": "Plans"
+        "text": "Start day A"
       }
     },
     {
-      "checkpoint": "plans-customization-entry"
+      "checkpoint": "week-two-offered-target"
     },
     {
       "tap": {
-        "text": "New plan"
+        "desc": "Edit set 1"
       }
     },
     {
-      "checkpoint": "new-plan-builder"
-    },
-    {
-      "tap": {
-        "text": "Start empty"
-      }
-    },
-    {
-      "checkpoint": "empty-plan-editor"
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Garage four day",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create"
-      }
-    },
-    {
-      "checkpoint": "created-custom-plan"
-    },
-    {
-      "tap": {
-        "textContains": "0 lifts, 0 sets"
-      }
-    },
-    {
-      "checkpoint": "custom-day-exercise-editor"
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "checkpoint": "edit-day-controls"
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "exercise-picker"
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "checkpoint": "squat-exercise-options"
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "squat-added-prescription-controls"
-    },
-    {
-      "tap": {
-        "text": "Ramp to 190 lb, then 1 back-off"
-      }
-    },
-    {
-      "checkpoint": "squat-prescription-editor"
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "215"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "squat-set-structure-options"
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "checkpoint": "squat-lift-options"
-    },
-    {
-      "tap": {
-        "text": "Straight sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Close sheet"
-      }
-    },
-    {
-      "checkpoint": "straight-squat-ready"
-    },
-    {
-      "tap": {
-        "text": "Log 215 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 215 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 215 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "46m"
-    },
-    {
-      "checkpoint": "monday-three-squats-logged"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Finish day A"
-      }
-    },
-    {
-      "checkpoint": "monday-finish-review"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "checkpoint": "monday-saved"
+      "checkpoint": "edit-actual-squat-set"
     }
   ]
 }

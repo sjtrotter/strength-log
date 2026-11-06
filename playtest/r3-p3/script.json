@@ -107,15 +107,12 @@
    }
   },
   {
-   "checkpoint": "ex-options"
-  },
-  {
    "tap": {
-    "textContains": "rescription"
+    "text": "Lift options"
    }
   },
   {
-   "checkpoint": "prescription"
+   "checkpoint": "lift-options"
   }
  ]
 }

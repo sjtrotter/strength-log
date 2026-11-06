@@ -1306,6 +1306,19 @@
     },
     {
       "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "monday-share-summary-system-sheet-unavailable"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
         "text": "History"
       }
     },
@@ -1486,7 +1499,23 @@
       "checkpoint": "wednesday-next-lift-actual-set-options"
     },
     {
-      "note": "Wednesday deadlifts should now be 185 for three fives. Next configure shoulder press30x8,30x6,25x8; pulldown100x10x3; split squat20x8x2 each leg and rower12min2220m. Finish at18:46 for76min. Actual watts111/effort6 and slow-bench note from Monday remain unsaved; script notes are not app records."
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "wednesday-set-menu-warmup-note-correction-options"
+    },
+    {
+      "note": "Monday saved eleven working sets and a 12:01 bike ride. Summary says65min because first logged set17:38, versus gym entry17:30 and finish18:43. After Wednesday deadlifts, configure shoulder30x8,30x6,25x8; pulldown100x10x3; split20x8x2eachleg; rower12min2220m. Need Add a note from saved summary for bench slow/111W/effort6. No watts/effort app field found yet."
     }
   ]
 }

@@ -462,7 +462,7 @@
     },
     {
       "tap": {
-        "textContains": "Log "
+        "text": "Continue without distance"
       }
     },
     {
@@ -478,6 +478,16 @@
     },
     {
       "checkpoint": "monday-finish-review"
+    },
+    {
+      "tap": {
+        "textContains": "Finish",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-finished"
     }
   ]
 }

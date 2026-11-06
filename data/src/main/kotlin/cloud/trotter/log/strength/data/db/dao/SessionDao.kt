@@ -135,15 +135,11 @@ interface SessionDao {
     @Query(
         """
         SELECT ws.* FROM workout_session ws
-        WHERE ws.planId = :planId AND NOT EXISTS (
-            SELECT 1 FROM workout_session newer
-            WHERE newer.planId = ws.planId AND newer.dayId = ws.dayId
-                AND (newer.completedAt > ws.completedAt OR (newer.completedAt = ws.completedAt AND newer.id > ws.id))
-        )
+        WHERE ws.planId = :planId
         ORDER BY ws.completedAt DESC, ws.id DESC
         """,
     )
-    suspend fun latestSessionsForPlan(planId: Long): List<WorkoutSessionEntity>
+    suspend fun sessionsForPlan(planId: Long): List<WorkoutSessionEntity>
 
     @Query("SELECT * FROM session_set WHERE sessionId IN (:sessionIds) AND exerciseId IN (:exerciseIds) ORDER BY id")
     suspend fun setsForSessions(sessionIds: List<Long>, exerciseIds: List<String>): List<SessionSetEntity>

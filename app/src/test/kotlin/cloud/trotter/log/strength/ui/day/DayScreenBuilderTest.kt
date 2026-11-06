@@ -97,10 +97,26 @@ class DayScreenBuilderTest {
         val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
         val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
         assertEquals(expected, DayScreenBuilder.nextTime(opening, own, false, WeightUnit.LB, evidence))
-        assertNull(DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence))
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence))
         assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
             opening.map { it.copy(weightLb = 55.0) }, own, false, WeightUnit.LB, evidence))
         assertNull(DayScreenBuilder.nextTime(opening, own, true, WeightUnit.LB, evidence))
+    }
+
+    @Test
+    fun `next time without local history uses the opening prescription for accepting and restoring`() {
+        val opening = List(3) { work(45.0, 5) }
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, null, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, null, true, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(done = true) }, null, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB,
+            listOf(evidence.single().copy(actual = emptyList())), openingWeightLb = 45.0))
     }
 
     @Test

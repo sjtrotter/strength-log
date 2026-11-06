@@ -295,7 +295,7 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     @Test
-    fun `progressionSessions replaces an older success with a miss elsewhere and respects archive identities`() = runTest {
+    fun `progressionSessions keeps an older success after misses elsewhere and respects archive identities`() = runTest {
         val opening = listOf(LoggedSet(45.0, 5, SetKind.WORK))
         val planned = listOf(LoggedSet(50.0, 5, SetKind.WORK))
         val encoded = SessionPlanJson.encode(listOf(
@@ -319,8 +319,8 @@ class HistoryRepositoryHistoryReadTest {
                 ImportedSession(session(2_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), listOf(row)),
             ), emptyList())
             val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
-            assertEquals(1, evidence.size)
-            assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence))
+            assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence.take(1)))
+            assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, evidence)!!, 0.0)
         }
 
         val duplicate = SessionPlanJson.encode(listOf(
@@ -336,13 +336,40 @@ class HistoryRepositoryHistoryReadTest {
             )),
         ), emptyList())
         val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
-        assertEquals(1, evidence.size)
-        assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence))
+        assertEquals(listOf(LoggedSet(60.0, 4, SetKind.WORK, done = true, plannedIndex = 0)), evidence.first().actual)
+        assertNull(CarryForward.offer(opening, WeightUnit.LB, evidence.take(1)))
+        assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, evidence)!!, 0.0)
 
         repo.importSessionHistory(listOf(
             ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B"), emptyList()),
         ), emptyList())
-        assertTrue(repo.progressionSessions(10L, listOf("bb_back_squat")).isEmpty())
+        assertEquals(evidence, repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat"))
+    }
+
+    @Test
+    fun `progressionSessions finds the latest qualifying set after a newer skipped squat`() = runTest {
+        val opening = listOf(LoggedSet(45.0, 5, SetKind.WORK))
+        val encoded = SessionPlanJson.encode(listOf(
+            PlannedTrackDto(0, "bb_back_squat", Slot.MAIN, sets = opening.map(SetDto::of)),
+        ))
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L).copy(planId = 10L, plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 45.0, 4, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+            ImportedSession(session(2_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 60.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+            ImportedSession(session(3_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), listOf(
+                set("bb_back_squat", "Squat", SetKind.WORK, 55.0, 5, true).copy(trackPosition = 0, plannedIndex = 0),
+            )),
+            ImportedSession(session(4_000L).copy(planId = 10L, dayId = "B", plannedJson = encoded), emptyList()),
+        ), emptyList())
+
+        val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
+        assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, evidence)!!, 0.0)
+        assertTrue(repo.slotSessions(10L, "B").getValue("bb_back_squat" to Slot.MAIN).actual.isEmpty())
+        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A"),
+            repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat"))["bb_back_squat" to Slot.MAIN])
     }
 
     @Test

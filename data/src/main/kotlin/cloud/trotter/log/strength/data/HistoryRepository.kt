@@ -247,11 +247,11 @@ class HistoryRepository(
         archivedTracks(session, sessionDao.setsForSession(session.id))
     }
 
-    /** Each day's newest tracks in this plan, grouped by lift with newest evidence first. */
+    /** Archived tracks in this plan, grouped by lift with newest evidence first. */
     suspend fun progressionSessions(planId: Long, exerciseIds: List<String>): Map<String, List<CarryForward.Session>> {
         if (exerciseIds.isEmpty()) return emptyMap()
         return db.withTransaction {
-            val sessions = sessionDao.latestSessionsForPlan(planId)
+            val sessions = sessionDao.sessionsForPlan(planId)
             if (sessions.isEmpty()) return@withTransaction emptyMap()
             val sets = sessionDao.setsForSessions(sessions.map { it.id }, exerciseIds).groupBy { it.sessionId }
             val result = mutableMapOf<String, MutableList<CarryForward.Session>>()

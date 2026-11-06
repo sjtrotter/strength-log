@@ -75,7 +75,7 @@ class PreviewViewModel @Inject constructor(
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
                 val nextTime = DayScreenBuilder.nextTime(slot.main.sets,
                     slotSessions[slot.main.performed.exerciseId to Slot.MAIN], slot.slot.exercise.keepToPlan, unit,
-                    progressionSessions[slot.main.performed.exerciseId].orEmpty())
+                    progressionSessions[slot.main.performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb)
                 val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
                     val slotLast = last[track.performed.exerciseId to slotName]
                     val previous = slotLast?.last

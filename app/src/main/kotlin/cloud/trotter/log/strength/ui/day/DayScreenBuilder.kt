@@ -166,15 +166,17 @@ object DayScreenBuilder {
         keepToPlan: Boolean,
         unit: WeightUnit,
         progression: List<CarryForward.Session>? = null,
+        openingWeightLb: Double? = null,
     ): NextTime? {
-        if (keepToPlan || history == null || history.retired || rows.any { it.done }) return null
-        val carried = CarryForward.next(history.planned, history.actual)
+        if (keepToPlan || history?.retired == true || rows.any { it.done }) return null
+        val carried = history?.let { CarryForward.next(it.planned, it.actual) }
+            ?: rows.map { it.copy(weightLb = openingWeightLb ?: it.weightLb) }
         val opening = CarryForward.workingWeight(carried) ?: return null
         val current = CarryForward.workingWeight(rows) ?: return null
         fun display(lb: Double) = WeightStepper.toDisplayPrecision(unit.fromLb(lb))
-        val sessions = progression ?: listOf(CarryForward.Session(history.planned, history.actual))
+        val sessions = progression ?: history?.let { listOf(CarryForward.Session(it.planned, it.actual)) }.orEmpty()
         val offer = CarryForward.offer(carried, unit, sessions)
-            ?: return NextTime.Repeat.takeIf { display(current) == display(opening) }
+            ?: return NextTime.Repeat.takeIf { history != null && display(current) == display(opening) }
         val applied = when (display(current)) {
             display(opening) -> false
             display(offer) -> true

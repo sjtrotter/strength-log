@@ -116,9 +116,18 @@ internal val CardioCardState.position: Int get() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActions, distanceUnit: DistanceUnit) {
+internal fun CardioDistanceSheet(
+    run: CardioRun,
+    position: Int,
+    actions: DayActions,
+    distanceUnit: DistanceUnit,
+    input: CardioDistanceInput? = null,
+) {
     val draft = run.drafts.firstOrNull { it.position == position } ?: return
     val unit = DistanceUnit.forActivity(distanceUnit, run.block.activity)
+    val text = input?.takeIf { it.unit == unit }?.text
+        ?: draft.metres()?.let(unit::inputText) ?: draft.text
+    val valid = draft.valid()
     AppModalBottomSheet(
         onDismissRequest = actions.onCloseSetEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -126,7 +135,7 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
             SheetCommitButton(
                 label = stringResource(if (draft.text.isBlank()) R.string.sheet_without_distance else R.string.sheet_save_distance),
                 onClick = { actions.onSaveCardioDistance(run.action(position)) },
-                enabled = draft.valid(unit),
+                enabled = valid,
             )
         },
         title = {
@@ -139,7 +148,7 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
         body = {
             NumericSetField(
                 identity = "distance:${run.action(position)}",
-                value = draft.text.toDoubleOrNull() ?: 0.0,
+                value = text.toDoubleOrNull() ?: 0.0,
                 label = stringResource(R.string.cardio_distance_label, unit.symbol),
                 field = stringResource(R.string.sheet_distance_field),
                 partnerName = null,
@@ -150,11 +159,11 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
                 step = { if (unit == DistanceUnit.M) 1.0 else 0.05 },
                 round = { WeightStepper.format(it).toDouble() },
                 onChange = { actions.onCardioDistanceChange(it.takeIf { value -> value > 0 }?.let(WeightStepper::format).orEmpty()) },
-                textOverride = draft.text,
+                textOverride = text,
                 onTextChange = actions.onCardioDistanceChange,
-                isError = !draft.valid(unit),
+                isError = !valid,
             )
-            if (!draft.valid(unit)) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
+            if (!valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
         },
     )
 }

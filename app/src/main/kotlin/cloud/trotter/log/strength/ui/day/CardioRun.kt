@@ -19,6 +19,7 @@ data class SavedCardioResult(
     val metres: Int? = null,
 ) : Parcelable
 
+/** Text under the original saved keys stays in meters, including restored drafts. */
 @Parcelize
 data class CardioDistanceDraft(
     val position: Int,
@@ -29,15 +30,24 @@ data class CardioDistanceDraft(
     val saved: Boolean = false,
     val amended: Boolean = false,
 ) : Parcelable {
-    fun metres(unit: DistanceUnit): Int? = text.toDoubleOrNull()?.let(unit::toMetres)
-    fun valid(unit: DistanceUnit): Boolean = text.isBlank() || metres(unit) != null
+    fun metres(): Int? = text.toDoubleOrNull()?.let(DistanceUnit.M::toMetres)
+    fun valid(): Boolean = text.isBlank() || metres() != null
 }
 
-/** Distance typed in the display unit on the running screen for a lone timed set. Its own saved key, so [CardioRun] keeps its layout. */
+/** Text under the original saved key stays in meters, including restored drafts. */
 @Parcelize
 data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
-    fun metres(unit: DistanceUnit): Int? = text.toDoubleOrNull()?.let(unit::toMetres)
+    fun metres(): Int? = text.toDoubleOrNull()?.let(DistanceUnit.M::toMetres)
 }
+
+/** Editable display text has its own saved key so the original keys keep their meaning. */
+@Parcelize
+data class CardioDistanceInput(
+    val runId: String,
+    val position: Int,
+    val text: String,
+    val unit: DistanceUnit,
+) : Parcelable
 
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize

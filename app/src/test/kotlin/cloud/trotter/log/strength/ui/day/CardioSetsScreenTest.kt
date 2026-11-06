@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -80,12 +81,24 @@ class CardioSetsScreenTest {
         var run by mutableStateOf(run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
             results = listOf(SavedCardioResult("FINISHED", 300)), drafts = listOf(CardioDistanceDraft(0, false))))
         val actions = workoutActions().copy(onCardioDistanceChange = { text ->
-            run = run.copy(drafts = listOf(run.drafts.single().copy(text = text)))
+            val meters = text.toDoubleOrNull()?.let(DistanceUnit.KM::toMetres)?.toString().orEmpty()
+            run = run.copy(drafts = listOf(run.drafts.single().copy(text = meters)))
         })
         rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.KM) } }
         rule.onNodeWithText("Distance (km)").performTextReplacement("5.25")
         rule.onNodeWithText("Save distance").assertIsEnabled()
-        rule.runOnIdle { assertEquals(5250, run.drafts.single().metres(DistanceUnit.KM)) }
+        rule.runOnIdle { assertEquals(5250, run.drafts.single().metres()) }
+    }
+
+    @Test fun legacyDistanceBelowDisplayPrecisionStillEnablesSave() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(300))))
+        val run = run(block).copy(results = listOf(SavedCardioResult("FINISHED", 300)),
+            drafts = listOf(CardioDistanceDraft(0, false, "1")))
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, workoutActions(), DistanceUnit.MI) } }
+
+        rule.onNodeWithText("Distance (mi)").assertTextContains("0")
+        rule.onNodeWithText("Save distance").assertIsEnabled()
+        rule.onNodeWithText("Enter a distance greater than 0").assertDoesNotExist()
     }
 
     @Test fun cardioSheetReportsStatusesAndThePrescribedAim() {

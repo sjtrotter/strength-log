@@ -277,6 +277,8 @@ data class CardioCardState(
     val finishesDay: Boolean = false,
     val runDistanceText: String = "",
     val distanceUnit: DistanceUnit = DistanceUnit.MI,
+    val loggedActivity: cloud.trotter.log.strength.domain.model.CardioActivity? = null,
+    val distanceInputs: List<CardioDistanceInput> = emptyList(),
 )
 
 enum class CardioPhase { SUGGESTION, EXECUTING }

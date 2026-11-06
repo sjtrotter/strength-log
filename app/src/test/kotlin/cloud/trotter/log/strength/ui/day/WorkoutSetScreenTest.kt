@@ -1104,6 +1104,18 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(1, nexts) }
     }
 
+    @Test fun completedTrackSummaryKeepsMetersAfterPlanChangesToRoadRun() {
+        val base = workoutSetCardioDoneFixture()
+        val cardio = requireNotNull(base.cardio)
+        val results = cardio.loggedSets.map { it.copy(metres = 400) }
+        show(base.copy(cardio = cardio.copy(run = null, loggedSets = results, loggedSeconds = 100,
+            loggedActivity = CardioActivity.TRACK_RUN)))
+
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Distance 400 m").assertIsDisplayed()
+        rule.onNodeWithText("Distance 0.25 mi").assertDoesNotExist()
+    }
+
     @Test fun cardioDoneWithNothingLeftOffersFinish() {
         show(workoutSetCardioDoneFixture())
         rule.onNodeWithText("Done").assertIsDisplayed()

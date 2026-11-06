@@ -371,7 +371,8 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                 Icon(Icons.Default.Check, null)
                 Text(stringResource(R.string.set_edit_done), style = MaterialTheme.typography.titleMedium)
             }
-            CardioSummary(run?.resultSets ?: cardio.loggedSets, run?.results?.sumOf { it.seconds } ?: cardio.loggedSeconds ?: 0, block.activity)
+            CardioSummary(run?.resultSets ?: cardio.loggedSets, run?.results?.sumOf { it.seconds } ?: cardio.loggedSeconds ?: 0,
+                if (run != null) run.block.activity else cardio.loggedActivity)
         } else if (spec != null) {
             Text(position.orEmpty(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when (val end = spec.end) {

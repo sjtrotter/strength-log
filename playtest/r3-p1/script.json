@@ -3,7 +3,7 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-11",
+  "date": "2026-11-13",
   "time": "17:30",
   "zone": "America/Chicago"
  },
@@ -23,17 +23,6 @@
   },
   {
    "tap": {
-    "desc": "Day A"
-   }
-  },
-  {
-   "checkpoint": "day-a-next"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "desc": "Day C"
    }
   },
@@ -41,30 +30,36 @@
    "checkpoint": "day-c"
   },
   {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Day B"
-   }
-  },
-  {
-   "checkpoint": "day-b"
-  },
-  {
    "tap": {
     "text": "Edit"
    }
   },
   {
-   "checkpoint": "edit-day-b"
+   "tap": {
+    "textContains": "Ramp to",
+    "inDialog": true
+   }
   },
   {
-   "note": "Day B wants bench to 130. No. I want to squat today like my notes say. Make Day B squat + DB shoulder press."
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
   },
   {
    "tap": {
-    "desc": "More options for Barbell Bench Press"
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Hack Squat"
    }
   },
   {
@@ -85,8 +80,7 @@
   },
   {
    "tap": {
-    "textContains": "Back Squat",
-    "index": 0
+    "text": "Barbell Back Squat"
    }
   },
   {
@@ -100,51 +94,8 @@
    }
   },
   {
-   "checkpoint": "b-main-swapped"
-  },
-  {
    "tap": {
-    "desc": "More options for Bulgarian Split Squat"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Seated Leg Curl"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for EZ-Bar Curl"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Pallof Press"
-   }
-  },
-  {
-   "tap": {
-    "text": "Remove"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Pull-Up / Chin-Up"
+    "desc": "More options for DB Bench Press"
    }
   },
   {
@@ -153,23 +104,8 @@
    }
   },
   {
-   "type": {
-    "text": "Search exercises",
-    "value": "shoulder press"
-   }
-  },
-  {
-   "checkpoint": "sp-search"
-  },
-  {
    "tap": {
-    "text": "Search all exercises"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Shoulder Press",
-    "index": 0
+    "text": "Barbell Bench Press"
    }
   },
   {
@@ -183,18 +119,53 @@
    }
   },
   {
-   "checkpoint": "b-edited"
+   "tap": {
+    "desc": "More options for Chest-Supported Row"
+   }
   },
   {
    "tap": {
-    "textContains": "Back Squat",
+    "text": "Swap"
+   }
+  },
+  {
+   "tap": {
+    "text": "Seated Cable Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Standing Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "c-swapped"
+  },
+  {
+   "tap": {
+    "textContains": "Barbell Back Squat",
     "inDialog": true
    }
   },
   {
    "type": {
     "text": "Weight (lb)",
-    "value": "50"
+    "value": "55"
    }
   },
   {
@@ -210,23 +181,20 @@
   },
   {
    "tap": {
-    "textContains": "Shoulder Press",
+    "textContains": "Barbell Bench Press",
     "inDialog": true
    }
   },
   {
-   "checkpoint": "sp-rx"
-  },
-  {
    "type": {
     "text": "Weight (lb)",
-    "value": "20"
+    "value": "65"
    }
   },
   {
    "type": {
     "text": "Reps",
-    "value": "8"
+    "value": "5"
    }
   },
   {
@@ -235,151 +203,38 @@
    }
   },
   {
-   "checkpoint": "b-final"
+   "tap": {
+    "textContains": "Seated Cable Row",
+    "inDialog": true
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "c-final"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "b-ready"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
    "tap": {
     "text": "All sets"
    }
   },
   {
-   "tap": {
-    "text": "Skip this set"
-   }
+   "checkpoint": "dl-sets"
   },
   {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "checkpoint": "b-top"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "checkpoint": "b-squat-done"
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "checkpoint": "sp-page"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Decrease reps"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "checkpoint": "sp-done"
-  },
-  {
-   "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "b-summary"
-  },
-  {
-   "tap": {
-    "text": "Add a note"
-   }
-  },
-  {
-   "checkpoint": "note-field"
+   "back": true
   }
  ]
 }

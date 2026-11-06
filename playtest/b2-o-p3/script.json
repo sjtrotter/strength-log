@@ -446,13 +446,24 @@
    "checkpoint": "plan-mode"
   },
   {
-   "scrollTo": {
-    "text": "Prescription",
-    "role": "Button"
+   "back": true
+  },
+  {
+   "checkpoint": "closed-liftopts"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "closed2"
+  },
+  {
+   "tap": {
+    "text": "All sets"
    }
   },
   {
-   "checkpoint": "liftopts-bottom"
+   "checkpoint": "allsets"
   }
  ]
 }

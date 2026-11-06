@@ -166,12 +166,24 @@
       "checkpoint": "monday-three-squats-logged"
     },
     {
+      "back": true
+    },
+    {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day A"
       }
     },
     {
       "checkpoint": "monday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved"
     }
   ]
 }

@@ -4,33 +4,59 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FrameSettleTest {
-    @Test fun stopsAfterThreeStableFrames() {
+    @Test fun requiresThreeStableFramesBeforeAndAfterPendingWork() {
         var clock = 0L
-        val frames = settleFrames({ clock }) {
+        var waits = 0
+        val frames = settleFrames({ clock }, { waits++ }) {
             clock += 16
             "same tree"
         }
-        assertEquals(3, frames)
-        assertEquals(48L, clock)
+        assertEquals(6, frames)
+        assertEquals(96L, clock)
+        assertEquals(1, waits)
     }
 
     @Test fun changedTreeRestartsStabilityCount() {
         var clock = 0L
-        val trees = listOf("old", "old", "new", "new", "new").iterator()
-        val frames = settleFrames({ clock }) {
+        val trees = (listOf("old", "old") + List(6) { "new" }).iterator()
+        val frames = settleFrames({ clock }, {}) {
             clock += 16
             trees.next()
         }
-        assertEquals(5, frames)
-        assertEquals(80L, clock)
+        assertEquals(8, frames)
+        assertEquals(128L, clock)
+    }
+
+    @Test fun pendingWorkChangesTheTreeBeforeStabilityIsAccepted() {
+        var clock = 0L
+        var tree = "old page"
+        val seen = mutableListOf<String>()
+        val frames = settleFrames({ clock }, { tree = "destination page" }) {
+            clock += 16
+            tree.also { seen += it }
+        }
+        assertEquals(6, frames)
+        assertEquals(List(3) { "old page" } + List(3) { "destination page" }, seen)
     }
 
     @Test fun changingTreeStopsAtTwoSecondsOfFrameTime() {
         var clock = 0L
-        val frames = settleFrames({ clock }) {
+        val frames = settleFrames({ clock }, { error("Changing frames never reach the storage wait") }) {
             clock += 16
             clock
         }
+        assertEquals(125, frames)
+        assertEquals(2_000L, clock)
+    }
+
+    @Test fun pendingWorkDoesNotResetTheFrameCap() {
+        var clock = 0L
+        var waited = false
+        val frames = settleFrames({ clock }, { waited = true }) {
+            clock += 16
+            if (clock >= 1_920L && !waited) 0L else clock
+        }
+        assertEquals(true, waited)
         assertEquals(125, frames)
         assertEquals(2_000L, clock)
     }

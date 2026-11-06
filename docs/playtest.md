@@ -84,7 +84,10 @@ Launch has a separate 20,000 ms budget.
 After `tap`, `longPress`, `swipe`, `back`, and `scrollTo`, the harness advances
 the paused Compose clock one frame at a time until the merged semantics tree is
 unchanged across three consecutive frames, or two seconds of frame time have
-passed. It compares text, tags, structure, and bounds rounded to dp. The cap
+passed. After the first stable pass, it waits for pending workout mutations
+through the step's storage wait, then requires three stable frames again.
+Both passes share the frame cap and the step deadline.
+It compares text, tags, structure, and bounds rounded to dp. The cap
 ends settling without failing the step; the step's real-time deadline still
 applies to the entire operation. Settling never advances `PlaytestTime`, the
 app's fake wall clock. Other actions keep their existing settle behavior.

@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -62,9 +63,33 @@ class ReplaySafetyTest {
         val before = time.clock.instant()
         var frames = 0
         val deadline = StepDeadline(10_000)
-        val snapshot = deadline.run(compose) { compose.settleSemantics(deadline) { frames++ } }
+        val snapshot = deadline.run(compose) {
+            compose.settleSemantics(deadline, awaitPendingWork = { deadline.io {} }) { frames++ }
+        }
         assertTrue(snapshot.captureTexts().contains(CaptureText("Stable screen")))
-        assertTrue(frames >= 3)
+        assertTrue(frames >= 6)
+        assertEquals(before, time.clock.instant())
+        assertFalse(compose.mainClock.autoAdvance)
+    }
+
+    @Test fun interactionStorageWaitSharesTheStepDeadline() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme { Text("Stable screen") } }
+        val time = PlaytestTime()
+        val before = time.clock.instant()
+        val pending = CompletableDeferred<Unit>()
+        var waited = false
+        val deadline = StepDeadline(1_000)
+        val error = assertFailsWith<PlaytestError> {
+            deadline.run(compose) {
+                compose.settleSemantics(deadline, awaitPendingWork = {
+                    waited = true
+                    deadline.io { pending.await() }
+                }) {}
+            }
+        }
+        assertTrue(waited)
+        assertEquals("timeout", error.kind)
         assertEquals(before, time.clock.instant())
         assertFalse(compose.mainClock.autoAdvance)
     }

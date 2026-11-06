@@ -40,6 +40,13 @@
       }
     },
     {
+      "type": {
+        "text": "Age",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
       "tap": {
         "text": "Next"
       }

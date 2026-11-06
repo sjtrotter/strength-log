@@ -92,6 +92,20 @@
       "checkpoint": "setup-question-six"
     },
     {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
       "tap": {
         "role": "RadioButton",
         "index": 1

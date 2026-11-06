@@ -39,6 +39,7 @@ import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -423,7 +424,14 @@ internal class Replay(
     }
 
     private fun settleInteraction(deadline: StepDeadline) {
-        val shapes = compose.settleSemantics(deadline) { settledFrames++ }
+        val shapes = compose.settleSemantics(deadline, awaitPendingWork = {
+            val locks = deadline.call {
+                var pending = emptyList<Mutex>()
+                scenario.onActivity { pending = it.viewModelStore.workoutMutationLocks() }
+                pending
+            }
+            deadline.io { awaitWorkoutMutations(locks) }
+        }) { settledFrames++ }
         screen = shapes.asSequence().flatMap { it.texts.asSequence() }
             .firstOrNull { it.isNotBlank() } ?: "unknown"
     }

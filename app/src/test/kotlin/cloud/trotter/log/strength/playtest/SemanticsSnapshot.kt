@@ -40,9 +40,13 @@ internal fun List<SemanticsShape>.captureTexts(): List<CaptureText> =
     sortedWith(compareBy({ it.top }, { it.left }))
         .flatMap { node -> node.texts.map { CaptureText(it, node.inDialog) } }
 
-internal fun ComposeTestRule.settleSemantics(deadline: StepDeadline, onFrame: () -> Unit): List<SemanticsShape> {
+internal fun ComposeTestRule.settleSemantics(
+    deadline: StepDeadline,
+    awaitPendingWork: () -> Unit,
+    onFrame: () -> Unit,
+): List<SemanticsShape> {
     var shapes = emptyList<SemanticsShape>()
-    settleFrames({ mainClock.currentTime }) {
+    settleFrames({ mainClock.currentTime }, awaitPendingWork) {
         val paused = deadline.pause(this)
         onFrame()
         if (!paused) throw deadline.timeout()

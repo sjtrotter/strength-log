@@ -8,6 +8,107 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open-setup" }
+    {
+      "checkpoint": "first-open-setup"
+    },
+    {
+      "note": "General fitness is not one of the three choices. Balanced strength + muscle is closest. Look through the setup defaults, then review and adjust them before accepting a plan."
+    },
+    {
+      "tap": {
+        "text": "Balanced strength + muscle"
+      }
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-2-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-3-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-4-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-5-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7-review-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-review-defaults"
+    }
   ]
 }

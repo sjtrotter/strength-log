@@ -486,6 +486,91 @@
     },
     {
       "note": "The full day view reveals accessories absent from setup preview. The suggested squat is 180 lb TOP x5, unlike my 135 for three eights. Use this editor next to put in my own Monday and the other two days before training."
+    },
+    {
+      "tap": {
+        "text": "Ramp to 180 lb, then 1 back-off"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "accessory-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-plan-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "exercise-options-for-replacement"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-options-for-name"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-library-for-own-plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "checkpoint": "extra-exercise-removal-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Ramp to 180 lb, then 1 back-off"
+      }
+    },
+    {
+      "checkpoint": "ready-to-enter-my-squat-prescription"
     }
   ]
 }

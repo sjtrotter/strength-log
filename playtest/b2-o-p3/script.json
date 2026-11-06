@@ -192,11 +192,17 @@
   },
   {
    "tap": {
-    "text": "Add day"
+    "desc": "Day options",
+    "index": 0
    }
   },
   {
-   "checkpoint": "addday"
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "checkpoint": "rename"
   }
  ]
 }

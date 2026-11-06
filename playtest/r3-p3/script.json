@@ -69,11 +69,19 @@
   },
   {
    "tap": {
-    "textContains": "Log 182.5"
+    "desc": "Edit set 2"
    }
   },
   {
-   "advance": "3m30s"
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
   },
   {
    "tap": {
@@ -85,8 +93,51 @@
   },
   {
    "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
     "textContains": "Log 182.5"
    }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log 182.5"
+   }
+  },
+  {
+   "checkpoint": "squat-done"
   },
   {
    "advance": "10s"
@@ -107,7 +158,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Set 3 rep 3 slow out of hole. RPE 7.5. Paused 152.5 3x3. Belt sq 110. R knee grumpy."
+    "value": "Wk2. Set 3 rep 3 slow out of hole. RPE 7.5. Paused 152.5 3x3. Belt sq 110. R knee grumpy."
    }
   },
   {

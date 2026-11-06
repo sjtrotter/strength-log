@@ -348,7 +348,8 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day A"
+        "text": "2-day full body \u00b7 Day A",
+        "index": 1
       }
     },
     {
@@ -416,7 +417,8 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day A"
+        "text": "2-day full body \u00b7 Day A",
+        "index": 1
       }
     },
     {
@@ -426,6 +428,70 @@
     },
     {
       "checkpoint": "ready-to-replace-suggested-day-a"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day C1"
+      }
+    },
+    {
+      "checkpoint": "inspect-standalone-run-day"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "cardio-day-editor-distance-and-interval-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day B"
+      }
+    },
+    {
+      "checkpoint": "inspect-strength-b-before-replacing-exercises"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "strength-b-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day A",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "day-a-editor-ready-for-my-dumbbell-routine"
     }
   ]
 }

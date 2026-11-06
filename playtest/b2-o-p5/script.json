@@ -240,6 +240,27 @@
   },
   {
    "checkpoint": "add-day"
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-options-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "0 lifts, 0 sets",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-a-editor"
   }
  ]
 }

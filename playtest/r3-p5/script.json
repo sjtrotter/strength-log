@@ -59,6 +59,16 @@
    }
   },
   {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
    "checkpoint": "swapped-trap"
   },
   {
@@ -91,6 +101,16 @@
    }
   },
   {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
    "checkpoint": "swapped-bss"
   },
   {
@@ -116,6 +136,16 @@
    "tap": {
     "textContains": "Romanian",
     "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
    }
   },
   {
@@ -149,6 +179,16 @@
    "tap": {
     "textContains": "Single-Leg",
     "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
    }
   },
   {

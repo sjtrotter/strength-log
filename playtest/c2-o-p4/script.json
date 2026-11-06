@@ -1,24 +1,160 @@
 {
-  "seat": "c2-o-p4",
-  "start": {"restore": "start-backup.json", "date": "2026-11-13", "time": "17:31", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "today-open"},
-    {"tap": {"text": "Resume day C"}},
-    {"checkpoint": "resumed-c"},
-    {"tap": {"desc": "Day C lifts, 12 of 15 sets"}},
-    {"checkpoint": "c-overview"},
-    {"tap": {"text": "Rower"}},
-    {"checkpoint": "c-rower-page"},
-    {"tap": {"text": "Start"}},
-    {"advance": "8m11s"},
-    {"type": {"text": "Distance (m)", "value": "2000"}},
-    {"tap": {"text": "Stop"}},
-    {"checkpoint": "c-rower-stopped"},
-    {"tap": {"tag": "workout-finish"}},
-    {"checkpoint": "c-finish-dialog"},
-    {"tap": {"text": "Finish", "inDialog": true}},
-    {"checkpoint": "c-summary"},
-    {"tap": {"text": "Add a note"}},
-    {"checkpoint": "c-note-dialog"}
-  ]
+ "seat": "c2-o-p4",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-13",
+  "time": "17:31",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "today-open"
+  },
+  {
+   "tap": {
+    "text": "Resume day C"
+   }
+  },
+  {
+   "checkpoint": "resumed-c"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 12 of 15 sets"
+   }
+  },
+  {
+   "checkpoint": "c-overview"
+  },
+  {
+   "tap": {
+    "text": "Rower"
+   }
+  },
+  {
+   "checkpoint": "c-rower-page"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "8m11s"
+  },
+  {
+   "type": {
+    "text": "Distance (m)",
+    "value": "2000"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "c-rower-stopped"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "c-finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "c-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "2k 8:11 on the rower screen, best is 8:05. Legs cooked from squats."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "c-summary-noted"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-fri"
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-after-fri"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends-wk1"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans-tab"
+  },
+  {
+   "tap": {
+    "text": "3-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
+  },
+  {
+   "scrollTo": {
+    "text": "Goals"
+   }
+  },
+  {
+   "checkpoint": "plan-detail-goals"
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "text": "3-day full body \u00b7 Day A"
+   }
+  },
+  {
+   "checkpoint": "dayA-preview-wk2"
+  }
+ ]
 }

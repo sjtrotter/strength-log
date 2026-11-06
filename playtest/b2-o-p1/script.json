@@ -334,9 +334,7 @@
    "checkpoint": "editday-final"
   },
   {
-   "tap": {
-    "desc": "Close sheet"
-   }
+   "back": true
   },
   {
    "checkpoint": "workout-squat1"
@@ -370,6 +368,44 @@
   },
   {
    "checkpoint": "after-squat3"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 5 of 15 sets"
+   }
+  },
+  {
+   "checkpoint": "lifts-list"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "checkpoint": "edit-set3"
   }
  ]
 }

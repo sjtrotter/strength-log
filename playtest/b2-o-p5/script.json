@@ -279,10 +279,43 @@
    "checkpoint": "add-exercise-picker"
   },
   {
-   "back": true
+   "swipe": {
+    "text": "Single-leg",
+    "direction": "up"
+   }
   },
   {
-   "checkpoint": "after-back-picker"
+   "checkpoint": "picker-scrolled"
+  },
+  {
+   "swipe": {
+    "text": "Pick a movement",
+    "direction": "down"
+   }
+  },
+  {
+   "note": "look for trap bar"
+  },
+  {
+   "scrollTo": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "checkpoint": "picker-hinge"
+  },
+  {
+   "tap": {
+    "text": "Trap-Bar Deadlift"
+   }
+  },
+  {
+   "checkpoint": "after-pick-trapbar"
   }
  ]
 }

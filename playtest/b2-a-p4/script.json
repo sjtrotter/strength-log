@@ -241,6 +241,86 @@
     },
     {
       "checkpoint": "setup-page-8-review-before-accepting"
+    },
+    {
+      "note": "Review the suggested rotation before accepting it as a starting point. I need my own four lifts per day and shorter cardio within 75 total minutes."
+    },
+    {
+      "expect": {
+        "text": "Your rotation"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "review-day-a-squat-and-bike"
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "review-day-b-bench-and-bike"
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "checkpoint": "review-day-c-deadlift-and-bike"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "expect": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "review-rotation-missed-day-rule"
+    },
+    {
+      "note": "I want calendar days, so I will need to choose Monday after a missed Friday. There is no visible edit control in this preview; accept provisionally and look for editing in the app."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-finished-first-app-screen"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-still-finished-after-reopen"
+    },
+    {
+      "note": "Next: use the visible app navigation to configure my own named days before recording November 9. No training performed yet."
     }
   ]
 }

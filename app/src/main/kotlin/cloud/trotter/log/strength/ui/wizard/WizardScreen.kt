@@ -34,6 +34,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -133,6 +134,7 @@ private fun stepTitle(step: WizardStep): String = when (step) {
     WizardStep.CARDIO -> stringResource(R.string.wizard_cardio_title)
     WizardStep.ABOUT_YOU -> stringResource(R.string.wizard_about_you_title)
     WizardStep.EQUIPMENT -> stringResource(R.string.wizard_equipment_title)
+    WizardStep.LIFTS -> stringResource(R.string.wizard_lifts_title)
     WizardStep.ROTATION -> stringResource(R.string.wizard_rotation_title)
 }
 
@@ -153,6 +155,7 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
                 WizardStep.CARDIO -> CardioStep(stepState.answers, actions)
                 WizardStep.ABOUT_YOU -> AboutYouStep(stepState, actions)
                 WizardStep.EQUIPMENT -> EquipmentStep(stepState.answers, actions)
+                WizardStep.LIFTS -> LiftsStep(stepState, actions)
                 WizardStep.ROTATION -> RotationStep(stepState, actions)
             }
         }
@@ -518,7 +521,52 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
     Equipment.KETTLEBELL -> stringResource(R.string.wizard_equipment_kettlebell)
 }
 
-// --- step 8: generated rotation -------------------------------------------------
+@Composable
+private fun LiftsStep(state: WizardUiState, actions: WizardActions) {
+    Text(
+        stringResource(R.string.wizard_lifts_description),
+        color = TextSecondary,
+        style = MaterialTheme.typography.bodySmall,
+    )
+    state.liftRows.forEach { row ->
+        key(row.exerciseId) {
+            AppCard {
+                Text(row.name, style = MaterialTheme.typography.titleMedium)
+                if (row.perHand) {
+                    Text(
+                        stringResource(R.string.wizard_lift_per_hand),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    NumberField(
+                        value = row.weightLb?.let(state.unit::fromLb),
+                        onValueChange = { actions.onLiftWeightChange(row.exerciseId, state.unit.toLb(it)) },
+                        onDraftChange = { v -> actions.onLiftWeightChange(row.exerciseId, v?.takeIf { it > 0.0 }?.let(state.unit::toLb)) },
+                        label = stringResource(R.string.sheet_weight, state.unit.name.lowercase()),
+                        modifier = Modifier.weight(1f),
+                        minValue = 0.0,
+                        format = WeightStepper::format,
+                        round = { WeightStepper.round(it, state.unit) },
+                        decimalInput = true,
+                        weightInput = true,
+                    )
+                    NumberField(
+                        value = row.reps.toDouble(),
+                        onValueChange = { actions.onLiftRepsChange(row.exerciseId, it.toInt()) },
+                        label = stringResource(R.string.prescription_reps),
+                        modifier = Modifier.weight(1f),
+                        minValue = 1.0,
+                        maxValue = 99.0,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// --- step 9: generated rotation -------------------------------------------------
 
 @Composable
 private fun RotationStep(state: WizardUiState, actions: WizardActions) {

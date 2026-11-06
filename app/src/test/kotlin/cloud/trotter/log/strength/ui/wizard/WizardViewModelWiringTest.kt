@@ -37,6 +37,8 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -422,7 +424,74 @@ class WizardViewModelWiringTest {
 
         vm.onBack()
         advanceUntilIdle()
-        assertEquals(WizardStep.EQUIPMENT, vm.uiState.value.step)
+        assertEquals(WizardStep.LIFTS, vm.uiState.value.step)
+    }
+
+    @Test
+    fun `recent lifts seed the preview`() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
+        repeat(WizardStep.LIFTS.ordinal) { vm.onNext() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.LIFTS, vm.uiState.value.step)
+
+        vm.setLiftWeight("bb_back_squat", 225.0)
+        vm.onNext()
+        advanceUntilIdle()
+
+        assertEquals(WizardStep.ROTATION, vm.uiState.value.step)
+        val squat = vm.uiState.value.previewProgram!!.days.first().exercises.first()
+        assertEquals(Prescription(PrescribedTarget.LoadReps(225.0, 5)), squat.prescription)
+    }
+
+    @Test
+    fun `blank recent lifts leave the preview as generated`() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setBodyweight(235.0)
+        vm.setAge(40)
+        repeat(WizardStep.LIFTS.ordinal) { vm.onNext() }
+        vm.onNext()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(WizardStep.ROTATION, state.step)
+        assertEquals(ProgramGenerator.generate(state.answers.copy(lifts = emptyMap())), state.previewProgram)
+    }
+
+    @Test
+    fun `recent lifts survive process death`() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        vm.setLiftWeight("bb_back_squat", 225.0)
+        vm.setLiftReps("bb_back_squat", 8)
+        vm.viewModelScope.cancel()
+
+        val revived = newViewModel(handle)
+        advanceUntilIdle()
+
+        val squat = revived.uiState.value.liftRows.single { it.exerciseId == "bb_back_squat" }
+        assertEquals(225.0, squat.weightLb ?: Double.NaN, 0.0)
+        assertEquals(8, squat.reps)
+        assertEquals(PrescribedTarget.LoadReps(225.0, 8), ProgramGenerator.generate(revived.uiState.value.answers)
+            .days.first().exercises.first().prescription?.target)
+    }
+
+    @Test
+    fun `invalid recent lift weights stay blank`() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        for (weight in listOf(null, 0.0, -5.0, Double.NaN, Double.POSITIVE_INFINITY)) {
+            vm.setLiftWeight("bb_back_squat", 225.0)
+            vm.setLiftWeight("bb_back_squat", weight)
+            advanceUntilIdle()
+
+            assertEquals(null, vm.uiState.value.liftRows.first().weightLb)
+            assertTrue(vm.uiState.value.answers.lifts.isEmpty())
+        }
     }
 
     @Test

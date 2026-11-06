@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.LocalTime
@@ -62,6 +63,20 @@ class JournalBuilderTest {
     private val bench = JournalBuilder.MainLift("bb_bench", "Barbell Bench Press", dayIndex = 1, goalLb = 195.0)
 
     // --- main lifts -----------------------------------------------------------
+
+    @Test
+    fun `a straight-set main lift keeps its card`() {
+        val cfg = LifterConfig()
+        val exercise = ProgramExercise(
+            "bb_back_squat", structure = SetStructure.STRAIGHT, targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)),
+        )
+        val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(exercise))))
+        val main = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, cfg).single()
+        assertEquals("bb_back_squat", main.exerciseId)
+        assertEquals(GoalCalculator.goalFor(exercise, cfg), main.goalLb)
+        assertEquals(235.0, main.goalLb)
+    }
 
     @Test
     fun mainLiftsKeepTheirDayLetterAccentsWhenADayIsRemoved() {

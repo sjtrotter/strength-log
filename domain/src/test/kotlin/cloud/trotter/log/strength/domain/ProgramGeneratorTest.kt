@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DayKind
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.LiftEntry
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
@@ -19,12 +20,21 @@ import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -33,6 +43,80 @@ import kotlin.test.assertTrue
  * §12). Slot ids are pinned so the prototype-faithful shape can't silently drift.
  */
 class ProgramGeneratorTest {
+    @Test
+    fun `skipping recent lifts reproduces the generated program`() {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        assertEquals(program, ProgramGenerator.generate(WizardAnswers(lifts = emptyMap())))
+        assertTrue(program.days.flatMap { it.exercises }.all { it.prescription == null })
+        val squat = program.days.first().exercises.first()
+        val sets = assertNotNull(SlotSeeds.main(squat, ExerciseLibrary.get(squat.exerciseId), answers.config))
+        assertEquals(listOf(130.0, 165.0, 190.0, 210.0, 235.0, 175.0), sets.map { it.weightLb })
+    }
+
+    @Test
+    fun `an entered lift seeds its main`() {
+        val answers = WizardAnswers(lifts = mapOf("bb_back_squat" to LiftEntry(225.0, 5)))
+        val program = ProgramGenerator.generate(answers)
+        val baseline = ProgramGenerator.generate(WizardAnswers())
+        program.days.zip(baseline.days).forEach { (day, original) ->
+            day.exercises.zip(original.exercises).forEach { (slot, before) ->
+                if (slot.exerciseId == "bb_back_squat") {
+                    assertEquals(Prescription(PrescribedTarget.LoadReps(225.0, 5)), slot.prescription)
+                    assertEquals(SetStructure.RAMP_TOP_BACKOFF, slot.structure)
+                    assertEquals(6, slot.targetSets)
+                    val top = assertNotNull(SlotSeeds.main(slot, ExerciseLibrary.get(slot.exerciseId), answers.config))
+                        .single { it.kind == SetKind.TOP }
+                    assertEquals(225.0, top.weightLb)
+                    assertEquals(5, top.reps)
+                    assertEquals(235.0, GoalCalculator.goalFor(slot, answers.config))
+                } else {
+                    assertEquals(before, slot)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `novices start barbell mains at the empty bar as straight sets`() {
+        for (unit in WeightUnit.entries) {
+            val cfg = LifterConfig(level = ExperienceLevel.NOVICE, weightUnit = unit)
+            val program = ProgramGenerator.generate(WizardAnswers(config = cfg))
+            val mains = program.days.map { it.exercises.first() }
+            assertTrue(mains.all { it.structure == SetStructure.STRAIGHT && it.targetSets == 3 })
+            val barLb = if (unit == WeightUnit.LB) 45.0 else WeightUnit.KG.toLb(20.0)
+            for (slot in mains.filter { it.exerciseId in setOf("bb_back_squat", "bb_bench") }) {
+                assertEquals(Prescription(PrescribedTarget.LoadReps(barLb, 5)), slot.prescription)
+                val sets = assertNotNull(SlotSeeds.main(slot, ExerciseLibrary.get(slot.exerciseId), cfg))
+                assertEquals(List(3) { Triple(barLb, 5, SetKind.WORK) }, sets.map { Triple(it.weightLb, it.reps, it.kind) })
+            }
+            val trap = mains.single { it.exerciseId == "trap_dl" }
+            assertEquals(
+                Prescription(PrescribedTarget.LoadReps(GoalCalculator.goalFor(ExerciseLibrary.get("trap_dl"), cfg), 5)),
+                trap.prescription,
+            )
+        }
+    }
+
+    @Test
+    fun `a novice's entered lift wins over the bar`() {
+        val answers = WizardAnswers(
+            config = LifterConfig(level = ExperienceLevel.NOVICE),
+            lifts = mapOf("bb_back_squat" to LiftEntry(95.0, 8)),
+        )
+        val squat = ProgramGenerator.generate(answers).days.first().exercises.first()
+        assertEquals(SetStructure.STRAIGHT, squat.structure)
+        assertEquals(3, squat.targetSets)
+        assertEquals(Prescription(PrescribedTarget.LoadReps(95.0, 8)), squat.prescription)
+    }
+
+    @Test
+    fun `main lift ids are each day's main once in day order`() {
+        val expected = listOf("bb_back_squat", "bb_bench", "trap_dl", "incline_db")
+        assertEquals(expected, ProgramGenerator.mainLiftIds(WizardAnswers()))
+        assertEquals(expected, ProgramGenerator.mainLiftIds(WizardAnswers(config = LifterConfig(level = ExperienceLevel.NOVICE))))
+    }
+
     @Test fun `rotation ignores standalone cardio days`() {
         val generated = ProgramGenerator.generate(WizardAnswers())
         val strength = generated.days.take(2)

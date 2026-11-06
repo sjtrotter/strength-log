@@ -4,11 +4,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -136,7 +139,8 @@ class CustomExerciseFooterTest {
         composeTestRule.onNodeWithText(label).performScrollTo().performClick().performTextReplacement(draft)
         composeTestRule.onNodeWithText("Save").assertIsNotEnabled().performClick()
         composeTestRule.onNodeWithText(message).assertExists()
-        composeTestRule.onNodeWithText("Name").performScrollTo().performClick()
+        composeTestRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Name"))
+        composeTestRule.onNodeWithText("Name").performClick()
         composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
         composeTestRule.runOnIdle { assertEquals(0, saves) }
     }

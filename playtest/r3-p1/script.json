@@ -134,26 +134,84 @@
    "checkpoint": "edit-day"
   },
   {
+   "note": "Parking lot: 160 lb top squat is scary, 6 lifts too many. Empty bar for squat."
+  },
+  {
    "tap": {
     "textContains": "Ramp to 160"
    }
   },
   {
-   "checkpoint": "squat-rx"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-back"
-  },
-  {
-   "tap": {
-    "desc": "More options for Barbell Back Squat"
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
    }
   },
   {
-   "checkpoint": "squat-more"
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "checkpoint": "squat-rx-45"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-save"
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "after-remove"
+  },
+  {
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "after-removes"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap"
   }
  ]
 }

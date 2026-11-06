@@ -117,12 +117,28 @@
    "checkpoint": "w8"
   },
   {
-   "tap": {
-    "text": "Next"
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
    }
   },
   {
-   "checkpoint": "w9"
+   "checkpoint": "w8-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today-first"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-tab"
   }
  ]
 }

@@ -346,6 +346,49 @@ class PreviewViewModelTest : OverviewFixture() {
         assertEquals(DaySelection(plan, "A"), vm.workoutStart.navigation.first())
     }
 
+    @Test fun conflictDisappearanceThenAcceptAndUndoKeepsOpeningWeightOnStart() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Bench", "", listOf(
+                ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
+            )),
+            ProgramDay("B", "Arms", "", listOf(ProgramExercise("ez_curl"))),
+        )))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val success = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            List(3) { LoggedSet(70.0, 5, SetKind.WORK, done = true, plannedIndex = it) }, success.runId)
+        repo.finishRun(success.runId)
+        val other = repo.startRun(plan, "B") as RunStartResult.Started
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        val offer = vm.uiState.value.lifts.single().nextTime as NextTime.Offer
+        assertEquals(NextTime.Offer("+5 lb", false, 75.0, 70.0), offer)
+
+        vm.setWorkingWeight(id, offer.offerLb)
+        advanceUntilIdle()
+        assertEquals(other.runId, vm.workoutStart.conflict.value?.run?.id)
+        assertTrue(repo.discardRun(other.runId))
+        advanceUntilIdle()
+        assertNull(vm.workoutStart.conflict.value)
+
+        vm.setWorkingWeight(id, offer.offerLb)
+        advanceUntilIdle()
+        assertEquals("3 × 5 · 75 lb", vm.uiState.value.lifts.single().working)
+        assertEquals(offer.copy(applied = true), vm.uiState.value.lifts.single().nextTime)
+        vm.setWorkingWeight(id, offer.openingLb)
+        advanceUntilIdle()
+        assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
+        assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
+
+        vm.start()
+        advanceUntilIdle()
+        val open = repo.openRunFlow.first()!!
+        assertEquals("A", open.dayId)
+        assertEquals(List(3) { 70.0 }, open.tracks.single().sets.map { it.weightLb })
+        assertEquals(DaySelection(plan, "A"), vm.workoutStart.navigation.first())
+    }
+
     @Test fun editArgumentOpensEditorOnceAndDismissalSurvivesRecreation() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!

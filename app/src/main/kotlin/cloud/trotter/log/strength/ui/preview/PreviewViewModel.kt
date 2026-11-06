@@ -105,6 +105,8 @@ class PreviewViewModel @Inject constructor(
         viewModelScope.launch {
             if (repo.setWorkingWeight(runId, planId, dayId, programExerciseId, Slot.MAIN, weightLb) == RunWriteResult.Rejected) {
                 workoutStart.startWithWorkingWeight(selection, programExerciseId, weightLb)
+            } else {
+                workoutStart.dismiss()
             }
         }
     }

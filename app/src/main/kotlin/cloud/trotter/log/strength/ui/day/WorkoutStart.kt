@@ -37,6 +37,18 @@ class WorkoutStart(
         open?.takeIf { target != null && it.id == id }?.let { WorkoutConflict(it, confirm) }
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000L), null)
 
+    init {
+        scope.launch {
+            combine(repo.openRunFlow, conflictId) { open, id ->
+                id?.takeIf { it != open?.id }
+            }.collect { staleId ->
+                if (staleId != null) lock.withLock {
+                    if (conflictId.value == staleId && repo.openRunFlow.first()?.id != staleId) dismiss()
+                }
+            }
+        }
+    }
+
     fun start(target: DaySelection) {
         scope.launch { lock.withLock { startNow(target) } }
     }

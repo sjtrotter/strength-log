@@ -8,6 +8,86 @@
   },
   "capture": "checkpoints",
   "steps": [
-    { "checkpoint": "first-open-before-monday-gym" }
+    {
+      "checkpoint": "first-open-before-monday-gym"
+    },
+    {
+      "tap": {
+        "text": "Strength-leaning"
+      }
+    },
+    {
+      "checkpoint": "strength-goal-selected"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-2-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-3-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-4-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-5-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7-inspect-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-inspect-before-accepting"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "setup-back-to-review-choice"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-preview-return-no-plan-accepted"
+    }
   ]
 }

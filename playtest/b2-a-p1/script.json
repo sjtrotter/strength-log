@@ -1183,7 +1183,8 @@
     },
     {
       "tap": {
-        "text": "Machine Row"
+        "text": "Machine Row",
+        "index": 1
       }
     },
     {
@@ -1197,7 +1198,20 @@
       }
     },
     {
-      "advance": "90s"
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "rest-extended-from-ninety-seconds-to-two-minutes"
+    },
+    {
+      "advance": "2m"
     },
     {
       "tap": {
@@ -1217,16 +1231,6 @@
     },
     {
       "checkpoint": "row-three-sets-complete"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 9 of 11 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
     },
     {
       "expect": {
@@ -1254,25 +1258,138 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 11 of 11 sets"
+        "tag": "workout-finish"
       }
     },
     {
-      "checkpoint": "looking-for-treadmill-finisher-and-workout-note"
+      "checkpoint": "first-workout-finish-review-before-walk"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "desc": "Day A lifts, 11 of 11 sets"
       }
     },
     {
-      "checkpoint": "finish-review-before-saving-and-before-finishing-walk"
+      "checkpoint": "all-four-lifts-done-before-walk"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-menu-looking-for-workout-note"
     },
     {
       "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "actual-chest-results-after-returning-to-chest"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "expect": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "checkpoint": "walk-timer-before-start"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "walk-timer-started"
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "checkpoint": "eight-minute-finishing-walk-controls"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "walking-all-sets-looking-for-complete-and-duration"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "seat-four-exercise-note-entry"
     }
   ]
 }

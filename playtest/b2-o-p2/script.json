@@ -1938,6 +1938,14 @@
    "checkpoint": "mon2-allsets"
   },
   {
+   "tap": {
+    "tag": "next-time-offer-main"
+   }
+  },
+  {
+   "checkpoint": "mon2-offer-taken"
+  },
+  {
    "back": true
   },
   {
@@ -2056,6 +2064,56 @@
   {
    "tap": {
     "text": "Done"
+   }
+  },
+  {
+   "advance": "12h"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "hist-wk2"
+  },
+  {
+   "tap": {
+    "textContains": "Nov 16",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "hist-session-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "hist-after-detail-back"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "hist-more-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
    }
   },
   {
@@ -2248,6 +2306,11 @@
    "checkpoint": "tue2-summary"
   },
   {
+   "scrollTo": {
+    "text": "Add a note"
+   }
+  },
+  {
    "tap": {
     "text": "Add a note"
    }
@@ -2263,6 +2326,12 @@
   },
   {
    "checkpoint": "tue2-note-typed"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-note-back"
   }
  ],
  "capture": "checkpoints"

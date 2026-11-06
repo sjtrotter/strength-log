@@ -1,31 +1,123 @@
 {
-  "seat": "b2-o-p5",
-  "start": {"date": "2026-11-09", "time": "17:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "first-open"},
-    {"tap": {"text": "Strength-leaning"}},
-    {"tap": {"text": "Next"}},
-    {"type": {"text": "Days per week"}, "value": "2", "ime": "done"},
-    {"checkpoint": "wiz2-two-days"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz3-split"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz4-mains"},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "Separate days"}},
-    {"scrollTo": {"text": "Keep me 5k-ready"}},
-    {"checkpoint": "wiz5-cardio"},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "LB"}},
-    {"type": {"text": "Bodyweight (lb)"}, "value": "148", "ime": "done"},
-    {"type": {"text": "Age"}, "value": "29", "ime": "done"},
-    {"tap": {"text": "Intermediate"}},
-    {"checkpoint": "wiz6-about"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz7"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz8"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "after-wizard"}
-  ]
+ "seat": "b2-o-p5",
+ "start": {
+  "date": "2026-11-09",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "first-open"
+  },
+  {
+   "tap": {
+    "text": "Strength-leaning"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "type": {
+    "text": "Days per week",
+    "value": "2",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "wiz2-two-days"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz3-split"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz4-mains"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Keep me 5k-ready"
+   }
+  },
+  {
+   "checkpoint": "wiz5-cardio"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "148",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "29",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "wiz6-about"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz8"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "after-wizard"
+  }
+ ]
 }

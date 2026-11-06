@@ -144,11 +144,27 @@
   },
   {
    "tap": {
-    "text": "Plan"
+    "text": "Other days"
    }
   },
   {
-   "checkpoint": "plan-tab"
+   "checkpoint": "today-other-days"
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans-tab"
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
   }
  ]
 }

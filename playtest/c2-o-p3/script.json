@@ -120,10 +120,55 @@
    "checkpoint": "after-back1"
   },
   {
-   "back": true
+   "tap": {
+    "text": "Add exercise"
+   }
   },
   {
-   "checkpoint": "after-back2"
+   "scrollTo": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Close"
+   }
+  },
+  {
+   "checkpoint": "cg-search"
+  },
+  {
+   "tap": {
+    "desc": "Back",
+    "index": 1
+   }
+  },
+  {
+   "checkpoint": "patterns-again"
+  },
+  {
+   "swipe": {
+    "text": "Hinge",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "patterns-swipe1"
+  },
+  {
+   "swipe": {
+    "text": "Pick a movement",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "patterns-swipe2"
   }
  ]
 }

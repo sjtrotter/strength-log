@@ -1544,20 +1544,111 @@
       "checkpoint": "own-program-created"
     },
     {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "csv-export-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "full-backup-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "checkpoint": "restore-picker-boundary"
+    },
+    {
+      "tap": {
+        "role": "Switch"
+      }
+    },
+    {
+      "checkpoint": "automatic-backup-folder-boundary"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "23h16m"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
       "tap": {
         "text": "Meet prep Nov 9-Dec 6"
       }
     },
     {
-      "checkpoint": "own-program-detail"
-    },
-    {
       "tap": {
-        "text": "Add day"
+        "text": "0 lifts, 0 sets"
       }
     },
     {
-      "checkpoint": "own-program-add-tuesday-fields"
+      "checkpoint": "empty-tuesday-day-preview"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "empty-tuesday-day-editor"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "tuesday-hinge-exercise-catalogue"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "paused"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-search-and-custom-option"
+    },
+    {
+      "note": "Tuesday Nov10 17:30. My target is paused deadlift170x3x4, then a today-only swap from chest-supported row to one-arm DB row40x8x4/side and20min easy bike. Inspect catalogue for exact or custom naming before selecting anything."
     }
   ]
 }

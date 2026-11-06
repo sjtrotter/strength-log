@@ -233,8 +233,13 @@
    }
   },
   {
+   "scrollTo": {
+    "text": "Added load, optional (lb)"
+   }
+  },
+  {
    "swipe": {
-    "text": "How is it tracked?",
+    "text": "Added load, optional (lb)",
     "direction": "up"
    }
   },
@@ -243,7 +248,7 @@
   },
   {
    "tap": {
-    "textContains": "Core"
+    "textContains": "ore"
    }
   },
   {

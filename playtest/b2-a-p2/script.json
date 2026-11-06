@@ -322,6 +322,87 @@
     },
     {
       "checkpoint": "home-after-reopening-app"
+    },
+    {
+      "note": "Setup has finished. Before lifting, I want to find backup options and change the suggested rotation to my own four workouts."
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-before-first-session"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-before-training"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-first-look"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choose-a-different-day"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "day-a-details-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-ready-to-customize"
+    },
+    {
+      "note": "Inspect the returned plan and day controls next. My intended first session is Lower A: squat 215 for three fives, RDL 135 for three eights, reverse lunge 25 per hand for two eights each leg, plank three 30-second holds."
     }
   ]
 }

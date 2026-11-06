@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
+    "date": "2026-11-23",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "week-two-before-squat"
+      "checkpoint": "week-three-today"
     },
     {
       "tap": {
@@ -17,26 +17,7 @@
       }
     },
     {
-      "checkpoint": "week-two-offered-target"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "checkpoint": "edit-actual-squat-set"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "tag": "next-time-offer-main"
-      }
-    },
-    {
-      "checkpoint": "approved-five-pound-increase"
+      "checkpoint": "week-three-target-after-miss"
     },
     {
       "tap": {
@@ -52,37 +33,15 @@
       }
     },
     {
-      "advance": "4m"
+      "advance": "3m"
     },
     {
       "tap": {
-        "desc": "Edit set 3"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "4"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "missed-rep-entered"
-    },
-    {
-      "tap": {
-        "text": "Log 220 lb \u00d7 4"
-      }
-    },
-    {
-      "advance": "3s"
-    },
-    {
-      "checkpoint": "week-two-five-five-four"
+      "advance": "49m"
     },
     {
       "tap": {
@@ -90,29 +49,7 @@
       }
     },
     {
-      "checkpoint": "week-two-recap"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "bad-sleep-note-editor"
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Bad sleep. Stopped one rep short on last squat set; rested 4 min. Repeat 220 next Monday."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "bad-sleep-note-saved"
+      "checkpoint": "week-three-55-minute-recap"
     },
     {
       "tap": {
@@ -125,7 +62,12 @@
       }
     },
     {
-      "checkpoint": "backup-and-export-settings"
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "export-options"
     }
   ]
 }

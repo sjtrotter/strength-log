@@ -810,6 +810,67 @@
       "checkpoint": "leg-press-prescription-after-replacing-squat"
     },
     {
+      "back": true
+    },
+    {
+      "note": "The swapped leg press kept six ramp sets and a 215 lb target. I only want three sets of ten at 60. I am trying removing it and adding it as a normal exercise."
+    },
+    {
+      "tap": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "desc": "More options for Leg Press",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "checkpoint": "adding-leg-press-as-a-normal-exercise"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "expect": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "checkpoint": "leg-press-readded-without-squat-ramp"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "checkpoint": "readded-leg-press-prescription"
+    },
+    {
       "type": {
         "text": "Sets",
         "value": "3"
@@ -833,7 +894,7 @@
       }
     },
     {
-      "checkpoint": "my-four-machine-routine"
+      "checkpoint": "four-machine-routine-with-my-targets"
     },
     {
       "tap": {
@@ -852,7 +913,15 @@
       }
     },
     {
-      "checkpoint": "walking-selected-instead-of-running"
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "walking-duration-controls"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -863,16 +932,24 @@
       "back": true
     },
     {
-      "checkpoint": "machine-workout-ready-before-first-set"
+      "checkpoint": "workout-ready-looking-for-lift-and-cardio-navigation"
     },
     {
       "advance": "1h"
     },
     {
-      "note": "Monday gym: five minutes easy treadmill walking before the machines. I want to record it too; checking whether the workout exposes a cardio route."
+      "note": "Arrived at the gym Monday at 18:30. I want a five-minute warmup walk and leg press first, even though removing and adding it may have moved it to the end."
     },
     {
-      "checkpoint": "monday-workout-controls-looking-for-warmup-walk"
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "all-sets-navigation-and-logging-controls"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -880,7 +957,7 @@
       }
     },
     {
-      "checkpoint": "first-leg-press-set-entry"
+      "checkpoint": "first-set-entry-controls"
     }
   ]
 }

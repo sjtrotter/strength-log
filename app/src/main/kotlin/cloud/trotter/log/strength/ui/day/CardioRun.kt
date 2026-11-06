@@ -30,14 +30,14 @@ data class CardioDistanceDraft(
     val saved: Boolean = false,
     val amended: Boolean = false,
 ) : Parcelable {
-    fun metres(): Int? = text.toDoubleOrNull()?.let(DistanceUnit.M::toMetres)
+    fun metres(): Int? = text.toIntOrNull()?.takeIf { it > 0 }
     fun valid(): Boolean = text.isBlank() || metres() != null
 }
 
 /** Text under the original saved key stays in meters, including restored drafts. */
 @Parcelize
 data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
-    fun metres(): Int? = text.toDoubleOrNull()?.let(DistanceUnit.M::toMetres)
+    fun metres(): Int? = text.toIntOrNull()?.takeIf { it > 0 }
 }
 
 /** Editable display text has its own saved key so the original keys keep their meaning. */

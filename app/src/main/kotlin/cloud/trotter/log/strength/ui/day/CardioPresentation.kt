@@ -64,7 +64,7 @@ internal fun statusName(status: CardioSetStatus?, running: Boolean): String = st
 })
 
 @Composable
-internal fun measureText(measure: Measure, activity: CardioActivity): String = when (measure) {
+internal fun measureText(measure: Measure, activity: CardioActivity?): String = when (measure) {
     is Measure.Time -> formatCardioTime(measure.seconds)
     is Measure.Distance -> distanceUnitFor(activity).format(measure.metres)
 }

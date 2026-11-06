@@ -19,7 +19,10 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -101,6 +104,20 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Enter a distance greater than 0").assertDoesNotExist()
     }
 
+    @Test fun legacyDistanceAboveEntryLimitDisplaysAndEnablesSave() {
+        val block = CardioBlock(CardioActivity.OUTDOOR_RIDE, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(300))))
+        val run = run(block).copy(results = listOf(SavedCardioResult("FINISHED", 300)),
+            drafts = listOf(CardioDistanceDraft(0, false, "250000")))
+        var saved: CardioSetAction? = null
+        val actions = workoutActions().copy(onSaveCardioDistance = { saved = it })
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.KM) } }
+
+        rule.onNodeWithText("Distance (km)").assertTextContains("250")
+        rule.onNodeWithText("Save distance").assertIsEnabled().performClick()
+        rule.onNodeWithText("Enter a distance greater than 0").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(run.action(0), saved) }
+    }
+
     @Test fun cardioSheetReportsStatusesAndThePrescribedAim() {
         val run = run().copy(wallStart = null, elapsedStart = null, bootCount = null,
             results = listOf(SavedCardioResult("FINISHED", 127, 400)))
@@ -112,6 +129,25 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Now").assertExists()
         rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Add set").assertIsEnabled()
+    }
+
+    @Test fun loggedTrackRowsKeepMetersAfterPlanChangesToRoadRun() {
+        val distance = block().sets.first()
+        val timed = CardioSetSpec(CardioRole.WORK, Measure.Time(120), Measure.Distance(800))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(distance, timed))
+        val cardio = CardioCardState("Road run", "", false, block = block,
+            loggedActivity = CardioActivity.TRACK_RUN,
+            loggedSets = listOf(
+                CardioSetResult(distance, CardioSetStatus.FINISHED, 100, 400, DistanceSource.MANUAL),
+                CardioSetResult(timed, CardioSetStatus.SHORTENED, 60, 300, DistanceSource.MANUAL),
+            ))
+        rule.setContent { AppTheme { WorkoutCardioSheet(cardio, "D", workoutActions(), {}) } }
+
+        rule.onNodeWithText("400 m · aim 1:45").assertExists()
+        rule.onNodeWithText("2:00 · aim 800 m").assertExists()
+        rule.onNodeWithText("Shortened, 300 m").assertExists()
+        rule.onNodeWithText("0.25 mi · aim 1:45").assertDoesNotExist()
+        rule.onNodeWithText("Shortened, 0.19 mi").assertDoesNotExist()
     }
 
     @Test fun addSetIsDisabledWhenAnotherDayOwnsExecution() {

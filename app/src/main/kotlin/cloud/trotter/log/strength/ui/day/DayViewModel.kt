@@ -637,7 +637,7 @@ class DayViewModel @Inject constructor(
         val unit = distanceUnitFor(run)
         return distanceInputs.value.firstOrNull {
             it.runId == run.runId && it.position == position && it.unit == unit
-        }?.text ?: meters.toDoubleOrNull()?.let(DistanceUnit.M::toMetres)?.let(unit::inputText).orEmpty()
+        }?.text ?: meters.toIntOrNull()?.takeIf { it > 0 }?.let(unit::inputText).orEmpty()
     }
 
     private fun saveDistanceInput(run: CardioRun, position: Int, text: String): String {

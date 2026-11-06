@@ -181,8 +181,11 @@ class DayViewModelCardioExecutionTest {
         assertTypedRunDistance(DistanceUnit.MI, CardioActivity.ROAD_RUN, "3.1", 4989)
     }
 
-    private suspend fun TestScope.restoreLegacyRunDistanceAndStop(meters: Int) {
-        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+    private suspend fun TestScope.restoreLegacyRunDistanceAndStop(
+        meters: Int,
+        activity: CardioActivity = CardioActivity.ROAD_RUN,
+    ) {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = activity)
         val handle = SavedStateHandle()
         val first = readyVm(handle)
         first.startCardio()
@@ -196,6 +199,7 @@ class DayViewModelCardioExecutionTest {
 
         val restored = readyVm(parcelHandle(handle))
         assertEquals(DistanceUnit.MI, restored.uiState.value.cardio?.distanceUnit)
+        assertEquals(DistanceUnit.MI.inputText(meters), restored.uiState.value.cardio?.runDistanceText)
         restored.stopCardio(requireNotNull(restored.uiState.value.cardio?.run).action())
         runCurrent()
 
@@ -210,6 +214,10 @@ class DayViewModelCardioExecutionTest {
 
     @Test fun legacyFiveThousandMeterRunDraftStopsWithOriginalDistance() = test {
         restoreLegacyRunDistanceAndStop(5000)
+    }
+
+    @Test fun legacyRideAboveEntryLimitStopsWithOriginalDistance() = test {
+        restoreLegacyRunDistanceAndStop(250_000, CardioActivity.OUTDOOR_RIDE)
     }
 
     private suspend fun TestScope.restoreLegacyPendingDistanceAndSave(meters: Int) {
@@ -243,6 +251,10 @@ class DayViewModelCardioExecutionTest {
 
     @Test fun legacyFiveThousandMeterPendingDraftSavesOriginalDistance() = test {
         restoreLegacyPendingDistanceAndSave(5000)
+    }
+
+    @Test fun legacyPendingDraftAboveEntryLimitSavesOriginalDistance() = test {
+        restoreLegacyPendingDistanceAndSave(250_000)
     }
 
     @Test fun displayInputRestoresPartialTextWhileExistingKeyKeepsMeters() = test {

@@ -20,7 +20,14 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "type": {
+    "text": "Days per week"
+   },
+   "value": "5",
+   "ime": "done"
+  },
+  {
+   "checkpoint": "w2-5days"
   },
   {
    "tap": {
@@ -28,7 +35,7 @@
    }
   },
   {
-   "checkpoint": "w3"
+   "checkpoint": "w3-split"
   },
   {
    "tap": {
@@ -36,7 +43,14 @@
    }
   },
   {
-   "checkpoint": "w4"
+   "tap": {
+    "text": "Squat / Bench / Deadlift / Row (Big 4)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
   },
   {
    "tap": {
@@ -44,7 +58,14 @@
    }
   },
   {
-   "checkpoint": "w5"
+   "tap": {
+    "text": "Bike / elliptical"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finishers after lifting"
+   }
   },
   {
    "tap": {
@@ -52,7 +73,34 @@
    }
   },
   {
-   "checkpoint": "w6"
+   "tap": {
+    "text": "KG"
+   }
+  },
+  {
+   "checkpoint": "w6-kg"
+  },
+  {
+   "type": {
+    "textContains": "Bodyweight"
+   },
+   "value": "95.6",
+   "ime": "done"
+  },
+  {
+   "type": {
+    "text": "Age"
+   },
+   "value": "41",
+   "ime": "done"
+  },
+  {
+   "tap": {
+    "text": "Advanced"
+   }
+  },
+  {
+   "checkpoint": "w6-filled"
   },
   {
    "tap": {

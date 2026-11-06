@@ -75,11 +75,6 @@
   },
   {
    "tap": {
-    "text": "Search all exercises"
-   }
-  },
-  {
-   "tap": {
     "text": "Barbell Back Squat"
    }
   },
@@ -235,6 +230,283 @@
   },
   {
    "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "dl-top"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "note": "Felt too easy, doing one more set of 95x5"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "dl-done"
+  },
+  {
+   "advance": "8m"
+  },
+  {
+   "note": "waited ~8 min for a flat bench"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "bench-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "squat-done"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "row-done"
+  },
+  {
+   "note": "bike instead of treadmill, 10 minutes"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "checkpoint": "cardio-10"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "cardio-stopped"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "c-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Extra deadlift set hurt my back. Stick to one set. Wear flat shoes."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "c-summary-noted"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "2d23h"
+  },
+  {
+   "checkpoint": "mon16-today"
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "tap": {
+    "text": "3-day full body"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day A"
+   }
+  },
+  {
+   "checkpoint": "mon16-day-a"
+  },
+  {
+   "tap": {
+    "desc": "Back"
+   }
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history"
   }
  ]
 }

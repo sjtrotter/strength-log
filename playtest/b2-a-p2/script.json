@@ -521,7 +521,157 @@
       "checkpoint": "squat-prescription-fields"
     },
     {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "monday-squat-prescription-saved"
+    },
+    {
+      "tap": {
+        "text": "3 \u00d7 10 at 150 lb"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "monday-rdl-prescription-saved"
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "monday-extras-removed"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options-for-straight-work-sets"
+    },
+    {
       "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "lunge-replacement-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day",
+        "absent": true
+      }
     },
     {
       "expect": {
@@ -534,7 +684,7 @@
       }
     },
     {
-      "checkpoint": "squat-all-sets-before-training"
+      "checkpoint": "squat-all-sets-after-prescription-edit"
     },
     {
       "back": true
@@ -553,42 +703,76 @@
       "checkpoint": "first-warmup-set-edit-fields"
     },
     {
-      "back": true
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45",
+        "ime": "done"
+      }
     },
     {
-      "expect": {
-        "text": "Barbell Back Squat"
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "desc": "Day D lifts, 0 of 21 sets"
+        "text": "Save"
       }
-    },
-    {
-      "checkpoint": "exercise-navigation-before-training"
-    },
-    {
-      "back": true
     },
     {
       "expect": {
         "text": "Barbell Back Squat"
       }
+    },
+    {
+      "checkpoint": "bar-only-warmup-ready"
+    },
+    {
+      "note": "Monday November 9: garage is cold. I do my first warm-up with the empty 45-pound bar for ten reps; only log it after doing it."
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log 45 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "first-warmup-logged-rest-controls"
     },
     {
       "recreate": true
     },
     {
+      "checkpoint": "logged-warmup-after-reopening"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "warmup-rest-expired"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "all-sets-with-logged-warmup"
+    },
+    {
+      "back": true
+    },
+    {
       "expect": {
         "text": "Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "unlogged-monday-workout-reopened"
-    },
-    {
-      "note": "I have not lifted or logged anything yet. I need squat 215 for three work sets of five, plus my lighter warmups; the generated ramp prescription is not my plan. Use the returned prescription and set fields to enter that before training on the next replay."
+      "note": "Still Monday, only the first warmup is queued as completed here. Next use the captured lift options and All sets to configure three work sets at 215x5 and remaining warmups 95x5,135x5,185x3; swap Bulgarian to reverse lunge, use25s for two eights each leg, and plank3x30s. Do not accept the ramp as my intended work."
     }
   ]
 }

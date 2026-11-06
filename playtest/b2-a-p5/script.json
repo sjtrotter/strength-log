@@ -445,14 +445,24 @@
     },
     {
       "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
         "text": "Hinge"
       }
     },
     {
-      "checkpoint": "hinge-library-find-dumbbell-rdl"
+      "checkpoint": "hinge-library-find-my-dumbbell-rdl"
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
     },
     {
       "tap": {
@@ -460,10 +470,15 @@
       }
     },
     {
-      "checkpoint": "single-leg-library-find-lunges-stepups"
+      "checkpoint": "single-leg-library-find-lunges-and-stepups"
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
     },
     {
       "tap": {
@@ -471,10 +486,15 @@
       }
     },
     {
-      "checkpoint": "curl-library-for-strength-b"
+      "checkpoint": "curl-library-for-friday"
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
     },
     {
       "swipe": {
@@ -483,7 +503,7 @@
       }
     },
     {
-      "checkpoint": "remaining-movement-categories-find-calves"
+      "checkpoint": "lower-movement-categories-for-calves"
     },
     {
       "back": true
@@ -512,15 +532,12 @@
       }
     },
     {
-      "checkpoint": "my-side-planks-two-thirty-second-rounds-per-side"
-    },
-    {
       "tap": {
         "text": "Save"
       }
     },
     {
-      "checkpoint": "side-plank-prescription-saved"
+      "checkpoint": "two-side-plank-rounds-of-thirty-seconds"
     },
     {
       "tap": {
@@ -576,19 +593,167 @@
     },
     {
       "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "added-my-goblet-squat"
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "goblet-prescription-before-customizing"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "goblet-three-by-eight-at-thirty-five"
+    },
+    {
+      "tap": {
         "desc": "More options for Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Swap"
+        "text": "Remove"
       }
     },
     {
-      "checkpoint": "replace-barbell-squat-with-my-goblet-squat"
+      "checkpoint": "removed-unwanted-barbell-main-lift"
     },
     {
-      "note": "Replay after an operator download TLS timeout. No new app screens were available on turn 10; all training and editor changes after step 105 remained unverified until this replay."
+      "back": true
+    },
+    {
+      "checkpoint": "workout-after-my-exercise-changes"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "set-list-before-first-real-training-entry"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "actual-set-fields-for-my-first-session"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "history-menu-for-sharing-export-and-backup"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "calendar-and-trends-before-first-save"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options-for-calendar-and-next-month"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "return-to-today-with-custom-session-unfinished"
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "checkpoint": "resume-custom-strength-session"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "custom-exercises-after-reopening"
     }
   ]
 }

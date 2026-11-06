@@ -553,6 +553,296 @@
    "checkpoint": "dayD-view-final"
   },
   {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Day A",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "dayA-view"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "dayA-editsheet"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "175"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayA-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayA-view-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Day B",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "dayB-editsheet"
+  },
+  {
+   "tap": {
+    "desc": "More options for Conventional Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ramp, top set, back-off"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "dl-ramp-backoff-prescription"
+  },
+  {
+   "tap": {
+    "text": "Cancel"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "275"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayB-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayB-view-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "Day C",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "overhead press"
+   }
+  },
+  {
+   "checkpoint": "dayC-swap-search"
+  },
+  {
+   "tap": {
+    "text": "Overhead Press (Barbell)"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Overhead Press (Barbell)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "115"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayC-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayC-view-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "plan-detail-after-setup"
+  },
+  {
+   "tap": {
+    "textContains": "Day D",
+    "index": 0
+   }
+  },
+  {
    "advance": "9h20m"
   },
   {
@@ -718,11 +1008,24 @@
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "tag": "workout-action-filled"
    }
   },
   {
    "checkpoint": "mon-finish-tapped"
+  },
+  {
+   "advance": "3s"
+  },
+  {
+   "checkpoint": "mon-summary"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-summary-back"
   }
- ]
+ ],
+ "capture": "checkpoints"
 }

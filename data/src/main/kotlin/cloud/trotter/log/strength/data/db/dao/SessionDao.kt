@@ -141,8 +141,15 @@ interface SessionDao {
     )
     suspend fun sessionsForPlan(planId: Long): List<WorkoutSessionEntity>
 
-    @Query("SELECT * FROM session_set WHERE sessionId IN (:sessionIds) AND exerciseId IN (:exerciseIds) ORDER BY id")
-    suspend fun setsForSessions(sessionIds: List<Long>, exerciseIds: List<String>): List<SessionSetEntity>
+    @Query(
+        """
+        SELECT ss.* FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ws.planId = :planId AND ss.exerciseId IN (:exerciseIds)
+        ORDER BY ss.id
+        """,
+    )
+    suspend fun setsForPlan(planId: Long, exerciseIds: List<String>): List<SessionSetEntity>
 
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of

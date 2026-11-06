@@ -253,7 +253,7 @@ class HistoryRepository(
         return db.withTransaction {
             val sessions = sessionDao.sessionsForPlan(planId)
             if (sessions.isEmpty()) return@withTransaction emptyMap()
-            val sets = sessionDao.setsForSessions(sessions.map { it.id }, exerciseIds).groupBy { it.sessionId }
+            val sets = sessionDao.setsForPlan(planId, exerciseIds).groupBy { it.sessionId }
             val result = mutableMapOf<String, MutableList<CarryForward.Session>>()
             for (session in sessions) {
                 for ((key, track) in archivedTracks(session, sets[session.id].orEmpty())) {

@@ -120,6 +120,27 @@ class DayScreenBuilderTest {
     }
 
     @Test
+    fun `next time ignores retired local history and uses plan evidence against the opening prescription`() {
+        val opening = List(3) { work(45.0, 5) }
+        val retiredRows = List(3) { work(80.0, 5) }
+        val retired = SlotSession(retiredRows,
+            retiredRows.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }, true)
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, retired, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, emptyList(), openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, true, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(done = true) }, retired, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(weightLb = 50.0) }, retired, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
+    }
+
+    @Test
     fun loggedCardioAloneEnablesFinish() {
         val state = DayUiState(
             hasProgram = true, viewDayId = "A",

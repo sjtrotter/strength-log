@@ -19,7 +19,14 @@
    }
   },
   {
-   "checkpoint": "wiz-2"
+   "type": {
+    "text": "Days per week"
+   },
+   "value": "3",
+   "ime": "done"
+  },
+  {
+   "checkpoint": "days-3"
   },
   {
    "tap": {
@@ -27,7 +34,7 @@
    }
   },
   {
-   "checkpoint": "wiz-3"
+   "checkpoint": "split"
   },
   {
    "tap": {
@@ -35,7 +42,17 @@
    }
   },
   {
-   "checkpoint": "wiz-4"
+   "scrollTo": {
+    "textContains": "Conventional"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Conventional"
+   }
+  },
+  {
+   "checkpoint": "lifts"
   },
   {
    "tap": {
@@ -43,7 +60,17 @@
    }
   },
   {
-   "checkpoint": "wiz-5"
+   "tap": {
+    "textContains": "Treadmill"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Finishers after lifting"
+   }
+  },
+  {
+   "checkpoint": "cardio"
   },
   {
    "tap": {
@@ -51,7 +78,31 @@
    }
   },
   {
-   "checkpoint": "wiz-6"
+   "tap": {
+    "textContains": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)"
+   },
+   "value": "170",
+   "ime": "done"
+  },
+  {
+   "type": {
+    "text": "Age"
+   },
+   "value": "26",
+   "ime": "done"
+  },
+  {
+   "tap": {
+    "textContains": "Novice"
+   }
+  },
+  {
+   "checkpoint": "about-you"
   },
   {
    "tap": {
@@ -68,14 +119,6 @@
   },
   {
    "checkpoint": "wiz-8"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "after-wizard"
   }
  ]
 }

@@ -6,5 +6,12 @@
     "time": "20:30",
     "zone": "America/Chicago"
   },
-  "steps": []
+  "steps": [
+    {
+      "advance": "5s"
+    },
+    {
+      "checkpoint": "setup-after-wait"
+    }
+  ]
 }

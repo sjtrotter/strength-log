@@ -124,6 +124,28 @@
     },
     {
       "checkpoint": "setup-step-8"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "rotation-bottom"
+    },
+    {
+      "note": "Preview gives each day 25 minutes of bike, beyond my intended 12\u201317 minutes. I will look for plan editing after setup to enter my own three days."
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5s"
+    },
+    {
+      "checkpoint": "setup-finished"
     }
   ]
 }

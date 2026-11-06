@@ -882,6 +882,14 @@
    "checkpoint": "trends"
   },
   {
+   "scrollTo": {
+    "text": "Full Body"
+   }
+  },
+  {
+   "checkpoint": "trends-scrolled"
+  },
+  {
    "tap": {
     "text": "Full Body"
    }

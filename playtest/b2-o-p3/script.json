@@ -199,36 +199,20 @@
    }
   },
   {
-   "checkpoint": "dayA"
-  },
-  {
-   "back": true
-  },
-  {
    "tap": {
-    "desc": "Day options",
-    "index": 0
+    "text": "Edit"
    }
   },
   {
-   "checkpoint": "dayopts"
-  },
-  {
-   "back": true
+   "checkpoint": "editdayA"
   },
   {
    "tap": {
-    "text": "137.5"
+    "text": "Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "goal-squat"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-goal"
+   "checkpoint": "edit-squat"
   }
  ]
 }

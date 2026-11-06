@@ -1,32 +1,130 @@
 {
-  "seat": "b2-o-p4",
-  "start": {"date": "2026-11-09", "time": "17:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "first-open"},
-    {"tap": {"text": "Balanced strength + muscle"}},
-    {"tap": {"text": "Next"}},
-    {"type": {"text": "Days per week"}, "value": "3", "ime": "done"},
-    {"checkpoint": "wiz2-3days"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz3-split"},
-    {"tap": {"text": "Full-body rotation"}},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"}},
-    {"tap": {"text": "Conventional"}},
-    {"checkpoint": "wiz4-lifts"},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "Bike / elliptical"}},
-    {"tap": {"text": "Finishers after lifting"}},
-    {"checkpoint": "wiz5-cardio"},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "LB"}},
-    {"type": {"text": "Bodyweight (lb)"}, "value": "190", "ime": "done"},
-    {"type": {"text": "Age"}, "value": "38", "ime": "done"},
-    {"tap": {"text": "Intermediate"}},
-    {"checkpoint": "wiz6-about"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz7"},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "wiz8"}
-  ]
+ "seat": "b2-o-p4",
+ "start": {
+  "date": "2026-11-09",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "first-open"
+  },
+  {
+   "tap": {
+    "text": "Balanced strength + muscle"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "type": {
+    "text": "Days per week",
+    "value": "3",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "wiz2-3days"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz3-split"
+  },
+  {
+   "tap": {
+    "text": "Full-body rotation"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
+  },
+  {
+   "checkpoint": "wiz4-lifts"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bike / elliptical"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finishers after lifting"
+   }
+  },
+  {
+   "checkpoint": "wiz5-cardio"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "38",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "wiz6-about"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "wiz8"
+  }
+ ]
 }

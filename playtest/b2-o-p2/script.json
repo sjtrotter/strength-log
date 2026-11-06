@@ -276,22 +276,29 @@
   },
   {
    "tap": {
-    "desc": "More options for Barbell Back Squat"
+    "desc": "More options for Seated Calf Raise"
    }
   },
   {
    "tap": {
-    "text": "Lift options"
+    "text": "Remove"
    }
   },
   {
-   "checkpoint": "squat-lift-options"
+   "checkpoint": "removed-calf"
   },
   {
-   "back": true
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   }
   },
   {
-   "checkpoint": "after-liftopts-back"
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "removed-plank"
   },
   {
    "tap": {
@@ -304,49 +311,76 @@
    }
   },
   {
-   "checkpoint": "swap-legcurl"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
+   "type": {
+    "text": "Search exercises",
+    "value": "leg raise"
    }
   },
   {
-   "checkpoint": "add-exercise"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-add-back"
-  },
-  {
-   "back": true
+   "checkpoint": "swap-search-legraise"
   },
   {
    "tap": {
-    "text": "All sets"
+    "textContains": "Hanging Leg Raise",
+    "index": 0
    }
   },
   {
-   "checkpoint": "all-sets"
-  },
-  {
-   "back": true
+   "checkpoint": "swapped-legraise"
   },
   {
    "tap": {
-    "desc": "Edit set 1"
+    "desc": "More options for Bulgarian Split Squat"
    }
   },
   {
-   "checkpoint": "edit-set-1"
+   "tap": {
+    "text": "Swap"
+   }
   },
   {
-   "back": true
+   "type": {
+    "text": "Search exercises",
+    "value": "lunge"
+   }
+  },
+  {
+   "checkpoint": "swap-search-lunge"
+  },
+  {
+   "tap": {
+    "textContains": "Walking",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "swapped-lunge"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "checkpoint": "squat-straight"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "squat-prescription"
   }
  ]
 }

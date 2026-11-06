@@ -1,0 +1,300 @@
+{
+  "seat": "c2-a-p4",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-13",
+    "time": "17:45",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-friday-open-workout"
+    },
+    {
+      "tap": {
+        "text": "3-day full body \u00b7 Day B"
+      }
+    },
+    {
+      "checkpoint": "friday-resume-preview"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "expect": {
+        "text": "Incline DB Press"
+      }
+    },
+    {
+      "checkpoint": "restored-two-incline-sets-before-third"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "advance": "8m30s"
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb \u00d7 12"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb \u00d7 12"
+      }
+    },
+    {
+      "expect": {
+        "text": "Chest-Supported DB Row"
+      }
+    },
+    {
+      "checkpoint": "friday-temporary-row-still-present"
+    },
+    {
+      "advance": "11m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "advance": "14m"
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 180 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "friday-lifts-completed-bike-next"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "17m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day B"
+      }
+    },
+    {
+      "checkpoint": "friday-finished-lifting-and-bike"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bike:3easy,6x30s hard/90s easy,2easy; all6. First210W,last170W. Start180 nexttime. Legpress plates only; DB each.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "friday-interval-watts-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "2d22h46m"
+    },
+    {
+      "checkpoint": "week-two-monday-next-day-offered"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "week-two-monday-preview-last-results-and-targets"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "week-two-squat-prescription-after-first-week"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week-two-squat-all-targets"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Next batch logs Nov16: squat135 9/8/7; bench105 9/8/8; row90 11/11/10; DBRDL40 10/10; bike12min105W effort7. Bad sleep, stop squat when folding. 78min visit."
+    }
+  ]
+}

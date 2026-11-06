@@ -380,7 +380,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "text": "3-day full body \u00b7 Day A"
       }
     },
     {
@@ -473,7 +473,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "text": "3-day full body \u00b7 Day A"
       }
     },
     {
@@ -678,7 +678,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -756,7 +756,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -992,7 +992,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1003,7 +1003,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1014,7 +1014,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1119,7 +1119,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1140,7 +1140,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1148,7 +1148,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1164,7 +1164,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1172,7 +1172,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1188,7 +1188,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1196,7 +1196,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1204,7 +1204,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1363,7 +1363,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day C"
+        "text": "3-day full body \u00b7 Day C"
       }
     },
     {
@@ -1489,7 +1489,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -1722,7 +1722,7 @@
     },
     {
       "tap": {
-        "text": "Undo 185 × 5"
+        "text": "Undo 185 \u00d7 5"
       }
     },
     {
@@ -1765,7 +1765,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -1793,7 +1793,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 6"
+        "text": "Log 30 lb \u00d7 6"
       }
     },
     {
@@ -1821,7 +1821,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -1834,7 +1834,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -1842,7 +1842,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -1850,7 +1850,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -1953,7 +1953,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day B"
+        "text": "3-day full body \u00b7 Day B"
       }
     },
     {
@@ -2055,7 +2055,7 @@
     },
     {
       "tap": {
-        "text": "Intervals 5 × 2:00"
+        "text": "Intervals 5 \u00d7 2:00"
       }
     },
     {
@@ -2255,6 +2255,33 @@
     },
     {
       "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "17:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
         "desc": "More options for Seated Cable Row"
       }
     },
@@ -2279,70 +2306,6 @@
       }
     },
     {
-      "tap": {
-        "text": "Chest-Supported DB Row"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "friday-today-only-row-substitution-and-own-loads"
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Set 1 · Work"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "17:00",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
       "note": "Friday: record the lifting after each exercise. Follow bike console for 3 easy + six 30s hard/90s easy + 2 easy, since editing every preset segment is too much setup today. App timer is a single17min block; note will preserve all six efforts honestly."
     },
     {
@@ -2355,17 +2318,17 @@
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "Log 35 lb \u00d7 8"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "Log 35 lb \u00d7 8"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "Log 35 lb \u00d7 8"
       }
     },
     {
@@ -2378,12 +2341,12 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb × 12"
+        "text": "Log 70 lb \u00d7 12"
       }
     },
     {
       "tap": {
-        "text": "Log 70 lb × 12"
+        "text": "Log 70 lb \u00d7 12"
       }
     },
     {
@@ -2396,17 +2359,89 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Save set"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -2419,17 +2454,17 @@
     },
     {
       "tap": {
-        "text": "Log 180 lb × 10"
+        "text": "Log 180 lb \u00d7 10"
       }
     },
     {
       "tap": {
-        "text": "Log 180 lb × 10"
+        "text": "Log 180 lb \u00d7 10"
       }
     },
     {
       "tap": {
-        "text": "Log 180 lb × 10"
+        "text": "Log 180 lb \u00d7 10"
       }
     },
     {
@@ -2493,6 +2528,16 @@
     },
     {
       "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
         "text": "Start day A"
       }
     },
@@ -2533,7 +2578,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 9"
+        "text": "Log 135 lb \u00d7 9"
       }
     },
     {
@@ -2562,7 +2607,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -2591,7 +2636,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 7"
+        "text": "Log 135 lb \u00d7 7"
       }
     },
     {
@@ -2628,7 +2673,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 9"
+        "text": "Log 105 lb \u00d7 9"
       }
     },
     {
@@ -2657,7 +2702,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -2686,7 +2731,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -2723,7 +2768,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -2752,7 +2797,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -2789,7 +2834,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 11"
+        "text": "Log 90 lb \u00d7 11"
       }
     },
     {
@@ -2818,7 +2863,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 11"
+        "text": "Log 90 lb \u00d7 11"
       }
     },
     {
@@ -2847,7 +2892,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -2908,6 +2953,340 @@
     },
     {
       "checkpoint": "week-two-monday-saved-back-on-today"
+    },
+    {
+      "advance": "1d22h42m"
+    },
+    {
+      "tap": {
+        "text": "3-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb \u00d7 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb \u00d7 9"
+      }
+    },
+    {
+      "expect": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "advance": "13m"
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb \u00d7 11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb \u00d7 11"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb \u00d7 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rower"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "2280",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish day C"
+      }
+    },
+    {
+      "checkpoint": "week-two-wednesday-actual-lifting-and2280m"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Split squat20s:2x9 each leg. DL solid; shoulder25s right. Row12min,2280m,effort6/10. Whole visit72min.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d22h48m"
+    },
+    {
+      "advance": "3d"
+    },
+    {
+      "checkpoint": "monday-after-missed-friday-no-makeup"
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "two-weeks-history-dates-and-cardio"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "full-backup-export-file-picker-boundary"
     }
   ]
 }

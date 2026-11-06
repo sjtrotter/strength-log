@@ -202,7 +202,156 @@
    }
   },
   {
-   "checkpoint": "rename"
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Mon squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 1
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Tue bench volume"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 2
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Wed deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 3
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Fri bench heavy"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 4
+   }
+  },
+  {
+   "tap": {
+    "text": "Rename"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Sat squat 2"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "days-named"
+  },
+  {
+   "tap": {
+    "text": "Mon squat"
+   }
+  },
+  {
+   "checkpoint": "mon-view"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "mon-edit"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-ex"
   }
  ]
 }

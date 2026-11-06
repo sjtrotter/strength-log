@@ -1350,6 +1350,99 @@
     },
     {
       "note": "Next inspect completed bench, Finish review and lift-navigation screenshots. Monday accessories remain to enter accurately. The squat note stores effort as text because no separate RPE field has appeared."
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "monday-partial-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved-main-lifts-only"
+    },
+    {
+      "note": "Squat and bench are recorded. I am leaving the generated accessories unchecked; my actual Monday curls and ab wheel are still missing from this log, not completed by checking unrelated exercises."
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "first-saved-session-history"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "history-actions-export-discovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "first-session-trends-calendar"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-before-backup-search"
+    },
+    {
+      "scrollTo": {
+        "text": "Reset to defaults"
+      }
+    },
+    {
+      "checkpoint": "settings-lower-after-timer-defaults"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "own-program-start-empty"
+    },
+    {
+      "note": "I already have the four-week program. Inspect the empty-plan fields next so Tuesday uses paused pulls rather than the generated bench day. No Tuesday training has happened yet."
     }
   ]
 }

@@ -413,6 +413,14 @@
   },
   {
    "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
     "desc": "Edit set 3"
    }
   },
@@ -436,6 +444,52 @@
   },
   {
    "checkpoint": "bench-3-logged"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "lat-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "lat-done"
+  },
+  {
+   "note": "Skipped treadmill, 7:10, going home"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish"
   }
  ]
 }

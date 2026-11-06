@@ -30,6 +30,19 @@
    "checkpoint": "picker"
   },
   {
+   "scrollTo": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "checkpoint": "push-list"
+  },
+  {
    "type": {
     "editable": true,
     "value": "Spoto"

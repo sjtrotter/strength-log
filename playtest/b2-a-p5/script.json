@@ -1792,42 +1792,12 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Knee flexion"
-      }
-    },
-    {
-      "tap": {
         "text": "Seated Leg Curl"
       }
     },
     {
       "tap": {
         "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "checkpoint": "b-seated-leg-curl-prescription"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
       }
     },
     {
@@ -1842,13 +1812,329 @@
       }
     },
     {
-      "checkpoint": "b-three-diary-exercises-added-still-needs-originals-removed"
+      "scrollTo": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Lat Pulldown (wide)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "friday-b-my-exercises-nine-planned-sets-no-calf-row"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "b-workout-before-any-sets-logged"
+      "tap": {
+        "desc": "Day B lifts, 0 of 9 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "expect": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 4 of 9 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "expect": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pallof Press"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "24m"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "friday-after-finish-complete-session"
+    },
+    {
+      "checkpoint": "friday-b-saved-nine-sets-curl-last-eight"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Step15 EACH hand; RDL one20; both8/leg. Rack for balance. Pallof15x10/side. Seated calves45 added3x12, not in set log."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "friday-finished-before-first-long-run"
+    },
+    {
+      "advance": "1d12h54m"
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day C1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "60m"
+    },
+    {
+      "advance": "9m20s"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "11000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "sunday-long-run-eleven-km-crossing-in-elapsed-time"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d22h50m40s"
+    },
+    {
+      "note": "Nov16 Monday lift postponed for work/no dinner; Nov17 morning run, separate lift later. Nov15 crossing included, calves stiff, RPE4; no run-note UI found."
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day C1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "43m5s"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-morning-run-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "tuesday-before-separate-evening-strength"
     }
   ]
 }

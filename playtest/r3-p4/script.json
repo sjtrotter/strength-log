@@ -85,6 +85,139 @@
     },
     {
       "checkpoint": "choose-rower-for-short-session"
+    },
+    {
+      "tap": {
+        "text": "Rower"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "deadlift-and-rower-ready"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "three-deadlift-sets-190"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rower"
+      }
+    },
+    {
+      "advance": "18m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "1910"
+      }
+    },
+    {
+      "checkpoint": "short-row-distance-entered"
+    },
+    {
+      "tap": {
+        "text": "Save distance"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Finish",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "short-wednesday-saved"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Leaving town, short visit. DL last rep slow. Row 10m, 1910m, effort 7/10; faster but harder. Skipped accessories."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "short-session-context-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
     }
   ]
 }

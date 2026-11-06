@@ -212,6 +212,33 @@
   },
   {
    "checkpoint": "swap"
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "after-swap-pick"
+  },
+  {
+   "tap": {
+    "desc": "More options for Chest-Supported Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "pulldown"
+   }
+  },
+  {
+   "checkpoint": "search-pulldown"
   }
  ]
 }

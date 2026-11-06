@@ -128,11 +128,40 @@
   },
   {
    "tap": {
-    "text": "Plan"
+    "text": "Other days"
    }
   },
   {
-   "checkpoint": "plan"
+   "checkpoint": "otherdays"
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "plans"
   }
  ]
 }

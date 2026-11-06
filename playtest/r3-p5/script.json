@@ -267,6 +267,11 @@
   },
   {
    "tap": {
+    "text": "Search all exercises"
+   }
+  },
+  {
+   "tap": {
     "text": "Copenhagen Plank",
     "inDialog": true
    }
@@ -325,7 +330,27 @@
    "checkpoint": "edit-set"
   },
   {
+   "type": {
+    "editable": true,
+    "index": 0,
+    "value": "185"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "index": 1,
+    "value": "5"
+   }
+  },
+  {
+   "checkpoint": "edit-set-typed"
+  },
+  {
    "back": true
+  },
+  {
+   "checkpoint": "after-edit"
   },
   {
    "tap": {
@@ -333,15 +358,15 @@
    }
   },
   {
-   "checkpoint": "after-log"
+   "checkpoint": "after-log1"
   },
   {
    "tap": {
-    "text": "All sets"
+    "tag": "workout-action-filled"
    }
   },
   {
-   "checkpoint": "all-sets"
+   "checkpoint": "after-log2"
   }
  ]
 }

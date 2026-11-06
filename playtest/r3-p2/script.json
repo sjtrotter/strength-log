@@ -65,6 +65,14 @@
     },
     {
       "checkpoint": "edit-day-controls"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker"
     }
   ]
 }

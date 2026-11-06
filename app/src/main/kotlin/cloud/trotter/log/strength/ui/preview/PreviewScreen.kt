@@ -81,14 +81,24 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                         headlineContent = { Text(lift.name) },
                         supportingContent = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                lift.working?.let { Text(stringResource(R.string.preview_working, it)) }
+                                lift.working?.let { working ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(stringResource(R.string.preview_working, working), modifier = Modifier.weight(1f, fill = false))
+                                        lift.nextTime?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    }
+                                }
                                 lift.previous.forEach { previous ->
+                                    val source = previous.source?.let { day ->
+                                        previous.sourcePlanName?.let { stringResource(R.string.today_plan_day, it, day) }
+                                            ?: stringResource(R.string.preview_last_day, day)
+                                    }
                                     val result = when {
                                         !previous.comparable -> stringResource(R.string.preview_no_comparable_result)
-                                        previous.last == null -> stringResource(R.string.preview_no_previous_result)
+                                        previous.last == null -> null
+                                        source != null -> stringResource(R.string.preview_last_elsewhere, previous.last, source)
                                         else -> stringResource(R.string.preview_last, previous.last)
                                     }
-                                    Text(if (lift.previous.size > 1) stringResource(R.string.form_named_previous_result,
+                                    if (result != null) Text(if (lift.previous.size > 1) stringResource(R.string.form_named_previous_result,
                                         previous.exerciseName, result) else result)
                                 }
                             }

@@ -306,6 +306,22 @@
     },
     {
       "checkpoint": "first-home-after-setup"
+    },
+    {
+      "expect": {
+        "text": "Your rotation",
+        "absent": true
+      },
+      "timeoutMs": 60000
+    },
+    {
+      "checkpoint": "home-after-plan-creation-settles"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "home-after-reopening-app"
     }
   ]
 }

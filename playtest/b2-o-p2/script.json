@@ -84,17 +84,17 @@
   },
   {
    "type": {
-    "text": "Bodyweight (lb)"
-   },
-   "value": "190",
-   "ime": "done"
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
   },
   {
    "type": {
-    "text": "Age"
-   },
-   "value": "34",
-   "ime": "done"
+    "text": "Age",
+    "value": "34",
+    "ime": "done"
+   }
   },
   {
    "tap": {

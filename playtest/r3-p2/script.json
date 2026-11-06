@@ -26,6 +26,14 @@
     },
     {
       "checkpoint": "new-plan-builder"
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "empty-plan-editor"
     }
   ]
 }

@@ -1,10 +1,35 @@
 {
-  "seat": "c2-o-p5",
-  "device": "w360dp-h720dp-night-xxhdpi",
-  "capture": "checkpoints",
-  "start": {"restore": "start-backup.json", "date": "2026-11-09", "time": "17:50", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "open-mon-evening"},
-    {"note": "Looking for my open Lift A"}
-  ]
+ "seat": "c2-o-p5",
+ "device": "w360dp-h720dp-night-xxhdpi",
+ "capture": "checkpoints",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-09",
+  "time": "17:50",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "open-mon-evening"
+  },
+  {
+   "note": "Looking for my open Lift A"
+  },
+  {
+   "tap": {
+    "text": "Resume day A"
+   }
+  },
+  {
+   "checkpoint": "resumed"
+  },
+  {
+   "tap": {
+    "text": "Finish day A"
+   }
+  },
+  {
+   "checkpoint": "finish-tap"
+  }
+ ]
 }

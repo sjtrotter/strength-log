@@ -242,7 +242,7 @@ class PlanRepository(
                 val plans = planDao.allPlans()
                 val selected = preferredPlan(plans, storedId)
                 val recipe = PlanRecipeJson.encode(answers)
-                val nextDay = program.strengthDays.firstOrNull()?.id
+                val nextDay = program.rotationDays.firstOrNull()?.id
                 val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
                     planDao.updatePlan(selected.copy(
                         name = name,

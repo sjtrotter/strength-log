@@ -168,6 +168,52 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
+    fun `new plans start at the first cardio training day in mixed and cardio-only programs`() = runTest {
+        val mixed = mixedProgram()
+        val cardioOnly = Program(mixed.days.filter { it.exercises.isEmpty() })
+        for (program in listOf(mixed, cardioOnly)) {
+            val id = repo.plans.createGeneratedPlan("Training", WizardAnswers(), program)
+
+            assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+            assertEquals(program, repo.plans.programFor(id).first())
+        }
+    }
+
+    @Test
+    fun `filling a settings-only plan starts at the first cardio training day`() = runTest {
+        repo.plans.setWizardAnswers(WizardAnswers())
+        val id = settings.selectedPlanIdFlow.first()!!
+
+        assertEquals(id, repo.plans.createGeneratedPlan("Training", WizardAnswers(), mixedProgram()))
+
+        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+    }
+
+    @Test
+    fun `replacement starts at the first cardio training day and skips extras`() = runTest {
+        repo.replaceProgram(mixedProgram())
+        val id = settings.selectedPlanIdFlow.first()!!
+        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+        val cardioOnly = Program(mixedProgram().days.filter { it.id == "C" })
+
+        repo.replaceProgram(cardioOnly)
+
+        assertEquals("C", db.planDao().plan(id)!!.suggestedDayId)
+    }
+
+    @Test
+    fun `removing a suggested lift selects the next cardio training day and skips extras`() = runTest {
+        repo.replaceProgram(mixedProgram())
+        val id = settings.selectedPlanIdFlow.first()!!
+        db.planDao().updateSuggestedDay(id, "B")
+
+        assertTrue(repo.removeDay(id, "B"))
+        assertEquals("C", db.planDao().plan(id)!!.suggestedDayId)
+        assertTrue(repo.removeDay(id, "C"))
+        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+    }
+
+    @Test
     fun `add days uses unused letters appends positions and stops at seven`() = runTest {
         val id = repo.plans.createAuthoredPlan("Prep", "Day A")
         for (letter in 'B'..'G') assertEquals(letter.toString(), repo.addDay(id, "Day $letter"))
@@ -337,5 +383,19 @@ class TrackerRepositoryAuthoredPlanTest {
             assertEquals(expected, actual)
             assertTrue(actual.first().weightLb > 0.0 || actual.first().reps > 0 || actual.first().seconds > 0)
         }
+    }
+
+    private fun mixedProgram(): Program {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
+        val extras = ProgramGenerator.generate(WizardAnswers(
+            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
+        )).cardioDays
+        return Program(listOf(
+            extras[0],
+            ProgramDay("A", "Run", "", emptyList(), kind = ProgramDayKind.CARDIO, cardioBlock = block),
+            ProgramDay("B", "Lift", "", listOf(ProgramExercise("bb_back_squat"))),
+            extras[1],
+            ProgramDay("C", "Run", "", emptyList(), kind = ProgramDayKind.CARDIO, cardioBlock = block),
+        ))
     }
 }

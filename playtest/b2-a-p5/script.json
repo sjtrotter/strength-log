@@ -861,11 +861,14 @@
     },
     {
       "tap": {
-        "text": "Save"
+        "desc": "Each side",
+        "role": "Switch"
       }
     },
     {
-      "checkpoint": "my-four-exercises-calves-still-to-add"
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "back": true
@@ -1022,9 +1025,7 @@
       "checkpoint": "choose-next-exercise-after-squats"
     },
     {
-      "tap": {
-        "text": "DB Romanian Deadlift"
-      }
+      "back": true
     },
     {
       "expect": {
@@ -1060,6 +1061,161 @@
     },
     {
       "checkpoint": "monday-rdl-three-sets-finished"
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "rest-extended-after-lunges"
+    },
+    {
+      "advance": "105s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "actual-goblet-history-35x8-35x6-30x8"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "checkpoint": "editing-an-already-logged-set"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "goblet-note-entry-for-next-time-thirty"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "checkpoint": "looking-for-separate-left-and-right-duration"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Second plank round was 24 seconds left and 30 right. Leaving it unlogged while looking for a truthful way to record unequal sides. Standing calves were 20 lb each hand, 3x12, still looking for their category."
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Vertical push"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical push",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "further-movement-categories-looking-for-calves"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "19m15s"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-review-with-unrepresented-plank-and-calves"
     }
   ]
 }

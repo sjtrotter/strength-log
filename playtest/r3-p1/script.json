@@ -127,11 +127,19 @@
   },
   {
    "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "edit-day"
+  },
+  {
+   "tap": {
     "textContains": "Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "day-a-squat"
+   "checkpoint": "edit-squat"
   }
  ]
 }

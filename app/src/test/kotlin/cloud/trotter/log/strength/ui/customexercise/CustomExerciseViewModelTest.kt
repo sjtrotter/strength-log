@@ -285,6 +285,39 @@ class CustomExerciseViewModelTest {
     // --- unit-aware weight -------------------------------------------------------
 
     @Test
+    fun untouchedWeightUsesTheUsersEmptyBarForDisplayAndSave() = runVmTest {
+        for ((unit, expected) in listOf(WeightUnit.KG to 20.0, WeightUnit.LB to 45.0)) {
+            settings.setUnit(unit)
+            val vm = newViewModel()
+            advanceUntilIdle()
+
+            assertEquals(unit, vm.uiState.value.unit)
+            assertEquals(expected, vm.uiState.value.weightDisplay, 0.0)
+            assertEquals(expected, CustomExerciseUiState(unit = unit).weightDisplay, 0.0)
+            vm.setName("Empty bar ${unit.name}")
+            vm.setPattern(MovementPattern.H_PULL)
+            vm.save()
+            advanceUntilIdle()
+
+            val saved = repo.catalogFlow.first().entries.first { it.name == "Empty bar ${unit.name}" }
+            assertEquals(GoalSource.Flat(unit.toLb(expected)), saved.goal)
+        }
+    }
+
+    @Test
+    fun untouchedKgWeightSavesTheEmptyBarBeforeUiStateIsCollected() = runVmTest {
+        settings.setUnit(WeightUnit.KG)
+        val vm = CustomExerciseViewModel(repo, SavedStateHandle(), settings).also { vms += it }
+        vm.setName("Immediate kg bar")
+        vm.setPattern(MovementPattern.H_PULL)
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Immediate kg bar" }
+        assertEquals(GoalSource.Flat(WeightUnit.KG.toLb(20.0)), saved.goal)
+    }
+
+    @Test
     fun weightDisplay_convertsThroughTheCurrentUnit_forStorageAndDisplay() = runVmTest {
         settings.setUnit(WeightUnit.KG)
         val vm = newViewModel()

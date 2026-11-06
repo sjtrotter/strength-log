@@ -67,6 +67,27 @@ class ProgramDisplayTest {
     }
 
     @Test
+    fun dayToShowFallsBackToTheFirstCardioTrainingDayInAMixedPlan() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
+        val run = day("A", ProgramDayKind.CARDIO).copy(cardioBlock = block)
+        val lift = day("B").copy(exercises = listOf(ProgramExercise("bb_back_squat")))
+        val program = Program(listOf(day("C1", ProgramDayKind.CARDIO), run, lift))
+
+        assertEquals(run, program.dayToShow(null))
+        assertEquals(run, program.dayToShow("removed"))
+        assertEquals(lift, program.dayToShow("B"))
+    }
+
+    @Test
+    fun trainingDayWithAnExtraIdStaysInRotationUnlessMarkedCardio() {
+        val first = day("C1")
+        val program = Program(listOf(first, day("A"), day("C2", ProgramDayKind.CARDIO)))
+
+        assertEquals(listOf("C1", "A"), program.rotationDays.map { it.id })
+        assertEquals(first, program.dayToShow(null))
+    }
+
+    @Test
     fun dayToShowReturnsNullForAnEmptyProgram() {
         val program = Program(emptyList())
         assertNull(program.dayToShow(null))

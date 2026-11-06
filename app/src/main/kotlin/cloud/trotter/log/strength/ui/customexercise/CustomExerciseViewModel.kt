@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -57,7 +58,7 @@ class CustomExerciseViewModel @Inject constructor(
     private val equipment: StateFlow<List<String>> = savedState.getStateFlow(Keys.EQUIPMENT, emptyList())
     private val perHand: StateFlow<Boolean> = savedState.getStateFlow(Keys.PER_HAND, false)
     private val tracking: StateFlow<String> = savedState.getStateFlow(Keys.TRACKING, TrackingType.WEIGHTED.name)
-    private val weightLb: StateFlow<Double> = savedState.getStateFlow(Keys.WEIGHT_LB, DEFAULT_WEIGHT_LB)
+    private val weightLb: StateFlow<Double?> = savedState.getStateFlow(Keys.WEIGHT_LB, null)
     private val targetReps: StateFlow<Int> = savedState.getStateFlow(Keys.TARGET_REPS, DEFAULT_TARGET_REPS)
     private val targetSeconds: StateFlow<Int> = savedState.getStateFlow(Keys.TARGET_SECONDS, DEFAULT_TARGET_SECONDS)
     private val addedWeightLb: StateFlow<Double> = savedState.getStateFlow(Keys.ADDED_WEIGHT_LB, 0.0)
@@ -70,7 +71,7 @@ class CustomExerciseViewModel @Inject constructor(
         val pattern: MovementPattern?,
         val perHand: Boolean,
         val tracking: TrackingType,
-        val weightLb: Double,
+        val weightLb: Double?,
         val targetReps: Int,
         val targetSeconds: Int,
         val addedWeightLb: Double,
@@ -82,7 +83,7 @@ class CustomExerciseViewModel @Inject constructor(
     private data class IdentityGroup(val name: String, val pattern: MovementPattern?, val perHand: Boolean)
     private data class TargetGroup(
         val tracking: TrackingType,
-        val weightLb: Double,
+        val weightLb: Double?,
         val targetReps: Int,
         val targetSeconds: Int,
         val addedWeightLb: Double,
@@ -114,7 +115,7 @@ class CustomExerciseViewModel @Inject constructor(
                 equipment = display.equipment,
                 perHand = form.perHand,
                 tracking = form.tracking,
-                weightDisplay = display.unit.fromLb(form.weightLb),
+                weightDisplay = form.weightLb?.let(display.unit::fromLb) ?: PlateMath.barWeight(display.unit),
                 targetReps = form.targetReps,
                 targetSeconds = form.targetSeconds,
                 addedWeightDisplay = display.unit.fromLb(form.addedWeightLb),
@@ -186,7 +187,9 @@ class CustomExerciseViewModel @Inject constructor(
             writeOrder.withLock {
                 val selectedTracking = enumOf(tracking.value, TrackingType.WEIGHTED)
                 val goalStartLb = when (selectedTracking) {
-                    TrackingType.WEIGHTED -> weightLb.value
+                    TrackingType.WEIGHTED -> weightLb.value ?: settings.unitFlow.first().let { unit ->
+                        unit.toLb(PlateMath.barWeight(unit))
+                    }
                     TrackingType.TIMED -> addedWeightLb.value
                     TrackingType.REPS -> 0.0
                 }
@@ -211,9 +214,6 @@ class CustomExerciseViewModel @Inject constructor(
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
 
-        /** A friendly starting point (an empty barbell) — not a spec constant;
-         *  the user changes it in the number field for a real exercise. */
-        const val DEFAULT_WEIGHT_LB = 45.0
         const val DEFAULT_TARGET_REPS = 10
         const val DEFAULT_TARGET_SECONDS = 30
     }

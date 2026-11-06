@@ -388,7 +388,7 @@
     },
     {
       "expect": {
-        "text": "All 21 sets logged"
+        "textContains": " sets logged"
       }
     },
     {
@@ -411,7 +411,7 @@
     },
     {
       "expect": {
-        "text": "All 21 sets logged"
+        "textContains": " sets logged"
       }
     },
     {

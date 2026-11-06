@@ -3,114 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
-    "time": "17:30",
+    "date": "2026-12-05",
+    "time": "10:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "week-four-today"
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "checkpoint": "week-four-offered-increase"
-    },
-    {
-      "tap": {
-        "tag": "next-time-offer-main"
-      }
-    },
-    {
-      "checkpoint": "week-four-approved-225"
-    },
-    {
-      "tap": {
-        "text": "Log 225 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 225 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 225 lb \u00d7 5"
-      }
-    },
-    {
-      "advance": "3s"
-    },
-    {
-      "tap": {
-        "text": "Finish day A"
-      }
-    },
-    {
-      "checkpoint": "week-four-squat-recap"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Last rep slow, good depth. Squat portion only recorded here; accessories remain in my paper diary."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Settings"
-      }
-    },
-    {
-      "tap": {
-        "text": "Backup and export"
-      }
-    },
-    {
-      "tap": {
-        "text": "Export CSV"
-      }
-    },
-    {
-      "checkpoint": "csv-export-requested"
-    },
-    {
-      "tap": {
-        "text": "Export backup"
-      }
-    },
-    {
-      "checkpoint": "json-export-requested"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "final-saturday-today"
     },
     {
       "tap": {
@@ -118,7 +17,43 @@
       }
     },
     {
-      "checkpoint": "plan-days-after-week-four-squat"
+      "tap": {
+        "text": "Garage four day"
+      }
+    },
+    {
+      "checkpoint": "custom-plan-before-upper-day"
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "new-upper-day"
+    },
+    {
+      "tap": {
+        "textContains": "0 lifts, 0 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "checkpoint": "bench-picker"
     }
   ]
 }

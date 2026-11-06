@@ -23,7 +23,150 @@
       }
     },
     {
-      "checkpoint": "setup-page-2-before-personalizing"
+      "checkpoint": "setup-days"
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "expect": {
+        "text": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-split-options"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "upper-lower-selected"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-main-lifts"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "conventional-and-ohp-selected"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-cardio"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "cardio-extra-option"
+    },
+    {
+      "note": "I want easy outdoor cardio after lifting, with walks on Tuesday and jogs on Saturday. No race target. I will inspect the preview and customize the days."
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-about-me"
+    },
+    {
+      "tap": {
+        "text": "LB"
+      }
+    },
+    {
+      "note": "Phase A did not specify bodyweight. Using 180 lb as a plausible personal detail to complete this required setup; age 34 and intermediate experience come from my persona."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "180",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "34",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Intermediate"
+      }
+    },
+    {
+      "checkpoint": "about-me-complete"
+    },
+    {
+      "expect": {
+        "text": "180"
+      }
+    },
+    {
+      "expect": {
+        "text": "34"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7"
     },
     {
       "expect": {
@@ -36,72 +179,10 @@
       }
     },
     {
-      "checkpoint": "setup-page-3-before-personalizing"
+      "checkpoint": "setup-page-8"
     },
     {
-      "expect": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-4-before-personalizing"
-    },
-    {
-      "expect": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-5-before-personalizing"
-    },
-    {
-      "expect": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-6-before-personalizing"
-    },
-    {
-      "expect": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-7-before-personalizing"
-    },
-    {
-      "expect": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-8-before-personalizing"
+      "note": "Pause here to inspect the final setup screen and any equipment or working-set inputs before accepting a plan."
     }
   ]
 }

@@ -317,7 +317,12 @@
    }
   },
   {
-   "checkpoint": "swap-search-legraise"
+   "tap": {
+    "text": "Search all exercises"
+   }
+  },
+  {
+   "checkpoint": "search-all-legraise"
   },
   {
    "tap": {
@@ -341,7 +346,7 @@
   {
    "type": {
     "text": "Search exercises",
-    "value": "lunge"
+    "value": "walking lunge"
    }
   },
   {
@@ -355,6 +360,20 @@
   },
   {
    "checkpoint": "swapped-lunge"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayD-after-edits"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
   },
   {
    "tap": {

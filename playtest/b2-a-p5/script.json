@@ -754,6 +754,9 @@
     },
     {
       "checkpoint": "custom-exercises-after-reopening"
+    },
+    {
+      "note": "Turn 12 replay requested after driver run 42149096115 returned HTTP 504 while fetching jobs; no app artifacts were available. Steps 109 onward remain unverified; this transport failure is not app feedback."
     }
   ]
 }

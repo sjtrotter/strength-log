@@ -1437,16 +1437,15 @@
       }
     },
     {
-      "checkpoint": "monday-final-save-confirmation"
+      "checkpoint": "monday-saved-summary"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Done"
       }
     },
     {
-      "checkpoint": "monday-saved-first-visit"
+      "checkpoint": "monday-summary-dismissed"
     },
     {
       "tap": {
@@ -1694,16 +1693,15 @@
       }
     },
     {
-      "checkpoint": "wednesday-finish-review"
+      "checkpoint": "wednesday-saved-summary"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Done"
       }
     },
     {
-      "checkpoint": "wednesday-saved-second-visit"
+      "checkpoint": "wednesday-summary-dismissed"
     },
     {
       "tap": {
@@ -1747,6 +1745,36 @@
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends"
+      }
+    },
+    {
+      "checkpoint": "two-visits-trends-looking-for-simple-progress"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "advance": "1d23h5m"
+    },
+    {
+      "checkpoint": "friday-nov13-ready-to-repeat-machines"
     }
   ]
 }

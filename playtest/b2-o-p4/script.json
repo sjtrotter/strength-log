@@ -808,16 +808,20 @@
    "checkpoint": "day-overview"
   },
   {
-   "back": true
-  },
-  {
-   "swipe": {
-    "text": "Plank / Side Plank",
-    "direction": "left"
+   "tap": {
+    "text": "Rower"
    }
   },
   {
-   "checkpoint": "after-swipe-plank"
+   "checkpoint": "rower-page"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "rower-edit"
   }
  ]
 }

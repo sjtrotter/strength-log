@@ -575,14 +575,31 @@
   },
   {
    "tap": {
+    "text": "Mon squat"
+   }
+  },
+  {
+   "checkpoint": "hist-row"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "hist-row-back"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
     "text": "Trends and calendar"
    }
   },
   {
    "checkpoint": "trends"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -594,6 +611,12 @@
   },
   {
    "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
   },
   {
    "tap": {

@@ -237,7 +237,7 @@
     },
     {
       "scrollTo": {
-        "text": "C2 \u00b7 Cardio"
+        "text": "C2 · Cardio"
       }
     },
     {
@@ -314,7 +314,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day A"
+        "text": "2-day full body · Day A"
       }
     },
     {
@@ -348,7 +348,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day A",
+        "text": "2-day full body · Day A",
         "index": 1
       }
     },
@@ -763,7 +763,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day A",
+        "text": "2-day full body · Day A",
         "index": 1
       }
     },
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 8"
+        "text": "Log 35 lb × 8"
       }
     },
     {
@@ -955,7 +955,7 @@
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 6"
+        "text": "Log 35 lb × 6"
       }
     },
     {
@@ -988,7 +988,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1045,7 +1045,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1053,7 +1053,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1069,7 +1069,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -1085,7 +1085,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -1446,7 +1446,7 @@
     },
     {
       "expect": {
-        "text": "2-day full body \u00b7 Day C1"
+        "text": "2-day full body · Day C1"
       }
     },
     {
@@ -1454,7 +1454,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day C1"
+        "text": "2-day full body · Day C1"
       }
     },
     {
@@ -1588,7 +1588,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day C1"
+        "text": "2-day full body · Day C1"
       }
     },
     {
@@ -1674,7 +1674,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day B"
+        "text": "2-day full body · Day B"
       }
     },
     {
@@ -1901,7 +1901,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -1909,7 +1909,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 8"
+        "text": "Log 15 lb × 8"
       }
     },
     {
@@ -1922,7 +1922,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 8"
+        "text": "Log 20 lb × 8"
       }
     },
     {
@@ -1930,7 +1930,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 8"
+        "text": "Log 20 lb × 8"
       }
     },
     {
@@ -1939,9 +1939,7 @@
       }
     },
     {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
+      "back": true
     },
     {
       "expect": {
@@ -1953,7 +1951,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -1961,7 +1959,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -1985,7 +1983,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 8"
+        "text": "Log 40 lb × 8"
       }
     },
     {
@@ -1998,7 +1996,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 10"
+        "text": "Log 15 lb × 10"
       }
     },
     {
@@ -2006,7 +2004,7 @@
     },
     {
       "tap": {
-        "text": "Log 15 lb \u00d7 10"
+        "text": "Log 15 lb × 10"
       }
     },
     {
@@ -2052,7 +2050,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day C1"
+        "text": "2-day full body · Day C1"
       }
     },
     {
@@ -2098,7 +2096,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body \u00b7 Day C1"
+        "text": "2-day full body · Day C1"
       }
     },
     {
@@ -2135,6 +2133,354 @@
     },
     {
       "checkpoint": "tuesday-before-separate-evening-strength"
+    },
+    {
+      "advance": "9h46m55s"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "week-two-evening-a-last-time-before-edits"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 10 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 9"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 9"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 9"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 8"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 8"
+      }
+    },
+    {
+      "advance": "25m"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-evening-lift-saved-forty-minutes"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Squats better at30. RDL30 EACH hand3x9. Main rests2min. Standing calves20 EACH3x12 not in sets. Separate morning run."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "two-separate-tuesday-sessions-and-earlier-actuals"
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "advance": "1d12h50m"
+    },
+    {
+      "tap": {
+        "text": "2-day full body · Day C1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "42m20s"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "week-two-quicker-run-seven-km-third-effort-cut-short"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "2d23h17m40s"
+    },
+    {
+      "note": "Nov19 actual: two5min efforts, third3min, jogged remainder; slept5h. Nov20 B skipped for family, no makeup Saturday. Nov22 long shortened11 to10km. These are diary context, not app notes."
+    },
+    {
+      "tap": {
+        "text": "2-day full body · Day C1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "60m"
+    },
+    {
+      "advance": "4m40s"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "10000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "week-two-shorter-long-run-ten-km"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "two-weeks-completed-history-actual-sessions"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "two-weeks-trends-and-calendar-running-lifting"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "csv-export-file-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "backup-export-file-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "checkpoint": "restore-file-picker-boundary"
+    },
+    {
+      "checkpoint": "final-backup-options-after-two-week-diary"
     }
   ]
 }

@@ -134,8 +134,7 @@
   },
   {
    "tap": {
-    "textContains": "Romanian",
-    "inDialog": true
+    "text": "Single-Leg RDL"
    }
   },
   {
@@ -177,8 +176,9 @@
   },
   {
    "tap": {
-    "textContains": "Single-Leg",
-    "inDialog": true
+    "textContains": "Calf Raise",
+    "inDialog": true,
+    "index": 0
    }
   },
   {

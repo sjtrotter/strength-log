@@ -91,6 +91,7 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { NameField(state.name, actions.onNameChange) }
+                item { PatternSection(state, actions) }
                 item { TrackingSection(state, actions) }
                 item {
                     PerHandAndTargetSection(
@@ -99,7 +100,6 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
                         onAddedWeightValidityChange = { addedWeightValid = it },
                     )
                 }
-                item { PatternSection(state, actions) }
                 item { EquipmentSection(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }

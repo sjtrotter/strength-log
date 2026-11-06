@@ -112,7 +112,31 @@
    }
   },
   {
-   "checkpoint": "lift-options"
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "prescription"
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "4"
+   }
+  },
+  {
+   "checkpoint": "typed-sets"
   }
  ]
 }

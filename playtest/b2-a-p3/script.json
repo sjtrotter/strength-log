@@ -1751,6 +1751,23 @@
       "checkpoint": "paused-deadlift-created-from-add-picker"
     },
     {
+      "type": {
+        "text": "Search exercises",
+        "value": "Paused Deadlift - off floor"
+      }
+    },
+    {
+      "checkpoint": "find-newly-created-paused-deadlift"
+    },
+    {
+      "tap": {
+        "text": "Paused Deadlift - off floor"
+      }
+    },
+    {
+      "checkpoint": "add-created-paused-deadlift-to-day"
+    },
+    {
       "expect": {
         "text": "Add exercise"
       }

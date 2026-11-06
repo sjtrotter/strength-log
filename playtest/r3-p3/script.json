@@ -201,20 +201,11 @@
   },
   {
    "tap": {
-    "text": "Finish"
+    "text": "Finish day A"
    }
   },
   {
-   "checkpoint": "finish-dialog"
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "receipt"
+   "checkpoint": "after-finish"
   }
  ]
 }

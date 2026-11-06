@@ -276,50 +276,49 @@
   },
   {
    "tap": {
-    "textContains": "Barbell Back Squat",
-    "index": 0
+    "desc": "More options for Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "edit-squat"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "edit-dayD-after-back"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "plan-detail-again"
-  },
-  {
-   "tap": {
-    "desc": "Day options",
-    "index": 3
-   }
-  },
-  {
-   "checkpoint": "day-options"
-  },
-  {
-   "back": true
+   "checkpoint": "squat-options"
   },
   {
    "back": true
   },
   {
    "tap": {
-    "text": "New plan"
+    "desc": "More options for Swiss Ball Leg Curl"
    }
   },
   {
-   "checkpoint": "new-plan"
+   "checkpoint": "legcurl-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "editday-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-edit-close"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-edit-close2"
   }
  ]
 }

@@ -1574,87 +1574,17 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-after-logging-block"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Easy 7.00 km, watch elapsed42:10, RPE3/10. Quads noticeable first km then fine. Includes any stops."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-saved-with-effort-and-context"
-    },
-    {
-      "tap": {
         "text": "Done"
       }
     },
     {
-      "tap": {
-        "text": "History"
-      }
-    },
-    {
-      "checkpoint": "history-first-lift-and-separate-run"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Backup and export"
-      }
-    },
-    {
-      "checkpoint": "backup-export-and-restore-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Trends and calendar"
-      }
-    },
-    {
-      "checkpoint": "mixed-training-calendar-after-first-run"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Today"
-      }
-    },
-    {
-      "checkpoint": "today-before-thursday-quicker-run"
+      "checkpoint": "today-after-first-saved-standalone-run"
     },
     {
       "advance": "1d23h17m50s"
     },
     {
-      "note": "Thursday Nov12: planned and completed quicker7km41:35,2km easy then3x5min effort/2min jog; last effort8/10, avoid chasing uphill watch pace."
-    },
-    {
-      "checkpoint": "thursday-morning-choose-run-without-lifting"
+      "note": "Nov12 quicker run: actual7km41:35;2km easy,three5min efforts with2min jogs,last effort8/10. No run-note control found on immediate summary."
     },
     {
       "tap": {
@@ -1662,12 +1592,12 @@
       }
     },
     {
-      "checkpoint": "thursday-run-template-and-last-time-check"
-    },
-    {
       "expect": {
         "text": "Road run"
       }
+    },
+    {
+      "checkpoint": "thursday-run-template-and-last-time"
     },
     {
       "tap": {
@@ -1689,31 +1619,7 @@
       }
     },
     {
-      "checkpoint": "thursday-quicker-run-stopped"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "thursday-quicker-run-saved-review"
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "7km41:35. 2km easy +3x5min efforts/2min jogs. Last effort8/10. Do not chase watch pace uphill."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
+      "checkpoint": "thursday-run-saved-actual-distance-and-time"
     },
     {
       "tap": {
@@ -1721,7 +1627,228 @@
       }
     },
     {
-      "checkpoint": "thursday-run-complete-before-friday-strength"
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-with-first-lift-and-two-runs"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "mixed-training-trends-and-calendar"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-restore-reachable-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "today-after-history-before-friday"
+    },
+    {
+      "advance": "1d9h48m25s"
+    },
+    {
+      "checkpoint": "friday-before-strength-b"
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day B"
+      }
+    },
+    {
+      "checkpoint": "friday-strength-b-day-detail"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "friday-strength-b-editor-before-my-exercises"
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "checkpoint": "b-step-up-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-Leg RDL"
+      }
+    },
+    {
+      "checkpoint": "b-single-leg-rdl-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "checkpoint": "b-seated-leg-curl-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "b-three-diary-exercises-added-still-needs-originals-removed"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "b-workout-before-any-sets-logged"
     }
   ]
 }

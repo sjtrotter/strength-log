@@ -194,23 +194,20 @@
    }
   },
   {
-   "checkpoint": "history-empty"
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "history-more-menu"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
     "text": "Plans"
    }
-  },
-  {
-   "tap": {
-    "text": "2-day full body"
-   }
-  },
-  {
-   "checkpoint": "plan-detail-generated"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -223,7 +220,26 @@
    }
   },
   {
-   "checkpoint": "empty-plan"
+   "type": {
+    "text": "Name",
+    "value": "Run + lift week"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create"
+   }
+  },
+  {
+   "checkpoint": "my-plan-created"
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "checkpoint": "add-day"
   }
  ]
 }

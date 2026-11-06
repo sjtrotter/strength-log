@@ -428,6 +428,31 @@
   },
   {
    "checkpoint": "lift-options"
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "checkpoint": "straight"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-mode"
+  },
+  {
+   "scrollTo": {
+    "text": "Prescription",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "liftopts-bottom"
   }
  ]
 }

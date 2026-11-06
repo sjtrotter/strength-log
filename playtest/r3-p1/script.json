@@ -149,6 +149,21 @@
    }
   },
   {
+   "scrollTo": {
+    "desc": "More options for Cable Crunch"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Crunch"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
    "checkpoint": "c-swapped"
   },
   {
@@ -409,51 +424,10 @@
    "checkpoint": "row-done"
   },
   {
-   "note": "Cable Crunch? Never saw that on the day. Out of time, skipping."
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Skip this set"
-   }
-  },
-  {
    "advance": "2m"
   },
   {
    "checkpoint": "pre-cardio"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "checkpoint": "cardio-page"
   },
   {
    "note": "bike instead of treadmill, 10 minutes"
@@ -485,6 +459,11 @@
   },
   {
    "checkpoint": "c-summary"
+  },
+  {
+   "scrollTo": {
+    "text": "Add a note"
+   }
   },
   {
    "tap": {

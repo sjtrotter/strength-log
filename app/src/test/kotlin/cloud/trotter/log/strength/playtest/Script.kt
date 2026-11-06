@@ -171,6 +171,7 @@ internal data class Script(
     val start: Start,
     val checkpointsOnly: Boolean,
     val steps: List<Step>,
+    val compactCapture: Boolean,
 ) {
     companion object {
         fun parse(file: File): Script = try {
@@ -181,7 +182,7 @@ internal data class Script(
             val start = root["start"]?.objectValue("start") ?: JsonObject(emptyMap())
             start.keysOnly(setOf("date", "time", "zone", "restore"), "start")
             val capture = root.optionalString("capture")
-            scriptCheck(capture == null || capture == "checkpoints", "capture must be checkpoints when supplied")
+            scriptCheck(capture == null || capture == "checkpoints" || capture == "compact", "capture must be checkpoints or compact when supplied")
             val device = root.optionalString("device") ?: "w360dp-h720dp-night-xxhdpi"
             scriptCheck(device.isNotBlank(), "device must not be blank")
             val steps = root["steps"] as? JsonArray ?: throw PlaytestError("script", "steps must be an array")
@@ -216,6 +217,7 @@ internal data class Script(
                         }, error)
                     }
                 },
+                capture == "compact",
             )
         } catch (error: PlaytestError) {
             throw error

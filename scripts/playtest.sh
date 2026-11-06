@@ -18,8 +18,22 @@ root=$(git rev-parse --show-toplevel)
 cd "$root"
 worktree="$root/.playtest-wt/$seat"
 
+base_ref=${PLAYTEST_BASE:-origin/main}
+if [[ -n ${PLAYTEST_BASE:-} ]]; then
+    if ! build=$(git rev-parse --verify --end-of-options "$base_ref^{commit}" 2>/dev/null); then
+        if ! git fetch -q -- origin "$base_ref" || ! build=$(git rev-parse --verify 'FETCH_HEAD^{commit}' 2>/dev/null); then
+            echo "PLAYTEST_BASE does not resolve to a commit: $base_ref" >&2
+            exit 2
+        fi
+    fi
+    base_ref=$build
+else
+    git fetch -q origin main
+    build=$(git rev-parse --verify 'origin/main^{commit}')
+fi
+echo "build: $build"
+
 # Preserve the seat's history. Recover a remote seat branch on a new host, too.
-git fetch -q origin main
 if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
     git fetch -q origin "refs/heads/$branch:refs/remotes/origin/$branch"
 else
@@ -41,14 +55,14 @@ else
     elif git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
         git worktree add -q -b "$branch" "$worktree" "origin/$branch"
     else
-        git worktree add -q -b "$branch" "$worktree" origin/main
+        git worktree add -q -b "$branch" "$worktree" "$base_ref"
     fi
 fi
 if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
     git -C "$worktree" merge --no-edit "origin/$branch"
 fi
-if ! git -C "$worktree" merge-base --is-ancestor origin/main HEAD; then
-    git -C "$worktree" merge --no-edit origin/main
+if ! git -C "$worktree" merge-base --is-ancestor "$base_ref" HEAD; then
+    git -C "$worktree" merge --no-edit "$base_ref"
 fi
 mkdir -p "$worktree/playtest/$seat"
 destination="$worktree/playtest/$seat/script.json"
@@ -99,6 +113,7 @@ status=0
 gh run watch "$run" --interval 30 --exit-status >/dev/null || status=$?
 out="playtest-runs/$seat/$run"
 mkdir -p "$out"
+printf '%s\n' "$build" > "$out/build.txt"
 gh run download "$run" -D "$out" -n "playtest-$run-0"
 summary="$out/summary.json"
 [[ -f "$summary" ]] || { echo "summary not found in $out" >&2; exit 2; }

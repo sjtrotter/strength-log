@@ -6,6 +6,15 @@ and network access. Your tester workspace does not. The driver keeps the seat
 branch's commits, merges updates from main, pushes normally, and downloads results
 to `playtest-runs/<seat>/<run>/`. It stops on dirty worktrees or merge conflicts.
 
+Set `PLAYTEST_BASE` to a commit SHA or tag to pin a phase's build:
+`PLAYTEST_BASE=<sha-or-tag> scripts/playtest.sh <seat> [script.json]`.
+A new seat branch starts at that ref; existing seat branches merge that ref
+instead of `origin/main`. The driver fetches it if it is missing locally and
+exits with status 2 if it cannot resolve to a commit. With `PLAYTEST_BASE` unset,
+the driver keeps fetching and merging `origin/main`. It prints the resolved base
+commit and writes it to `build.txt` in the downloaded run folder. Use the same
+pin for every run in a phase; an existing seat retains its earlier commits.
+
 ```json
 {
   "seat": "beginner",
@@ -27,7 +36,8 @@ where new captures start. Checkpoints and failures are always captured. If you
 change earlier steps, remove `playtest-runs/<seat>/.last-ok` to capture everything.
 
 Read `summary.json` first, then `error.json` if present. `log.jsonl` records each
-attempted step. A `type` step with `ime` also records the field's declared action
+attempted step, including `settle_frames`, the Compose frames spent settling.
+A `type` step with `ime` also records the field's declared action
 and whether it ran. `clock_at_exit` is UTC; `clock_at_exit_local` is the ISO local
 date-time in `clock_zone`, the script's zone. For example, a November 9 session
 at 23:39 in America/Chicago exits at `2026-11-10T05:39:00Z` in UTC but
@@ -48,6 +58,17 @@ Use this mode for long scripts to reduce screenshot work. PNG encoding streams
 each bitmap to disk and releases it after the step; playtest test tasks have a
 2 GiB maximum heap.
 
+Set top-level `"capture": "compact"` to keep full JSON and PNG captures at launch,
+named checkpoints, failures, and the final step. Each other captured step writes
+only `NNN-<slug>.txt`: the first line names the step, then `- ` lines list texts
+that disappeared and `+ ` lines list texts that appeared since the preceding
+step. Text comes from the merged tree, in screen order (removals use the old
+screen's order; additions use the new screen's order). Dialog text has a
+`[dialog]` marker. Unchanged text is omitted; repeated text keeps its occurrence
+count. Earlier steps still update the comparison when `.last-ok` suppresses
+their captures. Checkpoints and the final step capture even before that cutoff.
+Notes get text diffs in this mode; a final note gets a full capture.
+
 ## Actions
 
 Put exactly one action in each step, plus optional `timeoutMs` or `expectError`. Unknown keys and
@@ -60,6 +81,20 @@ malformed payloads fail before the activity launches. For example:
 Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
 a positive integer. Lookup, action, screen settling, and capture share that budget.
 Launch has a separate 20,000 ms budget.
+After `tap`, `longPress`, `swipe`, `back`, and `scrollTo`, the harness advances
+the paused Compose clock one frame at a time until the merged semantics tree is
+unchanged across three consecutive frames and window transitions have finished,
+or two seconds of frame time have passed. Root-window identity, visibility,
+focus, and bounds must also stay stable. Pending Compose animation frames,
+window layout, and window animations prevent stability, including when a
+dismissed sheet has moved off screen but still owns its window.
+After the first stable pass, it waits for pending workout mutations
+through the step's storage wait, then requires three stable frames again.
+Both passes share the frame cap and the step deadline.
+It compares text, tags, structure, and bounds rounded to dp. The cap
+ends settling without failing the step; the step's real-time deadline still
+applies to the entire operation. Settling never advances `PlaytestTime`, the
+app's fake wall clock. Other actions keep their existing settle behavior.
 Every selector retries until it resolves to one node (or the requested `index`).
 For `tap`, `longPress`, `type`, and `swipe`, a disabled match also retries until
 it becomes enabled, sharing the same step deadline as missing or ambiguous matches.
@@ -98,12 +133,11 @@ fields commit as you type. Typing also works in dialogs; there is no keyboard to
 dismiss. Advances over one hour require no open workout and no armed rest. Finish
 before jumping to another day.
 
-A tap that switches exercise pages must be followed by an `expect` naming the
-new page before using controls shared with the previous page (H6). For example:
+Exercise-page navigation settles before the next action. H6's page-naming
+`expect` workaround is no longer needed. Consecutive taps can use the new page:
 
 ```json
 { "tap": { "text": "Next: DB Bench Press" } }
-{ "expect": { "text": "DB Bench Press" } }
 { "tap": { "text": "All sets" } }
 ```
 
@@ -139,6 +173,22 @@ and `swipe` report `disabled` only if the final match remains disabled at the
 deadline. Scrolling to a disabled target or searching a disabled scroll container
 reports `disabled` immediately.
 
+## Common failures
+
+| Error class | Usual cause | What to try |
+| --- | --- | --- |
+| `not-found` | Text, tag, or index does not match the current tree. | Read the failure capture and nearby candidates; correct the selector or use `scrollTo` for a lazy item. |
+| `ambiguous` | Several nodes match, or an absent expectation still finds a node. | Narrow with a tag, role, or `inDialog`; use `index` for intentional repeats. Check whether `absent` is intended. |
+| `disabled` | The final match is disabled at the deadline, or a scroll target is disabled. | Inspect the capture and preceding steps; satisfy the control's prerequisites before retrying. |
+| `not-clickable` | The match has no click or long-click semantics. | Select a node with the required action in the capture. |
+| `not-editable` | A `type` selector matches a label or another node without text replacement and focus actions. | Select the editable field using its label or tag; inspect the unmerged JSON. |
+| `not-scrollable` | No scrollable ancestor, no movement, or the scroll search reached its bound. | Inspect bounds and scroll containers; narrow the target and split a long search into smaller gestures. |
+| `not-visible` | Tap or long press matched empty or off-screen bounds. | Use `scrollTo` before the interaction. |
+| `app-crash` | An uncaught app exception reached the harness. | Read `exception_class`, `exception_message`, and `exception_stack`; preserve the script and backup for reproduction. |
+| `crash` | An unexpected exception escaped the replay or artifact writer. | Read `stack` and suppressed exceptions; reduce the script to the failing operation. |
+| `timeout` | Lookup, an interaction, storage, or capture exhausted a real-time budget. | Check the failing operation and log; reduce capture work or set a larger step `timeoutMs` for a slow operation. |
+| `script` | Invalid JSON, an unsupported action or option, an unreadable restore, or an unsafe advance. | Correct the reported input; use a readable backup with an explicit start date and time, and finish before advances over one hour. |
+
 ## Restores and pilots
 
 Optional `start.restore` names a backup, relative to the script's directory or
@@ -166,12 +216,25 @@ The second-pass harness regressions have these checks:
 | --- | --- |
 | Swallowed app errors | `history-day-start` covers the history-backed launch path that exposed the clock crash. `AppCrashesTest` injects coroutine and main-looper exceptions and checks step failure details. |
 | H5 | `advance-tap` taps Start day A immediately after a two-day advance. |
-| H6 | Add the page-naming `expect` shown above after exercise navigation. |
+| H6 | Interaction settling replaces the page-naming `expect` workaround. `page-transition-settle` taps a control on the new exercise page immediately after navigation. |
 | H7 | `dropdown-tap` opens Activity in Edit day and selects Trail run. |
 | H8 | `screenshot-stress` writes 1,200 checkpoint screenshots. Run it on demand; it is outside the PR matrix. Long persona scripts can use `"capture": "checkpoints"`. |
 | H9 | `zero-size-tap` expects `not-visible` for an off-screen equipment row on both tap and long press, then scrolls and taps it. |
 | Local clock | `advance-tap` starts at 23:39 in America/Chicago; its summary keeps the local date beside the next-day UTC date. `ScriptAssertionsTest` checks both values and the zone. |
 | Launch budget | `zero-step-launch` captures launch within the 20-second budget. |
+| Compact capture | `compact-capture` covers text diffs, a named checkpoint, a note, and a full final capture. |
+
+## Sessions as segments
+
+Play a long diary as one script per session. For each new segment, copy the
+previous green segment's `backup.json` next to the new script as
+`start-backup.json` and set `start.restore` to `"start-backup.json"`. Set
+`start.date` and `start.time` to when that session begins. Before the first run
+of the new segment, remove `playtest-runs/<seat>/.last-ok` so capture starts at
+step 0.
+
+Restores drop transient state, including open sheets, rest timers, and drafts.
+Keep flows that test those states inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their

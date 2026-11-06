@@ -171,7 +171,7 @@
     },
     {
       "tap": {
-        "textContains": "6-day push/pull/legs"
+        "textContains": "push/pull/legs"
       }
     },
     {
@@ -259,7 +259,7 @@
     },
     {
       "tap": {
-        "textContains": "6-day push/pull/legs"
+        "textContains": "push/pull/legs"
       }
     },
     {

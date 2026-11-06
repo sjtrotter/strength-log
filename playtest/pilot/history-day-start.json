@@ -92,6 +92,20 @@
       "checkpoint": "setup-question-six"
     },
     {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
       "tap": {
         "role": "RadioButton",
         "index": 1
@@ -197,7 +211,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "textContains": "full body \u00b7 Day A"
       }
     },
     {
@@ -326,7 +340,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A",
+        "textContains": "full body \u00b7 Day A",
         "index": 1
       }
     },
@@ -351,7 +365,8 @@
     },
     {
       "tap": {
-        "text": "Ramp to 215 lb, then 1 back-off"
+        "textContains": "Barbell Back Squat",
+        "inDialog": true
       }
     },
     {
@@ -362,7 +377,8 @@
     },
     {
       "tap": {
-        "text": "DB Bench Press"
+        "textContains": "DB Bench Press",
+        "inDialog": true
       }
     },
     {
@@ -519,7 +535,7 @@
     },
     {
       "tap": {
-        "text": "Knee flexion"
+        "text": "Knee flexion (leg curl)"
       }
     },
     {
@@ -535,7 +551,8 @@
     },
     {
       "tap": {
-        "text": "Seated Leg Curl"
+        "textContains": "Seated Leg Curl",
+        "inDialog": true
       }
     },
     {
@@ -594,7 +611,8 @@
     },
     {
       "tap": {
-        "text": "Machine Chest Press"
+        "textContains": "Machine Chest Press",
+        "inDialog": true
       }
     },
     {
@@ -650,7 +668,8 @@
     },
     {
       "tap": {
-        "text": "Machine Row"
+        "textContains": "Machine Row",
+        "inDialog": true
       }
     },
     {
@@ -695,7 +714,8 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "textContains": "Set 1 \u00b7 Work",
+        "inDialog": true
       }
     },
     {
@@ -798,7 +818,7 @@
     },
     {
       "expect": {
-        "text": "Log 60 lb × 10"
+        "text": "Log 60 lb \u00d7 10"
       }
     },
     {
@@ -809,7 +829,8 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -823,7 +844,8 @@
     },
     {
       "tap": {
-        "text": "Undo 60 × 10"
+        "textContains": "Undo ",
+        "role": "Button"
       }
     },
     {
@@ -831,7 +853,8 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -905,7 +928,8 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -913,7 +937,8 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -951,7 +976,7 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb × 6"
+        "text": "Log 30 lb \u00d7 6"
       }
     },
     {
@@ -959,7 +984,8 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 6"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1017,7 +1043,9 @@
     },
     {
       "expect": {
-        "text": "seat 4"
+        "text": "seat 4",
+        "inDialog": true,
+        "editable": true
       }
     },
     {
@@ -1056,7 +1084,8 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1100,7 +1129,8 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1119,7 +1149,8 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1156,7 +1187,8 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1164,7 +1196,8 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1183,7 +1216,8 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1202,7 +1236,8 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 10"
+        "textContains": "Log ",
+        "role": "Button"
       }
     },
     {
@@ -1296,7 +1331,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body · Day A"
+        "textContains": "full body \u00b7 Day A"
       }
     },
     {

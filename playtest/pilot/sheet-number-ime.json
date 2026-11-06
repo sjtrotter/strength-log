@@ -169,7 +169,7 @@
     },
     {
       "tap": {
-        "text": "2-day full body"
+        "textContains": "full body"
       }
     },
     {

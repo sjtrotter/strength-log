@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.playtest
 
 import android.graphics.BitmapFactory
 import android.os.Looper
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -25,13 +28,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.test.espresso.Espresso
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioBlockPage
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import com.github.takahirom.roborazzi.InternalRoborazziApi
+import com.github.takahirom.roborazzi.fetchRobolectricWindowRoots
 import java.io.File
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -54,6 +62,97 @@ class ReplaySafetyTest {
     private lateinit var crashes: AppCrashes
     @get:Rule val compose = createComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val temporary = TemporaryFolder()
+
+    @Test fun interactionSettleKeepsTheFakeWallClockAndPausedClockPolicy() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme { Text("Stable screen") } }
+        val time = PlaytestTime()
+        val before = time.clock.instant()
+        var frames = 0
+        val deadline = StepDeadline(10_000)
+        val snapshot = deadline.run(compose) {
+            compose.settleSemantics(deadline, awaitPendingWork = { deadline.io {} }) { frames++ }
+        }
+        assertTrue(snapshot.captureTexts().contains(CaptureText("Stable screen")))
+        assertTrue(frames >= 6)
+        assertEquals(before, time.clock.instant())
+        assertFalse(compose.mainClock.autoAdvance)
+    }
+
+    @Test fun interactionStorageWaitSharesTheStepDeadline() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme { Text("Stable screen") } }
+        val time = PlaytestTime()
+        val before = time.clock.instant()
+        val pending = CompletableDeferred<Unit>()
+        var waited = false
+        val deadline = StepDeadline(1_000)
+        val error = assertFailsWith<PlaytestError> {
+            deadline.run(compose) {
+                compose.settleSemantics(deadline, awaitPendingWork = {
+                    waited = true
+                    deadline.io { pending.await() }
+                }) {}
+            }
+        }
+        assertTrue(waited)
+        assertEquals("timeout", error.kind)
+        assertEquals(before, time.clock.instant())
+        assertFalse(compose.mainClock.autoAdvance)
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class, InternalRoborazziApi::class)
+    @Test fun consecutiveBacksWaitForSheetWindowRemovalBeforeLeavingTheScreen() {
+        val requestedSize = System.getProperty("robolectric.windowManager.useRequestedSize")
+        System.setProperty("robolectric.windowManager.useRequestedSize", "true")
+        try {
+            val workout = mutableStateOf(true)
+            val sheet = mutableStateOf(false)
+            val time = PlaytestTime()
+            val before = time.clock.instant()
+            compose.mainClock.autoAdvance = false
+            compose.setContent {
+                AppTheme {
+                    BackHandler(enabled = workout.value) { workout.value = false }
+                    Text(if (workout.value) "Workout" else "Today")
+                    if (sheet.value) {
+                        AppModalBottomSheet(
+                            onDismissRequest = { sheet.value = false },
+                            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                        ) { Text("Lift list") }
+                    }
+                }
+            }
+            fun settle() {
+                val deadline = StepDeadline(10_000)
+                deadline.run(compose) {
+                    compose.settleSemantics(deadline, awaitPendingWork = { deadline.io {} }) {}
+                }
+            }
+            settle()
+            val activityWindows = compose.runOnUiThread { fetchRobolectricWindowRoots().map { it.decorView }.toSet() }
+            compose.runOnUiThread { sheet.value = true }
+            settle()
+            compose.onNodeWithText("Lift list").assertExists()
+            assertTrue(compose.runOnUiThread { fetchRobolectricWindowRoots().size } > activityWindows.size)
+
+            Espresso.pressBackUnconditionally()
+            settle()
+            assertFalse(sheet.value)
+            assertTrue(workout.value)
+            assertEquals(activityWindows, compose.runOnUiThread { fetchRobolectricWindowRoots().map { it.decorView }.toSet() })
+
+            Espresso.pressBackUnconditionally()
+            settle()
+            assertFalse(workout.value)
+            compose.onNodeWithText("Today").assertExists()
+            assertEquals(before, time.clock.instant())
+            assertFalse(compose.mainClock.autoAdvance)
+        } finally {
+            if (requestedSize == null) System.clearProperty("robolectric.windowManager.useRequestedSize")
+            else System.setProperty("robolectric.windowManager.useRequestedSize", requestedSize)
+        }
+    }
 
     @Test fun cardioActivityAnchorAllowsDropdownTap() {
         val draft = mutableStateOf(CardioBlockDraft.new(1, "A"))

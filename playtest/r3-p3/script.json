@@ -192,6 +192,19 @@
    }
   },
   {
+   "scrollTo": {
+    "textContains": "Squat (bilateral)"
+   }
+  },
+  {
+   "checkpoint": "pattern"
+  },
+  {
+   "tap": {
+    "textContains": "Squat (bilateral)"
+   }
+  },
+  {
    "tap": {
     "text": "Save"
    }
@@ -287,6 +300,16 @@
    }
   },
   {
+   "scrollTo": {
+    "textContains": "Squat (bilateral)"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Squat (bilateral)"
+   }
+  },
+  {
    "tap": {
     "text": "Save"
    }
@@ -332,6 +355,16 @@
    "type": {
     "text": "Weight (kg)",
     "value": "100"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "Squat (bilateral)"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Squat (bilateral)"
    }
   },
   {

@@ -1678,33 +1678,247 @@
     },
     {
       "type": {
-        "text": "Search exercises",
-        "value": "paused"
-      }
-    },
-    {
-      "checkpoint": "paused-deadlift-search-and-custom-option"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
+        "text": "deadlift",
         "value": "pause"
       }
     },
     {
-      "checkpoint": "pause-variation-alternate-search"
+      "checkpoint": "paused-hinge-search-results"
     },
     {
       "type": {
-        "text": "Search exercises",
+        "text": "pause",
         "value": ""
       }
     },
     {
-      "checkpoint": "hinge-catalogue-ready-to-select-or-create"
+      "tap": {
+        "text": "Conventional Deadlift"
+      }
     },
     {
-      "note": "Tuesday Nov10 17:30. Need paused deadlift170x3x4, today-only DBrow40x8x4 per side, and bike20min easy RPE3. No Tuesday work has been logged yet. Use actual catalogue/custom fields from this run next; never count a generic deadlift as the exact variation without an explicit note."
+      "checkpoint": "added-hinge-prescription-or-editor"
+    },
+    {
+      "expect": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "checkpoint": "tuesday-deadlift-in-workout"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "custom-day-initial-set-structure"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "PAUSED just off floor, not competition pulls. Plan170x3x4. First pause rushed. Exact variation via note for now."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 170 kg \u00d7 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 170 kg \u00d7 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 170 kg \u00d7 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "tuesday-three-paused-pull-sets-recorded"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "remaining-paused-pull-set-count"
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "paused-pull-fourth-set-added"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 170 kg \u00d7 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "tuesday-paused-pulls-four-sets"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "tuesday-finish-review-or-summary"
+    },
+    {
+      "note": "Four paused pulls170x3 intended here. Inspect set kinds and saved count; no rows, pulldowns, rear delts or bike entered yet. Finish may be a confirmation or saved summary. Next run complete Tuesday remainder using actual screen controls, then move through W1 and W2. Generic conventional name is explicitly qualified by lift note, not exact-variation support."
     }
   ]
 }

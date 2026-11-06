@@ -816,17 +816,6 @@
    "checkpoint": "rower-page"
   },
   {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Rower"
-   }
-  },
-  {
-   "checkpoint": "rower-page"
-  },
-  {
    "tap": {
     "text": "Start"
    }
@@ -863,6 +852,15 @@
   },
   {
    "checkpoint": "finish-tap"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
   }
  ]
 }

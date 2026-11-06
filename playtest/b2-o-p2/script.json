@@ -163,15 +163,6 @@
   },
   {
    "tap": {
-    "text": "Barbell Bench Press",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "rotation-tap-bench"
-  },
-  {
-   "tap": {
     "text": "Start"
    }
   },
@@ -188,6 +179,22 @@
   },
   {
    "checkpoint": "plan-tab"
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-tab"
+  },
+  {
+   "tap": {
+    "text": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
   }
  ]
 }

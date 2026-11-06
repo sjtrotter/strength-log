@@ -227,7 +227,24 @@
    }
   },
   {
+   "type": {
+    "text": "Target hold (seconds)",
+    "value": "20"
+   }
+  },
+  {
+   "swipe": {
+    "text": "How is it tracked?",
+    "direction": "up"
+   }
+  },
+  {
    "checkpoint": "copen-form"
+  },
+  {
+   "tap": {
+    "textContains": "Core"
+   }
   },
   {
    "tap": {

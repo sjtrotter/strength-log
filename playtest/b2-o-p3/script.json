@@ -175,6 +175,28 @@
   },
   {
    "checkpoint": "empty"
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Block 1 accumulation"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create"
+   }
+  },
+  {
+   "checkpoint": "created"
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "checkpoint": "addday"
   }
  ]
 }

@@ -280,21 +280,24 @@
   },
   {
    "swipe": {
-    "text": "Single-leg",
+    "text": "Hinge",
     "direction": "up"
    }
   },
   {
-   "checkpoint": "picker-scrolled"
-  },
-  {
    "swipe": {
-    "text": "Pick a movement",
-    "direction": "down"
+    "text": "Horizontal push",
+    "direction": "up"
    }
   },
   {
-   "note": "look for trap bar"
+   "swipe": {
+    "text": "Vertical push",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "picker-bottom"
   },
   {
    "scrollTo": {

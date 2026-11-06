@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -569,7 +569,7 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     },
     {
       "tap": {
@@ -592,7 +592,7 @@
     },
     {
       "tap": {
-        "text": "Log 102.5 kg \u00d7 5"
+        "text": "Log 102.5 kg × 5"
       }
     },
     {
@@ -600,7 +600,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 kg \u00d7 5"
+        "text": "Log 115 kg × 5"
       }
     },
     {
@@ -633,7 +633,7 @@
     },
     {
       "tap": {
-        "text": "Log 160 kg \u00d7 2"
+        "text": "Log 160 kg × 2"
       }
     },
     {
@@ -666,7 +666,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -674,18 +674,18 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
       "checkpoint": "monday-single-logged-rpe-seven"
     },
     {
-      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 × 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
     },
     {
       "tap": {
-        "text": "Undo 190 \u00d7 1"
+        "text": "Undo 190 × 1"
       }
     },
     {
@@ -693,7 +693,7 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -746,7 +746,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -847,12 +847,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -887,12 +887,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -927,12 +927,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -969,6 +969,11 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
         "desc": "More"
       }
     },
@@ -978,10 +983,293 @@
       }
     },
     {
-      "checkpoint": "replace-generated-db-bench-with-competition-bench"
+      "checkpoint": "bench-swap-catalogue"
     },
     {
-      "note": "Inspect the swap catalogue and note fields next. Monday still needs competition bench100\u00d75\u00d75, lying leg curl3\u00d710\u201312, ab wheel3\u00d78. Squat target/actual RPE7 and last backoff7.5; video reference Nov9 side-view190 single, depth is there. These words are not yet stored in the app."
+      "scrollTo": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "competition-bench-replaces-db-bench"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "bench-five-sets-before-lifting"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "bench-first-set-corrected-to-100-by-five"
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Competition bench: real pauses. First set stiff, then fine. 100 kg x 5 x 5 planned."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "bench-technique-note-saved"
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 100 kg × 5"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-five-work-sets-logged"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "review-partial-workout-before-accepting"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 14 of 26 sets"
+      }
+    },
+    {
+      "checkpoint": "day-exercise-navigation-for-squat-note-and-accessories"
+    },
+    {
+      "note": "Squat and competition bench should now be complete. Inspect the lift navigation to attach squat RPE7 and video reference, and replace remaining generated accessories with lying leg curl and ab wheel. Finish dialog was inspection only: I have not accepted an incomplete Monday."
     }
   ]
 }

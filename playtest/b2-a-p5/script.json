@@ -1496,11 +1496,11 @@
     },
     {
       "tap": {
-        "text": "Add cardio"
+        "text": "Edit cardio"
       }
     },
     {
-      "checkpoint": "adding-my-standalone-road-run"
+      "checkpoint": "road-run-prescription-distance-duration-and-interval-options"
     },
     {
       "back": true
@@ -1509,61 +1509,62 @@
       "back": true
     },
     {
-      "checkpoint": "run-only-workout-controls"
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "road-run-actual-entry-and-retrospective-logging-controls"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "text": "History",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "history-with-monday-strength"
-    },
-    {
-      "tap": {
-        "desc": "More"
+      "expect": {
+        "text": "Road run"
       }
     },
     {
       "tap": {
-        "text": "Backup and export"
+        "text": "Start"
       }
     },
     {
-      "checkpoint": "readable-export-backup-and-restore-entry-points"
+      "checkpoint": "tuesday-easy-run-timer-started"
     },
     {
-      "back": true
+      "advance": "10m"
+    },
+    {
+      "checkpoint": "tuesday-run-live-time-distance-check"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "tuesday-run-timer-after-activity-recreation"
+    },
+    {
+      "advance": "32m10s"
+    },
+    {
+      "checkpoint": "tuesday-easy-run-completed-42m10s"
+    },
+    {
+      "note": "Actual diary: Tuesday Nov10 easy road run7.00km42:10,RPE3. Quads noticeable first km then fine. Need save distance and note using visible controls next. Timing includes all elapsed time."
     },
     {
       "tap": {
-        "text": "Plans",
-        "role": "Tab"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "tap": {
-        "text": "2-day full body"
-      }
-    },
-    {
-      "checkpoint": "plan-details-to-edit-future-sessions-and-run-days"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "tuesday-run-draft-and-next-strength-day"
+      "checkpoint": "tuesday-run-primary-action-after-elapsed-time"
     }
   ]
 }

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.audit
 
 import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
+import cloud.trotter.log.strength.ui.day.NextTime
 import cloud.trotter.log.strength.ui.preview.PreviewActions
 import cloud.trotter.log.strength.ui.preview.PreviewCardio
 import cloud.trotter.log.strength.ui.preview.PreviewLift
@@ -64,7 +65,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
     @Test fun shot09PreviewLiftNoteFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         val state = auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift ->
-            lift.copy(note = "Belt on top, straps on back-off sets", nextTime = "+5 lb")
+            lift.copy(note = "Belt on top, straps on back-off sets", nextTime = NextTime.Offer("+5 lb", false, 240.0, 235.0))
         }) }
         rule.auditShot("preview/09-preview-lift-note-font2", fontScale = 2f) {
             PreviewScreen(state, PreviewActions({}, {}, {}))

@@ -383,7 +383,8 @@ internal fun PreviewRoute(
     val start = viewModel.workoutStart
     val conflict by start.conflict.collectAsStateWithLifecycle()
     LaunchedEffect(start) { start.navigation.collect { onOpenDay(it, false) } }
-    PreviewScreen(state, PreviewActions(onBack, { onOpenDay(viewModel.selection, true) }, viewModel::start))
+    PreviewScreen(state, PreviewActions(onBack, { onOpenDay(viewModel.selection, true) }, viewModel::start,
+        viewModel::setWorkingWeight))
     WorkoutConflictDialog(conflict, start::dismiss, start::resume, start::confirmDiscard, start::discardAndStart)
 }
 

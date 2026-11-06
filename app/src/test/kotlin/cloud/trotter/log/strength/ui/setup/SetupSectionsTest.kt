@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -72,6 +73,27 @@ class SetupSectionsTest {
         composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Backup and export"))
         composeTestRule.onNodeWithText("Backup and export").performClick()
         assertEquals(1, backups)
+    }
+
+    @Test
+    fun backupIsVisibleWithoutScrollingAndPrecedesResetToDefaults() {
+        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(), setupActions()) } }
+        composeTestRule.onNodeWithText("Backup and export").assertIsDisplayed()
+        val list = composeTestRule.onNode(hasScrollAction())
+        val encountered = linkedSetOf<String>()
+        while (true) {
+            val node = list.fetchSemanticsNode()
+            val labels = listOf("Backup and export", "Reset to defaults").mapNotNull { label ->
+                composeTestRule.onAllNodes(hasText(label)).fetchSemanticsNodes().firstOrNull()
+                    ?.takeIf { it.boundsInRoot.overlaps(node.boundsInRoot) }?.let { label to it.boundsInRoot.top }
+            }
+            labels.sortedBy { it.second }.forEach { encountered += it.first }
+            val scroll = node.config[SemanticsProperties.VerticalScrollAxisRange]
+            if (scroll.value() >= scroll.maxValue()) break
+            list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
+        }
+        assertTrue(encountered.contains("Reset to defaults"))
+        assertEquals(listOf("Backup and export", "Reset to defaults"), encountered.toList())
     }
 
     @Test

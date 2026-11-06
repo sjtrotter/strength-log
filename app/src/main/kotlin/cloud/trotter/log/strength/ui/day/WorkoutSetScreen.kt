@@ -525,13 +525,7 @@ private fun WorkoutLift(
             val values = row.values(slot)
             if (values != null) {
                 if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
-                    val editLabel = stringResource(R.string.workout_edit_set, index + 1)
-                    TextButton(
-                        onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
-                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
-                        colors = neutralTextButtonColors(),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
+                    WorkoutEditableHero(card, slot, index, actions) {
                         Crossfade(
                             targetState = values to card.tracking(slot),
                             animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
@@ -646,13 +640,7 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
     }
     row.values(slot)?.let { values ->
         if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
-            val editLabel = stringResource(R.string.workout_edit_set, index + 1)
-            TextButton(
-                onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
-                colors = neutralTextButtonColors(),
-                contentPadding = PaddingValues(0.dp),
-            ) {
+            WorkoutEditableHero(card, slot, index, actions) {
                 WorkoutHero(values, card.tracking(slot), state.unit)
             }
         }
@@ -720,6 +708,31 @@ private fun WorkoutPartnerCard(card: ExerciseCardState, row: SetRowState, slot: 
 }
 
 @Composable
+private fun WorkoutEditableHero(
+    card: ExerciseCardState,
+    slot: String,
+    index: Int,
+    actions: DayActions,
+    hero: @Composable () -> Unit,
+) {
+    val editLabel = stringResource(R.string.workout_edit_set, index + 1)
+    val offer = (if (slot == Slot.SS) card.partnerNextTime else card.nextTime) as? NextTime.Offer
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(
+            onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
+            modifier = Modifier.align(Alignment.CenterVertically).semantics { contentDescription = editLabel },
+            colors = neutralTextButtonColors(),
+            contentPadding = PaddingValues(0.dp),
+        ) { hero() }
+        if (offer != null) Box(Modifier.align(Alignment.CenterVertically)) {
+            NextTimeOfferChip(offer, slot) {
+                actions.onNextTime(card.programExerciseId, slot, it)
+            }
+        }
+    }
+}
+
+@Composable
 private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit) {
     val primary = when (tracking) {
         TrackingType.WEIGHTED -> WeightStepper.format(values.weightDisplay)
@@ -731,11 +744,11 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: W
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
-    WorkoutHeroText(primary, secondary)
+    WorkoutHeroText(primary, secondary, Modifier)
 }
 
 @Composable
-private fun WorkoutHeroText(primary: String, secondary: String? = null) {
+private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier: Modifier = Modifier.fillMaxWidth()) {
     BasicText(
         buildAnnotatedString {
             append(primary)
@@ -748,7 +761,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null) {
                 }
             }
         },
-        modifier = Modifier.fillMaxWidth().testTag("workout-hero"),
+        modifier = modifier.testTag("workout-hero"),
         style = SetNumerals.copy(color = MaterialTheme.colorScheme.onSurface),
         maxLines = 1,
         softWrap = false,

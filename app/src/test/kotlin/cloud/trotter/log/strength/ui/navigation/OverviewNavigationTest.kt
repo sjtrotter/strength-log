@@ -10,12 +10,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -35,13 +38,19 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -182,7 +191,7 @@ class OverviewNavigationTest {
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
                         )), PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                             plans = repo.plans,
-                            historyRepository = repo.history, context = context,
+                            historyRepository = repo.history,
                         )) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))
@@ -285,6 +294,101 @@ class OverviewNavigationTest {
         rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.uiState.value.runOpen } }
         assertEquals(other, runBlocking { repo.openRunFlow.first()!!.planId })
         rule.runOnIdle { assertEquals(other, dayVm.uiState.value.planId) }
+    }
+
+    private fun prepareBenchOffer() = runBlocking {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
+        )))))
+        val id = repo.plans.slotsFor(preferred, "A").first().single().programExerciseId
+        val run = repo.startRun(preferred, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            List(3) { LoggedSet(70.0, 5, SetKind.WORK, done = true, plannedIndex = it) }, run.runId)
+        repo.finishRun(run.runId)
+        id
+    }
+
+    private fun waitForText(text: String) {
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test fun previewOfferTapAppliesUndoesAndStartOpensAtTheAcceptedWeight() {
+        val id = prepareBenchOffer()
+        render()
+        rule.onNodeWithText("Strength · Day A").performClick()
+        waitForText("Today 3 × 5 · 70 lb")
+        val chip = rule.onNodeWithTag("next-time-offer-${Slot.MAIN}")
+        chip.assertIsDisplayed().assertIsNotSelected().performClick()
+        waitForText("Today 3 × 5 · 75 lb")
+        chip.assertIsSelected()
+        assertEquals(null, runBlocking { repo.openRunFlow.first() })
+        assertEquals(List(3) { 75.0 }, runBlocking {
+            repo.dayTracksFlow(preferred, "A").first().tracks.single { it.programExerciseId == id }.sets.map { it.weightLb }
+        })
+        chip.performClick()
+        waitForText("Today 3 × 5 · 70 lb")
+        chip.assertIsNotSelected()
+        assertEquals(List(3) { 70.0 }, runBlocking {
+            repo.dayTracksFlow(preferred, "A").first().tracks.single { it.programExerciseId == id }.sets.map { it.weightLb }
+        })
+        chip.performClick()
+        waitForText("Today 3 × 5 · 75 lb")
+        rule.onNodeWithText("Start day A").performClick()
+        waitForText("Log 75 lb × 5")
+        rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(List(3) { 75.0 }, runBlocking { repo.openRunFlow.first()!!.tracks.single().sets.map { it.weightLb } })
+    }
+
+    @Test fun previewOfferWithAnotherWorkoutOpenConfirmsDiscardAndStartsAtTheAcceptedWeight() {
+        val id = prepareBenchOffer()
+        val oldId = runBlocking {
+            repo.startRun(other, "B")
+            repo.openRunFlow.first()!!.id
+        }
+        render()
+        rule.onNodeWithText("Strength · Day A").performClick()
+        waitForText("Today 3 × 5 · 70 lb")
+        rule.onNodeWithTag("next-time-offer-${Slot.MAIN}")
+            .assertIsDisplayed().assertIsNotSelected().performClick()
+        waitForText("Workout open")
+        rule.onNode(hasText("Other · Day B Arms") and hasAnyAncestor(isDialog())).assertExists()
+        rule.onNodeWithText("Discard and start").performClick()
+        rule.onNodeWithText("Discard workout?").assertExists()
+        assertEquals(oldId, runBlocking { repo.openRunFlow.first()!!.id })
+        rule.onNodeWithText("Discard and start").performClick()
+        waitForText("Log 75 lb × 5")
+        rule.runOnIdle {
+            assertEquals(Routes.DAY_IN_PLAN, nav.currentDestination?.route)
+            assertEquals(preferred, dayVm.uiState.value.planId)
+            assertEquals("A", dayVm.uiState.value.viewDayId)
+        }
+        val open = runBlocking { repo.openRunFlow.first()!! }
+        assertNotEquals(oldId, open.id)
+        assertEquals(preferred, open.planId)
+        assertEquals("A", open.dayId)
+        assertEquals(List(3) { 75.0 }, open.tracks.single { it.programExerciseId == id }.sets.map { it.weightLb })
+    }
+
+    @Test fun workoutOfferTapAppliesUndoesAndDisappearsAfterOneLoggedRow() {
+        prepareBenchOffer()
+        render()
+        rule.onNodeWithText("Start day", substring = true).performClick()
+        waitForText("Log 70 lb × 5")
+        val chip = rule.onNodeWithTag("next-time-offer-${Slot.MAIN}")
+        chip.assertIsDisplayed().assertIsNotSelected().performClick()
+        waitForText("Log 75 lb × 5")
+        chip.assertIsSelected()
+        assertEquals(List(3) { 75.0 }, runBlocking { repo.openRunFlow.first()!!.tracks.single().sets.map { it.weightLb } })
+        chip.performClick()
+        waitForText("Log 70 lb × 5")
+        chip.assertIsNotSelected().performClick()
+        waitForText("Log 75 lb × 5")
+        rule.onNodeWithText("Log 75 lb × 5").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.uiState.value.doneSets == 1 } }
+        chip.assertDoesNotExist()
+        val rows = runBlocking { repo.openRunFlow.first()!!.tracks.single().sets }
+        assertEquals(List(3) { 75.0 }, rows.map { it.weightLb })
+        assertEquals(listOf(true, false, false), rows.map { it.done })
     }
 
     @Test fun previewEditReachesTheTappedPlansDayWithEditorOpen() {

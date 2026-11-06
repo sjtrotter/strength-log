@@ -312,7 +312,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -348,7 +348,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -914,7 +914,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -991,7 +991,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1010,7 +1010,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1061,12 +1061,12 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb \u00d7 6"
+        "text": "Log 30 lb × 6"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 6"
+        "text": "Log 30 lb × 6"
       }
     },
     {
@@ -1096,12 +1096,12 @@
     },
     {
       "expect": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1143,12 +1143,12 @@
     },
     {
       "expect": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1194,7 +1194,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1215,7 +1215,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1223,7 +1223,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1239,7 +1239,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1247,7 +1247,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1394,7 +1394,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "seat 4 \u2014 staff showed me how to adjust it."
+        "value": "seat 4 — staff showed me how to adjust it."
       }
     },
     {
@@ -1473,7 +1473,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -1544,7 +1544,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1552,7 +1552,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1560,7 +1560,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1586,7 +1586,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1594,7 +1594,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1602,7 +1602,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1615,7 +1615,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1623,7 +1623,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1631,7 +1631,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1644,7 +1644,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1652,7 +1652,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1808,13 +1808,13 @@
       }
     },
     {
-      "tap": {
-        "text": "Other days"
+      "expect": {
+        "text": "3-day full body · Day A"
       }
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -1864,7 +1864,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1872,7 +1872,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1880,7 +1880,7 @@
     },
     {
       "tap": {
-        "text": "Log 60 lb \u00d7 10"
+        "text": "Log 60 lb × 10"
       }
     },
     {
@@ -1903,7 +1903,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1911,7 +1911,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1919,7 +1919,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1932,7 +1932,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1940,7 +1940,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1948,7 +1948,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 10"
+        "text": "Log 30 lb × 10"
       }
     },
     {
@@ -1961,7 +1961,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -1969,7 +1969,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "text": "Log 20 lb × 10"
       }
     },
     {
@@ -2011,25 +2011,158 @@
     },
     {
       "tap": {
-        "desc": "Share"
+        "text": "Done"
       }
     },
     {
-      "checkpoint": "friday-share-options"
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "export-backup-system-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "export-readable-history-system-picker-boundary"
+    },
+    {
+      "tap": {
+        "text": "Restore from backup"
+      }
+    },
+    {
+      "checkpoint": "restore-backup-system-picker-boundary"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "friday-after-share-back"
-    },
-    {
       "tap": {
-        "text": "Add a note"
+        "text": "Today",
+        "role": "Tab",
+        "index": 0
       }
     },
     {
-      "checkpoint": "friday-session-note-entry"
+      "advance": "2d23h9m"
+    },
+    {
+      "tap": {
+        "text": "3-day full body · Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-nov16-increasing-weights-without-changing-reps"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "monday-nov16-after-treadmill-display-warmup"
+    },
+    {
+      "expect": {
+        "text": "Machine Chest Press"
+      }
     }
   ]
 }

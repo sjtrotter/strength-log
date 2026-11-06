@@ -481,63 +481,47 @@
       "checkpoint": "squat-day-editor"
     },
     {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-options"
+    },
+    {
       "back": true
     },
     {
       "expect": {
-        "text": "Start day D"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 1
+        "text": "Edit day"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "desc": "More options for Bulgarian Split Squat"
       }
     },
     {
-      "tap": {
-        "text": "Backup and export"
-      }
-    },
-    {
-      "checkpoint": "backup-and-export-before-training"
+      "checkpoint": "replace-unwanted-lunge-options"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Other days"
-      }
-    },
-    {
-      "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
-      }
-    },
-    {
       "expect": {
-        "text": "Start day D"
+        "text": "Edit day"
       }
     },
     {
       "tap": {
-        "text": "Start day D"
+        "text": "Ramp to 205 lb, then 1 back-off"
       }
+    },
+    {
+      "checkpoint": "squat-prescription-fields"
+    },
+    {
+      "back": true
     },
     {
       "expect": {
@@ -545,7 +529,52 @@
       }
     },
     {
-      "checkpoint": "monday-squat-workout-before-first-set"
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "first-warmup-set-edit-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "checkpoint": "exercise-navigation-before-training"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
     },
     {
       "recreate": true
@@ -556,10 +585,10 @@
       }
     },
     {
-      "checkpoint": "monday-workout-after-reopening"
+      "checkpoint": "unlogged-monday-workout-reopened"
     },
     {
-      "note": "I have opened Monday lower day, but have not performed or logged any sets. Next replay will use the observed editor to set my actual squat/RDL/lunge/plank prescription before this start. I do not own a Swiss ball, despite that exercise appearing in the garage-filtered suggestion."
+      "note": "I have not lifted or logged anything yet. I need squat 215 for three work sets of five, plus my lighter warmups; the generated ramp prescription is not my plan. Use the returned prescription and set fields to enter that before training on the next replay."
     }
   ]
 }

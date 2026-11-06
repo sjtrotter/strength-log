@@ -438,8 +438,12 @@
   },
   {
    "tap": {
-    "textContains": "Log",
-    "inDialog": true
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
    }
   },
   {
@@ -490,6 +494,15 @@
   },
   {
    "checkpoint": "finish"
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "after-finish"
   }
  ]
 }

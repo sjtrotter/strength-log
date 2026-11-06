@@ -54,6 +54,105 @@
     },
     {
       "checkpoint": "bench-picker"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Ramp to"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "155"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "saturday-bench-target"
+    },
+    {
+      "tap": {
+        "text": "Log 155 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 155 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 155 lb \u00d7 6"
+      }
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "checkpoint": "saturday-bench-eight-eight-six"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 3 of 3 sets"
+      }
+    },
+    {
+      "checkpoint": "saturday-day-controls-for-cardio"
     }
   ]
 }

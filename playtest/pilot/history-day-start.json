@@ -211,7 +211,7 @@
     },
     {
       "tap": {
-        "textContains": "full body · Day A"
+        "textContains": "full body \u00b7 Day A"
       }
     },
     {
@@ -341,7 +341,7 @@
     },
     {
       "tap": {
-        "textContains": "full body · Day A",
+        "textContains": "full body \u00b7 Day A",
         "index": 1
       }
     },
@@ -715,7 +715,7 @@
     },
     {
       "tap": {
-        "textContains": "Set 1 · Work",
+        "textContains": "Set 1 \u00b7 Work",
         "inDialog": true
       }
     },
@@ -819,7 +819,7 @@
     },
     {
       "expect": {
-        "text": "Log 60 lb × 10"
+        "text": "Log 60 lb \u00d7 10"
       }
     },
     {
@@ -977,7 +977,7 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb × 6"
+        "text": "Log 30 lb \u00d7 6"
       }
     },
     {
@@ -1044,7 +1044,8 @@
     },
     {
       "expect": {
-        "text": "seat 4"
+        "text": "seat 4",
+        "index": 0
       }
     },
     {
@@ -1331,7 +1332,7 @@
     },
     {
       "tap": {
-        "textContains": "full body · Day A"
+        "textContains": "full body \u00b7 Day A"
       }
     },
     {

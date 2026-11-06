@@ -3,16 +3,16 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
-    "time": "17:30",
+    "date": "2026-11-25",
+    "time": "16:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Week 2, Nov16. Reduced diary sample: skipped replay of Nov11 and13, not claiming their data. Bad sleep, squat target9 but actual9/8/7; keep cardio12m."
+      "note": "Nov25 short visit. Nov20 missed, no replacement. Nov18 and23 omitted from replay for budget; do not invent their records."
     },
     {
-      "checkpoint": "week-two-today"
+      "checkpoint": "week-three-today"
     },
     {
       "tap": {
@@ -20,229 +20,71 @@
       }
     },
     {
-      "checkpoint": "choose-monday-despite-rotation"
-    },
-    {
-      "tap": {
-        "desc": "Day A"
-      }
-    },
-    {
-      "checkpoint": "monday-week-two-targets"
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "checkpoint": "squat-previous-and-target"
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-0"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "9"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "7"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "checkpoint": "squat-actual-nine-eight-seven"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 3 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "advance": "48m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "12m"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "tap": {
-        "text": "Continue without distance"
-      }
-    },
-    {
-      "checkpoint": "week-two-bike-twelve"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Finish",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "week-two-session-saved"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "session-note-editor"
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Bad sleep; squat folding forward on last set. Longer rests. Bike 12m, 105W, effort 7/10."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "bad-sleep-and-bike-context-saved"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "checkpoint": "week-two-return-to-today"
-    },
-    {
       "tap": {
         "desc": "Day C"
       }
     },
     {
-      "checkpoint": "preview-deadlift-day-for-short-wednesday"
+      "checkpoint": "short-wednesday-targets"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "190"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "choose-rower-for-short-session"
     }
   ]
 }

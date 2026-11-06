@@ -665,6 +665,25 @@
       "checkpoint": "monday-reverse-lunge-selected"
     },
     {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "expect": {
+        "text": "Swap for",
+        "absent": true
+      }
+    },
+    {
+      "checkpoint": "reverse-lunge-swap-confirmed-for-plan"
+    },
+    {
       "expect": {
         "text": "Edit day"
       }
@@ -744,6 +763,36 @@
     {
       "type": {
         "text": "Weight (lb)",
+        "value": "55",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "mistyped-warmup-weight-before-correction"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Save set"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
         "value": "45",
         "ime": "done"
       }
@@ -787,6 +836,32 @@
     },
     {
       "checkpoint": "logged-warmup-after-reopening"
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "cold-garage-warmup-rest-extended-one-minute"
+    },
+    {
+      "advance": "1m"
     },
     {
       "advance": "90s"
@@ -1062,6 +1137,17 @@
       "advance": "3m"
     },
     {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "three-squat-work-sets-survive-reopening"
+    },
+    {
       "checkpoint": "monday-three-squat-work-sets-now-rdl"
     },
     {
@@ -1136,6 +1222,9 @@
     },
     {
       "advance": "2m"
+    },
+    {
+      "checkpoint": "first-lunge-actual-weight-and-reps"
     },
     {
       "tap": {

@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -569,7 +569,7 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     },
     {
       "tap": {
@@ -592,7 +592,7 @@
     },
     {
       "tap": {
-        "text": "Log 102.5 kg × 5"
+        "text": "Log 102.5 kg \u00d7 5"
       }
     },
     {
@@ -600,7 +600,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 kg × 5"
+        "text": "Log 115 kg \u00d7 5"
       }
     },
     {
@@ -633,7 +633,7 @@
     },
     {
       "tap": {
-        "text": "Log 160 kg × 2"
+        "text": "Log 160 kg \u00d7 2"
       }
     },
     {
@@ -666,7 +666,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
@@ -674,18 +674,18 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
       "checkpoint": "monday-single-logged-rpe-seven"
     },
     {
-      "note": "Try correcting a completed-set tap immediately, then restore the real 190 × 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
     },
     {
       "tap": {
-        "text": "Undo 190 × 1"
+        "text": "Undo 190 \u00d7 1"
       }
     },
     {
@@ -693,7 +693,7 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
@@ -746,7 +746,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -847,12 +847,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -887,12 +887,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -927,12 +927,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -1076,7 +1076,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1111,7 +1111,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1146,7 +1146,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1181,7 +1181,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1250,7 +1250,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1686,18 +1686,65 @@
       "checkpoint": "paused-hinge-search-results"
     },
     {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
       "type": {
-        "text": "pause",
-        "value": ""
+        "text": "Name",
+        "value": "Paused Deadlift - off floor"
       }
     },
     {
       "tap": {
-        "text": "Conventional Deadlift"
+        "text": "Weighted"
       }
     },
     {
-      "checkpoint": "added-hinge-prescription-or-editor"
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-created-from-add-picker"
+    },
+    {
+      "expect": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Paused Deadlift - off floor",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "custom-paused-deadlift-prescription"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "expect": {
@@ -1709,11 +1756,8 @@
     },
     {
       "expect": {
-        "text": "Conventional Deadlift"
+        "text": "Paused Deadlift - off floor"
       }
-    },
-    {
-      "checkpoint": "tuesday-deadlift-in-workout"
     },
     {
       "tap": {
@@ -1721,32 +1765,22 @@
       }
     },
     {
-      "checkpoint": "custom-day-initial-set-structure"
+      "checkpoint": "custom-paused-pulls-initial-set-kinds"
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Add a set"
       }
     },
     {
-      "tap": {
-        "text": "Note"
-      }
+      "checkpoint": "custom-paused-pulls-four-set-list"
     },
     {
-      "type": {
-        "text": "Note",
-        "value": "PAUSED just off floor, not competition pulls. Plan170x3x4. First pause rushed. Exact variation via note for now."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
+      "back": true
     },
     {
       "expect": {
-        "text": "Conventional Deadlift"
+        "text": "Paused Deadlift - off floor"
       }
     },
     {
@@ -1773,7 +1807,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg × 3"
+        "text": "Log 170 kg \u00d7 3"
       }
     },
     {
@@ -1781,7 +1815,7 @@
     },
     {
       "expect": {
-        "text": "Conventional Deadlift"
+        "text": "Paused Deadlift - off floor"
       }
     },
     {
@@ -1808,7 +1842,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg × 3"
+        "text": "Log 170 kg \u00d7 3"
       }
     },
     {
@@ -1816,7 +1850,7 @@
     },
     {
       "expect": {
-        "text": "Conventional Deadlift"
+        "text": "Paused Deadlift - off floor"
       }
     },
     {
@@ -1843,37 +1877,15 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg × 3"
+        "text": "Log 170 kg \u00d7 3"
       }
     },
     {
       "advance": "3m"
     },
     {
-      "checkpoint": "tuesday-three-paused-pull-sets-recorded"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "remaining-paused-pull-set-count"
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "checkpoint": "paused-pull-fourth-set-added"
-    },
-    {
-      "back": true
-    },
-    {
       "expect": {
-        "text": "Conventional Deadlift"
+        "text": "Paused Deadlift - off floor"
       }
     },
     {
@@ -1900,41 +1912,14 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg × 3"
+        "text": "Log 170 kg \u00d7 3"
       }
     },
     {
       "advance": "3m"
     },
     {
-      "checkpoint": "tuesday-paused-pulls-four-sets"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 4 of 7 sets"
-      }
-    },
-    {
-      "checkpoint": "tuesday-day-navigation"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "tuesday-day-actions-for-editing-and-order"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Conventional Deadlift"
-      }
+      "checkpoint": "tuesday-four-custom-paused-pull-sets"
     },
     {
       "tap": {
@@ -1942,7 +1927,35 @@
       }
     },
     {
-      "checkpoint": "tuesday-review-work-incorrectly-in-ramp-slots"
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "170x3x4 paused just off floor. First set: rushed pause. Work sets, not competition pulls or warmups."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "expect": {
+        "text": "Paused Deadlift - off floor"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 4 of 4 sets"
+      }
     },
     {
       "tap": {
@@ -1950,41 +1963,43 @@
       }
     },
     {
-      "checkpoint": "tuesday-lift-actions"
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "expect": {
+        "text": "Add cardio"
+      }
     },
     {
       "tap": {
-        "text": "Swap exercise"
+        "text": "Add cardio"
       }
-    },
-    {
-      "checkpoint": "tuesday-swap-picker"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "pause"
-      }
-    },
-    {
-      "checkpoint": "paused-variation-swap-search"
     },
     {
       "tap": {
-        "text": "Create exercise"
+        "text": "Activity"
       }
     },
     {
-      "checkpoint": "create-paused-deadlift-fields"
+      "tap": {
+        "text": "Stationary bike"
+      }
     },
     {
-      "recreate": true
+      "checkpoint": "tuesday-bike-prescription"
     },
     {
-      "checkpoint": "custom-exercise-draft-after-recreation"
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
     },
     {
-      "note": "Do not finish Tuesday yet: four170x3 entries were placed in generated RAMP slots and generic identity. Create exercise is now visibly available; inspect its fields and use it to rebuild Tuesday accurately on next replay. This is a script correction, not an app inability to store a custom variation."
+      "checkpoint": "bike-duration-and-effort-fields"
+    },
+    {
+      "note": "Inspect cardio fields next. Tuesday custom paused170x3x4 must be verified as WORK sets before claiming completion; no rows or bike completed yet."
     }
   ]
 }

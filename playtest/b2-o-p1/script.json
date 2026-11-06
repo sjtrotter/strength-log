@@ -180,28 +180,63 @@
   },
   {
    "tap": {
+    "text": "Ramp to 160 lb, then 1 back-off"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   }
+  },
+  {
+   "checkpoint": "squat-rx-45"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-squat-save"
+  },
+  {
+   "tap": {
     "desc": "More options for Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "squat-options"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-back1"
-  },
-  {
    "tap": {
-    "desc": "More"
+    "text": "Lift options"
    }
   },
   {
-   "checkpoint": "editday-more"
+   "checkpoint": "lift-options"
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "after-liftopt-back"
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "removed-lateral"
   },
   {
    "tap": {
@@ -209,21 +244,18 @@
    }
   },
   {
-   "checkpoint": "edit-cardio"
+   "tap": {
+    "text": "Activity"
+   }
+  },
+  {
+   "checkpoint": "cardio-activity-menu"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back2"
-  },
-  {
-   "tap": {
-    "text": "Ramp to 160 lb, then 1 back-off"
-   }
-  },
-  {
-   "checkpoint": "squat-rx"
+   "checkpoint": "after-activity-back"
   }
  ]
 }

@@ -702,6 +702,277 @@
     },
     {
       "checkpoint": "squat-set-scheme-options"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "squat-straight-set-structure"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "my-three-squat-sets"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "12:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-bike-twelve-minute-plan"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "barbell-bench-swap-result"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-prescription"
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "checkpoint": "cable-row-swap-result"
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "checkpoint": "dumbbell-hinge-filter"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "monday-ready-for-squats"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-and-warmup-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "actual-lifting-set-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Five minutes easy movement and lighter squat warm-ups before my three working sets. Inspect All sets for a separate warm-up entry; do not silently count these as work sets."
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "first-working-squat-and-rest-timer"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "second-working-squat"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 135 lb \u00d7 8"
+      }
+    },
+    {
+      "checkpoint": "three-working-squats-done"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "workout-saved-after-interruption"
     }
   ]
 }

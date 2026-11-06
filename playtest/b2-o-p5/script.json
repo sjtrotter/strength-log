@@ -319,42 +319,21 @@
   },
   {
    "tap": {
-    "text": "Add cardio"
+    "text": "Add exercise"
    }
-  },
-  {
-   "checkpoint": "add-cardio"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-back-cardio"
   },
   {
    "tap": {
-    "desc": "Edit set 1"
+    "text": "Single-leg"
    }
-  },
-  {
-   "checkpoint": "edit-set-1"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
-    "text": "All sets"
+    "text": "Bulgarian Split Squat"
    }
   },
   {
-   "checkpoint": "all-sets"
-  },
-  {
-   "back": true
-  },
-  {
-   "checkpoint": "after-back-allsets"
+   "checkpoint": "added-bss"
   },
   {
    "tap": {
@@ -378,7 +357,63 @@
    }
   },
   {
-   "checkpoint": "create-exercise-form"
+   "type": {
+    "text": "Name",
+    "value": "Copenhagen plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Timed"
+   }
+  },
+  {
+   "checkpoint": "copenhagen-form"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-save-copenhagen"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Single"
+   }
+  },
+  {
+   "checkpoint": "search-single-hinge"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Plank"
+   }
+  },
+  {
+   "checkpoint": "search-plank-in-hinge"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Calf"
+   }
+  },
+  {
+   "checkpoint": "search-calf-in-hinge"
   }
  ]
 }

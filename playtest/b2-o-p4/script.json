@@ -816,12 +816,53 @@
    "checkpoint": "rower-page"
   },
   {
+   "advance": "2m"
+  },
+  {
    "tap": {
-    "desc": "Edit set 1"
+    "text": "Rower"
    }
   },
   {
-   "checkpoint": "rower-edit"
+   "checkpoint": "rower-page"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "15m"
+  },
+  {
+   "checkpoint": "rower-15m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "rower-stopped"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "rower-allsets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-tap"
   }
  ]
 }

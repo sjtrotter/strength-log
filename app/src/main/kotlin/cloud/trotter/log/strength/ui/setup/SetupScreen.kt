@@ -78,7 +78,7 @@ fun SetupScreen(
     openRestTimer: Boolean = false,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val rows = listOf("units", "theme", "keep_screen_on", "rest_timer", "custom_exercise", "backup", "licenses")
+    val rows = listOf("units", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))

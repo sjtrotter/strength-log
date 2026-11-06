@@ -32,11 +32,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.EmptyState
 import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.ScreenStateAction
+import cloud.trotter.log.strength.ui.day.NextTime
+import cloud.trotter.log.strength.ui.day.NextTimeOfferChip
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
@@ -93,7 +96,14 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                                 lift.working?.let { working ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Text(stringResource(R.string.preview_working, working), modifier = Modifier.weight(1f, fill = false))
-                                        lift.nextTime?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        when (val nextTime = lift.nextTime) {
+                                            NextTime.Repeat -> Text(stringResource(R.string.next_time_repeat),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            is NextTime.Offer -> NextTimeOfferChip(nextTime, Slot.MAIN) {
+                                                actions.onNextTime(lift.programExerciseId, it)
+                                            }
+                                            null -> Unit
+                                        }
                                     }
                                 }
                                 lift.previous.forEach { previous ->

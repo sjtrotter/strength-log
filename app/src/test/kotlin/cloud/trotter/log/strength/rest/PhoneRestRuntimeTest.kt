@@ -278,7 +278,6 @@ class PhoneRestRuntimeTest {
         )), rest, settings = settings,
             plans = repo.plans,
             historyRepository = repo.history,
-            context = context,
         ).also { models += it }
         preview.start()
         advanceUntilIdle()

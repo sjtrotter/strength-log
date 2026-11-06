@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.preview
 
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.day.NextTime
 
 data class PreviewUiState(
     val loading: Boolean = true,
@@ -11,14 +12,16 @@ data class PreviewUiState(
     val emphasis: String = "",
     val lifts: List<PreviewLift> = emptyList(),
     val cardio: PreviewCardio? = null,
+    val runId: String? = null,
 )
 
 data class PreviewLift(
     val name: String,
     val working: String?,
     val previous: List<PreviewPreviousResult>,
-    val nextTime: String? = null,
+    val nextTime: NextTime? = null,
     val note: String = "",
+    val programExerciseId: Long = 0L,
 )
 data class PreviewPreviousResult(
     val last: String?,
@@ -29,4 +32,9 @@ data class PreviewPreviousResult(
     val sourcePlanName: String? = null,
 )
 data class PreviewCardio(val activity: String, val time: String)
-data class PreviewActions(val onBack: () -> Unit, val onEdit: () -> Unit, val onStart: () -> Unit)
+data class PreviewActions(
+    val onBack: () -> Unit,
+    val onEdit: () -> Unit,
+    val onStart: () -> Unit,
+    val onNextTime: (programExerciseId: Long, weightLb: Double) -> Unit = { _, _ -> },
+)

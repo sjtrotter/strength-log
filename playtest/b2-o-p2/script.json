@@ -8,10 +8,21 @@
     {"tap": {"text": "Next"}},
     {"checkpoint": "wizard-2"},
     {"tap": {"text": "Next"}},
+    {"tap": {"text": "Upper / Lower"}},
     {"checkpoint": "wizard-3"},
     {"tap": {"text": "Next"}},
+    {"tap": {"text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"}},
+    {"tap": {"text": "Conventional"}},
     {"checkpoint": "wizard-4"},
     {"tap": {"text": "Next"}},
-    {"checkpoint": "wizard-5"}
+    {"tap": {"text": "Outdoor run"}},
+    {"tap": {"text": "Separate days"}},
+    {"checkpoint": "wizard-5"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-6"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-7"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-8"}
   ]
 }

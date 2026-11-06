@@ -380,7 +380,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -473,7 +473,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -678,7 +678,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -756,7 +756,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -992,7 +992,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1003,7 +1003,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1014,7 +1014,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1119,7 +1119,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1140,7 +1140,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1148,7 +1148,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb \u00d7 8"
+        "text": "Log 105 lb × 8"
       }
     },
     {
@@ -1164,7 +1164,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -1172,7 +1172,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb \u00d7 10"
+        "text": "Log 40 lb × 10"
       }
     },
     {
@@ -1188,7 +1188,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1196,7 +1196,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1204,7 +1204,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb \u00d7 10"
+        "text": "Log 90 lb × 10"
       }
     },
     {
@@ -1363,7 +1363,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day C"
+        "text": "3-day full body · Day C"
       }
     },
     {
@@ -1489,7 +1489,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -1541,7 +1541,50 @@
       "checkpoint": "all-exercises-shoulder-results"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "tap": {
@@ -1572,7 +1615,50 @@
       "checkpoint": "all-exercises-pulldown-results"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "tap": {
@@ -1606,37 +1692,17 @@
       "back": true
     },
     {
-      "tap": {
-        "text": "Add exercise"
-      }
+      "note": "Ordinary split squat is not among the search results. I will keep its actual two sets of eight per leg with 20s in a session note rather than mislabel them as a Bulgarian variation. Wide-grip pulldown is my assumed grip; phase A did not specify a grip."
     },
     {
       "tap": {
-        "text": "Single-leg"
+        "desc": "More options for Hack Squat"
       }
-    },
-    {
-      "checkpoint": "wednesday-add-single-leg-exercise-choices"
-    },
-    {
-      "back": true
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "text": "Remove"
       }
-    },
-    {
-      "swipe": {
-        "text": "Single-leg",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "wednesday-add-upper-body-movement-categories"
-    },
-    {
-      "back": true
     },
     {
       "back": true
@@ -1656,7 +1722,7 @@
     },
     {
       "tap": {
-        "text": "Undo Deadlift 185 \u00d7 5"
+        "text": "Undo 185 × 5"
       }
     },
     {
@@ -1693,64 +1759,139 @@
       "advance": "2m"
     },
     {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "wednesday-next-lift-actual-set-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
+      "expect": {
+        "text": "Seated DB Shoulder Press"
       }
     },
     {
       "tap": {
-        "desc": "Set menu"
+        "text": "Log 30 lb × 8"
       }
     },
     {
-      "checkpoint": "wednesday-set-menu-warmup-note-correction-options"
-    },
-    {
-      "note": "Monday saved eleven working sets and a 12:01 bike ride. Summary says65min because first logged set17:38, versus gym entry17:30 and finish18:43. After Wednesday deadlifts, configure shoulder30x8,30x6,25x8; pulldown100x10x3; split20x8x2eachleg; rower12min2220m. Need Add a note from saved summary for bench slow/111W/effort6. No watts/effort app field found yet."
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "advance": "90s"
     },
     {
       "tap": {
-        "text": "All sets"
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Save set"
       }
     },
     {
-      "checkpoint": "lift-all-sets-more-warmup-history-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "shoulder-missed-reps-six-not-eight"
     },
     {
       "tap": {
-        "desc": "Day C lifts, 3 of 12 sets"
+        "text": "Log 30 lb × 6"
       }
     },
     {
-      "checkpoint": "wednesday-lift-list-after-three-deadlifts"
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "shoulder-last-set-only-down-to25"
+    },
+    {
+      "tap": {
+        "text": "Log 25 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Lat Pulldown (wide)"
+      }
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 100 lb × 10"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rower"
+      }
+    },
+    {
+      "checkpoint": "wednesday-nine-structured-work-sets-rower-next"
+    },
+    {
+      "note": "I also did split squats, 20 lb in each hand, two sets of eight on each leg. The exact exercise was absent from the catalog search; record this in the visit note. The actual visit still includes those sets and transitions."
+    },
+    {
+      "advance": "37m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "wednesday-rower-twelve-minutes-distance-entry"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "2220",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "wednesday-rower-2220m-confirmation-control"
     }
   ]
 }

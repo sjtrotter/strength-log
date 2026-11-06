@@ -35,6 +35,34 @@
     },
     {
       "checkpoint": "squat-prescription"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-saved"
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-options"
     }
   ]
 }

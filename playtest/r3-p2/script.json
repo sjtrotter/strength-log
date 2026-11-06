@@ -57,6 +57,14 @@
     },
     {
       "checkpoint": "custom-day-exercise-editor"
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "edit-day-controls"
     }
   ]
 }

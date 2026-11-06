@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.day.NextTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -68,7 +69,7 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.finishRun(success.runId)
         advanceUntilIdle()
         assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
-        assertEquals("+5 lb", vm.uiState.value.lifts.single().nextTime)
+        assertEquals(NextTime.Offer("+5 lb", false, 75.0, 70.0), vm.uiState.value.lifts.single().nextTime)
 
         val miss = repo.startRun(plan, "A") as RunStartResult.Started
         db.storeTestRows("A", id, Slot.MAIN,
@@ -76,7 +77,7 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.finishRun(miss.runId)
         advanceUntilIdle()
         assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
-        assertEquals("Repeat", vm.uiState.value.lifts.single().nextTime)
+        assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
         repo.setKeepToPlan(id, true)
         advanceUntilIdle()
         assertNull(vm.uiState.value.lifts.single().nextTime)

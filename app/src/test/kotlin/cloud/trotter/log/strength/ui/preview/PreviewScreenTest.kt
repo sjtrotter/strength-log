@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.day.NextTime
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -35,7 +36,7 @@ class PreviewScreenTest {
     fun liftNoteIsOneEllipsizedLineAtFontScaleTwoAndAbsentWhenEmpty() {
         val note = "Seat 4, handles at shoulder height, feet on the lower platform"
         var lift by mutableStateOf(PreviewLift("Squat", "TOP × 5 · 235 lb",
-            listOf(PreviewPreviousResult("230 lb × 5")), nextTime = "+5 lb", note = note))
+            listOf(PreviewPreviousResult("230 lb × 5")), nextTime = NextTime.Offer("+5 lb", false, 240.0, 235.0), note = note))
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
@@ -71,10 +72,10 @@ class PreviewScreenTest {
             loading = false, lifts = listOf(
                 PreviewLift("Squat", "TOP × 5 · 235 lb", listOf(
                     PreviewPreviousResult("235 lb × 5", source = "B"),
-                ), nextTime = "+5 lb"),
+                ), nextTime = NextTime.Offer("+5 lb", false, 240.0, 235.0)),
                 PreviewLift("Bench", "3 × 5 · 70 lb", listOf(
                     PreviewPreviousResult("70 lb × 5", source = "C", sourcePlanName = "Strength"),
-                ), nextTime = "Repeat"),
+                ), nextTime = NextTime.Repeat),
             ),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Today TOP × 5 · 235 lb").assertExists()

@@ -113,7 +113,7 @@ open class OverviewFixture {
     }
 
     protected fun preview(planId: Long, dayId: String): PreviewViewModel {
-        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, historyRepository = repo.history, context = context)
+        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, historyRepository = repo.history)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)

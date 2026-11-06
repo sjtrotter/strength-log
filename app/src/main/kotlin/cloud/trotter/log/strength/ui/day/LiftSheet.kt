@@ -18,7 +18,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -107,13 +106,9 @@ internal fun LiftSheet(
                     when (nextTime) {
                         NextTime.Repeat -> Text(stringResource(R.string.next_time_repeat),
                             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        is NextTime.Offer -> FilterChip(
-                            selected = nextTime.applied,
-                            onClick = { actions.onNextTime(card.programExerciseId, slot,
-                                if (nextTime.applied) nextTime.openingLb else nextTime.offerLb) },
-                            label = { Text(nextTime.label) },
-                            modifier = Modifier.testTag("next-time-offer-$slot"),
-                        )
+                        is NextTime.Offer -> NextTimeOfferChip(nextTime, slot) {
+                            actions.onNextTime(card.programExerciseId, slot, it)
+                        }
                         null -> Unit
                     }
                 }

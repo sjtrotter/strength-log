@@ -475,7 +475,7 @@
   },
   {
    "tap": {
-    "text": "Lat Pulldown"
+    "text": "Lat Pulldown (wide)"
    }
   },
   {
@@ -491,7 +491,7 @@
   },
   {
    "tap": {
-    "text": "Lat Pulldown",
+    "text": "Lat Pulldown (wide)",
     "inDialog": true
    }
   },
@@ -549,6 +549,49 @@
   },
   {
    "checkpoint": "search-row"
+  },
+  {
+   "tap": {
+    "textContains": "DB Row",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "row-picked"
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "day-a-built"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-start"
+  },
+  {
+   "tap": {
+    "text": "Log 185 lb \u00d7 5"
+   }
+  },
+  {
+   "checkpoint": "squat-set1-logged"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-2m-rest"
   }
  ]
 }

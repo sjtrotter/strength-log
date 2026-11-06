@@ -331,7 +331,18 @@
    }
   },
   {
-   "checkpoint": "swapped-legraise"
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "swapped-legraise-plan"
   },
   {
    "tap": {
@@ -359,10 +370,24 @@
    }
   },
   {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
    "checkpoint": "swapped-lunge"
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "after-back-1"
   },
   {
    "back": true

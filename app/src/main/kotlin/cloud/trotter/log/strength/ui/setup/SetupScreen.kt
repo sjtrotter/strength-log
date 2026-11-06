@@ -108,7 +108,7 @@ fun SetupScreen(
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
                             supportingContent = {
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
                                     WeightUnit.entries.forEachIndexed { index, unit ->
                                         SegmentedButton(
                                             selected = state.unit == unit,
@@ -125,7 +125,7 @@ fun SetupScreen(
                             headlineContent = { Text(stringResource(R.string.settings_distance)) },
                             supportingContent = {
                                 val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
                                     units.forEachIndexed { index, unit ->
                                         SegmentedButton(
                                             selected = state.distanceUnit == unit,
@@ -146,7 +146,7 @@ fun SetupScreen(
                                     ThemePreference.DARK to R.string.setup_theme_dark_title,
                                     ThemePreference.LIGHT to R.string.setup_theme_light_title,
                                 )
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
                                     themes.forEachIndexed { index, (theme, label) ->
                                         SegmentedButton(
                                             selected = state.themePreference == theme,

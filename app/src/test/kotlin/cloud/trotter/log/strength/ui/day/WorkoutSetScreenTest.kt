@@ -53,6 +53,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -1107,7 +1108,7 @@ class WorkoutSetScreenTest {
     @Test fun completedTrackSummaryKeepsMetersAfterPlanChangesToRoadRun() {
         val base = workoutSetCardioDoneFixture()
         val cardio = requireNotNull(base.cardio)
-        val results = cardio.loggedSets.map { it.copy(metres = 400) }
+        val results = cardio.loggedSets.map { it.copy(metres = 400, distanceSource = DistanceSource.MANUAL) }
         show(base.copy(cardio = cardio.copy(run = null, loggedSets = results, loggedSeconds = 100,
             loggedActivity = CardioActivity.TRACK_RUN)))
 

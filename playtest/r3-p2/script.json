@@ -97,6 +97,25 @@
     },
     {
       "checkpoint": "squat-prescription-editor"
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-set-structure-options"
     }
   ]
 }

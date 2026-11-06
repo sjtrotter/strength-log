@@ -360,6 +360,12 @@
    }
   },
   {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
    "tap": {
     "text": "Save"
    }
@@ -390,6 +396,151 @@
   },
   {
    "checkpoint": "after-bench-swap"
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "bench-swapped"
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "bench-row-tap"
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "155"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "bench-saved"
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "pulldown"
+   }
+  },
+  {
+   "checkpoint": "search-pulldown"
+  },
+  {
+   "tap": {
+    "text": "Lat Pulldown"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lat Pulldown",
+    "inDialog": true
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "120"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "checkpoint": "after-remove-lateral"
+  },
+  {
+   "tap": {
+    "desc": "More options for Chest-Supported Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "row"
+   }
+  },
+  {
+   "checkpoint": "search-row"
   }
  ]
 }

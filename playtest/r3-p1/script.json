@@ -9,7 +9,8 @@
  "steps": [
   {
    "tap": {
-    "text": "Strength-leaning\nFewer reps, more weight on the mains."
+    "textContains": "Strength-leaning",
+    "role": "RadioButton"
    }
   },
   {

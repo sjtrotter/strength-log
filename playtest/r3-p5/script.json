@@ -30,25 +30,6 @@
    }
   },
   {
-   "checkpoint": "a-editday"
-  },
-  {
-   "tap": {
-    "desc": "More options for Barbell Back Squat"
-   }
-  },
-  {
-   "tap": {
-    "text": "Lift options"
-   }
-  },
-  {
-   "checkpoint": "lift-options"
-  },
-  {
-   "back": true
-  },
-  {
    "tap": {
     "desc": "More options for Barbell Back Squat"
    }
@@ -59,37 +40,121 @@
    }
   },
   {
-   "checkpoint": "swap"
+   "type": {
+    "text": "Search exercises",
+    "value": "Trap"
+   }
   },
   {
-   "back": true
+   "checkpoint": "search-trap"
   },
   {
-   "scrollTo": {
-    "text": "Add exercise"
+   "tap": {
+    "text": "Trap-Bar Deadlift"
+   }
+  },
+  {
+   "checkpoint": "swapped-trap"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
    }
   },
   {
    "tap": {
-    "text": "Add exercise"
+    "text": "Swap"
    }
   },
   {
-   "swipe": {
-    "text": "Hinge",
-    "direction": "up"
+   "type": {
+    "text": "Search exercises",
+    "value": "Bulgarian"
    }
   },
   {
-   "checkpoint": "movements-lower"
+   "checkpoint": "search-bss"
   },
   {
    "tap": {
-    "text": "Single-leg"
+    "text": "Bulgarian Split Squat"
    }
   },
   {
-   "checkpoint": "single-leg"
+   "checkpoint": "swapped-bss"
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Single"
+   }
+  },
+  {
+   "checkpoint": "search-slrdl"
+  },
+  {
+   "tap": {
+    "text": "Single-Leg Romanian Deadlift"
+   }
+  },
+  {
+   "checkpoint": "swapped-slrdl"
+  },
+  {
+   "tap": {
+    "desc": "More options for Chest-Supported Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Calf"
+   }
+  },
+  {
+   "checkpoint": "search-calf"
+  },
+  {
+   "tap": {
+    "text": "Single-Leg Calf Raise"
+   }
+  },
+  {
+   "checkpoint": "swapped-calf"
+  },
+  {
+   "tap": {
+    "desc": "More options for Cable Lateral Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "Copenhagen"
+   }
+  },
+  {
+   "checkpoint": "search-copen"
   }
  ]
 }

@@ -1,0 +1,27 @@
+{
+  "seat": "compact-capture",
+  "capture": "compact",
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "days-per-week"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "note": "Compact note capture"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    }
+  ]
+}

@@ -55,6 +55,20 @@ class ReplaySafetyTest {
     @get:Rule val compose = createComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun interactionSettleKeepsTheFakeWallClockAndPausedClockPolicy() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme { Text("Stable screen") } }
+        val time = PlaytestTime()
+        val before = time.clock.instant()
+        var frames = 0
+        val deadline = StepDeadline(10_000)
+        val snapshot = deadline.run(compose) { compose.settleSemantics(deadline) { frames++ } }
+        assertTrue(snapshot.captureTexts().contains(CaptureText("Stable screen")))
+        assertTrue(frames >= 3)
+        assertEquals(before, time.clock.instant())
+        assertFalse(compose.mainClock.autoAdvance)
+    }
+
     @Test fun cardioActivityAnchorAllowsDropdownTap() {
         val draft = mutableStateOf(CardioBlockDraft.new(1, "A"))
         compose.setContent {

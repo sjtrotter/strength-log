@@ -123,15 +123,18 @@ internal class Replay(
     private val selectors = Selectors(compose, compose.density.density)
     private var screen = "launch"
     private var imeLog: JsonObject? = null
+    private var settledFrames = 0
     private val lastMatches: JsonArray get() = selectors.lastMatches
 
     fun run(script: Script) {
+        var previousTexts = emptyList<CaptureText>()
         try {
             crashes.step(compose) {
                 val deadline = StepDeadline(20_000)
                 deadline.run(compose) {
                     settle(deadline)
                     deadline.call { capture("000-launch", png = true) }
+                    if (script.compactCapture) previousTexts = deadline.call { snapshotTexts() }
                 }
             }
         } catch (error: Throwable) {
@@ -143,6 +146,7 @@ internal class Replay(
             artifacts.stepsRun++
             selectors.clear()
             imeLog = null
+            settledFrames = 0
             val deadline = StepDeadline(step.timeoutMs, index)
             deadline.withWatchdog(onTimeout = { error ->
                 try {
@@ -153,20 +157,33 @@ internal class Replay(
             }) {
                 try {
                     crashes.step(compose) {
-                        if (step.action != "note") {
+                        if (step.action != "note" || script.compactCapture) {
                             deadline.run(compose) {
-                                step.assertExpectedError {
-                                    perform(step, deadline)
-                                    settle(deadline)
-                                    if (step.action == "advance") {
-                                        deadline.call { shadowOf(Looper.getMainLooper()).idle() }
-                                        settle(deadline)
+                                if (step.action != "note") {
+                                    step.assertExpectedError {
+                                        perform(step, deadline)
+                                        if (step.action in INTERACTION_ACTIONS) settleInteraction(deadline) else settle(deadline)
+                                        if (step.action == "advance") {
+                                            deadline.call { shadowOf(Looper.getMainLooper()).idle() }
+                                            settle(deadline)
+                                        }
                                     }
                                 }
-                                if (index >= artifacts.captureFrom || step.action == "checkpoint") {
+                                val name = "%03d-%s".format(index, step.slug)
+                                if (script.compactCapture) {
+                                    val texts = deadline.call { snapshotTexts() }
+                                    if (step.action == "checkpoint" || index == script.steps.lastIndex) {
+                                        deadline.call { capture(name, png = true) }
+                                    } else if (index >= artifacts.captureFrom) {
+                                        deadline.call {
+                                            val file = File(artifacts.directory, "steps/$name.txt")
+                                            file.writeText(formatCompactDiff(name, previousTexts, texts))
+                                        }
+                                    }
+                                    previousTexts = texts
+                                } else if (index >= artifacts.captureFrom || step.action == "checkpoint") {
                                     deadline.call {
-                                        capture("%03d-%s".format(index, step.slug),
-                                            png = !script.checkpointsOnly || step.action == "checkpoint")
+                                        capture(name, png = !script.checkpointsOnly || step.action == "checkpoint")
                                     }
                                 }
                             }
@@ -190,6 +207,7 @@ internal class Replay(
             put("selector", step.selector?.json ?: JsonNull)
             put("ok", ok)
             put("ms", (System.nanoTime() - started) / 1_000_000)
+            put("settle_frames", settledFrames)
             put("matches", lastMatches)
             put("screen", screen)
             step.expectedError?.let { put("expected_error", it) }
@@ -386,6 +404,7 @@ internal class Replay(
         var stable = 0
         while (!deadline.expired) {
             deadline.call { compose.mainClock.advanceTimeByFrame() }
+            settledFrames++
             deadline.call { shadowOf(Looper.getMainLooper()).idle() }
             val now = deadline.call { compose.dumpSemantics(compose.density.density) }
             stable = if (now == last) stable + 1 else 0
@@ -396,10 +415,20 @@ internal class Replay(
                     .firstOrNull { it.isNotBlank() } ?: "unknown"
                 return
             }
-            if (!deadline.pause(compose)) break
+            val paused = deadline.pause(compose)
+            settledFrames++
+            if (!paused) break
         }
         throw deadline.timeout()
     }
+
+    private fun settleInteraction(deadline: StepDeadline) {
+        val shapes = compose.settleSemantics(deadline) { settledFrames++ }
+        screen = shapes.asSequence().flatMap { it.texts.asSequence() }
+            .firstOrNull { it.isNotBlank() } ?: "unknown"
+    }
+
+    private fun snapshotTexts(): List<CaptureText> = compose.semanticsSnapshot(compose.density.density).captureTexts()
 
     private fun capture(name: String, png: Boolean) {
         val file = File(artifacts.directory, "steps/$name.png")
@@ -427,6 +456,7 @@ internal class Replay(
 private const val SCROLL_SETTLE_MS = 1_000L
 private const val MAX_SCROLL_MOVES = 20
 private const val MAX_LAZY_PAGES = 50
+private val INTERACTION_ACTIONS = setOf("tap", "longPress", "swipe", "back", "scrollTo")
 
 internal fun SemanticsNode.dropdownAnchor(): Boolean =
     !config.contains(SemanticsActions.SetText) && config.contains(SemanticsActions.OnClick) &&

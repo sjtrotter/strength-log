@@ -16,6 +16,19 @@ import kotlin.test.assertFailsWith
 class ScriptAssertionsTest {
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun captureModesKeepTheirExistingDefaultsAndAcceptCompact() {
+        val file = temporary.newFile("capture.json")
+        listOf(null, "checkpoints", "compact").forEach { mode ->
+            val capture = mode?.let { "\"capture\":\"$it\"," }.orEmpty()
+            file.writeText("""{"seat":"capture",$capture"steps":[]}""")
+            val script = Script.parse(file)
+            assertEquals(mode == "checkpoints", script.checkpointsOnly)
+            assertEquals(mode == "compact", script.compactCapture)
+        }
+        file.writeText("""{"seat":"capture","capture":"unknown","steps":[]}""")
+        assertEquals("script", assertFailsWith<PlaytestError> { Script.parse(file) }.kind)
+    }
+
     @Test fun expectedVisibilityFailureAllowsTheNextStep() {
         val step = Step.parse(Json.parseToJsonElement("""{"tap":{"text":"Target"},"expectError":"not-visible"}"""))
         step.assertExpectedError { throw PlaytestError("not-visible", "Use scrollTo first") }

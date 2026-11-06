@@ -32,6 +32,35 @@
     },
     {
       "checkpoint": "month-history-overview"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "month-trends-and-calendar"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-and-export-options"
     }
   ]
 }

@@ -385,6 +385,39 @@ class ProgramGeneratorTest {
     }
 
     @Test
+    fun `filtered plans keep compact letters while existing days reset to their original templates`() {
+        val answers = WizardAnswers(
+            daysPerWeek = 3, split = SplitTemplate.PPL, equipment = setOf(Equipment.PULLUP_BAR),
+            cardio = CardioPrefs(mode = CardioMode.NONE),
+        )
+        val compact = ProgramGenerator.generate(answers)
+        assertEquals(listOf("A", "B"), compact.days.map { it.id })
+        assertEquals(listOf("Pull", "Legs"), titles(compact))
+        assertEquals(listOf("pullup"), ids(compact.days[0]))
+        assertEquals(listOf("hanging_raise"), ids(compact.days[1]))
+        val original = ProgramGenerator.generate(answers.copy(equipment = Equipment.entries.toSet()))
+        for ((index, stored) in original.days.drop(1).withIndex()) {
+            val edited = stored.copy(title = "Renamed", exercises = emptyList())
+            assertEquals(compact.days[index].copy(id = stored.id), ProgramGenerator.templateFor(answers, edited))
+        }
+        for (day in compact.days) assertEquals(day, ProgramGenerator.templateFor(answers, day))
+        assertNull(ProgramGenerator.templateFor(answers, original.days[0]))
+        assertNull(ProgramGenerator.templateFor(answers, original.days[1].copy(emphasisLine = "")))
+    }
+
+    @Test
+    fun `shifted repeated days with identical emphasis have no unambiguous reset template`() {
+        val answers = WizardAnswers(
+            daysPerWeek = 6, split = SplitTemplate.UPPER_LOWER, equipment = setOf(Equipment.PULLUP_BAR),
+            cardio = CardioPrefs(mode = CardioMode.NONE),
+        )
+        val stored = ProgramGenerator.generate(answers.copy(equipment = Equipment.entries.toSet())).days[2]
+        val compact = ProgramGenerator.generate(answers).days.single { it.id == stored.id }
+        assertEquals(stored.emphasisLine, compact.emphasisLine)
+        assertNull(ProgramGenerator.templateFor(answers, stored))
+    }
+
+    @Test
     fun `full equipment anchors are the scheme anchors`() {
         for (scheme in AnchorScheme.entries) {
             for (variant in DeadliftVariant.entries) {

@@ -52,7 +52,9 @@ object ProgramGenerator {
     private val LEG_MAIN_PATTERNS = setOf(SQUAT_BILATERAL, HINGE, SINGLE_LEG)
     private val INCLINE_CHEST_IDS = setOf("incline_db", "incline_bb")
 
-    fun generate(answers: WizardAnswers): Program {
+    fun generate(answers: WizardAnswers): Program = generate(answers, preserveDayIds = false)
+
+    private fun generate(answers: WizardAnswers, preserveDayIds: Boolean): Program {
         val kinds = SplitDefaults.dayKinds(answers.split, answers.daysPerWeek)
         val anchors = availableAnchorIds(answers)
         val occurrences = mutableMapOf<DayKind, Int>()
@@ -68,9 +70,20 @@ object ProgramGenerator {
         }
         val strengthDayDropped = days.any { it !in remaining }
         var strengthIndex = 0
-        return Program(if (strengthDayDropped) remaining.map { day ->
+        return Program(if (strengthDayDropped && !preserveDayIds) remaining.map { day ->
             if (day.kind == ProgramDayKind.CARDIO) day else day.copy(id = DAY_IDS[strengthIndex++])
         } else remaining)
+    }
+
+    /** Existing plans can use either the original letters or the compact letters.
+     *  Titles and exercises are editable; emphasis and kind can disambiguate a shifted letter. */
+    fun templateFor(answers: WizardAnswers, day: ProgramDay): ProgramDay? {
+        val compact = generate(answers).days.firstOrNull { it.id == day.id }
+        val original = generate(answers, preserveDayIds = true).days.firstOrNull { it.id == day.id }
+        if (compact == original) return compact
+        return listOfNotNull(compact, original).singleOrNull {
+            it.emphasisLine == day.emphasisLine && it.kind == day.kind
+        }
     }
 
     // --- anchors -------------------------------------------------------------

@@ -26,6 +26,15 @@
     },
     {
       "checkpoint": "monday-edit-day"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "squat-prescription"
     }
   ]
 }

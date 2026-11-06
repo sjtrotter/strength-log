@@ -1,22 +1,61 @@
 package cloud.trotter.log.strength.ui.preview
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PreviewScreenTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun liftNoteIsOneEllipsizedLineAtFontScaleTwoAndAbsentWhenEmpty() {
+        val note = "Seat 4, handles at shoulder height, feet on the lower platform"
+        var lift by mutableStateOf(PreviewLift("Squat", "TOP × 5 · 235 lb",
+            listOf(PreviewPreviousResult("230 lb × 5")), nextTime = "+5 lb", note = note))
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { PreviewScreen(PreviewUiState(loading = false, lifts = listOf(lift)), PreviewActions({}, {}, {})) }
+            }
+        }
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(note, useUnmergedTree = true).assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        val layout = results.single()
+        assertEquals(note, layout.layoutInput.text.text)
+        assertEquals(2f, layout.layoutInput.density.fontScale, 0f)
+        assertEquals(1, layout.lineCount)
+        assertTrue("Lift note is ellipsized", layout.isLineEllipsized(0))
+        rule.onNodeWithText("Today TOP × 5 · 235 lb").assertExists()
+        rule.onNodeWithText("+5 lb").assertExists()
+        rule.onNodeWithText("Last 230 lb × 5").assertExists()
+        rule.runOnIdle { lift = lift.copy(note = "") }
+        rule.onNodeWithText(note, useUnmergedTree = true).assertDoesNotExist()
+    }
 
     @Test fun noHistoryOmitsTheLastLine() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(

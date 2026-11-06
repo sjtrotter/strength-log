@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
 import cloud.trotter.log.strength.data.run.SplitInput
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import java.io.IOException
 import java.time.Clock
 import java.time.LocalDate
@@ -264,7 +265,7 @@ class BackupRepository(
         val committed = restoreMarkerDao.nonce()
         val replayed = journal.reconcile(committed, applyLegacySessionNotes = { notes ->
             db.withTransaction {
-                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
+                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(NOTE_MAX_LENGTH)) }
             }
         }) { answers, suggestedDay, storedId ->
             db.withTransaction {

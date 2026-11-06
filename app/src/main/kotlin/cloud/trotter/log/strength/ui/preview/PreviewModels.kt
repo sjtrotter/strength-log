@@ -18,6 +18,7 @@ data class PreviewLift(
     val working: String?,
     val previous: List<PreviewPreviousResult>,
     val nextTime: String? = null,
+    val note: String = "",
 )
 data class PreviewPreviousResult(
     val last: String?,

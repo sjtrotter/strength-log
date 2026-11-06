@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 
 /** Closes on Save. */
@@ -36,7 +37,7 @@ fun NoteSheet(initialText: String, onSave: (String) -> Unit, save: NoteSave?, on
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun NoteSheetContent(initialText: String, onSave: (String) -> Unit, onDismiss: () -> Unit, save: NoteSave?, dismissOnSave: Boolean) {
-    var text by rememberSaveable(initialText) { mutableStateOf((save as? NoteSave.Failed)?.text ?: initialText) }
+    var text by rememberSaveable(initialText) { mutableStateOf(((save as? NoteSave.Failed)?.text ?: initialText).take(NOTE_MAX_LENGTH)) }
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     LaunchedEffect(save) {
         if (save is NoteSave.Saved) currentOnDismiss()
@@ -55,6 +56,7 @@ private fun NoteSheetContent(initialText: String, onSave: (String) -> Unit, onDi
                 value = text,
                 onValueChange = { text = it.take(NOTE_MAX_LENGTH) },
                 label = { Text(stringResource(R.string.sheet_note_label)) },
+                supportingText = { Text(stringResource(R.string.sheet_note_counter, text.length, NOTE_MAX_LENGTH)) },
                 minLines = 1,
                 maxLines = 3,
                 singleLine = false,
@@ -67,5 +69,3 @@ private fun NoteSheetContent(initialText: String, onSave: (String) -> Unit, onDi
         },
     )
 }
-
-const val NOTE_MAX_LENGTH = 120

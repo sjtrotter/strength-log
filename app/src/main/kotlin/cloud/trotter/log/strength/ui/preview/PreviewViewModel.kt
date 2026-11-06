@@ -97,7 +97,7 @@ class PreviewViewModel @Inject constructor(
                     )
                 }
                 PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },
-                    working, previousResults, nextTime)
+                    working, previousResults, nextTime, note = slot.slot.exercise.note)
             },
             cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
         )

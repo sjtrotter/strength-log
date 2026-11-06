@@ -65,6 +65,15 @@ class HistoryRepositoryNotesTest {
         assertEquals("Belt on top", tracker.plans.daySlotsFlow("A").first().single().exercise.note)
     }
 
+    @Test fun exerciseNoteUsesTheSharedLimitAndTrimsBeforeCutting() = runTest {
+        tracker.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat"))))))
+        val slot = tracker.plans.daySlotsFlow("A").first().single().programExerciseId
+        tracker.setExerciseNote(slot, "  ${"x".repeat(130)}  ")
+        assertEquals("x".repeat(120), tracker.plans.daySlotsFlow("A").first().single().exercise.note)
+        tracker.setExerciseNote(slot, "   ")
+        assertEquals("", tracker.plans.daySlotsFlow("A").first().single().exercise.note)
+    }
+
     @Test fun sessionNoteRoundTripsThroughRoom() = runTest {
         insertSession(42)
         repo.setSessionNote(42L, "  Felt smooth  ")

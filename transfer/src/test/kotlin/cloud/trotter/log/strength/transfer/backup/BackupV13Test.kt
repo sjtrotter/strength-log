@@ -66,6 +66,22 @@ class BackupV13Test {
         assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
     }
 
+    @Test fun `session lift notes survive backup mappings and codec without rewriting the snapshot`() {
+        val tracks = listOf(
+            PlannedTrackDto(0, "bb_back_squat", "main", sets = planned.map(SetDto::of), note = "Belt on top"),
+        )
+        val plannedJson = "\n  ${SessionPlanJson.encode(tracks)}\n"
+        val before = document().copy(sessions = listOf(session.copy(plannedJson = plannedJson))).toSnapshot()
+        val document = before.toDocument()
+        assertEquals(plannedJson, document.sessions.single().plannedJson)
+
+        val restored = decode(document).toSnapshot()
+        assertEquals(plannedJson, restored.sessions.single().plannedJson)
+        assertEquals(tracks, SessionPlanJson.decode(restored.sessions.single().plannedJson!!))
+        assertEquals(before.sessions, restored.sessions)
+        assertEquals(before.sessionSets, restored.sessionSets)
+    }
+
     /** [F] */
     @Test fun `v1 through v12 strip run fields even with incorrect types`() {
         val legacySettings = codec.decode(checkNotNull(javaClass.getResource("/backup/v7_backup.json")).readText()).settings

@@ -65,6 +65,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -412,6 +413,17 @@ private fun SessionCard(
                         if (item.editing) EditableExerciseGroupRow(
                             group, item.unit, onWeightChange, onRepsChange, onSecondsChange, onDoneChange,
                         ) else ExerciseGroupRow(group)
+                    }
+                    if (item.liftNotes.isNotEmpty()) {
+                        Column(Modifier.padding(vertical = 4.dp)) {
+                            Text(stringResource(R.string.log_lift_notes), color = TextSecondary,
+                                style = MaterialTheme.typography.labelLarge)
+                            item.liftNotes.forEach { liftNote ->
+                                Text(stringResource(R.string.log_lift_note, liftNote.exerciseName, liftNote.note),
+                                    color = TextSecondary, style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                     }
                     Spacer(Modifier.size(4.dp))
                     SessionFooter(item, onShare, onToggleEdit, onDelete, onEditNote)

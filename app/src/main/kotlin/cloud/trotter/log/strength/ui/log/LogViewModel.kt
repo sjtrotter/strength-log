@@ -10,11 +10,13 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
@@ -121,19 +123,22 @@ class LogViewModel @Inject constructor(
     /** Months back from the current one, never positive (journal §1.3). */
     private val calendarOffset: StateFlow<Int> = savedState.getStateFlow(KEY_MONTH_OFFSET, 0)
 
-    private val summariesWithNotes = combine(repo.sessionSummariesFlow, repo.sessionNotesFlow) { summaries, notes ->
-        summaries to notes
+    private val sessionHistory = combine(
+        repo.sessionSummariesFlow, repo.sessionNotesFlow, catalog.catalogFlow,
+    ) { summaries, notes, exercises ->
+        SessionHistory(summaries, notes, exercises)
     }
 
     private val ownSessions = combine(
-        summariesWithNotes,
+        sessionHistory,
         settings.unitFlow,
         expandedSessionId,
         expandedSets,
         editingSessionId,
-    ) { summariesAndNotes, unit, expandedId, setsCache, editingId ->
-        summariesAndNotes.first.map { summary ->
-            buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId, summariesAndNotes.second[summary.session.id].orEmpty())
+    ) { history, unit, expandedId, setsCache, editingId ->
+        history.summaries.map { summary ->
+            buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId,
+                history.notes[summary.session.id].orEmpty(), history.exercises)
         }
     }
 
@@ -453,6 +458,7 @@ class LogViewModel @Inject constructor(
         cachedSets: List<SessionSetEntity>?,
         editingId: Long?,
         note: String,
+        exercises: ExerciseCatalog,
     ): SessionListItem {
         val session = summary.session
         val expanded = session.id == expandedId
@@ -476,6 +482,15 @@ class LogViewModel @Inject constructor(
             unit = unit,
             planName = session.planName,
             planId = session.planId,
+            liftNotes = if (expanded) {
+                session.plannedJson?.let { json ->
+                    runCatching { SessionPlanJson.decode(json) }.getOrNull()
+                }.orEmpty().filter { !it.retired && !it.note.isNullOrBlank() }.map { track ->
+                    SessionLiftNote(exercises.find(track.exerciseId)?.name ?: track.exerciseId, track.note.orEmpty())
+                }.distinct()
+            } else {
+                emptyList()
+            },
         )
     }
 
@@ -503,6 +518,12 @@ class LogViewModel @Inject constructor(
     /** The two facts the backfill offer turns on: whether it has ever completed,
      *  and whether it is running right now. */
     private data class BackfillState(val done: Boolean, val running: Boolean)
+
+    private data class SessionHistory(
+        val summaries: List<SessionSummaryRow>,
+        val notes: Map<Long, String>,
+        val exercises: ExerciseCatalog,
+    )
 
     /** The three history reads the journal sections share, kept together so the
      *  section builders run off one combine rather than one per card. */

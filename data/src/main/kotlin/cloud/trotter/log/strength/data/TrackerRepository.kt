@@ -39,6 +39,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -396,7 +397,7 @@ class TrackerRepository(
         }
 
     suspend fun setExerciseNote(programExerciseId: Long, text: String) {
-        programDao.setExerciseNote(programExerciseId, text.trim().take(120))
+        programDao.setExerciseNote(programExerciseId, text.trim().take(NOTE_MAX_LENGTH))
     }
 
     suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {
@@ -1483,9 +1484,13 @@ class TrackerRepository(
             id = 0, dayId = run.dayId ?: "", dayTitle = run.dayTitle, startedAt = run.startedAt,
             completedAt = now, bodyweightLb = bodyweight, planId = run.planId,
             planName = run.planId?.let { planDao.plan(it)?.name } ?: run.planName, runId = run.id,
-            plannedJson = SessionPlanJson.encode(tracks.map {
-                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired,
-                    SetJson.decodeSets(it.plannedJson).map(SetDto::of), liveSetCount = it.toRunTrack().setCounts().total)
+            plannedJson = SessionPlanJson.encode(tracks.map { track ->
+                PlannedTrackDto(
+                    track.position, track.exerciseId, track.slot, track.retired,
+                    SetJson.decodeSets(track.plannedJson).map(SetDto::of),
+                    liveSetCount = track.toRunTrack().setCounts().total,
+                    note = track.programExerciseId?.let { programDao.exercise(it)?.note }?.takeIf { it.isNotBlank() },
+                )
             }),
         ))
         sessionDao.insertSets(tracks.flatMap { track ->

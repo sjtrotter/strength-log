@@ -34,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -71,6 +72,50 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun liftNoteOpensTheExistingSheetAndSavesToItsExercise() {
+        val base = workoutSetSingleFixture()
+        val state = base.copy(exercises = base.exercises.map { it.copy(note = "Seat 4") })
+        var saved: Pair<Long, String>? = null
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
+            onSetExerciseNote = { id, text -> saved = id to text },
+        )) } }
+        rule.onNodeWithText("Seat 4").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Note").performTextReplacement("Seat 5")
+        rule.onNodeWithText("Save note").performClick()
+        rule.runOnIdle { assertEquals(1L to "Seat 5", saved) }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun liftNoteIsOneEllipsizedLineAtFontScaleTwoAndDisappearsWhenCleared() {
+        val base = workoutSetSingleFixture()
+        val note = "Seat 4, handles at shoulder height, feet on the lower platform"
+        var state by mutableStateOf(base.copy(exercises = base.exercises.map { it.copy(note = note) }))
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(note).assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        assertEquals(1, results.single().lineCount)
+        assertTrue(results.single().isLineEllipsized(0))
+        rule.runOnIdle { state = base }
+        rule.onNodeWithText(note).assertDoesNotExist()
+        rule.onNodeWithText("Note").assertDoesNotExist()
+    }
+
+    @Test fun supersetPartnerShowsTheSlotsLiftNote() {
+        val base = workoutSetSupersetFixture()
+        val state = base.copy(exercises = base.exercises.map { it.copy(note = "Seat 4") },
+            workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1)))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("Seat 4").assertIsDisplayed().performClick()
+        rule.onNodeWithText("6 / 120").assertExists()
+    }
 
     @Test fun plateLineFollowsTheShownRampRatherThanTheFirstUndoneSet() {
         val base = workoutSetSingleFixture()

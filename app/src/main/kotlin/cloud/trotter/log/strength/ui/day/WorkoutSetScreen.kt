@@ -84,6 +84,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -118,11 +119,12 @@ fun WorkoutSetScreen(
     onEditDay: () -> Unit,
     onBack: (() -> Unit)? = null,
     nowMillis: () -> Long = System::currentTimeMillis,
+    onNote: (Long) -> Unit = {},
 ) {
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
         primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
     )) {
-        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis)
+        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis, onNote)
     }
 }
 
@@ -138,6 +140,7 @@ private fun WorkoutSetContent(
     onEditDay: () -> Unit,
     onBack: (() -> Unit)?,
     nowMillis: () -> Long,
+    onNote: (Long) -> Unit,
 ) {
     val workout = state.workout ?: return
     val nextTitle = state.workoutNextPage?.title
@@ -267,7 +270,7 @@ private fun WorkoutSetContent(
                 val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
                 val scrollModifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
                 if (reducedMotion) {
-                    Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion, onEditDay) }
+                    Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion, onEditDay, onNote) }
                 } else {
                     AnimatedContent(
                         targetState = state,
@@ -285,7 +288,7 @@ private fun WorkoutSetContent(
                         label = "workoutGroup",
                     ) { shown ->
                         Column(Modifier.fillMaxSize().then(scrollModifier)) {
-                            WorkoutLift(shown, actions, catalog, reducedMotion, onEditDay)
+                            WorkoutLift(shown, actions, catalog, reducedMotion, onEditDay, onNote)
                         }
                     }
                 }
@@ -449,6 +452,7 @@ private fun WorkoutLift(
     catalog: ExerciseCatalog,
     reducedMotion: Boolean,
     onEditDay: () -> Unit,
+    onNote: (Long) -> Unit,
 ) {
     val workout = state.workout ?: return
     if (state.workoutAllLogged && !state.workoutCardioOnlyDone &&
@@ -475,7 +479,7 @@ private fun WorkoutLift(
     val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN && !workout.completedView
     val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
     if (card.isSuperset) {
-        WorkoutSuperset(state, actions, catalog, reducedMotion)
+        WorkoutSuperset(state, actions, catalog, reducedMotion, onNote)
         return
     }
     val announcement = when {
@@ -491,7 +495,15 @@ private fun WorkoutLift(
         FlowRow(Modifier.fillMaxWidth().then(if (timed) Modifier.semantics {
             liveRegion = LiveRegionMode.Polite; contentDescription = announcement
         } else Modifier), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(card.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(card.title, style = MaterialTheme.typography.headlineMedium)
+                if (card.note.isNotBlank()) Text(card.note,
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
+                        onNote(card.programExerciseId)
+                    })
+            }
             TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, Slot.MAIN) }, colors = neutralTextButtonColors()) {
                 Text(stringResource(R.string.day_all_sets))
             }
@@ -545,6 +557,7 @@ private fun WorkoutSuperset(
     actions: DayActions,
     catalog: ExerciseCatalog,
     reducedMotion: Boolean,
+    onNote: (Long) -> Unit,
 ) {
     val workout = state.workout ?: return
     val card = state.workoutCard ?: return
@@ -581,20 +594,28 @@ private fun WorkoutSuperset(
                 if (outgoing) Modifier.clearAndSetSemantics { } else Modifier,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                WorkoutSupersetLift(shown, actions, catalog)
+                WorkoutSupersetLift(shown, actions, catalog, onNote)
             }
         }
     }
 }
 
 @Composable
-private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog) {
+private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog, onNote: (Long) -> Unit) {
     val workout = state.workout ?: return
     val card = state.workoutCard ?: return
     if (workout.completedView) {
         for (slot in listOf(Slot.MAIN, Slot.SS)) {
-            Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
-                style = MaterialTheme.typography.headlineMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
+                    style = MaterialTheme.typography.headlineMedium)
+                if (card.note.isNotBlank()) Text(card.note,
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
+                        onNote(card.programExerciseId)
+                    })
+            }
             val summary = card.rows.mapNotNull { it.values(slot) }.joinToString(", ") {
                 SetFormatter.summary(card.tracking(slot), state.unit.toLb(it.weightDisplay), it.reps, it.seconds, state.unit)
             }
@@ -609,8 +630,16 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
     val slot = if (event != null) Slot.MAIN else focus.slot
     val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
-            style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).testTag("workout-now-lift"))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
+                style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("workout-now-lift"))
+            if (card.note.isNotBlank()) Text(card.note,
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
+                    onNote(card.programExerciseId)
+                })
+        }
         TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, slot) }, colors = neutralTextButtonColors()) {
             Text(stringResource(R.string.day_all_sets))
         }

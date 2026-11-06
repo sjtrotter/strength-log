@@ -245,6 +245,7 @@ fun DayScreen(
             actions = actions,
             catalog = dayEditState.catalog,
             onExercises = actions.onOpenDaySheet,
+            onNote = { noteCardId = it },
             onFinish = {
                 if (hasUnloggedSets ||
                     state.cardio?.loggedSeconds == null && state.cardio != null) {

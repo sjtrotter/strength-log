@@ -60,4 +60,15 @@ class AuditPreviewShotsTest : UiAuditTest() {
         rule.auditShot("preview/08-preview-no-last-results") { PreviewScreen(auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift -> lift.copy(working = null, previous = lift.previous.map { it.copy(last = null) }) }) }, PreviewActions({}, {}, {})) }
     }
 
+    @Config(fontScale = 2f)
+    @Test fun shot09PreviewLiftNoteFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift ->
+            lift.copy(note = "Belt on top, straps on back-off sets", nextTime = "+5 lb")
+        }) }
+        rule.auditShot("preview/09-preview-lift-note-font2", fontScale = 2f) {
+            PreviewScreen(state, PreviewActions({}, {}, {}))
+        }
+    }
+
 }

@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.setCounts
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
@@ -201,7 +202,7 @@ internal class SessionFinisher(
 
     fun setNote(text: String) {
         val id = receipt.value?.takeUnless { it.cardio }?.sessionId ?: return
-        val clean = text.trim().take(120)
+        val clean = text.trim().take(NOTE_MAX_LENGTH)
         _noteSave.value = null
         scope.launch {
             try {

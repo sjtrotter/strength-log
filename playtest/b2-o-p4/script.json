@@ -827,8 +827,14 @@
    "checkpoint": "rower-15m"
   },
   {
+   "type": {
+    "text": "Distance (m)",
+    "value": "3412"
+   }
+  },
+  {
    "tap": {
-    "tag": "workout-action-filled"
+    "text": "Stop"
    }
   },
   {
@@ -836,22 +842,11 @@
   },
   {
    "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "checkpoint": "rower-allsets"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "tag": "workout-finish"
    }
   },
   {
-   "checkpoint": "finish-tap"
+   "checkpoint": "finish-dialog"
   },
   {
    "tap": {
@@ -861,6 +856,22 @@
   },
   {
    "checkpoint": "summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-mon"
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-after-mon"
   }
  ]
 }

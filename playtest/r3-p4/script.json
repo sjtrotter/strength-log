@@ -14,7 +14,7 @@
       "checkpoint": "setup-after-wait"
     },
     {
-      "note": "Balanced strength + muscle is already selected and is closest to my general fitness goal. Continue through the defaults to inspect the setup and plan before accepting it."
+      "note": "Balanced strength + muscle is closest to my general fitness goal."
     },
     {
       "tap": {
@@ -22,7 +22,14 @@
       }
     },
     {
-      "checkpoint": "setup-step-2"
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "three-days"
     },
     {
       "tap": {
@@ -30,7 +37,9 @@
       }
     },
     {
-      "checkpoint": "setup-step-3"
+      "tap": {
+        "text": "Full-body rotation"
+      }
     },
     {
       "tap": {
@@ -38,7 +47,14 @@
       }
     },
     {
-      "checkpoint": "setup-step-4"
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
     },
     {
       "tap": {
@@ -46,7 +62,17 @@
       }
     },
     {
-      "checkpoint": "setup-step-5"
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "checkpoint": "bike-after-lifting"
     },
     {
       "tap": {
@@ -54,7 +80,34 @@
       }
     },
     {
-      "checkpoint": "setup-step-6"
+      "tap": {
+        "text": "LB"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "38",
+        "ime": "done"
+      }
+    },
+    {
+      "note": "My diary gives no bodyweight. Use 180 lb as a playtest assumption for this profile field, not a weight goal or an observed diary fact."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "180",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Novice"
+      }
+    },
+    {
+      "checkpoint": "profile-entered"
     },
     {
       "tap": {

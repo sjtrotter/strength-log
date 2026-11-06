@@ -40,7 +40,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 5"
+        "text": "Log 220 lb \u00d7 5"
       }
     },
     {
@@ -75,7 +75,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb × 4"
+        "text": "Log 220 lb \u00d7 4"
       }
     },
     {
@@ -99,6 +99,33 @@
     },
     {
       "checkpoint": "bad-sleep-note-editor"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bad sleep. Stopped one rep short on last squat set; rested 4 min. Repeat 220 next Monday."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "bad-sleep-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "backup-and-export-settings"
     }
   ]
 }

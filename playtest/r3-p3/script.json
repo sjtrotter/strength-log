@@ -3,13 +3,13 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-29",
-  "time": "10:00",
+  "date": "2026-12-01",
+  "time": "06:00",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "note": "Sun Nov 29: doing Friday's heavy bench (Day D) on Sunday"
+   "note": "Tue Dec 1 deload squat 3x5 @152.5 (Day A shifted)"
   },
   {
    "tap": {
@@ -18,19 +18,16 @@
   },
   {
    "tap": {
-    "text": "Block 1 accumulation \u00b7 Day D"
+    "text": "Block 1 accumulation \u00b7 Day A"
    }
   },
   {
-   "checkpoint": "dayD-picked"
+   "checkpoint": "dayA-preview"
   },
   {
    "tap": {
-    "textContains": "Start day D"
+    "text": "Start day A"
    }
-  },
-  {
-   "checkpoint": "workout"
   },
   {
    "tap": {
@@ -40,7 +37,7 @@
   {
    "type": {
     "text": "Weight (kg)",
-    "value": "130"
+    "value": "152.5"
    }
   },
   {
@@ -50,11 +47,11 @@
   },
   {
    "tap": {
-    "textContains": "Log 130"
+    "textContains": "Log 152.5"
    }
   },
   {
-   "advance": "4m"
+   "advance": "2m"
   },
   {
    "tap": {
@@ -64,7 +61,7 @@
   {
    "type": {
     "text": "Weight (kg)",
-    "value": "130"
+    "value": "152.5"
    }
   },
   {
@@ -74,11 +71,11 @@
   },
   {
    "tap": {
-    "textContains": "Log 130"
+    "textContains": "Log 152.5"
    }
   },
   {
-   "advance": "4m"
+   "advance": "2m"
   },
   {
    "tap": {
@@ -88,7 +85,7 @@
   {
    "type": {
     "text": "Weight (kg)",
-    "value": "130"
+    "value": "152.5"
    }
   },
   {
@@ -98,15 +95,27 @@
   },
   {
    "tap": {
-    "textContains": "Log 130"
+    "textContains": "Log 152.5"
    }
   },
   {
-   "advance": "10s"
+   "advance": "1m"
+  },
+  {
+   "checkpoint": "set4-pending"
   },
   {
    "tap": {
-    "text": "Finish day D"
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true
    }
   },
   {
@@ -120,7 +129,7 @@
   {
    "type": {
     "editable": true,
-    "value": "Fri bench done Sun. Set 3 RPE 9, grinder rep 3. 2nd heavy >RPE8: bench TM -> 147.5 blk 2."
+    "value": "Deload. 3x5 felt like nothing. Paused 2x3 152.5, belt sq 2x10 light. BW 94.7."
    }
   },
   {
@@ -139,15 +148,45 @@
    }
   },
   {
-   "checkpoint": "history"
-  },
-  {
    "tap": {
-    "textContains": "Barbell Bench Press"
+    "text": "Nov 29, 2026"
    }
   },
   {
-   "checkpoint": "history-bench"
+   "checkpoint": "history-session"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "history-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
   }
  ]
 }

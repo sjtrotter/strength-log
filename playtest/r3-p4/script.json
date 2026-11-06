@@ -3,221 +3,81 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-25",
-    "time": "16:30",
+    "date": "2026-11-27",
+    "time": "11:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Nov25 short visit. Nov20 missed, no replacement. Nov18 and23 omitted from replay for budget; do not invent their records."
-    },
-    {
-      "checkpoint": "week-three-today"
+      "note": "Friday Nov27. Busy leg press: try hack squat for today; 90x10 then70x10x2. Reduced sample plus15m easy bike."
     },
     {
       "tap": {
-        "text": "Other days"
+        "desc": "Day B"
       }
+    },
+    {
+      "checkpoint": "friday-template-preview"
     },
     {
       "tap": {
-        "desc": "Day C"
+        "text": "Start day B"
       }
     },
     {
-      "checkpoint": "short-wednesday-targets"
+      "checkpoint": "friday-workout-navigation"
     },
     {
       "tap": {
-        "text": "Edit"
+        "desc": "Day B lifts, 0 of 21 sets"
       }
+    },
+    {
+      "checkpoint": "friday-exercise-list"
     },
     {
       "tap": {
-        "text": "Conventional Deadlift",
-        "index": 1
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "190"
+        "text": "Leg Press"
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "All sets"
       }
     },
     {
       "tap": {
-        "desc": "More options for Conventional Deadlift"
+        "desc": "More"
       }
     },
     {
       "tap": {
-        "text": "Lift options"
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "leg-press-substitutes"
+    },
+    {
+      "tap": {
+        "text": "Hack Squat"
+      }
+    },
+    {
+      "checkpoint": "hack-squat-swap-scope"
+    },
+    {
+      "tap": {
+        "text": "This workout"
       }
     },
     {
       "tap": {
-        "text": "Straight sets"
+        "text": "Swap"
       }
     },
     {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Activity"
-      }
-    },
-    {
-      "checkpoint": "choose-rower-for-short-session"
-    },
-    {
-      "tap": {
-        "text": "Rower"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "deadlift-and-rower-ready"
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "checkpoint": "three-deadlift-sets-190"
-    },
-    {
-      "tap": {
-        "desc": "Day C lifts, 3 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rower"
-      }
-    },
-    {
-      "advance": "18m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (m)",
-        "value": "1910"
-      }
-    },
-    {
-      "checkpoint": "short-row-distance-entered"
-    },
-    {
-      "tap": {
-        "text": "Save distance"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Finish",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "short-wednesday-saved"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Leaving town, short visit. DL last rep slow. Row 10m, 1910m, effort 7/10; faster but harder. Skipped accessories."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "short-session-context-saved"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
+      "checkpoint": "temporary-hack-squat-ready"
     }
   ]
 }

@@ -1269,6 +1269,342 @@
    "checkpoint": "dayC-preview"
   },
   {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Conventional Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Progress"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "225"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Standing Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "text": "DB Bench Press",
+    "inDialog": true
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "50"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "tap": {
+    "role": "DropdownList"
+   }
+  },
+  {
+   "tap": {
+    "text": "Rower"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "dayC-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "expect": {
+    "text": "Conventional Deadlift"
+   }
+  },
+  {
+   "checkpoint": "dl-page"
+  },
+  {
+   "tap": {
+    "text": "Log 225 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m30s"
+  },
+  {
+   "tap": {
+    "text": "Log 225 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "recreate": true
+  },
+  {
+   "checkpoint": "after-recreate"
+  },
+  {
+   "advance": "1m30s"
+  },
+  {
+   "tap": {
+    "text": "Log 225 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m30s"
+  },
+  {
+   "expect": {
+    "text": "DB Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 50 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 50 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 50 lb \u00d7 9"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Hack Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 180 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 180 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 180 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Chest-Supported Row"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 130 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 130 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 130 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Rower"
+   }
+  },
+  {
+   "checkpoint": "rower-fri"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "8m11s"
+  },
+  {
+   "type": {
+    "text": "Distance (m)",
+    "value": "2000"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "rower-2k-stopped"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "dayC-finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "dayC-summary"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "checkpoint": "add-note"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Backup and export"
+   }
+  },
+  {
+   "checkpoint": "backup-export"
+  },
+  {
    "back": true
   },
   {
@@ -1282,15 +1618,21 @@
    }
   },
   {
-   "checkpoint": "plan-after-week1"
-  },
-  {
    "tap": {
     "text": "Day A"
    }
   },
   {
-   "checkpoint": "plan-dayA"
+   "checkpoint": "plan-dayA-week2"
+  },
+  {
+   "tap": {
+    "text": "+5 lb",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "offer-tap"
   }
  ]
 }

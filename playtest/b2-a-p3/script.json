@@ -231,6 +231,89 @@
     },
     {
       "checkpoint": "home-after-reopen"
+    },
+    {
+      "note": "I am through setup without an account. Before lifting I need my own program, my exact weekdays, and a way to keep this log safe."
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-and-backup-discovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-before-first-workout"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choose-other-training-day"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "expect": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "day-a-preview-before-start"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-own-program-discovery"
+    },
+    {
+      "note": "Inspect the plan controls next. The generated squat day is still not my actual Monday prescription; no default sets have been claimed as completed."
     }
   ]
 }

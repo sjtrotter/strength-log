@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-23",
+    "date": "2026-11-30",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "week-three-today"
+      "checkpoint": "week-four-today"
     },
     {
       "tap": {
@@ -17,11 +17,19 @@
       }
     },
     {
-      "checkpoint": "week-three-target-after-miss"
+      "checkpoint": "week-four-offered-increase"
     },
     {
       "tap": {
-        "text": "Log 220 lb \u00d7 5"
+        "tag": "next-time-offer-main"
+      }
+    },
+    {
+      "checkpoint": "week-four-approved-225"
+    },
+    {
+      "tap": {
+        "text": "Log 225 lb \u00d7 5"
       }
     },
     {
@@ -29,7 +37,7 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb \u00d7 5"
+        "text": "Log 225 lb \u00d7 5"
       }
     },
     {
@@ -37,11 +45,11 @@
     },
     {
       "tap": {
-        "text": "Log 220 lb \u00d7 5"
+        "text": "Log 225 lb \u00d7 5"
       }
     },
     {
-      "advance": "49m"
+      "advance": "3s"
     },
     {
       "tap": {
@@ -49,7 +57,23 @@
       }
     },
     {
-      "checkpoint": "week-three-55-minute-recap"
+      "checkpoint": "week-four-squat-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Last rep slow, good depth. Squat portion only recorded here; accessories remain in my paper diary."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
     },
     {
       "tap": {
@@ -67,7 +91,34 @@
       }
     },
     {
-      "checkpoint": "export-options"
+      "tap": {
+        "text": "Export CSV"
+      }
+    },
+    {
+      "checkpoint": "csv-export-requested"
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      }
+    },
+    {
+      "checkpoint": "json-export-requested"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plan-days-after-week-four-squat"
     }
   ]
 }

@@ -3,238 +3,35 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
-    "time": "17:30",
+    "date": "2026-12-06",
+    "time": "20:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Week4 Nov30 reduced sample: squat135x10/10/10; bike12m118W effort6, planned14m but hurried. Other diary lifts not replayed. Nov20 remains missed; no replacement."
+      "note": "End-of-month review. Five reduced gym sessions were replayed across four weeks, not all eleven diary visits. Nov20 was missed without replacement. Inspect backup options and combined history."
     },
     {
-      "checkpoint": "week-four-today"
-    },
-    {
-      "tap": {
-        "text": "Other days"
-      }
-    },
-    {
-      "checkpoint": "choose-monday-after-friday"
+      "checkpoint": "december-six-today"
     },
     {
       "tap": {
-        "desc": "Day A"
+        "desc": "Settings"
       }
     },
     {
-      "checkpoint": "week-four-offered-targets"
+      "checkpoint": "settings-backup-options"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "History"
       }
     },
     {
-      "checkpoint": "squat-last-time-versus-today"
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-0"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "135"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "checkpoint": "squat-actual-ten-ten-ten"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 3 of 21 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "advance": "44m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "12m"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "tap": {
-        "text": "Continue without distance"
-      }
-    },
-    {
-      "checkpoint": "week-four-bike-twelve"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Finish",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "week-four-session-saved"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "week-four-note-editor"
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Good squats. Bike planned14m, actual12m:118W effort6/10. Had to leave. Next squat140; bench stays105."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "week-four-context-saved"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "checkpoint": "week-four-finished-back-on-today"
+      "checkpoint": "month-history-overview"
     }
   ]
 }

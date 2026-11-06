@@ -213,7 +213,23 @@
       "checkpoint": "unused-squat-set-editor"
     },
     {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "unused-set-menu"
+    },
+    {
       "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {

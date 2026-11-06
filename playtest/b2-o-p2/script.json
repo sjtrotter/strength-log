@@ -424,7 +424,174 @@
    }
   },
   {
-   "checkpoint": "squat-prescription"
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "225"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "squat-saved"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "editday-after-squat"
+  },
+  {
+   "tap": {
+    "desc": "More options for Romanian Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "185"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Walking Lunge"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "lunge-prescription"
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "2"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "40"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayD-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayD-view-final"
+  },
+  {
+   "advance": "9h20m"
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   }
+  },
+  {
+   "checkpoint": "mon-start"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "mon-squat-set1-logged"
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "mon-after-rest"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "mon-squat-done"
   }
  ]
 }

@@ -552,12 +552,25 @@
   },
   {
    "tap": {
-    "text": "Finish",
-    "inDialog": true
+    "desc": "Barbell Back Squat. 175 kilograms: 5, 5, 5 and 5 reps."
    }
   },
   {
-   "checkpoint": "finish-back"
+   "checkpoint": "receipt-row"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "receipt-back"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "after-done"
   },
   {
    "tap": {
@@ -592,12 +605,68 @@
   },
   {
    "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
     "text": "Today",
     "role": "Tab"
    }
   },
   {
-   "checkpoint": "today-after"
+   "advance": "23h"
+  },
+  {
+   "advance": "11h"
+  },
+  {
+   "checkpoint": "tue-today"
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "checkpoint": "tue-start"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "tap": {
+    "text": "Horizontal push"
+   }
+  },
+  {
+   "checkpoint": "push-list"
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "bench-added"
   }
  ]
 }

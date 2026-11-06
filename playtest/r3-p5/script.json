@@ -18,7 +18,14 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "type": {
+    "text": "Days per week",
+    "value": "2",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "days2"
   },
   {
    "tap": {
@@ -26,7 +33,7 @@
    }
   },
   {
-   "checkpoint": "w3"
+   "checkpoint": "split2"
   },
   {
    "tap": {
@@ -34,7 +41,22 @@
    }
   },
   {
-   "checkpoint": "w4"
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Outdoor run"
+   }
+  },
+  {
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "checkpoint": "cardio-chosen"
   },
   {
    "tap": {
@@ -42,15 +64,23 @@
    }
   },
   {
-   "checkpoint": "w5"
-  },
-  {
-   "tap": {
-    "text": "Next"
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "140",
+    "ime": "done"
    }
   },
   {
-   "checkpoint": "w6"
+   "type": {
+    "text": "Age",
+    "value": "29",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
   },
   {
    "tap": {

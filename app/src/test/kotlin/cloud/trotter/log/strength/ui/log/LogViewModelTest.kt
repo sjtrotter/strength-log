@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.RunWriteResult
+import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -226,6 +228,12 @@ class LogViewModelTest {
         )
     }
 
+    private suspend fun logFirstSet(runId: String, planId: Long, slotId: Long, slot: String = Slot.MAIN) {
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, planId, "A", listOf(
+            TrackEdit(slotId, slot) { rows -> rows.mapIndexed { index, row -> row.copy(done = index == 0) } },
+        )))
+    }
+
     @Test
     fun rowsCarryPlanIdsAndCopiedNamesForStrengthCardioAndUnnamedHistory() = runVmTest {
         db.sessionDao().insertSessions(listOf(
@@ -329,6 +337,89 @@ class LogViewModelTest {
         advanceUntilIdle()
         assertTrue(vm.uiState.value.sessions.single().exerciseGroups!!.all { it.note.isEmpty() })
         assertEquals("Felt steady", repo.history.session(id)?.note)
+        collect.cancel()
+    }
+
+    @Test
+    fun repeatedSlotNoteSurvivesWhenOnlyTheFirstSlotIsLogged() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
+            ProgramExercise("seated_curl", note = "Seat 4"),
+            ProgramExercise("seated_curl"),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slots = repo.plans.slotsFor(plan, "A").first()
+        repo.startRun(plan, "A")
+        val runId = repo.openRunFlow.first()!!.id
+        logFirstSet(runId, plan, slots.first().programExerciseId)
+        val id = repo.finishRun(runId)!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        repo.setExerciseNote(slots.last().programExerciseId, "Seat 5")
+        advanceUntilIdle()
+        assertEquals("Seat 4", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        vm.toggleEdit(id)
+        advanceUntilIdle()
+        assertEquals("Seat 4\nSeat 5", vm.uiState.value.sessions.single().exerciseGroups?.single()?.note)
+        collect.cancel()
+    }
+
+    @Test
+    fun expandedHistoryPreservesDistinctNotesWhenRepeatedSlotsShareAnExerciseGroup() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
+            ProgramExercise("seated_curl", note = "Seat 4"),
+            ProgramExercise("seated_curl", note = "Seat 5"),
+            ProgramExercise("seated_curl", note = "Seat 4"),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slots = repo.plans.slotsFor(plan, "A").first()
+        repo.startRun(plan, "A")
+        val runId = repo.openRunFlow.first()!!.id
+        slots.forEach { logFirstSet(runId, plan, it.programExerciseId) }
+        val id = repo.finishRun(runId)!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        val group = vm.uiState.value.sessions.single().exerciseGroups!!.single()
+        assertEquals("Seated Leg Curl", group.exerciseName)
+        assertEquals(3, group.sets.count { it.done })
+        assertEquals("Seat 4\nSeat 5", group.note)
+        collect.cancel()
+    }
+
+    @Test
+    fun workoutOnlyMainAndSupersetSwapsKeepTheOwningSlotNoteInHistory() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Upper", "", listOf(
+            ProgramExercise("db_bench", superset = SupersetPartner("cable_row"), note = "Bench 2"),
+            ProgramExercise("bb_bench", note = "Rack 3"),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().first()
+        repo.startRun(plan, "A")
+        val runId = repo.openRunFlow.first()!!.id
+        assertTrue(repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, "bb_bench"))
+        assertTrue(repo.swapInRun(runId, slot.programExerciseId, Slot.SS, "bb_row"))
+        logFirstSet(runId, plan, slot.programExerciseId)
+        logFirstSet(runId, plan, slot.programExerciseId, Slot.SS)
+        val id = repo.finishRun(runId)!!
+        assertEquals(slot, repo.plans.slotsFor(plan, "A").first().first())
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        vm.toggleExpanded(id)
+        advanceUntilIdle()
+
+        val groups = vm.uiState.value.sessions.single().exerciseGroups!!.filter { group -> group.sets.any { it.done } }
+        assertEquals(setOf("Barbell Bench Press", "Barbell Row"), groups.map { it.exerciseName }.toSet())
+        assertEquals(listOf("Bench 2", "Bench 2"), groups.map { it.note })
+        repo.setExerciseNote(slot.programExerciseId, "Bench 3")
+        advanceUntilIdle()
+        assertEquals(listOf("Bench 3", "Bench 3"), vm.uiState.value.sessions.single().exerciseGroups
+            ?.filter { group -> group.sets.any { it.done } }?.map { it.note })
         collect.cancel()
     }
 

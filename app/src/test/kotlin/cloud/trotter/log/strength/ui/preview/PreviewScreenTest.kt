@@ -43,15 +43,18 @@ class PreviewScreenTest {
             }
         }
         val results = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithText(note).assertIsDisplayed()
+        rule.onNodeWithText(note, useUnmergedTree = true).assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-        assertEquals(1, results.single().lineCount)
-        assertTrue(results.single().isLineEllipsized(0))
+        val layout = results.single()
+        assertEquals(note, layout.layoutInput.text.text)
+        assertEquals(2f, layout.layoutInput.density.fontScale, 0f)
+        assertEquals(1, layout.lineCount)
+        assertTrue("Lift note is ellipsized", layout.isLineEllipsized(0))
         rule.onNodeWithText("Today TOP × 5 · 235 lb").assertExists()
         rule.onNodeWithText("+5 lb").assertExists()
         rule.onNodeWithText("Last 230 lb × 5").assertExists()
         rule.runOnIdle { lift = lift.copy(note = "") }
-        rule.onNodeWithText(note).assertDoesNotExist()
+        rule.onNodeWithText(note, useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test fun noHistoryOmitsTheLastLine() {

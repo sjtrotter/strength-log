@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -496,6 +496,80 @@
     },
     {
       "checkpoint": "set-entry-warmups-rpe-notes-and-failed-reps"
+    },
+    {
+      "note": "Monday squat warm-ups begin. The diary did not specify warm-up loads; 80 kg for five is a reasonable first logged warm-up before the 190 kg single. Inspect how this ramp set is classified, then log it and check the whole set list."
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "warmup-set-classification-and-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 80 kg × 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-full-set-list-before-lifting"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 80 kg × 5"
+      }
+    },
+    {
+      "checkpoint": "first-warmup-logged-and-rest-timer"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "warmup-rest-complete"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "logged-workout-survives-phone-return"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-after-first-warmup"
+    },
+    {
+      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     }
   ]
 }

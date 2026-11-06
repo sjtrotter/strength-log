@@ -395,6 +395,107 @@
     },
     {
       "checkpoint": "day-editor-after-reopen"
+    },
+    {
+      "note": "New plan offers Start empty and plan options offer Duplicate. First inspect the existing day editor so I know how to enter my single and backoffs and choose exact variations. Edit from the preview opened a workout underneath, but I have logged no sets."
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-single-and-backoff-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-plan-versus-today-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "exercise-replace-and-reorder-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-catalogue-and-custom-variations"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-prescription-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "note": "Monday has no cardio in my program. Remove the generated bike finisher."
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "checkpoint": "monday-without-generated-cardio"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "set-entry-warmups-rpe-notes-and-failed-reps"
     }
   ]
 }

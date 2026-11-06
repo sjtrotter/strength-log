@@ -457,8 +457,7 @@
   },
   {
    "tap": {
-    "textContains": "Calf Raise",
-    "index": 0
+    "text": "Single-Leg Calf Raise"
    }
   },
   {
@@ -569,7 +568,232 @@
    }
   },
   {
-   "checkpoint": "all-sets-after3"
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-1"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "after-skip-3"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "next-exercise?"
+  },
+  {
+   "expect": {
+    "text": "Bulgarian Split Squat"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "checkpoint": "bss-after-set1"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bss-done"
+  },
+  {
+   "expect": {
+    "text": "Single-Leg RDL"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "slrdl-done"
+  },
+  {
+   "expect": {
+    "text": "Copenhagen plank"
+   }
+  },
+  {
+   "checkpoint": "copenhagen-screen"
   }
  ]
 }

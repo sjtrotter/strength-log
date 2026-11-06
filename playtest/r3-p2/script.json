@@ -89,6 +89,14 @@
     },
     {
       "checkpoint": "squat-added-prescription-controls"
+    },
+    {
+      "tap": {
+        "text": "Ramp to 190 lb, then 1 back-off"
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-editor"
     }
   ]
 }

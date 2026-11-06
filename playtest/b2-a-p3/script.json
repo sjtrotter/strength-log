@@ -1619,11 +1619,40 @@
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Edit day"
       }
     },
     {
       "checkpoint": "empty-tuesday-day-editor"
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "tuesday-new-cardio-fields"
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Cancel"
+      }
+    },
+    {
+      "expect": {
+        "text": "Add exercise"
+      }
     },
     {
       "tap": {
@@ -1641,6 +1670,15 @@
     {
       "type": {
         "text": "Search exercises",
+        "value": "deadlift"
+      }
+    },
+    {
+      "checkpoint": "deadlift-variations-search"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
         "value": "paused"
       }
     },
@@ -1648,7 +1686,25 @@
       "checkpoint": "paused-deadlift-search-and-custom-option"
     },
     {
-      "note": "Tuesday Nov10 17:30. My target is paused deadlift170x3x4, then a today-only swap from chest-supported row to one-arm DB row40x8x4/side and20min easy bike. Inspect catalogue for exact or custom naming before selecting anything."
+      "type": {
+        "text": "Search exercises",
+        "value": "pause"
+      }
+    },
+    {
+      "checkpoint": "pause-variation-alternate-search"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": ""
+      }
+    },
+    {
+      "checkpoint": "hinge-catalogue-ready-to-select-or-create"
+    },
+    {
+      "note": "Tuesday Nov10 17:30. Need paused deadlift170x3x4, today-only DBrow40x8x4 per side, and bike20min easy RPE3. No Tuesday work has been logged yet. Use actual catalogue/custom fields from this run next; never count a generic deadlift as the exact variation without an explicit note."
     }
   ]
 }

@@ -566,14 +566,6 @@
   },
   {
    "tap": {
-    "text": "Done"
-   }
-  },
-  {
-   "checkpoint": "after-done"
-  },
-  {
-   "tap": {
     "text": "History",
     "role": "Tab"
    }
@@ -667,6 +659,107 @@
   },
   {
    "checkpoint": "bench-added"
+  },
+  {
+   "tap": {
+    "textContains": "Ramp to"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "107.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "bench-set"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "bench-5sets"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "checkpoint": "edit-set5"
   }
  ]
 }

@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body \u00b7 Day A"
+        "text": "5-day full body · Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg \u00d7 5"
+        "text": "Log 80 kg × 5"
       }
     },
     {
@@ -569,7 +569,7 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     },
     {
       "tap": {
@@ -592,7 +592,7 @@
     },
     {
       "tap": {
-        "text": "Log 102.5 kg \u00d7 5"
+        "text": "Log 102.5 kg × 5"
       }
     },
     {
@@ -600,7 +600,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 kg \u00d7 5"
+        "text": "Log 115 kg × 5"
       }
     },
     {
@@ -633,7 +633,7 @@
     },
     {
       "tap": {
-        "text": "Log 160 kg \u00d7 2"
+        "text": "Log 160 kg × 2"
       }
     },
     {
@@ -666,7 +666,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -674,18 +674,18 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
       "checkpoint": "monday-single-logged-rpe-seven"
     },
     {
-      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 × 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
     },
     {
       "tap": {
-        "text": "Undo 190 \u00d7 1"
+        "text": "Undo 190 × 1"
       }
     },
     {
@@ -693,7 +693,7 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg \u00d7 1"
+        "text": "Log 190 kg × 1"
       }
     },
     {
@@ -746,7 +746,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -847,12 +847,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -887,12 +887,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -927,12 +927,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg \u00d7 5"
+        "text": "Log 165 kg × 5"
       }
     },
     {
@@ -1076,7 +1076,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1111,7 +1111,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1146,7 +1146,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1181,7 +1181,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1250,7 +1250,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg \u00d7 5"
+        "text": "Log 100 kg × 5"
       }
     },
     {
@@ -1773,7 +1773,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1808,7 +1808,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1843,7 +1843,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1900,7 +1900,7 @@
     },
     {
       "tap": {
-        "text": "Log 170 kg \u00d7 3"
+        "text": "Log 170 kg × 3"
       }
     },
     {
@@ -1911,14 +1911,80 @@
     },
     {
       "tap": {
-        "text": "Finish"
+        "desc": "Day A lifts, 4 of 7 sets"
       }
     },
     {
-      "checkpoint": "tuesday-finish-review-or-summary"
+      "checkpoint": "tuesday-day-navigation"
     },
     {
-      "note": "Four paused pulls170x3 intended here. Inspect set kinds and saved count; no rows, pulldowns, rear delts or bike entered yet. Finish may be a confirmation or saved summary. Next run complete Tuesday remainder using actual screen controls, then move through W1 and W2. Generic conventional name is explicitly qualified by lift note, not exact-variation support."
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "tuesday-day-actions-for-editing-and-order"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "tuesday-review-work-incorrectly-in-ramp-slots"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "tuesday-lift-actions"
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "tuesday-swap-picker"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pause"
+      }
+    },
+    {
+      "checkpoint": "paused-variation-swap-search"
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "checkpoint": "create-paused-deadlift-fields"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "custom-exercise-draft-after-recreation"
+    },
+    {
+      "note": "Do not finish Tuesday yet: four170x3 entries were placed in generated RAMP slots and generic identity. Create exercise is now visibly available; inspect its fields and use it to rebuild Tuesday accurately on next replay. This is a script correction, not an app inability to store a custom variation."
     }
   ]
 }

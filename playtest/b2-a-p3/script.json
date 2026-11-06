@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -569,7 +569,223 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options-rpe-notes-and-targets"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 102.5 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 115 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "note": "Warm-up loads were not specified in my diary. I take 160 for two as my last logged warm-up before 190, replacing the suggested 130 for three."
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "160"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "2"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 160 kg \u00d7 2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "190"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "checkpoint": "monday-190-single-entered"
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 190 kg \u00d7 1"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 190 kg \u00d7 1"
+      }
+    },
+    {
+      "checkpoint": "monday-single-logged-rpe-seven"
+    },
+    {
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+    },
+    {
+      "tap": {
+        "text": "Undo 190 \u00d7 1"
+      }
+    },
+    {
+      "checkpoint": "single-tap-undone"
+    },
+    {
+      "tap": {
+        "text": "Log 190 kg \u00d7 1"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "squat-rest-extended-to-four-minutes"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Log 165 kg \u00d7 5"
+      }
+    },
+    {
+      "checkpoint": "monday-first-of-four-backoffs-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-single-and-backoff-review"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "add-second-squat-backoff"
+    },
+    {
+      "note": "Next enter or verify the added backoff as 165 \u00d7 5, then add the third and fourth. Do not finish Monday before logging competition bench100 \u00d7 5 \u00d7 5 and attempting the intended accessories. Video reference to store when a note field is found: Nov9 side-view squat190 single, depth is there."
     }
   ]
 }

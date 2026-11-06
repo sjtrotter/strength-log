@@ -135,11 +135,25 @@
   },
   {
    "tap": {
-    "textContains": "Barbell Back Squat"
+    "textContains": "Ramp to 160"
    }
   },
   {
-   "checkpoint": "edit-squat"
+   "checkpoint": "squat-rx"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "squat-more"
   }
  ]
 }

@@ -435,6 +435,88 @@
   },
   {
    "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "rdl-page"
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "rdl-allsets-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "rdl-skip1"
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "checkpoint": "rdl-skip3"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-rdl-skip"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "plank-page"
   }
  ]
 }

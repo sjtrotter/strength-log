@@ -708,11 +708,6 @@
    "checkpoint": "bss-done"
   },
   {
-   "tap": {
-    "text": "Next: Single-Leg RDL"
-   }
-  },
-  {
    "expect": {
     "text": "Single-Leg RDL"
    }
@@ -809,11 +804,6 @@
   },
   {
    "checkpoint": "slrdl-done"
-  },
-  {
-   "tap": {
-    "text": "Next: Copenhagen plank"
-   }
   },
   {
    "expect": {
@@ -953,6 +943,23 @@
   },
   {
    "checkpoint": "after-finish-tap"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
+  },
+  {
+   "scrollTo": {
+    "textContains": "ote"
+   }
+  },
+  {
+   "checkpoint": "summary-note-area"
   }
  ]
 }

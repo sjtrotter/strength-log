@@ -255,6 +255,14 @@
   },
   {
    "tap": {
+    "text": "Search all exercises"
+   }
+  },
+  {
+   "checkpoint": "search-all"
+  },
+  {
+   "tap": {
     "text": "Lat Pulldown"
    }
   },

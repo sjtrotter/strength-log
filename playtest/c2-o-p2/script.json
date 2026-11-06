@@ -86,11 +86,20 @@
   },
   {
    "scrollTo": {
-    "textContains": "Week of Sep"
+    "textContains": "Week of Sep 7"
    }
   },
   {
    "checkpoint": "trends-scrolled-far"
+  },
+  {
+   "swipe": {
+    "textContains": "Week of Sep 7",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-bottom"
   },
   {
    "tap": {

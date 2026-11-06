@@ -285,12 +285,12 @@
     },
     {
       "expect": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -371,7 +371,7 @@
     },
     {
       "tap": {
-        "text": "5-day full body · Day A"
+        "text": "5-day full body \u00b7 Day A"
       }
     },
     {
@@ -518,7 +518,7 @@
     },
     {
       "expect": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 kg × 5"
+        "text": "Log 80 kg \u00d7 5"
       }
     },
     {
@@ -569,7 +569,7 @@
       "checkpoint": "squat-all-sets-after-first-warmup"
     },
     {
-      "note": "The 80 × 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 × 1 top set and four 165 × 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
+      "note": "The 80 \u00d7 5 warm-up is real; none of the generated working sets has been performed. Next enter my 190 \u00d7 1 top set and four 165 \u00d7 5 backoffs using the controls visible in this list, then replace the generated accessories with my Monday lifts."
     },
     {
       "tap": {
@@ -592,7 +592,7 @@
     },
     {
       "tap": {
-        "text": "Log 102.5 kg × 5"
+        "text": "Log 102.5 kg \u00d7 5"
       }
     },
     {
@@ -600,7 +600,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 kg × 5"
+        "text": "Log 115 kg \u00d7 5"
       }
     },
     {
@@ -633,7 +633,7 @@
     },
     {
       "tap": {
-        "text": "Log 160 kg × 2"
+        "text": "Log 160 kg \u00d7 2"
       }
     },
     {
@@ -666,7 +666,7 @@
     },
     {
       "expect": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
@@ -674,18 +674,18 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
       "checkpoint": "monday-single-logged-rpe-seven"
     },
     {
-      "note": "Try correcting a completed-set tap immediately, then restore the real 190 × 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
+      "note": "Try correcting a completed-set tap immediately, then restore the real 190 \u00d7 1 single. The diary effort is RPE 7; I have not yet found a field that stores it."
     },
     {
       "tap": {
-        "text": "Undo 190 × 1"
+        "text": "Undo 190 \u00d7 1"
       }
     },
     {
@@ -693,7 +693,7 @@
     },
     {
       "tap": {
-        "text": "Log 190 kg × 1"
+        "text": "Log 190 kg \u00d7 1"
       }
     },
     {
@@ -746,7 +746,7 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -847,12 +847,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -887,12 +887,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -927,12 +927,12 @@
     },
     {
       "expect": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
       "tap": {
-        "text": "Log 165 kg × 5"
+        "text": "Log 165 kg \u00d7 5"
       }
     },
     {
@@ -993,6 +993,16 @@
     {
       "tap": {
         "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
       }
     },
     {
@@ -1066,7 +1076,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1101,7 +1111,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1136,7 +1146,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1171,7 +1181,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
       }
     },
     {
@@ -1240,7 +1250,12 @@
     },
     {
       "tap": {
-        "text": "Log 100 kg × 5"
+        "text": "Log 100 kg \u00d7 5"
+      }
+    },
+    {
+      "expect": {
+        "text": "Romanian Deadlift"
       }
     },
     {
@@ -1269,7 +1284,72 @@
       "checkpoint": "day-exercise-navigation-for-squat-note-and-accessories"
     },
     {
-      "note": "Squat and competition bench should now be complete. Inspect the lift navigation to attach squat RPE7 and video reference, and replace remaining generated accessories with lying leg curl and ab wheel. Finish dialog was inspection only: I have not accepted an incomplete Monday."
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "190x1 target/actual RPE7. 165x5x4, last7.5. Video: Nov9 squat single side view, phone gallery. Depth good."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "squat-effort-and-video-reference-saved"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "squat-note-retrieved-after-reopen"
+    },
+    {
+      "note": "Next inspect completed bench, Finish review and lift-navigation screenshots. Monday accessories remain to enter accurately. The squat note stores effort as text because no separate RPE field has appeared."
     }
   ]
 }

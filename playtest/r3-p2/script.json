@@ -116,6 +116,14 @@
     },
     {
       "checkpoint": "squat-set-structure-options"
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "squat-lift-options"
     }
   ]
 }

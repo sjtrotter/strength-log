@@ -118,7 +118,12 @@
    }
   },
   {
-   "checkpoint": "plan-detail"
+   "tap": {
+    "desc": "Day A"
+   }
+  },
+  {
+   "checkpoint": "day-a"
   },
   {
    "tap": {
@@ -126,7 +131,7 @@
    }
   },
   {
-   "checkpoint": "plan-squat"
+   "checkpoint": "day-a-squat"
   }
  ]
 }

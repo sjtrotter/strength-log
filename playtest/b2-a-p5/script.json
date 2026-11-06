@@ -586,6 +586,9 @@
     },
     {
       "checkpoint": "replace-barbell-squat-with-my-goblet-squat"
+    },
+    {
+      "note": "Replay after an operator download TLS timeout. No new app screens were available on turn 10; all training and editor changes after step 105 remained unverified until this replay."
     }
   ]
 }

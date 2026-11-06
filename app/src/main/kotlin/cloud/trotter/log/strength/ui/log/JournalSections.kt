@@ -79,22 +79,33 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (card.goalMet) Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.log_top_set_goal_met), tint = Done)
-            Text(
-                stringResource(R.string.log_top_set_goal, card.goalLabel, unit),
-                color = if (card.goalMet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+        val goalLabel = card.goalLabel
+        if (goalLabel != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (card.goalMet) Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.log_top_set_goal_met), tint = Done)
+                Text(
+                    stringResource(R.string.log_top_set_goal, goalLabel, unit),
+                    color = if (card.goalMet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
         if (card.plotted) {
             val first = card.points.first()
             val last = card.points.last()
-            val description = stringResource(
-                R.string.log_top_set_series_description,
-                card.exerciseName, dateFormat.format(first.date), WeightStepper.format(first.value.toDouble()),
-                dateFormat.format(last.date), WeightStepper.format(last.value.toDouble()), unit, card.goalLabel,
-            )
+            val description = if (goalLabel != null) {
+                stringResource(
+                    R.string.log_top_set_series_description,
+                    card.exerciseName, dateFormat.format(first.date), WeightStepper.format(first.value.toDouble()),
+                    dateFormat.format(last.date), WeightStepper.format(last.value.toDouble()), unit, goalLabel,
+                )
+            } else {
+                stringResource(
+                    R.string.log_top_set_series_description_without_goal,
+                    card.exerciseName, dateFormat.format(first.date), WeightStepper.format(first.value.toDouble()),
+                    dateFormat.format(last.date), WeightStepper.format(last.value.toDouble()), unit,
+                )
+            }
             TrajectoryPlot(card, Modifier.fillMaxWidth().height(128.dp).semantics { contentDescription = description })
             Text(
                 stringResource(R.string.log_top_set_date_range, dateFormat.format(first.date), dateFormat.format(last.date)),
@@ -118,14 +129,16 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
         val bottom = size.height - inset
         val span = (card.axisMax - card.axisMin).takeIf { it > 0f } ?: 1f
         fun y(value: Float) = bottom - (value - card.axisMin) / span * (bottom - top)
-        val goalY = y(card.goalValue)
-        drawLine(
-            color = goalColor,
-            start = Offset(left, goalY),
-            end = Offset(right, goalY),
-            strokeWidth = 1.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
-        )
+        card.goalValue?.let { goal ->
+            val goalY = y(goal)
+            drawLine(
+                color = goalColor,
+                start = Offset(left, goalY),
+                end = Offset(right, goalY),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
+            )
+        }
         val step = (right - left) / (card.points.size - 1)
         val xs = card.points.indices.map { left + it * step }
         val ys = card.points.map { y(it.value) }

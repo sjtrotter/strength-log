@@ -172,13 +172,13 @@
    }
   },
   {
-   "checkpoint": "search-calf"
+   "scrollTo": {
+    "text": "Single-Leg Calf Raise"
+   }
   },
   {
    "tap": {
-    "textContains": "Calf Raise",
-    "inDialog": true,
-    "index": 0
+    "text": "Single-Leg Calf Raise"
    }
   },
   {
@@ -216,7 +216,79 @@
    }
   },
   {
-   "checkpoint": "create-ex"
+   "type": {
+    "text": "Name",
+    "value": "Copenhagen Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Timed"
+   }
+  },
+  {
+   "checkpoint": "copen-form"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-save"
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Trap-Bar Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "prescription"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set"
   }
  ]
 }

@@ -3,41 +3,47 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-27",
-    "time": "11:00",
+    "date": "2026-11-30",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Nov27 reduced sample. Hack Squat not found in Bulgarian swap list; keep actual hack sets in note, log actual leg curls and steady bike. This is a workaround, not a verified temporary swap."
+      "note": "Week4 Nov30 reduced sample: squat135x10/10/10; bike12m118W effort6, planned14m but hurried. Other diary lifts not replayed. Nov20 remains missed; no replacement."
+    },
+    {
+      "checkpoint": "week-four-today"
     },
     {
       "tap": {
-        "desc": "Day B"
+        "text": "Other days"
       }
     },
     {
-      "checkpoint": "friday-template-preview"
+      "checkpoint": "choose-monday-after-friday"
     },
     {
       "tap": {
-        "text": "Start day B"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "friday-workout-navigation"
+      "checkpoint": "week-four-offered-targets"
     },
     {
       "tap": {
-        "desc": "Day B lifts, 0 of 24 sets"
+        "text": "Start day A"
       }
     },
     {
-      "checkpoint": "friday-exercise-list"
+      "checkpoint": "squat-last-time-versus-today"
+    },
+    {
+      "advance": "5m"
     },
     {
       "tap": {
-        "text": "Bulgarian Split Squat"
+        "tag": "workout-action-filled"
       }
     },
     {
@@ -47,48 +53,19 @@
     },
     {
       "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "checkpoint": "split-squat-substitutes-for-friday-machine"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day B lifts, 0 of 24 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
+        "tag": "lift-set-0"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70"
+        "value": "135"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "12"
+        "value": "10"
       }
     },
     {
@@ -97,28 +74,33 @@
       }
     },
     {
+      "advance": "3m"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "3m"
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {
-        "desc": "Edit set 2"
+        "tag": "lift-set-1"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70"
+        "value": "135"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "12"
+        "value": "10"
       }
     },
     {
@@ -127,19 +109,49 @@
       }
     },
     {
+      "advance": "3m"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "135"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
       }
     },
     {
       "advance": "3m"
     },
     {
-      "checkpoint": "friday-leg-curl-two-sets"
+      "checkpoint": "squat-actual-ten-ten-ten"
     },
     {
       "tap": {
-        "desc": "Day B lifts, 2 of 24 sets"
+        "desc": "Day A lifts, 3 of 21 sets"
       }
     },
     {
@@ -148,7 +160,7 @@
       }
     },
     {
-      "advance": "42m"
+      "advance": "44m"
     },
     {
       "tap": {
@@ -156,7 +168,7 @@
       }
     },
     {
-      "advance": "15m"
+      "advance": "12m"
     },
     {
       "tap": {
@@ -169,10 +181,10 @@
       }
     },
     {
-      "checkpoint": "friday-steady-bike-fifteen"
+      "checkpoint": "week-four-bike-twelve"
     },
     {
-      "advance": "3m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -187,7 +199,7 @@
       }
     },
     {
-      "checkpoint": "friday-curls-and-bike-saved"
+      "checkpoint": "week-four-session-saved"
     },
     {
       "scrollTo": {
@@ -200,9 +212,12 @@
       }
     },
     {
+      "checkpoint": "week-four-note-editor"
+    },
+    {
       "type": {
         "text": "Note",
-        "value": "Busy leg press: hack squat90x10,70x10/10 plates. Sluggish; steady bike15m,103W,effort5/10 instead of intervals."
+        "value": "Good squats. Bike planned14m, actual12m:118W effort6/10. Had to leave. Next squat140; bench stays105."
       }
     },
     {
@@ -211,12 +226,15 @@
       }
     },
     {
-      "checkpoint": "friday-context-saved"
+      "checkpoint": "week-four-context-saved"
     },
     {
       "tap": {
         "text": "Done"
       }
+    },
+    {
+      "checkpoint": "week-four-finished-back-on-today"
     }
   ]
 }

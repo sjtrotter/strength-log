@@ -10,6 +10,8 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -791,6 +793,180 @@ class TrackerRepositoryRunTest {
         assertTrue(logs.none { it.programExerciseId == slots.first().id && it.slot == Slot.MAIN })
         assertTrue(logs.none { it.programExerciseId == slots.last().id })
         assertTrue(logs.any { it.programExerciseId == slots.first().id && it.slot == Slot.SS })
+    }
+
+    @Test fun `choosing Plan parks working values and choosing Progress restores them`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        val main = SetEditor.editWeight(squat(), squat().indexOfFirst { it.kind == SetKind.TOP }, 245.0)
+        val partner = work().map { it.copy(weightLb = 55.0) }
+        db.storeTestRows("A", slot, Slot.MAIN, main)
+        db.storeTestRows("A", slot, Slot.SS, partner)
+        val logs = listOf(Slot.MAIN, Slot.SS).map { db.programDao().logForSlot(plan, "A", slot, it)!! }
+
+        repo.setKeepToPlan(slot, true)
+
+        assertTrue(db.programDao().exercise(slot)!!.keepToPlan)
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        val parked = db.programDao().exercise(slot)!!.parkedLogsJson!!
+        assertEquals(listOf(
+            ParkedTrackDto(Slot.MAIN, "bb_back_squat", logs[0].setsJson),
+            ParkedTrackDto(Slot.SS, "ez_curl", logs[1].setsJson),
+        ), ParkedLogsJson.decode(parked))
+        repo.ensureSeeded(plan, "A")
+        assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        repo.finishRun(start(plan))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        assertEquals(parked, db.programDao().exercise(slot)!!.parkedLogsJson)
+        repo.ensureSeeded(plan, "A")
+        assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+
+        repo.setKeepToPlan(slot, false)
+
+        assertFalse(db.programDao().exercise(slot)!!.keepToPlan)
+        assertEquals(main, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertEquals(partner, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
+    @Test fun `restoring skips a parked track whose exercise changed`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.SS, work())
+        repo.setKeepToPlan(slot, true)
+        val parked = db.programDao().exercise(slot)!!.parkedLogsJson
+
+        assertTrue(repo.swapExerciseById("A", slot, "hack_squat"))
+        assertEquals(parked, db.programDao().exercise(slot)!!.parkedLogsJson)
+        val replacementLog = db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)
+        repo.setKeepToPlan(slot, false)
+
+        assertEquals(replacementLog, db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
+    @Test fun `restoring skips a parked track whose shape changed`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.SS, work())
+        repo.setKeepToPlan(slot, true)
+        val parked = db.programDao().exercise(slot)!!.parkedLogsJson
+
+        repo.setPrescription(slot, Prescription(PrescribedTarget.Hold(45)), 3)
+        assertEquals(parked, db.programDao().exercise(slot)!!.parkedLogsJson)
+        repo.setKeepToPlan(slot, false)
+
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
+    @Test fun `restoring skips a removed partner and clears an empty parked track`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.SS, work())
+        repo.setKeepToPlan(slot, true)
+        val parked = db.programDao().exercise(slot)!!.parkedLogsJson
+
+        repo.removeSupersetPartner("A", slot)
+        assertEquals(parked, db.programDao().exercise(slot)!!.parkedLogsJson)
+        repo.setKeepToPlan(slot, false)
+
+        assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        db.storeTestRows("A", slot, Slot.MAIN, emptyList())
+        repo.setKeepToPlan(slot, true)
+        repo.setKeepToPlan(slot, false)
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
+    @Test fun `restoring timed tracks uses the main prescription and the partner catalog`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        repo.setPrescription(slot, Prescription(PrescribedTarget.Hold(45)), 3)
+        repo.setSupersetPartner("A", slot, "plank")
+        val main = List(3) { LoggedSet(10.0, 0, SetKind.WORK, seconds = 60) }
+        val partner = List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 75) }
+        db.storeTestRows("A", slot, Slot.MAIN, main)
+        db.storeTestRows("A", slot, Slot.SS, partner)
+
+        repo.setKeepToPlan(slot, true)
+        repo.ensureSeeded(plan, "A")
+        repo.setKeepToPlan(slot, false)
+
+        assertEquals(main, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertEquals(partner, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
+    @Test fun `choosing the current Next time choice again changes nothing`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.SS, work())
+        val progress = db.programDao().exercise(slot)
+        val logs = db.programDao().allLogs()
+
+        repo.setKeepToPlan(slot, false)
+
+        assertEquals(progress, db.programDao().exercise(slot))
+        assertEquals(logs, db.programDao().allLogs())
+        repo.setKeepToPlan(slot, true)
+        repo.ensureSeeded(plan, "A")
+        val kept = db.programDao().exercise(slot)
+        val seeds = db.programDao().allLogs()
+
+        repo.setKeepToPlan(slot, true)
+
+        assertEquals(kept, db.programDao().exercise(slot))
+        assertEquals(seeds, db.programDao().allLogs())
+    }
+
+    @Test fun `a second Plan choice after a restore parks the restored rows again`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
+        repo.setKeepToPlan(slot, true)
+        repo.setKeepToPlan(slot, false)
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        val restored = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
+        val edited = SetEditor.editWeight(restored, restored.indexOfFirst { it.kind == SetKind.TOP }, 245.0)
+        db.storeTestRows("A", slot, Slot.MAIN, edited)
+
+        repo.setKeepToPlan(slot, true)
+
+        assertEquals(listOf(ParkedTrackDto(Slot.MAIN, "bb_back_squat", SetJson.encodeSets(edited))),
+            ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+    }
+
+    @Test fun `a slot with no working values has nothing to park or restore`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+
+        repo.setKeepToPlan(slot, true)
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        repo.setKeepToPlan(slot, false)
+
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
     }
 
     @Test fun `kept slot without a prescription clears working values and next read seeds goal math`() = runTest {

@@ -124,6 +124,23 @@ class BackupRepositoryRunRestoreTest {
         assertEquals(before.days.first(), day(plan))
     }
 
+    @Test fun `snapshot preserves parked working values for a later Progress choice`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        repo.setKeepToPlan(slot, true)
+        val before = backupRepository.exportSnapshot()
+        assertTrue(before.exercises.single { it.id == slot }.parkedLogsJson != null)
+
+        backupRepository.importSnapshot(before, journal)
+
+        assertEquals(before.exercises, db.programDao().allExercises())
+        repo.setKeepToPlan(slot, false)
+        assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+    }
+
     private fun work() = List(3) { LoggedSet(50.0, 10, SetKind.WORK) }
     private fun tick(id: Long, index: Int = 0) = TrackEdit(id, Slot.MAIN) { rows ->
         rows.mapIndexed { i, row -> if (i == index) row.copy(done = true) else row }

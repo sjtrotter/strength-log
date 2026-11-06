@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -101,7 +102,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -157,7 +158,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             )))
         } else withSlotAndNoteFields
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedStructures(versioned, version), version))
+            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(versioned, version), version))
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -179,14 +180,16 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         })
     }
 
-    private fun withVersionedStructures(root: JsonObject, version: Int): JsonObject {
+    private fun withVersionedSlotFields(root: JsonObject, version: Int): JsonObject {
         val ignoredField = if (version >= 16) "isMain" else "structure"
         fun stripDays(value: JsonElement?): JsonElement? = (value as? JsonArray)?.let { days ->
             JsonArray(days.map { day ->
                 if (day !is JsonObject) day else {
                     val exercises = day["exercises"] as? JsonArray
                     if (exercises == null) day else JsonObject(day + ("exercises" to JsonArray(exercises.map {
-                        if (it is JsonObject) JsonObject(it - ignoredField) else it
+                        if (it is JsonObject) {
+                            JsonObject(if (version < 18) it - ignoredField - "parkedLogsJson" else it - ignoredField)
+                        } else it
                     })))
                 }
             })
@@ -522,6 +525,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (ss != null && ss !in resolvable) throw BackupError.DanglingExerciseReference(ss)
                 if (ex.targetSets < 1) {
                     throw BackupError.Inconsistent("targetSets must be at least 1 on slot ${ex.id}: ${ex.targetSets}")
+                }
+                ex.parkedLogsJson?.let { parked ->
+                    decodePayload("parkedLogsJson of slot ${ex.id}") {
+                        ParkedLogsJson.decode(parked).forEach { SetJson.decodeSets(it.setsJson) }
+                    }
                 }
             }
         }

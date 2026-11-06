@@ -3,6 +3,15 @@
   "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
   "steps": [
     {"advance": "2s"},
-    {"checkpoint": "wizard-1"}
+    {"checkpoint": "wizard-1"},
+    {"tap": {"text": "Strength-leaning"}},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-2"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-3"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-4"},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "wizard-5"}
   ]
 }

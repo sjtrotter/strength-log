@@ -1559,12 +1559,169 @@
       "note": "Actual diary: Tuesday Nov10 easy road run7.00km42:10,RPE3. Quads noticeable first km then fine. Need save distance and note using visible controls next. Timing includes all elapsed time."
     },
     {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "tuesday-seven-km-stopped-before-save"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "tuesday-run-primary-action-after-elapsed-time"
+      "checkpoint": "tuesday-run-after-logging-block"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Easy 7.00 km, watch elapsed42:10, RPE3/10. Quads noticeable first km then fine. Includes any stops."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-run-saved-with-effort-and-context"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-first-lift-and-separate-run"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      }
+    },
+    {
+      "checkpoint": "backup-export-and-restore-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "mixed-training-calendar-after-first-run"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "checkpoint": "today-before-thursday-quicker-run"
+    },
+    {
+      "advance": "1d23h17m50s"
+    },
+    {
+      "note": "Thursday Nov12: planned and completed quicker7km41:35,2km easy then3x5min effort/2min jog; last effort8/10, avoid chasing uphill watch pace."
+    },
+    {
+      "checkpoint": "thursday-morning-choose-run-without-lifting"
+    },
+    {
+      "tap": {
+        "text": "2-day full body \u00b7 Day C1"
+      }
+    },
+    {
+      "checkpoint": "thursday-run-template-and-last-time-check"
+    },
+    {
+      "expect": {
+        "text": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "41m35s"
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "thursday-quicker-run-stopped"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "thursday-quicker-run-saved-review"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "7km41:35. 2km easy +3x5min efforts/2min jogs. Last effort8/10. Do not chase watch pace uphill."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "thursday-run-complete-before-friday-strength"
     }
   ]
 }

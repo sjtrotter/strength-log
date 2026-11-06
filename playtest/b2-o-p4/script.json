@@ -120,11 +120,53 @@
   },
   {
    "tap": {
+    "text": "Trap Bar"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "checkpoint": "wiz7-equip"
+  },
+  {
+   "tap": {
     "text": "Next"
    }
   },
   {
    "checkpoint": "wiz8"
+  },
+  {
+   "scrollTo": {
+    "text": "Missing a day never skips the next workout."
+   }
+  },
+  {
+   "checkpoint": "wiz8-bottom"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today-first"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan-tab"
   }
  ]
 }

@@ -30,35 +30,58 @@
    }
   },
   {
-   "checkpoint": "c1-edit"
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "after-back1"
+  },
+  {
+   "tap": {
+    "desc": "More options for Plank / Side Plank"
+   }
+  },
+  {
+   "checkpoint": "ex-more"
   },
   {
    "back": true
   },
   {
    "tap": {
-    "desc": "Day A"
+    "text": "Add exercise"
    }
+  },
+  {
+   "checkpoint": "add-ex"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "where"
   },
   {
    "tap": {
-    "text": "Edit"
+    "text": "Plans",
+    "role": "Tab"
    }
-  },
-  {
-   "checkpoint": "a-edit"
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -72,14 +95,6 @@
   },
   {
    "checkpoint": "empty"
-  },
-  {
-   "tap": {
-    "text": "Add day"
-   }
-  },
-  {
-   "checkpoint": "add-day"
   }
  ]
 }

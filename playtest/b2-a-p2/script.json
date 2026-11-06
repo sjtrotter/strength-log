@@ -379,7 +379,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -456,7 +456,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -549,7 +549,7 @@
     },
     {
       "tap": {
-        "text": "3 \u00d7 10 at 150 lb"
+        "text": "3 × 10 at 150 lb"
       }
     },
     {
@@ -825,7 +825,7 @@
     },
     {
       "tap": {
-        "text": "Log 45 lb \u00d7 10"
+        "text": "Log 45 lb × 10"
       }
     },
     {
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb \u00d7 5"
+        "text": "Log 95 lb × 5"
       }
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 5"
+        "text": "Log 135 lb × 5"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb \u00d7 3"
+        "text": "Log 185 lb × 3"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1077,7 +1077,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb \u00d7 5"
+        "text": "Log 215 lb × 5"
       }
     },
     {
@@ -1155,7 +1155,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1166,7 +1166,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1177,7 +1177,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1228,7 +1228,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1268,7 +1268,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb \u00d7 8"
+        "text": "Log 25 lb × 8"
       }
     },
     {
@@ -1419,7 +1419,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -1547,7 +1547,16 @@
       "checkpoint": "monday-session-note-entry"
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "Cold garage; warm-up took longer. Squat 215: 5/5/5. Add 5 only after all reps; repeat misses. DB loads per hand.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
     },
     {
       "expect": {
@@ -1643,7 +1652,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -1815,7 +1824,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -1826,7 +1835,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -1834,7 +1843,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb \u00d7 5"
+        "text": "Log 165 lb × 5"
       }
     },
     {
@@ -1885,7 +1894,310 @@
       "checkpoint": "tuesday-barbell-row-search"
     },
     {
-      "note": "Monday save verified in prior replay. Note entry and sharing/data-picker boundaries are being explored before Tuesday. Need use returned note field to save cold-garage context, complete Tuesday rows/pullups/raises/walk, then prioritize remaining diary sessions. No unperformed sessions claimed."
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "115",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "tuesday-custom-plan-after-row-and-extras"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip this set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip this set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip this set"
+      }
+    },
+    {
+      "checkpoint": "tuesday-three-bench-sets-only"
+    },
+    {
+      "tap": {
+        "text": "Next: Barbell Row"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "checkpoint": "tuesday-row-target"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 8"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "checkpoint": "tuesday-pullup-target"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "checkpoint": "tuesday-last-pullup-five-actual-reps"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb × 12"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb × 12"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip this set"
+      }
+    },
+    {
+      "checkpoint": "tuesday-lifting-complete-before-walk"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-options-for-brisk-walk"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 · Work"
+      }
+    },
+    {
+      "checkpoint": "cardio-set-duration-and-intensity-fields"
     }
   ]
 }

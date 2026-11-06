@@ -2628,97 +2628,82 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "tag": "workout-finish"
       }
     },
     {
-      "checkpoint": "thursday-lifts-to-do-next"
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-only-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Deadlift 265 x 5 after warm-ups. Stopped here; other planned lifts not performed.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "3d23h46m"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "week-two-squat-previous-results"
     },
     {
       "back": true
     },
     {
       "expect": {
-        "text": "Conventional Deadlift"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Start day B"
+        "text": "Start day D"
       }
     },
     {
       "tap": {
         "text": "Edit"
-      }
-    },
-    {
-      "expect": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "thursday-add-light-squat-picker"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "squat",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "thursday-squat-search-results"
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "thursday-added-squat-return"
-    },
-    {
-      "expect": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "expect": {
-        "text": "Prescription"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "185",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
       }
     },
     {
@@ -2737,6 +2722,9 @@
       }
     },
     {
+      "checkpoint": "week-two-next-time-plan-or-progress"
+    },
+    {
       "tap": {
         "text": "Straight sets"
       }
@@ -2750,73 +2738,33 @@
       }
     },
     {
-      "checkpoint": "thursday-light-squat-prescription"
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Conventional Deadlift"
-      }
-    },
-    {
       "tap": {
-        "role": "Image",
+        "text": "Barbell Back Squat",
         "index": 1
       }
     },
     {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
       "expect": {
-        "text": "Barbell Back Squat"
+        "text": "Prescription"
       }
     },
     {
-      "checkpoint": "thursday-light-squat-ready"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 185 lb × 6"
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
       }
     },
     {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 185 lb × 6"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Log 185 lb × 6"
-      }
-    },
-    {
-      "checkpoint": "thursday-three-light-squat-sets-logged"
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Start day B"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "220",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Save"
       }
     },
     {
@@ -2825,19 +2773,223 @@
       }
     },
     {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
       "tap": {
-        "text": "Add exercise"
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "week-two-four-minute-rest-after-second-squat"
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
       }
     },
     {
       "type": {
-        "text": "Search exercises",
-        "value": "calf",
+        "text": "Reps",
+        "value": "4",
         "ime": "done"
       }
     },
     {
-      "checkpoint": "thursday-standing-dumbbell-calf-search"
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 220 lb × 4"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "week-two-five-five-four-recorded"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "week-two-save-shortened-session"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "week-two-squat-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bad sleep. Squat 220: 5/5/4; four-minute rest before last set. Repeat 220. Accessories not performed.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "history-two-weeks-with-partial-sessions"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "training-calendar-and-trends-after-missed-rep"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "note": "Coverage limitation: intervening sessions were not tested. Jumping to Dec7 only checks keeping this plan into week five."
+    },
+    {
+      "advance": "21d"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "checkpoint": "week-five-squat-day-target-and-plan"
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "week-five-previous-actuals-before-any-new-sets"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week-five-plan-and-actual-set-inspection"
+    },
+    {
+      "back": true
     }
   ]
 }

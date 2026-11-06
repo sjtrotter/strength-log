@@ -46,6 +46,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -1356,10 +1357,12 @@ class TrackerRepository(
             }.toMap(), config, catalog,
         ) ?: return null
         if (slot == Slot.MAIN && newExerciseId == row.exerciseId && row.toDomain().prescription != null) return seed
-        return withHistoryWeight(newExerciseId, seed, config, catalog) ?: seed
+        return withHistoryWeight(row, slot, newExerciseId, seed, config, catalog) ?: seed
     }
 
     private suspend fun withHistoryWeight(
+        row: ProgramExerciseEntity,
+        slot: String,
         exerciseId: String,
         seed: List<LoggedSet>,
         config: LifterConfig,
@@ -1368,11 +1371,31 @@ class TrackerRepository(
         val entry = catalog.find(exerciseId) ?: return null
         val timedLoad = (entry.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0
         if (entry.tracking != TrackingType.WEIGHTED && timedLoad <= 0.0) return null
-        val weight = sessionDao.lastWorkingWeight(exerciseId,
+        val weight = planWorkingWeight(row, slot, exerciseId) ?: sessionDao.lastWorkingWeight(exerciseId,
             SetKind.entries.filter { it != SetKind.RAMP }.map { it.name }) ?: return null
         val topIndex = seed.indexOfFirst { it.kind == SetKind.TOP }
         return if (topIndex < 0) seed.map { it.copy(weightLb = weight) }
         else SetEditor.editWeight(seed, topIndex, weight, config.weightUnit, entry.equipment)
+    }
+
+    private suspend fun planWorkingWeight(row: ProgramExerciseEntity, slot: String, exerciseId: String): Double? {
+        for (source in programDao.exercisesForPlan(row.planId)) {
+            for (sourceSlot in listOf(Slot.MAIN, Slot.SS)) {
+                if (source.id == row.id && sourceSlot == slot) continue
+                if (source.exerciseIdFor(sourceSlot) != exerciseId) continue
+                val logged = programDao.logForSlot(source.planId, source.dayId, source.id, sourceSlot)
+                    ?.let { CarryForward.workingWeight(SetJson.decodeSets(it.setsJson)) }
+                if (logged != null) return logged
+                if (sourceSlot == Slot.MAIN) {
+                    when (val target = source.toDomain().prescription?.target) {
+                        is PrescribedTarget.LoadReps -> return target.lb
+                        is PrescribedTarget.Hold -> return target.addedLb
+                        else -> Unit
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private suspend fun seedFromHistory(
@@ -1391,7 +1414,7 @@ class TrackerRepository(
             ?: programDao.logForSlot(row.planId, row.dayId, row.id, Slot.MAIN)?.let { SetJson.decodeSets(it.setsJson).size }
         val existing = mainCount?.let { mapOf((row.id to Slot.MAIN) to it) }.orEmpty()
         val seed = DaySeeds.swap(programSlot, slot, exerciseId, existing, config, catalog) ?: return
-        val remembered = withHistoryWeight(exerciseId, seed, config, catalog) ?: return
+        val remembered = withHistoryWeight(row, slot, exerciseId, seed, config, catalog) ?: return
         programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, slot, remembered))
     }
 

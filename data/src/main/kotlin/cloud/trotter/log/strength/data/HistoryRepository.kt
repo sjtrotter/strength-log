@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
+import cloud.trotter.log.strength.domain.records.PersonalBests
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -174,9 +175,14 @@ class HistoryRepository(
             sessions.filter { belongsToPlan(it.session.planId, planId) }
         }
 
-    /** Every session's heaviest completed TOP set per lift, oldest first — the
-     *  journal's trajectory series and the cascade ceremony's before-picture. */
-    val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTopSets(SetKind.TOP.name)
+    /** Every session's heaviest set counted by PersonalBests per lift, oldest first. */
+    val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTrajectorySets().map { rows ->
+        rows.filter { row ->
+            SetKind.entries.any { it.name == row.set.kind } && PersonalBests.counts(row.set.toLoggedSet())
+        }.groupBy { it.set.sessionId to it.set.exerciseId }.map { (key, sets) ->
+            TopSetRow(key.first, sets.first().completedAt, key.second, sets.maxOf { it.set.weightLb })
+        }
+    }
 
     /** Completed tonnage per session, oldest first — the journal's weekly bars. */
     val sessionTonnageFlow: Flow<List<SessionTonnageRow>> = sessionDao.observeSessionTonnage()

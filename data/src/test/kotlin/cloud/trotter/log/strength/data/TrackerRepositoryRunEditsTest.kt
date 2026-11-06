@@ -132,6 +132,52 @@ class TrackerRepositoryRunEditsTest {
         )))
     }
 
+    @Test fun `plan swap into Day B uses Day A squat prescription with only ramp history`() = runTest {
+        val plan = generated()
+        repo.setPrescription(slot(plan), Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+        loggedWeight(plan, "bb_back_squat", 50.0, 1_000, kind = SetKind.RAMP)
+        val destination = db.programDao().exercisesForDay(plan, "B").single().id
+        repo.setStructure(destination, SetStructure.RAMP_TOP_BACKOFF)
+
+        assertTrue(repo.swapExerciseById("B", destination, "bb_back_squat"))
+        repo.ensureSeeded(plan, "B")
+
+        val rows = SetJson.decodeSets(db.programDao().logForSlot(plan, "B", destination, Slot.MAIN)!!.setsJson)
+        assertEquals(45.0, rows.single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertTrue(rows.none { it.done })
+    }
+
+    @Test fun `added exercise prefers same plan working rows over prescription and history`() = runTest {
+        val plan = generated()
+        val source = slot(plan)
+        repo.setPrescription(source, Prescription(PrescribedTarget.LoadReps(65.0, 5)))
+        val working = SetSeeder.seedPrescribed(3, Prescription(PrescribedTarget.LoadReps(45.0, 5)),
+            SetStructure.RAMP_TOP_BACKOFF, equipment = listOf(Equipment.BARBELL))
+        db.storeTestRows("A", source, Slot.MAIN, working)
+        loggedWeight(plan, "bb_back_squat", 100.0, 1_000)
+
+        repo.addExercise("B", ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), plan)
+        repo.ensureSeeded(plan, "B")
+
+        val destination = db.programDao().exercisesForDay(plan, "B").last().id
+        val rows = SetJson.decodeSets(db.programDao().logForSlot(plan, "B", destination, Slot.MAIN)!!.setsJson)
+        assertEquals(45.0, rows.single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertEquals(working, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", source, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `run swap prefers another slots prescription over history`() = runTest {
+        val plan = generated()
+        repo.setPrescription(slot(plan), Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+        loggedWeight(plan, "bb_back_squat", 100.0, 1_000)
+        val destination = db.programDao().exercisesForDay(plan, "B").single().id
+        val run = repo.startRun(plan, "B") as RunStartResult.Started
+
+        assertTrue(repo.swapInRun(run.runId, destination, Slot.MAIN, "bb_back_squat"))
+
+        val track = repo.openRunFlow.first()!!.tracks.single { !it.retired }
+        assertEquals(List(3) { 45.0 }, track.sets.map { it.weightLb })
+    }
+
     @Test fun `plan swap uses latest completed working weight across plans and days`() = runTest {
         val historyPlan = generated()
         loggedWeight(historyPlan, "db_row", 60.0, 1_000)

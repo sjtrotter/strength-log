@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.customexercise
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
@@ -27,11 +28,11 @@ data class CustomExerciseUiState(
     val equipment: Set<Equipment> = emptySet(),
     val perHand: Boolean = false,
     val tracking: TrackingType = TrackingType.WEIGHTED,
-    val weightDisplay: Double = 45.0,
+    val unit: WeightUnit = WeightUnit.LB,
+    val weightDisplay: Double = PlateMath.barWeight(unit),
     val targetReps: Int = 10,
     val targetSeconds: Int = 30,
     val addedWeightDisplay: Double = 0.0,
-    val unit: WeightUnit = WeightUnit.LB,
     val saved: Boolean = false,
 ) {
     val canSave: Boolean get() = name.trim().isNotEmpty() && pattern != null

@@ -3,160 +3,15 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-12-01",
-  "time": "06:00",
+  "date": "2026-12-06",
+  "time": "19:00",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "note": "Tue Dec 1 deload squat 3x5 @152.5 (Day A shifted)"
-  },
-  {
-   "tap": {
-    "text": "Other days"
-   }
-  },
-  {
-   "tap": {
-    "text": "Block 1 accumulation \u00b7 Day A"
-   }
-  },
-  {
-   "checkpoint": "dayA-preview"
-  },
-  {
-   "tap": {
-    "text": "Start day A"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "152.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 152.5"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 2"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "152.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 152.5"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "152.5"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "textContains": "Log 152.5"
-   }
-  },
-  {
-   "advance": "1m"
-  },
-  {
-   "checkpoint": "set4-pending"
-  },
-  {
-   "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "checkpoint": "finish-dialog"
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "receipt"
-  },
-  {
-   "tap": {
-    "text": "Add a note"
-   }
-  },
-  {
-   "type": {
-    "editable": true,
-    "value": "Deload. 3x5 felt like nothing. Paused 2x3 152.5, belt sq 2x10 light. BW 94.7."
-   }
-  },
-  {
-   "tap": {
-    "text": "Save note"
-   }
-  },
-  {
-   "tap": {
-    "text": "Done"
-   }
-  },
-  {
    "tap": {
     "text": "History"
    }
-  },
-  {
-   "tap": {
-    "text": "Nov 29, 2026"
-   }
-  },
-  {
-   "checkpoint": "history-session"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -167,7 +22,9 @@
    "checkpoint": "trends"
   },
   {
-   "back": true
+   "tap": {
+    "text": "History"
+   }
   },
   {
    "tap": {
@@ -187,6 +44,14 @@
   },
   {
    "checkpoint": "settings"
+  },
+  {
+   "scrollTo": {
+    "textContains": "ackup"
+   }
+  },
+  {
+   "checkpoint": "settings-backup"
   }
  ]
 }

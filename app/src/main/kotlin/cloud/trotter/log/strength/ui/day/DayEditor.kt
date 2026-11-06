@@ -70,7 +70,8 @@ internal class DayEditor(
                     .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap())
             }.distinctUntilChanged(),
         ) { slots, answers, (runOpen, performed) ->
-            val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
+            val day = ctx.program.days.firstOrNull { it.id == dayId }
+            val block = day?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
                 runOpen = runOpen,
@@ -78,7 +79,7 @@ internal class DayEditor(
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
-                    ProgramGenerator.generate(answers).days.any { it.id == dayId },
+                    day != null && ProgramGenerator.templateFor(answers, day) != null,
             )
         }
     }

@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -98,6 +99,57 @@ class DayScreenBuilderTest {
         val applied = rows.map { it.copy(weightLb = WeightUnit.KG.toLb(62.501)) }
         assertEquals(true, (DayScreenBuilder.nextTime(applied, success, false, WeightUnit.KG) as NextTime.Offer).applied)
         assertEquals(NextTime.Repeat, DayScreenBuilder.nextTime(opening, success.copy(actual = emptyList()), false, WeightUnit.KG))
+    }
+
+    @Test
+    fun `next time uses another day's evidence and preserves accepting and restoring the offer`() {
+        val opening = List(3) { work(45.0, 5) }
+        val own = SlotSession(opening, opening.mapIndexed { i, row -> row.copy(done = true, reps = 4, plannedIndex = i) }, false)
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, own, false, WeightUnit.LB, evidence))
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, own, false, WeightUnit.LB, evidence))
+        assertNull(DayScreenBuilder.nextTime(opening, own, true, WeightUnit.LB, evidence))
+    }
+
+    @Test
+    fun `next time without local history uses the opening prescription for accepting and restoring`() {
+        val opening = List(3) { work(45.0, 5) }
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, null, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, null, true, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(done = true) }, null, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, null, false, WeightUnit.LB,
+            listOf(evidence.single().copy(actual = emptyList())), openingWeightLb = 45.0))
+    }
+
+    @Test
+    fun `next time ignores retired local history and uses plan evidence against the opening prescription`() {
+        val opening = List(3) { work(45.0, 5) }
+        val retiredRows = List(3) { work(80.0, 5) }
+        val retired = SlotSession(retiredRows,
+            retiredRows.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }, true)
+        val elsewhere = listOf(work(55.0, 5))
+        val evidence = listOf(CarryForward.Session(elsewhere, listOf(elsewhere.single().copy(done = true, plannedIndex = 0))))
+        val expected = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertEquals(expected, DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertEquals(expected.copy(applied = true), DayScreenBuilder.nextTime(
+            opening.map { it.copy(weightLb = 55.0) }, retired, false, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, false, WeightUnit.LB, emptyList(), openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening, retired, true, WeightUnit.LB, evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(done = true) }, retired, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
+        assertNull(DayScreenBuilder.nextTime(opening.map { it.copy(weightLb = 50.0) }, retired, false, WeightUnit.LB,
+            evidence, openingWeightLb = 45.0))
     }
 
     @Test

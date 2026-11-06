@@ -116,6 +116,54 @@ class CarryForwardTest {
     }
 
     @Test
+    fun `another session offers a heavier full-rep squat without stacking an increment`() {
+        val opening = work(45.0)
+        val elsewhere = SetSeeder.shape(SetStructure.RAMP_TOP_BACKOFF, 55.0, 5, 1)
+        val rows = actual(elsewhere).map { if (it.kind == SetKind.TOP) it.copy(done = true) else it }
+        val sessions = listOf(CarryForward.Session(elsewhere, rows))
+
+        assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, sessions))
+        assertEquals(opening, CarryForward.next(opening, actual(opening)))
+        assertNull(CarryForward.offer(opening, WeightUnit.LB,
+            listOf(CarryForward.Session(elsewhere, rows.map { it.copy(reps = 4) }))))
+    }
+
+    @Test
+    fun `history uses the latest qualifying session rather than the heaviest ever`() {
+        val opening = work(45.0)
+        val latest = work(50.0)
+        val older = work(55.0)
+        val missed = CarryForward.Session(work(60.0), actual(work(60.0), true).map { it.copy(reps = 4) })
+        val sessions = listOf(missed, CarryForward.Session(latest, actual(latest, true)),
+            CarryForward.Session(older, actual(older, true)))
+
+        assertEquals(50.0, CarryForward.offer(opening, WeightUnit.LB, sessions))
+    }
+
+    @Test
+    fun `full success elsewhere at the opening weight earns one step but lighter success does not`() {
+        val opening = work(45.0)
+        val lighter = work(40.0)
+        assertEquals(50.0, CarryForward.offer(opening, WeightUnit.LB,
+            listOf(CarryForward.Session(opening, actual(opening, true)))))
+        assertNull(CarryForward.offer(opening, WeightUnit.LB,
+            listOf(CarryForward.Session(lighter, actual(lighter, true)))))
+        val varied = opening.mapIndexed { i, row -> if (i == 2) row.copy(weightLb = 40.0) else row }
+        assertEquals(50.0, CarryForward.offer(varied, actual(varied, true), WeightUnit.LB))
+    }
+
+    @Test
+    fun `history keeps session row identities and never combines partial successes`() {
+        val opening = work(45.0)
+        val sessions = opening.indices.map { completed ->
+            CarryForward.Session(opening, actual(opening).mapIndexed { i, row -> row.copy(done = i == completed) })
+        }
+        assertNull(CarryForward.offer(opening, WeightUnit.LB, sessions))
+        val unplanned = actual(work(55.0), true).map { it.copy(plannedIndex = null) }
+        assertNull(CarryForward.offer(opening, WeightUnit.LB, listOf(CarryForward.Session(work(55.0), unplanned))))
+    }
+
+    @Test
     fun `a heavier working set offers its weight only when it makes its reps and never stacks`() {
         val planned = work()
         for ((weight, reps, expected) in listOf(Triple(75.0, 5, 75.0), Triple(80.0, 5, 80.0), Triple(75.0, 3, null))) {

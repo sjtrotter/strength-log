@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.R
  * app-specific number/name/set-count field mapping used by Today and Wizard.
  */
 @Composable
-internal fun LiftListItem(number: Int, name: String, setCount: Int) {
+internal fun LiftListItem(number: Int, name: String, setCount: Int, detail: String? = null) {
     ListItem(
         leadingContent = {
             Text(
@@ -23,6 +23,7 @@ internal fun LiftListItem(number: Int, name: String, setCount: Int) {
             )
         },
         headlineContent = { Text(name) },
+        supportingContent = detail?.let { { Text(it) } },
         trailingContent = {
             Text(pluralStringResource(R.plurals.today_lift_set_count, setCount, setCount))
         },

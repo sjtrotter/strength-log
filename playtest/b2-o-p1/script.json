@@ -498,6 +498,42 @@
   },
   {
    "checkpoint": "plank-page"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More",
+    "inDialog": true
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "cardio-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
   }
  ]
 }

@@ -1532,7 +1532,7 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day D"
       }
     },
     {
@@ -1702,6 +1702,93 @@
     },
     {
       "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "tuesday-cardio-editor-looking-for-walk"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Edit day",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-before-first-working-set"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "tuesday-bench-first-set-rest-complete"
+    },
+    {
+      "tap": {
+        "text": "Log 165 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 165 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "tuesday-three-bench-working-sets-logged"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "tuesday-edit-remaining-exercises-after-bench"
+    },
+    {
+      "tap": {
         "desc": "More options for One-Arm DB Row"
       }
     },
@@ -1721,7 +1808,7 @@
       "checkpoint": "tuesday-barbell-row-search"
     },
     {
-      "note": "Monday cold garage context still needs an in-app note; no note field seen in set menu or finish confirmation. Tuesday plan is bench165x5x3, barbell row115x8x3, pullups6/6/5, raises10x12x2 and walk15m. Need choose actual displayed barbell-row result and set walk cardio before training."
+      "note": "Monday full session and Tuesday bench are queued, not yet verified. Need pick actual barbell-row result, enter115x8, log rows/pullups/raises and15min walk. Cardio editor checkpoint reveals actual controls. Cold-garage note still has no discovered in-app field. Do not claim unperformed diary sessions."
     }
   ]
 }

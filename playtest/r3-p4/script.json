@@ -213,6 +213,41 @@
     },
     {
       "checkpoint": "session-note-editor"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bad sleep; squat folding forward on last set. Longer rests. Bike 12m, 105W, effort 7/10."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "bad-sleep-and-bike-context-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "week-two-return-to-today"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "preview-deadlift-day-for-short-wednesday"
     }
   ]
 }

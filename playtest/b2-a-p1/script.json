@@ -28,6 +28,18 @@
       "checkpoint": "setup-page-2-inspect-before-accepting"
     },
     {
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "expect": {
+        "text": "3"
+      }
+    },
+    {
       "tap": {
         "text": "Next"
       }
@@ -37,11 +49,27 @@
     },
     {
       "tap": {
+        "text": "Full-body rotation"
+      }
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
     {
       "checkpoint": "setup-page-4-inspect-before-accepting"
+    },
+    {
+      "scrollTo": {
+        "text": "Sumo"
+      }
+    },
+    {
+      "checkpoint": "main-lifts-bottom-looking-for-machine-choice"
+    },
+    {
+      "note": "All three main-lift groups include barbell squats. I am continuing setup to look for equipment exclusions or individual replacements; I have not agreed to perform these lifts."
     },
     {
       "tap": {
@@ -53,6 +81,24 @@
     },
     {
       "tap": {
+        "text": "Treadmill"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Keep me 5k-ready"
+      }
+    },
+    {
+      "checkpoint": "treadmill-finisher-options"
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
@@ -61,11 +107,33 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "LB"
       }
     },
     {
-      "checkpoint": "setup-page-7-inspect-before-accepting"
+      "note": "Phase A did not specify age or bodyweight. For the required profile fields I use a consistent fictional age 32 and bodyweight 165 lb; these are not lifting estimates."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "165",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "32",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Novice"
+      }
+    },
+    {
+      "checkpoint": "novice-pounds-profile-filled"
     },
     {
       "tap": {
@@ -73,13 +141,7 @@
       }
     },
     {
-      "checkpoint": "setup-page-8-inspect-before-accepting"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "setup-back-to-review-choice"
+      "checkpoint": "setup-page-7-before-any-plan-acceptance"
     },
     {
       "tap": {
@@ -87,7 +149,7 @@
       }
     },
     {
-      "checkpoint": "setup-preview-return-no-plan-accepted"
+      "checkpoint": "setup-page-8-before-any-plan-acceptance"
     }
   ]
 }

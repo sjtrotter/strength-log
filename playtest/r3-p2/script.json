@@ -124,6 +124,54 @@
     },
     {
       "checkpoint": "squat-lift-options"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Close sheet"
+      }
+    },
+    {
+      "checkpoint": "straight-squat-ready"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 215 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "46m"
+    },
+    {
+      "checkpoint": "monday-three-squats-logged"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-review"
     }
   ]
 }

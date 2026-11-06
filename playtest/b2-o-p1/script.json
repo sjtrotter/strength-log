@@ -1,7 +1,82 @@
 {
-  "seat": "b2-o-p1",
-  "start": {"date": "2026-11-09", "time": "17:30", "zone": "America/Chicago"},
-  "steps": [
-    { "checkpoint": "first-open" }
-  ]
+ "seat": "b2-o-p1",
+ "start": {
+  "date": "2026-11-09",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "first-open"
+  },
+  {
+   "tap": {
+    "text": "Strength-leaning"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w2"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w3"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w4"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w5"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w6"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w8"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w9"
+  }
+ ]
 }

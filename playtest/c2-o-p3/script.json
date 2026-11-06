@@ -1,0 +1,116 @@
+{
+ "seat": "c2-o-p3",
+ "capture": "checkpoints",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-10",
+  "time": "17:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "today-tue"
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "picker"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Spoto"
+   }
+  },
+  {
+   "checkpoint": "search-spoto"
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Bench"
+   }
+  },
+  {
+   "checkpoint": "search-bench"
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "bench-added"
+  },
+  {
+   "tap": {
+    "textContains": "Ramp to"
+   }
+  },
+  {
+   "checkpoint": "bench-presc"
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "107.5"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "bench-liftopts"
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "bench-straight-plan"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back1"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back2"
+  }
+ ]
+}

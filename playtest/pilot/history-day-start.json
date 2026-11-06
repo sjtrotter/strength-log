@@ -1245,8 +1245,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 1
+        "desc": "Day A lifts, 11 of 11 sets"
       }
     },
     {

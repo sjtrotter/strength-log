@@ -112,6 +112,30 @@
   },
   {
    "checkpoint": "w8"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today"
+  },
+  {
+   "tap": {
+    "text": "Plan"
+   }
+  },
+  {
+   "checkpoint": "plan"
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "checkpoint": "dayA"
   }
  ]
 }

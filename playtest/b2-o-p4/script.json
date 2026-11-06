@@ -942,6 +942,284 @@
   },
   {
    "checkpoint": "dayB-edit"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "type": {
+    "text": "Search exercises",
+    "value": "overhead"
+   }
+  },
+  {
+   "tap": {
+    "text": "Overhead Press (Barbell)"
+   }
+  },
+  {
+   "tap": {
+    "text": "The plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap",
+    "role": "Button"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More options for Overhead Press (Barbell)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Progress"
+   }
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "95"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Pallof Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intervals 5 \u00d7 2:00"
+   }
+  },
+  {
+   "checkpoint": "bike-intervals-preset"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "dayB-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "expect": {
+    "text": "Overhead Press (Barbell)"
+   }
+  },
+  {
+   "checkpoint": "ohp-page"
+  },
+  {
+   "tap": {
+    "text": "Log 95 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Log 95 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Log 95 lb \u00d7 5"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "expect": {
+    "text": "Bulgarian Split Squat"
+   }
+  },
+  {
+   "checkpoint": "bss-page"
+  },
+  {
+   "tap": {
+    "text": "Log 35 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 35 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 35 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Seated Leg Curl"
+   }
+  },
+  {
+   "tap": {
+    "text": "Log 90 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 90 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "Log 90 lb \u00d7 10"
+   }
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "expect": {
+    "text": "Pull-Up / Chin-Up"
+   }
+  },
+  {
+   "checkpoint": "pullup-page"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-pullups"
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 12 of 18 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stationary bike"
+   }
+  },
+  {
+   "checkpoint": "bike-page"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "30s"
+  },
+  {
+   "checkpoint": "bike-30s"
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "checkpoint": "bike-10m"
   }
  ]
 }

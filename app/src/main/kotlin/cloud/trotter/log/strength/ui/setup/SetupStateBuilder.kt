@@ -19,7 +19,7 @@ import cloud.trotter.log.strength.ui.components.BodyweightInput
 object SetupStateBuilder {
 
     fun goalPreview(cfg: LifterConfig, answers: WizardAnswers, unit: WeightUnit): List<GoalPreviewItem> =
-        ProgramGenerator.anchorIds(answers).map { id ->
+        ProgramGenerator.availableAnchorIds(answers).map { id ->
             val entry = ExerciseLibrary.get(id)
             GoalPreviewItem(
                 name = entry.name,

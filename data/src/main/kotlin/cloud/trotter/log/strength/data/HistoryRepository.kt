@@ -27,6 +27,8 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
+import cloud.trotter.log.strength.domain.records.PersonalBests
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -174,9 +176,14 @@ class HistoryRepository(
             sessions.filter { belongsToPlan(it.session.planId, planId) }
         }
 
-    /** Every session's heaviest completed TOP set per lift, oldest first — the
-     *  journal's trajectory series and the cascade ceremony's before-picture. */
-    val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTopSets(SetKind.TOP.name)
+    /** Every session's heaviest set counted by PersonalBests per lift, oldest first. */
+    val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTrajectorySets().map { rows ->
+        rows.filter { row ->
+            SetKind.entries.any { it.name == row.set.kind } && PersonalBests.counts(row.set.toLoggedSet())
+        }.groupBy { it.set.sessionId to it.set.exerciseId }.map { (key, sets) ->
+            TopSetRow(key.first, sets.first().completedAt, key.second, sets.maxOf { it.set.weightLb })
+        }
+    }
 
     /** Completed tonnage per session, oldest first — the journal's weekly bars. */
     val sessionTonnageFlow: Flow<List<SessionTonnageRow>> = sessionDao.observeSessionTonnage()
@@ -243,9 +250,33 @@ class HistoryRepository(
      *  For duplicate keys, the last archived track wins. */
     suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
-        val plannedJson = session.plannedJson ?: return@withTransaction emptyMap()
-        val sets = sessionDao.setsForSession(session.id)
-        SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
+        archivedTracks(session, sessionDao.setsForSession(session.id))
+    }
+
+    /** Archived tracks in this plan, grouped by lift with newest evidence first. */
+    suspend fun progressionSessions(planId: Long, exerciseIds: List<String>): Map<String, List<CarryForward.Session>> {
+        if (exerciseIds.isEmpty()) return emptyMap()
+        return db.withTransaction {
+            val sessions = sessionDao.sessionsForPlan(planId)
+            if (sessions.isEmpty()) return@withTransaction emptyMap()
+            val sets = sessionDao.setsForPlan(planId, exerciseIds).groupBy { it.sessionId }
+            val result = mutableMapOf<String, MutableList<CarryForward.Session>>()
+            for (session in sessions) {
+                for ((key, track) in archivedTracks(session, sets[session.id].orEmpty())) {
+                    if (key.first !in exerciseIds || track.retired) continue
+                    result.getOrPut(key.first) { mutableListOf() }.add(CarryForward.Session(track.planned, track.actual))
+                }
+            }
+            result
+        }
+    }
+
+    private fun archivedTracks(
+        session: WorkoutSessionEntity,
+        sets: List<SessionSetEntity>,
+    ): Map<Pair<String, String>, SlotSession> {
+        val plannedJson = session.plannedJson ?: return emptyMap()
+        return SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
             SlotSession(
                 dto.sets.map(SetDto::toDomain),
                 sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot && it.trackPosition == dto.position }

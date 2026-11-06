@@ -15,11 +15,15 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
@@ -118,6 +122,20 @@ class WizardOperationStatesTest {
             assertEquals(0, starts)
             assertEquals(WizardStep.EMPHASIS, state.step)
             assertEquals(answers, state.answers)
+        }
+    }
+
+    @Test fun `rotation step shows every lift of day A`() {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val state = WizardStateBuilder.buildUiState(
+            WizardStep.ROTATION.ordinal, answers, false, previewProgram = program,
+        )
+        rule.setContent { AppTheme { WizardScreen(state, actions()) } }
+
+        program.days.first().exercises.forEach { pe ->
+            rule.onAllNodesWithText(ExerciseLibrary.get(pe.exerciseId).name).onFirst()
+                .performScrollTo().assertIsDisplayed()
         }
     }
 

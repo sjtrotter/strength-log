@@ -58,12 +58,12 @@ data class PersonalRecordRow(
     val seconds: Int = 0,
 )
 
-/**
- * One session's heaviest completed TOP set for one exercise — the journal's
- * trajectory series (docs/briefs/journal.md §1.1) and the cascade ceremony's
- * "what was the all-time high before this advance" read. Aggregated in SQL so
- * the whole trajectory section costs one query, never one per lift.
- */
+data class TrajectorySetRow(
+    @Embedded val set: SessionSetEntity,
+    val completedAt: Long,
+)
+
+/** One session's heaviest set counted by PersonalBests for one exercise. */
 data class TopSetRow(
     val sessionId: Long,
     val completedAt: Long,
@@ -131,6 +131,25 @@ interface SessionDao {
 
     @Query("SELECT * FROM workout_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
     suspend fun lastSessionForDay(planId: Long, dayId: String): WorkoutSessionEntity?
+
+    @Query(
+        """
+        SELECT ws.* FROM workout_session ws
+        WHERE ws.planId = :planId
+        ORDER BY ws.completedAt DESC, ws.id DESC
+        """,
+    )
+    suspend fun sessionsForPlan(planId: Long): List<WorkoutSessionEntity>
+
+    @Query(
+        """
+        SELECT ss.* FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ws.planId = :planId AND ss.exerciseId IN (:exerciseIds)
+        ORDER BY ss.id
+        """,
+    )
+    suspend fun setsForPlan(planId: Long, exerciseIds: List<String>): List<SessionSetEntity>
 
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of
@@ -208,25 +227,16 @@ interface SessionDao {
     )
     suspend fun personalRecordRows(exerciseIds: List<String>, excludedRunId: String?): List<PersonalRecordRow>
 
-    /**
-     * The trajectory series for every ramped lift at once (journal §1.1),
-     * oldest session first. [topKind] is passed in rather than spelled `'TOP'`
-     * here so the stored [cloud.trotter.log.strength.domain.model.SetKind]
-     * name has exactly one source. Only ramped mains ever log a TOP set, so no
-     * exercise-id filter is needed — the result is a couple of rows per session.
-     */
+    /** Raw trajectory rows, oldest first; PersonalBests decides which sets count. */
     @Query(
         """
-        SELECT ss.sessionId AS sessionId, ws.completedAt AS completedAt,
-               ss.exerciseId AS exerciseId, MAX(ss.weightLb) AS topWeightLb
+        SELECT ss.*, ws.completedAt AS completedAt
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
-        WHERE ss.done = 1 AND ss.kind = :topKind
-        GROUP BY ss.sessionId, ss.exerciseId
-        ORDER BY ws.completedAt ASC
+        ORDER BY ws.completedAt ASC, ws.id ASC, ss.id ASC
         """,
     )
-    fun observeTopSets(topKind: String): Flow<List<TopSetRow>>
+    fun observeTrajectorySets(): Flow<List<TrajectorySetRow>>
 
     /** Completed tonnage per session, oldest first (journal §1.2) — one row per
      *  session, so the twelve-week volume chart is one query, not twelve. */

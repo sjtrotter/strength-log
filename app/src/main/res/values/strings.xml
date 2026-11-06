@@ -823,6 +823,7 @@
     <string name="log_top_set_goal_met">Goal met</string>
     <string name="log_top_set_date_range">%1$s to %2$s</string>
     <string name="log_top_set_series_description">%1$s top sets: %2$s, %3$s %6$s; %4$s, %5$s %6$s. Goal %7$s %6$s.</string>
+    <string name="log_top_set_series_description_without_goal">%1$s top sets: %2$s, %3$s %6$s; %4$s, %5$s %6$s.</string>
 
     <!-- Round 1 operation, blocked-action and incomplete-session states. -->
     <string name="operation_export_backup">Exporting backup…</string>

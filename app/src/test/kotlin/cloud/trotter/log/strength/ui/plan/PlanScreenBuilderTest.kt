@@ -3,7 +3,10 @@ package cloud.trotter.log.strength.ui.plan
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
@@ -114,6 +117,21 @@ class PlanScreenBuilderTest {
             GoalPreviewItem("Incline DB Press", "75", true),
         ), state.goals)
         assertEquals(GoalEmphasis.BALANCED, state.emphasis)
+    }
+
+    @Test
+    fun `goals name only lifts the plan has`() {
+        val answers = WizardAnswers(equipment = Equipment.entries.toSet() - setOf(Equipment.BARBELL, Equipment.TRAP_BAR))
+        val program = ProgramGenerator.generate(answers)
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
+        val state = PlanScreenBuilder.buildUiState(plan, program, answers, catalog, WeightUnit.LB)
+        val names = state.goals.map { it.name }
+        val plannedNames = program.days.flatMap { day -> day.exercises.map { ExerciseLibrary.get(it.exerciseId).name } }
+
+        assertTrue(names.isNotEmpty())
+        assertFalse("Barbell Back Squat" in names)
+        assertFalse("Trap-Bar Deadlift" in names)
+        assertTrue(names.all { it in plannedNames })
     }
 
     @Test

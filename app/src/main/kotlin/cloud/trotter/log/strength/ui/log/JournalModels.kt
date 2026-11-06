@@ -15,7 +15,7 @@ data class JournalUiState(
  * trained the lift, oldest first; [plotted] is false with fewer than two points,
  * where the card explains the missing trend and labels the latest result.
  *
- * [axisMin]/[axisMax] bracket both the points and [goalValue] with a little
+ * [axisMin]/[axisMax] bracket both the points and any [goalValue] with a little
  * headroom, so a goal above every lift still has its reference line on screen.
  * [goalLabel] and [latestLabel] are numeric weights in [unit], without surrounding copy.
  */
@@ -24,8 +24,8 @@ data class TrajectoryCard(
     val exerciseName: String,
     val dayIndex: Int,
     val points: List<TrajectoryPoint>,
-    val goalValue: Float,
-    val goalLabel: String,
+    val goalValue: Float?,
+    val goalLabel: String?,
     val goalMet: Boolean,
     val latestLabel: String,
     val unit: WeightUnit,

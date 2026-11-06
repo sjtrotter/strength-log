@@ -416,6 +416,23 @@ class LogScreenInteractionTest {
     }
 
     @Test
+    fun trajectoryWithoutAWeightGoalShowsEndpointsWithoutAGoalReference() {
+        val journal = auditHistoryFixture().journal.let { journal ->
+            journal.copy(trajectories = journal.trajectories.map { card ->
+                card.copy(goalValue = null, goalLabel = null, goalMet = false)
+            })
+        }
+        setContent(false, journal = journal)
+
+        composeTestRule.onNodeWithContentDescription(
+            "Barbell Back Squat top sets: Oct 19, 210 lb; Nov 3, 235 lb.",
+        ).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Latest 235 lb").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Goal", substring = true).assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Goal met").assertDoesNotExist()
+    }
+
+    @Test
     fun aSingleTopSetExplainsTheMissingTrendAndLabelsTheLatestValue() {
         val journal = auditHistoryFixture().journal.let { journal ->
             journal.copy(trajectories = journal.trajectories.map { card -> card.copy(points = card.points.takeLast(1)) })

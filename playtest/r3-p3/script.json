@@ -3,11 +3,14 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-13",
+  "date": "2026-11-16",
   "time": "06:00",
   "zone": "America/Chicago"
  },
  "steps": [
+  {
+   "checkpoint": "today"
+  },
   {
    "tap": {
     "text": "Plans"
@@ -19,137 +22,78 @@
    }
   },
   {
-   "checkpoint": "plan"
+   "tap": {
+    "textContains": "1 lift, 4 sets"
+   }
+  },
+  {
+   "checkpoint": "dayA-preview"
   },
   {
    "tap": {
-    "textContains": "0 lifts",
-    "index": 2
+    "text": "Start day A"
    }
-  },
-  {
-   "tap": {
-    "text": "Edit day"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add exercise"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Horizontal push"
-   }
-  },
-  {
-   "tap": {
-    "text": "Horizontal push"
-   }
-  },
-  {
-   "tap": {
-    "text": "Barbell Bench Press"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More options for Barbell Bench Press"
-   }
-  },
-  {
-   "tap": {
-    "text": "Lift options"
-   }
-  },
-  {
-   "tap": {
-    "text": "Straight sets"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "tap": {
-    "text": "Prescription"
-   }
-  },
-  {
-   "type": {
-    "text": "Sets",
-    "value": "3"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "125"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "back": true
-  },
-  {
-   "back": true
   },
   {
    "checkpoint": "workout"
   },
   {
    "tap": {
-    "text": "Log 125 kg \u00d7 3"
+    "desc": "Edit set 1"
    }
   },
   {
-   "advance": "4m"
+   "type": {
+    "text": "Weight (kg)",
+    "value": "182.5"
+   }
   },
   {
    "tap": {
-    "text": "Log 125 kg \u00d7 3"
+    "text": "Save set"
    }
   },
   {
-   "advance": "4m"
+   "checkpoint": "after-edit"
   },
   {
    "tap": {
-    "desc": "Edit set 3"
+    "textContains": "Log 182.5"
    }
   },
   {
-   "checkpoint": "edit-set3"
+   "checkpoint": "set2"
   },
   {
-   "back": true
+   "advance": "3m30s"
   },
   {
    "tap": {
-    "text": "Log 125 kg \u00d7 3"
+    "textContains": "Log 182.5"
    }
   },
   {
-   "checkpoint": "bench-done"
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "textContains": "Log 182.5"
+   }
+  },
+  {
+   "advance": "3m30s"
+  },
+  {
+   "tap": {
+    "textContains": "Log 182.5"
+   }
   },
   {
    "advance": "10s"
   },
   {
    "tap": {
-    "text": "Finish day D"
+    "text": "Finish day A"
    }
   },
   {
@@ -161,16 +105,26 @@
    }
   },
   {
-   "checkpoint": "note"
-  },
-  {
    "type": {
     "editable": true,
-    "value": "Bench last set RPE 8 on the nose. Spoto 3x5 105, pull-ups 4x6 +10, triceps rope."
+    "value": "Set 3 rep 3 slow out of hole. RPE 7.5. Paused 152.5 3x3. Belt sq 110. R knee grumpy."
    }
   },
   {
-   "checkpoint": "note-typed"
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after"
   }
  ]
 }

@@ -193,6 +193,12 @@
   },
   {
    "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
     "desc": "Settings"
    }
   },
@@ -212,12 +218,34 @@
   },
   {
    "tap": {
-    "textContains": "Day A",
+    "textContains": "Day D",
     "index": 0
    }
   },
   {
-   "checkpoint": "plans-dayA"
+   "checkpoint": "plans-dayD"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "textContains": "xport"
+   }
+  },
+  {
+   "checkpoint": "settings-export"
   }
  ]
 }

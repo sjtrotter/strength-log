@@ -776,7 +776,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 2"
       }
     },
     {
@@ -816,7 +816,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 3"
       }
     },
     {
@@ -856,7 +856,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 4"
       }
     },
     {
@@ -910,7 +910,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 6"
       }
     },
     {
@@ -977,7 +977,7 @@
     },
     {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 7"
       }
     },
     {
@@ -1078,6 +1078,92 @@
     },
     {
       "note": "Next finish Monday reverse lunges25x8x2 each leg and plank30sx3, then save cold-garage context in an actual app note field if available. Script notes are not workout notes. Monday is not finished until those exercises and the recap are verified."
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "lunge-all-sets-before-replacement"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "lunge-all-sets-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "plank-timer-before-adjustment"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "plank-duration-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-confirmation-options-before-completing-accessories"
     }
   ]
 }

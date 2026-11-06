@@ -380,7 +380,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -473,7 +473,7 @@
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "text": "3-day full body · Day A"
       }
     },
     {
@@ -678,7 +678,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -756,7 +756,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -927,17 +927,56 @@
       "checkpoint": "search-dumbbell-hinge"
     },
     {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "db-rdl-swap-confirmed"
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
       "type": {
-        "text": "Search exercises",
-        "value": "Romanian",
+        "text": "Sets",
+        "value": "2",
         "ime": "done"
       }
     },
     {
-      "checkpoint": "search-romanian-hinge"
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
     },
     {
-      "back": true
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "monday-four-exercises-prescribed"
     },
     {
       "back": true
@@ -946,36 +985,14 @@
       "checkpoint": "monday-ready-for-squats"
     },
     {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "squat-all-sets-and-warmup-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "checkpoint": "actual-lifting-set-editor"
-    },
-    {
-      "back": true
-    },
-    {
-      "note": "Five minutes easy movement and lighter squat warm-ups before my three working sets. Inspect All sets for a separate warm-up entry; do not silently count these as work sets."
+      "note": "Five minutes easy movement and lighter squat warm-ups before working sets. These are not yet recorded in the app; look for separate warm-up logging later."
     },
     {
       "advance": "8m"
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -986,7 +1003,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -997,7 +1014,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb \u00d7 8"
+        "text": "Log 135 lb × 8"
       }
     },
     {
@@ -1019,6 +1036,17 @@
     },
     {
       "checkpoint": "squat-review-after-three-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "exercise-navigation-after-squats"
     },
     {
       "back": true

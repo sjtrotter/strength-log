@@ -7,6 +7,70 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "fresh-install-setup" }
+    {
+      "checkpoint": "fresh-install-setup"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-2-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-3-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-4-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-5-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-6-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-7-review"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-8-review"
+    }
   ]
 }

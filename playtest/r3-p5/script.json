@@ -16,42 +16,8 @@
   },
   {
    "tap": {
-    "desc": "Plan options"
-   }
-  },
-  {
-   "checkpoint": "plan-options"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "New plan"
-   }
-  },
-  {
-   "checkpoint": "new-plan"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "textContains": "2-day full body"
    }
-  },
-  {
-   "tap": {
-    "desc": "Day options",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "dayA-options"
-  },
-  {
-   "back": true
   },
   {
    "tap": {
@@ -59,7 +25,15 @@
    }
   },
   {
-   "checkpoint": "dayC1"
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "c1-edit"
+  },
+  {
+   "back": true
   },
   {
    "back": true
@@ -70,7 +44,42 @@
    }
   },
   {
-   "checkpoint": "dayA-edit"
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "a-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start empty"
+   }
+  },
+  {
+   "checkpoint": "empty"
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "checkpoint": "add-day"
   }
  ]
 }

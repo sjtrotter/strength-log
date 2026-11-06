@@ -319,17 +319,42 @@
   },
   {
    "tap": {
-    "desc": "More options for Trap-Bar Deadlift"
+    "text": "Add cardio"
    }
   },
   {
-   "checkpoint": "trapbar-more-options"
+   "checkpoint": "add-cardio"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back-more"
+   "checkpoint": "after-back-cardio"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "checkpoint": "edit-set-1"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-allsets"
   },
   {
    "tap": {
@@ -342,34 +367,18 @@
    }
   },
   {
-   "checkpoint": "single-leg-list"
-  },
-  {
    "type": {
     "text": "Search exercises",
     "value": "Copenhagen"
    }
   },
   {
-   "checkpoint": "search-copenhagen"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Nordic"
+   "tap": {
+    "text": "Create exercise"
    }
   },
   {
-   "checkpoint": "search-nordic"
-  },
-  {
-   "type": {
-    "text": "Search exercises",
-    "value": "Calf"
-   }
-  },
-  {
-   "checkpoint": "search-calf"
+   "checkpoint": "create-exercise-form"
   }
  ]
 }

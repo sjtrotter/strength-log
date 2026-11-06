@@ -207,13 +207,28 @@
    }
   },
   {
-   "tap": {
-    "text": "Add day"
+   "expect": {
+    "desc": "Day C"
    }
   },
   {
    "tap": {
     "text": "Add day"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Day D"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Day E"
    }
   },
   {

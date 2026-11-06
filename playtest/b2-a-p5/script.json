@@ -7,6 +7,84 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open" }
+    {
+      "checkpoint": "first-open"
+    },
+    {
+      "note": "Running is my priority. None of the three goals says that; strength-leaning is the closest fit for supportive lifting."
+    },
+    {
+      "tap": {
+        "text": "Strength-leaning"
+      }
+    },
+    {
+      "checkpoint": "closest-goal-strength-leaning"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-2"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-3"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-4"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-5"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-review-before-accepting"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-review-after-reopen"
+    },
+    {
+      "note": "Review the setup screens and provisional defaults before accepting a plan; my target remains two short lifts plus three separate runs."
+    }
   ]
 }

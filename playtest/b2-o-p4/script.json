@@ -291,6 +291,57 @@
   },
   {
    "checkpoint": "edit-cardio"
+  },
+  {
+   "tap": {
+    "role": "DropdownList"
+   }
+  },
+  {
+   "checkpoint": "activity-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Cancel"
+   }
+  },
+  {
+   "checkpoint": "after-cancel-cardio"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "lift-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-liftopts"
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Bench Press"
+   }
+  },
+  {
+   "tap": {
+    "text": "Swap"
+   }
+  },
+  {
+   "checkpoint": "swap-sheet"
   }
  ]
 }

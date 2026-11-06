@@ -263,7 +263,7 @@
   },
   {
    "tap": {
-    "text": "Lat Pulldown"
+    "text": "Lat Pulldown (wide)"
    }
   },
   {
@@ -325,6 +325,45 @@
   },
   {
    "checkpoint": "day-edited"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-ready"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "checkpoint": "all-sets"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-1"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "rested"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "after-log-2"
   }
  ]
 }

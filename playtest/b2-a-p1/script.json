@@ -363,67 +363,45 @@
       "checkpoint": "edit-day-looking-for-machine-replacements"
     },
     {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "desc": "Settings"
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
-      "scrollTo": {
-        "text": "Reset to defaults"
-      }
-    },
-    {
-      "checkpoint": "settings-bottom-looking-for-reminders-and-export"
+      "checkpoint": "squat-options-looking-for-machine-replacement"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "role": "Tab",
-        "index": 2
+        "desc": "More options for DB Bench Press"
       }
     },
     {
-      "tap": {
-        "desc": "Plan options"
-      }
-    },
-    {
-      "checkpoint": "plan-options-looking-for-schedule-and-copy"
+      "checkpoint": "press-options-looking-for-machine-replacement"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "role": "Tab",
-        "index": 0
+        "desc": "More options for Back Extension"
       }
+    },
+    {
+      "checkpoint": "back-extension-options-looking-for-removal"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "3-day full body \u00b7 Day A"
+        "desc": "More"
       }
     },
     {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "editing-unwanted-squat-looking-for-leg-press"
+      "checkpoint": "edit-day-menu-looking-for-saving-and-scope"
     },
     {
       "back": true
@@ -434,7 +412,29 @@
       }
     },
     {
-      "checkpoint": "editing-press-looking-for-chest-machine"
+      "checkpoint": "press-prescription-looking-for-sets-reps-and-weight"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-editor-looking-for-walking-and-duration"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker-looking-for-my-machine-names"
     }
   ]
 }

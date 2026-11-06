@@ -1290,20 +1290,19 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Continue without distance"
       }
     },
     {
-      "checkpoint": "monday-whole-visit-finish-review"
+      "checkpoint": "bike-done-distance-optional-no-watts-or-effort"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Finish day A"
       }
     },
     {
-      "checkpoint": "monday-saved-visit"
+      "checkpoint": "monday-finish-result-whole-visit"
     },
     {
       "tap": {
@@ -1311,15 +1310,12 @@
       }
     },
     {
-      "checkpoint": "history-first-lifting-and-bike-visit"
+      "checkpoint": "history-first-completed-lifting-and-bike-visit"
     },
     {
       "tap": {
         "desc": "More"
       }
-    },
-    {
-      "checkpoint": "history-menu-after-first-visit"
     },
     {
       "tap": {
@@ -1369,7 +1365,128 @@
       "checkpoint": "wednesday-day-c-editor-before-own-prescription"
     },
     {
-      "note": "Wednesday November 11: use this deadlift day for my actual diary. Need 3x5x185 deadlift, DB shoulder press 30x8 then30x6 then25x8, pulldown100 for3x10, split squat20 for2x8 each leg, rower12min2220m effort6. Monday actual bike watts111/effort6 and slow bench note still need a place in the app; do not claim script notes saved them."
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "wednesday-deadlift-options"
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "wednesday-deadlift-three-fives-at185"
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "wednesday-find-rower-activity"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "wednesday-deadlift-complete-next-exercise"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "wednesday-next-lift-actual-set-options"
+    },
+    {
+      "note": "Wednesday deadlifts should now be 185 for three fives. Next configure shoulder press30x8,30x6,25x8; pulldown100x10x3; split squat20x8x2 each leg and rower12min2220m. Finish at18:46 for76min. Actual watts111/effort6 and slow-bench note from Monday remain unsaved; script notes are not app records."
     }
   ]
 }

@@ -366,6 +366,22 @@
   },
   {
    "checkpoint": "add-ex"
+  },
+  {
+   "tap": {
+    "text": "Squat (bilateral)"
+   }
+  },
+  {
+   "checkpoint": "squat-list"
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "squat-added"
   }
  ]
 }

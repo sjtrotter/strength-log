@@ -226,8 +226,12 @@ strength day; the shipped cardio vectors stay pinned.
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
   reps-in-time, each side, a band described in text, a note. Authored slots
   have no GOAL and never cascade. Every day keeps at least one exercise
-  unless it has a cardio block, and rotation visits strength days (all days
-  when none are strength).
+  unless it has a cardio block. Rotation visits every training day in plan
+  order, lift and cardio alike (#493). Generated Cardio + Core extras
+  (C1/C2 marked `ProgramDayKind.CARDIO`) stay outside the rotation; legacy
+  plans containing only those extras retain their all-days fallback. Initial
+  and fallback selection use the same order. Finishing a day out of order
+  leaves the suggestion unchanged.
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,

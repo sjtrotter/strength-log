@@ -14,6 +14,8 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.records.PersonalBests
+import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
@@ -159,6 +161,38 @@ class HistoryRepositoryHistoryReadTest {
         val summary = repo.sessionSummariesFlow.first().single()
         assertEquals(0, summary.setCount)
         assertFalse(repo.sessionSets(summary.session.id).single().done)
+    }
+
+    @Test
+    fun trajectoryIncludesAStraightSetWeightPrAndExcludesWarmupsUncheckedAndEmptySets() = runTest {
+        val squat = "bb_back_squat"
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L), listOf(
+                set(squat, "Squat", SetKind.RAMP, 45.0, 5, true),
+            )),
+            ImportedSession(session(2_000L), listOf(
+                set(squat, "Squat", SetKind.TOP, 50.0, 5, true),
+            )),
+            ImportedSession(session(3_000L), listOf(
+                set(squat, "Squat", SetKind.WORK, 50.0, 5, true),
+                set(squat, "Squat", SetKind.WORK, 55.0, 5, true),
+                set(squat, "Squat", SetKind.WORK, 55.0, 5, true),
+                set(squat, "Squat", SetKind.RAMP, 90.0, 5, true),
+                set(squat, "Squat", SetKind.WORK, 100.0, 5, false),
+            )),
+            ImportedSession(session(4_000L), listOf(
+                set(squat, "Squat", SetKind.WORK, 0.0, 0, true),
+            )),
+        ), emptyList())
+
+        assertEquals(PrKind.WEIGHT, PersonalBests.prKind(
+            LoggedSet(55.0, 5, SetKind.WORK, done = true),
+            LoggedSet(50.0, 5, SetKind.TOP, done = true),
+        ))
+        val points = repo.topSetHistoryFlow.first()
+        assertEquals(listOf(2_000L, 3_000L), points.map { it.completedAt })
+        assertEquals(listOf(50.0, 55.0), points.map { it.topWeightLb })
+        assertEquals(listOf(squat, squat), points.map { it.exerciseId })
     }
 
     // --- lastPerformed (batched, "last time" chip) -----------------------------

@@ -108,53 +108,25 @@
    }
   },
   {
-   "checkpoint": "today"
-  },
-  {
    "tap": {
     "text": "Plans"
    }
   },
   {
-   "checkpoint": "plans"
-  },
-  {
-   "scrollTo": {
-    "textContains": "Squat"
+   "tap": {
+    "text": "3-day full body"
    }
   },
   {
-   "checkpoint": "plans-squat"
+   "checkpoint": "plan-detail"
   },
   {
    "tap": {
-    "text": "Today",
-    "role": "Tab"
+    "textContains": "Barbell Back Squat"
    }
   },
   {
-   "tap": {
-    "text": "Start day A"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Day A lifts, 0 of 21 sets"
-   }
-  },
-  {
-   "checkpoint": "day-list"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
-   }
-  },
-  {
-   "checkpoint": "set-sheet"
+   "checkpoint": "plan-squat"
   }
  ]
 }

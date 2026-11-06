@@ -368,15 +368,47 @@
    }
   },
   {
-   "checkpoint": "copenhagen-form"
-  },
-  {
-   "tap": {
-    "text": "Save"
+   "type": {
+    "text": "Target hold (seconds)",
+    "value": "20"
    }
   },
   {
-   "checkpoint": "after-save-copenhagen"
+   "scrollTo": {
+    "text": "Added load, optional (lb)"
+   }
+  },
+  {
+   "checkpoint": "copenhagen-form-bottom"
+  },
+  {
+   "swipe": {
+    "text": "Added load, optional (lb)",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "copenhagen-form-bottom2"
+  },
+  {
+   "tap": {
+    "text": "Cancel"
+   }
+  },
+  {
+   "checkpoint": "after-cancel-form"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-cancel-back1"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-cancel-back2"
   },
   {
    "tap": {
@@ -384,36 +416,12 @@
    }
   },
   {
-   "tap": {
-    "text": "Hinge"
+   "scrollTo": {
+    "textContains": "alf"
    }
   },
   {
-   "type": {
-    "text": "Search exercises",
-    "value": "Single"
-   }
-  },
-  {
-   "checkpoint": "search-single-hinge"
-  },
-  {
-   "type": {
-    "editable": true,
-    "value": "Plank"
-   }
-  },
-  {
-   "checkpoint": "search-plank-in-hinge"
-  },
-  {
-   "type": {
-    "editable": true,
-    "value": "Calf"
-   }
-  },
-  {
-   "checkpoint": "search-calf-in-hinge"
+   "checkpoint": "calf-category"
   }
  ]
 }

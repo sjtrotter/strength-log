@@ -90,16 +90,82 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
+      "note": "Next is disabled on About you with blank age/bodyweight. First correct the provisional defaults to my actual three-day lifting plus cardio routine."
     },
     {
-      "checkpoint": "setup-page-7-review-defaults"
+      "tap": {
+        "text": "Back"
+      }
     },
     {
       "expect": {
+        "text": "Cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "checkpoint": "bike-after-lifting-selected"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "conventional-deadlift-selected"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Full-body rotation"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "three-days-per-week"
+    },
+    {
+      "tap": {
         "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your split"
       }
     },
     {
@@ -108,7 +174,73 @@
       }
     },
     {
-      "checkpoint": "setup-page-8-review-defaults"
+      "expect": {
+        "text": "Deadlift variant"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "About you"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "38",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "age-entered-bodyweight-still-blank"
+    },
+    {
+      "note": "Phase A did not give a current bodyweight. Use 180 lb as a plausible current weight for this persona, not a goal weight. The setup has not offered a way to skip these details."
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "180",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "LB"
+      }
+    },
+    {
+      "checkpoint": "about-you-filled"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-review-before-accepting"
     }
   ]
 }

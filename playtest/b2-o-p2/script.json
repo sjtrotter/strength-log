@@ -1,5 +1,8 @@
 {
   "seat": "b2-o-p2",
   "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
-  "steps": []
+  "steps": [
+    {"advance": "2s"},
+    {"checkpoint": "wizard-1"}
+  ]
 }

@@ -22,7 +22,7 @@
       }
     },
     {
-      "checkpoint": "setup-step-2-review"
+      "checkpoint": "setup-four-days"
     },
     {
       "tap": {
@@ -30,7 +30,13 @@
       }
     },
     {
-      "checkpoint": "setup-step-3-review"
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "setup-upper-lower"
     },
     {
       "tap": {
@@ -38,7 +44,23 @@
       }
     },
     {
-      "checkpoint": "setup-step-4-review"
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "setup-main-lifts-conventional-ohp"
     },
     {
       "tap": {
@@ -46,7 +68,19 @@
       }
     },
     {
-      "checkpoint": "setup-step-5-review"
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "checkpoint": "setup-cardio-outdoor-finishers"
     },
     {
       "tap": {
@@ -54,7 +88,27 @@
       }
     },
     {
-      "checkpoint": "setup-step-6-review"
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "34",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 3
+      }
+    },
+    {
+      "checkpoint": "setup-about-you-filled"
     },
     {
       "tap": {

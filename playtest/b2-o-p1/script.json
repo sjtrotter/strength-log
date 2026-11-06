@@ -20,7 +20,14 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "type": {
+    "text": "Days per week"
+   },
+   "value": "3",
+   "ime": "done"
+  },
+  {
+   "checkpoint": "w2-days"
   },
   {
    "tap": {
@@ -28,7 +35,7 @@
    }
   },
   {
-   "checkpoint": "w3"
+   "checkpoint": "w3-split"
   },
   {
    "tap": {
@@ -36,7 +43,12 @@
    }
   },
   {
-   "checkpoint": "w4"
+   "checkpoint": "w4-lifts"
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
   },
   {
    "tap": {
@@ -44,7 +56,17 @@
    }
   },
   {
-   "checkpoint": "w5"
+   "tap": {
+    "text": "Treadmill"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finishers after lifting"
+   }
+  },
+  {
+   "checkpoint": "w5-cardio"
   },
   {
    "tap": {
@@ -52,7 +74,31 @@
    }
   },
   {
-   "checkpoint": "w6"
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)"
+   },
+   "value": "172",
+   "ime": "done"
+  },
+  {
+   "type": {
+    "text": "Age"
+   },
+   "value": "26",
+   "ime": "done"
+  },
+  {
+   "tap": {
+    "text": "Novice"
+   }
+  },
+  {
+   "checkpoint": "w6-about"
   },
   {
    "tap": {

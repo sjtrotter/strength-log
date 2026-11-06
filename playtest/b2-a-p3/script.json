@@ -138,6 +138,99 @@
     },
     {
       "checkpoint": "setup-page-eight"
+    },
+    {
+      "note": "The generated five-day rotation is not my program. Inspect its remaining days, then finish setup so I can look for the editor. I have not trained these defaults."
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Day D"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Day E"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "rotation-carries-missed-work-forward"
+    },
+    {
+      "note": "I need Thursday to stay Thursday after the work trip, so this automatic rotation will need a workaround. Check that my full gym equipment is available before entering the app."
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Rack"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rack"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pullup Bar"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Kettlebell"
+      }
+    },
+    {
+      "expect": {
+        "text": "Kettlebell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "first-home-screen"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "home-after-reopen"
     }
   ]
 }

@@ -379,7 +379,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -456,7 +456,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -549,7 +549,7 @@
     },
     {
       "tap": {
-        "text": "3 × 10 at 150 lb"
+        "text": "3 \u00d7 10 at 150 lb"
       }
     },
     {
@@ -825,7 +825,7 @@
     },
     {
       "tap": {
-        "text": "Log 45 lb × 10"
+        "text": "Log 45 lb \u00d7 10"
       }
     },
     {
@@ -922,7 +922,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 5"
+        "text": "Log 135 lb \u00d7 5"
       }
     },
     {
@@ -1002,7 +1002,7 @@
     },
     {
       "tap": {
-        "text": "Log 185 lb × 3"
+        "text": "Log 185 lb \u00d7 3"
       }
     },
     {
@@ -1037,7 +1037,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1077,7 +1077,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "tap": {
-        "text": "Log 215 lb × 5"
+        "text": "Log 215 lb \u00d7 5"
       }
     },
     {
@@ -1155,7 +1155,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1166,7 +1166,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1177,7 +1177,7 @@
     },
     {
       "tap": {
-        "text": "Log 135 lb × 8"
+        "text": "Log 135 lb \u00d7 8"
       }
     },
     {
@@ -1228,7 +1228,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -1268,7 +1268,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -1419,7 +1419,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day D"
+        "text": "4-day upper/lower \u00b7 Day D"
       }
     },
     {
@@ -1652,7 +1652,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower · Day A"
+        "text": "4-day upper/lower \u00b7 Day A"
       }
     },
     {
@@ -1824,7 +1824,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb × 5"
+        "text": "Log 165 lb \u00d7 5"
       }
     },
     {
@@ -1835,7 +1835,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb × 5"
+        "text": "Log 165 lb \u00d7 5"
       }
     },
     {
@@ -1843,7 +1843,7 @@
     },
     {
       "tap": {
-        "text": "Log 165 lb × 5"
+        "text": "Log 165 lb \u00d7 5"
       }
     },
     {
@@ -2039,7 +2039,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 8"
+        "text": "Log 115 lb \u00d7 8"
       }
     },
     {
@@ -2047,7 +2047,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 8"
+        "text": "Log 115 lb \u00d7 8"
       }
     },
     {
@@ -2055,7 +2055,7 @@
     },
     {
       "tap": {
-        "text": "Log 115 lb × 8"
+        "text": "Log 115 lb \u00d7 8"
       }
     },
     {
@@ -2125,7 +2125,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb × 12"
+        "text": "Log 10 lb \u00d7 12"
       }
     },
     {
@@ -2133,7 +2133,7 @@
     },
     {
       "tap": {
-        "text": "Log 10 lb × 12"
+        "text": "Log 10 lb \u00d7 12"
       }
     },
     {
@@ -2193,11 +2193,106 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
       "checkpoint": "cardio-set-duration-and-intensity-fields"
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "15:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "tap": {
+        "text": "Outdoor walk"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next: Outdoor walk"
+      }
+    },
+    {
+      "expect": {
+        "text": "Outdoor walk"
+      }
+    },
+    {
+      "checkpoint": "tuesday-walk-time-only-ready"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-walk-primary-action"
+    },
+    {
+      "advance": "7m"
+    },
+    {
+      "checkpoint": "tuesday-walk-seven-minutes"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Outdoor walk"
+      }
+    },
+    {
+      "checkpoint": "tuesday-walk-after-reopening"
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "checkpoint": "tuesday-walk-fifteen-minutes"
     }
   ]
 }

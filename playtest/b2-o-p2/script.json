@@ -174,11 +174,14 @@
   },
   {
    "tap": {
-    "text": "Plan"
+    "text": "Other days"
    }
   },
   {
-   "checkpoint": "plan-tab"
+   "checkpoint": "other-days"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -190,11 +193,31 @@
   },
   {
    "tap": {
-    "text": "Settings"
+    "desc": "Settings"
    }
   },
   {
    "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans-tab"
+  },
+  {
+   "tap": {
+    "textContains": "Day A",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "plans-dayA"
   }
  ]
 }

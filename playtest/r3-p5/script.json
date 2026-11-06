@@ -2,132 +2,12 @@
  "seat": "r3-p5",
  "capture": "compact",
  "start": {
-  "date": "2026-11-08",
-  "time": "20:30",
+  "restore": "start-backup.json",
+  "date": "2026-11-09",
+  "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
-  {
-   "tap": {
-    "text": "Strength-leaning"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "type": {
-    "text": "Days per week",
-    "value": "2",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "days2"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "split2"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Outdoor run"
-   }
-  },
-  {
-   "tap": {
-    "text": "Separate days"
-   }
-  },
-  {
-   "checkpoint": "cardio-chosen"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "type": {
-    "text": "Bodyweight (lb)",
-    "value": "140",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Age",
-    "value": "29",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Intermediate"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "w7"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "w8"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "checkpoint": "today"
-  },
-  {
-   "tap": {
-    "desc": "Settings"
-   }
-  },
-  {
-   "checkpoint": "settings"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Other days"
-   }
-  },
-  {
-   "checkpoint": "otherdays"
-  },
-  {
-   "back": true
-  },
   {
    "tap": {
     "text": "Plans",
@@ -135,7 +15,26 @@
    }
   },
   {
-   "checkpoint": "plans"
+   "tap": {
+    "desc": "Plan options"
+   }
+  },
+  {
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "checkpoint": "new-plan"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -143,7 +42,35 @@
    }
   },
   {
-   "checkpoint": "plan-detail"
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "dayA-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day C1"
+   }
+  },
+  {
+   "checkpoint": "dayC1"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day A"
+   }
+  },
+  {
+   "checkpoint": "dayA-edit"
   }
  ]
 }

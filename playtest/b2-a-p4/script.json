@@ -1453,6 +1453,163 @@
       "back": true
     },
     {
+      "tap": {
+        "desc": "More options for Standing Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Crunch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rower"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "12:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "wednesday-rower-twelve-minutes-and-extra-lifts-removed"
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "shoulder",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "wednesday-search-shoulder-press"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pulldown",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "wednesday-search-pulldown"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "split",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "wednesday-search-split-squat"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "checkpoint": "wednesday-add-single-leg-exercise-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "swipe": {
+        "text": "Single-leg",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "wednesday-add-upper-body-movement-categories"
+    },
+    {
+      "back": true
+    },
+    {
       "back": true
     },
     {

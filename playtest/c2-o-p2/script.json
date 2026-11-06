@@ -1,0 +1,20 @@
+{
+  "seat": "c2-o-p2",
+  "start": {"restore": "start-backup.json", "date": "2026-11-18", "time": "19:30", "zone": "America/Chicago"},
+  "steps": [
+    {"checkpoint": "wed-today"},
+    {"tap": {"text": "History", "role": "Tab"}},
+    {"checkpoint": "wed-history"},
+    {"tap": {"desc": "More"}},
+    {"checkpoint": "wed-hist-more"},
+    {"back": true},
+    {"tap": {"text": "Trends and calendar"}},
+    {"checkpoint": "wed-trends"},
+    {"back": true},
+    {"tap": {"text": "Plans", "role": "Tab"}},
+    {"checkpoint": "wed-plans"},
+    {"tap": {"text": "Today", "role": "Tab"}},
+    {"tap": {"text": "Other days"}},
+    {"checkpoint": "wed-other-days"}
+  ]
+}

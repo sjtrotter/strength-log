@@ -4,13 +4,22 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
@@ -20,9 +29,12 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -444,6 +456,170 @@ class JournalBuilderTest {
             JournalBuilder.volume(listOf(tonnage(today.minusWeeks(20), 9_000.0)), WeightUnit.LB, today, zone),
         )
         assertNull(JournalBuilder.volume(emptyList(), WeightUnit.LB, today, zone))
+    }
+
+    // --- weekly distance ------------------------------------------------------
+
+    private val distanceToday = LocalDate.of(2026, 11, 5)
+
+    private fun cardioSession(
+        id: Long,
+        activity: CardioActivity? = CardioActivity.ROAD_RUN,
+        date: LocalDate = distanceToday,
+    ) = CardioSessionEntity(
+        id = id, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+        startedAt = millis(date) - 60_000, completedAt = millis(date), seconds = 60,
+        stepsCompleted = 1, activity = activity?.name,
+    )
+
+    private fun cardioResult(metres: Int?, status: CardioSetStatus = CardioSetStatus.FINISHED) = CardioSetResult(
+        spec = CardioSetSpec(CardioRole.WORK, Measure.Time(60)),
+        status = status, elapsedSeconds = 60, metres = metres,
+        distanceSource = metres?.let { DistanceSource.MANUAL },
+    )
+
+    @Test
+    fun `running totals add every run this week`() {
+        val sessions = listOf(
+            cardioSession(1, CardioActivity.ROAD_RUN, LocalDate.of(2026, 11, 3)),
+            cardioSession(2, CardioActivity.TREADMILL_RUN),
+        )
+        val sets = mapOf(1L to listOf(cardioResult(3219)), 2L to listOf(cardioResult(10_300)))
+
+        val rows = JournalBuilder.weeklyDistance(sessions, sets, distanceToday, zone)
+
+        assertEquals(listOf(WeeklyDistance(CardioFamily.RUN, 13_519, 0)), rows)
+        assertEquals("8.4 mi", DistanceUnit.MI.format(rows.single().metres.toInt()))
+    }
+
+    @Test
+    fun `a run without distance is counted, not guessed`() {
+        val sessions = listOf(
+            cardioSession(1, CardioActivity.ROAD_RUN, LocalDate.of(2026, 11, 3)),
+            cardioSession(2, CardioActivity.TREADMILL_RUN),
+            cardioSession(3, CardioActivity.TRAIL_RUN, LocalDate.of(2026, 11, 4)),
+        )
+        val sets = mapOf(
+            1L to listOf(cardioResult(3219)), 2L to listOf(cardioResult(10_300)),
+            3L to listOf(cardioResult(null)),
+        )
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 13_519, 1)),
+            JournalBuilder.weeklyDistance(sessions, sets, distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `skipped sets do not mark a session missing`() {
+        val sets = mapOf(1L to listOf(
+            cardioResult(5000), cardioResult(null, CardioSetStatus.SKIPPED),
+            cardioResult(1000, CardioSetStatus.SKIPPED),
+        ))
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 5000, 0)),
+            JournalBuilder.weeklyDistance(listOf(cardioSession(1)), sets, distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `last week is left out`() {
+        val session = cardioSession(1, date = LocalDate.of(2026, 11, 1))
+
+        assertEquals(
+            emptyList(),
+            JournalBuilder.weeklyDistance(listOf(session), mapOf(1L to listOf(cardioResult(5000))), distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `a legacy summary counts as missing`() {
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 0, 1)),
+            JournalBuilder.weeklyDistance(listOf(cardioSession(1, activity = null)), emptyMap(), distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `families stay apart`() {
+        val sessions = listOf(cardioSession(1, CardioActivity.ROWER), cardioSession(2, CardioActivity.OUTDOOR_RIDE))
+        val sets = mapOf(1L to listOf(cardioResult(2000)), 2L to listOf(cardioResult(20_000)))
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RIDE, 20_000, 0), WeeklyDistance(CardioFamily.ROW, 2000, 0)),
+            JournalBuilder.weeklyDistance(sessions, sets, distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `no cardio this week`() {
+        assertEquals(emptyList(), JournalBuilder.weeklyDistance(emptyList(), emptyMap(), distanceToday, zone))
+    }
+
+    @Test
+    fun `week boundaries use the session date in the supplied zone`() {
+        val localZone = ZoneId.of("America/Chicago")
+        val sessions = listOf(
+            cardioSession(1).copy(completedAt = Instant.parse("2026-11-02T05:59:59Z").toEpochMilli()),
+            cardioSession(2).copy(completedAt = Instant.parse("2026-11-02T06:00:00Z").toEpochMilli()),
+            cardioSession(3).copy(completedAt = Instant.parse("2026-11-09T05:59:59Z").toEpochMilli()),
+            cardioSession(4).copy(completedAt = Instant.parse("2026-11-09T06:00:00Z").toEpochMilli()),
+        )
+        val sets = sessions.associate { it.id to listOf(cardioResult(1000)) }
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 2000, 0)),
+            JournalBuilder.weeklyDistance(sessions, sets, distanceToday, localZone),
+        )
+    }
+
+    @Test
+    fun `unknown activity falls back to mode and unknown modes are left out`() {
+        val sessions = listOf(
+            cardioSession(1).copy(activity = "FUTURE_ACTIVITY"),
+            cardioSession(2, activity = null).copy(mode = "FUTURE_MODE"),
+            cardioSession(3, activity = null).copy(mode = "NONE"),
+        )
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 0, 1)),
+            JournalBuilder.weeklyDistance(sessions, emptyMap(), distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `partial sessions keep recorded distance and count missing distance once`() {
+        val sets = mapOf(1L to listOf(
+            cardioResult(2000, CardioSetStatus.SHORTENED),
+            cardioResult(null), cardioResult(null, CardioSetStatus.SHORTENED),
+        ))
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 2000, 1)),
+            JournalBuilder.weeklyDistance(listOf(cardioSession(1)), sets, distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `skipped only and recorded zero sessions do not count as missing`() {
+        val sessions = listOf(cardioSession(1), cardioSession(2))
+        val sets = mapOf(1L to listOf(cardioResult(null, CardioSetStatus.SKIPPED)), 2L to listOf(cardioResult(0)))
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 0, 0)),
+            JournalBuilder.weeklyDistance(sessions, sets, distanceToday, zone),
+        )
+    }
+
+    @Test
+    fun `distance totals retain values beyond the integer range`() {
+        val sets = mapOf(1L to listOf(cardioResult(Int.MAX_VALUE), cardioResult(Int.MAX_VALUE)))
+
+        assertEquals(
+            listOf(WeeklyDistance(CardioFamily.RUN, 2L * Int.MAX_VALUE, 0)),
+            JournalBuilder.weeklyDistance(listOf(cardioSession(1)), sets, distanceToday, zone),
+        )
     }
 
     // --- calendar -------------------------------------------------------------

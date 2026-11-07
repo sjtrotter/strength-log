@@ -5,7 +5,14 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.decodedCardioMode
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -181,6 +188,42 @@ object JournalBuilder {
                 )
             },
         )
+    }
+
+    /**
+     * The week runs from today's previous-or-same Monday to the next Monday in [zone], matching [volume].
+     * A session's family comes from its decoded activity, falling back to its legacy mode; sessions with neither are left out.
+     * A session's distance sums recorded meters over results whose status is not SKIPPED.
+     * A session is missing distance with no results or any non-SKIPPED result without meters.
+     * One row per family with a session this week, in CardioFamily order, sums distance and counts missing sessions.
+     */
+    fun weeklyDistance(
+        sessions: List<CardioSessionEntity>,
+        sets: Map<Long, List<CardioSetResult>>,
+        today: LocalDate,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): List<WeeklyDistance> {
+        val start = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val end = start.plusWeeks(1)
+        val totals = mutableMapOf<CardioFamily, WeeklyDistance>()
+        for (session in sessions) {
+            val date = Instant.ofEpochMilli(session.completedAt).atZone(zone).toLocalDate()
+            if (date < start || date >= end) continue
+            val activity = CardioActivity.entries.find { it.name == session.activity }
+                ?: CardioBlocks.activityOf(session.decodedCardioMode() ?: CardioMode.NONE)
+                ?: continue
+            val family = CardioFamily.of(activity)
+            val results = sets[session.id].orEmpty()
+            val performed = results.filter { it.status != CardioSetStatus.SKIPPED }
+            val metres = performed.sumOf { it.metres?.toLong() ?: 0L }
+            val missing = results.isEmpty() || performed.any { it.metres == null }
+            val total = totals[family] ?: WeeklyDistance(family, 0, 0)
+            totals[family] = total.copy(
+                metres = total.metres + metres,
+                missing = total.missing + if (missing) 1 else 0,
+            )
+        }
+        return CardioFamily.entries.mapNotNull { totals[it] }
     }
 
     /**

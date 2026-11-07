@@ -68,9 +68,6 @@
    }
   },
   {
-   "checkpoint": "cardio-set"
-  },
-  {
    "tap": {
     "text": "Next"
    }
@@ -100,7 +97,57 @@
    }
   },
   {
-   "checkpoint": "about-you"
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Clear all"
+   }
+  },
+  {
+   "tap": {
+    "text": "Barbell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Dumbbell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bodyweight"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bench"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Rack"
+   }
+  },
+  {
+   "tap": {
+    "text": "Rack"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Pullup Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Pullup Bar"
+   }
+  },
+  {
+   "checkpoint": "equipment"
   },
   {
    "tap": {
@@ -108,25 +155,65 @@
    }
   },
   {
-   "checkpoint": "w8"
+   "type": {
+    "text": "Weight (lb)",
+    "index": 0,
+    "value": "175"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "index": 0,
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 1,
+    "value": "275"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "index": 1,
+    "value": "5"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 2,
+    "value": "225"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "index": 2,
+    "value": "5"
+   }
+  },
+  {
+   "checkpoint": "recent-lifts"
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
-   "checkpoint": "w9"
+   "checkpoint": "rotation"
   },
   {
    "tap": {
-    "text": "Next"
-   },
-   "timeoutMs": 4000
+    "text": "Start"
+   }
   },
   {
-   "checkpoint": "w10"
+   "checkpoint": "today"
   }
  ]
 }

@@ -166,7 +166,7 @@ class DayViewModelPersonalRecordTest {
 
         val squatId = slotId("bb_back_squat")
         val card = vm.uiState.value.exercises.first { it.programExerciseId == squatId }
-        assertEquals("225 × 5", card.lastTimeDisplay)
+        assertEquals("225 lb × 5", card.lastTimeDisplay)
         assertEquals("245×5", card.personalRecordDisplay)
         collect.cancel()
     }
@@ -191,7 +191,7 @@ class DayViewModelPersonalRecordTest {
 
         val squatId = slotId("bb_back_squat")
         val card = vm.uiState.value.exercises.first { it.programExerciseId == squatId }
-        assertEquals("245 × 5", card.lastTimeDisplay)
+        assertEquals("245 lb × 5", card.lastTimeDisplay)
         assertNull(card.personalRecordDisplay)
         collect.cancel()
     }

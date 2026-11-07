@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.standards
 
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -35,6 +36,32 @@ object SetFormatter {
             TrackingType.WEIGHTED -> "$weight × $reps"
             TrackingType.REPS -> "$reps ${if (reps == 1) "rep" else "reps"}"
             TrackingType.TIMED -> "$seconds s" + if (weightLb > 0.0) " at $weight" else ""
+        }
+    }
+
+    /** Every performed set in logged order, neighbors at the same weight merged: "225 lb × 5, 5, 4". */
+    fun performed(sets: List<LoggedSet>, unit: WeightUnit): String {
+        val groups = mutableListOf<MutableList<LoggedSet>>()
+        for (set in sets) {
+            val tracking = trackingOfValues(set.weightLb, set.reps, set.seconds)
+            val previous = groups.lastOrNull()?.last()
+            if (previous != null &&
+                trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == tracking &&
+                (tracking != TrackingType.WEIGHTED || previous.weightLb == set.weightLb)
+            ) {
+                groups.last().add(set)
+            } else {
+                groups.add(mutableListOf(set))
+            }
+        }
+        return groups.joinToString(", ") { group ->
+            val first = group.first()
+            val tracking = trackingOfValues(first.weightLb, first.reps, first.seconds)
+            if (tracking == TrackingType.WEIGHTED) {
+                "${weight(first.weightLb, unit)} × ${group.joinToString(", ") { it.reps.toString() }}"
+            } else {
+                group.joinToString(", ") { display(tracking, it.weightLb, it.reps, it.seconds, unit) }
+            }
         }
     }
 

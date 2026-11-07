@@ -39,6 +39,41 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun `last shows every set`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(155.0, 5))),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            listOf(5, 5, 4).mapIndexed { index, reps ->
+                LoggedSet(155.0, reps, SetKind.WORK, done = true, plannedIndex = index)
+            }, started.runId)
+        repo.finishRun(started.runId)
+
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals("155 lb × 5, 5, 4", vm.uiState.value.lifts.single().previous.single().last)
+    }
+
+    @Test fun `last shows every working set of a mixed ramp session`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN, listOf(
+            LoggedSet(135.0, 5, SetKind.RAMP, done = true, plannedIndex = 0),
+            LoggedSet(235.0, 5, SetKind.TOP, done = true, plannedIndex = 1),
+            LoggedSet(175.0, 8, SetKind.BACKOFF, done = true, plannedIndex = 2),
+        ), started.runId)
+        repo.finishRun(started.runId)
+
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals("235 lb × 5, 175 lb × 8", vm.uiState.value.lifts.single().previous.single().last)
+    }
+
     @Test fun previewReadsTheSlotsStickyNoteAndTracksEdits() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -131,7 +166,7 @@ class PreviewViewModelTest : OverviewFixture() {
         assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
         assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
         assertEquals("3 × 5 · 45 lb", vm.uiState.value.lifts.single().working)
-        assertEquals("45 lb × 4", vm.uiState.value.lifts.single().previous.single().last)
+        assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
         assertNull(vm.uiState.value.lifts.single().previous.single().source)
 
         val miss = repo.startRun(plan, "B") as RunStartResult.Started
@@ -141,7 +176,7 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
         assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
-        assertEquals("45 lb × 4", vm.uiState.value.lifts.single().previous.single().last)
+        assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
         assertNull(vm.uiState.value.lifts.single().previous.single().source)
     }
 
@@ -168,7 +203,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
         advanceUntilIdle()
         assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
-        assertEquals("55 lb × 5", vm.uiState.value.lifts.single().previous.single().last)
+        assertEquals("55 lb × 5, 5, 5", vm.uiState.value.lifts.single().previous.single().last)
         assertEquals("B", vm.uiState.value.lifts.single().previous.single().source)
 
         vm.setWorkingWeight(a, offer.offerLb)

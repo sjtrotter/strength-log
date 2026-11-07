@@ -30,7 +30,15 @@ object ReceiptBuilder {
         names: (String) -> String,
         standing: Map<String, PersonalRecord>,
         targets: Map<Long, List<LoggedSet>> = emptyMap(),
-    ): List<ReceiptGroup> = buildList {
+    ): List<ReceiptGroup> = strengthWithTracks(tracks, slots, names, standing, targets).map { it.first }
+
+    internal fun strengthWithTracks(
+        tracks: List<RunTrack>,
+        slots: List<ProgramSlot>,
+        names: (String) -> String,
+        standing: Map<String, PersonalRecord>,
+        targets: Map<Long, List<LoggedSet>> = emptyMap(),
+    ): List<Pair<ReceiptGroup, List<RunTrack>>> = buildList {
         for (slot in slots.sortedBy { it.position }) {
             val captured = tracks.filter { it.programExerciseId == slot.programExerciseId }.sortedBy { it.position }
             val mains = captured.filter { it.slot == Slot.MAIN }
@@ -49,18 +57,19 @@ object ReceiptBuilder {
             val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
-                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing, plan(track, slot, targets)))))
+                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing, plan(track, slot, targets)))) to listOf(track))
             }
             if (main != null) {
-                val rows = listOfNotNull(main, partner).map {
+                val rowTracks = listOfNotNull(main, partner)
+                val rows = rowTracks.map {
                     row(it, slot.structureOf(it), names(it.exerciseId), standing, plan(it, slot, targets))
                 }
-                add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows))
+                add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows) to rowTracks)
             }
         }
         val slotIds = slots.map { it.programExerciseId }.toSet()
         for (track in tracks.filter { it.programExerciseId !in slotIds }.sortedBy { it.position }) {
-            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing, plan(track, null, targets)))))
+            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing, plan(track, null, targets)))) to listOf(track))
         }
     }
 
@@ -95,10 +104,15 @@ object ReceiptBuilder {
         val record = bestIndex?.let { record(done, it, standing[track.exerciseId]) }
         if (structure.hasTopSet && tracking == TrackingType.WEIGHTED) {
             val top = highestIndex(done, indices.filter { done[it].kind == SetKind.TOP })
+            if (top != null) {
+                val rest = indices.filter { it != top && done[it].kind != SetKind.RAMP }
+                val lines = listOf(ValueLine(done[top].weightLb, listOf(top))) + valueLines(done, rest, tracking)
+                val lighterSets = if (rest.map { done[it].weightLb }.distinct().size > 2) rest.size - 1 else 0
+                return ReceiptRow(name, tracking, ReceiptRow.Shape.TOP_SET, sets, lines, lighterSets, planned, record)
+            }
             // With no top set, a record set must be the one shown: these rows never open.
-            val index = top ?: record?.setIndex ?: requireNotNull(highestIndex(done, indices))
-            val shape = if (top == null) ReceiptRow.Shape.HEAVIEST_NO_TOP else ReceiptRow.Shape.TOP_SET
-            return ReceiptRow(name, tracking, shape, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, planned, record)
+            val index = record?.setIndex ?: requireNotNull(highestIndex(done, indices))
+            return ReceiptRow(name, tracking, ReceiptRow.Shape.HEAVIEST_NO_TOP, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, planned, record)
         }
         val lines = valueLines(done, indices, tracking)
         val lighterSets = if (tracking == TrackingType.WEIGHTED && indices.map { done[it].weightLb }.distinct().size >= 3) {

@@ -48,7 +48,7 @@ class ReceiptBuilderTest {
         assertEquals("Barbell Back Squat", row.name)
         assertEquals(TrackingType.WEIGHTED, row.tracking)
         assertEquals(ReceiptRow.Shape.TOP_SET, row.shape)
-        assertEquals(listOf(ValueLine(245.0, listOf(4))), row.lines)
+        assertEquals(listOf(ValueLine(245.0, listOf(4)), ValueLine(185.0, listOf(5))), row.lines)
         assertEquals(RecordMark(PrKind.WEIGHT, null, 4, ReceiptSet(240.0, 5, 0)), row.record)
         assertEquals(PlannedSets(6, 130.0, 5, 0), row.planned)
         assertEquals(0, row.lighterSets)
@@ -56,6 +56,39 @@ class ReceiptBuilderTest {
             ReceiptSet(130.0, 5, 0), ReceiptSet(165.0, 5, 0), ReceiptSet(190.0, 5, 0),
             ReceiptSet(210.0, 3, 0), ReceiptSet(245.0, 5, 0), ReceiptSet(185.0, 8, 0),
         ), row.sets)
+    }
+
+    @Test
+    fun `a ramped row lists its back-off after the top set`() {
+        val row = row(squat(), SetStructure.RAMP_TOP_BACKOFF)
+        assertEquals(listOf(ValueLine(245.0, listOf(4)), ValueLine(185.0, listOf(5))), row.lines)
+    }
+
+    @Test
+    fun `extra sets at the top weight join the second line`() {
+        val track = squat(topWeight = 95.0).let { track ->
+            track.copy(sets = track.sets.map { if (it.kind == SetKind.BACKOFF) it.copy(weightLb = 95.0, reps = 5) else it })
+        }
+        val row = row(track, SetStructure.RAMP_TOP_BACKOFF)
+        assertEquals(listOf(ValueLine(95.0, listOf(4)), ValueLine(95.0, listOf(5))), row.lines)
+    }
+
+    @Test
+    fun `strengthWithTracks pairs each row with its track`() {
+        val retired = track(exerciseId = "db_press", sets = listOf(work(60.0, 8)), retired = true, position = 2)
+        val main = track(exerciseId = "bb_bench", sets = List(3) { work(185.0, 5) })
+        val partner = track(exerciseId = "bb_row", sets = List(2) { work(155.0, 8) }, slot = Slot.SS, position = 1)
+        val removed = track(exerciseId = "removed", sets = listOf(work(35.0, 10)), programExerciseId = null, position = 3)
+        val tracks = listOf(partner, removed, retired, main)
+        val slots = listOf(supersetSlot())
+        val paired = ReceiptBuilder.strengthWithTracks(tracks, slots, { it }, emptyMap())
+
+        assertEquals(listOf(listOf(retired), listOf(main, partner), listOf(removed)), paired.map { it.second })
+        paired.forEach { (group, rowTracks) ->
+            assertEquals(group.rows.size, rowTracks.size)
+            assertEquals(group.rows.map { it.name }, rowTracks.map { it.exerciseId })
+        }
+        assertEquals(ReceiptBuilder.strength(tracks, slots, { it }, emptyMap()), paired.map { it.first })
     }
 
     @Test
@@ -109,7 +142,7 @@ class ReceiptBuilderTest {
         val row = row(track(sets = listOf(
             work(245.0, 4, kind = SetKind.TOP), work(245.0, 6, kind = SetKind.TOP),
         )), SetStructure.RAMP_TOP)
-        assertEquals(listOf(ValueLine(245.0, listOf(1))), row.lines)
+        assertEquals(listOf(ValueLine(245.0, listOf(1)), ValueLine(245.0, listOf(0))), row.lines)
     }
 
     @Test

@@ -207,6 +207,58 @@ class DayViewModelReceiptTest {
     }
 
     @Test
+    fun `the receipt hides the increase with strength offers off`() = runVmTest {
+        insertStraightProgram()
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        repo.plans.setOfferStrengthIncreases(planId, false)
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, emptyList()), vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
+    fun `the receipt hides repeat with strength offers off`() = runVmTest {
+        insertStraightProgram()
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        repo.plans.setOfferStrengthIncreases(planId, false)
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        vm.toggleDone(slotId(), 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        vm.changeReps(slotId(), Slot.MAIN, 2, 4)
+        advanceUntilIdle()
+        completeOneSession(vm)
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, emptyList()), vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
+    fun `receipt strength offers use the finishing plan switch`() = runVmTest {
+        insertStraightProgram()
+        val owner = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val other = repo.plans.duplicatePlan(owner, "Preferred")
+        repo.plans.setOfferStrengthIncreases(other, false)
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        repo.plans.useOnly(other)
+        advanceUntilIdle()
+        assertEquals(owner, vm.uiState.value.planId)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(owner, repo.history.session(receipt.sessionId)?.planId)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 220.0, 215.0))),
+            vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
     fun `a mixed session gives each lift its own next time`() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Mixed", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(215.0, 5)),

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -257,7 +258,7 @@ class DayViewModel @Inject constructor(
                                     day.catalog.find(track.exerciseId)?.name ?: track.exerciseId, doneCount,
                                 )
                             })
-                    CommittedDay(state, tracks)
+                    CommittedDay(state, tracks, ctx)
                 }
                 }
             }
@@ -362,7 +363,7 @@ class DayViewModel @Inject constructor(
             val (committed, record, now) = input
             val state = committed.state
             val (run, event) = execution
-            val cardio = buildCardioState(state, history.first, history.second, run)
+            val cardio = buildCardioState(state, history.first, history.second, run, committed.context)
             val timedRep = reconcileTimedRep(state, event)
             val rendered = state.copy(
                 keepScreenOn = preferences,
@@ -607,6 +608,16 @@ class DayViewModel @Inject constructor(
         closeSheet()
     }
 
+    fun applyCardioNextTime(block: CardioBlock) {
+        val state = uiState.value
+        val planId = state.planId ?: return
+        val dayId = state.viewDayId ?: return
+        mutate {
+            if (uiState.value.planId != planId || currentDay() != dayId || cardioRun.value != null) return@mutate
+            repo.setCardioWorking(planId, dayId, block)
+        }
+    }
+
     fun startCardio() {
         if (timedRepEvent.value?.awaitingCount == false) return
         val existing = cardioRun.value
@@ -629,7 +640,7 @@ class DayViewModel @Inject constructor(
         val plan = plans.plansFlow.first().firstOrNull { it.id == planId } ?: return null
         val program = plans.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
-        val block = day.cardioBlock ?: return null
+        val block = day.cardioToRun ?: return null
         val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
@@ -1893,11 +1904,11 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
             exercises = performedDay.slots.map { slot ->
-                buildCard(slot, ctx.unit, history).copy(
+                buildCard(slot, ctx.unit, history, ctx.plan?.offerStrengthIncreases ?: true).copy(
                     weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
                 )
             },
-            cardio = day.cardioBlock?.let {
+            cardio = day.cardioToRun?.let {
                 CardioCardState(label = activityLabel(it.activity), detail = it.plannedTimeDetail(),
                     hard = it.sets.any { spec -> spec.hard }, block = it, finishesDay = day.exercises.isEmpty())
             },
@@ -1994,7 +2005,7 @@ class DayViewModel @Inject constructor(
             }
             endCardioRun(run.reconcile(cardioClock).copy(showReceipt = false))
         } else if (run.startedAt == null &&
-            day.cardioBlock?.let(CardioBlockJson::encode) != run.sourceBlockJson
+            day.cardioToRun?.let(CardioBlockJson::encode) != run.sourceBlockJson
         ) {
             clearCardioExecution()
         }
@@ -2005,6 +2016,7 @@ class DayViewModel @Inject constructor(
         history: List<CardioSessionEntity>,
         sets: Map<Long, List<cloud.trotter.log.strength.domain.model.CardioSetResult>>,
         savedRun: CardioRun?,
+        context: DayContext?,
     ): CardioCardState? {
         // An invalidated run still owns the execution slot until its save succeeds.
         // Keep its existing failure/Retry card reachable from the day now in view.
@@ -2029,10 +2041,17 @@ class DayViewModel @Inject constructor(
             CardioCardState(activityLabel(it.block.activity), "", it.block.sets.any { spec -> spec.hard },
                 block = it.block, finishesDay = it.finishesDay)
         }
+        val day = context?.program?.days?.firstOrNull { it.id == state.viewDayId }
+        val plan = context?.plan
+        val last = history.filter { it.planId == state.planId && it.dayId == state.viewDayId }
+            .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
+        val nextTime = if (savedRun == null && frozen == null && logged == null && day != null && plan != null) {
+            DayScreenBuilder.cardioNextTime(day, plan, last, last?.let { sets[it.id] })
+        } else null
         val base = sourceCard?.let { source ->
             val loggedActivity = logged?.activity?.let { name -> CardioActivity.entries.firstOrNull { it.name == name } }
             val completed = activeRun == null && loggedSets.isNotEmpty()
-            source.copy(distanceUnit = distanceUnit.value, loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
+            source.copy(nextTime = nextTime, distanceUnit = distanceUnit.value, loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
                 label = if (completed && loggedActivity != null) activityLabel(loggedActivity) else source.label,
                 loggedActivity = loggedActivity,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
@@ -2089,6 +2108,7 @@ class DayViewModel @Inject constructor(
         slot: PerformedSlot,
         unit: WeightUnit,
         history: DayHistory,
+        offersOn: Boolean,
     ): ExerciseCardState {
         val id = slot.slot.programExerciseId
         val performed = slot.main.performed
@@ -2145,10 +2165,10 @@ class DayViewModel @Inject constructor(
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
             nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[performed.exerciseId to Slot.MAIN], pe.keepToPlan, unit,
-                history.progressionSessions[performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb),
+                history.progressionSessions[performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb, offersOn = offersOn),
             partnerNextTime = slot.partner?.let {
                 DayScreenBuilder.nextTime(it.sets, history.slotSessions[it.performed.exerciseId to Slot.SS], pe.keepToPlan, unit,
-                    history.progressionSessions[it.performed.exerciseId].orEmpty(), openingWeightLb = it.loadLb)
+                    history.progressionSessions[it.performed.exerciseId].orEmpty(), openingWeightLb = it.loadLb, offersOn = offersOn)
             },
             perHand = entry?.perHand == true,
             tracking = tracking,
@@ -2174,7 +2194,7 @@ class DayViewModel @Inject constructor(
     private fun lastTimeDate(millis: Long): String = java.time.format.DateTimeFormatter
         .ofPattern("MMM d", java.util.Locale.US).format(java.time.Instant.ofEpochMilli(millis).atZone(clock.zone))
 
-    private data class CommittedDay(val state: DayUiState, val tracks: DayTracks? = null)
+    private data class CommittedDay(val state: DayUiState, val tracks: DayTracks? = null, val context: DayContext? = null)
 
     /** One day's worth of batched history reads (see [fetchDayHistory]): the A1
      *  "last time" chip and the performance-profile "Best" chip share the same

@@ -8,16 +8,17 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_20_21
 import cloud.trotter.log.strength.data.db.StrengthDatabase
-import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
-import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
-import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,33 +29,21 @@ import org.robolectric.annotation.Config
 class Migration20To21Test {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val name = "migration-20-to-21-test.db"
-    private val working = SetJson.encodeSets(listOf(LoggedSet(245.0, 5, SetKind.TOP)))
+    private val block = CardioBlockJson.encode(CardioBlock(CardioActivity.ROAD_RUN,
+        listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200)))))
 
     @After fun cleanup() { context.deleteDatabase(name) }
 
-    @Test fun `v20 cardio sessions survive with an empty note after two opens`() = runTest {
+    @Test fun `v20 cardio and plan values survive with default Next time settings`() = runTest {
         createV20().close()
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
                 .addMigrations(MIGRATION_20_21).allowMainThreadQueries().build()
             try {
-                assertEquals(CardioSessionEntity(12, "A", "OUTDOOR_RUN", false, "Road run",
-                    1000, 2413000, 2412, 1, 1, "Plan", "ROAD_RUN", ""),
-                    db.cardioSessionDao().all().single())
-                val slot = db.programDao().allExercises().single()
-                assertNull(slot.parkedLogsJson)
-                assertEquals(
-                    ProgramExerciseEntity(7, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 6,
-                        "ez_curl", "slot note", keepToPlan = true),
-                    slot,
-                )
-                assertEquals(listOf(ExerciseLogEntity(1, "A", 7, "main", working, 3000)),
-                    db.programDao().allLogs())
-                assertEquals(210.5, db.sessionDao().allSessions().single().bodyweightLb ?: Double.NaN, 0.0)
-                db.openHelper.writableDatabase.query("SELECT parkedLogsJson FROM program_exercise").use { cursor ->
-                    check(cursor.moveToFirst())
-                    assertNull(cursor.getString(0))
-                }
+                assertEquals(PlanEntity(1, "Running", "AUTHORED", 0, 1000,
+                    suggestedDayId = "A", onToday = true), db.planDao().allPlans().single())
+                assertEquals(ProgramDayEntity(1, "A", 0, "Run", "Easy", null, "CARDIO", block,
+                    "next-run", 2000), db.programDao().allDays().single())
             } finally { db.close() }
         }
     }
@@ -63,12 +52,8 @@ class Migration20To21Test {
         val callback = object : SupportSQLiteOpenHelper.Callback(20) {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 V20.forEach(db::execSQL)
-                db.execSQL("INSERT INTO cardio_session VALUES (12,'A','OUTDOOR_RUN',0,'Road run',1000,2413000,2412,1,1,'Plan','ROAD_RUN')")
-                db.execSQL("INSERT INTO plan VALUES (1,'Plan','GENERATED',0,1000,0,NULL,'A',1)")
-                db.execSQL("INSERT INTO program_day VALUES (1,'A',0,'Day A','',NULL,'STRENGTH',NULL,'next-run',NULL)")
-                db.execSQL("INSERT INTO program_exercise VALUES (7,1,'A',0,'bb_back_squat','RAMP_TOP_BACKOFF',6,'ez_curl','slot note',NULL,1,NULL)")
-                db.execSQL("INSERT INTO exercise_log VALUES (1,'A',7,'main',?,3000)", arrayOf(working))
-                db.execSQL("INSERT INTO workout_session VALUES (9,'A','Day A',1000,2000,210.5,1,'Plan','finished','[]','note')")
+                db.execSQL("INSERT INTO plan VALUES (1,'Running','AUTHORED',0,1000,0,NULL,'A',1)")
+                db.execSQL("INSERT INTO program_day VALUES (1,'A',0,'Run','Easy',NULL,'CARDIO',?,'next-run',2000)", arrayOf(block))
             }
             override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
         }

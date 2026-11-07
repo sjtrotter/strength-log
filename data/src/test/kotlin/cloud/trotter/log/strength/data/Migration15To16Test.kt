@@ -12,10 +12,13 @@ import cloud.trotter.log.strength.data.db.MIGRATION_17_18
 import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.MIGRATION_19_20
 import cloud.trotter.log.strength.data.db.MIGRATION_20_21
+import cloud.trotter.log.strength.data.db.MIGRATION_21_22
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,21 +71,34 @@ class Migration15To16Test {
             SupportSQLiteOpenHelper.Configuration.builder(context).name(name).callback(callback).build(),
         )
         val tables = listOf("plan", "program_day", "exercise_log", "workout_session", "workout_run")
-        val before = tables.associateWith { rows(helper.writableDatabase, it) }
+        val columns = tables.associateWith { table ->
+            helper.writableDatabase.query("SELECT * FROM `$table` LIMIT 0").use { it.columnNames.toList() }
+        }
+        val before = tables.associateWith { rows(helper.writableDatabase, it, columns.getValue(it)) }
         helper.close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22).allowMainThreadQueries().build()
         try {
-            assertTrue(db.planDao().allPlans().none { it.onToday })
+            db.planDao().allPlans().forEach { plan ->
+                assertFalse(plan.onToday)
+                assertTrue(plan.offerStrengthIncreases)
+                assertFalse(plan.offerCardioIncreases)
+            }
+            db.programDao().allDays().single().let { day ->
+                assertNull(day.cardioWorkingJson)
+                assertFalse(day.cardioKeepToPlan)
+                assertNull(day.cardioProgressBy)
+                assertNull(day.cardioIncreasePercent)
+            }
             tables.forEach { table ->
-                val after = rows(db.openHelper.writableDatabase, table)
-                assertEquals(before.getValue(table), if (table == "plan") after.map { it.dropLast(1) } else after)
+                val after = rows(db.openHelper.writableDatabase, table, columns.getValue(table))
+                assertEquals(table, before.getValue(table), after)
             }
         } finally { db.close() }
     }
 
-    private fun rows(db: SupportSQLiteDatabase, table: String): List<List<String?>> =
-        db.query("SELECT * FROM $table ORDER BY rowid").use { cursor ->
+    private fun rows(db: SupportSQLiteDatabase, table: String, columns: List<String>): List<List<String?>> =
+        db.query("SELECT ${columns.joinToString(",") { "`$it`" }} FROM `$table` ORDER BY rowid").use { cursor ->
             buildList {
                 while (cursor.moveToNext()) add(List(cursor.columnCount) { index ->
                     if (cursor.isNull(index)) null

@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -193,6 +194,32 @@ class DayViewModelManualCardioTest {
         val calendar = requireNotNull(JournalBuilder.calendar(emptyList(), 0, today, zone, sessions))
         assertEquals("A", calendar.days.single { it.dayOfMonth == date.dayOfMonth }.dayLetter)
         assertNull(vm.uiState.value.cardio?.loggedSessionId)
+    }
+
+    @Test fun `a past cardio entry offers the next increase before a live run`() = runTest(dispatcher) {
+        val plan = prepare(mixed = true)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val vm = readyVm()
+        enter(vm, now - 2 * 86_400_000L - 2_700_000)
+        vm.changePastCardio(requireNotNull(vm.pastCardio.value).copy(seconds = 2700))
+        vm.savePastCardio()
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals("Easy", session.note)
+        assertNull(vm.uiState.value.cardio?.loggedSessionId)
+        assertEquals(block, vm.uiState.value.cardio?.block)
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertEquals(block, offer.opening)
+        assertEquals(Measure.Time(2835), offer.offered.sets.single().end)
+        vm.applyCardioNextTime(offer.offered)
+        runCurrent()
+        assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        vm.startCardio()
+        runCurrent()
+        assertNull(vm.uiState.value.cardio?.nextTime)
+        assertEquals(offer.offered, vm.uiState.value.cardio?.run?.block)
+        assertEquals(session, repo.history.cardioSession(session.id))
     }
 
     @Test fun `a cardio finisher logged after the fact does not finish a lift day`() = runTest(dispatcher) {

@@ -40,6 +40,8 @@ import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -151,9 +153,27 @@ class TrackerRepository(
             if (block == null && programDao.exercisesForDay(planId, dayId).isEmpty()) return@withTransaction false
             // encode reconstructs the domain objects, enforcing all their requires.
             val json = block?.let(CardioBlockJson::encode)
-            programDao.upsertDay(day.copy(cardioBlockJson = json, cardioJson = null))
+            programDao.upsertDay(day.copy(cardioBlockJson = json, cardioJson = null, cardioWorkingJson = null))
             true
         }
+
+    suspend fun setCardioKeepToPlan(planId: Long, dayId: String, keep: Boolean) {
+        db.withTransaction { programDao.setCardioKeepToPlan(planId, dayId, keep) }
+    }
+
+    suspend fun setCardioProgression(planId: Long, dayId: String, measure: ProgressMeasure, percent: Int) {
+        programDao.setCardioProgression(planId, dayId, measure.name,
+            percent.coerceIn(CardioProgression.MIN_PERCENT, CardioProgression.MAX_PERCENT))
+    }
+
+    suspend fun setCardioWorking(planId: Long, dayId: String, block: CardioBlock): Boolean = db.withTransaction {
+        val day = programDao.day(planId, dayId) ?: return@withTransaction false
+        val plan = CardioBlockJson.decode(day.cardioBlockJson) ?: return@withTransaction false
+        if (day.cardioKeepToPlan || block.activity != plan.activity ||
+            block.sets.map { it.role } != plan.sets.map { it.role }) return@withTransaction false
+        programDao.setCardioWorking(planId, dayId, if (block.sets == plan.sets) null else CardioBlockJson.encode(block))
+        true
+    }
 
     /** Sets belong to the slot, never the prescription JSON. Null keeps its current count.
      * A structure, when given, is written in the same transaction.

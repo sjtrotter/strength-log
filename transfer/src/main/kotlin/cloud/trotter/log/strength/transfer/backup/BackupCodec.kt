@@ -13,6 +13,8 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
@@ -102,7 +104,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -142,7 +144,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withCardioNotes = if (version < 20) {
+        val withCardioNotes = if (version < 21) {
             val sessions = shaped["cardioSessions"] as? JsonArray
             if (sessions == null) shaped else JsonObject(shaped + ("cardioSessions" to JsonArray(
                 sessions.map { if (it is JsonObject) JsonObject(it - "note") else it },
@@ -168,7 +170,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if (settings == null) versioned else JsonObject(versioned + ("settings" to JsonObject(settings - "distanceUnit")))
         } else versioned
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(withDistanceUnit, version), version))
+            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(withVersionedCardioProgress(withDistanceUnit, version), version), version))
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -176,6 +178,26 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withVersionedCardioProgress(root: JsonObject, version: Int): JsonObject {
+        if (version >= 20) return root
+        val dayFields = setOf("cardioWorkingJson", "cardioKeepToPlan", "cardioProgressBy", "cardioIncreasePercent")
+        fun stripDays(value: JsonElement?): JsonElement? = (value as? JsonArray)?.let { days ->
+            JsonArray(days.map { if (it is JsonObject) JsonObject(it - dayFields) else it })
+        } ?: value
+        return JsonObject(root.toMutableMap().apply {
+            stripDays(get("program"))?.let { put("program", it) }
+            (get("plans") as? JsonArray)?.let { plans ->
+                put("plans", JsonArray(plans.map { plan ->
+                    if (plan !is JsonObject) plan else {
+                        val stripped = plan - "offerStrengthIncreases" - "offerCardioIncreases"
+                        val days = stripDays(plan["days"])
+                        JsonObject(if (days == null) stripped else stripped + ("days" to days))
+                    }
+                }))
+            }
+        })
     }
 
     private fun withVersionedBodyweights(root: JsonObject, version: Int): JsonObject {
@@ -372,6 +394,22 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     plan.days.forEach { day ->
                         day.cardioBlockJson?.let { block ->
                             decodePayload("cardioBlockJson of day '${day.dayId}'") { CardioBlockJson.validate(block) }
+                        }
+                        if (doc.schemaVersion >= 20) {
+                            day.cardioWorkingJson?.let { working ->
+                                if (day.cardioBlockJson == null) throw BackupError.Inconsistent("cardio working block requires a plan block")
+                                try {
+                                    CardioBlockJson.validate(working)
+                                } catch (_: IllegalArgumentException) {
+                                    throw BackupError.Inconsistent("invalid cardio working block on day '${day.dayId}'")
+                                }
+                            }
+                            if (day.cardioProgressBy != null && ProgressMeasure.entries.none { it.name == day.cardioProgressBy }) {
+                                throw BackupError.Inconsistent("unknown cardio progress measure '${day.cardioProgressBy}'")
+                            }
+                            if (day.cardioIncreasePercent != null &&
+                                day.cardioIncreasePercent !in CardioProgression.MIN_PERCENT..CardioProgression.MAX_PERCENT
+                            ) throw BackupError.Inconsistent("cardio increase must be 1..25 on day '${day.dayId}'")
                         }
                     }
                 }

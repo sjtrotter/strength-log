@@ -25,6 +25,8 @@ object PlanScreenBuilder {
             name = plan?.name,
             planId = plan?.id,
             hasProgram = days.isNotEmpty(),
+            offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
+            offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
             goals = if (generated) SetupStateBuilder.goalPreview(answers.config, answers, unit) else emptyList(),
             emphasis = if (generated) answers.config.emphasis else null,

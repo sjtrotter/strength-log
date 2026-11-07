@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -54,14 +55,25 @@ class PreviewViewModel @Inject constructor(
         }
     }
 
+    private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
+        sessions to sets
+    }
+
     val uiState = combine(
-        repo.observeDay(planId, dayId), settings.unitFlow, history, plans.plansFlow,
-    ) { performedDay, unit, history, plans ->
+        repo.observeDay(planId, dayId), settings.unitFlow, history, plans.plansFlow, cardioHistory,
+    ) { performedDay, unit, history, plans, cardioHistory ->
         val (last, slotSessions, progressionSessions) = history
         val day = performedDay.day
+        val plan = plans.firstOrNull { it.id == planId }
+        val (cardioSessions, cardioSets) = cardioHistory
+        val lastCardio = cardioSessions.filter { it.planId == planId && it.dayId == dayId }
+            .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
+        val cardioNextTime = if (day != null && plan != null) {
+            DayScreenBuilder.cardioNextTime(day, plan, lastCardio, lastCardio?.let { cardioSets[it.id] })
+        } else null
         PreviewUiState(
             loading = false, selection = selection, runId = performedDay.tracks.runId,
-            planName = plans.firstOrNull { it.id == planId }?.name.orEmpty(),
+            planName = plan?.name.orEmpty(),
             dayIndex = Program.accentIndex(dayId),
             title = day?.title.orEmpty(), emphasis = day?.emphasisLine.orEmpty(),
             lifts = performedDay.slots.map { slot ->
@@ -75,7 +87,8 @@ class PreviewViewModel @Inject constructor(
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
                 val nextTime = DayScreenBuilder.nextTime(slot.main.sets,
                     slotSessions[slot.main.performed.exerciseId to Slot.MAIN], slot.slot.exercise.keepToPlan, unit,
-                    progressionSessions[slot.main.performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb)
+                    progressionSessions[slot.main.performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb,
+                    offersOn = plan?.offerStrengthIncreases ?: true)
                 val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
                     val slotLast = last[track.performed.exerciseId to slotName]
                     val previous = slotLast?.last
@@ -98,12 +111,18 @@ class PreviewViewModel @Inject constructor(
                     working, previousResults, nextTime, note = slot.slot.exercise.note,
                     programExerciseId = slot.slot.programExerciseId)
             },
-            cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
+            cardio = day?.cardioToRun?.let { block ->
+                PreviewCardio(activityLabel(block.activity), block.plannedTimeDetail(), block.activity, cardioNextTime)
+            },
         )
     }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PreviewUiState(selection = selection))
 
     fun start() = workoutStart.start(selection)
+
+    fun applyCardioNextTime(block: CardioBlock) {
+        viewModelScope.launch { repo.setCardioWorking(planId, dayId, block) }
+    }
 
     fun setWorkingWeight(programExerciseId: Long, weightLb: Double) {
         val runId = uiState.value.runId ?: return

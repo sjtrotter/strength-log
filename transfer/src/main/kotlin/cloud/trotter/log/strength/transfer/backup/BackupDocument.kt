@@ -23,9 +23,10 @@ import kotlinx.serialization.Serializable
  * v17 adds bodyweight at tenths-of-a-pound precision.
  * v18 carries parked Progress working values while Next time is Plan.
  * v19 carries the distance unit when the lifter chose one.
- * v20 carries each cardio session's note.
+ * v20 carries cardio Next time (working block, Plan choice, Progress by, Increase by) and each plan's offer switches.
+ * v21 carries each cardio session's note.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 20
+const val CURRENT_SCHEMA_VERSION: Int = 21
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -185,6 +186,8 @@ data class PlanBackup(
     /** The plan's rotation position. */
     val suggestedDay: String? = null,
     val onToday: Boolean? = null,
+    val offerStrengthIncreases: Boolean = true,
+    val offerCardioIncreases: Boolean = false,
 )
 
 /** One program day with its ordered exercise slots. */
@@ -199,6 +202,10 @@ data class ProgramDayBackup(
     val cardioBlockJson: String? = null,
     val nextRunId: String = "",
     val closedAt: Long? = null,
+    val cardioWorkingJson: String? = null,
+    val cardioKeepToPlan: Boolean = false,
+    val cardioProgressBy: String? = null,
+    val cardioIncreasePercent: Int? = null,
 )
 
 @Serializable

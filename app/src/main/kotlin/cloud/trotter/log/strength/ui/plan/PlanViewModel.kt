@@ -58,6 +58,14 @@ class PlanViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
 
+    fun setOfferStrengthIncreases(on: Boolean) {
+        viewModelScope.launch { plans.setOfferStrengthIncreases(planId, on) }
+    }
+
+    fun setOfferCardioIncreases(on: Boolean) {
+        viewModelScope.launch { plans.setOfferCardioIncreases(planId, on) }
+    }
+
     fun setEmphasis(emphasis: GoalEmphasis) {
         viewModelScope.launch { plans.setPlanEmphasis(planId, emphasis) }
     }

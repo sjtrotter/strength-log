@@ -27,7 +27,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot02PreviewSupersetCardio() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/02-preview-superset-cardio") { PreviewScreen(auditPreviewFixture(workoutDaySheetFixture()).copy(cardio = PreviewCardio("Road run", "5:00")), PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/02-preview-superset-cardio") { PreviewScreen(auditPreviewFixture(workoutDaySheetFixture()).copy(cardio = PreviewCardio("Road run", "5:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN)), PreviewActions({}, {}, {})) }
     }
 
     @Test fun shot03PreviewEmpty() {
@@ -53,7 +53,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot07PreviewCardioOnly() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/07-preview-cardio-only") { PreviewScreen(auditPreviewFixture().copy(lifts = emptyList(), cardio = PreviewCardio("Road run", "20:00")), PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/07-preview-cardio-only") { PreviewScreen(auditPreviewFixture().copy(lifts = emptyList(), cardio = PreviewCardio("Road run", "20:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN)), PreviewActions({}, {}, {})) }
     }
 
     @Test fun shot08PreviewNoLastResults() {

@@ -13,6 +13,9 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
@@ -75,6 +78,8 @@ internal class DayEditor(
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
                 runOpen = runOpen,
+                cardioProgress = day?.cardioProgress ?: CardioProgress(),
+                cardioMeasures = block?.let(CardioProgression::available).orEmpty(),
                 performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
@@ -134,6 +139,30 @@ internal class DayEditor(
             savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
             savedState[KEY_CARDIO_DRAFT] = null
         }
+    }
+
+    fun setCardioKeepToPlan(keep: Boolean) {
+        val state = dayEditState.value
+        val planId = state.planId ?: return
+        val dayId = state.dayId ?: return
+        mutate { repo.setCardioKeepToPlan(planId, dayId, keep) }
+    }
+
+    fun setCardioProgressBy(measure: ProgressMeasure) {
+        val state = dayEditState.value
+        val planId = state.planId ?: return
+        val dayId = state.dayId ?: return
+        if (measure !in state.cardioMeasures) return
+        mutate { repo.setCardioProgression(planId, dayId, measure, CardioProgression.defaultPercent(measure)) }
+    }
+
+    fun setCardioIncrease(percent: Int) {
+        val state = dayEditState.value
+        val planId = state.planId ?: return
+        val dayId = state.dayId ?: return
+        val block = state.cardioBlock ?: return
+        val measure = CardioProgression.resolve(block, state.cardioProgress.measure) ?: return
+        mutate { repo.setCardioProgression(planId, dayId, measure, percent) }
     }
 
     fun openCardioBlock() {

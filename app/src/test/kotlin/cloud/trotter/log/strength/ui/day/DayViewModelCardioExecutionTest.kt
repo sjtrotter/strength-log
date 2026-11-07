@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -27,6 +29,7 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -73,6 +76,63 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class DayViewModelCardioExecutionTest {
+
+    @Test fun cardioEditorPersistsProgressionAndParksWorkingValues() = test {
+        prepareAuthoredCardioDay(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(480)))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        assertEquals(setOf(ProgressMeasure.DISTANCE, ProgressMeasure.PACE), vm.dayEditState.value.cardioMeasures)
+        vm.editor.setCardioProgressBy(ProgressMeasure.PACE)
+        runCurrent()
+        assertEquals(ProgressMeasure.PACE, vm.dayEditState.value.cardioProgress.measure)
+        assertEquals(1, vm.dayEditState.value.cardioProgress.increasePercent)
+        vm.editor.setCardioIncrease(7)
+        runCurrent()
+        assertEquals(7, vm.dayEditState.value.cardioProgress.increasePercent)
+        val working = CardioBlock(CardioActivity.TRACK_RUN,
+            listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(475))))
+        repo.setCardioWorking(plan, "A", working)
+        runCurrent()
+        vm.editor.setCardioKeepToPlan(true)
+        runCurrent()
+        assertTrue(vm.dayEditState.value.cardioProgress.keepToPlan)
+        assertEquals(working, vm.dayEditState.value.cardioProgress.working)
+        assertEquals(Measure.Time(480), vm.uiState.value.cardio?.block?.sets?.single()?.aim)
+        vm.editor.setCardioKeepToPlan(false)
+        runCurrent()
+        assertEquals(working, vm.uiState.value.cardio?.block)
+        vm.editor.setCardioProgressBy(ProgressMeasure.DISTANCE)
+        runCurrent()
+        assertEquals(5, vm.dayEditState.value.cardioProgress.increasePercent)
+        assertEquals("DISTANCE", db.programDao().day(plan, "A")?.cardioProgressBy)
+    }
+
+    @Test fun cardioOfferAppliesBeforeStartAndTheRunFreezesItsWorkingBlock() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setOfferCardioIncreases(plan, true)
+        repo.logCardioSession(CardioSessionEntity(planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = clock.wall - 100_000_000, completedAt = clock.wall - 90_000_000,
+            seconds = 1200, stepsCompleted = 1, activity = CardioActivity.TRACK_RUN.name),
+            listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 1200)))
+        val vm = readyVm()
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        vm.applyCardioNextTime(offer.offered)
+        runCurrent()
+        assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        vm.startCardio()
+        runCurrent()
+        assertNull(vm.uiState.value.cardio?.nextTime)
+        val run = vm.uiState.value.cardio?.run!!
+        assertEquals(offer.offered, CardioBlockJson.decode(run.sourceBlockJson))
+        assertEquals(Measure.Time(1260), run.block.sets.single().end)
+        vm.applyCardioNextTime(offer.opening)
+        runCurrent()
+        assertEquals(offer.offered, vm.uiState.value.cardio?.run?.block)
+    }
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore

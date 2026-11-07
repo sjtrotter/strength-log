@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.domain.cardio.CardioIncrease
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -39,6 +44,37 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+
+    @Test fun `cardio offer applies to working values and newest same-day session is judged`() = runTest(dispatcher) {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(1200))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = block))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val session = CardioSessionEntity(planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1000, completedAt = 2000, seconds = 1200, stepsCompleted = 1, activity = block.activity.name)
+        repo.logCardioSession(session, listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 1200)))
+        // Newer evidence from another day or plan cannot replace this day's evidence.
+        repo.logCardioSession(session.copy(dayId = "B", completedAt = 8000), listOf(CardioSetResult(spec, CardioSetStatus.SHORTENED, 1100)))
+        repo.logCardioSession(session.copy(planId = 999, startedAt = 7000, completedAt = 9000), listOf(CardioSetResult(spec, CardioSetStatus.SHORTENED, 1100)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertEquals(CardioIncrease.Time(60), offer.change)
+        vm.applyCardioNextTime(offer.offered)
+        advanceUntilIdle()
+        assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        assertEquals(offer.offered, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        vm.applyCardioNextTime(offer.opening)
+        advanceUntilIdle()
+        assertFalse((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        repo.logCardioSession(session.copy(startedAt = 2100, completedAt = 3000), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 1100)))
+        advanceUntilIdle()
+        assertEquals(CardioNextTime.Repeat, vm.uiState.value.cardio?.nextTime)
+        repo.plans.setOfferCardioIncreases(plan, false)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cardio?.nextTime)
+    }
     @Test fun `last shows every set`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(155.0, 5))),
@@ -434,7 +470,7 @@ class PreviewViewModelTest : OverviewFixture() {
         )))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals(PreviewCardio("Road run", "2:00"), vm.uiState.value.cardio)
+        assertEquals(PreviewCardio("Road run", "2:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN), vm.uiState.value.cardio)
         vm.start()
         advanceUntilIdle()
         assertEquals(DaySelection(plan, "A"), vm.workoutStart.navigation.first())

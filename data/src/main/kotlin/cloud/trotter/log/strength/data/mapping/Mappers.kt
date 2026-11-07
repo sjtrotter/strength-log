@@ -9,6 +9,8 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -54,6 +56,12 @@ fun ProgramDayEntity.toDomain(exercises: List<ProgramExerciseEntity>): ProgramDa
         exercises = exercises.sortedBy { it.position }.map { it.toDomain() },
         kind = ProgramDayKind.entries.firstOrNull { it.name == kind } ?: ProgramDayKind.STRENGTH,
         cardioBlock = CardioBlockJson.decode(cardioBlockJson),
+        cardioProgress = CardioProgress(
+            keepToPlan = cardioKeepToPlan,
+            measure = ProgressMeasure.entries.firstOrNull { it.name == cardioProgressBy },
+            increasePercent = cardioIncreasePercent,
+            working = CardioBlockJson.decode(cardioWorkingJson),
+        ),
     )
 
 fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
@@ -66,6 +74,10 @@ fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
         cardioJson = null,
         kind = kind.name,
         cardioBlockJson = cardioBlock?.let(CardioBlockJson::encode),
+        cardioWorkingJson = cardioProgress.working?.let(CardioBlockJson::encode),
+        cardioKeepToPlan = cardioProgress.keepToPlan,
+        cardioProgressBy = cardioProgress.measure?.name,
+        cardioIncreasePercent = cardioProgress.increasePercent,
     )
 
 /** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4).

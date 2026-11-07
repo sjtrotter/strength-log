@@ -213,6 +213,10 @@ class PlanRepository(
 
     suspend fun pause(id: Long) = setOnToday(id, false)
 
+    suspend fun setOfferStrengthIncreases(planId: Long, on: Boolean) = planDao.updateOfferStrengthIncreases(planId, on)
+
+    suspend fun setOfferCardioIncreases(planId: Long, on: Boolean) = planDao.updateOfferCardioIncreases(planId, on)
+
     private suspend fun setOnToday(id: Long, onToday: Boolean) {
         planSelectionLock.withLock {
             ensurePlanSettingsMigrated()

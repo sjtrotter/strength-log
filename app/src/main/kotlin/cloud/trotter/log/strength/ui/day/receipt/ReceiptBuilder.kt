@@ -57,12 +57,12 @@ object ReceiptBuilder {
             val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
-                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing, plan(track, slot, targets)))) to listOf(track))
+                add(ReceiptGroup(null, listOf(row(track, track.structure(), names(track.exerciseId), standing, plan(track, slot, targets)))) to listOf(track))
             }
             if (main != null) {
                 val rowTracks = listOfNotNull(main, partner)
                 val rows = rowTracks.map {
-                    row(it, slot.structureOf(it), names(it.exerciseId), standing, plan(it, slot, targets))
+                    row(it, it.structure(), names(it.exerciseId), standing, plan(it, slot, targets))
                 }
                 add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows) to rowTracks)
             }
@@ -74,12 +74,18 @@ object ReceiptBuilder {
     }
 
     /** A superset partner has no structure of its own; it is seeded as straight work sets. */
-    private fun ProgramSlot.structureOf(track: RunTrack): SetStructure =
-        if (track.slot == Slot.SS) SetStructure.STRAIGHT else exercise.structure
+    private fun RunTrack.structure(): SetStructure = when {
+        slot == Slot.SS -> SetStructure.STRAIGHT
+        sets.any { it.kind == SetKind.BACKOFF } -> SetStructure.RAMP_TOP_BACKOFF
+        sets.any { it.kind == SetKind.RAMP || it.kind == SetKind.TOP } -> SetStructure.RAMP_TOP
+        else -> SetStructure.STRAIGHT
+    }
 
     private fun plan(track: RunTrack, slot: ProgramSlot?, targets: Map<Long, List<LoggedSet>>): PlannedSets? {
+        val plannedId = if (track.slot == Slot.SS) slot?.exercise?.superset?.exerciseId else slot?.exercise?.exerciseId
         val exercise = slot?.exercise?.takeIf { track.slot == Slot.MAIN && it.exerciseId == track.exerciseId }
-        val rows = exercise?.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it) }
+        val rows = if (slot != null && track.exerciseId != plannedId) track.planned.ifEmpty { track.sets }
+            else exercise?.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it) }
             ?: targets[track.id] ?: track.sets
         return rows.firstOrNull()?.let { PlannedSets(rows.size, it.weightLb, it.reps, it.seconds) }
     }

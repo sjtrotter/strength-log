@@ -403,7 +403,7 @@ class DayViewModelWiringTest {
     @Test
     fun unprescribedSlotsOpenPrescriptionAtTheirTrackingTypesAndGoals() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
-            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"),
+            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"), ProgramExercise("rdl"),
         )))))
         repo.plans.updateLifter { it.copy(bodyweightLb = 185.0, age = 45) }
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -413,7 +413,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
 
-        assertEquals(3, vm.dayEditState.value.slots.size)
+        assertEquals(4, vm.dayEditState.value.slots.size)
         for (slot in vm.dayEditState.value.slots) {
             assertNull(slot.prescription)
             vm.editor.openPrescription(slot.programExerciseId)
@@ -431,7 +431,7 @@ class DayViewModelWiringTest {
                 is GoalTarget.Weight -> {
                     assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
                     assertTrue(draft.loadLb > 0.0)
-                    PrescribedTarget.LoadReps(goal.lb, 10)
+                    PrescribedTarget.LoadReps(goal.lb, if (slot.exerciseId == "bb_back_squat") 5 else 10)
                 }
             }
             assertEquals(expected, draft.prescription().target)
@@ -887,7 +887,7 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun authoredAddDefaultsAStandardLiftToRampTopBackoffFromGoalMath() = runVmTest {
+    fun `an added main lift arrives as straight sets`() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Strength", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
         val vm = newViewModel()
@@ -898,14 +898,46 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val slot = repo.plans.slotsFor(plan, "A").first().single()
         assertEquals(3, slot.exercise.targetSets)
-        assertEquals(SetStructure.RAMP_TOP_BACKOFF, slot.exercise.structure)
-        assertEquals(SetStructure.RAMP_TOP_BACKOFF, vm.dayEditState.value.slots.single().structure)
+        assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.slots.single().structure)
         assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
-        assertEquals(List(4) { SetKind.RAMP } + listOf(SetKind.TOP, SetKind.BACKOFF),
-            track(slot.programExerciseId, Slot.MAIN)!!.map { it.kind })
+        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
         assertNull(slot.exercise.prescription)
         assertEquals(DaySeeds.previewMain(slot, repo.plans.configFlow.first(), repo.catalog.catalogFlow.first()),
             track(slot.programExerciseId, Slot.MAIN))
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun `a plan swap shows the nearby weight as three straight sets`() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Squat", "", listOf(ProgramExercise(
+                "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF,
+                prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)),
+            ))),
+            ProgramDay("B", "Bench", "", listOf(ProgramExercise(
+                "bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6,
+                prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5)),
+            ))),
+        )))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        vm.selectDay(DaySelection(plan, "B"))
+        advanceUntilIdle()
+
+        vm.editor.swapDaySlot(0, "bb_back_squat")
+        advanceUntilIdle()
+
+        val slot = repo.plans.slotsFor(plan, "B").first().single()
+        assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
+        assertEquals(3, slot.exercise.targetSets)
+        assertNull(slot.exercise.prescription)
+        val rows = repo.dayTracksFlow(plan, "B").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, rows)
+        assertEquals("3 × 5 · 45 lb", vm.uiState.value.exercises.single().workingHeading)
         collectEdit.cancel()
         collectUi.cancel()
     }
@@ -2267,11 +2299,9 @@ class DayViewModelWiringTest {
             "hack_squat",
             vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.exerciseId,
         )
-        // A fresh ramp off Hack Squat's own GOAL of 180 — the squat's 235 ramp
-        // and the 999 edit on top of it are both gone.
         assertEquals(
-            listOf(100.0, 125.0, 145.0, 160.0, 180.0, 135.0),
-            track(squatId, Slot.MAIN)!!.map { it.weightLb },
+            List(3) { LoggedSet(180.0, 10, SetKind.WORK) },
+            track(squatId, Slot.MAIN),
         )
         collectUi.cancel()
         collectEdit.cancel()

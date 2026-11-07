@@ -54,23 +54,50 @@ class RunReplanTest {
         assertEquals(listOf(partner[0], partner[2], partner[3]), result.second)
     }
 
-    @Test fun `paired growth preserves existing partner rows and seeds only new indices`() {
+    @Test fun `paired growth preserves existing partner rows and pads from its last row`() {
         val main = current()
         val partner = current().map { it.copy(weightLb = 45.0, watchEditedAt = 123L) }
         val partnerSeed = seeded(4).map { it.copy(weightLb = 35.0) }
         val result = RunReplan.represcribePaired(main, partner, seeded(4), partnerSeed)
-        assertEquals(partner + partnerSeed.last(), result.second)
+        assertEquals(partner + LoggedSet(45.0, 10, SetKind.WORK), result.second)
         assertEquals(seeded(4).mapIndexed { i, row -> row.copy(plannedIndex = i.takeIf { it < 3 }) }, result.first)
     }
 
     @Test fun `swap alignment pads only the shorter side without replacing any existing row`() {
-        val main = current().mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) }
-        val partner = current().take(1).map { it.copy(done = true, weightLb = 42.0) }
-        val result = RunReplan.alignPaired(main, partner, seeded(3), seeded(3))
+        val main = List(6) { current().first().copy(plannedIndex = it, done = it == 2, watchEditedAt = 123L) }
+        val partner = listOf(current().first(), LoggedSet(
+            42.0, 6, SetKind.EXTRA, done = true, seconds = 45,
+            startedAtMillis = 100L, completedAtMillis = 200L, plannedIndex = 1, watchEditedAt = 300L,
+        ))
+        val padded = partner + List(4) { LoggedSet(42.0, 6, SetKind.EXTRA, seconds = 45) }
+        val result = RunReplan.alignPaired(main, partner, emptyList(), emptyList())
         assertEquals(main, result.first)
-        assertEquals(partner + seeded(2), result.second)
+        assertEquals(padded, result.second)
         val reverse = RunReplan.alignPaired(partner, main, seeded(1), seeded(3))
-        assertEquals(partner + seeded(2), reverse.first)
+        assertEquals(padded, reverse.first)
         assertEquals(main, reverse.second)
+    }
+
+    @Test fun `alignment of an empty track uses its current prescription seed`() {
+        val partner = current() + current()
+        val seed = List(3) { LoggedSet(65.0, 8, SetKind.WORK) }
+        val expected = List(6) { LoggedSet(65.0, 8, SetKind.WORK) }
+        val result = RunReplan.alignPaired(emptyList(), partner, seed, emptyList())
+        assertEquals(expected, result.first)
+        assertEquals(partner, result.second)
+        val reverse = RunReplan.alignPaired(partner, emptyList(), emptyList(), seed)
+        assertEquals(partner, reverse.first)
+        assertEquals(expected, reverse.second)
+        assertEquals(emptyList<LoggedSet>() to emptyList<LoggedSet>(),
+            RunReplan.alignPaired(emptyList(), emptyList(), emptyList(), emptyList()))
+    }
+
+    @Test fun `paired replan pads a missing completed tail from the tracks last retained row`() {
+        val main = listOf(current().first().copy(done = true, startedAtMillis = 100L,
+            completedAtMillis = 200L, watchEditedAt = 300L))
+        val partner = current().mapIndexed { i, row -> row.copy(done = i == 2) }
+        val result = RunReplan.represcribePaired(main, partner, seeded(1), seeded(1))
+        assertEquals(main + LoggedSet(50.0, 10, SetKind.WORK), result.first)
+        assertEquals(listOf(partner[0], partner[2]), result.second)
     }
 }

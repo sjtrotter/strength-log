@@ -5,9 +5,12 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 
 object DaySeeds {
+    private const val STRAIGHT_SETS = 3
+
     /**
      * Which slots still need their ACTUAL log seeded from GOAL — every slot whose
      * (id, track) pair isn't already a key of [existing]. "Seeded once, then
@@ -48,6 +51,7 @@ object DaySeeds {
             // Preserve the authored count without inventing a load or prescription.
             ?: List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
 
+    /** A different exercise arrives as straight sets; a ramp's six rows become three. */
     fun swap(
         slot: ProgramSlot,
         trackSlot: String,
@@ -57,9 +61,11 @@ object DaySeeds {
         catalog: ExerciseCatalog,
     ): List<LoggedSet>? {
         val exercise = when (trackSlot) {
-            Slot.MAIN -> slot.exercise.copy(
+            Slot.MAIN -> if (newExerciseId == slot.exercise.exerciseId) slot.exercise else slot.exercise.copy(
                 exerciseId = newExerciseId,
-                prescription = slot.exercise.prescription.takeIf { newExerciseId == slot.exercise.exerciseId },
+                prescription = null,
+                structure = SetStructure.STRAIGHT,
+                targetSets = if (slot.exercise.structure.hasTopSet) STRAIGHT_SETS else slot.exercise.targetSets,
             )
             Slot.SS -> slot.exercise.copy(superset = requireNotNull(slot.exercise.superset).copy(exerciseId = newExerciseId))
             else -> return null

@@ -25,6 +25,42 @@ class DaySeedsTest {
     private val catalog = ExerciseCatalog.CODE_ONLY
 
     @Test
+    fun `a different exercise swapped into a ramp seeds three straight sets`() {
+        val slot = ProgramSlot(1, 0, ProgramExercise(
+            "bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6,
+            prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5)),
+        ))
+
+        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) },
+            DaySeeds.swap(slot, Slot.MAIN, "bb_back_squat", emptyMap(), cfg, catalog))
+    }
+
+    @Test
+    fun `swapping back to the slot's own exercise keeps its shape`() {
+        val slot = ProgramSlot(1, 0, ProgramExercise(
+            "bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6,
+            prescription = Prescription(PrescribedTarget.LoadReps(195.0, 5)),
+        ))
+
+        assertEquals(listOf(
+            LoggedSet(105.0, 5, SetKind.RAMP),
+            LoggedSet(135.0, 5, SetKind.RAMP),
+            LoggedSet(155.0, 5, SetKind.RAMP),
+            LoggedSet(175.0, 3, SetKind.RAMP),
+            LoggedSet(195.0, 5, SetKind.TOP),
+            LoggedSet(145.0, 8, SetKind.BACKOFF),
+        ), DaySeeds.swap(slot, Slot.MAIN, "bb_bench", emptyMap(), cfg, catalog))
+    }
+
+    @Test
+    fun `a straight accessory swap keeps its count`() {
+        val slot = ProgramSlot(1, 0, ProgramExercise("db_bench", targetSets = 4))
+
+        assertEquals(List(4) { LoggedSet(75.0, 5, SetKind.WORK) },
+            DaySeeds.swap(slot, Slot.MAIN, "incline_db", emptyMap(), cfg, catalog))
+    }
+
+    @Test
     fun `authored seeds and previews use the prescription even for main or unknown catalog entries`() {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8), eachSide = true)
         val slots = listOf("bb_back_squat", "unknown").mapIndexed { index, exerciseId ->

@@ -22,6 +22,11 @@ import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -327,6 +332,25 @@ class PlanScreenTest {
             rule.onNodeWithText("Save").assertIsEnabled().performClick()
         }
         rule.runOnIdle { assertEquals(List(2) { PlanRecipeJson.MAX_GOAL_LB }, saved) }
+    }
+
+    @Test
+    fun generatedCardioOnlyPlanHasNoGoalsOrEmphasis() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst())
+        val state = PlanScreenBuilder.buildUiState(
+            PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0),
+            ProgramGenerator.generate(answers), answers, ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
+        )
+        rule.setContent { AppTheme { PlanScreen(state, actions()) } }
+        rule.onNodeWithText("Running").assertExists()
+        rule.onNodeWithText("Easy").assertExists()
+        rule.onNodeWithText("Intervals").assertExists()
+        rule.onNodeWithText("Long").assertExists()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Offer cardio increases"))
+        rule.onNodeWithText("Goals").assertDoesNotExist()
+        rule.onNodeWithText("Emphasis").assertDoesNotExist()
+        rule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
+        rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
     }
 
     @Test

@@ -521,7 +521,7 @@ class WizardViewModel @Inject constructor(
                 }
                 // Discard the retry id only once Room has been replaced.
                 savedState.remove<Long>(Keys.CREATED_PLAN_ID)
-                applyAnswers(repo.wizardAnswersFlow.first(), prefillAboutYou = true)
+                applyAnswers(repo.wizardAnswersFlow.first(), prefillAboutYou = settings.hasLifterAnswersFlow.first())
                 applyAnswer(Keys.DISTANCE_UNIT, settings.distanceUnitFlow.first().name)
                 if (settings.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
@@ -582,10 +582,8 @@ class WizardViewModel @Inject constructor(
         applyAnswer(Keys.CARDIO_MODE, answers.cardio.mode.name)
         applyAnswer(Keys.CARDIO_PLACEMENT, answers.cardio.placement.name)
         applyAnswer(Keys.FIVE_K, answers.cardio.fiveKGoal)
-        if (prefillAboutYou) {
-            applyAnswer(Keys.BODYWEIGHT, answers.config.bodyweightLb)
-            applyAnswer(Keys.AGE, answers.config.age)
-        }
+        applyAnswer(Keys.BODYWEIGHT, answers.config.bodyweightLb.takeIf { prefillAboutYou })
+        applyAnswer(Keys.AGE, answers.config.age.takeIf { prefillAboutYou })
         applyAnswer(Keys.LEVEL, answers.config.level.name)
         applyAnswer(Keys.EMPHASIS, answers.config.emphasis.name)
         applyAnswer(Keys.UNIT, answers.config.weightUnit.name)

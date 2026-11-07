@@ -636,6 +636,55 @@ class WizardRestoreWiringTest {
     }
 
     @Test
+    fun restoringAMidSetupBackupWithoutLifterAnswers_clearsDraftsAndRequiresAnswersForLifting() = runBlocking {
+        val answers = WizardAnswers(cardioFirst = CardioFirst())
+        val document = BackupDocument(
+            settings = SettingsBackup(235, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = false,
+                selectedPlanId = 1, hasLifterAnswers = false),
+            plans = listOf(PlanBackup(1, "Running", "GENERATED", 1000, recipeJson = PlanRecipeJson.encode(answers))),
+        )
+        val vm = newViewModel()
+        vm.awaitOffered()
+        vm.setBodyweight(210.0)
+        vm.setAge(35)
+
+        vm.restoreFromBackup(pickable(BackupCodec().encode(document)))
+
+        val restored = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.cardioFirst == answers.cardioFirst }
+        }
+        assertNull(restored.restore.error)
+        assertNull(restored.bodyweightLb)
+        assertNull(restored.age)
+        val global = settings.globalLifterFlow.first()
+        vm.setLiftDays(2)
+        val steps = WizardStateBuilder.steps(answers.copy(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2)))
+        repeat(steps.indexOf(WizardStep.ABOUT_YOU)) { vm.onNext() }
+        val aboutYou = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.step == WizardStep.ABOUT_YOU } }
+        assertFalse(aboutYou.canContinue)
+
+        repeat(steps.size) { vm.onNext() }
+        assertFalse(vm.uiState.value.isComplete)
+        assertFalse(settings.wizardCompleteFlow.first())
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertEquals(global, settings.globalLifterFlow.first())
+        assertTrue(repo.plans.programFlow.first().days.isEmpty())
+
+        vm.setBodyweight(185.0)
+        vm.onNext()
+        val partial = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.bodyweightLb == 185.0 } }
+        assertEquals(WizardStep.ABOUT_YOU, partial.step)
+        assertFalse(partial.canContinue)
+        vm.setAge(36)
+        repeat(steps.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        assertTrue(settings.hasLifterAnswersFlow.first())
+        assertEquals(185.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(36, settings.globalLifterFlow.first().age)
+        assertEquals(2, repo.plans.programFlow.first().days.count { it.exercises.isNotEmpty() })
+    }
+
+    @Test
     fun restoringAMidFirstRunCardioBackup_keepsTheRecipeAndDistanceUnit() = runBlocking {
         val answers = WizardAnswers(cardioFirst = CardioFirst(CardioActivity.TRAIL_RUN, Measure.Distance(4828), 4))
         val document = BackupDocument(

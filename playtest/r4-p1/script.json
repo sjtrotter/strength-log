@@ -204,6 +204,14 @@
     },
     {
       "checkpoint": "setup-completed-today"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "checkpoint": "plans-editing-discovery"
     }
   ]
 }

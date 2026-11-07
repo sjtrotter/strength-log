@@ -71,7 +71,6 @@
 <!-- Settings and lifter preferences -->
 <string name="settings_title">Settings</string>
 <string name="settings_units">Units</string>
-<string name="settings_weight">Weight</string>
 <string name="settings_custom_exercise">Create custom exercise</string>
 <string name="settings_backup">Backup and export</string>
 <string name="settings_licenses">Licenses</string>
@@ -938,6 +937,8 @@
     <string name="form_custom_hold_required">Enter a hold time to save it</string>
     <string name="form_custom_load_required">Enter an added load to save it</string>
     <string name="settings_distance">Distance</string>
+    <string name="settings_distance_miles">Miles</string>
+    <string name="settings_distance_kilometers">Kilometers</string>
     <string name="receipt_say_miles">miles</string>
     <string name="receipt_say_kilometers">kilometers</string>
 </resources>

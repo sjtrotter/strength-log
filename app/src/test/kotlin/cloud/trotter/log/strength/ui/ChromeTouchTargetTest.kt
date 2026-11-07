@@ -1,19 +1,24 @@
 package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
 import cloud.trotter.log.strength.ui.backup.BackupActions
@@ -72,7 +77,7 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
             "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
@@ -82,93 +87,47 @@ class ChromeTouchTargetTest {
     }
 
     @Test
-    fun theUnitsItemContainsBothSegmentedRows() {
+    fun theDistanceRowOpensTheDialogAndForwardsKilometers() {
+        val choices = mutableListOf<DistanceUnit>()
         composeTestRule.setContent {
-            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+            AppTheme {
+                SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { choices += it }))
+            }
         }
 
-        val unitsItem = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
-        listOf("lb", "mi").forEach { label ->
-            val row = composeTestRule.onNode(
-                SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup) and hasAnyDescendant(hasText(label)),
-                useUnmergedTree = true,
-            ).fetchSemanticsNode()
-            val bounds = row.boundsInRoot
-            assertEquals(row.size.height.toFloat(), bounds.height, 0.01f)
-            assertTrue(
-                "$label row $bounds must fit in Units $unitsItem",
-                bounds.left >= unitsItem.left && bounds.right <= unitsItem.right &&
-                    bounds.top >= unitsItem.top && bounds.bottom <= unitsItem.bottom,
-            )
-        }
+        composeTestRule.onNodeWithText("Miles").assertIsDisplayed()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Distance").performClick()
+        composeTestRule.onNode(isDialog()).assertExists()
+        composeTestRule.onNode(hasText("Miles") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Kilometers") and hasAnyAncestor(isDialog()))
+            .assertIsNotSelected().performClick()
+
+        composeTestRule.runOnIdle { assertEquals(listOf(DistanceUnit.KM), choices) }
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
     }
 
     @Test
-    fun theUnitButtonsFitInsideTheUnitsItem() {
+    fun theDistanceDialogOptionsHaveClear48dpTargets() {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        val unitsItem = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
-        listOf("lb", "kg", "mi", "km").forEach { label ->
-            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
-            val bounds = node.touchBoundsInRoot
-            assertEquals(node.size.height.toFloat(), node.boundsInRoot.height, 0.01f)
+        composeTestRule.onNodeWithText("Distance").performClick()
+        listOf("Miles", "Kilometers").forEach { label ->
+            val option = composeTestRule.onNode(hasText(label) and hasAnyAncestor(isDialog()))
+                .assertIsDisplayed()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+                .fetchSemanticsNode()
+            val minimum = with(composeTestRule.density) { 48.dp.toPx() }
             assertTrue(
-                "$label target $bounds must fit in Units $unitsItem",
-                bounds.left >= unitsItem.left && bounds.right <= unitsItem.right &&
-                    bounds.top >= unitsItem.top && bounds.bottom <= unitsItem.bottom,
+                "$label row must reserve at least 48dp in both axes: ${option.boundsInRoot}",
+                option.boundsInRoot.width >= minimum && option.boundsInRoot.height >= minimum,
             )
-        }
-        val weightBottom = listOf("lb", "kg").maxOf { label ->
-            composeTestRule.onNodeWithText(label).fetchSemanticsNode().touchBoundsInRoot.bottom
-        }
-        val distanceTop = listOf("mi", "km").minOf { label ->
-            composeTestRule.onNodeWithText(label).fetchSemanticsNode().touchBoundsInRoot.top
-        }
-        assertTrue("Distance targets must sit below weight targets", distanceTop >= weightBottom)
-        assertTouchContract()
-    }
-
-    @Test
-    fun scrollingToThemeKeepsItsSegmentsInsideTheItem() {
-        composeTestRule.setContent {
-            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
-        }
-
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Theme"))
-        val themeItem = composeTestRule.onNodeWithText("Theme").fetchSemanticsNode().boundsInRoot
-        listOf("System", "Dark", "Light").forEach { label ->
-            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
-            val bounds = node.touchBoundsInRoot
-            assertEquals(node.size.height.toFloat(), node.boundsInRoot.height, 0.01f)
             assertTrue(
-                "$label target $bounds must fit in Theme $themeItem",
-                bounds.left >= themeItem.left && bounds.right <= themeItem.right &&
-                    bounds.top >= themeItem.top && bounds.bottom <= themeItem.bottom,
+                "$label touch target must be at least 48dp in both axes: ${option.touchBoundsInRoot}",
+                option.touchBoundsInRoot.width >= minimum && option.touchBoundsInRoot.height >= minimum,
             )
-        }
-        assertTouchContract()
-    }
-
-    @Test
-    fun aPartlyScrolledDistanceChoiceKeepsItsTargetsApart() {
-        composeTestRule.setContent {
-            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
-        }
-
-        val list = composeTestRule.onNode(hasScrollAction())
-        val viewport = list.fetchSemanticsNode().boundsInRoot
-        val target = composeTestRule.onNodeWithText("mi").fetchSemanticsNode().boundsInRoot
-        val clippedPixels = with(composeTestRule.density) { 3.dp.toPx() }
-        list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy ->
-            scrollBy(0f, target.top - viewport.top + clippedPixels)
-        }
-
-        listOf("mi", "km").forEach { label ->
-            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
-            assertTrue("$label must remain partly visible", !node.boundsInRoot.isEmpty)
-            assertTrue("$label must be clipped", node.boundsInRoot.height < node.size.height)
         }
         assertTouchContract()
     }

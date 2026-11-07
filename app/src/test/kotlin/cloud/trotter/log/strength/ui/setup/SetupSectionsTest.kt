@@ -5,6 +5,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -51,7 +54,7 @@ class SetupSectionsTest {
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer",
             "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
@@ -60,17 +63,35 @@ class SetupSectionsTest {
         composeTestRule.onNodeWithText("Rest timer").assertHasNoClickAction()
     }
 
-    @Test fun distanceSegmentsShowMiAndKmAndForwardTheChoice() {
+    @Test
+    fun distanceRowShowsKilometersAndForwardsMiles() {
         var chosen: DistanceUnit? = null
         composeTestRule.setContent { AppTheme {
-            SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { chosen = it }))
+            SetupScreen(SetupUiState(distanceUnit = DistanceUnit.KM), setupActions().copy(onDistanceUnitChange = { chosen = it }))
         } }
-        composeTestRule.onNodeWithText("Units").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Weight", useUnmergedTree = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Distance", useUnmergedTree = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("mi").assertIsSelected()
-        composeTestRule.onNodeWithText("km").performClick()
-        assertEquals(DistanceUnit.KM, chosen)
+        composeTestRule.onNodeWithText("Distance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Kilometers").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Distance").performClick()
+        composeTestRule.onNode(hasText("Kilometers") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Miles") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.runOnIdle { assertEquals(DistanceUnit.MI, chosen) }
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    @Test
+    fun distanceDialogSurvivesRestorationAndCancelDoesNotWrite() {
+        var writes = 0
+        val restoration = StateRestorationTester(composeTestRule)
+        restoration.setContent { AppTheme {
+            SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { writes++ }))
+        } }
+        composeTestRule.onNodeWithText("Distance").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        composeTestRule.onNode(isDialog()).assertExists()
+        composeTestRule.onNode(hasText("Miles") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNodeWithText("Cancel").performClick()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.runOnIdle { assertEquals(0, writes) }
     }
 
     @Test

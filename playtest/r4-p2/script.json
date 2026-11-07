@@ -1,60 +1,13 @@
-{
- "seat": "r4-p2",
- "capture": "compact",
- "start": {
-  "restore": "start-backup.json",
-  "date": "2026-11-08",
-  "time": "21:00",
-  "zone": "America/Chicago"
- },
- "steps": [
-  {
-   "tap": {
-    "text": "Plans"
-   }
-  },
-  {
-   "tap": {
-    "text": "4-day upper/lower"
-   }
-  },
-  {
-   "checkpoint": "plan-detail"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "desc": "Plan options"
-   }
-  },
-  {
-   "checkpoint": "plan-options"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Today"
-   }
-  },
-  {
-   "tap": {
-    "text": "4-day upper/lower \u00b7 Day D"
-   }
-  },
-  {
-   "checkpoint": "day-d"
-  },
-  {
-   "tap": {
-    "text": "Start day D"
-   }
-  },
-  {
-   "checkpoint": "workout"
-  }
- ]
-}
+{"seat":"r4-p2","capture":"compact",
+"start":{"restore":"start-backup.json","date":"2026-11-08","time":"21:00","zone":"America/Chicago"},
+"steps":[
+{"tap":{"text":"Plans"}},
+{"tap":{"text":"4-day upper/lower"}},
+{"tap":{"text":"Day C"}},{"checkpoint":"day-c"},{"back":true},
+{"tap":{"desc":"Day options","index":2}},{"checkpoint":"day-options"},{"back":true},
+{"back":true},
+{"tap":{"text":"Today"}},
+{"tap":{"text":"Other days"}},
+{"tap":{"textContains":"Day D"}},{"checkpoint":"day-d"},
+{"tap":{"text":"Start day D"}},{"checkpoint":"workout"}
+]}

@@ -39,6 +39,16 @@
       "checkpoint": "setup-step-03"
     },
     {
+      "type": {
+        "text": "Days per week",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "five-training-days"
+    },
+    {
       "tap": {
         "text": "Next"
       }
@@ -55,6 +65,19 @@
       "checkpoint": "setup-step-05"
     },
     {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "conventional-deadlift"
+    },
+    {
       "tap": {
         "text": "Next"
       }
@@ -64,11 +87,55 @@
     },
     {
       "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "checkpoint": "bike-after-lifting"
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
     {
       "checkpoint": "setup-step-07"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "100",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "41",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Advanced"
+      }
+    },
+    {
+      "checkpoint": "kilograms-personal-details"
     },
     {
       "tap": {

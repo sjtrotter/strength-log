@@ -78,6 +78,7 @@ class CardioEntrySheetTest {
         rule.setContent { AppTheme {
             CardioEntrySheet(draft, "Log past session", { now }, { draft = it }, { saved++ }, {})
         } }
+        rule.onNodeWithText("Distance (m)").assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.onNodeWithText("Duration").performScrollTo().performTextReplacement("40:12")
         rule.onNodeWithText("Save").assertIsEnabled()

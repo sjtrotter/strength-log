@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -359,6 +360,7 @@ class DayViewModelManualCardioTest {
 
     @Test fun `completed cardio uses the entered activity on a mixed day`() = runTest(dispatcher) {
         val plan = prepare(mixed = true)
+        settings.setDistanceUnit(DistanceUnit.KM)
         repo.startRun(plan, "A")
         val vm = readyVm()
         enter(vm)
@@ -369,6 +371,8 @@ class DayViewModelManualCardioTest {
         val cardio = requireNotNull(vm.uiState.value.cardio)
         assertEquals("OUTDOOR_RIDE", session.activity)
         assertEquals(session.id, cardio.loggedSessionId)
+        assertEquals(DistanceUnit.KM, cardio.distanceUnit)
+        assertEquals(CardioActivity.OUTDOOR_RIDE, cardio.loggedActivity)
         assertEquals(CardioActivity.OUTDOOR_RIDE, cardio.block?.activity)
         assertEquals("Outdoor ride", cardio.label)
         assertEquals("Outdoor ride", vm.uiState.value.pages.last().title)

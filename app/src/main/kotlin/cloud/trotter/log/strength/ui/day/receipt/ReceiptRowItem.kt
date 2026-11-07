@@ -68,6 +68,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
@@ -310,29 +311,29 @@ private fun ReceiptAfter(text: String, spoken: String) {
 }
 
 @Composable
-internal fun CardioReceiptRowItem(row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float) {
-    val name = cardioRowName(row)
+internal fun CardioReceiptRowItem(row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float, unit: DistanceUnit) {
+    val name = cardioRowName(row, unit)
     if (row.role != CardioRole.WORK && row.intervals.all { it.status == CardioSetStatus.SKIPPED }) {
         SkippedReceiptRow(name)
         return
     }
-    ExpandableReceiptRow(rowKey, name, spokenCardioRow(row), row.role == CardioRole.WORK && row.count > 1,
+    ExpandableReceiptRow(rowKey, name, spokenCardioRow(row, unit), row.role == CardioRole.WORK && row.count > 1,
         dayIndex, row.record?.kind, values = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (row.role == CardioRole.WORK && bestInterval(row) != null) ValueLabel(cardioValueLabel(row), Modifier.alignByBaseline())
                 val missing = row.role == CardioRole.WORK && bestInterval(row) == null
-                Text(cardioValue(row), style = if (missing) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.headlineSmall,
+                Text(cardioValue(row, unit), style = if (missing) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.headlineSmall,
                     color = if (missing) MaterialTheme.colorScheme.onSurfaceVariant
                         else if (row.record != null) accentEmphasis(dayIndex) else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.alignByBaseline().then(if (row.record != null) Modifier.graphicsLayer {
                         translationY = roll() * 0.6f * size.height; alpha = 1 - roll()
                     } else Modifier))
-                row.record?.let { OldBest(cardioPrevious(it), Modifier.alignByBaseline()) }
+                row.record?.let { OldBest(cardioPrevious(it, unit), Modifier.alignByBaseline()) }
             }
         }, children = {
             row.intervals.forEachIndexed { index, interval ->
-                ReceiptSetLine(index, cardioIntervalValue(row, interval), spokenInterval(row, index), dayIndex,
-                    row.record?.takeIf { it.intervalIndex == index }?.let { stringResource(R.string.receipt_set_pr_note, cardioPrevious(it)) })
+                ReceiptSetLine(index, cardioIntervalValue(row, interval, unit), spokenInterval(row, index, unit), dayIndex,
+                    row.record?.takeIf { it.intervalIndex == index }?.let { stringResource(R.string.receipt_set_pr_note, cardioPrevious(it, unit)) })
             }
             if (row.recoverySeconds.isNotEmpty()) ReceiptAfter(recoveryText(row.recoverySeconds), recoveryText(row.recoverySeconds, spoken = true))
         })

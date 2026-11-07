@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.MapSerializer
@@ -63,6 +64,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+        val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
         val SESSION_STARTED_DATE = stringPreferencesKey("session_started_date")
         val SESSION_STARTED_PLAN_ID = longPreferencesKey("session_started_plan_id")
@@ -161,6 +163,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val unitFlow: Flow<WeightUnit> =
         dataStore.data.map { it.enum(Keys.WEIGHT_UNIT, WeightUnit.LB) }
+
+    val storedDistanceUnitFlow: Flow<DistanceUnit?> = dataStore.data.map { it.readDistanceUnit() }
+
+    val distanceUnitFlow: Flow<DistanceUnit> = dataStore.data.map { prefs ->
+        prefs.readDistanceUnit() ?: DistanceUnit.suggestedFor(prefs.enum(Keys.WEIGHT_UNIT, WeightUnit.LB))
+    }
 
     /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live
      *  logs has already run. */
@@ -384,6 +392,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it.remove(Keys.SESSION_NOTES) }
     }
 
+    suspend fun setDistanceUnit(unit: DistanceUnit) {
+        require(unit != DistanceUnit.M)
+        dataStore.edit { it[Keys.DISTANCE_UNIT] = unit.name }
+    }
+
     suspend fun setThemePreference(theme: ThemePreference) {
         dataStore.edit { it[Keys.THEME] = theme.name }
     }
@@ -432,6 +445,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         topSetHelperSeen: Boolean = false,
         supersetHelperSeen: Boolean = false,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
+        distanceUnit: DistanceUnit? = null,
         onTodayFixupDone: Boolean = false,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
@@ -464,6 +478,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         autoFailed?.let { prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = it }
         autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
         prefs[Keys.THEME] = themePreference.name
+        if (distanceUnit != null) prefs[Keys.DISTANCE_UNIT] = distanceUnit.name
         if (onTodayFixupDone) prefs[Keys.ON_TODAY_FIXUP_DONE] = true
     }
 
@@ -472,6 +487,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             ?: emptyMap()
 
     // --- read/write helpers --------------------------------------------------
+
+    private fun Preferences.readDistanceUnit(): DistanceUnit? =
+        DistanceUnit.entries.firstOrNull { it != DistanceUnit.M && it.name == this[Keys.DISTANCE_UNIT] }
 
     private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
         bodyweightLb = this[Keys.BODYWEIGHT_TENTHS_LB]?.div(10.0)

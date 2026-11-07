@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.Bodyweight
@@ -80,6 +81,7 @@ object LogScreenBuilder {
             cardioSemantics = session.label,
             cardioDuration = duration,
             cardioSets = sets,
+            activity = CardioActivity.entries.firstOrNull { it.name == session.activity },
             cardioSeconds = if (sets.isEmpty()) 0 else session.seconds,
             planName = session.planName,
             planId = session.planId,

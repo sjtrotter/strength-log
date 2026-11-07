@@ -1,12 +1,25 @@
 package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
 import cloud.trotter.log.strength.ui.backup.BackupActions
@@ -29,6 +42,8 @@ import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayDay
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayUiState
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,13 +78,59 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
             "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
             composeTestRule.assertNoOverlappingTouchTargets()
         }
+    }
+
+    @Test
+    fun theDistanceRowOpensTheDialogAndForwardsKilometers() {
+        val choices = mutableListOf<DistanceUnit>()
+        composeTestRule.setContent {
+            AppTheme {
+                SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { choices += it }))
+            }
+        }
+
+        composeTestRule.onNodeWithText("Miles").assertIsDisplayed()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Distance").performClick()
+        composeTestRule.onNode(isDialog()).assertExists()
+        composeTestRule.onNode(hasText("Miles") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Kilometers") and hasAnyAncestor(isDialog()))
+            .assertIsNotSelected().performClick()
+
+        composeTestRule.runOnIdle { assertEquals(listOf(DistanceUnit.KM), choices) }
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    @Test
+    fun theDistanceDialogOptionsHaveClear48dpTargets() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+        }
+
+        composeTestRule.onNodeWithText("Distance").performClick()
+        listOf("Miles", "Kilometers").forEach { label ->
+            val option = composeTestRule.onNode(hasText(label) and hasAnyAncestor(isDialog()))
+                .assertIsDisplayed()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+                .fetchSemanticsNode()
+            val minimum = with(composeTestRule.density) { 48.dp.toPx() }
+            assertTrue(
+                "$label row must reserve at least 48dp in both axes: ${option.boundsInRoot}",
+                option.boundsInRoot.width >= minimum && option.boundsInRoot.height >= minimum,
+            )
+            assertTrue(
+                "$label touch target must be at least 48dp in both axes: ${option.touchBoundsInRoot}",
+                option.touchBoundsInRoot.width >= minimum && option.touchBoundsInRoot.height >= minimum,
+            )
+        }
+        assertTouchContract()
     }
 
     @Test

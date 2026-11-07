@@ -39,31 +39,36 @@ object SetSeeder {
      * reuses the exact weighted sequence; REPS/TIMED seed `targetSets` all-WORK
      * rows at their target, so the TOP-keyed cascade is unreachable for them by
      * construction.
+     *
+     * @param mainLift A main lift does its top-set reps even as straight sets.
      */
     fun seed(
         pe: ProgramExercise,
         target: GoalTarget,
         cfg: LifterConfig,
         equipment: Collection<Equipment> = ExerciseLibrary.find(pe.exerciseId)?.equipment.orEmpty(),
+        mainLift: Boolean = pe.structure.hasTopSet,
     ): List<LoggedSet> =
         when (target) {
-            is GoalTarget.Weight -> seed(pe, target.lb, cfg, equipment)
+            is GoalTarget.Weight -> seed(pe, target.lb, cfg, equipment, mainLift)
             is GoalTarget.Reps ->
                 List(pe.targetSets) { LoggedSet(0.0, target.reps, SetKind.WORK) }
             is GoalTarget.Time ->
                 List(pe.targetSets) { LoggedSet(GeneratedLoad.snap(target.addedLb, cfg.weightUnit), 0, SetKind.WORK, seconds = target.seconds) }
         }
 
+    /** @param mainLift A main lift does its top-set reps even as straight sets. */
     fun seed(
         pe: ProgramExercise,
         goal: Double,
         cfg: LifterConfig,
         equipment: Collection<Equipment> = ExerciseLibrary.find(pe.exerciseId)?.equipment.orEmpty(),
+        mainLift: Boolean = pe.structure.hasTopSet,
     ): List<LoggedSet> =
         shape(
             pe.structure,
             GeneratedLoad.snap(goal, cfg.weightUnit),
-            if (pe.structure.hasTopSet) StrengthStandards.topSetReps(cfg.emphasis) else ACCESSORY_REPS,
+            if (mainLift) StrengthStandards.topSetReps(cfg.emphasis) else ACCESSORY_REPS,
             pe.targetSets,
             cfg.weightUnit,
             equipment,

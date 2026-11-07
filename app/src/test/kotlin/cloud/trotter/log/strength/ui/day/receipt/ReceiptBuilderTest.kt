@@ -116,6 +116,37 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun `a workout substitute uses its captured straight structure and targets under a ramped plan`() {
+        val planned = List(3) { work(45.0, 5, done = false) }
+        val substitute = track(planned = planned, sets = List(3) { work(50.0, 4) })
+        val slot = ProgramSlot(1, 0, ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, 6,
+            prescription = Prescription(PrescribedTarget.LoadReps(95.0, 8))))
+        val targets = mapOf(substitute.id to squat().planned)
+
+        val groups = ReceiptBuilder.strength(listOf(substitute), listOf(slot), { it }, emptyMap(), targets)
+
+        val row = groups.single().rows.single()
+        assertEquals(ReceiptRow.Shape.STRAIGHT, row.shape)
+        assertEquals(List(3) { ReceiptSet(50.0, 4, 0) }, row.sets)
+        assertEquals(listOf(ValueLine(50.0, listOf(0, 1, 2))), row.lines)
+        assertEquals(PlannedSets(3, 45.0, 5, 0), row.planned)
+        assertFalse(receiptFixture().copy(groups = groups).isPartial)
+    }
+
+    @Test
+    fun `retired ramp work keeps its captured structure after a straight plan swap`() {
+        val retired = squat().copy(retired = true)
+        val replacementSlot = ProgramSlot(1, 0, ProgramExercise("hack_squat"))
+
+        val row = ReceiptBuilder.strength(listOf(retired), listOf(replacementSlot), { it }, emptyMap())
+            .single().rows.single()
+
+        assertEquals(ReceiptRow.Shape.TOP_SET, row.shape)
+        assertEquals(listOf(ValueLine(245.0, listOf(4)), ValueLine(185.0, listOf(5))), row.lines)
+        assertEquals(PlannedSets(6, 130.0, 5, 0), row.planned)
+    }
+
+    @Test
     fun `an equal weight top can earn a rep record`() {
         val row = row(squat(topWeight = 235.0), SetStructure.RAMP_TOP_BACKOFF, baseline(235.0, 3))
         assertEquals(RecordMark(PrKind.REPS, null, 4, ReceiptSet(235.0, 3, 0)), row.record)

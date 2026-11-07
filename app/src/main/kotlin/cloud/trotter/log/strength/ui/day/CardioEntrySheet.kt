@@ -37,6 +37,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
@@ -132,7 +133,7 @@ internal fun CardioEntrySheet(
                 )
                 NumericSetField(
                     identity = "cardio-entry:distance", value = (draft.metres ?: 0).toDouble(),
-                    label = stringResource(R.string.cardio_distance_label), field = stringResource(R.string.sheet_distance_field),
+                    label = stringResource(R.string.cardio_distance_label, DistanceUnit.M.symbol), field = stringResource(R.string.sheet_distance_field),
                     partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = 0.0,
                     maximum = ManualCardio.MAX_METRES.toDouble(), step = { 1.0 },
                     enabled = !saving,

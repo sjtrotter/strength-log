@@ -35,6 +35,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.records.PrKind
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.CardioInterval
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
@@ -161,8 +162,219 @@ class DayViewModelCardioExecutionTest {
 
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
 
+    private suspend fun TestScope.assertTypedRunDistance(unit: DistanceUnit, activity: CardioActivity, text: String, metres: Int) {
+        settings.setDistanceUnit(unit)
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = activity)
+        val vm = readyVm()
+        assertEquals(unit, vm.uiState.value.cardio?.distanceUnit)
+        vm.startCardio()
+        runCurrent()
+        tick(60_000)
+        vm.changeCardioRunDistance(text)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(metres, repo.history.cardioSetsFor(session.id).single().metres)
+    }
+
+    @Test fun milesOnRoadLogWholeMetres() = test {
+        assertTypedRunDistance(DistanceUnit.MI, CardioActivity.ROAD_RUN, "3.1", 4989)
+    }
+
+    private suspend fun TestScope.restoreLegacyRunDistanceAndStop(
+        meters: Int,
+        activity: CardioActivity = CardioActivity.ROAD_RUN,
+    ) {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = activity)
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startCardio()
+        runCurrent()
+        tick(60_000)
+        val run = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        handle["day_cardio_run"] = MainCardioRunParcel(run)
+        handle["day_cardio_run_distance"] = CardioRunDistance(run.runId, run.position, meters.toString())
+
+        val restored = readyVm(parcelHandle(handle))
+        assertEquals(DistanceUnit.MI, restored.uiState.value.cardio?.distanceUnit)
+        assertEquals(DistanceUnit.MI.inputText(meters), restored.uiState.value.cardio?.runDistanceText)
+        restored.stopCardio(requireNotNull(restored.uiState.value.cardio?.run).action())
+        runCurrent()
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(meters, repo.history.cardioSetsFor(session.id).single().metres)
+        assertTrue(restored.uiState.value.cardio!!.distanceRuns.isEmpty())
+    }
+
+    @Test fun legacyHundredMeterRunDraftStopsWithOriginalDistance() = test {
+        restoreLegacyRunDistanceAndStop(100)
+    }
+
+    @Test fun legacyFiveThousandMeterRunDraftStopsWithOriginalDistance() = test {
+        restoreLegacyRunDistanceAndStop(5000)
+    }
+
+    @Test fun legacyRideAboveEntryLimitStopsWithOriginalDistance() = test {
+        restoreLegacyRunDistanceAndStop(250_000, CardioActivity.OUTDOOR_RIDE)
+    }
+
+    private suspend fun TestScope.restoreLegacyPendingDistanceAndSave(meters: Int) {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startCardio()
+        runCurrent()
+        tick(60_000)
+        first.stopCardio(requireNotNull(first.uiState.value.cardio?.run).action())
+        runCurrent()
+        val pending = requireNotNull(handle.get<ArrayList<CardioRun>>("day_cardio_distances")).single()
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        val legacy = pending.copy(drafts = pending.drafts.map { it.copy(text = meters.toString()) })
+        handle["day_cardio_distances"] = arrayListOf(MainCardioRunParcel(legacy))
+
+        val restored = readyVm(parcelHandle(handle))
+        restored.openCardioDistance()
+        runCurrent()
+        restored.saveCardioDistance(restored.distanceAction())
+        runCurrent()
+
+        assertEquals(meters, repo.history.cardioSetsFor(requireNotNull(pending.sessionId)).single().metres)
+        assertTrue(restored.uiState.value.cardio!!.distanceRuns.isEmpty())
+    }
+
+    @Test fun legacyHundredMeterPendingDraftSavesOriginalDistance() = test {
+        restoreLegacyPendingDistanceAndSave(100)
+    }
+
+    @Test fun legacyFiveThousandMeterPendingDraftSavesOriginalDistance() = test {
+        restoreLegacyPendingDistanceAndSave(5000)
+    }
+
+    @Test fun legacyPendingDraftAboveEntryLimitSavesOriginalDistance() = test {
+        restoreLegacyPendingDistanceAndSave(250_000)
+    }
+
+    @Test fun displayInputRestoresPartialTextWhileExistingKeyKeepsMeters() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startCardio()
+        runCurrent()
+        tick(60_000)
+        first.changeCardioRunDistance("3.")
+        runCurrent()
+        assertEquals("4828", handle.get<CardioRunDistance>("day_cardio_run_distance")?.text)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+
+        val restoredHandle = parcelHandle(handle)
+        val restored = readyVm(restoredHandle)
+        assertEquals("3.", restored.uiState.value.cardio?.runDistanceText)
+        restored.changeCardioRunDistance("3.1")
+        assertEquals("4989", restoredHandle.get<CardioRunDistance>("day_cardio_run_distance")?.text)
+        restored.stopCardio(requireNotNull(restored.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(4989, repo.history.cardioSetsFor(session.id).single().metres)
+        assertTrue(restoredHandle.get<ArrayList<CardioDistanceInput>>("day_cardio_distance_inputs").orEmpty().isEmpty())
+    }
+
+    @Test fun kilometersOnRoadLogWholeMetres() = test {
+        assertTypedRunDistance(DistanceUnit.KM, CardioActivity.ROAD_RUN, "5", 5000)
+    }
+
+    @Test fun trackEntryKeepsMetresUnderMiles() = test {
+        assertTypedRunDistance(DistanceUnit.MI, CardioActivity.TRACK_RUN, "400", 400)
+    }
+
+    @Test fun runDistanceRejectsExtraDecimalPlaces() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        vm.changeCardioRunDistance("3.1")
+        vm.changeCardioRunDistance("3.123")
+        runCurrent()
+        assertEquals("3.1", vm.uiState.value.cardio?.runDistanceText)
+        vm.changeCardioRunDistance("")
+        runCurrent()
+        assertEquals("", vm.uiState.value.cardio?.runDistanceText)
+    }
+
+    @Test fun trackRejectsFractionalEntry() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        vm.changeCardioRunDistance("400")
+        vm.changeCardioRunDistance("400.1")
+        runCurrent()
+        assertEquals("400", vm.uiState.value.cardio?.runDistanceText)
+    }
+
+    @Test fun endingRoadRunConvertsMiles() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(60_000)
+        vm.changeCardioRunDistance("3.1")
+        vm.endCardioBlock()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(4989, repo.history.cardioSetsFor(session.id).single().metres)
+    }
+
+    @Test fun distanceSheetConvertsMilesAndRejectsExtraDecimals() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(60_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        vm.changeCardioDistance("3.1")
+        vm.changeCardioDistance("3.123")
+        runCurrent()
+        assertEquals("4989", vm.uiState.value.cardio?.distanceRuns?.single()?.drafts?.single()?.text)
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(4989, repo.history.cardioSetsFor(session.id).single().metres)
+    }
+
+    @Test fun distanceAmendmentRetryKeepsSavedMetresAfterSettingChanges() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(60_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        vm.openCardioDistance()
+        runCurrent()
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_distance BEFORE UPDATE ON cardio_set_result BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        vm.changeCardioDistance("3.1")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertTrue(vm.uiState.value.cardio!!.distanceRuns.single().saveFailed)
+        settings.setDistanceUnit(DistanceUnit.KM)
+        runCurrent()
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_distance")
+        vm.retryCardioSave()
+        runCurrent()
+        assertEquals(4989, repo.history.cardioSetsFor(session.id).single().metres)
+    }
+
     @Test
     fun runningLoneTimedSetRefusesAddSetAndKeepsElapsedAndTypedDistance() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
         prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
         val vm = readyVm()
         assertTrue(vm.uiState.value.cardio!!.canAddSet)
@@ -174,7 +386,7 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(original, vm.uiState.value.cardio?.run)
         tick(1_690_000)
-        vm.changeCardioRunDistance("5000")
+        vm.changeCardioRunDistance("5")
         runCurrent()
 
         vm.openCardioSets()
@@ -185,7 +397,7 @@ class DayViewModelCardioExecutionTest {
         assertFalse(cardio.canAddSet)
         assertEquals(original, cardio.run)
         assertEquals(1690, cardio.elapsedSeconds)
-        assertEquals("5000", cardio.runDistanceText)
+        assertEquals("5", cardio.runDistanceText)
         assertNull(alarm.deadline)
         assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
         vm.closeSheet()
@@ -203,6 +415,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun loneTimedRunCountsUpAndStopLogsFinishedWithTheTypedDistance() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
         prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
@@ -216,9 +429,9 @@ class DayViewModelCardioExecutionTest {
         assertNull(alarm.deadline)
         assertEquals(0, alarm.buzzes)
         assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
-        vm.changeCardioRunDistance("5000")
+        vm.changeCardioRunDistance("5")
         runCurrent()
-        assertEquals("5000", vm.uiState.value.cardio?.runDistanceText)
+        assertEquals("5", vm.uiState.value.cardio?.runDistanceText)
         vm.stopCardio(requireNotNull(cardio.run).action())
         runCurrent()
 
@@ -564,6 +777,31 @@ class DayViewModelCardioExecutionTest {
         assertEquals(listOf(prescription), cardio.block?.sets)
     }
 
+    @Test fun editingActivityAfterLoggingKeepsTheLoggedActivityForSummary() = test {
+        prepareBlock(distance())
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(100_000)
+        vm.reachCardioTarget(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertNull(vm.uiState.value.cardio?.run)
+
+        repo.replaceProgram(Program(repo.plans.programFlow.first().days.map { day ->
+            day.copy(cardioBlock = day.cardioBlock?.copy(activity = CardioActivity.ROAD_RUN))
+        }))
+        runCurrent()
+
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertEquals(CardioActivity.TRACK_RUN, cardio.block?.activity)
+        assertEquals(CardioActivity.TRACK_RUN, cardio.loggedActivity)
+        assertEquals(CardioActivity.ROAD_RUN, repo.plans.programFlow.first().days.first().cardioBlock?.activity)
+        assertEquals(session.id, cardio.loggedSessionId)
+        assertEquals(400, cardio.loggedSets.single().metres)
+        assertEquals(CardioActivity.TRACK_RUN.name, repo.history.cardioSessionsFlow.first().single().activity)
+    }
+
     @Test
     fun legacyCardioWithNullOrZeroPlanIdStaysOutsidePlanScopedLoggedState() = test {
         prepareBlock(time(CardioRole.WORK))
@@ -685,6 +923,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun unequalDurationRunsAreLoggedWithoutRecordsAndDoNotSuppressAnEqualDurationImprovement() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
         val spec = time(CardioRole.WORK, seconds = 1500)
         val activity = CardioActivity.ROAD_RUN
         prepareAuthoredCardioDay(spec, activity = activity)
@@ -695,7 +934,7 @@ class DayViewModelCardioExecutionTest {
             vm.startCardio()
             runCurrent()
             tick(seconds * 1_000L)
-            vm.changeCardioRunDistance("6000")
+            vm.changeCardioRunDistance("6")
             vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
             runCurrent()
 
@@ -714,7 +953,7 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_500_000)
-        vm.changeCardioRunDistance("5500")
+        vm.changeCardioRunDistance("5.5")
         vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
         runCurrent()
 
@@ -726,6 +965,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun fartherRecordKeepsPreLogBaselineThroughDistanceEntryAndSavedStateRestore() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
         val spec = time(CardioRole.WORK, seconds = 1800, aim = 5000)
         val activity = CardioActivity.ROAD_RUN
         prepareAuthoredCardioDay(spec, activity = activity)
@@ -750,7 +990,7 @@ class DayViewModelCardioExecutionTest {
         val restored = readyVm(restoredHandle)
         restored.openCardioDistance()
         runCurrent()
-        restored.changeCardioDistance("5210")
+        restored.changeCardioDistance("5.21")
         restored.saveCardioDistance(restored.distanceAction())
         runCurrent()
 
@@ -770,6 +1010,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun multiplePendingRunsKeepTheirOwnBaselinesAcrossParcelRestoreAndReceiptDismissal() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
         val spec = time(CardioRole.WORK, seconds = 1800, aim = 5000)
         val activity = CardioActivity.ROAD_RUN
         prepareAuthoredCardioDay(spec, activity = activity)
@@ -806,7 +1047,7 @@ class DayViewModelCardioExecutionTest {
         restored.openCardioDistance()
         runCurrent()
         assertEquals(first.action(0), restored.distanceAction())
-        restored.changeCardioDistance("5210")
+        restored.changeCardioDistance("5.21")
         restored.saveCardioDistance(restored.distanceAction())
         runCurrent()
 
@@ -824,7 +1065,7 @@ class DayViewModelCardioExecutionTest {
         restored.openCardioDistance()
         runCurrent()
         assertEquals(second.action(0), restored.distanceAction())
-        restored.changeCardioDistance("5500")
+        restored.changeCardioDistance("5.5")
         restored.saveCardioDistance(restored.distanceAction())
         runCurrent()
 

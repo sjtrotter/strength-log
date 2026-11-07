@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A14)
+## Amendments (A1–A16)
 
 ### A1. Session history is now required (biggest change)
 
@@ -237,7 +237,7 @@ strength day; the shipped cardio vectors stay pinned.
   leaves the suggestion unchanged.
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
-  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v21 adds `cardio_session.note` through migration 20→21; backup v19 carries it.
+  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v21 adds `cardio_session.note` through migration 20→21; backup v20 carries it.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
@@ -288,10 +288,19 @@ The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as 
 Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
 Backup v18 carries the optional field; older backups restore it as null.
 
-### A15. Plans edit as plans (#500, owner-approved 2026-11-06)
+### A15. Cardio distance unit (owner, #494)
+
+Distance shows in mi or km from a global setting, suggested from the weight unit until the lifter chooses; track and rower segments show meters. Storage, CSV, Health Connect and the watch stay in meters. Backup v19 carries the setting when chosen.
+
+### A16. Plans edit as plans (#500, owner-approved 2026-11-06)
 
 Edit day from a day preview opens the day editor as its own screen with no workout
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.
+Choosing Straight sets on a ramped lift opens one sheet with Sets, Reps and Weight,
+prefilled with three sets at the lift's working weight and reps; Save writes them together.
+An added lift, and a lift swapped in for the plan or the workout, arrives as straight sets
+(a ramp's six rows become three) at the nearby weight #492 chooses; a main-capable lift does
+its top-set reps. A plan swap drops the old exercise's prescription.
 
 ## Architecture
 

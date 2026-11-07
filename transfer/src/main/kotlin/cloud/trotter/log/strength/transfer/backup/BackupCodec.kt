@@ -102,7 +102,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -142,7 +142,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withCardioNotes = if (version < 19) {
+        val withCardioNotes = if (version < 20) {
             val sessions = shaped["cardioSessions"] as? JsonArray
             if (sessions == null) shaped else JsonObject(shaped + ("cardioSessions" to JsonArray(
                 sessions.map { if (it is JsonObject) JsonObject(it - "note") else it },
@@ -163,8 +163,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 sessions.map { if (it is JsonObject) JsonObject(it - "activity" - "sets") else it },
             )))
         } else withSlotAndNoteFields
+        val withDistanceUnit = if (version < 19) {
+            val settings = versioned["settings"] as? JsonObject
+            if (settings == null) versioned else JsonObject(versioned + ("settings" to JsonObject(settings - "distanceUnit")))
+        } else versioned
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(versioned, version), version))
+            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(withDistanceUnit, version), version))
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -463,6 +467,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     }
 
     private fun validateSettings(settings: SettingsBackup) {
+        if (settings.distanceUnit != null && settings.distanceUnit !in listOf("MI", "KM")) {
+            throw BackupError.Inconsistent("unknown distance unit '${settings.distanceUnit}'")
+        }
         if (settings.daysPerWeek != null && settings.daysPerWeek !in 2..6) {
             throw BackupError.Inconsistent("daysPerWeek out of range: ${settings.daysPerWeek}")
         }

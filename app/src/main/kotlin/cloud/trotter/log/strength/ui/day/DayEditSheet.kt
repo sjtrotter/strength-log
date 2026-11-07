@@ -81,11 +81,13 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.AppSheetLayout
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Error
@@ -185,6 +187,7 @@ internal fun DayEditPages(
             if (index != null) {
                 CardioSetPage(
                     draft = draft.sets[index],
+                    unit = distanceUnitFor(draft.activity),
                     onChange = { set -> actions.onCardioDraft(draft.copy(sets = draft.sets.mapIndexed { i, old -> if (i == index) set else old })) },
                     onSave = actions.onSaveCardio,
                     onBack = onBack,
@@ -195,8 +198,9 @@ internal fun DayEditPages(
         }
         state.prescriptionDraft != null -> PrescriptionPage(
             draft = state.prescriptionDraft,
-            structure = state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
+            structure = state.prescriptionStructure ?: state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
                 ?: SetStructure.STRAIGHT,
+            title = if (state.prescriptionStructure == SetStructure.STRAIGHT) stringResource(R.string.day_edit_structure_straight) else null,
             unit = state.unit,
             onChange = actions.onPrescriptionDraft,
             onSave = actions.onSavePrescription,
@@ -301,6 +305,7 @@ internal fun DayEditPages(
             onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
             onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
             onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
+            onStraightSets = { actions.onOpenStraightSets(optionsSlot.programExerciseId) },
         )
         else -> DaySlotList(
             state = state,
@@ -490,6 +495,7 @@ private fun SlotOptionsScreen(
     onKeepToPlanChange: (Boolean) -> Unit,
     onResetToPlanClick: () -> Unit,
     onStructureChange: (SetStructure) -> Unit,
+    onStraightSets: () -> Unit,
 ) {
     var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
     if (confirmingReset && !slot.keepToPlan && !runOpen) {
@@ -550,7 +556,10 @@ private fun SlotOptionsScreen(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
                             selected = slot.structure == structure,
                             role = Role.RadioButton,
-                            onClick = { onStructureChange(structure) },
+                            onClick = {
+                                if (structure == SetStructure.STRAIGHT && slot.structure != SetStructure.STRAIGHT) onStraightSets()
+                                else onStructureChange(structure)
+                            },
                         ),
                     )
                 }
@@ -578,9 +587,10 @@ internal fun PrescriptionPage(
     onSave: () -> Unit,
     onBack: () -> Unit,
     structure: SetStructure = SetStructure.STRAIGHT,
+    title: String? = null,
 ) {
     AppSheetLayout(
-        title = { PickerHeader(stringResource(R.string.day_edit_prescription), onBack) },
+        title = { PickerHeader(title ?: stringResource(R.string.day_edit_prescription), onBack) },
         footer = {
             SheetCommitButton(stringResource(R.string.plans_save), onSave,
                 cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
@@ -728,8 +738,8 @@ internal fun CardioBlockPage(
                 headlineContent = { Text(stringResource(R.string.cardio_edit_set_title, index + 1, cardioEditRoleName(set.role))) },
                 supportingContent = {
                     val spec = set.spec()
-                    val end = cardioEditMeasure(spec.end)
-                    val target = spec.aim?.let { stringResource(R.string.cardio_end_aim, end, cardioEditMeasure(it)) } ?: end
+                    val end = cardioEditMeasure(spec.end, distanceUnitFor(draft.activity))
+                    val target = spec.aim?.let { stringResource(R.string.cardio_end_aim, end, cardioEditMeasure(it, distanceUnitFor(draft.activity))) } ?: end
                     Text(if (set.hard) stringResource(R.string.cardio_edit_hard_summary, target) else target)
                 },
             )
@@ -753,6 +763,7 @@ internal fun CardioBlockPage(
 @Composable
 internal fun CardioSetPage(
     draft: CardioSetDraft,
+    unit: DistanceUnit,
     onChange: (CardioSetDraft) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
@@ -784,7 +795,7 @@ internal fun CardioSetPage(
                 )
             }
         }
-        CardioMeasureNumber(draft.endIsTime, draft, onChange)
+        CardioMeasureNumber(draft.endIsTime, draft, unit, onChange)
         val aimLabel = stringResource(R.string.cardio_edit_aim)
         ListItem(
             headlineContent = { Text(aimLabel) },
@@ -794,7 +805,7 @@ internal fun CardioSetPage(
                     modifier = Modifier.semantics { contentDescription = aimLabel })
             },
         )
-        if (draft.hasAim) CardioMeasureNumber(!draft.endIsTime, draft, onChange)
+        if (draft.hasAim) CardioMeasureNumber(!draft.endIsTime, draft, unit, onChange)
         val hardLabel = stringResource(R.string.cardio_edit_hard)
         ListItem(
             headlineContent = { Text(hardLabel) },
@@ -808,17 +819,21 @@ internal fun CardioSetPage(
 }
 
 @Composable
-private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, onChange: (CardioSetDraft) -> Unit) {
-    val label = stringResource(if (isTime) R.string.sheet_duration else R.string.cardio_distance_label)
-    val increment = if (isTime) 30 else 10
+private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, unit: DistanceUnit, onChange: (CardioSetDraft) -> Unit) {
+    val label = if (isTime) stringResource(R.string.sheet_duration) else stringResource(R.string.cardio_distance_label, unit.symbol)
+    val increment = if (isTime) 30.0 else if (unit == DistanceUnit.M) 10.0 else 0.05
     NumericSetField(
-        identity = "cardio:$isTime", value = (if (isTime) draft.seconds else draft.metres).toDouble(),
+        identity = "cardio:$isTime:$unit", value = if (isTime) draft.seconds.toDouble() else unit.fromMetres(draft.metres),
         label = label, field = stringResource(if (isTime) R.string.sheet_duration else R.string.sheet_distance_field),
         partnerName = null, modifier = Modifier.fillMaxWidth(),
-        minimum = if (isTime) 5.0 else 10.0, maximum = if (isTime) 86_400.0 else 200_000.0,
-        step = { increment.toDouble() }, duration = isTime,
-        round = { if (isTime) it else (it / increment).roundToInt().toDouble() * increment },
-        onChange = { onChange(if (isTime) draft.copy(seconds = it.toInt()) else draft.copy(metres = it.toInt())) },
+        minimum = if (isTime) 5.0 else if (unit == DistanceUnit.M) 10.0 else 0.01,
+        maximum = if (isTime) 86_400.0 else unit.fromMetres(200_000),
+        decimal = !isTime, step = { increment }, duration = isTime,
+        round = { if (isTime || unit != DistanceUnit.M) it else (it / increment).roundToInt().toDouble() * increment },
+        onChange = { value ->
+            if (isTime) onChange(draft.copy(seconds = value.toInt()))
+            else unit.toMetres(value)?.let { onChange(draft.copy(metres = it)) }
+        },
     )
 }
 
@@ -831,9 +846,9 @@ private fun cardioEditRoleName(role: CardioRole): String = stringResource(when (
 })
 
 @Composable
-private fun cardioEditMeasure(measure: Measure): String = when (measure) {
+private fun cardioEditMeasure(measure: Measure, unit: DistanceUnit): String = when (measure) {
     is Measure.Time -> formatCardioTime(measure.seconds)
-    is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
+    is Measure.Distance -> unit.format(measure.metres)
 }
 
 // --- page 2: pick a pattern (add flow and superset flow) ----------------------

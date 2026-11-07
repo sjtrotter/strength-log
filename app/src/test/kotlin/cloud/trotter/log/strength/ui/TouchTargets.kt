@@ -38,6 +38,9 @@ object TouchTargets {
     private fun ComposeContentTestRule.interactiveNodes(): List<SemanticsNode> {
         val all = mutableListOf<SemanticsNode>()
         fun walk(node: SemanticsNode) {
+            // An unplaced node (a LazyColumn item scrolled past in one jump) keeps its last
+            // offset in the semantics tree but is neither drawn nor hit-tested.
+            if (!node.layoutInfo.isPlaced) return
             if (node.config.contains(SemanticsActions.OnClick) && !node.boundsInRoot.isEmpty) all += node
             node.children.forEach(::walk)
         }
@@ -63,7 +66,7 @@ object TouchTargets {
     /**
      * The part of this node's minimum touch target that is actually reachable.
      *
-     * [SemanticsNode.touchBoundsInRoot] retains the node's full target when a
+     * [SemanticsNode.touchBoundsInRoot] can retain the node's full target when a
      * scrolling ancestor clips the node. Rebuild that target around the
      * clip-aware [SemanticsNode.boundsInRoot]: preserve only the padding by
      * which the touch target extends past the node's unclipped layout bounds,
@@ -102,7 +105,7 @@ object TouchTargets {
      * *sibling* whose 48dp target was never given 48dp of layout and so quietly
      * annexed the control next to it.
      */
-    private fun ComposeContentTestRule.overlappingTouchTargets(): Map<Set<String>, Int> {
+    private fun ComposeContentTestRule.overlappingTouchTargets(details: MutableList<String>): Map<Set<String>, Int> {
         val nodes = interactiveNodes()
         val found = mutableMapOf<Set<String>, Int>()
         for (i in nodes.indices) {
@@ -110,9 +113,12 @@ object TouchTargets {
                 val a = nodes[i]
                 val b = nodes[j]
                 if (a.isWithin(b) || b.isWithin(a)) continue
-                if (!a.visibleTouchBoundsInRoot().overlaps(b.visibleTouchBoundsInRoot())) continue
+                val aBounds = a.visibleTouchBoundsInRoot()
+                val bBounds = b.visibleTouchBoundsInRoot()
+                if (!aBounds.overlaps(bBounds)) continue
                 val pair = setOf(a.describe(), b.describe())
                 found[pair] = (found[pair] ?: 0) + 1
+                details += "${a.describeGeometry(aBounds)} overlaps ${b.describeGeometry(bBounds)}"
             }
         }
         return found
@@ -128,9 +134,10 @@ object TouchTargets {
      * licence for a shape of bug.
      */
     fun ComposeContentTestRule.assertOverlappingTouchTargetsAreExactly(expected: Map<Set<String>, Int>) {
-        val actual = overlappingTouchTargets()
+        val details = mutableListOf<String>()
+        val actual = overlappingTouchTargets(details)
         assertEquals(
-            "overlapping touch targets changed — expected ${render(expected)}, found ${render(actual)}",
+            "overlapping touch targets changed — expected ${render(expected)}, found ${render(actual, details)}",
             expected,
             actual,
         )
@@ -140,13 +147,25 @@ object TouchTargets {
     fun ComposeContentTestRule.assertNoOverlappingTouchTargets() =
         assertOverlappingTouchTargetsAreExactly(emptyMap())
 
-    private fun render(pairs: Map<Set<String>, Int>): String =
-        if (pairs.isEmpty()) "none" else pairs.entries.joinToString { "${it.key} x${it.value}" }
+    private fun SemanticsNode.describeGeometry(visibleTouchBounds: Rect): String =
+        "'${describe()}' (boundsInRoot=$boundsInRoot, touchBoundsInRoot=$touchBoundsInRoot, " +
+            "size=$size, visibleTouchBoundsInRoot=$visibleTouchBounds)"
 
-    /** Every reachable control answers to at least 48dp in both axes. */
+    private fun render(pairs: Map<Set<String>, Int>, details: List<String> = emptyList()): String =
+        if (pairs.isEmpty()) "none" else buildString {
+            append(pairs.entries.joinToString { "${it.key} x${it.value}" })
+            details.forEach { append("\n  $it") }
+        }
+
+    /**
+     * Every fully visible control answers to at least 48dp in both axes.
+     * Clipping can reduce the reported touch bounds without changing the target's size.
+     */
     fun ComposeContentTestRule.assertEveryTouchTargetIsAtLeast48dp(allowUnder48: Set<String> = emptySet()) {
         val min = with(density) { MIN_DP.dp.toPx() }
         interactiveNodes().forEach { node ->
+            val visible = node.boundsInRoot
+            if (visible.width < node.size.width || visible.height < node.size.height) return@forEach
             val name = node.describe()
             if (name in allowUnder48) return@forEach
             val bounds = node.touchBoundsInRoot

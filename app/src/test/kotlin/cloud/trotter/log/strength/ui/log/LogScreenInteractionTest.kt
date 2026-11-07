@@ -23,8 +23,16 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.audit.AuditDestination
 import cloud.trotter.log.strength.audit.auditHistoryFixture
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -83,6 +91,18 @@ class LogScreenInteractionTest {
             }
         }
         if (restoration == null) composeTestRule.setContent(content) else restoration.setContent(content)
+    }
+
+    @Test fun roadHistoryTotalsUseMiles() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Road run", startedAt = 1000, completedAt = 1_801_000, seconds = 1800,
+            stepsCompleted = 2, activity = CardioActivity.ROAD_RUN.name)
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900))
+        val results = listOf(2400, 2428).map { metres ->
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 900, metres, DistanceSource.MANUAL)
+        }
+        setContent(false, sessions = listOf(LogScreenBuilder.cardioItem(session, results)))
+        composeTestRule.onNodeWithText("Distance 3 mi", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

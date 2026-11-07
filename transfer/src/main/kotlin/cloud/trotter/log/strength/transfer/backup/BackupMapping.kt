@@ -31,6 +31,7 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
@@ -71,6 +72,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             topSetHelperSeen = topSetHelperSeen,
             supersetHelperSeen = supersetHelperSeen,
             theme = themePreference.name,
+            distanceUnit = distanceUnit?.name,
         ),
         customExercises = customExercises.map {
             CustomExerciseBackup(
@@ -348,6 +350,9 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         topSetHelperSeen = settings.topSetHelperSeen,
         supersetHelperSeen = settings.supersetHelperSeen,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
+        distanceUnit = if (schemaVersion >= 19) settings.distanceUnit?.let { name ->
+            DistanceUnit.entries.firstOrNull { it.name == name }
+        } else null,
         customExercises = customExercises.map {
             CustomExerciseEntity(
                 id = it.id,
@@ -391,7 +396,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
                 planId = it.planId, planName = it.planName,
                 activity = if (schemaVersion >= 12) it.activity else null,
-                note = it.note,
+                note = if (schemaVersion >= 20) it.note else "",
             )
         },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->

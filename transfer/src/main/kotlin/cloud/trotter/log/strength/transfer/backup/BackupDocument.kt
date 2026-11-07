@@ -22,9 +22,10 @@ import kotlinx.serialization.Serializable
  * v16 replaces legacy slot flags with a named set structure.
  * v17 adds bodyweight at tenths-of-a-pound precision.
  * v18 carries parked Progress working values while Next time is Plan.
- * v19 carries each cardio session's note.
+ * v19 carries the distance unit when the lifter chose one.
+ * v20 carries each cardio session's note.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 19
+const val CURRENT_SCHEMA_VERSION: Int = 20
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -150,6 +151,7 @@ data class SettingsBackup(
     val sessionNotes: Map<Long, String> = emptyMap(),
     /** Theme preference. Defaulted so pre-light-theme backups follow SYSTEM. */
     val theme: String = "SYSTEM",
+    val distanceUnit: String? = null,
     val bodyweightLbPrecise: Double? = null,
 )
 

@@ -16,6 +16,7 @@ object RunReplan {
             }
         }
 
+    /** Seeds must describe each track's current prescription; only empty tracks use them. */
     fun alignPaired(
         main: List<LoggedSet>,
         partner: List<LoggedSet>,
@@ -25,10 +26,9 @@ object RunReplan {
         val count = maxOf(main.size, partner.size)
         fun pad(current: List<LoggedSet>, seeded: List<LoggedSet>): List<LoggedSet> =
             (0 until count).map { index ->
-                current.getOrNull(index) ?: (seeded.getOrNull(index) ?: seeded.last()).copy(
-                    done = false, plannedIndex = null, watchEditedAt = null,
-                    startedAtMillis = null, completedAtMillis = null,
-                )
+                current.getOrNull(index) ?: CarryForward.cleared(listOf(
+                    current.lastOrNull() ?: seeded.getOrNull(index) ?: seeded.last(),
+                )).single()
             }
         return pad(main, seededMain) to pad(partner, seededPartner)
     }
@@ -43,13 +43,18 @@ object RunReplan {
         val kept = (0 until maxOf(main.size, partner.size, seededMain.size)).filter { index ->
             index < seededMain.size || main.getOrNull(index)?.done == true || partner.getOrNull(index)?.done == true
         }
-        fun replan(current: List<LoggedSet>, seeded: List<LoggedSet>, keepExisting: Boolean = false): List<LoggedSet> = kept.map { index ->
-            val c = current.getOrNull(index)
-            val s = seeded.getOrNull(index)
-            when {
-                c != null && (keepExisting || c.done) -> c
-                s != null -> s.copy(plannedIndex = c?.plannedIndex, watchEditedAt = c?.watchEditedAt)
-                else -> c ?: seeded.last().copy(plannedIndex = null, watchEditedAt = null)
+        fun replan(current: List<LoggedSet>, seeded: List<LoggedSet>, keepExisting: Boolean = false): List<LoggedSet> = buildList {
+            for (index in kept) {
+                val c = current.getOrNull(index)
+                val s = seeded.getOrNull(index)
+                add(when {
+                    c != null && (keepExisting || c.done) -> c
+                    s != null && !keepExisting -> s.copy(plannedIndex = c?.plannedIndex, watchEditedAt = c?.watchEditedAt)
+                    c != null -> c
+                    else -> CarryForward.cleared(listOf(
+                        if (current.isEmpty()) s ?: seeded.last() else last(),
+                    )).single()
+                })
             }
         }
         return replan(main, seededMain) to replan(partner, seededPartner, keepExisting = true)

@@ -556,6 +556,7 @@ internal fun DayRoute(
         onResetToTemplate = viewModel.editor::resetDayToTemplate,
         onMove = viewModel.editor::moveDaySlot,
         onOpenPrescription = viewModel.editor::openPrescription,
+        onOpenStraightSets = viewModel.editor::openStraightSets,
         onPrescriptionDraft = viewModel.editor::changePrescriptionDraft,
         onSavePrescription = viewModel.editor::savePrescription,
         onDiscardPrescription = viewModel.editor::discardPrescription,
@@ -616,6 +617,7 @@ private fun SetupRoute(
         openRestTimer = openRestTimer,
         actions = SetupActions(
             onUnitToggle = viewModel::setUnit,
+            onDistanceUnitChange = viewModel::setDistanceUnit,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,
             onPhoneRestTimerEnabledChange = viewModel::setPhoneRestTimerEnabled,

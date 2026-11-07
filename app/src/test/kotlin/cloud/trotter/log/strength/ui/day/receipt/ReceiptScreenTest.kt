@@ -45,7 +45,9 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.NoteSheet
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.FinishFailedScreen
 import cloud.trotter.log.strength.ui.day.FinishingScreen
@@ -378,7 +380,7 @@ class ReceiptScreenTest {
         lift.assertExists()
         cardio.assertExists()
         assertTrue(lift.fetchSemanticsNode().positionInRoot.y < cardio.fetchSemanticsNode().positionInRoot.y)
-        listOf("30:00", "Distance", "5,210 m").forEach {
+        listOf("30:00", "Distance", "3.24 mi").forEach {
             rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
         }
         rule.onNodeWithText("Add a note").assertExists()
@@ -410,10 +412,26 @@ class ReceiptScreenTest {
     @Test
     fun cardioTimeTargetShowsDistanceAndFartherRecord() {
         setReceipt(timeTargetFixture())
-        listOf("30:00", "Distance", "5,210 m", "4,980 m", "Farther PR").forEach {
+        listOf("30:00", "Distance", "3.24 mi", "3.09 mi", "Farther PR").forEach {
             rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
         }
-        rule.onNodeWithContentDescription("30 minutes. Distance, 5,210 meters. Farther record, up from 4,980 meters.").assertHasNoClickAction()
+        rule.onNodeWithContentDescription("30 minutes. Distance, 3.24 miles. Farther record, up from 3.09 miles.").assertHasNoClickAction()
+    }
+
+    @Test fun roadReceiptReadsAndSpeaksKilometers() {
+        val base = timeTargetFixture()
+        val row = base.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 5000)), record = null)
+        setReceipt(base.copy(cardioRows = listOf(row)), distanceUnit = DistanceUnit.KM)
+        rule.onNodeWithText("5 km", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("30 minutes. Distance, 5 kilometers.").assertHasNoClickAction()
+    }
+
+    @Test fun rowerReceiptKeepsMetresUnderKilometers() {
+        val base = timeTargetFixture()
+        val row = base.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 2000)), record = null)
+        setReceipt(base.copy(activity = CardioActivity.ROWER, cardioRows = listOf(row)), distanceUnit = DistanceUnit.KM)
+        rule.onNodeWithText("2,000 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("30 minutes. Distance, 2,000 meters.").assertHasNoClickAction()
     }
 
     @Test
@@ -425,7 +443,7 @@ class ReceiptScreenTest {
         ))))
         rule.onNodeWithText("28:10", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("30:00", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithContentDescription("28 minutes 10 seconds. Distance, 5,210 meters. Farther record, up from 4,980 meters.")
+        rule.onNodeWithContentDescription("28 minutes 10 seconds. Distance, 3.24 miles. Farther record, up from 3.09 miles.")
             .assertHasNoClickAction()
     }
 
@@ -435,7 +453,7 @@ class ReceiptScreenTest {
         val row = base.cardioRows.single()
         setReceipt(base.copy(cardioRows = listOf(row.copy(intervals = listOf(row.intervals.single().copy(metres = null)), record = null))))
         rule.onNodeWithText("Distance not entered", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("0 m", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("0 mi", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithText("Farther PR", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithContentDescription("30 minutes. Distance not entered.").assertExists()
     }
@@ -742,11 +760,14 @@ class ReceiptScreenTest {
         onShare: () -> Unit = {},
         onFinish: () -> Unit = {},
         setCounts: ReceiptSetCounts? = null,
+        distanceUnit: DistanceUnit = DistanceUnit.MI,
         nextTimes: ReceiptNextTimes? = null,
     ) {
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-            AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts, nextTimes = nextTimes) }
+            CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) {
+                AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts, nextTimes = nextTimes) }
+            }
         }
     }
 

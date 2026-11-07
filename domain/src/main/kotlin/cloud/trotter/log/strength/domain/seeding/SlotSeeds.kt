@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.seeding
 
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -8,7 +9,8 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 
 /**
- * Main tracks use the prescription, otherwise the known exercise's goal.
+ * Main tracks use the prescription, otherwise the known exercise's goal;
+ * a main-capable lift does its top-set reps.
  * Partners use their own goal for the caller's live or freshly seeded main row count.
  * Unknown entries without a prescription cannot be seeded. Every seeding path calls this rule.
  */
@@ -17,7 +19,10 @@ object SlotSeeds {
         exercise.prescription?.let {
             SetSeeder.seedPrescribed(exercise.targetSets, it, exercise.structure, config.weightUnit, entry?.equipment.orEmpty())
         }
-            ?: entry?.let { SetSeeder.seed(exercise, GoalCalculator.targetFor(it, config), config, it.equipment) }
+            ?: entry?.let {
+                SetSeeder.seed(exercise, GoalCalculator.targetFor(it, config), config, it.equipment,
+                    mainLift = exercise.structure.hasTopSet || it.goal is GoalSource.Std)
+            }
 
     fun prescribed(rows: Int, prescription: Prescription): List<LoggedSet> =
         SetSeeder.seedPrescribed(rows, prescription)

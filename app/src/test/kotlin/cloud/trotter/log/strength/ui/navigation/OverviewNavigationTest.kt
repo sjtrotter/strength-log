@@ -1,7 +1,8 @@
 package cloud.trotter.log.strength.ui.navigation
 
 import android.content.Context
-import androidx.activity.ComponentDialog
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -81,6 +83,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -89,7 +92,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -101,6 +103,7 @@ class OverviewNavigationTest {
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var nav: NavHostController
+    private lateinit var backDispatcher: OnBackPressedDispatcher
     private lateinit var dayVm: DayViewModel
     private val vms = mutableListOf<ViewModel>()
     private var preferred = 0L
@@ -138,6 +141,7 @@ class OverviewNavigationTest {
     private fun render(expectedRow: String = "Strength · Day A") {
         rule.setContent { AppTheme {
             nav = rememberNavController()
+            backDispatcher = requireNotNull(LocalOnBackPressedDispatcherOwner.current).onBackPressedDispatcher
             val entry by nav.currentBackStackEntryAsState()
             Scaffold(contentWindowInsets = WindowInsets(0), bottomBar = {
                 if (TopLevelDestination.showsBarOn(entry?.destination?.route)) AppNavigationBar(nav)
@@ -464,19 +468,39 @@ class OverviewNavigationTest {
         rule.runOnIdle { assertEquals(other.toString(), nav.currentBackStackEntry?.arguments?.getString(Routes.PLAN_ID_ARG)) }
     }
 
-    @Test fun backFromEditorClosesEditorThenReturnsToPreview() {
+    @Test fun backFromPlanEditorReturnsToPreview() {
         render()
         openOtherPreview()
         rule.onNodeWithText("Edit").performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized &&
-            !dayVm.uiState.value.loading && dayVm.uiState.value.planId == other && dayVm.dayEditState.value.editorOpen } }
-        // The sheet owns the first Back; leaving the workout then returns to its preview.
-        rule.onNode(isDialog()).assertExists()
-        rule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
-        rule.waitUntil(5_000) { rule.runOnIdle { !dayVm.dayEditState.value.editorOpen } }
-        rule.onNodeWithContentDescription("Back").performClick()
+            !dayVm.uiState.value.loading && dayVm.uiState.value.planId == other && dayVm.dayEditState.value.planEditing } }
+        rule.onNode(isDialog()).assertDoesNotExist()
+        rule.onNodeWithText("Edit day A").assertIsDisplayed()
+        rule.runOnIdle { backDispatcher.onBackPressed() }
         rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.PREVIEW } }
-        rule.waitUntil(5_000) { rule.onAllNodes(hasText("Start day A")).fetchSemanticsNodes().isNotEmpty() }
+        waitForText("Start day A")
+        rule.onNodeWithText("Start day A").assertIsDisplayed()
+    }
+
+    @Test fun planEditorShowsNoWorkout() {
+        render()
+        openOtherPreview()
+        rule.onNodeWithText("Edit").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized &&
+            !dayVm.uiState.value.loading && dayVm.uiState.value.planId == other && dayVm.dayEditState.value.planEditing } }
+        rule.onNodeWithText("Edit day A").assertIsDisplayed()
+        rule.onNode(hasText("Log ", substring = true)).assertDoesNotExist()
+        rule.onNodeWithText("Finish day A").assertDoesNotExist()
+        rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("workout-rest", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Add exercise").performClick()
+        rule.onNodeWithText("Squat (bilateral)").performScrollTo().performClick()
+        rule.onNodeWithText("Hack Squat").performScrollTo().performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.dayEditState.value.slots.size == 2 } }
+        rule.runOnIdle { assertFalse(dayVm.uiState.value.runOpen) }
+        assertEquals(null, runBlocking { repo.openRunFlow.first() })
+        rule.onNode(hasText("Log ", substring = true)).assertDoesNotExist()
+        rule.onNodeWithText("Finish day A").assertDoesNotExist()
     }
 
 }

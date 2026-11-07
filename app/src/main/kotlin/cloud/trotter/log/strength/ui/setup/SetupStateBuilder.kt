@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.components.BodyweightInput
 
@@ -57,8 +58,10 @@ object SetupStateBuilder {
         restSettings: RestSettings = RestSettings(),
         phoneRestTimerEnabled: Boolean = true,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
+        distanceUnit: DistanceUnit = DistanceUnit.suggestedFor(unit),
     ): SetupUiState = SetupUiState(
         unit = unit,
+        distanceUnit = distanceUnit,
         restTimerEnabled = restSettings.enabled,
         phoneRestTimerEnabled = phoneRestTimerEnabled,
         restCategories = restCategoryRows(restSettings),

@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -59,6 +62,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
@@ -78,7 +82,12 @@ fun SetupScreen(
     openRestTimer: Boolean = false,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val rows = listOf("units", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    var showDistanceUnitDialog by rememberSaveable { mutableStateOf(false) }
+    val distanceUnits = mapOf(
+        DistanceUnit.MI to R.string.settings_distance_miles,
+        DistanceUnit.KM to R.string.settings_distance_kilometers,
+    )
+    val rows = listOf("units", "distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -120,6 +129,12 @@ fun SetupScreen(
                                 }
                             },
                         )
+                        "distance" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_distance)) },
+                            supportingContent = { Text(stringResource(distanceUnits.getValue(state.distanceUnit))) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                .clickable { showDistanceUnitDialog = true },
+                        )
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
                             supportingContent = {
@@ -128,13 +143,12 @@ fun SetupScreen(
                                     ThemePreference.DARK to R.string.setup_theme_dark_title,
                                     ThemePreference.LIGHT to R.string.setup_theme_light_title,
                                 )
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
                                     themes.forEachIndexed { index, (theme, label) ->
                                         SegmentedButton(
                                             selected = state.themePreference == theme,
                                             onClick = { actions.onThemePreferenceChange(theme) },
                                             shape = SegmentedButtonDefaults.itemShape(index, themes.size),
-                                            modifier = Modifier.heightIn(min = 48.dp),
                                             icon = {},
                                         ) { Text(stringResource(label)) }
                                     }
@@ -164,6 +178,36 @@ fun SetupScreen(
                 }
             }
         }
+    }
+    if (showDistanceUnitDialog) {
+        AppAlertDialog(
+            onDismissRequest = { showDistanceUnitDialog = false },
+            title = { Text(stringResource(R.string.settings_distance)) },
+            text = {
+                Column(Modifier.selectableGroup()) {
+                    distanceUnits.forEach { (unit, label) ->
+                        ListItem(
+                            headlineContent = { Text(stringResource(label)) },
+                            leadingContent = { RadioButton(selected = state.distanceUnit == unit, onClick = null) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
+                                selected = state.distanceUnit == unit,
+                                role = Role.RadioButton,
+                                onClick = {
+                                    actions.onDistanceUnitChange(unit)
+                                    showDistanceUnitDialog = false
+                                },
+                            ),
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                DialogAction(stringResource(R.string.setup_cancel_button), TextSecondary) {
+                    showDistanceUnitDialog = false
+                }
+            },
+        )
     }
     if (showRestResetConfirm) {
         RestDefaultsConfirmDialog(
@@ -369,7 +413,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
             ),
             actions = SetupActions(
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
-                onThemePreferenceChange = {},
+                onThemePreferenceChange = {}, onDistanceUnitChange = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

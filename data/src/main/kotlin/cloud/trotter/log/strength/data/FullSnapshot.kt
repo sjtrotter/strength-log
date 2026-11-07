@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
@@ -46,6 +47,7 @@ data class FullSnapshot(
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
+    val distanceUnit: DistanceUnit? = null,
     /** Empty legacy snapshots become one plan when [answersCarryRecipe] is true. */
     val plans: List<PlanEntity> = emptyList(),
     val customExercises: List<CustomExerciseEntity>,

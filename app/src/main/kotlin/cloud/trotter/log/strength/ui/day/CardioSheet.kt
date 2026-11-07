@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ internal fun WorkoutCardioSheet(
     val block = cardio.block ?: return
     val run = cardio.run
     val results = run?.resultSets ?: cardio.loggedSets
+    val activity = if (run == null && results.isNotEmpty()) cardio.loggedActivity else block.activity
     val onDismiss = actions.onCloseAllSets
     var menuOpen by remember { mutableStateOf(false) }
     AppModalBottomSheet(onDismissRequest = onDismiss,
@@ -89,8 +91,8 @@ internal fun WorkoutCardioSheet(
                     overlineContent = { Text(roleName(set.role), style = MaterialTheme.typography.bodyMedium) },
                     headlineContent = {
                         Text(set.aim?.let {
-                            stringResource(R.string.cardio_end_aim, measureText(set.end), measureText(it))
-                        } ?: measureText(set.end), style = MaterialTheme.typography.titleLarge)
+                            stringResource(R.string.cardio_end_aim, measureText(set.end, activity), measureText(it, activity))
+                        } ?: measureText(set.end, activity), style = MaterialTheme.typography.titleLarge)
                     },
                     colors = ListItemDefaults.colors(containerColor = if (now) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface),
                     modifier = Modifier.heightIn(min = 72.dp),
@@ -99,7 +101,7 @@ internal fun WorkoutCardioSheet(
                             val name = statusName(result.status, false)
                             val metres = result.metres
                             if (result.status == CardioSetStatus.SHORTENED && metres != null) {
-                                stringResource(R.string.workout_cardio_status_distance, name, metres)
+                                stringResource(R.string.workout_cardio_status_distance, name, distanceUnitFor(activity).format(metres))
                             } else name
                         }
                         Text(status, style = MaterialTheme.typography.bodyMedium)

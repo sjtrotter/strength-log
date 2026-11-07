@@ -81,11 +81,13 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.AppSheetLayout
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Error
@@ -97,14 +99,6 @@ import kotlin.math.roundToInt
 /**
  * The day-edit sheet (spec §8.3): a [AppModalBottomSheet] living inside the day
  * feature and sharing [DayViewModel] (brief D1) — it is not a nav destination.
- * Internal navigation between the slot list, the substitution/add picker and
- * the pattern picker is plain Compose state; only the page identity is
- * [rememberSaveable] (a rotation mid-edit shouldn't punt the user back to the
- * slot list). Search/filter drafts are saveable too: Create exercise is a
- * designed round trip out to a navigation destination, and returning should
- * restore the picker the user had already narrowed down. The prescription
- * and cardio drafts, their page identities, and open-editor identity live in
- * DayViewModel's SavedStateHandle.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +110,30 @@ fun DayEditSheet(
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        DayEditPages(state, actions, accent, onDismiss, onCreateExercise)
+    }
+}
+
+/**
+ * Internal navigation between the slot list, the substitution/add picker and
+ * the pattern picker is plain Compose state; only the page identity is
+ * [rememberSaveable] (a rotation mid-edit shouldn't punt the user back to the
+ * slot list). Search/filter drafts are saveable too: Create exercise is a
+ * designed round trip out to a navigation destination, and returning should
+ * restore the picker the user had already narrowed down. The prescription
+ * and cardio drafts, their page identities, and open-editor identity live in
+ * DayViewModel's SavedStateHandle.
+ */
+@Composable
+internal fun DayEditPages(
+    state: DayEditUiState,
+    actions: DayEditActions,
+    accent: Color,
+    onDismiss: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
+    onRootBack: (() -> Unit)? = null,
+) {
     var swapSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var swapHalf by rememberSaveable { mutableStateOf(Slot.MAIN) }
     var pickingPattern by rememberSaveable { mutableStateOf(false) }
@@ -152,159 +170,164 @@ fun DayEditSheet(
             null -> Unit
         }
     }
-    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        // Inside the sheet's content, so the handler lands on the sheet dialog's
-        // own back dispatcher (M3 hosts the sheet in a ComponentDialog) ahead of
-        // the dismiss-on-back callback the dialog registers for itself. M3 runs
-        // its own predictive dismissal there; page-back is only a content swap
-        // with nothing to preview, and another gesture animation would fight
-        // the sheet's. This handler only claims the press while a page can go
-        // back. Disabling it at the root returns the gesture to the sheet.
+    if (onRootBack == null) {
+        // The sheet's dialog owns dismissal. Its content claims Back only for
+        // page navigation, ahead of M3's predictive dismissal callback.
         BackHandler(enabled = backTarget != null, onBack = onBack)
-        val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }?.let { state.performedSwapSlot(it, swapHalf) }
-        val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
-        val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
-        when {
-            state.cardioDraft != null -> {
-                val draft = state.cardioDraft
-                val index = draft.editingSet
-                if (index != null) {
-                    CardioSetPage(
-                        draft = draft.sets[index],
-                        onChange = { set -> actions.onCardioDraft(draft.copy(sets = draft.sets.mapIndexed { i, old -> if (i == index) set else old })) },
-                        onSave = actions.onSaveCardio,
-                        onBack = onBack,
-                    )
-                } else {
-                    CardioBlockPage(draft, actions.onCardioDraft, actions.onSaveCardio, onBack)
-                }
+    } else {
+        BackHandler { if (backTarget != null) onBack() else onRootBack() }
+    }
+    val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }?.let { state.performedSwapSlot(it, swapHalf) }
+    val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
+    val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
+    when {
+        state.cardioDraft != null -> {
+            val draft = state.cardioDraft
+            val index = draft.editingSet
+            if (index != null) {
+                CardioSetPage(
+                    draft = draft.sets[index],
+                    unit = distanceUnitFor(draft.activity),
+                    onChange = { set -> actions.onCardioDraft(draft.copy(sets = draft.sets.mapIndexed { i, old -> if (i == index) set else old })) },
+                    onSave = actions.onSaveCardio,
+                    onBack = onBack,
+                )
+            } else {
+                CardioBlockPage(draft, actions.onCardioDraft, actions.onSaveCardio, onBack)
             }
-            state.prescriptionDraft != null -> PrescriptionPage(
-                draft = state.prescriptionDraft,
-                structure = state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
-                    ?: SetStructure.STRAIGHT,
-                unit = state.unit,
-                onChange = actions.onPrescriptionDraft,
-                onSave = actions.onSavePrescription,
+        }
+        state.prescriptionDraft != null -> PrescriptionPage(
+            draft = state.prescriptionDraft,
+            structure = state.prescriptionStructure ?: state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
+                ?: SetStructure.STRAIGHT,
+            title = if (state.prescriptionStructure == SetStructure.STRAIGHT) stringResource(R.string.day_edit_structure_straight) else null,
+            unit = state.unit,
+            onChange = actions.onPrescriptionDraft,
+            onSave = actions.onSavePrescription,
+            onBack = onBack,
+        )
+        // Swap and the superset pickers layer above the options page so
+        // "swap, then add a superset" reads as one continuous flow — they
+        // never clear optionsSlotId, so finishing (or backing out of) one
+        // lands back on the options page rather than the slot list.
+        swapSlot != null && swapSlot.pattern != null -> SwapPickerPage(
+            slot = swapSlot,
+            pattern = swapSlot.pattern,
+            state = state,
+            accent = accent,
+            onPick = { entry ->
+                if (swapHalf == Slot.SS) actions.onSetSuperset(swapSlot.position, entry.id)
+                else actions.onSwap(swapSlot.position, entry.id)
+                swapSlotId = null
+            },
+            onWorkoutPick = { entry ->
+                actions.onWorkoutSwapHalf(swapSlot.position, entry.id, swapHalf)
+                actions.onEditorOpen(false)
+                swapSlotId = null
+            },
+            half = swapHalf,
+            onBack = onBack,
+            onCreateExercise = onCreateExercise,
+        )
+        ssSlot != null && ssPatternName == null -> {
+            // Same-pattern assistance pairings (pull-up + assisted pull-up)
+            // are the common case, so the current partner's pattern (or the
+            // slot's own pattern, when adding a first partner) is ranked first.
+            val referencePattern = ssSlot.partnerExerciseId
+                ?.let { state.catalog.find(it)?.pattern }
+                ?: ssSlot.pattern
+            val patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal }
+            val ordered = if (referencePattern != null) {
+                listOf(referencePattern) + patterns.filter { it != referencePattern }
+            } else {
+                patterns
+            }
+            PatternPickerScreen(
+                title = stringResource(R.string.sheet_superset_pattern_title),
+                patterns = ordered,
+                onPick = { pattern -> ssPatternName = pattern.name },
                 onBack = onBack,
             )
-            // Swap and the superset pickers layer above the options page so
-            // "swap, then add a superset" reads as one continuous flow — they
-            // never clear optionsSlotId, so finishing (or backing out of) one
-            // lands back on the options page rather than the slot list.
-            swapSlot != null && swapSlot.pattern != null -> SwapPickerPage(
-                slot = swapSlot,
-                pattern = swapSlot.pattern,
-                state = state,
+        }
+        ssSlot != null && ssPatternName != null -> {
+            val pattern = MovementPattern.valueOf(ssPatternName!!)
+            ExercisePickerScreen(
+                key = "ss-${ssSlot.programExerciseId}-$ssPatternName",
+                title = stringResource(R.string.sheet_superset_exercise_title, ssSlot.title),
+                pattern = pattern,
+                candidates = state.catalog.byPattern(pattern)
+                    .filter { it.id != ssSlot.exerciseId && it.id != ssSlot.partnerExerciseId },
+                defaultEquipment = state.defaultEquipmentFilter,
                 accent = accent,
                 onPick = { entry ->
-                    if (swapHalf == Slot.SS) actions.onSetSuperset(swapSlot.position, entry.id)
-                    else actions.onSwap(swapSlot.position, entry.id)
-                    swapSlotId = null
+                    actions.onSetSuperset(ssSlot.position, entry.id)
+                    ssSlotId = null
+                    ssPatternName = null
                 },
-                onWorkoutPick = { entry ->
-                    actions.onWorkoutSwapHalf(swapSlot.position, entry.id, swapHalf)
-                    actions.onEditorOpen(false)
-                    swapSlotId = null
-                },
-                half = swapHalf,
                 onBack = onBack,
                 onCreateExercise = onCreateExercise,
             )
-            ssSlot != null && ssPatternName == null -> {
-                // Same-pattern assistance pairings (pull-up + assisted pull-up)
-                // are the common case, so the current partner's pattern (or the
-                // slot's own pattern, when adding a first partner) is ranked first.
-                val referencePattern = ssSlot.partnerExerciseId
-                    ?.let { state.catalog.find(it)?.pattern }
-                    ?: ssSlot.pattern
-                val patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal }
-                val ordered = if (referencePattern != null) {
-                    listOf(referencePattern) + patterns.filter { it != referencePattern }
-                } else {
-                    patterns
-                }
-                PatternPickerScreen(
-                    title = stringResource(R.string.sheet_superset_pattern_title),
-                    patterns = ordered,
-                    onPick = { pattern -> ssPatternName = pattern.name },
-                    onBack = onBack,
-                )
-            }
-            ssSlot != null && ssPatternName != null -> {
-                val pattern = MovementPattern.valueOf(ssPatternName!!)
-                ExercisePickerScreen(
-                    key = "ss-${ssSlot.programExerciseId}-$ssPatternName",
-                    title = stringResource(R.string.sheet_superset_exercise_title, ssSlot.title),
-                    pattern = pattern,
-                    candidates = state.catalog.byPattern(pattern)
-                        .filter { it.id != ssSlot.exerciseId && it.id != ssSlot.partnerExerciseId },
-                    defaultEquipment = state.defaultEquipmentFilter,
-                    accent = accent,
-                    onPick = { entry ->
-                        actions.onSetSuperset(ssSlot.position, entry.id)
-                        ssSlotId = null
-                        ssPatternName = null
-                    },
-                    onBack = onBack,
-                    onCreateExercise = onCreateExercise,
-                )
-            }
-            pickingPattern -> PatternPickerScreen(
-                title = stringResource(R.string.sheet_add_pattern_title),
-                patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
-                onPick = { pattern -> addPatternName = pattern.name; pickingPattern = false },
+        }
+        pickingPattern -> PatternPickerScreen(
+            title = stringResource(R.string.sheet_add_pattern_title),
+            patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
+            onPick = { pattern -> addPatternName = pattern.name; pickingPattern = false },
+            onBack = onBack,
+        )
+        addPatternName != null -> {
+            val pattern = MovementPattern.valueOf(addPatternName!!)
+            ExercisePickerScreen(
+                key = "add-${pattern.name}",
+                title = stringResource(R.string.sheet_add_exercise_title, patternLabel(pattern)),
+                pattern = pattern,
+                candidates = state.catalog.byPattern(pattern),
+                defaultEquipment = state.defaultEquipmentFilter,
+                accent = accent,
+                onPick = { entry -> actions.onAdd(entry.id); addPatternName = null },
                 onBack = onBack,
-            )
-            addPatternName != null -> {
-                val pattern = MovementPattern.valueOf(addPatternName!!)
-                ExercisePickerScreen(
-                    key = "add-${pattern.name}",
-                    title = stringResource(R.string.sheet_add_exercise_title, patternLabel(pattern)),
-                    pattern = pattern,
-                    candidates = state.catalog.byPattern(pattern),
-                    defaultEquipment = state.defaultEquipmentFilter,
-                    accent = accent,
-                    onPick = { entry -> actions.onAdd(entry.id); addPatternName = null },
-                    onBack = onBack,
-                    onCreateExercise = onCreateExercise,
-                )
-            }
-            optionsSlot != null -> SlotOptionsScreen(
-                slot = optionsSlot,
-                onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
-                onMove = { up -> actions.onMove(optionsSlot.programExerciseId, up) },
-                onBack = onBack,
-                onSwapClick = { swapHalf = Slot.MAIN; swapSlotId = optionsSlot.programExerciseId },
-                onSupersetClick = {
-                    if (optionsSlot.partnerExerciseId != null) {
-                        swapHalf = Slot.SS
-                        swapSlotId = optionsSlot.programExerciseId
-                    } else ssSlotId = optionsSlot.programExerciseId
-                },
-                onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
-                runOpen = state.runOpen,
-                onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
-                onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
-                onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
-            )
-            else -> DaySlotList(
-                state = state,
-                onEditClick = actions.onOpenPrescription,
-                onOptionsClick = { slotId -> optionsSlotId = slotId },
-                onSwapClick = { slotId -> swapHalf = Slot.MAIN; swapSlotId = slotId },
-                onRemoveClick = actions.onRemove,
-                onAddClick = { pickingPattern = true },
-                onResetClick = { confirmingReset = true },
-                onOpenCardio = actions.onOpenCardio,
-                onRemoveCardio = actions.onRemoveCardio,
+                onCreateExercise = onCreateExercise,
             )
         }
+        optionsSlot != null -> SlotOptionsScreen(
+            slot = optionsSlot,
+            onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
+            onMove = { up -> actions.onMove(optionsSlot.programExerciseId, up) },
+            onBack = onBack,
+            onSwapClick = { swapHalf = Slot.MAIN; swapSlotId = optionsSlot.programExerciseId },
+            onSupersetClick = {
+                if (optionsSlot.partnerExerciseId != null) {
+                    swapHalf = Slot.SS
+                    swapSlotId = optionsSlot.programExerciseId
+                } else ssSlotId = optionsSlot.programExerciseId
+            },
+            onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
+            runOpen = state.runOpen,
+            onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
+            onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
+            onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
+            onStraightSets = { actions.onOpenStraightSets(optionsSlot.programExerciseId) },
+        )
+        else -> DaySlotList(
+            state = state,
+            onEditClick = actions.onOpenPrescription,
+            onOptionsClick = { slotId -> optionsSlotId = slotId },
+            onSwapClick = { slotId -> swapHalf = Slot.MAIN; swapSlotId = slotId },
+            onRemoveClick = actions.onRemove,
+            onAddClick = { pickingPattern = true },
+            onResetClick = { confirmingReset = true },
+            onOpenCardio = actions.onOpenCardio,
+            onRemoveCardio = actions.onRemoveCardio,
+            showTitle = !state.planEditing,
+        )
     }
 
     if (confirmingReset) {
         ResetToTemplateDialog(
-            onConfirm = { confirmingReset = false; actions.onResetToTemplate(); onDismiss() },
+            onConfirm = {
+                confirmingReset = false
+                actions.onResetToTemplate()
+                if (!state.planEditing) onDismiss()
+            },
             onDismiss = { confirmingReset = false },
         )
     }
@@ -323,12 +346,14 @@ private fun DaySlotList(
     onResetClick: () -> Unit,
     onOpenCardio: () -> Unit,
     onRemoveCardio: () -> Unit,
+    showTitle: Boolean = true,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.day_edit_title), style = MaterialTheme.typography.titleLarge,
+            if (showTitle) Text(stringResource(R.string.day_edit_title), style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f))
+            else Spacer(Modifier.weight(1f))
             if (state.canResetToTemplate) Box {
                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
                 DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -470,6 +495,7 @@ private fun SlotOptionsScreen(
     onKeepToPlanChange: (Boolean) -> Unit,
     onResetToPlanClick: () -> Unit,
     onStructureChange: (SetStructure) -> Unit,
+    onStraightSets: () -> Unit,
 ) {
     var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
     if (confirmingReset && !slot.keepToPlan && !runOpen) {
@@ -530,7 +556,10 @@ private fun SlotOptionsScreen(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
                             selected = slot.structure == structure,
                             role = Role.RadioButton,
-                            onClick = { onStructureChange(structure) },
+                            onClick = {
+                                if (structure == SetStructure.STRAIGHT && slot.structure != SetStructure.STRAIGHT) onStraightSets()
+                                else onStructureChange(structure)
+                            },
                         ),
                     )
                 }
@@ -558,9 +587,10 @@ internal fun PrescriptionPage(
     onSave: () -> Unit,
     onBack: () -> Unit,
     structure: SetStructure = SetStructure.STRAIGHT,
+    title: String? = null,
 ) {
     AppSheetLayout(
-        title = { PickerHeader(stringResource(R.string.day_edit_prescription), onBack) },
+        title = { PickerHeader(title ?: stringResource(R.string.day_edit_prescription), onBack) },
         footer = {
             SheetCommitButton(stringResource(R.string.plans_save), onSave,
                 cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
@@ -708,8 +738,8 @@ internal fun CardioBlockPage(
                 headlineContent = { Text(stringResource(R.string.cardio_edit_set_title, index + 1, cardioEditRoleName(set.role))) },
                 supportingContent = {
                     val spec = set.spec()
-                    val end = cardioEditMeasure(spec.end)
-                    val target = spec.aim?.let { stringResource(R.string.cardio_end_aim, end, cardioEditMeasure(it)) } ?: end
+                    val end = cardioEditMeasure(spec.end, distanceUnitFor(draft.activity))
+                    val target = spec.aim?.let { stringResource(R.string.cardio_end_aim, end, cardioEditMeasure(it, distanceUnitFor(draft.activity))) } ?: end
                     Text(if (set.hard) stringResource(R.string.cardio_edit_hard_summary, target) else target)
                 },
             )
@@ -733,6 +763,7 @@ internal fun CardioBlockPage(
 @Composable
 internal fun CardioSetPage(
     draft: CardioSetDraft,
+    unit: DistanceUnit,
     onChange: (CardioSetDraft) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
@@ -764,7 +795,7 @@ internal fun CardioSetPage(
                 )
             }
         }
-        CardioMeasureNumber(draft.endIsTime, draft, onChange)
+        CardioMeasureNumber(draft.endIsTime, draft, unit, onChange)
         val aimLabel = stringResource(R.string.cardio_edit_aim)
         ListItem(
             headlineContent = { Text(aimLabel) },
@@ -774,7 +805,7 @@ internal fun CardioSetPage(
                     modifier = Modifier.semantics { contentDescription = aimLabel })
             },
         )
-        if (draft.hasAim) CardioMeasureNumber(!draft.endIsTime, draft, onChange)
+        if (draft.hasAim) CardioMeasureNumber(!draft.endIsTime, draft, unit, onChange)
         val hardLabel = stringResource(R.string.cardio_edit_hard)
         ListItem(
             headlineContent = { Text(hardLabel) },
@@ -788,17 +819,21 @@ internal fun CardioSetPage(
 }
 
 @Composable
-private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, onChange: (CardioSetDraft) -> Unit) {
-    val label = stringResource(if (isTime) R.string.sheet_duration else R.string.cardio_distance_label)
-    val increment = if (isTime) 30 else 10
+private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, unit: DistanceUnit, onChange: (CardioSetDraft) -> Unit) {
+    val label = if (isTime) stringResource(R.string.sheet_duration) else stringResource(R.string.cardio_distance_label, unit.symbol)
+    val increment = if (isTime) 30.0 else if (unit == DistanceUnit.M) 10.0 else 0.05
     NumericSetField(
-        identity = "cardio:$isTime", value = (if (isTime) draft.seconds else draft.metres).toDouble(),
+        identity = "cardio:$isTime:$unit", value = if (isTime) draft.seconds.toDouble() else unit.fromMetres(draft.metres),
         label = label, field = stringResource(if (isTime) R.string.sheet_duration else R.string.sheet_distance_field),
         partnerName = null, modifier = Modifier.fillMaxWidth(),
-        minimum = if (isTime) 5.0 else 10.0, maximum = if (isTime) 86_400.0 else 200_000.0,
-        step = { increment.toDouble() }, duration = isTime,
-        round = { if (isTime) it else (it / increment).roundToInt().toDouble() * increment },
-        onChange = { onChange(if (isTime) draft.copy(seconds = it.toInt()) else draft.copy(metres = it.toInt())) },
+        minimum = if (isTime) 5.0 else if (unit == DistanceUnit.M) 10.0 else 0.01,
+        maximum = if (isTime) 86_400.0 else unit.fromMetres(200_000),
+        decimal = !isTime, step = { increment }, duration = isTime,
+        round = { if (isTime || unit != DistanceUnit.M) it else (it / increment).roundToInt().toDouble() * increment },
+        onChange = { value ->
+            if (isTime) onChange(draft.copy(seconds = value.toInt()))
+            else unit.toMetres(value)?.let { onChange(draft.copy(metres = it)) }
+        },
     )
 }
 
@@ -811,9 +846,9 @@ private fun cardioEditRoleName(role: CardioRole): String = stringResource(when (
 })
 
 @Composable
-private fun cardioEditMeasure(measure: Measure): String = when (measure) {
+private fun cardioEditMeasure(measure: Measure, unit: DistanceUnit): String = when (measure) {
     is Measure.Time -> formatCardioTime(measure.seconds)
-    is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
+    is Measure.Distance -> unit.format(measure.metres)
 }
 
 // --- page 2: pick a pattern (add flow and superset flow) ----------------------
@@ -891,7 +926,7 @@ private fun SwapPickerPage(
             candidates = state.swapCandidates(slot, half),
             defaultEquipment = state.defaultEquipmentFilter,
             accent = accent,
-            onPick = { pickedId = it.id },
+            onPick = { if (state.planEditing) onPick(it) else pickedId = it.id },
             onBack = onBack,
             onCreateExercise = onCreateExercise,
             allCandidates = state.catalog.entries.filter { it.id != slot.exerciseId },

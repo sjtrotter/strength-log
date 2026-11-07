@@ -11,12 +11,15 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import dagger.hilt.android.AndroidEntryPoint
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.PhoneRestRuntime
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -42,8 +45,9 @@ class MainActivity : ComponentActivity() {
             val themePreference by settings.themePreferenceFlow.collectAsStateWithLifecycle(
                 initialValue = cloud.trotter.log.strength.domain.theme.ThemePreference.SYSTEM,
             )
+            val distanceUnit by settings.distanceUnitFlow.collectAsStateWithLifecycle(initialValue = DistanceUnit.MI)
             AppTheme(preference = themePreference) {
-                AppNavHost()
+                CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) { AppNavHost() }
             }
         }
 

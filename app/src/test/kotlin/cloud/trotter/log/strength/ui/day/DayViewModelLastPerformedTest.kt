@@ -12,10 +12,16 @@ import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.storeTestRows
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
@@ -129,6 +135,29 @@ class DayViewModelLastPerformedTest {
     }
 
     @Test
+    fun `the lift sheet's last time lists every set`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5))),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val benchId = slotId("bb_bench")
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", benchId, Slot.MAIN,
+            listOf(5, 5, 4).mapIndexed { index, reps ->
+                LoggedSet(225.0, reps, SetKind.WORK, done = true, plannedIndex = index)
+            }, started.runId)
+        repo.finishRun(started.runId)
+
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val card = vm.uiState.value.exercises.single()
+        assertEquals("225 lb × 5, 5, 4", card.lastTimeDisplay)
+        assertNull(card.topSetComparison)
+        collect.cancel()
+    }
+
+    @Test
     fun cardShowsTheTopSetFromTheMostRecentlyCompletedSession() = runVmTest {
         insertSingleDayProgram()
         val vm = newViewModel()
@@ -153,7 +182,7 @@ class DayViewModelLastPerformedTest {
         advanceUntilIdle()
 
         val card = vm2.uiState.value.exercises.first { it.programExerciseId == squatId }
-        assertEquals("235 × 5", card.lastTimeDisplay)
+        assertEquals("235 lb × 5", card.lastTimeDisplay)
         collect2.cancel()
     }
 

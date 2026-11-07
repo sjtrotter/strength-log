@@ -53,10 +53,12 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -1020,13 +1022,33 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("4:00").assertIsDisplayed()
         rule.onNodeWithText("Elapsed").assertIsDisplayed()
         rule.onNodeWithText("Aim 5:00").assertIsDisplayed()
-        rule.onNodeWithText("Distance (m)").assertIsDisplayed()
-        rule.onNodeWithTag("workout-cardio-distance").performTextInput("5000")
+        rule.onNodeWithText("Distance (mi)").assertIsDisplayed()
+        rule.onNodeWithTag("workout-cardio-distance").performTextInput("3.1")
         rule.onNodeWithText("Stop").performClick()
         rule.runOnIdle {
-            assertEquals("5000", distance)
+            assertEquals("3.1", distance)
             assertEquals(state.cardio?.run?.action(), stopped)
         }
+    }
+
+    @Test fun roadDistanceBeforeStartShowsMilesInTheHero() {
+        val base = workoutSetCardioFixture()
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(1609))))
+        show(base.copy(cardio = base.cardio!!.copy(block = block, distanceUnit = DistanceUnit.MI)))
+        rule.onNodeWithText("1 mi").assertIsDisplayed()
+    }
+
+    @Test fun trackDistanceBeforeStartKeepsMetresInTheHero() {
+        val base = workoutSetCardioFixture()
+        val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(400))))
+        show(base.copy(cardio = base.cardio!!.copy(block = block, distanceUnit = DistanceUnit.MI)))
+        rule.onNodeWithText("400 m").assertIsDisplayed()
+    }
+
+    @Test fun runningDistanceLabelUsesTheViewModelUnit() {
+        val base = workoutSetCardioRunningFixture()
+        show(base.copy(cardio = base.cardio!!.copy(distanceUnit = DistanceUnit.KM)))
+        rule.onNodeWithText("Distance (km)").assertIsDisplayed()
     }
 
     @Test fun intervalTimeShowsCountdownAndRemaining() {
@@ -1044,9 +1066,9 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("0:27").assertIsDisplayed()
         rule.onNodeWithText("Elapsed").assertIsDisplayed()
         rule.onNodeWithText("Aim 1:45").assertIsDisplayed()
-        rule.onNodeWithText("to 400 m").assertIsDisplayed()
+        rule.onNodeWithText("to 0.25 mi").assertIsDisplayed()
         rule.mainClock.autoAdvance = false
-        rule.onNodeWithText("Reached 400 m").performClick()
+        rule.onNodeWithText("Reached 0.25 mi").performClick()
         rule.onNodeWithText("Stop").assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals(state.cardio?.run?.action(), reached); assertEquals(null, stopped) }
         rule.mainClock.advanceTimeBy(700)
@@ -1081,6 +1103,18 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("1 finished · 0 shortened · 0 skipped").assertIsDisplayed()
         rule.onNodeWithText("Next: Barbell Back Squat").performClick()
         rule.runOnIdle { assertEquals(1, nexts) }
+    }
+
+    @Test fun completedTrackSummaryKeepsMetersAfterPlanChangesToRoadRun() {
+        val base = workoutSetCardioDoneFixture()
+        val cardio = requireNotNull(base.cardio)
+        val results = cardio.loggedSets.map { it.copy(metres = 400, distanceSource = DistanceSource.MANUAL) }
+        show(base.copy(cardio = cardio.copy(run = null, loggedSets = results, loggedSeconds = 100,
+            loggedActivity = CardioActivity.TRACK_RUN)))
+
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Distance 400 m").assertIsDisplayed()
+        rule.onNodeWithText("Distance 0.25 mi").assertDoesNotExist()
     }
 
     @Test fun cardioDoneWithNothingLeftOffersFinish() {
@@ -1304,7 +1338,7 @@ class WorkoutSetScreenTest {
         show(base.copy(cardio = base.cardio?.copy(block = block, run = run, distanceRuns = listOf(entry)),
             openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0)), workoutActions().copy(
                 onCloseAllSets = { closes++ }, onRequestCardioDistance = { requested = it }))
-        for (status in listOf("Finished", "Shortened, 350 m", "Skipped", "Now")) {
+        for (status in listOf("Finished", "Shortened, 0.22 mi", "Skipped", "Now")) {
             rule.onNodeWithText(status).assertIsDisplayed()
         }
         rule.onNodeWithText("Road run · Set 2").assertIsDisplayed()

@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -162,7 +163,7 @@ internal fun spokenPlan(plan: PlannedSets, unit: WeightUnit): String = when (pla
 }
 
 @Composable
-internal fun cardioRowName(row: CardioReceiptRow): String = when (row.role) {
+internal fun cardioRowName(row: CardioReceiptRow, unit: DistanceUnit): String = when (row.role) {
     CardioRole.WARMUP -> stringResource(R.string.cardio_warmup)
     CardioRole.COOLDOWN -> stringResource(R.string.cardio_cooldown)
     CardioRole.RECOVERY -> stringResource(R.string.cardio_recovery)
@@ -172,7 +173,7 @@ internal fun cardioRowName(row: CardioReceiptRow): String = when (row.role) {
         val measure = when {
             finishedAlone -> ClockText.minutesSeconds(row.intervals.single().elapsedSeconds)
             row.endSeconds != null -> ClockText.minutesSeconds(row.endSeconds)
-            else -> stringResource(R.string.cardio_metres, requireNotNull(row.endMetres))
+            else -> visibleDistance(requireNotNull(row.endMetres), unit)
         }
         if (row.count > 1) stringResource(R.string.receipt_cardio_work_count, row.count, measure) else measure
     }
@@ -192,46 +193,51 @@ internal fun bestInterval(row: CardioReceiptRow): CardioInterval? {
 }
 
 @Composable
-internal fun visibleMetres(metres: Int): String = String.format(Locale.US, "%,d m", metres)
+internal fun visibleDistance(metres: Int, unit: DistanceUnit): String = unit.format(metres)
 
 @Composable
-internal fun spokenMetres(metres: Int): String = String.format(Locale.US, "%,d", metres) + " " + stringResource(R.string.receipt_say_meters)
+internal fun spokenDistance(metres: Int, unit: DistanceUnit): String =
+    (if (unit == DistanceUnit.M) String.format(Locale.US, "%,d", metres) else unit.inputText(metres)) + " " + stringResource(when (unit) {
+        DistanceUnit.MI -> R.string.receipt_say_miles
+        DistanceUnit.KM -> R.string.receipt_say_kilometers
+        DistanceUnit.M -> R.string.receipt_say_meters
+    })
 
 @Composable
-internal fun cardioValue(row: CardioReceiptRow): String {
+internal fun cardioValue(row: CardioReceiptRow, unit: DistanceUnit): String {
     if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.cardio_skipped)
     if (row.intervals.size == 1 && row.intervals.single().status == CardioSetStatus.SHORTENED) {
-        return shortenedInterval(row, row.intervals.single())
+        return shortenedInterval(row, row.intervals.single(), unit)
     }
     if (row.role != CardioRole.WORK) return ClockText.minutesSeconds(row.intervals.sumOf { it.elapsedSeconds })
     val best = bestInterval(row)
     return if (row.endMetres != null) best?.let { ClockText.minutesSeconds(it.elapsedSeconds) }
         ?: stringResource(R.string.receipt_cardio_not_finished)
-    else best?.metres?.let { visibleMetres(it) } ?: stringResource(R.string.receipt_cardio_distance_missing)
+    else best?.metres?.let { visibleDistance(it, unit) } ?: stringResource(R.string.receipt_cardio_distance_missing)
 }
 
 @Composable
-internal fun cardioPrevious(mark: CardioRecordMark): String = mark.previousSeconds?.let(ClockText::minutesSeconds)
-    ?: visibleMetres(requireNotNull(mark.previousMetres))
+internal fun cardioPrevious(mark: CardioRecordMark, unit: DistanceUnit): String = mark.previousSeconds?.let(ClockText::minutesSeconds)
+    ?: visibleDistance(requireNotNull(mark.previousMetres), unit)
 
 @Composable
-private fun spokenCardioPrevious(mark: CardioRecordMark): String = mark.previousSeconds?.let { spokenDuration(it) }
-    ?: spokenMetres(requireNotNull(mark.previousMetres))
+private fun spokenCardioPrevious(mark: CardioRecordMark, unit: DistanceUnit): String = mark.previousSeconds?.let { spokenDuration(it) }
+    ?: spokenDistance(requireNotNull(mark.previousMetres), unit)
 
 @Composable
-internal fun spokenCardioRow(row: CardioReceiptRow): String {
-    if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.receipt_say_skipped, cardioRowName(row))
+internal fun spokenCardioRow(row: CardioReceiptRow, unit: DistanceUnit): String {
+    if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.receipt_say_skipped, cardioRowName(row, unit))
     if (row.intervals.size == 1 && row.intervals.single().status == CardioSetStatus.SHORTENED) {
-        return stringResource(R.string.receipt_say_cardio_value, cardioRowName(row), shortenedInterval(row, row.intervals.single(), spoken = true))
+        return stringResource(R.string.receipt_say_cardio_value, cardioRowName(row, unit), shortenedInterval(row, row.intervals.single(), unit, spoken = true))
     }
     if (row.role != CardioRole.WORK) return stringResource(R.string.receipt_say_cardio_value,
-        cardioRowName(row), spokenDuration(row.intervals.sumOf { it.elapsedSeconds }))
+        cardioRowName(row, unit), spokenDuration(row.intervals.sumOf { it.elapsedSeconds }))
     val finishedAlone = row.count == 1 && row.endSeconds != null &&
         row.intervals.singleOrNull()?.status == CardioSetStatus.FINISHED
     val measure = when {
         finishedAlone -> spokenDuration(row.intervals.single().elapsedSeconds)
         row.endSeconds != null -> spokenDuration(row.endSeconds)
-        else -> spokenMetres(requireNotNull(row.endMetres))
+        else -> spokenDistance(requireNotNull(row.endMetres), unit)
     }
     val name = if (row.count > 1) stringResource(R.string.receipt_say_cardio_by, row.count, measure) else measure
     val best = bestInterval(row)
@@ -239,30 +245,30 @@ internal fun spokenCardioRow(row: CardioReceiptRow): String {
         if (row.endMetres == null) stringResource(R.string.receipt_say_cardio_distance_missing)
         else stringResource(R.string.receipt_say_cardio_measure, stringResource(R.string.receipt_cardio_not_finished))
     } else stringResource(R.string.receipt_say_cardio_value, cardioValueLabel(row),
-        if (row.endMetres != null) spokenDuration(best.elapsedSeconds) else spokenMetres(requireNotNull(best.metres)))
-    val record = row.record?.let { stringResource(R.string.receipt_say_record_up_from, spokenRecord(it.kind), spokenCardioPrevious(it)) }
+        if (row.endMetres != null) spokenDuration(best.elapsedSeconds) else spokenDistance(requireNotNull(best.metres), unit))
+    val record = row.record?.let { stringResource(R.string.receipt_say_record_up_from, spokenRecord(it.kind), spokenCardioPrevious(it, unit)) }
     return listOfNotNull(stringResource(R.string.receipt_say_cardio_measure, name), value, record).joinToString(" ")
 }
 
 @Composable
-internal fun cardioIntervalValue(row: CardioReceiptRow, interval: CardioInterval): String {
+internal fun cardioIntervalValue(row: CardioReceiptRow, interval: CardioInterval, unit: DistanceUnit): String {
     if (interval.status == CardioSetStatus.SKIPPED) return stringResource(R.string.cardio_skipped)
     val value = if (row.endMetres != null) ClockText.minutesSeconds(interval.elapsedSeconds)
-        else interval.metres?.let { visibleMetres(it) } ?: stringResource(R.string.receipt_cardio_not_entered)
-    return if (interval.status == CardioSetStatus.SHORTENED) shortenedInterval(row, interval) else value
+        else interval.metres?.let { visibleDistance(it, unit) } ?: stringResource(R.string.receipt_cardio_not_entered)
+    return if (interval.status == CardioSetStatus.SHORTENED) shortenedInterval(row, interval, unit) else value
 }
 
 @Composable
-internal fun spokenInterval(row: CardioReceiptRow, index: Int): String {
+internal fun spokenInterval(row: CardioReceiptRow, index: Int, unit: DistanceUnit): String {
     val interval = row.intervals[index]
     if (interval.status == CardioSetStatus.SKIPPED) return stringResource(R.string.receipt_say_interval_skipped, index + 1)
     val value = if (row.endMetres != null) spokenDuration(interval.elapsedSeconds)
-        else interval.metres?.let { spokenMetres(it) } ?: stringResource(R.string.receipt_cardio_distance_missing)
+        else interval.metres?.let { spokenDistance(it, unit) } ?: stringResource(R.string.receipt_cardio_distance_missing)
     val record = row.record?.takeIf { it.intervalIndex == index }
     return when {
         record != null -> stringResource(R.string.receipt_say_interval_record, index + 1, value,
-            spokenRecord(record.kind).replaceFirstChar(Char::lowercase), spokenCardioPrevious(record))
-        interval.status == CardioSetStatus.SHORTENED -> stringResource(R.string.operation_receipt_shortened_interval, index + 1, shortenedInterval(row, interval, spoken = true))
+            spokenRecord(record.kind).replaceFirstChar(Char::lowercase), spokenCardioPrevious(record, unit))
+        interval.status == CardioSetStatus.SHORTENED -> stringResource(R.string.operation_receipt_shortened_interval, index + 1, shortenedInterval(row, interval, unit, spoken = true))
         else -> stringResource(R.string.receipt_say_interval, index + 1, value)
     }
 }
@@ -277,7 +283,7 @@ internal fun recoveryText(seconds: List<Int>, spoken: Boolean = false): String {
 }
 
 @Composable
-private fun shortenedInterval(row: CardioReceiptRow, interval: CardioInterval, spoken: Boolean = false): String {
+private fun shortenedInterval(row: CardioReceiptRow, interval: CardioInterval, unit: DistanceUnit, spoken: Boolean = false): String {
     val plannedSeconds = row.endSeconds
     val plannedMetres = row.endMetres
     val actual: String
@@ -286,9 +292,9 @@ private fun shortenedInterval(row: CardioReceiptRow, interval: CardioInterval, s
         actual = if (spoken) spokenDuration(interval.elapsedSeconds) else ClockText.minutesSeconds(interval.elapsedSeconds)
         planned = if (spoken) spokenDuration(plannedSeconds) else ClockText.minutesSeconds(plannedSeconds)
     } else if (plannedMetres != null) {
-        actual = interval.metres?.let { if (spoken) spokenMetres(it) else visibleMetres(it) }
+        actual = interval.metres?.let { if (spoken) spokenDistance(it, unit) else visibleDistance(it, unit) }
             ?: stringResource(R.string.receipt_cardio_not_entered)
-        planned = if (spoken) spokenMetres(plannedMetres) else visibleMetres(plannedMetres)
+        planned = if (spoken) spokenDistance(plannedMetres, unit) else visibleDistance(plannedMetres, unit)
     } else {
         // Receipts restored from older bundles may not carry the captured target.
         return stringResource(R.string.operation_receipt_shortened_unknown,

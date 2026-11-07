@@ -49,6 +49,8 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
@@ -401,7 +403,7 @@ class DayViewModelWiringTest {
     @Test
     fun unprescribedSlotsOpenPrescriptionAtTheirTrackingTypesAndGoals() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
-            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"),
+            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"), ProgramExercise("rdl"),
         )))))
         repo.plans.updateLifter { it.copy(bodyweightLb = 185.0, age = 45) }
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -411,7 +413,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
 
-        assertEquals(3, vm.dayEditState.value.slots.size)
+        assertEquals(4, vm.dayEditState.value.slots.size)
         for (slot in vm.dayEditState.value.slots) {
             assertNull(slot.prescription)
             vm.editor.openPrescription(slot.programExerciseId)
@@ -429,13 +431,296 @@ class DayViewModelWiringTest {
                 is GoalTarget.Weight -> {
                     assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
                     assertTrue(draft.loadLb > 0.0)
-                    PrescribedTarget.LoadReps(goal.lb, 10)
+                    PrescribedTarget.LoadReps(goal.lb, if (slot.exerciseId == "bb_back_squat") 5 else 10)
                 }
             }
             assertEquals(expected, draft.prescription().target)
             assertEquals(slot.targetSets, draft.sets)
         }
         collect.cancel()
+    }
+
+    @Test
+    fun `straight sets starts from the slot's working set`() = runVmTest {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = slotId("bb_back_squat")
+        repo.ensureSeeded(plan, "A")
+        val seeded = track(id, Slot.MAIN)!!
+        val working = SetEditor.editWeight(seeded, seeded.indexOfFirst { it.kind == SetKind.TOP }, 215.0)
+        repo.writeTestRows(repo.dayTracksFlow(plan, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, working)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        vm.editor.openStraightSets(id)
+        advanceUntilIdle()
+
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        assertEquals(3, draft.sets)
+        assertEquals(5, draft.reps)
+        assertEquals(215.0, draft.loadLb, 0.0)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.prescriptionStructure)
+        vm.editor.savePrescription()
+        advanceUntilIdle()
+
+        val exercise = repo.plans.slotsFor(plan, "A").first().first { it.programExerciseId == id }.exercise
+        assertEquals(SetStructure.STRAIGHT, exercise.structure)
+        assertEquals(3, exercise.targetSets)
+        assertEquals(Prescription(PrescribedTarget.LoadReps(215.0, 5)), exercise.prescription)
+        assertEquals(List(3) { LoggedSet(215.0, 5, SetKind.WORK) }, track(id, Slot.MAIN))
+        assertNull(vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun `straight sets uses the retired planned lift instead of its workout substitute`() = runVmTest {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = slotId("bb_back_squat")
+        repo.ensureSeeded(plan, "A")
+        val seeded = track(id, Slot.MAIN)!!
+        val working = SetEditor.editWeight(seeded, seeded.indexOfFirst { it.kind == SetKind.TOP }, 215.0)
+        repo.writeTestRows(repo.dayTracksFlow(plan, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, working)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.swapWorkoutSlot(0, "hack_squat")
+        advanceUntilIdle()
+        val run = repo.openRunFlow.first()!!
+        repo.writeTestRows(run.id, "A", id, Slot.MAIN, List(3) { LoggedSet(315.0, 10, SetKind.WORK) })
+        advanceUntilIdle()
+        val substitute = repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired
+        }
+        assertEquals("hack_squat", substitute.exerciseId)
+        assertEquals(CarryForward.cleared(working), CarryForward.cleared(repo.dayTracksFlow(plan, "A").first().retired.single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && it.exerciseId == "bb_back_squat"
+        }.sets))
+
+        vm.editor.openStraightSets(id)
+        advanceUntilIdle()
+
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        assertEquals(3, draft.sets)
+        assertEquals(5, draft.reps)
+        assertEquals(215.0, draft.loadLb, 0.0)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.prescriptionStructure)
+        vm.editor.savePrescription()
+        advanceUntilIdle()
+
+        val exercise = repo.plans.slotsFor(plan, "A").first().first { it.programExerciseId == id }.exercise
+        assertEquals("bb_back_squat", exercise.exerciseId)
+        assertEquals(SetStructure.STRAIGHT, exercise.structure)
+        assertEquals(3, exercise.targetSets)
+        assertEquals(Prescription(PrescribedTarget.LoadReps(215.0, 5)), exercise.prescription)
+        assertEquals(substitute, repo.openRunFlow.first()!!.tracks.single { it.id == substitute.id })
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun `straight sets uses planned defaults when only a workout substitute has rows`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val state = vm.dayEditState.value
+        val slot = state.slots.first { it.programExerciseId == id }
+        val expected = PrescriptionDraft.from(slot, state.catalog, state.config).copy(sets = 3)
+        vm.swapWorkoutSlot(0, "hack_squat")
+        advanceUntilIdle()
+        val run = repo.openRunFlow.first()!!
+        repo.writeTestRows(run.id, "A", id, Slot.MAIN, List(3) { LoggedSet(315.0, 10, SetKind.WORK) })
+        val original = db.runDao().tracks(run.id).single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+        }
+        db.runDao().deleteTrack(original.id)
+        advanceUntilIdle()
+
+        vm.editor.openStraightSets(id)
+        advanceUntilIdle()
+
+        assertEquals(expected, vm.dayEditState.value.prescriptionDraft)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.prescriptionStructure)
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun `delayed straight sets prefill cannot restore a dismissed editor draft`() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.editor.setDayEditorOpen(true)
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.editor.openStraightSets(slotId("bb_back_squat"))
+        mutationReadReady!!.await()
+
+        vm.editor.setDayEditorOpen(false)
+        mutationReadGate = null
+        gate.complete(Unit)
+        advanceUntilIdle()
+        vm.editor.setDayEditorOpen(true)
+        advanceUntilIdle()
+
+        assertTrue(vm.dayEditState.value.editorOpen)
+        assertNull(vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        assertNull(handle.get<PrescriptionDraft>("day_prescription_draft"))
+        assertNull(handle.get<String>("day_prescription_structure"))
+        collect.cancel()
+    }
+
+    @Test
+    fun `delayed straight sets prefill cannot restore a discarded draft`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.editor.openStraightSets(slotId("bb_back_squat"))
+        mutationReadReady!!.await()
+
+        vm.editor.discardPrescription()
+        mutationReadGate = null
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertNull(vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        collect.cancel()
+    }
+
+    @Test
+    fun `delayed straight sets prefill cannot overwrite an ordinary prescription draft`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.editor.openStraightSets(id)
+        mutationReadReady!!.await()
+
+        vm.editor.openPrescription(id)
+        advanceUntilIdle()
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft).copy(loadLb = 205.0)
+        vm.editor.changePrescriptionDraft(draft)
+        mutationReadGate = null
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(draft, vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        collect.cancel()
+    }
+
+    @Test
+    fun `delayed straight sets prefill waits for the replacement request`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        mutationReadReady = CompletableDeferred()
+        val firstGate = CompletableDeferred<Unit>()
+        mutationReadGate = firstGate
+        vm.editor.openStraightSets(id)
+        mutationReadReady!!.await()
+
+        mutationReadReady = CompletableDeferred()
+        val replacementGate = CompletableDeferred<Unit>()
+        mutationReadGate = replacementGate
+        vm.editor.openStraightSets(id)
+        firstGate.complete(Unit)
+        mutationReadReady!!.await()
+        advanceUntilIdle()
+
+        assertNull(vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        mutationReadGate = null
+        replacementGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(3, requireNotNull(vm.dayEditState.value.prescriptionDraft).sets)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.prescriptionStructure)
+        collect.cancel()
+    }
+
+    @Test
+    fun `backing out of straight sets leaves the ramp`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val before = db.programDao().exercise(id)!!
+        val logs = db.programDao().logsForDay(before.planId, "A")
+        val rows = track(id, Slot.MAIN)
+
+        vm.editor.openStraightSets(id)
+        advanceUntilIdle()
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.prescriptionStructure)
+        vm.editor.discardPrescription()
+        advanceUntilIdle()
+
+        assertNull(vm.dayEditState.value.prescriptionDraft)
+        assertNull(vm.dayEditState.value.prescriptionStructure)
+        assertEquals(SetStructure.RAMP_TOP_BACKOFF.name, before.structure)
+        assertEquals(6, before.targetSets)
+        assertEquals(before, db.programDao().exercise(id))
+        assertEquals(logs, db.programDao().logsForDay(before.planId, "A"))
+        assertEquals(rows, track(id, Slot.MAIN))
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun editRouteOpensThePlanEditor() = runVmTest {
+        insertProgram()
+        val workout = newViewModel()
+        val collectWorkout = launch { workout.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertFalse(workout.dayEditState.value.planEditing)
+        workout.editor.setDayEditorOpen(true)
+        advanceUntilIdle()
+        assertTrue(workout.dayEditState.value.editorOpen)
+        assertFalse(workout.dayEditState.value.planEditing)
+        collectWorkout.cancel()
+        workout.viewModelScope.cancel()
+
+        val handle = SavedStateHandle(mapOf(Routes.DAY_EDITOR_ARG to true))
+        val first = newViewModel(handle)
+        assertTrue(first.dayEditState.value.planEditing)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(first.dayEditState.value.planEditing)
+        assertTrue(first.dayEditState.value.editorOpen)
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+
+        val restored = newViewModel(handle)
+        assertTrue(restored.dayEditState.value.planEditing)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.dayEditState.value.planEditing)
+        assertTrue(restored.dayEditState.value.editorOpen)
+        collectEdit.cancel()
     }
 
     @Test
@@ -602,7 +887,7 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun authoredAddDefaultsAStandardLiftToRampTopBackoffFromGoalMath() = runVmTest {
+    fun `an added main lift arrives as straight sets`() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Strength", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
         val vm = newViewModel()
@@ -613,14 +898,46 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val slot = repo.plans.slotsFor(plan, "A").first().single()
         assertEquals(3, slot.exercise.targetSets)
-        assertEquals(SetStructure.RAMP_TOP_BACKOFF, slot.exercise.structure)
-        assertEquals(SetStructure.RAMP_TOP_BACKOFF, vm.dayEditState.value.slots.single().structure)
+        assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.slots.single().structure)
         assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
-        assertEquals(List(4) { SetKind.RAMP } + listOf(SetKind.TOP, SetKind.BACKOFF),
-            track(slot.programExerciseId, Slot.MAIN)!!.map { it.kind })
+        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
         assertNull(slot.exercise.prescription)
         assertEquals(DaySeeds.previewMain(slot, repo.plans.configFlow.first(), repo.catalog.catalogFlow.first()),
             track(slot.programExerciseId, Slot.MAIN))
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun `a plan swap shows the nearby weight as three straight sets`() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Squat", "", listOf(ProgramExercise(
+                "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF,
+                prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)),
+            ))),
+            ProgramDay("B", "Bench", "", listOf(ProgramExercise(
+                "bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6,
+                prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5)),
+            ))),
+        )))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        vm.selectDay(DaySelection(plan, "B"))
+        advanceUntilIdle()
+
+        vm.editor.swapDaySlot(0, "bb_back_squat")
+        advanceUntilIdle()
+
+        val slot = repo.plans.slotsFor(plan, "B").first().single()
+        assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
+        assertEquals(3, slot.exercise.targetSets)
+        assertNull(slot.exercise.prescription)
+        val rows = repo.dayTracksFlow(plan, "B").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, rows)
+        assertEquals("3 × 5 · 45 lb", vm.uiState.value.exercises.single().workingHeading)
         collectEdit.cancel()
         collectUi.cancel()
     }
@@ -1982,11 +2299,9 @@ class DayViewModelWiringTest {
             "hack_squat",
             vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.exerciseId,
         )
-        // A fresh ramp off Hack Squat's own GOAL of 180 — the squat's 235 ramp
-        // and the 999 edit on top of it are both gone.
         assertEquals(
-            listOf(100.0, 125.0, 145.0, 160.0, 180.0, 135.0),
-            track(squatId, Slot.MAIN)!!.map { it.weightLb },
+            List(3) { LoggedSet(180.0, 10, SetKind.WORK) },
+            track(squatId, Slot.MAIN),
         )
         collectUi.cancel()
         collectEdit.cancel()
@@ -3087,11 +3402,11 @@ class DayViewModelWiringTest {
         vm.swapWorkoutSlot(0, "db_bench")
         advanceUntilIdle()
         val card = vm.uiState.value.exercises.single()
-        assertEquals("35 × 8", card.lastTimeDisplay)
+        assertEquals("35 lb × 8", card.lastTimeDisplay)
         assertEquals("45×8", card.personalRecordDisplay)
         repo.history.updateSessionSet(repo.history.sessionSets(recent).single().copy(weightLb = 40.0))
         advanceUntilIdle()
-        assertEquals("40 × 8", vm.uiState.value.exercises.single().lastTimeDisplay)
+        assertEquals("40 lb × 8", vm.uiState.value.exercises.single().lastTimeDisplay)
         assertEquals("45×8", vm.uiState.value.exercises.single().personalRecordDisplay)
         vm.swapWorkoutSlot(0, "bb_bench")
         advanceUntilIdle()

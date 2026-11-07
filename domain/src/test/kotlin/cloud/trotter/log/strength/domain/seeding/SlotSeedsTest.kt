@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.domain.seeding
 
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -18,6 +19,19 @@ import kotlin.test.assertNull
 class SlotSeedsTest {
     private val config = LifterConfig(bodyweightLb = 235, age = 40)
     private val squat = ExerciseLibrary.get("bb_back_squat")
+
+    @Test
+    fun `a main-capable lift does top-set reps as straight sets`() {
+        val physique = LifterConfig(emphasis = GoalEmphasis.PHYSIQUE)
+        val exercise = ProgramExercise("bb_back_squat", structure = SetStructure.STRAIGHT, targetSets = 3)
+        val sets = assertNotNull(SlotSeeds.main(exercise, squat, physique))
+        assertEquals(List(3) { 8 }, sets.map { it.reps })
+        assertEquals(List(3) { SetKind.WORK }, sets.map { it.kind })
+
+        val accessory = ExerciseLibrary.get("rdl")
+        val accessorySets = assertNotNull(SlotSeeds.main(ProgramExercise(accessory.id), accessory, physique))
+        assertEquals(List(3) { 10 }, accessorySets.map { it.reps })
+    }
 
     @Test
     fun `main lift preserves the pinned squat sequence`() {

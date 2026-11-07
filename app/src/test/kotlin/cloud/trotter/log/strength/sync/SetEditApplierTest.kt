@@ -44,6 +44,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -135,19 +136,19 @@ class SetEditApplierTest {
     }
 
     @Test
-    fun `eager watch swap reseeds from the slot prescription`() = runTest {
+    fun `eager watch plan swap clears the old prescription and seeds the replacement`() = runTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
-        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        val target = ExerciseCatalog.CODE_ONLY.get("hack_squat")
 
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
-        assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, track(id, Slot.MAIN))
-        assertEquals(prescription, repo.plans.daySlotsFlow("A").first().single().exercise.prescription)
+        assertEquals(List(2) { LoggedSet(180.0, 10, SetKind.WORK) }, track(id, Slot.MAIN))
+        assertNull(repo.plans.daySlotsFlow("A").first().single().exercise.prescription)
     }
 
     /** Day A: a ramped squat (with a TOP row) and an arms superset. */

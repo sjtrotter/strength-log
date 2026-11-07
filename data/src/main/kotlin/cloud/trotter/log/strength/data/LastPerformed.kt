@@ -4,6 +4,8 @@ import cloud.trotter.log.strength.data.db.dao.LastPerformedRow
 import cloud.trotter.log.strength.data.db.dao.LastPerformedSourceRow
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 
 /** One exercise's most recent completed performance (PLAN.md A1 "last time"
  *  chip on the day screen's exercise cards). */
@@ -33,6 +35,7 @@ data class SlotLast(
     val planId: Long?,
     val planName: String?,
     val dayId: String,
+    val sets: List<LoggedSet> = emptyList(),
 )
 
 internal fun belongsToPlan(sessionPlanId: Long?, planId: Long?): Boolean =
@@ -48,7 +51,27 @@ fun List<LastPerformedSourceRow>.toLastPerformedForSlots(planId: Long, dayId: St
                 val row = own ?: rows.first()
                 put(exerciseId to slot, SlotLast(
                     LastPerformed(row.weightLb, row.reps, row.seconds), own != null, row.planId, row.planName, row.dayId,
+                    rows.filter { it.sessionId == row.sessionId && it.slot == row.slot && it.kind != SetKind.RAMP.name }
+                        .sortedBy { it.setIndex }.map { it.toLoggedSet() },
                 ))
             }
         }
     }
+
+/**
+ * Reduces [cloud.trotter.log.strength.data.db.dao.SessionDao.lastPerformedSourceRows]'
+ * flat, newest-session-first result into the newest session's working sets per
+ * exercise id. The first row picks the session; its non-RAMP rows are returned
+ * in slot and set order. An id with no rows is simply absent.
+ */
+fun List<LastPerformedSourceRow>.toLastSetsByExercise(): Map<String, List<LoggedSet>> =
+    groupBy { it.exerciseId }.mapValues { (_, rows) ->
+        val sessionId = rows.first().sessionId
+        rows.filter { it.sessionId == sessionId && it.kind != SetKind.RAMP.name }
+            .sortedWith(compareBy({ it.slot }, { it.setIndex })).map { it.toLoggedSet() }
+    }
+
+private fun LastPerformedSourceRow.toLoggedSet(): LoggedSet = LoggedSet(
+    weightLb, reps, SetKind.entries.firstOrNull { it.name == kind } ?: SetKind.WORK,
+    done = true, seconds = seconds,
+)

@@ -27,7 +27,10 @@ data class DayEditUiState(
     val canResetToTemplate: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
+    val prescriptionStructure: SetStructure? = null,
     val editorOpen: Boolean = false,
+    /** Opened from a day preview's Edit: the editor is the whole screen and edits apply to the plan. */
+    val planEditing: Boolean = false,
     val planId: Long? = null,
     val dayId: String? = null,
     val cardioBlock: CardioBlock? = null,
@@ -73,6 +76,7 @@ data class DayEditActions(
     val onResetToTemplate: () -> Unit,
     val onMove: (slotId: Long, up: Boolean) -> Unit = { _, _ -> },
     val onOpenPrescription: (Long) -> Unit = {},
+    val onOpenStraightSets: (slotId: Long) -> Unit = {},
     val onPrescriptionDraft: (PrescriptionDraft) -> Unit = {},
     val onSavePrescription: () -> Unit = {},
     val onDiscardPrescription: () -> Unit = {},

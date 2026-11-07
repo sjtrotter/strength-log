@@ -23,6 +23,76 @@
     },
     {
       "checkpoint": "setup-after-lifting"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-03"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-04"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-05"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-06"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-07"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-08"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-09"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-10"
     }
   ]
 }

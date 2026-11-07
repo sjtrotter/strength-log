@@ -156,8 +156,14 @@ class TrackerRepository(
         }
 
     /** Sets belong to the slot, never the prescription JSON. Null keeps its current count.
+     * A structure, when given, is written in the same transaction.
      * A change between timed and rep-shaped rows applies to future runs only. */
-    suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {
+    suspend fun setPrescription(
+        programExerciseId: Long,
+        prescription: Prescription,
+        sets: Int? = null,
+        structure: SetStructure? = null,
+    ) {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
         db.withTransaction {
@@ -165,7 +171,10 @@ class TrackerRepository(
             val count = sets ?: row.targetSets
             require(count in 1..20)
             val json = PrescriptionJson.encode(prescription)
-            val updated = row.copy(prescriptionJson = json, targetSets = count)
+            if (structure != null && structure.name != row.structure) {
+                programDao.setStructure(row.id, structure.name)
+            }
+            val updated = row.copy(prescriptionJson = json, targetSets = count, structure = structure?.name ?: row.structure)
             programDao.setPrescription(row.id, json, count)
             replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)

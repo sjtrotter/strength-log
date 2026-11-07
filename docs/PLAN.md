@@ -295,6 +295,8 @@ Distance shows in mi or km from a global setting, suggested from the weight unit
 
 Edit day from a day preview opens the day editor as its own screen with no workout
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.
+Choosing Straight sets on a ramped lift opens one sheet with Sets, Reps and Weight,
+prefilled with three sets at the lift's working weight and reps; Save writes them together.
 
 ## Architecture
 

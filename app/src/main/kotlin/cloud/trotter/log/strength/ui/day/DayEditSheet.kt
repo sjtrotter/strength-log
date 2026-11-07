@@ -198,8 +198,9 @@ internal fun DayEditPages(
         }
         state.prescriptionDraft != null -> PrescriptionPage(
             draft = state.prescriptionDraft,
-            structure = state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
+            structure = state.prescriptionStructure ?: state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
                 ?: SetStructure.STRAIGHT,
+            title = if (state.prescriptionStructure == SetStructure.STRAIGHT) stringResource(R.string.day_edit_structure_straight) else null,
             unit = state.unit,
             onChange = actions.onPrescriptionDraft,
             onSave = actions.onSavePrescription,
@@ -304,6 +305,7 @@ internal fun DayEditPages(
             onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
             onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
             onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
+            onStraightSets = { actions.onOpenStraightSets(optionsSlot.programExerciseId) },
         )
         else -> DaySlotList(
             state = state,
@@ -493,6 +495,7 @@ private fun SlotOptionsScreen(
     onKeepToPlanChange: (Boolean) -> Unit,
     onResetToPlanClick: () -> Unit,
     onStructureChange: (SetStructure) -> Unit,
+    onStraightSets: () -> Unit,
 ) {
     var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
     if (confirmingReset && !slot.keepToPlan && !runOpen) {
@@ -553,7 +556,10 @@ private fun SlotOptionsScreen(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
                             selected = slot.structure == structure,
                             role = Role.RadioButton,
-                            onClick = { onStructureChange(structure) },
+                            onClick = {
+                                if (structure == SetStructure.STRAIGHT && slot.structure != SetStructure.STRAIGHT) onStraightSets()
+                                else onStructureChange(structure)
+                            },
                         ),
                     )
                 }
@@ -581,9 +587,10 @@ internal fun PrescriptionPage(
     onSave: () -> Unit,
     onBack: () -> Unit,
     structure: SetStructure = SetStructure.STRAIGHT,
+    title: String? = null,
 ) {
     AppSheetLayout(
-        title = { PickerHeader(stringResource(R.string.day_edit_prescription), onBack) },
+        title = { PickerHeader(title ?: stringResource(R.string.day_edit_prescription), onBack) },
         footer = {
             SheetCommitButton(stringResource(R.string.plans_save), onSave,
                 cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)

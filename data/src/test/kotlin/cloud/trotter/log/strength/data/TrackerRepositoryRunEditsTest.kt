@@ -498,6 +498,27 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
     }
 
+    @Test fun `setting a straight prescription with its structure reseeds three straight sets`() = runTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = slot(plan)
+        repo.ensureSeeded(plan, "A")
+        assertEquals(6, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.MAIN)!!.setsJson).size)
+        val prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))
+
+        repo.setPrescription(id, prescription, 3, SetStructure.STRAIGHT)
+
+        val exercise = repo.plans.slotsFor(plan, "A").first().single().exercise
+        assertEquals(SetStructure.STRAIGHT, exercise.structure)
+        assertEquals(3, exercise.targetSets)
+        assertEquals(prescription, exercise.prescription)
+        repo.ensureSeeded(plan, "A")
+        val rows = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.MAIN)!!.setsJson)
+        assertEquals(List(3) { LoggedSet(185.0, 5, SetKind.WORK) }, rows)
+    }
+
     @Test fun `straight prescribed 225 by 5 changes to the pinned ramp top backoff column`() = runTest {
         val plan = authored()
         val id = slot(plan)

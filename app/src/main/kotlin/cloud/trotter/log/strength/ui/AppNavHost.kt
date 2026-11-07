@@ -463,6 +463,7 @@ internal fun DayRoute(
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val receipt by viewModel.finisher.receipt.collectAsStateWithLifecycle()
     val receiptSetCounts by viewModel.finisher.receiptSetCounts.collectAsStateWithLifecycle()
+    val receiptNextTimes by viewModel.finisher.receiptNextTimes.collectAsStateWithLifecycle()
     val finish by viewModel.finisher.attempt.collectAsStateWithLifecycle()
     val noteSave by viewModel.finisher.noteSave.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
@@ -572,6 +573,7 @@ internal fun DayRoute(
         dayEditActions = dayEditActions,
         receipt = receipt,
         receiptSetCounts = receiptSetCounts,
+        receiptNextTimes = receiptNextTimes,
         finish = finish,
         noteSave = noteSave,
         onRetryFinish = viewModel.finisher::retry,

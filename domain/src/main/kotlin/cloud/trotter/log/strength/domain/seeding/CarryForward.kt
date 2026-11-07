@@ -10,6 +10,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /** Working values retained after a run closes. */
 object CarryForward {
+    data class Session(val planned: List<LoggedSet>, val actual: List<LoggedSet>)
+
     /** Results removed: done, both timestamps, plannedIndex, watchEditedAt. Other values kept. */
     fun cleared(sets: List<LoggedSet>): List<LoggedSet> = sets.map {
         it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null, watchEditedAt = null)
@@ -53,13 +55,36 @@ object CarryForward {
         actual: List<LoggedSet>,
         unit: WeightUnit,
         equipment: Collection<Equipment> = emptyList(),
+    ): Double? = offer(planned, unit, listOf(Session(planned, actual)), equipment)
+
+    /** Uses the latest qualifying session; [sessions] must be newest first. */
+    fun offer(
+        planned: List<LoggedSet>,
+        unit: WeightUnit,
+        sessions: List<Session>,
+        equipment: Collection<Equipment> = emptyList(),
     ): Double? {
         val working = workingIndices(planned)
         val opening = workingWeight(planned) ?: return null
         if (opening <= 0.0 || planned[working.first()].seconds > 0) return null
+        return sessions.firstNotNullOfOrNull { session -> offerForSession(opening, session, unit, equipment) }
+    }
+
+    private fun offerForSession(
+        opening: Double,
+        session: Session,
+        unit: WeightUnit,
+        equipment: Collection<Equipment>,
+    ): Double? {
+        val (planned, actual) = session
+        val working = workingIndices(planned)
+        if (working.isEmpty() || planned[working.first()].seconds > 0) return null
         fun matched(index: Int) = actual.firstOrNull { it.plannedIndex == index && it.done }
+        val sameOpening = workingWeight(planned) == opening
         val fullSuccess = working.all { i ->
-            matched(i)?.let { it.weightLb >= planned[i].weightLb && it.reps >= planned[i].reps } == true
+            matched(i)?.let {
+                it.weightLb >= planned[i].weightLb && (sameOpening || it.weightLb >= opening) && it.reps >= planned[i].reps
+            } == true
         }
         val stepOffer = if (fullSuccess) {
             val step = unit.toLb(WeightStepper.increment(unit.fromLb(opening), unit))

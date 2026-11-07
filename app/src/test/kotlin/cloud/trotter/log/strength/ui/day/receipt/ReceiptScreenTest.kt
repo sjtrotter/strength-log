@@ -92,6 +92,61 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun `next time shows under each lift`() {
+        val bench = ReceiptRow("Bench", TrackingType.WEIGHTED, ReceiptRow.Shape.STRAIGHT,
+            List(3) { ReceiptSet(215.0, 5, 0) }, listOf(ValueLine(215.0, listOf(0, 1, 2))),
+            0, PlannedSets(3, 215.0, 5, 0), null)
+        val row = bench.copy(name = "Row", sets = listOf(5, 5, 4).map { ReceiptSet(215.0, it, 0) })
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(3, listOf(bench, row))))
+        setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId, listOf(
+            ReceiptNextTime(0, 0, 220.0, 215.0), ReceiptNextTime(0, 1, null, 215.0),
+        )))
+
+        rule.onNodeWithText("Next time: +5 lb", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Next time: Repeat", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Bench. 215 pounds: 5, 5 and 5 reps. Next time, add 5 pounds.").assertExists()
+        rule.onNodeWithContentDescription("Row. 215 pounds: 5, 5 and 4 reps. Next time, repeat.").assertExists()
+    }
+
+    @Test
+    fun `a ramped row shows its back-off line`() {
+        val top = receiptFixture().groups.first().rows.single()
+        val row = top.copy(sets = top.sets + ReceiptSet(185.0, 8, 0),
+            lines = top.lines + ValueLine(185.0, listOf(1)))
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+
+        rule.onAllNodesWithText("Top set", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithText("185 lb × 8", useUnmergedTree = true).assertIsDisplayed()
+        rule.onAllNodesWithText("240 lb × 5", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. 185 pounds: 8 reps. Weight record, up from 240 pounds for 5 reps.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
+    fun `a ramped row speaks its collapsed working-set count`() {
+        val top = receiptFixture().groups.first().rows.single()
+        val row = top.copy(sets = top.sets + listOf(185.0, 175.0, 165.0).map { ReceiptSet(it, 8, 0) },
+            lines = top.lines + ValueLine(185.0, listOf(1)), lighterSets = 2)
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+
+        rule.onAllNodesWithText("Top set", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("185 lb × 8", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("and 2 lighter sets", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. 185 pounds: 8 reps. and 2 lighter sets. Weight record, up from 240 pounds for 5 reps.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
+    fun `next times for another session are ignored`() {
+        val receipt = receiptFixture().copy(groups = receiptFixture().groups.take(1))
+        setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId + 1, listOf(ReceiptNextTime(0, 0, 250.0, 245.0))))
+
+        rule.onAllNodesWithText("Next time", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithContentDescription("Next time", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun headerNamesTheFinishedDayPlanDateAndDuration() {
         setReceipt()
         listOf("Squat focus, saved.", "Four-day strength", "Tuesday, Nov 3, 58 min").forEach {
@@ -687,10 +742,11 @@ class ReceiptScreenTest {
         onShare: () -> Unit = {},
         onFinish: () -> Unit = {},
         setCounts: ReceiptSetCounts? = null,
+        nextTimes: ReceiptNextTimes? = null,
     ) {
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-            AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts) }
+            AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts, nextTimes = nextTimes) }
         }
     }
 

@@ -62,6 +62,7 @@ import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
 import cloud.trotter.log.strength.ui.theme.Done
@@ -81,8 +82,10 @@ internal fun SessionReceiptScreen(
     onNoteSaveHandled: () -> Unit = {},
     modifier: Modifier = Modifier,
     setCounts: ReceiptSetCounts? = null,
+    nextTimes: ReceiptNextTimes? = null,
 ) {
     val counts = setCounts?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }
+    val nextRows = nextTimes?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }?.rows.orEmpty()
     val partial = counts?.let { it.remaining > 0 } ?: receipt.isPartial
     var noteOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
     val noteDrafts = rememberSaveableStateHolder()
@@ -138,7 +141,8 @@ internal fun SessionReceiptScreen(
                         key(receipt.sessionId, groupIndex, rowIndex) {
                             StrengthReceiptRow(if (receipt.recordsChecked) row else row.copy(record = null), receipt.unit, receipt.dayIndex,
                                 "${receipt.sessionId}:$groupIndex:$rowIndex", { roll.value },
-                                if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null)
+                                if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
+                                nextTime = nextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex })
                         }
                     }
                 }

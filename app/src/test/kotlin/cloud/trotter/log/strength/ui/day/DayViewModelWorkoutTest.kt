@@ -36,6 +36,7 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import java.time.Clock
@@ -1153,6 +1154,55 @@ class DayViewModelWorkoutTest {
         assertEquals(listOf(first.programExerciseId, second.programExerciseId), vm.uiState.value.exercises.map { it.programExerciseId })
         assertEquals(first.rows, vm.uiState.value.exercises.first().rows)
         assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test fun `skipping squat and finishing preserves the cross day offer in the next preview and workout`() = test {
+        val squat = ProgramExercise("bb_back_squat", targetSets = 1,
+            prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+        prepare(listOf(squat, bench(sets = 1)), dayB = ProgramDay("B", "Squat", "", listOf(
+            squat.copy(prescription = Prescription(PrescribedTarget.LoadReps(55.0, 5))),
+        )))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.ensureSeeded(plan, "B")
+        val other = repo.dayTracksFlow(plan, "B").first()
+        val otherTrack = other.tracks.single()
+        assertTrue(repo.writeTestRows(requireNotNull(other.runId), "B", otherTrack.programExerciseId, Slot.MAIN,
+            otherTrack.sets.mapIndexed { index, set -> set.copy(done = true, plannedIndex = index) }) is RunWriteResult.InRun)
+        assertNotNull(repo.finishRun(requireNotNull(other.runId)))
+        clock.now += 1_000L
+
+        val first = readyVm(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "A")))
+        val squatId = first.uiState.value.exercises.first().programExerciseId
+        val benchId = first.uiState.value.exercises.last().programExerciseId
+        first.skipLift(squatId, Slot.MAIN)
+        runCurrent()
+        assertEquals(squatId, first.uiState.value.skippedLifts.single().programExerciseId)
+        first.toggleDone(benchId, 0, true, Slot.MAIN)
+        runCurrent()
+        assertNotNull(repo.finishRun(requireNotNull(first.uiState.value.runId)))
+        runCurrent()
+        first.viewModelScope.cancel()
+        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        assertTrue(archived.retired)
+        assertTrue(archived.actual.isEmpty())
+
+        val next = readyVm(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "A")))
+        val offer = NextTime.Offer("+10 lb", false, 55.0, 45.0)
+        assertFalse(next.uiState.value.runOpen)
+        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
+        assertEquals(listOf(45.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
+        repo.startRun(plan, "A")
+        runCurrent()
+        assertTrue(next.uiState.value.runOpen)
+        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
+        next.setWorkingWeight(squatId, Slot.MAIN, 55.0)
+        runCurrent()
+        assertEquals(offer.copy(applied = true), next.uiState.value.exercises.first().nextTime)
+        assertEquals(listOf(55.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
+        next.setWorkingWeight(squatId, Slot.MAIN, 45.0)
+        runCurrent()
+        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
+        assertEquals(listOf(45.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
     }
 
     @Test fun `skip Now set from lift sheet uses remove set and Undo restores it`() = test {

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -50,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -106,52 +108,66 @@ fun SetupScreen(
             ) {
                 items(rows, key = { it }) { row ->
                     when (row) {
-                        "units" -> ListItem(
-                            headlineContent = { Text(stringResource(R.string.settings_units)) },
-                            supportingContent = {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(stringResource(R.string.settings_weight), modifier = Modifier.weight(1f))
-                                        SingleChoiceSegmentedButtonRow(
-                                            Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
-                                        ) {
-                                            WeightUnit.entries.forEachIndexed { index, unit ->
-                                                SegmentedButton(
-                                                    selected = state.unit == unit,
-                                                    onClick = { actions.onUnitToggle(unit) },
-                                                    shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
-                                                    icon = {},
-                                                ) { Text(unit.name.lowercase()) }
-                                            }
-                                        }
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(stringResource(R.string.settings_distance), modifier = Modifier.weight(1f))
-                                        val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
-                                        SingleChoiceSegmentedButtonRow(
-                                            Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
-                                        ) {
-                                            units.forEachIndexed { index, unit ->
-                                                SegmentedButton(
-                                                    selected = state.distanceUnit == unit,
-                                                    onClick = { actions.onDistanceUnitChange(unit) },
-                                                    shape = SegmentedButtonDefaults.itemShape(index, units.size),
-                                                    icon = {},
-                                                ) { Text(unit.symbol) }
-                                            }
-                                        }
+                        "units" -> Column(
+                            modifier = Modifier.fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surface)
+                                .semantics(mergeDescendants = true) {}
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_units),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    stringResource(R.string.settings_weight), modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                SingleChoiceSegmentedButtonRow(
+                                    Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
+                                ) {
+                                    WeightUnit.entries.forEachIndexed { index, unit ->
+                                        SegmentedButton(
+                                            selected = state.unit == unit,
+                                            onClick = { actions.onUnitToggle(unit) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
+                                            icon = {},
+                                        ) { Text(unit.name.lowercase()) }
                                     }
                                 }
-                            },
-                        )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    stringResource(R.string.settings_distance), modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
+                                SingleChoiceSegmentedButtonRow(
+                                    Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
+                                ) {
+                                    units.forEachIndexed { index, unit ->
+                                        SegmentedButton(
+                                            selected = state.distanceUnit == unit,
+                                            onClick = { actions.onDistanceUnitChange(unit) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, units.size),
+                                            icon = {},
+                                        ) { Text(unit.symbol) }
+                                    }
+                                }
+                            }
+                        }
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
                             supportingContent = {

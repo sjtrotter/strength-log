@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -79,6 +82,28 @@ class ChromeTouchTargetTest {
     }
 
     @Test
+    fun theUnitsItemContainsBothSegmentedRows() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+        }
+
+        val unitsItem = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
+        listOf("lb", "mi").forEach { label ->
+            val row = composeTestRule.onNode(
+                SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup) and hasAnyDescendant(hasText(label)),
+                useUnmergedTree = true,
+            ).fetchSemanticsNode()
+            val bounds = row.boundsInRoot
+            assertEquals(row.size.height.toFloat(), bounds.height, 0.01f)
+            assertTrue(
+                "$label row $bounds must fit in Units $unitsItem",
+                bounds.left >= unitsItem.left && bounds.right <= unitsItem.right &&
+                    bounds.top >= unitsItem.top && bounds.bottom <= unitsItem.bottom,
+            )
+        }
+    }
+
+    @Test
     fun theUnitButtonsFitInsideTheUnitsItem() {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
@@ -102,6 +127,27 @@ class ChromeTouchTargetTest {
             composeTestRule.onNodeWithText(label).fetchSemanticsNode().touchBoundsInRoot.top
         }
         assertTrue("Distance targets must sit below weight targets", distanceTop >= weightBottom)
+        assertTouchContract()
+    }
+
+    @Test
+    fun scrollingToThemeKeepsItsSegmentsInsideTheItem() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+        }
+
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Theme"))
+        val themeItem = composeTestRule.onNodeWithText("Theme").fetchSemanticsNode().boundsInRoot
+        listOf("System", "Dark", "Light").forEach { label ->
+            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
+            val bounds = node.touchBoundsInRoot
+            assertEquals(node.size.height.toFloat(), node.boundsInRoot.height, 0.01f)
+            assertTrue(
+                "$label target $bounds must fit in Theme $themeItem",
+                bounds.left >= themeItem.left && bounds.right <= themeItem.right &&
+                    bounds.top >= themeItem.top && bounds.bottom <= themeItem.bottom,
+            )
+        }
         assertTouchContract()
     }
 

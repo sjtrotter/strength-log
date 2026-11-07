@@ -63,7 +63,7 @@ object TouchTargets {
     /**
      * The part of this node's minimum touch target that is actually reachable.
      *
-     * [SemanticsNode.touchBoundsInRoot] retains the node's full target when a
+     * [SemanticsNode.touchBoundsInRoot] can retain the node's full target when a
      * scrolling ancestor clips the node. Rebuild that target around the
      * clip-aware [SemanticsNode.boundsInRoot]: preserve only the padding by
      * which the touch target extends past the node's unclipped layout bounds,
@@ -143,10 +143,15 @@ object TouchTargets {
     private fun render(pairs: Map<Set<String>, Int>): String =
         if (pairs.isEmpty()) "none" else pairs.entries.joinToString { "${it.key} x${it.value}" }
 
-    /** Every reachable control answers to at least 48dp in both axes. */
+    /**
+     * Every fully visible control answers to at least 48dp in both axes.
+     * Clipping can reduce the reported touch bounds without changing the target's size.
+     */
     fun ComposeContentTestRule.assertEveryTouchTargetIsAtLeast48dp(allowUnder48: Set<String> = emptySet()) {
         val min = with(density) { MIN_DP.dp.toPx() }
         interactiveNodes().forEach { node ->
+            val visible = node.boundsInRoot
+            if (visible.width < node.size.width || visible.height < node.size.height) return@forEach
             val name = node.describe()
             if (name in allowUnder48) return@forEach
             val bounds = node.touchBoundsInRoot

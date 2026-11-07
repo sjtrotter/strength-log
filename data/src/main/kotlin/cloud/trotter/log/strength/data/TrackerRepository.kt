@@ -1462,8 +1462,8 @@ class TrackerRepository(
             val mainRows = SetJson.decodeSets(main.setsJson)
             val partnerRows = SetJson.decodeSets(partner.setsJson)
             if (mainRows.size == partnerRows.size) continue
-            val mainSeed = seeds[id to Slot.MAIN] ?: SetJson.decodeSets(main.plannedJson)
-            val partnerSeed = seeds[id to Slot.SS] ?: SetJson.decodeSets(partner.plannedJson)
+            val mainSeed = SetJson.decodeSets(main.plannedJson)
+            val partnerSeed = SetJson.decodeSets(partner.plannedJson)
             if (mainSeed.isEmpty() || partnerSeed.isEmpty()) continue
             val aligned = RunReplan.alignPaired(mainRows, partnerRows, mainSeed, partnerSeed)
             writeRunTracks(listOf(

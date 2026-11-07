@@ -403,7 +403,7 @@ class DayViewModelWiringTest {
     @Test
     fun unprescribedSlotsOpenPrescriptionAtTheirTrackingTypesAndGoals() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
-            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"),
+            ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"), ProgramExercise("rdl"),
         )))))
         repo.plans.updateLifter { it.copy(bodyweightLb = 185.0, age = 45) }
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -413,7 +413,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
 
-        assertEquals(3, vm.dayEditState.value.slots.size)
+        assertEquals(4, vm.dayEditState.value.slots.size)
         for (slot in vm.dayEditState.value.slots) {
             assertNull(slot.prescription)
             vm.editor.openPrescription(slot.programExerciseId)
@@ -431,7 +431,7 @@ class DayViewModelWiringTest {
                 is GoalTarget.Weight -> {
                     assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
                     assertTrue(draft.loadLb > 0.0)
-                    PrescribedTarget.LoadReps(goal.lb, 10)
+                    PrescribedTarget.LoadReps(goal.lb, if (slot.exerciseId == "bb_back_squat") 5 else 10)
                 }
             }
             assertEquals(expected, draft.prescription().target)

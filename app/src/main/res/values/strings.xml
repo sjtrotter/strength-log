@@ -71,6 +71,7 @@
 <!-- Settings and lifter preferences -->
 <string name="settings_title">Settings</string>
 <string name="settings_units">Units</string>
+<string name="settings_weight">Weight</string>
 <string name="settings_custom_exercise">Create custom exercise</string>
 <string name="settings_backup">Backup and export</string>
 <string name="settings_licenses">Licenses</string>

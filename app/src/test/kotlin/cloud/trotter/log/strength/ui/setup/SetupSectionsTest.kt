@@ -51,7 +51,7 @@ class SetupSectionsTest {
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer",
+        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer",
             "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
@@ -65,7 +65,9 @@ class SetupSectionsTest {
         composeTestRule.setContent { AppTheme {
             SetupScreen(SetupUiState(), setupActions().copy(onDistanceUnitChange = { chosen = it }))
         } }
-        composeTestRule.onNodeWithText("Distance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Units").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Weight", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Distance", useUnmergedTree = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("mi").assertIsSelected()
         composeTestRule.onNodeWithText("km").performClick()
         assertEquals(DistanceUnit.KM, chosen)

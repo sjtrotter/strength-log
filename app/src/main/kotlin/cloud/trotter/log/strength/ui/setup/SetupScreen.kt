@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -79,7 +80,7 @@ fun SetupScreen(
     openRestTimer: Boolean = false,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val rows = listOf("units", "distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -108,30 +109,45 @@ fun SetupScreen(
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
                             supportingContent = {
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
-                                    WeightUnit.entries.forEachIndexed { index, unit ->
-                                        SegmentedButton(
-                                            selected = state.unit == unit,
-                                            onClick = { actions.onUnitToggle(unit) },
-                                            shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
-                                            icon = {},
-                                        ) { Text(unit.name.lowercase()) }
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(stringResource(R.string.settings_weight), modifier = Modifier.weight(1f))
+                                        SingleChoiceSegmentedButtonRow(
+                                            Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
+                                        ) {
+                                            WeightUnit.entries.forEachIndexed { index, unit ->
+                                                SegmentedButton(
+                                                    selected = state.unit == unit,
+                                                    onClick = { actions.onUnitToggle(unit) },
+                                                    shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
+                                                    icon = {},
+                                                ) { Text(unit.name.lowercase()) }
+                                            }
+                                        }
                                     }
-                                }
-                            },
-                        )
-                        "distance" -> ListItem(
-                            headlineContent = { Text(stringResource(R.string.settings_distance)) },
-                            supportingContent = {
-                                val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
-                                    units.forEachIndexed { index, unit ->
-                                        SegmentedButton(
-                                            selected = state.distanceUnit == unit,
-                                            onClick = { actions.onDistanceUnitChange(unit) },
-                                            shape = SegmentedButtonDefaults.itemShape(index, units.size),
-                                            icon = {},
-                                        ) { Text(unit.symbol) }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(stringResource(R.string.settings_distance), modifier = Modifier.weight(1f))
+                                        val units = listOf(DistanceUnit.MI, DistanceUnit.KM)
+                                        SingleChoiceSegmentedButtonRow(
+                                            Modifier.weight(2f).fillMaxWidth().heightIn(min = 48.dp), space = 0.dp,
+                                        ) {
+                                            units.forEachIndexed { index, unit ->
+                                                SegmentedButton(
+                                                    selected = state.distanceUnit == unit,
+                                                    onClick = { actions.onDistanceUnitChange(unit) },
+                                                    shape = SegmentedButtonDefaults.itemShape(index, units.size),
+                                                    icon = {},
+                                                ) { Text(unit.symbol) }
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -150,7 +166,6 @@ fun SetupScreen(
                                             selected = state.themePreference == theme,
                                             onClick = { actions.onThemePreferenceChange(theme) },
                                             shape = SegmentedButtonDefaults.itemShape(index, themes.size),
-                                            modifier = Modifier.heightIn(min = 48.dp),
                                             icon = {},
                                         ) { Text(stringResource(label)) }
                                     }

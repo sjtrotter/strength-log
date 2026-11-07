@@ -69,7 +69,7 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
             "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
@@ -79,29 +79,34 @@ class ChromeTouchTargetTest {
     }
 
     @Test
-    fun theDistanceButtonsFitInsideTheirRow() {
+    fun theUnitButtonsFitInsideTheUnitsItem() {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        val weightRow = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
-        val distanceRow = composeTestRule.onNodeWithText("Distance").fetchSemanticsNode().boundsInRoot
-        assertEquals(weightRow.height, distanceRow.height, 0.01f)
-        listOf("mi", "km").forEach { label ->
+        val unitsItem = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
+        listOf("lb", "kg", "mi", "km").forEach { label ->
             val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
             val bounds = node.touchBoundsInRoot
             assertEquals(node.size.height.toFloat(), node.boundsInRoot.height, 0.01f)
             assertTrue(
-                "$label target $bounds must fit in Distance $distanceRow",
-                bounds.left >= distanceRow.left && bounds.right <= distanceRow.right &&
-                    bounds.top >= distanceRow.top && bounds.bottom <= distanceRow.bottom,
+                "$label target $bounds must fit in Units $unitsItem",
+                bounds.left >= unitsItem.left && bounds.right <= unitsItem.right &&
+                    bounds.top >= unitsItem.top && bounds.bottom <= unitsItem.bottom,
             )
         }
+        val weightBottom = listOf("lb", "kg").maxOf { label ->
+            composeTestRule.onNodeWithText(label).fetchSemanticsNode().touchBoundsInRoot.bottom
+        }
+        val distanceTop = listOf("mi", "km").minOf { label ->
+            composeTestRule.onNodeWithText(label).fetchSemanticsNode().touchBoundsInRoot.top
+        }
+        assertTrue("Distance targets must sit below weight targets", distanceTop >= weightBottom)
         assertTouchContract()
     }
 
     @Test
-    fun aPartlyScrolledDistanceRowKeepsItsTargetsApart() {
+    fun aPartlyScrolledDistanceChoiceKeepsItsTargetsApart() {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }

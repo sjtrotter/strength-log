@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -74,7 +75,7 @@ class PlanViewModel @Inject constructor(
 
     fun saveGoal() {
         val id = goal.value ?: return
-        val draft = goalDraft.value?.takeIf { it.isFinite() && it > 0.0 } ?: return
+        val draft = goalDraft.value?.takeIf { it.isFinite() && it > 0.0 && it <= PlanRecipeJson.MAX_GOAL_LB } ?: return
         viewModelScope.launch {
             mutationLock.withLock {
                 plans.setPlanGoal(planId, id, draft)

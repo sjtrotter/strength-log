@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -121,6 +122,11 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
     state.goalDialog?.let { dialog ->
         val unit = state.unit
         val unitLabel = unit.name.lowercase() + if (dialog.perHand) stringResource(R.string.setup_per_hand_suffix) else ""
+        val onGoalDraft: (Double?) -> Unit = { value ->
+            actions.onGoalDraft(value?.takeIf { it > 0.0 }?.let {
+                unit.toLb(it).coerceAtMost(PlanRecipeJson.MAX_GOAL_LB)
+            })
+        }
         AppAlertDialog(
             onDismissRequest = actions.onDismissGoal,
             title = { Text(stringResource(R.string.plan_goal_title, dialog.name)) },
@@ -128,12 +134,13 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 Column {
                     NumberField(
                         value = dialog.draftLb?.let(unit::fromLb),
-                        onValueChange = { actions.onGoalDraft(unit.toLb(it)) },
-                        onDraftChange = { value -> actions.onGoalDraft(value?.takeIf { it > 0.0 }?.let(unit::toLb)) },
+                        onValueChange = onGoalDraft,
+                        onDraftChange = onGoalDraft,
                         label = stringResource(R.string.plan_goal_weight, unitLabel),
                         minValue = 0.0,
+                        maxValue = unit.fromLb(PlanRecipeJson.MAX_GOAL_LB),
                         format = WeightStepper::format,
-                        round = { WeightStepper.round(it, unit) },
+                        round = { if (it == 0.0) 0.0 else WeightStepper.round(it, unit) },
                         decimalInput = true,
                         weightInput = true,
                     )
@@ -141,7 +148,10 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = actions.onSaveGoal, enabled = (dialog.draftLb ?: 0.0) > 0.0) {
+                TextButton(
+                    onClick = actions.onSaveGoal,
+                    enabled = dialog.draftLb?.let { it > 0.0 && it <= PlanRecipeJson.MAX_GOAL_LB } == true,
+                ) {
                     Text(stringResource(R.string.plans_save))
                 }
             },

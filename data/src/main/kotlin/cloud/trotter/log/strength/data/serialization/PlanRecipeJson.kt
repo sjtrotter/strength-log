@@ -21,9 +21,9 @@ internal data class PlanRecipeDto(
     val goalsLb: Map<String, Double> = emptyMap(),
 )
 
-private const val MAX_GOAL_LB = 2000.0
-
 object PlanRecipeJson {
+    const val MAX_GOAL_LB = 2000.0
+
     fun encode(answers: WizardAnswers): String = SetJson.encode(
         PlanRecipeDto.serializer(),
         PlanRecipeDto(

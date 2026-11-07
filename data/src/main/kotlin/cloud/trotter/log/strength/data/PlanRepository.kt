@@ -149,7 +149,7 @@ class PlanRepository(
     }
 
     suspend fun setPlanGoal(planId: Long, exerciseId: String, goalLb: Double?) {
-        require(goalLb == null || (goalLb.isFinite() && goalLb > 0.0))
+        require(goalLb == null || (goalLb.isFinite() && goalLb > 0.0 && goalLb <= PlanRecipeJson.MAX_GOAL_LB))
         ensurePlanSettingsMigrated()
         // Read DataStore before the transaction: suspending on it inside one can deadlock.
         val global = settings.globalLifterFlow.first()

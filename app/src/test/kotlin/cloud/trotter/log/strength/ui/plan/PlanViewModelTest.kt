@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -178,7 +179,8 @@ class PlanViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.goalDialog)
         vm.openGoal("bb_back_squat")
-        for (invalid in listOf(null, 0.0, -1.0, Double.NaN, Double.POSITIVE_INFINITY)) {
+        for (invalid in listOf(null, 0.0, -1.0, Double.NaN, Double.POSITIVE_INFINITY,
+            PlanRecipeJson.MAX_GOAL_LB + 0.1, 2500.0, WeightUnit.KG.toLb(907.2))) {
             vm.setGoalDraft(invalid)
             vm.saveGoal()
             advanceUntilIdle()
@@ -193,6 +195,25 @@ class PlanViewModelTest {
         )))
         advanceUntilIdle()
         assertNull(restored.uiState.value.goalDialog)
+    }
+
+    @Test
+    fun `saving the goal ceiling accepts canonical pounds in either display unit`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val vm = viewModel()
+        for (unit in WeightUnit.entries) {
+            settings.setUnit(unit)
+            advanceUntilIdle()
+            vm.openGoal("bb_back_squat")
+            vm.setGoalDraft(PlanRecipeJson.MAX_GOAL_LB)
+            vm.saveGoal()
+            advanceUntilIdle()
+            assertEquals(mapOf("bb_back_squat" to PlanRecipeJson.MAX_GOAL_LB),
+                repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+            assertNull(vm.uiState.value.goalDialog)
+        }
     }
 
     @Test

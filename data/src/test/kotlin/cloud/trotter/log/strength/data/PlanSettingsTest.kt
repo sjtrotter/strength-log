@@ -636,7 +636,8 @@ class PlanSettingsTest {
         val before = db.planDao().allPlans()
         repo.plans.setPlanGoal(1, "bb_back_squat", 200.0)
         repo.plans.setPlanGoal(2, "bb_back_squat", 200.0)
-        for (invalid in listOf(-1.0, 0.0, Double.NaN, Double.POSITIVE_INFINITY)) {
+        for (invalid in listOf(-1.0, 0.0, Double.NaN, Double.POSITIVE_INFINITY,
+            PlanRecipeJson.MAX_GOAL_LB + 0.1, 2500.0, WeightUnit.KG.toLb(907.2))) {
             assertTrue(runCatching { repo.plans.setPlanGoal(1, "bb_back_squat", invalid) }.exceptionOrNull() is IllegalArgumentException)
         }
         assertEquals(before, db.planDao().allPlans())

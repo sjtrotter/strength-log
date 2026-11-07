@@ -39,6 +39,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
@@ -575,9 +576,9 @@ class DayViewModel @Inject constructor(
         }
         viewModelScope.launch {
             combine(cardioRun, timedRepEvent, pastCardioReceiptId) { run, reps, receipt ->
-                run == null && reps == null && receipt != null
-            }.distinctUntilChanged().collect { ready ->
-                if (ready) recoverPastCardioReceipt()
+                receipt.takeIf { run == null && reps == null }
+            }.distinctUntilChanged().collect { receiptId ->
+                if (receiptId != null) recoverPastCardioReceipt()
             }
         }
     }

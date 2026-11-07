@@ -293,6 +293,47 @@ class DayViewModelManualCardioTest {
         assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
     }
 
+    @Test fun `a second past session shows its receipt after the first receipt read fails`() = runTest(dispatcher) {
+        val plan = prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        val startedAt = now - 86_400_000L - 2_472_000
+        enter(vm, startedAt)
+        failReceiptRead = true
+        vm.savePastCardio()
+        runCurrent()
+        val first = repo.history.cardioSessionsFlow.first().single()
+        assertNull(vm.finisher.receipt.value)
+        assertNull(vm.pastCardio.value)
+        assertFalse(vm.pastCardioSaveFailed.value)
+        assertEquals(first.id, handle.get<Long>("day_past_cardio_receipt_id"))
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertNull(vm.uiState.value.cardio?.loggedSessionId)
+
+        failReceiptRead = false
+        enter(vm, startedAt - 3_600_000L)
+        vm.changePastCardio(requireNotNull(vm.pastCardio.value).copy(metresText = "9000", note = "Earlier run"))
+        vm.savePastCardio()
+        runCurrent()
+
+        val sessions = repo.history.cardioSessionsFlow.first()
+        assertEquals(2, sessions.size)
+        assertEquals(first, sessions.single { it.id == first.id })
+        val second = sessions.single { it.id != first.id }
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertTrue(receipt.cardio)
+        assertEquals(second.id, receipt.sessionId)
+        assertEquals("Earlier run", receipt.note)
+        assertEquals(9000, receipt.cardioRows.single().intervals.single().metres)
+        assertNull(handle.get<Long>("day_past_cardio_receipt_id"))
+        assertNull(vm.pastCardio.value)
+        assertFalse(vm.pastCardioSaveFailed.value)
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals(listOf(first.id, second.id), published)
+    }
+
     @Test fun `a committed manual session recovers its receipt after restoration`() = runTest(dispatcher) {
         prepare()
         val handle = SavedStateHandle()

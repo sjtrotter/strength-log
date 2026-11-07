@@ -146,99 +146,55 @@ class WizardViewModel @Inject constructor(
 
     private data class RestoreProgress(val inFlight: Boolean = false, val error: cloud.trotter.log.strength.ui.text.UiText? = null)
 
-    private data class SplitGroup(val days: Int, val split: SplitTemplate, val anchors: AnchorScheme, val deadlift: DeadliftVariant)
-    private data class CardioGroup(val mode: CardioMode, val placement: CardioPlacement, val fiveK: Boolean)
-    private data class AboutGroup(val bodyweight: Double?, val age: Int?, val level: ExperienceLevel, val emphasis: GoalEmphasis)
-
-    private val splitGroup =
-        combine(daysPerWeek, split, anchorScheme, deadliftVariant) { d, s, a, dl ->
-            SplitGroup(d, enumOf(s, defaults.split), enumOf(a, defaults.anchorScheme), enumOf(dl, defaults.deadliftVariant))
-        }
-    private val cardioGroup =
-        combine(cardioMode, cardioPlacement, fiveK) { m, p, k ->
-            CardioGroup(enumOf(m, defaults.cardio.mode), enumOf(p, defaults.cardio.placement), k)
-        }
-    private val aboutGroup =
-        combine(bodyweight, age, level, emphasis) { bw, a, l, e ->
-            AboutGroup(bw, a, enumOf(l, defaults.config.level), enumOf(e, defaults.config.emphasis))
-        }
-
-    private fun assembleAnswers(
-        sg: SplitGroup,
-        cg: CardioGroup,
-        ag: AboutGroup,
-        equip: List<String>,
-        unitName: String,
-        drafts: List<WizardLiftDraft>,
-    ): WizardAnswers =
-        WizardAnswers(
-            daysPerWeek = sg.days,
-            split = sg.split,
-            anchorScheme = sg.anchors,
-            deadliftVariant = sg.deadlift,
-            cardio = CardioPrefs(mode = cg.mode, placement = cg.placement, fiveKGoal = cg.fiveK),
-            config = LifterConfig(
-                bodyweightLb = ag.bodyweight ?: defaults.config.bodyweightLb,
-                age = ag.age ?: defaults.config.age,
-                level = ag.level,
-                emphasis = ag.emphasis,
-                weightUnit = enumOf(unitName, WeightUnit.LB),
+    /** Synchronous snapshot for both rendering and finish: combined groups can
+     *  still carry older answers after restore has cleared its in-flight flag. */
+    private fun currentAnswers(): WizardAnswers {
+        val currentEmphasis = enumOf(emphasis.value, defaults.config.emphasis)
+        return WizardAnswers(
+            daysPerWeek = daysPerWeek.value,
+            split = enumOf(split.value, defaults.split),
+            anchorScheme = enumOf(anchorScheme.value, defaults.anchorScheme),
+            deadliftVariant = enumOf(deadliftVariant.value, defaults.deadliftVariant),
+            cardio = CardioPrefs(
+                mode = enumOf(cardioMode.value, defaults.cardio.mode),
+                placement = enumOf(cardioPlacement.value, defaults.cardio.placement),
+                fiveKGoal = fiveK.value,
             ),
-            equipment = equip.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
-            lifts = drafts.mapNotNull { d ->
+            config = LifterConfig(
+                bodyweightLb = bodyweight.value ?: defaults.config.bodyweightLb,
+                age = age.value ?: defaults.config.age,
+                level = enumOf(level.value, defaults.config.level),
+                emphasis = currentEmphasis,
+                weightUnit = enumOf(unit.value, WeightUnit.LB),
+            ),
+            equipment = equipment.value.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
+            lifts = lifts.value.mapNotNull { d ->
                 val lb = d.weightLb?.takeIf { it > 0.0 && it.isFinite() } ?: return@mapNotNull null
-                val reps = (d.reps ?: StrengthStandards.topSetReps(ag.emphasis)).takeIf { it in 1..99 } ?: return@mapNotNull null
+                val reps = (d.reps ?: StrengthStandards.topSetReps(currentEmphasis)).takeIf { it in 1..99 } ?: return@mapNotNull null
                 d.exerciseId to LiftEntry(lb, reps)
             }.toMap(),
         )
-
-    private val answersFlow: Flow<WizardAnswers> =
-        combine(splitGroup, cardioGroup, aboutGroup, combine(equipment, lifts, ::Pair), unit) { sg, cg, ag, equipmentAndLifts, unitName ->
-            val (equip, drafts) = equipmentAndLifts
-            assembleAnswers(sg, cg, ag, equip, unitName, drafts)
-        }
-
-    /** Synchronous snapshot of the draft straight off the raw SavedStateHandle
-     *  fields — used where a caller (namely [finish]) must not risk reading a
-     *  not-yet-recomputed [uiState] (see the [onNext] doc). */
-    private fun currentAnswers(): WizardAnswers = assembleAnswers(
-        SplitGroup(
-            daysPerWeek.value,
-            enumOf(split.value, defaults.split),
-            enumOf(anchorScheme.value, defaults.anchorScheme),
-            enumOf(deadliftVariant.value, defaults.deadliftVariant),
-        ),
-        CardioGroup(enumOf(cardioMode.value, defaults.cardio.mode), enumOf(cardioPlacement.value, defaults.cardio.placement), fiveK.value),
-        AboutGroup(bodyweight.value, age.value, enumOf(level.value, defaults.config.level), enumOf(emphasis.value, defaults.config.emphasis)),
-        equipment.value,
-        unit.value,
-        lifts.value,
-    )
-
-    private data class CompletionGroup(
-        val complete: Boolean,
-        val firstRun: Boolean,
-        val restore: RestoreProgress,
-        val preview: Program?,
-        val finish: FinishProgress,
-    )
-
-    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishProgress) { complete, first, restore, preview, finish ->
-        CompletionGroup(complete, first, restore, preview, finish)
     }
 
     val uiState: StateFlow<WizardUiState> =
-        combine(stepIndex, answersFlow, unit, completionGroup, initialized) { step, answers, unitName, completion, loaded ->
+        combine(listOf<Flow<Any?>>(
+            stepIndex, daysPerWeek, split, anchorScheme, deadliftVariant,
+            cardioMode, cardioPlacement, fiveK, bodyweight, age, level, emphasis,
+            equipment, lifts, unit, isComplete, firstRun, restoreProgress,
+            previewProgram, finishProgress, initialized,
+        )) {
+            val restore = restoreProgress.value
+            val finish = finishProgress.value
             WizardStateBuilder.buildUiState(
-                stepIndex = step,
-                answers = answers,
-                isComplete = completion.complete,
-                restore = WizardRestoreState(offered = completion.firstRun, inFlight = completion.restore.inFlight, error = completion.restore.error),
-                unit = enumOf(unitName, WeightUnit.LB),
-                previewProgram = completion.preview,
-                finishError = completion.finish.error,
-                finishInFlight = completion.finish.inFlight,
-                initialized = loaded,
+                stepIndex = stepIndex.value,
+                answers = currentAnswers(),
+                isComplete = isComplete.value,
+                restore = WizardRestoreState(offered = firstRun.value, inFlight = restore.inFlight, error = restore.error),
+                unit = enumOf(unit.value, WeightUnit.LB),
+                previewProgram = previewProgram.value,
+                finishError = finish.error,
+                finishInFlight = finish.inFlight,
+                initialized = initialized.value,
                 bodyweightLb = bodyweight.value,
                 age = age.value,
                 liftDrafts = lifts.value,

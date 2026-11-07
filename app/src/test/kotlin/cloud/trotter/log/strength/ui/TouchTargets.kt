@@ -38,6 +38,9 @@ object TouchTargets {
     private fun ComposeContentTestRule.interactiveNodes(): List<SemanticsNode> {
         val all = mutableListOf<SemanticsNode>()
         fun walk(node: SemanticsNode) {
+            // An unplaced node (a LazyColumn item scrolled past in one jump) keeps its last
+            // offset in the semantics tree but is neither drawn nor hit-tested.
+            if (!node.layoutInfo.isPlaced) return
             if (node.config.contains(SemanticsActions.OnClick) && !node.boundsInRoot.isEmpty) all += node
             node.children.forEach(::walk)
         }

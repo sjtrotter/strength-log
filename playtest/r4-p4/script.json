@@ -127,11 +127,26 @@
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Trap Bar"
    }
   },
   {
-   "checkpoint": "step-9"
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "checkpoint": "equipment"
   },
   {
    "tap": {
@@ -139,7 +154,60 @@
    }
   },
   {
-   "checkpoint": "step-10"
+   "type": {
+    "text": "Weight (lb)",
+    "index": 0,
+    "value": "185"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 1,
+    "value": "155"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 2,
+    "value": "225"
+   }
+  },
+  {
+   "checkpoint": "recent-lifts"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "rotation"
+  },
+  {
+   "scrollTo": {
+    "text": "Day B"
+   }
+  },
+  {
+   "checkpoint": "rotation-b"
+  },
+  {
+   "scrollTo": {
+    "text": "Day C"
+   }
+  },
+  {
+   "checkpoint": "rotation-c"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "checkpoint": "today"
   }
  ]
 }

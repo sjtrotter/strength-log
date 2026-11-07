@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
@@ -9,14 +10,22 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.transfer.backup.BackupCodec
+import cloud.trotter.log.strength.transfer.backup.BackupDocument
+import cloud.trotter.log.strength.transfer.backup.PlanBackup
+import cloud.trotter.log.strength.transfer.backup.ProgramDayBackup
+import cloud.trotter.log.strength.transfer.backup.SettingsBackup
+import cloud.trotter.log.strength.transfer.backup.toSnapshot
 import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.time.LocalDate
@@ -148,6 +157,66 @@ class PlanCardioGoalScreenTest {
                 goal = PlanGoalUi(PlanGoal.Shuttle("PACER", 52, byEpochDay = goal.byEpochDay), null, false))
         }
         rule.onNodeWithText("By Jan 2, 2027").assertExists()
+    }
+
+    @Test fun `restored timed goal at minimum date opens the picker`() {
+        assertRestoredDatePicker(timed.copy(byEpochDay = LocalDate.of(2000, 1, 1).toEpochDay()), "Jan 1, 2000")
+    }
+
+    @Test fun `restored timed goal at maximum date opens the picker`() {
+        assertRestoredDatePicker(timed.copy(byEpochDay = LocalDate.of(2100, 12, 31).toEpochDay()), "Dec 31, 2100")
+    }
+
+    @Test fun `restored shuttle goal at minimum date opens the picker`() {
+        assertRestoredDatePicker(PlanGoal.Shuttle("PACER", 52, byEpochDay = LocalDate.of(2000, 1, 1).toEpochDay()), "Jan 1, 2000")
+    }
+
+    @Test fun `restored shuttle goal at maximum date opens the picker`() {
+        assertRestoredDatePicker(PlanGoal.Shuttle("PACER", 52, byEpochDay = LocalDate.of(2100, 12, 31).toEpochDay()), "Dec 31, 2100")
+    }
+
+    private fun assertRestoredDatePicker(goal: PlanGoal, date: String) {
+        val codec = BackupCodec()
+        val document = BackupDocument(
+            settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
+            plans = listOf(PlanBackup(1, "Plan", "AUTHORED", 1000, goalJson = PlanGoalJson.encode(goal),
+                days = listOf(ProgramDayBackup("A", "Day A", "")))),
+        )
+        val plan = codec.decode(codec.encode(document)).toSnapshot().plans.single()
+        val restored = requireNotNull(PlanGoalJson.decode(plan.goalJson))
+        assertEquals(goal, restored)
+        val state = mutableStateOf(planScreenFixture().copy(goal = PlanGoalUi(restored, null, false)))
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(
+                onOpenCardioGoal = { state.value = state.value.copy(goalDraft = PlanGoalDraft.from(restored)) },
+                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            ))
+        } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("By $date"))
+        rule.onNodeWithText("By $date").performClick()
+        rule.onNode(hasText(date) and hasAnyAncestor(isDialog())).performClick()
+        rule.onAllNodes(isDialog()).assertCountEquals(2)
+        rule.onAllNodesWithText("Save")[1].assertIsEnabled().performClick()
+        rule.onAllNodes(isDialog()).assertCountEquals(1)
+        rule.runOnIdle { assertEquals(goal.byEpochDay, state.value.goalDraft!!.byEpochDay) }
+    }
+
+    @Test fun `out of range draft dates disable saving and open an unselected picker`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft()))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions()) } }
+        for (day in listOf(LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay(), Long.MIN_VALUE, Long.MAX_VALUE)) {
+            for (timed in listOf(true, false)) {
+                rule.runOnIdle {
+                    state.value = state.value.copy(goalDraft = PlanGoalDraft(timed = timed, protocol = "PACER", byEpochDay = day))
+                }
+                rule.onNodeWithText("Save").assertIsNotEnabled()
+                rule.onNodeWithText("Add date").performClick()
+                rule.onAllNodes(isDialog()).assertCountEquals(2)
+                rule.onAllNodesWithText("Save")[1].assertIsNotEnabled()
+                rule.onAllNodesWithText("Cancel")[1].performClick()
+                rule.onAllNodes(isDialog()).assertCountEquals(1)
+            }
+        }
     }
 
     private companion object { const val WINDOW_SIZE = "robolectric.windowManager.useRequestedSize" }

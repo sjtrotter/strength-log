@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -105,6 +106,7 @@ private fun goalProgress(ui: PlanGoalUi): String {
 @Composable
 internal fun PlanCardioGoalEditor(draft: PlanGoalDraft, exists: Boolean, actions: PlanActions) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
     val focusManager = LocalFocusManager.current
     AppAlertDialog(
         onDismissRequest = actions.onDismissGoal,
@@ -137,7 +139,7 @@ internal fun PlanCardioGoalEditor(draft: PlanGoalDraft, exists: Boolean, actions
                 }
                 Row {
                     TextButton(onClick = { showDatePicker = true }) {
-                        Text(draft.byEpochDay?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
+                        Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
                     }
                     if (draft.byEpochDay != null) {
                         TextButton(onClick = { actions.onCardioGoalDraft(draft.copy(byEpochDay = null)) }) {
@@ -161,9 +163,15 @@ internal fun PlanCardioGoalEditor(draft: PlanGoalDraft, exists: Boolean, actions
         },
     )
     if (showDatePicker) {
-        val picker = rememberDatePickerState(initialSelectedDateMillis = draft.byEpochDay?.let {
-            LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        })
+        val displayedDay = date ?: LocalDate.now().toEpochDay().coerceIn(PlanGoalDate.epochDays)
+        val picker = rememberDatePickerState(
+            initialSelectedDateMillis = date?.let {
+                LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+            },
+            initialDisplayedMonthMillis = LocalDate.ofEpochDay(displayedDay)
+                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            yearRange = PlanGoalDate.years,
+        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {

@@ -27,9 +27,10 @@ import kotlinx.serialization.Serializable
  * v21 carries each plan's edited goals inside its recipe.
  * v22 carries each cardio session's note.
  * v23 carries lifter-answer presence and recipes may carry cardio-first answers.
- * v24 carries each plan's optional cardio goal.
+ * v24 adds Rest entries (program day kind REST).
+ * v25 carries each plan's optional cardio goal.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 24
+const val CURRENT_SCHEMA_VERSION: Int = 25
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */

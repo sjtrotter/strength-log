@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
 
@@ -57,12 +58,13 @@ object PlanScreenBuilder {
         catalog: ExerciseCatalog,
     ): List<PlanDay> =
         program.days.map { day ->
+            val trainingDay = day.takeUnless { it.kind == ProgramDayKind.REST }
             PlanDay(
                 dayId = day.id,
                 dayIndex = Program.accentIndex(day.id),
                 title = day.title,
-                liftCount = day.exercises.size,
-                setCount = day.exercises.mapIndexed { position, exercise ->
+                liftCount = trainingDay?.exercises?.size ?: 0,
+                setCount = trainingDay?.exercises.orEmpty().mapIndexed { position, exercise ->
                     DaySeeds.previewMain(
                         ProgramSlot(programExerciseId = position.toLong(), position = position, exercise = exercise),
                         config,
@@ -71,8 +73,8 @@ object PlanScreenBuilder {
                 }.sum(),
                 isNext = day.id == nextDayId,
                 kind = day.kind,
-                cardioActivity = day.cardioBlock?.activity,
-                cardioSetCount = day.cardioBlock?.sets?.size ?: 0,
+                cardioActivity = trainingDay?.cardioBlock?.activity,
+                cardioSetCount = trainingDay?.cardioBlock?.sets?.size ?: 0,
             )
         }
 }

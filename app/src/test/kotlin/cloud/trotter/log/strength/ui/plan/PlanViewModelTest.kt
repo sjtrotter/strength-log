@@ -35,6 +35,7 @@ import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioTemplate
 import java.io.File
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -130,6 +131,26 @@ class PlanViewModelTest {
         vm.dismissGoal()
         advanceUntilIdle()
         assertNull(vm.uiState.value.goalDraft)
+    }
+
+    @Test fun `out of range dates cannot save either cardio goal draft`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val saved = PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960)
+        repo.plans.setGoal(viewed, saved)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal()
+        for (day in listOf(LocalDate.of(1999, 12, 31).toEpochDay(), LocalDate.of(2101, 1, 1).toEpochDay(),
+            LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay(), Long.MIN_VALUE, Long.MAX_VALUE)) {
+            for (timed in listOf(true, false)) {
+                val draft = PlanGoalDraft(timed = timed, protocol = "PACER", byEpochDay = day)
+                vm.changeGoalDraft(draft)
+                vm.saveGoal()
+                advanceUntilIdle()
+                assertEquals(draft, vm.uiState.value.goalDraft)
+                assertEquals(saved, PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
+            }
+        }
     }
 
     @Test fun `shuttle entry survives recreation and logging updates best`() = runTest(dispatcher) {
@@ -507,4 +528,29 @@ class PlanViewModelTest {
         assertNull(vm.uiState.value.dialog)
         assertEquals(listOf("Renamed"), db.programDao().daysForPlan(plan).map { it.title })
     }
+    @Test fun `Add rest moves and removes the viewed plans rest entry`() = runTest(dispatcher) {
+        val plan = repo.plans.createAuthoredPlan("Plan", "Lift")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.addRest()
+        advanceUntilIdle()
+        assertEquals(listOf("A", "B"), vm.uiState.value.days.map { it.dayId })
+        val rest = vm.uiState.value.days.last()
+        assertEquals(ProgramDayKind.REST, rest.kind)
+        assertEquals("Rest", rest.title)
+        assertEquals(0, rest.liftCount)
+        assertEquals(0, rest.setCount)
+        assertNull(rest.cardioActivity)
+        vm.openDayMenu("B")
+        vm.moveDay("B", true)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.menuDayId)
+        assertEquals(listOf("B", "A"), vm.uiState.value.days.map { it.dayId })
+        vm.removeDay("B")
+        vm.saveDayDialog()
+        advanceUntilIdle()
+        assertEquals(listOf("A"), vm.uiState.value.days.map { it.dayId })
+    }
+
 }

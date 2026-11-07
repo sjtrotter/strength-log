@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.model
 
+import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.Serializable
@@ -72,7 +73,8 @@ data class ProgramExercise(
     val keepToPlan: Boolean = false,
 )
 
-enum class ProgramDayKind { STRENGTH, CARDIO }
+/** Stored by name; new constants go at the end. */
+enum class ProgramDayKind { STRENGTH, CARDIO, REST }
 
 /** A day's Progress block stays parked while Plan is chosen; null uses the plan's block. */
 data class CardioProgress(
@@ -112,8 +114,15 @@ data class Program(val days: List<ProgramDay>) {
         it.kind == ProgramDayKind.CARDIO && (it.id == "C1" || it.id == "C2")
     }.ifEmpty { days }
 
-    fun dayToShow(suggested: String?): ProgramDay? =
-        days.firstOrNull { it.id == suggested } ?: rotationDays.firstOrNull()
+    /** The day to train: a Rest suggestion resolves to the training day after it. */
+    fun dayToShow(suggested: String?): ProgramDay? {
+        val day = days.firstOrNull { it.id == suggested }
+            ?: rotationDays.firstOrNull { it.kind != ProgramDayKind.REST }
+        return if (day?.kind == ProgramDayKind.REST) {
+            val trainingId = Rotation.trainingDayFrom(this, day.id)
+            days.firstOrNull { it.id == trainingId }
+        } else day
+    }
 
     companion object {
         /** History can outlive its program; the letter cycles through [DayAccentColors.count] accents. */

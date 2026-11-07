@@ -96,4 +96,14 @@ class ProgramDisplayTest {
 
     private fun day(id: String, kind: ProgramDayKind = ProgramDayKind.STRENGTH) =
         ProgramDay(id, "Day $id", "", emptyList(), kind = kind)
+    @Test fun `rest suggestions and fallback show the next training day`() {
+        val rest = day("C", ProgramDayKind.REST)
+        val first = day("A")
+        val program = Program(listOf(rest, first, day("B")))
+        assertEquals(first, program.dayToShow("C"))
+        assertEquals(first, program.dayToShow(null))
+        assertEquals(first, program.dayToShow("removed"))
+        assertNull(Program(listOf(rest)).dayToShow("C"))
+    }
+
 }

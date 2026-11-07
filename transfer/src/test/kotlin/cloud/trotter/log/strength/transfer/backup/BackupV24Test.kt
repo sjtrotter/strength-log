@@ -1,84 +1,73 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.serialization.PlanGoalJson
-import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.PlanGoal
-import cloud.trotter.log.strength.domain.model.ShuttleAttempt
-import java.time.LocalDate
+import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 
 class BackupV24Test {
     private val codec = BackupCodec()
-    private fun document(goalJson: String?) = BackupDocument(
+    private val rest = ProgramDayBackup("C", "Rest", "", kind = "REST")
+    private fun document(day: ProgramDayBackup = rest, version: Int = CURRENT_SCHEMA_VERSION) = BackupDocument(
+        schemaVersion = version,
         settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
-        plans = listOf(PlanBackup(1, "Plan", "AUTHORED", 1000, goalJson = goalJson,
-            days = listOf(ProgramDayBackup("A", "Day A", "")))),
+        plans = listOf(PlanBackup(1, "Plan", "AUTHORED", 1000, suggestedDay = "C", days = listOf(
+            ProgramDayBackup("A", "Run", ""), day,
+        ))),
     )
 
-    @Test fun `v24 goals round trip verbatim with dates and shuttle attempts`() {
-        val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, 21000),
-            PlanGoal.Shuttle("PACER", 52, listOf(ShuttleAttempt(1000, 42), ShuttleAttempt(2000, 55)), 21001))
-        for (goal in goals) {
-            val payload = PlanGoalJson.encode(goal).replace(",", ", ")
-            val snapshot = codec.decode(codec.encode(document(payload))).toSnapshot()
-            assertEquals(payload, snapshot.plans.single().goalJson)
-            val exported = snapshot.toDocument()
-            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
-            assertEquals(payload, exported.plans.single().goalJson)
-            assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
+    @Test fun `Rest entries round trip with their rotation position`() {
+        val snapshot = document().toSnapshot()
+        val exported = snapshot.toDocument()
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
+        val decoded = codec.decode(codec.encode(exported))
+        assertEquals("C", decoded.plans.single().suggestedDay)
+        assertEquals("REST", decoded.plans.single().days.last().kind)
+        assertEquals(snapshot, decoded.toSnapshot())
+    }
+
+    @Test fun `v21 through v23 reject Rest entries`() {
+        for (version in 21..23) {
+            assertFailsWith<BackupError.Inconsistent>("v$version") {
+                codec.decode(codec.encode(document(version = version)))
+            }
         }
     }
 
-    @Test fun `v22 and v23 carrying goalJson restore null`() {
-        val goal = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960))
+    @Test fun `Rest with an exercise or cardio is inconsistent`() {
+        val exercise = ProgramExerciseBackup(1, "bb_back_squat", targetSets = 3, note = "")
+        for (invalid in listOf(
+            rest.copy(exercises = listOf(exercise)),
+            rest.copy(cardioJson = "{}"),
+            rest.copy(cardioBlockJson = "{}"),
+        )) {
+            assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(document(invalid))) }
+        }
+    }
+
+    @Test fun `rest days in recipes round trip and invalid values fail`() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst(restDays = 2))
+        val recipe = PlanRecipeJson.encode(answers)
+        val doc = document().let { it.copy(plans = listOf(it.plans.single().copy(recipeJson = recipe))) }
+        val restored = codec.decode(codec.encode(doc))
+        assertEquals(2, PlanRecipeJson.decode(restored.plans.single().recipeJson!!, GlobalLifter()).cardioFirst?.restDays)
+        for (invalid in listOf(-1, 3)) {
+            val bad = doc.copy(plans = listOf(doc.plans.single().copy(
+                recipeJson = recipe.replace("\"restDays\":2", "\"restDays\":$invalid"),
+            )))
+            assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(bad)) }
+        }
+    }
+
+    @Test fun `v9 through v23 training days restore without changes`() {
         for (version in 9..23) {
-            val legacy = document(goal).copy(schemaVersion = version)
-            assertNull(legacy.toSnapshot().plans.single().goalJson)
-            assertNull(codec.decode(codec.encode(legacy)).toSnapshot().plans.single().goalJson)
-            val encoded = codec.encode(document(null).copy(schemaVersion = version))
-            val poisoned = encoded.replace("\"goalJson\":null", "\"goalJson\":{}")
-            assertNull(codec.decode(poisoned).toSnapshot().plans.single().goalJson)
+            val doc = document(rest.copy(kind = "STRENGTH"), version)
+            val decoded = codec.decode(codec.encode(doc))
+            assertEquals(version, decoded.schemaVersion)
+            assertEquals(doc.plans.single().days, decoded.plans.single().days)
         }
-    }
-
-    @Test fun `invalid goals fail as inconsistent`() {
-        val goal = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960))
-        for (payload in listOf("junk", "{}", goal.replace("timed", "future"), goal.replace("3219", "0"))) {
-            assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(document(payload))) }
-        }
-    }
-
-    @Test fun `v24 goals accept absent dates and LocalDate boundaries`() {
-        for (day in listOf(null, 0L, LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay())) {
-            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
-                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
-            for (goal in goals) {
-                val payload = PlanGoalJson.encode(goal)
-                val snapshot = codec.decode(codec.encode(document(payload))).toSnapshot()
-                assertEquals(payload, snapshot.plans.single().goalJson)
-                assertEquals(goal, PlanGoalJson.decode(snapshot.plans.single().goalJson))
-                assertEquals(snapshot, codec.decode(codec.encode(snapshot.toDocument())).toSnapshot())
-            }
-        }
-    }
-
-    @Test fun `v24 goals with dates outside LocalDate boundaries fail as inconsistent`() {
-        for (day in listOf(LocalDate.MIN.toEpochDay() - 1, LocalDate.MAX.toEpochDay() + 1,
-            Long.MIN_VALUE, Long.MAX_VALUE)) {
-            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
-                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
-            for (goal in goals) {
-                val payload = PlanGoalJson.encode(goal)
-                assertFailsWith<BackupError.Inconsistent>(payload) { codec.decode(codec.encode(document(payload))) }
-            }
-        }
-    }
-
-    @Test fun `v24 without a goal restores null`() {
-        val encoded = codec.encode(document(null)).replace(",\"goalJson\":null", "")
-        assertNull(codec.decode(encoded).toSnapshot().plans.single().goalJson)
     }
 }

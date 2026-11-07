@@ -11,8 +11,8 @@ import org.junit.Test
 import kotlin.test.assertFailsWith
 
 class PlanGoalJsonTest {
-    @Test fun `both goal types accept absent dates and LocalDate boundaries`() {
-        for (day in listOf(null, 0L, LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay())) {
+    @Test fun `both goal types accept absent dates and dates from 2000 through 2100`() {
+        for (day in listOf(null, LocalDate.of(2000, 1, 1).toEpochDay(), LocalDate.of(2100, 12, 31).toEpochDay())) {
             val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
                 PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
             for (goal in goals) {
@@ -23,8 +23,9 @@ class PlanGoalJsonTest {
         }
     }
 
-    @Test fun `both goal types reject dates outside LocalDate boundaries`() {
-        for (day in listOf(LocalDate.MIN.toEpochDay() - 1, LocalDate.MAX.toEpochDay() + 1,
+    @Test fun `both goal types reject dates outside 2000 through 2100`() {
+        for (day in listOf(LocalDate.of(1999, 12, 31).toEpochDay(), LocalDate.of(2101, 1, 1).toEpochDay(),
+            0L, LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay(),
             Long.MIN_VALUE, Long.MAX_VALUE)) {
             val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
                 PlanGoal.Shuttle("PACER", 52, byEpochDay = day))

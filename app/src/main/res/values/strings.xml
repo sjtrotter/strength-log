@@ -1025,4 +1025,10 @@
     <string name="plan_goal_remove">Remove goal</string>
     <string name="plan_log_attempt">Log attempt</string>
     <string name="plan_goal_shuttles_label">Shuttles</string>
+    <string name="rest_day_title">Rest</string>
+    <string name="today_rest_day">%1$s — Rest</string>
+    <string name="today_rest_taken">Rest taken</string>
+    <string name="today_skip_rest">Skip rest and train</string>
+    <string name="plan_add_rest">Add rest</string>
+    <string name="wizard_cardio_rest_days">Rest days</string>
 </resources>

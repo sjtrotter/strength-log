@@ -134,4 +134,36 @@ class RotationTest {
             ProgramDay("C", "Run", "", emptyList(), kind = cardioKind, cardioBlock = block),
         ))
     }
+    private fun restProgram() = mixedProgram(ProgramDayKind.STRENGTH).let { program ->
+        Program(program.days.take(2) + ProgramDay("C", "Rest", "", emptyList(), kind = ProgramDayKind.REST))
+    }
+
+    @Test fun `rest wraps to the first day`() {
+        val program = restProgram()
+        assertEquals("A", Rotation.nextFor(program, "C"))
+        assertEquals("A", Rotation.trainingDayFrom(program, "C"))
+        assertEquals("B", Rotation.trainingDayFrom(program, "B"))
+    }
+
+    @Test fun `training the day after a rest moves past it`() {
+        assertEquals("B", Rotation.upNextAfter(restProgram(), "C", "A"))
+    }
+
+    @Test fun `training another day leaves the rest up next`() {
+        assertEquals("C", Rotation.upNextAfter(restProgram(), "C", "B"))
+    }
+
+    @Test fun `two rests in a row`() {
+        val program = restProgram().let { Program(it.days + it.days.last().copy(id = "D")) }
+        assertEquals("A", Rotation.trainingDayFrom(program, "C"))
+        assertEquals("B", Rotation.upNextAfter(program, "C", "A"))
+    }
+
+    @Test fun `a rotation without training has no training day`() {
+        val rest = restProgram().days.last()
+        assertNull(Rotation.trainingDayFrom(Program(listOf(rest)), "C"))
+        assertNull(Rotation.trainingDayFrom(restProgram(), "removed"))
+        assertNull(Rotation.trainingDayFrom(Program(emptyList()), "A"))
+    }
+
 }

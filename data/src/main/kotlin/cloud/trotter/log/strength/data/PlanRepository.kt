@@ -16,8 +16,10 @@ import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
@@ -239,6 +241,7 @@ class PlanRepository(
     suspend fun setOfferCardioIncreases(planId: Long, on: Boolean) = planDao.updateOfferCardioIncreases(planId, on)
 
     suspend fun setGoal(planId: Long, goal: PlanGoal?) = db.withTransaction {
+        require(PlanGoalDate.isValid(goal?.byEpochDay))
         val stored = PlanGoalJson.decode(planDao.plan(planId)?.goalJson)
         val next = if (goal is PlanGoal.Shuttle) {
             val attempts = (stored as? PlanGoal.Shuttle)?.takeIf {
@@ -285,7 +288,7 @@ class PlanRepository(
                 val plans = planDao.allPlans()
                 val selected = preferredPlan(plans, storedId)
                 val recipe = PlanRecipeJson.encode(answers)
-                val nextDay = program.rotationDays.firstOrNull()?.id
+                val nextDay = program.rotationDays.firstOrNull()?.let { Rotation.trainingDayFrom(program, it.id) }
                 val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
                     planDao.updatePlan(selected.copy(
                         name = name,

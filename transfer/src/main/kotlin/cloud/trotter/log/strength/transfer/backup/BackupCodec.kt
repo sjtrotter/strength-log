@@ -116,7 +116,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -157,7 +157,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withGoals = if (version < 24) {
+        val withGoals = if (version < 25) {
             val plans = shaped["plans"] as? JsonArray
             if (plans == null) shaped else JsonObject(shaped + ("plans" to JsonArray(
                 plans.map { if (it is JsonObject) JsonObject(it - "goalJson") else it },
@@ -408,7 +408,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (PlanOrigin.entries.none { it.name == plan.origin }) {
                     throw BackupError.Inconsistent("unknown plan origin '${plan.origin}'")
                 }
-                slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds)
+                slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds, doc.schemaVersion)
                 if (doc.schemaVersion >= 11) {
                     plan.days.forEach { day ->
                         day.cardioBlockJson?.let { block ->
@@ -442,7 +442,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         }
                     }
                 }
-                if (doc.schemaVersion >= 24) {
+                if (doc.schemaVersion >= 25) {
                     plan.goalJson?.let { goal ->
                         try {
                             PlanGoalJson.validate(goal)
@@ -472,7 +472,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 validateLiveLogs(logs, slotsByDay)
             }
         } else {
-            val slotsByDay = validateProgram(doc.program, customIds, slotIds)
+            val slotsByDay = validateProgram(doc.program, customIds, slotIds, doc.schemaVersion)
             validateSuggestedDay(doc.settings.suggestedDay, doc.program)
             validateLiveLogs(doc.liveLogs, slotsByDay)
         }
@@ -588,12 +588,17 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         program: List<ProgramDayBackup>,
         customIds: Set<String>,
         slotIds: MutableSet<Long>,
+        version: Int,
     ): Map<String, Set<Long>> {
         val resolvable = ExerciseLibrary.entries.mapTo(HashSet()) { it.id } + customIds
         val dayIds = HashSet<String>()
         for (day in program) {
             if (!dayIds.add(day.dayId)) throw BackupError.Inconsistent("duplicate day id '${day.dayId}'")
-            if (day.kind != "STRENGTH" && day.kind != "CARDIO") {
+            if (day.kind == "REST" && (version < 24 || day.exercises.isNotEmpty() ||
+                    day.cardioJson != null || day.cardioBlockJson != null)) {
+                throw BackupError.Inconsistent("Rest entries require schema v24 and no exercises or cardio")
+            }
+            if (day.kind != "STRENGTH" && day.kind != "CARDIO" && day.kind != "REST") {
                 throw BackupError.Inconsistent("unknown program day kind '${day.kind}'")
             }
             decodePayload("cardioJson of day '${day.dayId}'") { CardioDto.decode(day.cardioJson) }

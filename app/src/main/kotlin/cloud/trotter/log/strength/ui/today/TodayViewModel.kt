@@ -11,10 +11,12 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.time.CivilTimeSource
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.WorkoutStart
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,7 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TodayViewModel @Inject constructor(
-    repo: TrackerRepository,
+    private val repo: TrackerRepository,
     civilTimeSource: CivilTimeSource,
     private val savedState: SavedStateHandle,
     phoneRest: PhoneRestController,
@@ -57,12 +59,17 @@ class TodayViewModel @Inject constructor(
         combine(programs, lastSession, civilTimeSource.civilTime) { byPlan, last, now ->
             val days = plans.flatMap { plan ->
                 val program = byPlan.getValue(plan.id)
-                val next = program.dayToShow(plan.suggestedDayId)?.id
+                val trainDayId = program.dayToShow(plan.suggestedDayId)?.id
+                val next = program.days.firstOrNull {
+                    it.id == plan.suggestedDayId && it.kind == ProgramDayKind.REST
+                }?.id ?: trainDayId
                 program.days.map { day ->
                     TodayDay(plan.id, plan.name, day.id,
                         Program.accentIndex(day.id), day.title,
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
-                            (day.exercises.isEmpty() && day.cardioBlock != null)) to (day.id == next)
+                            (day.exercises.isEmpty() && day.cardioBlock != null),
+                        rest = day.kind == ProgramDayKind.REST,
+                        trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST }) to (day.id == next)
                 }
             }
             val openDay = run?.takeIf { it.planId != null && it.dayId != null }?.let { open ->
@@ -77,7 +84,7 @@ class TodayViewModel @Inject constructor(
                 plansPaused = plans.isEmpty() && allPlansPaused,
                 resume = openDay,
                 upNext = days.filter { it.second }.map { it.first },
-                otherDays = days.filterNot { it.second }.map { it.first },
+                otherDays = days.filterNot { it.second || it.first.rest }.map { it.first },
                 fact = TodayScreenBuilder.coachLine(last?.let(java.time.Instant::ofEpochMilli), now.zone),
             )
         }
@@ -85,6 +92,11 @@ class TodayViewModel @Inject constructor(
     val uiState = combine(overview, expanded) { state, showOther ->
         state.copy(otherDaysExpanded = showOther)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TodayUiState(loading = true))
+
+    fun takeRest(selection: DaySelection) {
+        val planId = selection.planId ?: return
+        viewModelScope.launch { repo.takeRest(planId, selection.dayId) }
+    }
 
     fun toggleOtherDays() { savedState["today_other_days"] = !expanded.value }
 }

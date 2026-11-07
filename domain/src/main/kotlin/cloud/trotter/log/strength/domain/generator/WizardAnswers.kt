@@ -67,8 +67,10 @@ data class CardioFirst(
     val comfortable: Measure = Measure.Time(1_800),
     val sessions: Int = 3,
     val liftDays: Int = 0,
+    val restDays: Int = 0,
 ) {
     init {
+        require(restDays in 0..2) { "restDays must be 0..2, was $restDays" }
         require(sessions in 1..6) { "sessions must be 1..6, was $sessions" }
         require(liftDays in LIFT_DAY_CHOICES) { "liftDays must be 0, 2 or 3, was $liftDays" }
     }

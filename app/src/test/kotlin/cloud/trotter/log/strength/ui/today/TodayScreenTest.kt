@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
@@ -155,4 +156,46 @@ class TodayScreenTest {
         rule.onNodeWithText("Discard and start").performClick()
         assertTrue(discarded)
     }
+    @Test fun restRowSkipsToTrainingAndUsesTheBottomRestAction() {
+        val rest = first.copy(dayId = "C", dayIndex = 2, title = "Rest", rest = true, trainDayId = "A")
+        var taken: DaySelection? = null
+        var skipped: DaySelection? = null
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, upNext = listOf(rest)),
+            actions().copy(onRestTaken = { taken = it }, onSkipRest = { skipped = it }),
+        ) } }
+        rule.onNodeWithText("C — Rest").assertIsDisplayed().assertHasNoClickAction()
+        rule.onNodeWithText("Skip rest and train").performClick()
+        assertEquals(DaySelection(rest.planId, "A"), skipped)
+        rule.onNode(hasText("Rest taken") and hasAnyAncestor(hasScrollAction())).assertDoesNotExist()
+        rule.onNodeWithText("Rest taken").assertIsDisplayed().performClick()
+        assertEquals(rest.selection, taken)
+    }
+
+    @Test fun anOpenWorkoutKeepsResumeAndRestTakenInTheRow() {
+        val rest = first.copy(dayId = "C", dayIndex = 2, title = "Rest", rest = true, trainDayId = "A")
+        var taken: DaySelection? = null
+        var resumed: DaySelection? = null
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, resume = second, upNext = listOf(rest)),
+            actions().copy(onRestTaken = { taken = it }, onResume = { resumed = it }),
+        ) } }
+        rule.onNode(hasText("Rest taken") and hasAnyAncestor(hasScrollAction())).assertIsDisplayed().performClick()
+        assertEquals(rest.selection, taken)
+        rule.onNodeWithText("Resume day A").performClick()
+        assertEquals(second.selection, resumed)
+    }
+
+    @Test fun aSecondaryRestRowHasItsOwnRestAction() {
+        val rest = second.copy(dayId = "C", dayIndex = 2, title = "Rest", rest = true, trainDayId = "A")
+        var taken: DaySelection? = null
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, upNext = listOf(first, rest)),
+            actions().copy(onRestTaken = { taken = it }),
+        ) } }
+        rule.onNodeWithText("Start day B").assertIsDisplayed()
+        rule.onNode(hasText("Rest taken") and hasAnyAncestor(hasScrollAction())).performClick()
+        assertEquals(rest.selection, taken)
+    }
+
 }

@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import java.io.File
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +69,30 @@ class PlanGoalTest {
         assertNull(db.planDao().plan(1)!!.goalJson)
         plans.setGoal(99, timed)
         assertEquals(2, db.planDao().allPlans().size)
+    }
+
+    @Test fun `setGoal accepts both date boundaries for both goal types`() = runTest {
+        seed()
+        for (day in listOf(LocalDate.of(2000, 1, 1), LocalDate.of(2100, 12, 31))) {
+            for (next in listOf(timed.copy(byEpochDay = day.toEpochDay()), shuttle.copy(byEpochDay = day.toEpochDay()))) {
+                plans.setGoal(1, next)
+                assertEquals(next, goal())
+            }
+        }
+    }
+
+    @Test fun `setGoal rejects out of range dates without changing the stored goal`() = runTest {
+        seed()
+        plans.setGoal(1, shuttle)
+        plans.logShuttleAttempt(1, 42)
+        val before = db.planDao().plan(1)
+        for (day in listOf(LocalDate.of(1999, 12, 31).toEpochDay(), LocalDate.of(2101, 1, 1).toEpochDay(),
+            LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay(), Long.MIN_VALUE, Long.MAX_VALUE)) {
+            for (goal in listOf(timed.copy(byEpochDay = day), shuttle.copy(byEpochDay = day))) {
+                assertFailsWith<IllegalArgumentException> { plans.setGoal(1, goal) }
+                assertEquals(before, db.planDao().plan(1))
+            }
+        }
     }
 
     @Test fun `logShuttleAttempt appends with the clock time including zero`() = runTest {

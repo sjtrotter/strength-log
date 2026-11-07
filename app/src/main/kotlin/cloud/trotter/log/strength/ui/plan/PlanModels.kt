@@ -62,6 +62,8 @@ data class PlanActions(
     val onOfferCardioChange: (Boolean) -> Unit = {},
     val onEmphasisChange: (GoalEmphasis) -> Unit = {},
     val onAddDay: () -> Unit = {},
+    val onAddRest: () -> Unit = {},
+    val onMoveDay: (String, Boolean) -> Unit = { _, _ -> },
     val onDayMenu: (String?) -> Unit = {},
     val onRenameDay: (String) -> Unit = {},
     val onRemoveDay: (String) -> Unit = {},

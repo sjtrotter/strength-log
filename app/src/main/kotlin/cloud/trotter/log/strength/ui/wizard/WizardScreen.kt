@@ -296,6 +296,14 @@ private fun CardioSessionsStep(state: WizardUiState, actions: WizardActions) {
         minValue = 1.0,
         maxValue = 6.0,
     )
+    NumberField(
+        value = state.answers.cardioFirst?.restDays?.toDouble(),
+        onValueChange = { actions.onRestDaysChange(it.toInt()) },
+        onDraftChange = { value -> value?.let { actions.onRestDaysChange(it.toInt()) } },
+        label = stringResource(R.string.wizard_cardio_rest_days),
+        minValue = 0.0,
+        maxValue = 2.0,
+    )
 }
 
 @Composable

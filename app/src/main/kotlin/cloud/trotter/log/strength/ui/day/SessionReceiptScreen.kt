@@ -161,10 +161,10 @@ internal fun SessionReceiptScreen(
                 }
             }
         }
+        if (receipt.note.isNotBlank()) Text(receipt.note, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 16.dp))
         if (!receipt.cardio) {
-            if (receipt.note.isNotBlank()) Text(receipt.note, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 16.dp))
             TextButton(onClick = { noteOpen = true }, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp)) {
                 Text(stringResource(if (receipt.note.isBlank()) R.string.note_add_action else R.string.note_edit_action),
                     color = accentEmphasis(receipt.dayIndex))

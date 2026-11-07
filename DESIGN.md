@@ -51,7 +51,7 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | Set edit sheet | `ui/day/SetEditSheet.kt` | Mid-workout correction | Change one set's numbers |
 | Lift and Day sheets | `ui/day/LiftSheet.kt`, `DaySheet.kt` | Mid-workout check | Show the lift's sets, or jump to another lift |
 | Timed-rep count and cardio distance | `ui/day/TimedRepCountSheet.kt`, `CardioExecution.kt` | The moment a timer ends | Record the count or distance just done |
-| Cardio page | `ui/day/CardioPresentation.kt` | Treadmill or road, between intervals | Run the current cardio set |
+| Cardio page | `ui/day/CardioPresentation.kt` | Treadmill or road, between intervals | Run the current cardio set; or log one already done |
 | Day edit and swap | `ui/day/DayEditSheet.kt`, `DayPlanEditor.kt` | Station taken, equipment missing; or planning at home | Change what the day contains: a sheet during a workout, a screen from the day preview |
 | Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show every lift's work and any record |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |

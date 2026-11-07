@@ -358,6 +358,11 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             if (position != null) contentDescription = position
         }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(cardioActivityName(block.activity), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            if (!done && run?.startedAt == null && !state.executionBusy) {
+                TextButton(onClick = actions.onOpenPastCardio, colors = neutralTextButtonColors()) {
+                    Text(stringResource(R.string.cardio_log_past))
+                }
+            }
             TextButton(onClick = actions.onOpenCardioSets, colors = neutralTextButtonColors()) { Text(stringResource(R.string.day_all_sets)) }
         }
         if (cardio.hasSaveFailure) {

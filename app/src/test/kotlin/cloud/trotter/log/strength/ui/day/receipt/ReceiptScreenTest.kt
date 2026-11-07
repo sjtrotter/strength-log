@@ -393,6 +393,14 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun `a cardio receipt shows its note without an edit action`() {
+        setReceipt(timeTargetFixture().copy(note = "Easy"))
+        rule.onNodeWithText("Easy").performScrollTo().assertHasNoClickAction()
+        rule.onNodeWithText("Add a note").assertDoesNotExist()
+        rule.onNodeWithText("Edit note").assertDoesNotExist()
+    }
+
+    @Test
     fun cardioIntervalsShowTheFastestAndOpenToRecoveryAndRecord() {
         setReceipt(cardioReceiptFixture())
         listOf("Track run", "Warm-up", "10:00", "6 × 400 m", "Fastest", "1:38", "1:42", "Faster PR", "Cool-down", "5:00").forEach {

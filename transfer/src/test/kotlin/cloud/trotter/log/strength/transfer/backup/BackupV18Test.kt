@@ -35,7 +35,7 @@ class BackupV18Test {
     @Test fun `v18 export and restore preserve parked working values verbatim`() {
         val snapshot = document().toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(18, exported.schemaVersion)
+        assertEquals(19, exported.schemaVersion)
         assertEquals(parked, exported.plans.single().days.single().exercises.single().parkedLogsJson)
 
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
@@ -54,7 +54,7 @@ class BackupV18Test {
         assertEquals(210.5, snapshot.answers.config.bodyweightLb)
         assertEquals(210.5, snapshot.sessions.single().bodyweightLb)
         val exported = snapshot.toDocument()
-        assertEquals(18, exported.schemaVersion)
+        assertEquals(19, exported.schemaVersion)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }
 

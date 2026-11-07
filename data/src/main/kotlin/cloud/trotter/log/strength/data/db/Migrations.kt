@@ -501,6 +501,12 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
     }
 }
 
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cardio_session ADD COLUMN note TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

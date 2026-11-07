@@ -22,8 +22,9 @@ import kotlinx.serialization.Serializable
  * v16 replaces legacy slot flags with a named set structure.
  * v17 adds bodyweight at tenths-of-a-pound precision.
  * v18 carries parked Progress working values while Next time is Plan.
+ * v19 carries each cardio session's note.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 18
+const val CURRENT_SCHEMA_VERSION: Int = 19
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -76,6 +77,7 @@ data class CardioSessionBackup(
     val planName: String? = null,
     val activity: String? = null,
     val sets: List<CardioSetResultBackup> = emptyList(),
+    val note: String = "",
 )
 
 /** Position is list order; ids and the stored spec survive a full restore verbatim. */

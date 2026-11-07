@@ -938,4 +938,9 @@
     <string name="form_custom_reps_required">Enter target reps to save it</string>
     <string name="form_custom_hold_required">Enter a hold time to save it</string>
     <string name="form_custom_load_required">Enter an added load to save it</string>
+    <string name="cardio_log_past">Log past session</string>
+    <string name="cardio_entry_date">Date</string>
+    <string name="cardio_entry_start">Start time</string>
+    <string name="cardio_entry_ends_later">Ends after now</string>
+    <string name="cardio_entry_save_failed">Couldn\'t save the session.</string>
 </resources>

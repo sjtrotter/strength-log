@@ -214,6 +214,52 @@
   },
   {
    "checkpoint": "today"
+  },
+  {
+   "tap": {
+    "text": "Other days"
+   }
+  },
+  {
+   "checkpoint": "other-days"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "checkpoint": "today-end"
   }
  ]
 }

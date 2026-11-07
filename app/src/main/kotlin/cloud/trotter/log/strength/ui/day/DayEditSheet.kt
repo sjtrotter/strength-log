@@ -318,7 +318,11 @@ internal fun DayEditPages(
 
     if (confirmingReset) {
         ResetToTemplateDialog(
-            onConfirm = { confirmingReset = false; actions.onResetToTemplate(); onDismiss() },
+            onConfirm = {
+                confirmingReset = false
+                actions.onResetToTemplate()
+                if (!state.planEditing) onDismiss()
+            },
             onDismiss = { confirmingReset = false },
         )
     }

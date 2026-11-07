@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -43,7 +44,7 @@ internal fun DayPlanEditor(
             } },
         ) },
     ) { innerPadding ->
-        Box(Modifier.padding(innerPadding).consumeWindowInsets(innerPadding).fillMaxSize()) {
+        Box(Modifier.padding(innerPadding).consumeWindowInsets(innerPadding).imePadding().fillMaxSize()) {
             Box(readableWidth()) {
                 if (loading) LoadingState(stringResource(R.string.screen_loading))
                 else DayEditPages(state, actions, accent, onDismiss = onBack,

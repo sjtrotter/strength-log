@@ -16,14 +16,18 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
@@ -82,7 +86,7 @@ class HistoryRepository(
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 
     /**
-     * Append-only cardio history, newest completion first. Labels are valid only
+     * Cardio history, newest completion first. Labels are valid only
      * when non-blank and at most [TrackerRepository.CARDIO_LABEL_MAX_LENGTH] characters. A mode is
      * persisted as [CardioMode.name]; readers must use [decodedCardioMode], whose
      * nullable decode keeps an unknown future name readable without pretending
@@ -120,6 +124,46 @@ class HistoryRepository(
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
 
+    suspend fun updateCardioSession(
+        id: Long,
+        activity: CardioActivity,
+        startedAt: Long,
+        seconds: Int?,
+        metres: Int?,
+        note: String,
+    ) {
+        db.withTransaction {
+            val session = cardioSessionDao.byId(id) ?: return@withTransaction
+            val results = cardioSetResultDao.forSession(id)
+            val summary = ManualCardio.summary(activity, session.seconds)
+            val editedSeconds = seconds?.takeIf { results.size == 1 }
+            if (editedSeconds != null) {
+                require(editedSeconds in 1..ManualCardio.MAX_SECONDS)
+                require(metres == null || metres in 1..ManualCardio.MAX_METRES)
+                val result = results.single()
+                val spec = CardioBlockJson.decodeSet(result.specJson)
+                cardioSetResultDao.update(result.copy(
+                    elapsedSeconds = editedSeconds,
+                    specJson = if (spec.end is Measure.Time) {
+                        CardioBlockJson.encodeSet(spec.copy(end = Measure.Time(editedSeconds)))
+                    } else result.specJson,
+                    metres = metres,
+                    distanceSource = metres?.let { DistanceSource.MANUAL.name },
+                ))
+            }
+            val duration = editedSeconds?.let { it * 1_000L } ?: (session.completedAt - session.startedAt)
+            cardioSessionDao.update(session.copy(
+                activity = activity.name,
+                mode = summary.mode.name,
+                label = summary.label,
+                startedAt = startedAt,
+                completedAt = startedAt + duration,
+                seconds = editedSeconds ?: session.seconds,
+                note = note.trim().take(NOTE_MAX_LENGTH),
+            ))
+        }
+    }
+
     val cardioSetResultsFlow: Flow<Map<Long, List<CardioSetResult>>> =
         cardioSetResultDao.observeAll().map { rows ->
             rows.groupBy { it.cardioSessionId }.mapValues { (_, sets) -> sets.mapNotNull { it.toDomainOrNull() } }
@@ -139,21 +183,15 @@ class HistoryRepository(
         return CardioBests.bests(activity, results)
     }
 
-    /** Exact rows for undo, including original ids, order and stored specs. */
-    data class DeletedCardioSession(
-        val session: CardioSessionEntity,
-        val sets: List<CardioSetResultEntity>,
-    )
-
-    suspend fun deleteCardioSession(sessionId: Long): DeletedCardioSession? = db.withTransaction {
+    suspend fun deleteCardioSession(sessionId: Long): DeletedCardio? = db.withTransaction {
         val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction null
         val sets = cardioSetResultDao.forSession(sessionId)
         cardioSetResultDao.deleteForSession(sessionId)
         cardioSessionDao.deleteById(sessionId)
-        DeletedCardioSession(session, sets)
+        DeletedCardio(session, sets)
     }
 
-    suspend fun restoreCardioSession(deleted: DeletedCardioSession) {
+    suspend fun restoreCardioSession(deleted: DeletedCardio) {
         db.withTransaction {
             cardioSessionDao.insert(deleted.session)
             if (deleted.sets.isNotEmpty()) cardioSetResultDao.insertAll(deleted.sets)
@@ -201,6 +239,12 @@ class HistoryRepository(
     data class DeletedSession(
         val session: WorkoutSessionEntity,
         val sets: List<SessionSetEntity>,
+    )
+
+    /** Exact rows for undo, including original ids, order and stored specs. */
+    data class DeletedCardio(
+        val session: CardioSessionEntity,
+        val sets: List<CardioSetResultEntity>,
     )
 
     /**

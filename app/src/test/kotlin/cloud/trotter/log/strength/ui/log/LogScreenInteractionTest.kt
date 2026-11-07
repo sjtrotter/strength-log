@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.audit.AuditDestination
 import cloud.trotter.log.strength.audit.auditHistoryFixture
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -32,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -103,6 +105,99 @@ class LogScreenInteractionTest {
         }
         setContent(false, sessions = listOf(LogScreenBuilder.cardioItem(session, results)))
         composeTestRule.onNodeWithText("Distance 3 mi", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a cardio card shows its note and opens its editor`() {
+        val start = 1_783_512_000_000L
+        val session = CardioSessionEntity(
+            id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
+            startedAt = start, completedAt = start + 2_413_000, seconds = 2413,
+            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name, note = "Easy",
+        )
+        val item = LogScreenBuilder.cardioItem(session, listOf(ManualCardio.result(2413, 7100)))
+        val state = mutableStateOf(LogUiState(sessions = listOf(item)))
+        val edited = mutableListOf<Long>()
+        var deleted = 0
+        composeTestRule.setContent { AppTheme {
+            LogScreen(state.value, LogActions(
+                onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onStartSession = {}, onSetUpProgram = {},
+                onEditCardio = { id ->
+                    edited += id
+                    state.value = state.value.copy(cardioEdit = CardioEntryDraft(
+                        CardioActivity.ROAD_RUN, start, 2413, "7100", "Easy",
+                    ))
+                },
+                onDeleteCardio = { deleted++ },
+            ))
+        } }
+
+        composeTestRule.onNodeWithText("Easy", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Edit").performScrollTo().performClick()
+        composeTestRule.runOnIdle { assertEquals(listOf(8L), edited) }
+        composeTestRule.onNodeWithText("Edit session").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Save").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Delete session").assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithText("Delete this session?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Its time and distance leave the log.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Keep").performClick()
+        composeTestRule.runOnIdle { assertEquals(0, deleted) }
+        composeTestRule.onNodeWithText("Delete session").performClick()
+        composeTestRule.onNodeWithText("Delete").performClick()
+        composeTestRule.runOnIdle { assertEquals(1, deleted) }
+    }
+
+    @Test
+    fun `a cardio editor forwards changes save and dismissal`() {
+        val state = mutableStateOf(LogUiState(cardioEdit = CardioEntryDraft(
+            CardioActivity.ROAD_RUN, 1_783_512_000_000L, 2413, note = "Easy",
+        )))
+        var saved = 0
+        var dismissed = 0
+        composeTestRule.setContent { AppTheme {
+            LogScreen(state.value, LogActions(
+                onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onStartSession = {}, onSetUpProgram = {},
+                onCardioEditChange = { state.value = state.value.copy(cardioEdit = it) },
+                onSaveCardioEdit = { saved++ },
+                onDismissCardioEdit = { dismissed++ },
+            ))
+        } }
+
+        composeTestRule.onNodeWithText("Duration").performScrollTo().performTextReplacement("40:12")
+        composeTestRule.onNodeWithText("Note").performScrollTo().performTextReplacement("Hilly")
+        composeTestRule.onNodeWithText("Save").performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(2412, state.value.cardioEdit!!.seconds)
+            assertEquals("Hilly", state.value.cardioEdit!!.note)
+            assertEquals(1, saved)
+        }
+        composeTestRule.onNodeWithText("Cancel").performClick()
+        composeTestRule.runOnIdle { assertEquals(1, dismissed) }
+    }
+
+    @Test
+    fun `a cardio undo row calls the cardio action`() {
+        var strengthUndos = 0
+        var cardioUndos = 0
+        val item = logSessionFixture(false).copy(cardioId = 7, undoPending = true)
+        composeTestRule.setContent { AppTheme {
+            LogScreen(LogUiState(sessions = listOf(item)), LogActions(
+                onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
+                onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
+                onStartSession = {}, onSetUpProgram = {},
+                onUndoDeleteSession = { strengthUndos++ }, onUndoDeleteCardio = { cardioUndos++ },
+            ))
+        } }
+
+        composeTestRule.onNodeWithText("Undo").performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(1, cardioUndos)
+            assertEquals(0, strengthUndos)
+        }
     }
 
     @Test

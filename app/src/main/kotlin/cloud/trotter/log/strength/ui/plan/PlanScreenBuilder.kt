@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.records.GoalProgress
 import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -19,10 +24,21 @@ object PlanScreenBuilder {
         answers: WizardAnswers,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
+        cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, answers.config, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
         return PlanUiState(
+            goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
+                when (goal) {
+                    is PlanGoal.Timed -> GoalProgress.bestTimed(goal, cardio).let { best ->
+                        PlanGoalUi(goal, best, GoalProgress.met(goal, best))
+                    }
+                    is PlanGoal.Shuttle -> GoalProgress.bestShuttles(goal).let { best ->
+                        PlanGoalUi(goal, best, GoalProgress.met(goal, best))
+                    }
+                }
+            },
             unit = unit,
             name = plan?.name,
             planId = plan?.id,

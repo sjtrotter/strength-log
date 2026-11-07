@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -115,7 +116,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -156,12 +157,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withCardioNotes = if (version < 22) {
-            val sessions = shaped["cardioSessions"] as? JsonArray
-            if (sessions == null) shaped else JsonObject(shaped + ("cardioSessions" to JsonArray(
-                sessions.map { if (it is JsonObject) JsonObject(it - "note") else it },
+        val withGoals = if (version < 25) {
+            val plans = shaped["plans"] as? JsonArray
+            if (plans == null) shaped else JsonObject(shaped + ("plans" to JsonArray(
+                plans.map { if (it is JsonObject) JsonObject(it - "goalJson") else it },
             )))
         } else shaped
+        val withCardioNotes = if (version < 22) {
+            val sessions = withGoals["cardioSessions"] as? JsonArray
+            if (sessions == null) withGoals else JsonObject(withGoals + ("cardioSessions" to JsonArray(
+                sessions.map { if (it is JsonObject) JsonObject(it - "note") else it },
+            )))
+        } else withGoals
         val withMembership = if (version < 15) {
             val plans = withCardioNotes["plans"] as? JsonArray
             if (plans == null) withCardioNotes else JsonObject(withCardioNotes + ("plans" to JsonArray(
@@ -432,6 +439,15 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                             if (ex.targetSets !in 1..99) {
                                 throw BackupError.Inconsistent("prescribed targetSets must be 1..99 on slot ${ex.id}")
                             }
+                        }
+                    }
+                }
+                if (doc.schemaVersion >= 25) {
+                    plan.goalJson?.let { goal ->
+                        try {
+                            PlanGoalJson.validate(goal)
+                        } catch (_: IllegalArgumentException) {
+                            throw BackupError.Inconsistent("invalid goalJson of plan ${plan.id}")
                         }
                     }
                 }

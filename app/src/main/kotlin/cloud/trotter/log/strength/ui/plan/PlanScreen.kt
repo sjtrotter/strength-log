@@ -118,6 +118,17 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                             onValueChange = actions.onOfferCardioChange),
                     )
                 }
+                item(key = "cardio_goal_header") {
+                    Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goal)) }
+                }
+                item(key = "cardio_goal") {
+                    val goal = state.goal
+                    if (goal == null) {
+                        TextButton(onClick = actions.onOpenCardioGoal) { Text(stringResource(R.string.plan_add_goal)) }
+                    } else {
+                        PlanCardioGoal(goal, actions)
+                    }
+                }
                 if (state.emphasis != null) {
                     item(key = "goals_header") {
                         Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goals)) }
@@ -143,6 +154,8 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
             }
         }
     }
+    state.goalDraft?.let { PlanCardioGoalEditor(it, state.goal != null, actions) }
+    state.shuttleEntry?.let { PlanShuttleEntry(it, actions) }
     state.goalDialog?.let { dialog ->
         val unit = state.unit
         val unitLabel = unit.name.lowercase() + if (dialog.perHand) stringResource(R.string.setup_per_hand_suffix) else ""

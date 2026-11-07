@@ -99,6 +99,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 offerStrengthIncreases = plan.offerStrengthIncreases,
                 offerCardioIncreases = plan.offerCardioIncreases,
                 recipeJson = plan.recipeJson,
+                goalJson = plan.goalJson,
                 suggestedDay = plan.suggestedDayId,
                 days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
                     ProgramDayBackup(
@@ -344,6 +345,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             offerStrengthIncreases = schemaVersion < 20 || plan.offerStrengthIncreases,
             offerCardioIncreases = schemaVersion >= 20 && plan.offerCardioIncreases,
             recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
+            goalJson = if (schemaVersion >= 25) plan.goalJson else null,
             suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
         )
     } else emptyList()

@@ -518,6 +518,12 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
     }
 }
 
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plan ADD COLUMN goalJson TEXT")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

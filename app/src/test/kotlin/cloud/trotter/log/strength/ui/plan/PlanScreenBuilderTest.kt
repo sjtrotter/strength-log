@@ -1,5 +1,13 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -24,6 +32,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlanScreenBuilderTest {
+    @Test fun `cardio goal progress comes from matching history`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960)
+        val plan = PlanEntity(1, "Running", PlanOrigin.AUTHORED.name, 0, 0, goalJson = PlanGoalJson.encode(goal))
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(3219)), CardioSetStatus.FINISHED, 984)
+        val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), WizardAnswers(),
+            ExerciseCatalog.CODE_ONLY, WeightUnit.LB, listOf(CardioActivity.ROAD_RUN to listOf(result)))
+        assertEquals(PlanGoalUi(goal, 984, false), state.goal)
+        assertEquals(PlanGoalUi(goal, null, false), PlanScreenBuilder.buildUiState(
+            plan, Program(emptyList()), WizardAnswers(), ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
+        assertNull(PlanScreenBuilder.buildUiState(plan.copy(goalJson = "junk"), Program(emptyList()),
+            WizardAnswers(), ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
+    }
+
     private val config = LifterConfig()
     private val catalog = ExerciseCatalog.CODE_ONLY
 

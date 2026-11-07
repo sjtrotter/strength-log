@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A17)
+## Amendments (A1–A18)
 
 ### A1. Session history is now required (biggest change)
 
@@ -340,6 +340,16 @@ this amendment.
 Goals are editable from the plan: an edited goal is stored in the plan's recipe,
 replaces only that lift's goal everywhere the goal is read, and never rewrites
 stored working values. Backup v21 carries it inside the recipe.
+
+### A18. Cardio goals and test attempts (owner, #497)
+
+A plan may carry one goal: an activity, distance and target time, strictly under
+("2 mi under 16:00"), or a shuttle test (protocol and target shuttles, entered by
+hand), each with an optional date from 2000-01-01 through 2100-12-31. A timed goal's
+best is the fastest finished single work set of that activity covering at least
+the goal distance; intervals never count. Shuttle counts are logged against the
+goal. Official level tables, beep audio and sprint goals (times are whole seconds)
+are out of scope. Room v23 adds `plan.goalJson`; backup v25 carries it.
 
 ## Architecture
 

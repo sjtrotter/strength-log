@@ -511,7 +511,7 @@ class DayEditSheetTest {
     @Test
     fun generatedStraightSetsSummarizeTheSeededValues() {
         show(edit = false, exerciseId = "bb_back_squat", targetSets = 3)
-        composeTestRule.onNodeWithText("3 × 10 at 235 lb").assertExists()
+        composeTestRule.onNodeWithText("3 × 5 at 235 lb").assertExists()
     }
 
     @Test

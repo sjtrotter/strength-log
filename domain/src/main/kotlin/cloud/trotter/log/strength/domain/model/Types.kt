@@ -1,9 +1,5 @@
 package cloud.trotter.log.strength.domain.model
 
-import cloud.trotter.log.strength.domain.library.ExerciseEntry
-import cloud.trotter.log.strength.domain.library.GoalSource
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.Serializable
@@ -39,9 +35,6 @@ enum class SetStructure {
     val hasTopSet: Boolean get() = this != STRAIGHT
 
     companion object {
-        fun defaultFor(entry: ExerciseEntry): SetStructure =
-            if (entry.tracking == TrackingType.WEIGHTED && entry.goal is GoalSource.Std) RAMP_TOP_BACKOFF else STRAIGHT
-
         /** Data from before structures existed: a main lift ramps, everything else is straight. A main
          *  lift with a written load ramps around that load as its top set (owner decision, #415). */
         fun fromLegacy(isMain: Boolean): SetStructure = if (isMain) RAMP_TOP_BACKOFF else STRAIGHT

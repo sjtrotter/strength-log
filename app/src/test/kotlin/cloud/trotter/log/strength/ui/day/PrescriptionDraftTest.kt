@@ -43,17 +43,31 @@ class PrescriptionDraftTest {
     }
 
     @Test
-    fun `missing prescription uses emphasis reps for both top structures and ten for straight sets`() {
+    fun `missing prescription uses emphasis reps for standard lifts in every structure`() {
         for (emphasis in GoalEmphasis.entries) {
             val config = LifterConfig(emphasis = emphasis)
             for (structure in SetStructure.entries) {
                 val draft = PrescriptionDraft.from(slot.copy(structure = structure), catalog, config)
-                val expected = if (structure.hasTopSet) StrengthStandards.topSetReps(emphasis) else 10
+                val expected = StrengthStandards.topSetReps(emphasis)
                 assertEquals(expected, draft.reps)
                 assertEquals(expected, (draft.prescription().target as PrescribedTarget.LoadReps).reps)
             }
             val written = slot.copy(prescription = Prescription(PrescribedTarget.LoadReps(275.0, 6)))
             assertEquals(6, PrescriptionDraft.from(written, catalog, config).reps)
+            val accessory = slot.copy(exerciseId = "rdl", structure = SetStructure.STRAIGHT)
+            assertEquals(10, PrescriptionDraft.from(accessory, catalog, config).reps)
         }
+    }
+
+    @Test
+    fun `editing only a straight squat weight preserves its seeded reps`() {
+        val squat = slot.copy(exerciseId = "bb_back_squat", structure = SetStructure.STRAIGHT)
+
+        val draft = PrescriptionDraft.from(squat, catalog, LifterConfig())
+
+        assertEquals(3, draft.sets)
+        assertEquals(235.0, draft.loadLb)
+        assertEquals(5, draft.reps)
+        assertEquals(PrescribedTarget.LoadReps(125.0, 5), draft.copy(loadLb = 125.0).prescription().target)
     }
 }

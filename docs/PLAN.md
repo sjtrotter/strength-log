@@ -293,6 +293,9 @@ Edit day from a day preview opens the day editor as its own screen with no worko
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.
 Choosing Straight sets on a ramped lift opens one sheet with Sets, Reps and Weight,
 prefilled with three sets at the lift's working weight and reps; Save writes them together.
+An added lift, and a lift swapped in for the plan or the workout, arrives as straight sets
+(a ramp's six rows become three) at the nearby weight #492 chooses; a main-capable lift does
+its top-set reps. A plan swap drops the old exercise's prescription.
 
 ## Architecture
 

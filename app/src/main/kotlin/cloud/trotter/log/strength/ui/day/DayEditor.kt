@@ -84,6 +84,7 @@ internal class DayEditor(
         }
     }
     private val planEditing = savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true
+    private var prescriptionRequest: Any? = null
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
     private val prescriptionStructure = savedState.getStateFlow<String?>(KEY_PRESCRIPTION_STRUCTURE, null)
     private val dayEditorOpen = savedState.getStateFlow(
@@ -190,6 +191,7 @@ internal class DayEditor(
     fun openPrescription(slotId: Long) {
         val state = dayEditState.value
         val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
+        prescriptionRequest = null
         savedState[KEY_PRESCRIPTION_STRUCTURE] = null
         savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot, state.catalog, state.config)
     }
@@ -199,9 +201,15 @@ internal class DayEditor(
         val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
         val plan = state.planId ?: return
         val day = state.dayId ?: return
+        val request = Any()
+        prescriptionRequest = request
         mutate {
-            val working = repo.dayTracksFlow(plan, day).first().tracks.firstOrNull {
-                it.programExerciseId == slotId && it.slot == Slot.MAIN
+            val tracks = repo.dayTracksFlow(plan, day).first()
+            if (prescriptionRequest !== request) return@mutate
+            val working = tracks.tracks.firstOrNull {
+                it.programExerciseId == slotId && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+            }?.sets ?: tracks.retired.firstOrNull {
+                it.programExerciseId == slotId && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
             }?.sets
             savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.straightFrom(slot, working, state.catalog, state.config)
             savedState[KEY_PRESCRIPTION_STRUCTURE] = SetStructure.STRAIGHT.name
@@ -215,6 +223,7 @@ internal class DayEditor(
     }
 
     fun discardPrescription() {
+        prescriptionRequest = null
         savedState[KEY_PRESCRIPTION_DRAFT] = null
         savedState[KEY_PRESCRIPTION_STRUCTURE] = null
     }

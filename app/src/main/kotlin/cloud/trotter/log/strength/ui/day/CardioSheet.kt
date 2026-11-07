@@ -58,7 +58,7 @@ internal fun WorkoutCardioSheet(
         title = {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(cardioActivityName(block.activity), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Text(cardioActivityName(activity ?: block.activity), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
                         DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {

@@ -180,6 +180,18 @@ class CardioEntrySheetTest {
         rule.onNodeWithText("Extra action").assertExists()
     }
 
+    @Test fun `a start time collision keeps the entry editable`() {
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 2_472_000, 2412, "7100", "Easy")
+        rule.setContent { AppTheme {
+            DayScreen(workoutSetCardioFixture(), workoutActions(), DayEditUiState(), workoutEditActions(),
+                pastCardio = draft, pastCardioSaveFailed = true, pastCardioCollision = true, nowMillis = { now })
+        } }
+        rule.onNodeWithText("Start time collision").performScrollTo().assertExists()
+        rule.onNodeWithText("Couldn't save the session.").assertDoesNotExist()
+        rule.onNodeWithText("Start time").performScrollTo().assertIsEnabled()
+        rule.onNodeWithText("Save").assertIsEnabled()
+    }
+
     @Test fun `saving disables entry fields and duplicate saves until a failure allows editing`() {
         val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 2_472_000, 2412, "7100", "Easy")
         var saving by mutableStateOf(false)

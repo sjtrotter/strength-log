@@ -478,6 +478,7 @@ internal fun DayRoute(
     val pastCardio by viewModel.pastCardio.collectAsStateWithLifecycle()
     val pastCardioSaveFailed by viewModel.pastCardioSaveFailed.collectAsStateWithLifecycle()
     val pastCardioSaving by viewModel.pastCardioSaving.collectAsStateWithLifecycle()
+    val pastCardioCollision by viewModel.pastCardioCollision.collectAsStateWithLifecycle()
     // The receipt's SHARE, launched exactly the way the Log screen's is
     // (session-share brief §3): the ViewModel only ever builds the Intent, and
     // this is the call site that hands it to the chooser.
@@ -609,6 +610,7 @@ internal fun DayRoute(
         pastCardio = pastCardio,
         pastCardioSaveFailed = pastCardioSaveFailed,
         pastCardioSaving = pastCardioSaving,
+        pastCardioCollision = pastCardioCollision,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )
 }

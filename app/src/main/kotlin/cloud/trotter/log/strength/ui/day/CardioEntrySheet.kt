@@ -60,6 +60,7 @@ internal fun CardioEntrySheet(
     onDismiss: () -> Unit,
     saveFailed: Boolean = false,
     saving: Boolean = false,
+    collision: Boolean = false,
     extraAction: (@Composable () -> Unit)? = null,
 ) {
     val currentSaving by rememberUpdatedState(saving)
@@ -170,7 +171,8 @@ internal fun CardioEntrySheet(
             if (draft.completedAt > nowMillis()) {
                 Text(stringResource(R.string.cardio_entry_ends_later), color = MaterialTheme.colorScheme.error)
             }
-            if (saveFailed) Text(stringResource(R.string.cardio_entry_save_failed), color = MaterialTheme.colorScheme.error)
+            if (saveFailed) Text(stringResource(if (collision) R.string.cardio_entry_collision else R.string.cardio_entry_save_failed),
+                color = MaterialTheme.colorScheme.error)
         },
     )
     if (dateOpen && !saving) {

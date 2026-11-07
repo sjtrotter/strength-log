@@ -948,6 +948,7 @@
     <string name="cardio_entry_start">Start time</string>
     <string name="cardio_entry_ends_later">Ends after now</string>
     <string name="cardio_entry_save_failed">Couldn\'t save the session.</string>
+    <string name="cardio_entry_collision">Start time collision</string>
     <string name="settings_distance">Distance</string>
     <string name="settings_distance_miles">Miles</string>
     <string name="settings_distance_kilometers">Kilometers</string>

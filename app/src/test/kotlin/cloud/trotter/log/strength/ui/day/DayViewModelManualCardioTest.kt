@@ -242,6 +242,100 @@ class DayViewModelManualCardioTest {
         assertEquals(7100, receipt.cardioRows.single().intervals.single().metres)
     }
 
+    @Test fun `a cross plan start time collision retains the draft`() = runTest(dispatcher) {
+        val firstPlan = prepare()
+        val firstVm = readyVm()
+        val startedAt = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().minusDays(1)
+            .atTime(8, 0).atZone(zone).toInstant().toEpochMilli()
+        enter(firstVm, startedAt)
+        firstVm.savePastCardio()
+        runCurrent()
+        val first = repo.history.cardioSessionsFlow.first().single()
+        val firstSets = repo.history.cardioSetsFor(first.id)
+        firstVm.viewModelScope.cancel()
+
+        val secondPlan = prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        enter(vm, startedAt)
+        val draft = requireNotNull(vm.pastCardio.value)
+        repeat(2) {
+            vm.savePastCardio()
+            runCurrent()
+
+            assertEquals(draft, vm.pastCardio.value)
+            assertEquals(draft, handle.get<CardioEntryDraft>("day_past_cardio_draft"))
+            assertEquals(DaySelection(secondPlan, "A"), handle.get<DaySelection>("day_past_cardio_day"))
+            assertTrue(vm.pastCardioSaveFailed.value)
+            assertTrue(vm.pastCardioCollision.value)
+            assertFalse(vm.pastCardioSaving.value)
+            assertNull(handle.get<Long>("day_past_cardio_receipt_id"))
+            assertNull(vm.finisher.receipt.value)
+            assertEquals("B", db.planDao().plan(firstPlan)?.suggestedDayId)
+            assertEquals("A", db.planDao().plan(secondPlan)?.suggestedDayId)
+            assertEquals(listOf(first), repo.history.cardioSessionsFlow.first())
+            assertEquals(firstSets, repo.history.cardioSetsFor(first.id))
+            assertEquals(listOf(first.id), published)
+        }
+
+        vm.changePastCardio(draft.copy(startedAt = startedAt + 60_000))
+        assertFalse(vm.pastCardioCollision.value)
+        vm.savePastCardio()
+        runCurrent()
+        val second = repo.history.cardioSessionsFlow.first().single { it.id != first.id }
+        assertEquals(secondPlan, second.planId)
+        assertEquals(second.id, vm.finisher.receipt.value?.sessionId)
+        assertEquals("B", db.planDao().plan(secondPlan)?.suggestedDayId)
+        assertNull(vm.pastCardio.value)
+        assertFalse(vm.pastCardioSaveFailed.value)
+        assertEquals(listOf(first.id, second.id), published)
+    }
+
+    @Test fun `a content collision retains the draft while matching retries succeed`() = runTest(dispatcher) {
+        val plan = prepare()
+        val vm = readyVm()
+        enter(vm, now - 86_400_000L - 2_472_000)
+        val draft = requireNotNull(vm.pastCardio.value)
+        vm.savePastCardio()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val results = repo.history.cardioSetsFor(session.id)
+        assertTrue(vm.finisher.dismissReceipt())
+        runCurrent()
+        vm.selectDay("A")
+        runCurrent()
+        vm.openPastCardio()
+
+        for (changed in listOf(
+            draft.copy(seconds = draft.seconds + 60),
+            draft.copy(metresText = "9000"),
+            draft.copy(note = "Changed"),
+            draft.copy(activity = CardioActivity.OUTDOOR_RIDE),
+        )) {
+            vm.changePastCardio(changed)
+            vm.savePastCardio()
+            runCurrent()
+            assertEquals(changed, vm.pastCardio.value)
+            assertTrue(vm.pastCardioSaveFailed.value)
+            assertTrue(vm.pastCardioCollision.value)
+            assertNull(vm.finisher.receipt.value)
+            assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
+            assertEquals(results, repo.history.cardioSetsFor(session.id))
+            assertEquals(listOf(session.id), published)
+        }
+
+        vm.changePastCardio(draft.copy(note = " Easy "))
+        vm.savePastCardio()
+        runCurrent()
+        assertNull(vm.pastCardio.value)
+        assertFalse(vm.pastCardioSaveFailed.value)
+        assertFalse(vm.pastCardioCollision.value)
+        assertEquals(session.id, vm.finisher.receipt.value?.sessionId)
+        assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
+        assertEquals(results, repo.history.cardioSetsFor(session.id))
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
     @Test fun `an invalid draft does not save`() = runTest(dispatcher) {
         val plan = prepare()
         val vm = readyVm()
@@ -400,7 +494,7 @@ class DayViewModelManualCardioTest {
         assertEquals(session.id, cardio.loggedSessionId)
         assertEquals(DistanceUnit.KM, cardio.distanceUnit)
         assertEquals(CardioActivity.OUTDOOR_RIDE, cardio.loggedActivity)
-        assertEquals(CardioActivity.OUTDOOR_RIDE, cardio.block?.activity)
+        assertEquals(CardioActivity.ROAD_RUN, cardio.block?.activity)
         assertEquals("Outdoor ride", cardio.label)
         assertEquals("Outdoor ride", vm.uiState.value.pages.last().title)
         assertEquals(repo.history.cardioSetsFor(session.id).map { it.spec }, cardio.block?.sets)

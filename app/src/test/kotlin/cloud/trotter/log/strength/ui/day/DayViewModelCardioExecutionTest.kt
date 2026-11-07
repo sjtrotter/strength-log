@@ -854,7 +854,7 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
 
         val cardio = requireNotNull(vm.uiState.value.cardio)
-        assertEquals(CardioActivity.TRACK_RUN, cardio.block?.activity)
+        assertEquals(CardioActivity.ROAD_RUN, cardio.block?.activity)
         assertEquals(CardioActivity.TRACK_RUN, cardio.loggedActivity)
         assertEquals(CardioActivity.ROAD_RUN, repo.plans.programFlow.first().days.first().cardioBlock?.activity)
         assertEquals(session.id, cardio.loggedSessionId)

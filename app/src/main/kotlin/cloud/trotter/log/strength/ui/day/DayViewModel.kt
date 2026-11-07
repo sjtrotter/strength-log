@@ -153,6 +153,8 @@ class DayViewModel @Inject constructor(
     private val pastCardioDay = savedState.getStateFlow<DaySelection?>(KEY_PAST_CARDIO_DAY, null)
     private val _pastCardioSaveFailed = MutableStateFlow(false)
     val pastCardioSaveFailed: StateFlow<Boolean> = _pastCardioSaveFailed.asStateFlow()
+    private val _pastCardioCollision = MutableStateFlow(false)
+    val pastCardioCollision: StateFlow<Boolean> = _pastCardioCollision.asStateFlow()
     private val _pastCardioSaving = MutableStateFlow(false)
     val pastCardioSaving: StateFlow<Boolean> = _pastCardioSaving.asStateFlow()
     private val pastCardioReceiptId = savedState.getStateFlow<Long?>(KEY_PAST_CARDIO_RECEIPT_ID, null)
@@ -886,12 +888,14 @@ class DayViewModel @Inject constructor(
         savedState[KEY_PAST_CARDIO_DAY] = DaySelection(planId, dayId)
         savedState[KEY_PAST_CARDIO] = CardioEntryDraft(block.activity, startedAt, seconds)
         _pastCardioSaveFailed.value = false
+        _pastCardioCollision.value = false
     }
 
     fun changePastCardio(draft: CardioEntryDraft) {
         if (pastCardio.value == null || _pastCardioSaving.value) return
         savedState[KEY_PAST_CARDIO] = draft.copy(note = draft.note.take(NOTE_MAX_LENGTH))
         _pastCardioSaveFailed.value = false
+        _pastCardioCollision.value = false
     }
 
     fun dismissPastCardio() {
@@ -899,11 +903,13 @@ class DayViewModel @Inject constructor(
         savedState[KEY_PAST_CARDIO] = null
         savedState[KEY_PAST_CARDIO_DAY] = null
         _pastCardioSaveFailed.value = false
+        _pastCardioCollision.value = false
     }
 
     fun savePastCardio() {
         if (_pastCardioSaving.value || pastCardio.value == null) return
         _pastCardioSaving.value = true
+        _pastCardioCollision.value = false
         viewModelScope.launch {
             try {
                 mutationLock.withLock {
@@ -917,11 +923,21 @@ class DayViewModel @Inject constructor(
                     val summary = ManualCardio.summary(draft.activity, draft.seconds)
                     val results = listOf(ManualCardio.result(draft.seconds, draft.metres))
                     if (finishDay) savedState[KEY_VIEW_SELECTION] = selection
-                    val id = repo.logCardioSession(CardioSessionEntity(
+                    val entry = CardioSessionEntity(
                         dayId = dayId, mode = summary.mode.name, hard = false, label = summary.label,
                         startedAt = draft.startedAt, completedAt = draft.completedAt, seconds = draft.seconds,
                         stepsCompleted = 1, planId = planId, activity = draft.activity.name, note = draft.note,
-                    ), results, finishDay = finishDay)
+                    )
+                    val id = repo.logCardioSession(entry, results, finishDay = finishDay)
+                    val session = requireNotNull(historyRepository.cardioSession(id))
+                    // Retry identity omits the plan and contents; only matching work acknowledges this draft.
+                    val expected = entry.copy(id = id, planName = session.planName,
+                        note = entry.note.trim().take(NOTE_MAX_LENGTH))
+                    if (session != expected || historyRepository.cardioSetsFor(id) != results) {
+                        _pastCardioSaveFailed.value = true
+                        _pastCardioCollision.value = true
+                        return@withLock
+                    }
                     if (finishDay) savedState[KEY_PAST_CARDIO_RECEIPT_ID] = id
                     savedState[KEY_PAST_CARDIO] = null
                     savedState[KEY_PAST_CARDIO_DAY] = null
@@ -2060,7 +2076,7 @@ class DayViewModel @Inject constructor(
                     cardioRun.value?.canAddSet != false &&
                     timedRepEvent.value?.awaitingCount != false,
                 block = if (completed) {
-                    source.block?.copy(activity = loggedActivity ?: source.block.activity, sets = loggedSets.map { it.spec })
+                    source.block?.copy(sets = loggedSets.map { it.spec })
                 } else source.block)
         }
         if (state.loading || savedRun == null || savedRun != cardioRun.value) return base

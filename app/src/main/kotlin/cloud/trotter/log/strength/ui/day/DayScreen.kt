@@ -83,6 +83,7 @@ fun DayScreen(
     pastCardio: CardioEntryDraft? = null,
     pastCardioSaveFailed: Boolean = false,
     pastCardioSaving: Boolean = false,
+    pastCardioCollision: Boolean = false,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -359,7 +360,7 @@ fun DayScreen(
     pastCardio?.let {
         CardioEntrySheet(it, stringResource(R.string.cardio_log_past), nowMillis,
             actions.onPastCardioChange, actions.onSavePastCardio, actions.onDismissPastCardio,
-            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving)
+            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving, collision = pastCardioCollision)
     }
 
     if (showEditSheet) {

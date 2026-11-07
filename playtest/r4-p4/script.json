@@ -1,10 +1,96 @@
 {
-  "seat": "r4-p4",
-  "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "first-open"},
-    {"tap": {"text": "Get started"}},
-    {"checkpoint": "after-get-started"}
-  ]
+ "seat": "r4-p4",
+ "capture": "compact",
+ "start": {
+  "date": "2026-11-08",
+  "time": "20:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "tap": {
+    "text": "Lifting"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-2"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-3"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-4"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-5"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-6"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-8"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-9"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "step-10"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "after-wizard"
+  }
+ ]
 }

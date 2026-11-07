@@ -39,6 +39,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,6 +61,30 @@ class BackupRoundTripTest : BackupTestHarness() {
         config = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.STRENGTH),
         equipment = setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK),
     )
+
+    @Test
+    fun mid_setup_answers_without_a_program_survive_export_wipe_import() = runTest {
+        val answers = wizardAnswers.copy(config = wizardAnswers.config.copy(weightUnit = WeightUnit.KG))
+        repository.plans.setWizardAnswers(answers)
+        settings.setUnit(WeightUnit.KG)
+        assertFalse(settings.wizardCompleteFlow.first())
+        assertTrue(repository.plans.programFlow.first().days.isEmpty())
+        val backup = service.export()
+
+        service.import(emptyBackupJson())
+        assertTrue(db.planDao().allPlans().isEmpty())
+        assertEquals(WizardAnswers(), repository.plans.wizardAnswersFlow.first())
+
+        service.import(backup)
+
+        assertEquals(answers, repository.plans.wizardAnswersFlow.first())
+        assertEquals(answers, backupRepository.exportSnapshot().answers)
+        assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
+        assertEquals(WeightUnit.KG, settings.unitFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
+        assertTrue(repository.plans.programFlow.first().days.isEmpty())
+        assertEquals(backup, service.export())
+    }
 
     @Test
     fun export_wipe_import_reproduces_every_piece_of_state() = runTest {

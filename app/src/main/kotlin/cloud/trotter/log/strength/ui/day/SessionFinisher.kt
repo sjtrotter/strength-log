@@ -155,6 +155,7 @@ internal class SessionFinisher(
         }.toMap()
         val groupsWithTracks = ReceiptBuilder.strengthWithTracks(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty(), targets)
         val nextTimes = try {
+            val offersOn = plans.plansFlow.first().firstOrNull { it.id == planId }?.offerStrengthIncreases ?: true
             val working = repo.dayTracksFlow(planId, dayId).first().tracks
             val history = historyRepository.slotSessions(planId, dayId)
             val items = buildList {
@@ -172,7 +173,9 @@ internal class SessionFinisher(
                         val rows = working.firstOrNull {
                             it.programExerciseId == track.programExerciseId && it.slot == track.slot
                         }?.sets ?: continue
-                        when (val next = DayScreenBuilder.nextTime(rows, history[track.exerciseId to track.slot], slot.exercise.keepToPlan, unit)) {
+                        when (val next = DayScreenBuilder.nextTime(
+                            rows, history[track.exerciseId to track.slot], slot.exercise.keepToPlan, unit, offersOn = offersOn,
+                        )) {
                             is NextTime.Offer -> add(ReceiptNextTime(g, r, next.offerLb, next.openingLb))
                             NextTime.Repeat -> add(ReceiptNextTime(g, r, null, CarryForward.workingWeight(rows) ?: 0.0))
                             null -> Unit

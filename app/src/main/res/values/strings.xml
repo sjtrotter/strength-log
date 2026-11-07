@@ -944,4 +944,13 @@
     <string name="settings_distance_kilometers">Kilometers</string>
     <string name="receipt_say_miles">miles</string>
     <string name="receipt_say_kilometers">kilometers</string>
+    <string name="plan_progression">Progression</string>
+    <string name="plan_offer_strength">Offer strength increases</string>
+    <string name="plan_offer_cardio">Offer cardio increases</string>
+    <string name="cardio_progress_by">Progress by</string>
+    <string name="cardio_progress_distance">Distance</string>
+    <string name="cardio_progress_time">Time</string>
+    <string name="cardio_progress_pace">Pace</string>
+    <string name="cardio_increase_by" formatted="false">Increase by (%)</string>
+    <string name="next_time_faster">%1$d s faster</string>
 </resources>

@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A16)
+## Amendments (A1–A17)
 
 ### A1. Session history is now required (biggest change)
 
@@ -291,7 +291,11 @@ Backup v18 carries the optional field; older backups restore it as null.
 
 Distance shows in mi or km from a global setting, suggested from the weight unit until the lifter chooses; track and rower segments show meters. Storage, CSV, Health Connect and the watch stay in meters. Backup v19 carries the setting when chosen.
 
-### A16. Plans edit as plans (#500, owner-approved 2026-11-06)
+### A16. Cardio Next time (owner, #496)
+
+Each cardio block progresses by Distance, Time or Pace (pace opt-in) with an editable Increase by: distance +5%, time +5% of work duration, pace 1% faster, rounded to a meter or second, at least one. Only work sets change; rounds never grow on their own. Full success: every work set met its opening target and any aim; a lone open-ended run reaches its planned duration or distance. Misses repeat. The offer is the strength chip, applied only on tap, before Start and on the Today preview. A cardio block has Next time Progress / Plan; Plan runs the plan's block and parks the working block. Plan settings offer strength increases (default on) and cardio increases (default off; on for cardio-first plans); an offer appears when the switch is on and the slot is on Progress. A distance or time increase keeps an existing pace aim by scaling its counterpart. Room v21 adds the day's cardio Next time columns and the plan's two switches; backup v20 carries them.
+
+### A17. Plans edit as plans (#500, owner-approved 2026-11-06)
 
 Edit day from a day preview opens the day editor as its own screen with no workout
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.

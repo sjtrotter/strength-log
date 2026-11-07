@@ -20,7 +20,7 @@ class BackupV19Test {
         val snapshot = document().toSnapshot()
         assertEquals(DistanceUnit.KM, snapshot.distanceUnit)
         val exported = snapshot.toDocument()
-        assertEquals(19, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals("KM", exported.settings.distanceUnit)
         val encoded = codec.encode(exported)
         assertTrue(encoded.contains("\"distanceUnit\":\"KM\""))

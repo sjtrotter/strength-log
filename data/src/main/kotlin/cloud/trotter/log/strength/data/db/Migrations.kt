@@ -501,6 +501,17 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
     }
 }
 
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plan ADD COLUMN offerStrengthIncreases INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("ALTER TABLE plan ADD COLUMN offerCardioIncreases INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioWorkingJson TEXT")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioKeepToPlan INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioProgressBy TEXT")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioIncreasePercent INTEGER")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

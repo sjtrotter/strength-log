@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.domain.cardio.CardioIncrease
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.view.View
@@ -75,6 +78,61 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
+
+    @Test fun cardioRepeatHasNoChipAndStartedRunsHideOffers() {
+        val base = workoutSetCardioFixture()
+        var state by mutableStateOf(base.copy(cardio = base.cardio!!.copy(nextTime = CardioNextTime.Repeat)))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("Repeat").assertIsDisplayed()
+        rule.onNodeWithTag("cardio-next-time-offer").assertDoesNotExist()
+        rule.runOnIdle {
+            val running = workoutSetCardioRunningFixture()
+            val cardio = requireNotNull(running.cardio)
+            val block = requireNotNull(cardio.block)
+            state = running.copy(cardio = cardio.copy(
+                nextTime = CardioNextTime.Offer(block, block, false, CardioIncrease.Time(60))))
+        }
+        rule.onNodeWithText("Repeat").assertDoesNotExist()
+        rule.onNodeWithTag("cardio-next-time-offer").assertDoesNotExist()
+    }
+
+    @Test fun cardioOfferChipAppliesAndSelectedChipRestoresOpening() {
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
+        val offered = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1260))))
+        val offer = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Time(60))
+        val base = workoutSetCardioFixture()
+        var state by mutableStateOf(base.copy(cardio = base.cardio!!.copy(block = opening, nextTime = offer)))
+        var applied: CardioBlock? = null
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onApplyCardioNextTime = {
+            applied = it
+            state = state.copy(cardio = state.cardio!!.copy(block = it, nextTime = offer.copy(applied = it == offered)))
+        })) } }
+        rule.onNodeWithTag("cardio-next-time-offer").assertIsNotSelected()
+        rule.onNodeWithText("+1:00").performClick()
+        rule.runOnIdle { assertEquals(offered, applied) }
+        rule.onNodeWithTag("cardio-next-time-offer").assertIsSelected().performClick()
+        rule.runOnIdle { assertEquals(opening, applied) }
+    }
+
+    @Test fun cardioDistanceOfferUsesMiles() {
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(4828))))
+        val offered = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(5069))))
+        val base = workoutSetCardioFixture()
+        rule.setContent { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) { AppTheme {
+            WorkoutSetHost(base.copy(cardio = base.cardio!!.copy(block = opening,
+                nextTime = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Distance(241)))))
+        } } }
+        rule.onNodeWithText("+0.15 mi").assertIsDisplayed()
+    }
+
+    @Test fun cardioPaceOfferShowsSecondsFaster() {
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(480))))
+        val offered = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(475))))
+        val base = workoutSetCardioFixture()
+        show(base.copy(cardio = base.cardio!!.copy(block = opening,
+            nextTime = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Faster(5)))))
+        rule.onNodeWithText("5 s faster").assertIsDisplayed()
+    }
     @get:Rule val rule = createComposeRule()
 
     @Test fun liftNoteOpensTheExistingSheetAndSavesToItsExercise() {

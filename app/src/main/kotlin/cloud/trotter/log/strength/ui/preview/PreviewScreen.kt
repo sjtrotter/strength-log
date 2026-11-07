@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.ui.day.CardioNextTimeChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -126,6 +128,15 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                     state.cardio?.let { cardio -> item { ListItem(
                         headlineContent = { Text(cardio.activity) },
                         supportingContent = { Text(cardio.time) },
+                        trailingContent = {
+                            when (val nextTime = cardio.nextTime) {
+                                is CardioNextTime.Offer ->
+                                    CardioNextTimeChip(nextTime, actions.onCardioNextTime)
+                                CardioNextTime.Repeat ->
+                                    Text(stringResource(R.string.next_time_repeat))
+                                null -> Unit
+                            }
+                        },
                     ) } }
                 }
                 TextButton(onClick = actions.onEdit, modifier = Modifier.padding(horizontal = 12.dp)) {

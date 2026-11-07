@@ -203,6 +203,40 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(before, db.programDao().exercise(destination))
     }
 
+    @Test fun `a plan swap aligns replacement rows with completed partner tail rows`() = runTest {
+        val plan = generated()
+        repo.setPrescription(slot(plan), Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+        val destination = db.programDao().exercisesForDay(plan, "B").single().id
+        repo.setStructure(destination, SetStructure.RAMP_TOP_BACKOFF)
+        repo.setSupersetPartner("B", destination, "ez_curl")
+        val run = repo.startRun(plan, "B") as RunStartResult.Started
+        repo.applyToRun(run.runId, plan, "B", listOf(TrackEdit(destination, Slot.SS) { rows ->
+            rows.mapIndexed { index, row -> row.copy(
+                done = index >= 3, watchEditedAt = 100L + index,
+                startedAtMillis = 200L + index, completedAtMillis = (300L + index).takeIf { index >= 3 },
+            ) }
+        }))
+        val partner = db.runDao().tracks(run.runId).single { it.slot == Slot.SS }
+        val partnerRows = SetJson.decodeSets(partner.setsJson)
+        assertEquals(6, partnerRows.size)
+        assertEquals(3, partnerRows.count { it.done })
+
+        assertTrue(repo.swapExerciseById("B", destination, "bb_back_squat"))
+        repo.ensureSeeded(plan, "B")
+
+        val tracks = db.runDao().tracks(run.runId)
+        val main = tracks.single { it.slot == Slot.MAIN && !it.retired }
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, SetJson.decodeSets(main.plannedJson))
+        assertEquals(List(6) { LoggedSet(45.0, 5, SetKind.WORK, plannedIndex = it.takeIf { it < 3 }) },
+            SetJson.decodeSets(main.setsJson))
+        assertEquals(partner, tracks.single { it.slot == Slot.SS })
+        assertEquals(3, db.programDao().exercise(destination)!!.targetSets)
+        repo.ensureSeeded(plan, "B")
+        assertEquals(tracks, db.runDao().tracks(run.runId))
+        val finished = requireNotNull(repo.finishRunCapturing(run.runId))
+        assertEquals(partnerRows, requireNotNull(finished.tracks).single { it.slot == Slot.SS }.sets)
+    }
+
     @Test fun `added exercise prefers same plan working rows over prescription and history`() = runTest {
         val plan = generated()
         val source = slot(plan)

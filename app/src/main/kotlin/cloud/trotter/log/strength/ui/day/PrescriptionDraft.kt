@@ -6,10 +6,11 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
-import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import kotlinx.parcelize.Parcelize
 
 enum class PrescriptionKind { LOAD_REPS, REPS, HOLD, REPS_IN_TIME }
@@ -61,9 +62,13 @@ data class PrescriptionDraft(
 
         fun from(slot: DayEditSlotState, catalog: ExerciseCatalog, config: LifterConfig): PrescriptionDraft {
             val prescription = slot.prescription
+            val seeded = SlotSeeds.main(
+                ProgramExercise(slot.exerciseId, slot.structure, slot.targetSets), catalog.find(slot.exerciseId), config,
+            )
+            val working = seeded?.let { rows -> CarryForward.workingIndices(rows).firstOrNull()?.let(rows::get) }
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
-                reps = if (slot.structure.hasTopSet) StrengthStandards.topSetReps(config.emphasis) else 10,
+                reps = working?.reps?.takeIf { it >= 1 } ?: 10,
                 eachSide = prescription?.eachSide ?: false, resistance = prescription?.resistance.orEmpty(),
             )
             val target = prescription?.target ?: catalog.find(slot.exerciseId)?.let { entry ->

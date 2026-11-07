@@ -1454,7 +1454,7 @@ class TrackerRepository(
             } else {
                 existing.add(track.copy(id = runDao.insertTrack(track)))
             }
-            if (restoringLift != null) seededSlots.add(key.first)
+            seededSlots.add(key.first)
         }
         for (id in seededSlots) {
             val main = existing.singleOrNull { it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired } ?: continue

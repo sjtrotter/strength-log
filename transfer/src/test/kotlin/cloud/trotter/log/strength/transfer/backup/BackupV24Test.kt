@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
+import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -47,6 +48,32 @@ class BackupV24Test {
         val goal = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960))
         for (payload in listOf("junk", "{}", goal.replace("timed", "future"), goal.replace("3219", "0"))) {
             assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(document(payload))) }
+        }
+    }
+
+    @Test fun `v24 goals accept absent dates and LocalDate boundaries`() {
+        for (day in listOf(null, 0L, LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay())) {
+            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
+                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
+            for (goal in goals) {
+                val payload = PlanGoalJson.encode(goal)
+                val snapshot = codec.decode(codec.encode(document(payload))).toSnapshot()
+                assertEquals(payload, snapshot.plans.single().goalJson)
+                assertEquals(goal, PlanGoalJson.decode(snapshot.plans.single().goalJson))
+                assertEquals(snapshot, codec.decode(codec.encode(snapshot.toDocument())).toSnapshot())
+            }
+        }
+    }
+
+    @Test fun `v24 goals with dates outside LocalDate boundaries fail as inconsistent`() {
+        for (day in listOf(LocalDate.MIN.toEpochDay() - 1, LocalDate.MAX.toEpochDay() + 1,
+            Long.MIN_VALUE, Long.MAX_VALUE)) {
+            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
+                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
+            for (goal in goals) {
+                val payload = PlanGoalJson.encode(goal)
+                assertFailsWith<BackupError.Inconsistent>(payload) { codec.decode(codec.encode(document(payload))) }
+            }
         }
     }
 

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data.serialization
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -34,6 +35,7 @@ object PlanGoalJson {
 
     private fun parse(json: String): PlanGoal {
         val dto = SetJson.decode(PlanGoalDto.serializer(), json)
+        dto.byEpochDay?.let { require(it in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay()) }
         return when (dto.type) {
             "timed" -> PlanGoal.Timed(CardioActivity.valueOf(requireNotNull(dto.activity)),
                 requireNotNull(dto.metres), requireNotNull(dto.underSeconds), dto.byEpochDay)

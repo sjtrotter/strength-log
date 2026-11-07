@@ -4,12 +4,38 @@ import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import kotlin.test.assertFailsWith
 
 class PlanGoalJsonTest {
+    @Test fun `both goal types accept absent dates and LocalDate boundaries`() {
+        for (day in listOf(null, 0L, LocalDate.MIN.toEpochDay(), LocalDate.MAX.toEpochDay())) {
+            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
+                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
+            for (goal in goals) {
+                val encoded = PlanGoalJson.encode(goal)
+                PlanGoalJson.validate(encoded)
+                assertEquals(goal, PlanGoalJson.decode(encoded))
+            }
+        }
+    }
+
+    @Test fun `both goal types reject dates outside LocalDate boundaries`() {
+        for (day in listOf(LocalDate.MIN.toEpochDay() - 1, LocalDate.MAX.toEpochDay() + 1,
+            Long.MIN_VALUE, Long.MAX_VALUE)) {
+            val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, day),
+                PlanGoal.Shuttle("PACER", 52, byEpochDay = day))
+            for (goal in goals) {
+                val encoded = PlanGoalJson.encode(goal)
+                assertNull(PlanGoalJson.decode(encoded))
+                assertFailsWith<IllegalArgumentException>(encoded) { PlanGoalJson.validate(encoded) }
+            }
+        }
+    }
+
     @Test fun `both goal types round trip with dates and attempts`() {
         val goals = listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, 21000),
             PlanGoal.Shuttle("PACER", 52, listOf(ShuttleAttempt(1234, 42)), 21001))

@@ -21,6 +21,7 @@ internal data class PlanRecipeDto(
     val cardioPlacement: String,
     val fiveKGoal: Boolean,
     val equipment: List<String>,
+    val goalsLb: Map<String, Double> = emptyMap(),
     val cardioFirst: CardioFirstDto? = null,
 )
 
@@ -34,6 +35,8 @@ internal data class CardioFirstDto(
 )
 
 object PlanRecipeJson {
+    const val MAX_GOAL_LB = 2000.0
+
     fun encode(answers: WizardAnswers): String = SetJson.encode(
         PlanRecipeDto.serializer(),
         PlanRecipeDto(
@@ -46,6 +49,7 @@ object PlanRecipeJson {
             cardioPlacement = answers.cardio.placement.name,
             fiveKGoal = answers.cardio.fiveKGoal,
             equipment = answers.equipment.map { it.name },
+            goalsLb = answers.config.goalsLb,
             cardioFirst = answers.cardioFirst?.let {
                 CardioFirstDto(it.activity.name, (it.comfortable as? Measure.Time)?.seconds,
                     (it.comfortable as? Measure.Distance)?.metres, it.sessions, it.liftDays)
@@ -57,6 +61,7 @@ object PlanRecipeJson {
     fun validate(json: String) {
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
         require(recipe.daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was ${recipe.daysPerWeek}" }
+        require(recipe.goalsLb.values.all { it.isFinite() && it > 0.0 && it <= MAX_GOAL_LB })
         recipe.cardioFirst?.let {
             require(CardioActivity.entries.any { activity -> activity.name == it.activity }) { "unknown cardio activity" }
             require((it.seconds != null) != (it.metres != null)) { "exactly one comfortable measure is required" }
@@ -89,7 +94,10 @@ object PlanRecipeJson {
             split = enum(recipe.split, defaults.split),
             anchorScheme = enum(recipe.anchorScheme, defaults.anchorScheme),
             deadliftVariant = enum(recipe.deadliftVariant, defaults.deadliftVariant),
-            config = global.toConfig().copy(emphasis = enum(recipe.emphasis, defaults.config.emphasis)),
+            config = global.toConfig().copy(
+                emphasis = enum(recipe.emphasis, defaults.config.emphasis),
+                goalsLb = recipe.goalsLb,
+            ),
             cardio = CardioPrefs(
                 mode = enum(recipe.cardioMode, defaults.cardio.mode),
                 placement = enum(recipe.cardioPlacement, defaults.cardio.placement),

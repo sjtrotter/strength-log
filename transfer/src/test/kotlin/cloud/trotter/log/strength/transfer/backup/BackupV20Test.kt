@@ -20,13 +20,16 @@ class BackupV20Test {
     private val day = ProgramDayBackup("A", "Run", "", cardioBlockJson = block(1200),
         cardioWorkingJson = block(1260), cardioKeepToPlan = true, cardioProgressBy = "TIME", cardioIncreasePercent = 7)
     private fun document(day: ProgramDayBackup = this.day) = BackupDocument(
+        schemaVersion = 20,
         settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Running", "AUTHORED", 1000, days = listOf(day), onToday = true,
             offerStrengthIncreases = false, offerCardioIncreases = true)),
     )
 
     @Test fun `v20 export and restore preserve cardio Next time and offer switches verbatim`() {
-        val snapshot = document().toSnapshot()
+        val decoded = codec.decode(codec.encode(document()))
+        assertEquals(20, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(day, exported.plans.single().days.single())

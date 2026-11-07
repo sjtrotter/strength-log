@@ -266,7 +266,7 @@ strength day; the shipped cardio vectors stay pinned.
   in order. A time answer gives open-ended timed sets; a distance answer gives
   distance sets. Cardio-first plans start with cardio increase offers on. The
   answers are stored in the plan’s recipe as generator inputs; there is still
-  no stored plan kind. Backup v21 recipes may carry them.
+  no stored plan kind. Backup v23 recipes may carry them.
 - §11 numbers and the shipped cardio vectors do not move.
 
 ### A14. Next time carries the plan, not the result (owner council, 2026-11-05, #467)
@@ -323,6 +323,10 @@ every main as three straight sets, barbell mains at the empty bar.
 Entries are not part of the plan's recipe, so Reset day to template regenerates
 from the formula. Goals stay calculated (#503). Part C appends goal editing to
 this amendment.
+
+Goals are editable from the plan: an edited goal is stored in the plan's recipe,
+replaces only that lift's goal everywhere the goal is read, and never rewrites
+stored working values. Backup v21 carries it inside the recipe.
 
 ## Architecture
 

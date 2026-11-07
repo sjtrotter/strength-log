@@ -15,6 +15,24 @@ import org.junit.Test
 
 class PlanRecipeJsonTest {
     @Test
+    fun `edited goals round-trip and old recipes decode with none`() {
+        val answers = WizardAnswers().let { it.copy(config = it.config.copy(goalsLb = mapOf("bb_bench" to 205.0))) }
+        val encoded = PlanRecipeJson.encode(answers)
+        PlanRecipeJson.validate(encoded)
+        assertEquals(answers, PlanRecipeJson.decode(encoded, GlobalLifter()))
+        val legacy = PlanRecipeJson.encode(WizardAnswers())
+        assertFalse(legacy.contains("goalsLb"))
+        assertEquals(emptyMap<String, Double>(), PlanRecipeJson.decode(legacy, GlobalLifter()).config.goalsLb)
+
+        for (invalid in listOf("-1", "0", "2000.1", "NaN", "1e999")) {
+            assertFailsWith<IllegalArgumentException>(invalid) {
+                PlanRecipeJson.validate(encoded.replace("205.0", invalid))
+            }
+        }
+        PlanRecipeJson.validate(encoded.replace("205.0", "2000.0"))
+    }
+
+    @Test
     fun `recipe omits global lifter and decodes with the current globals`() {
         val answers = WizardAnswers()
         val encoded = PlanRecipeJson.encode(answers)
@@ -55,6 +73,19 @@ class PlanRecipeJsonTest {
             PlanRecipeJson.validate(encoded)
             assertEquals(answers, PlanRecipeJson.decode(encoded, GlobalLifter()))
         }
+    }
+
+    @Test
+    fun `cardio first answers and edited goals round trip together`() {
+        val defaults = WizardAnswers()
+        val answers = defaults.copy(
+            daysPerWeek = 2,
+            config = defaults.config.copy(goalsLb = mapOf("bb_back_squat" to 200.0)),
+            cardioFirst = CardioFirst(CardioActivity.TRAIL_RUN, Measure.Distance(4828), liftDays = 2),
+        )
+        val encoded = PlanRecipeJson.encode(answers)
+        PlanRecipeJson.validate(encoded)
+        assertEquals(answers, PlanRecipeJson.decode(encoded, GlobalLifter()))
     }
 
     @Test

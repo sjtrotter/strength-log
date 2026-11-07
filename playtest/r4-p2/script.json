@@ -18,58 +18,94 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "tap": {
+    "text": "Strength-leaning"
+   }
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
-  },
-  {
-   "checkpoint": "w3"
+   }
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
-   "checkpoint": "w4"
+   "tap": {
+    "text": "Upper / Lower"
+   }
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
-   "checkpoint": "w5"
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
-   "checkpoint": "w6"
+   "tap": {
+    "text": "Outdoor run"
+   }
+  },
+  {
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "checkpoint": "cardio-set"
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
-   "checkpoint": "w7"
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "34",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "about-you"
   },
   {
    "tap": {
     "text": "Next"
-   },
-   "timeoutMs": 4000
+   }
   },
   {
    "checkpoint": "w8"

@@ -111,6 +111,7 @@ class WizardViewModel @Inject constructor(
         const val CF_SECONDS = "wizard_cf_seconds"
         const val CF_METRES = "wizard_cf_metres"
         const val CF_SESSIONS = "wizard_cf_sessions"
+        const val CF_REST_DAYS = "wizard_cf_rest_days"
         const val CF_LIFT_DAYS = "wizard_cf_lift_days"
         const val DISTANCE_UNIT = "wizard_distance_unit"
         const val UNIT = "wizard_unit"
@@ -154,10 +155,11 @@ class WizardViewModel @Inject constructor(
     private val cfSeconds = savedState.getStateFlow(Keys.CF_SECONDS, 1_800)
     private val cfMetres = savedState.getStateFlow(Keys.CF_METRES, 5_000)
     private val cfSessions = savedState.getStateFlow(Keys.CF_SESSIONS, 3)
+    private val cfRestDays = savedState.getStateFlow(Keys.CF_REST_DAYS, 1)
     private val cfLiftDays = savedState.getStateFlow(Keys.CF_LIFT_DAYS, 0)
     private val distanceUnit = savedState.getStateFlow(Keys.DISTANCE_UNIT, DistanceUnit.MI.name)
     private val cardioFirstChanges = combine(listOf<Flow<Any?>>(
-        focus, cfActivity, cfByTime, cfSeconds, cfMetres, cfSessions, cfLiftDays, distanceUnit,
+        focus, cfActivity, cfByTime, cfSeconds, cfMetres, cfSessions, cfRestDays, cfLiftDays, distanceUnit,
     )) { Unit }
     private val previewProgram = MutableStateFlow<Program?>(null)
 
@@ -185,6 +187,7 @@ class WizardViewModel @Inject constructor(
             activity = enumOf(cfActivity.value, CardioActivity.ROAD_RUN),
             comfortable = if (cfByTime.value) Measure.Time(cfSeconds.value) else Measure.Distance(cfMetres.value),
             sessions = cfSessions.value,
+            restDays = cfRestDays.value,
             liftDays = cfLiftDays.value,
         ) else null
         return WizardAnswers(
@@ -313,6 +316,8 @@ class WizardViewModel @Inject constructor(
     fun setCardioStartSeconds(seconds: Int) = setAnswer(Keys.CF_SECONDS, seconds.coerceIn(1, 86_400))
 
     fun setCardioStartMetres(metres: Int) = setAnswer(Keys.CF_METRES, metres.coerceIn(1, 200_000))
+
+    fun setRestDays(days: Int) = setAnswer(Keys.CF_REST_DAYS, days.coerceIn(0, 2))
 
     fun setCardioSessions(sessions: Int) = setAnswer(Keys.CF_SESSIONS, sessions.coerceIn(1, 6))
 
@@ -574,6 +579,7 @@ class WizardViewModel @Inject constructor(
         applyAnswer(Keys.CF_SECONDS, (cardio.comfortable as? Measure.Time)?.seconds ?: 1_800)
         applyAnswer(Keys.CF_METRES, (cardio.comfortable as? Measure.Distance)?.metres ?: 5_000)
         applyAnswer(Keys.CF_SESSIONS, cardio.sessions)
+        applyAnswer(Keys.CF_REST_DAYS, answers.cardioFirst?.restDays ?: 1)
         applyAnswer(Keys.CF_LIFT_DAYS, cardio.liftDays)
         applyAnswer(Keys.DAYS, answers.daysPerWeek)
         applyAnswer(Keys.SPLIT, answers.split.name)

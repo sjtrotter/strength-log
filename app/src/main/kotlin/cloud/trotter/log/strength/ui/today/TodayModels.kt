@@ -23,6 +23,8 @@ data class TodayDay(
     val dayIndex: Int,
     val title: String,
     val cardioOnly: Boolean = false,
+    val rest: Boolean = false,
+    val trainDayId: String? = null,
 ) {
     val selection: DaySelection get() = DaySelection(planId, dayId)
 }
@@ -36,4 +38,6 @@ data class TodayActions(
     val onOpenCardio: (DaySelection) -> Unit = {},
     val onToggleOtherDays: () -> Unit = {},
     val onOpenPlans: () -> Unit = {},
+    val onRestTaken: (DaySelection) -> Unit = {},
+    val onSkipRest: (DaySelection) -> Unit = {},
 )

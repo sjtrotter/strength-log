@@ -118,10 +118,25 @@ class PlanViewModel @Inject constructor(
         viewModelScope.launch {
             mutationLock.withLock {
                 val days = plans.programFor(id).first().days
-                val letter = ('A'..'G').firstOrNull { candidate -> days.none { it.id == candidate.toString() } }
+                val letter = ('A'..'Z').firstOrNull { candidate -> days.none { it.id == candidate.toString() } }
                     ?: return@withLock
                 repo.addDay(id, context.getString(R.string.authored_day_title, letter.toString()))
             }
+        }
+    }
+
+    fun addRest() {
+        val id = uiState.value.planId ?: return
+        viewModelScope.launch {
+            mutationLock.withLock { repo.addRestDay(id, context.getString(R.string.rest_day_title)) }
+        }
+    }
+
+    fun moveDay(dayId: String, up: Boolean) {
+        val id = uiState.value.planId ?: return
+        savedState[MENU] = null
+        viewModelScope.launch {
+            mutationLock.withLock { repo.moveDay(id, dayId, up) }
         }
     }
 

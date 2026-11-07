@@ -32,6 +32,7 @@ internal data class CardioFirstDto(
     val metres: Int? = null,
     val sessions: Int,
     val liftDays: Int,
+    val restDays: Int = 0,
 )
 
 object PlanRecipeJson {
@@ -52,7 +53,7 @@ object PlanRecipeJson {
             goalsLb = answers.config.goalsLb,
             cardioFirst = answers.cardioFirst?.let {
                 CardioFirstDto(it.activity.name, (it.comfortable as? Measure.Time)?.seconds,
-                    (it.comfortable as? Measure.Distance)?.metres, it.sessions, it.liftDays)
+                    (it.comfortable as? Measure.Distance)?.metres, it.sessions, it.liftDays, it.restDays)
             },
         ),
     )
@@ -67,6 +68,7 @@ object PlanRecipeJson {
             require((it.seconds != null) != (it.metres != null)) { "exactly one comfortable measure is required" }
             require(it.seconds == null || it.seconds in 1..86_400) { "seconds must be 1..86400" }
             require(it.metres == null || it.metres in 1..200_000) { "metres must be 1..200000" }
+            require(it.restDays in 0..2) { "restDays must be 0..2" }
             require(it.sessions in 1..6) { "sessions must be 1..6" }
             require(it.liftDays in CardioFirst.LIFT_DAY_CHOICES) { "liftDays must be 0, 2 or 3" }
         }
@@ -84,6 +86,7 @@ object PlanRecipeJson {
                     it.metres != null && it.seconds == null && it.metres in 1..200_000 -> Measure.Distance(it.metres)
                     else -> cardioDefaults.comfortable
                 },
+                restDays = it.restDays.coerceIn(0, 2),
                 sessions = it.sessions.takeIf { n -> n in 1..6 } ?: cardioDefaults.sessions,
                 liftDays = it.liftDays.takeIf { n -> n in CardioFirst.LIFT_DAY_CHOICES } ?: cardioDefaults.liftDays,
             )

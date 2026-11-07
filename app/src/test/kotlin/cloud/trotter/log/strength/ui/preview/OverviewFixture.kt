@@ -96,10 +96,13 @@ open class OverviewFixture {
         )))
     }
 
-    protected fun today(handle: SavedStateHandle = SavedStateHandle()): TodayViewModel {
+    protected fun today(
+        handle: SavedStateHandle = SavedStateHandle(),
+        civilTimeSource: CivilTimeSource? = null,
+    ): TodayViewModel {
         val zone = ZoneId.of("America/Chicago")
         val instant = Instant.parse("2026-10-31T18:00:00Z")
-        val vm = TodayViewModel(repo, object : CivilTimeSource {
+        val vm = TodayViewModel(repo, civilTimeSource ?: object : CivilTimeSource {
             override val civilTime = flowOf(CivilTime(instant, zone, instant.atZone(zone).toLocalDate()))
             override fun refresh() = Unit
         }, handle, phoneRest = PhoneRestController(settings, NoOpRestRuntime),

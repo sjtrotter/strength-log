@@ -392,4 +392,29 @@ class PlanViewModelTest {
         assertNull(vm.uiState.value.dialog)
         assertEquals(listOf("Renamed"), db.programDao().daysForPlan(plan).map { it.title })
     }
+    @Test fun `Add rest moves and removes the viewed plans rest entry`() = runTest(dispatcher) {
+        val plan = repo.plans.createAuthoredPlan("Plan", "Lift")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.addRest()
+        advanceUntilIdle()
+        assertEquals(listOf("A", "B"), vm.uiState.value.days.map { it.dayId })
+        val rest = vm.uiState.value.days.last()
+        assertEquals(ProgramDayKind.REST, rest.kind)
+        assertEquals("Rest", rest.title)
+        assertEquals(0, rest.liftCount)
+        assertEquals(0, rest.setCount)
+        assertNull(rest.cardioActivity)
+        vm.openDayMenu("B")
+        vm.moveDay("B", true)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.menuDayId)
+        assertEquals(listOf("B", "A"), vm.uiState.value.days.map { it.dayId })
+        vm.removeDay("B")
+        vm.saveDayDialog()
+        advanceUntilIdle()
+        assertEquals(listOf("A"), vm.uiState.value.days.map { it.dayId })
+    }
+
 }

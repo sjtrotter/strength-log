@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
@@ -264,7 +265,7 @@ class PlanRepository(
                 val plans = planDao.allPlans()
                 val selected = preferredPlan(plans, storedId)
                 val recipe = PlanRecipeJson.encode(answers)
-                val nextDay = program.rotationDays.firstOrNull()?.id
+                val nextDay = program.rotationDays.firstOrNull()?.let { Rotation.trainingDayFrom(program, it.id) }
                 val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
                     planDao.updatePlan(selected.copy(
                         name = name,

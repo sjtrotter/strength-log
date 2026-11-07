@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -47,6 +48,14 @@ data class ProgramDayEntity(
     val nextRunId: String = "",
     /** When this day's last run finished or was discarded. */
     val closedAt: Long? = null,
+    /** Progress values, parked while Plan is chosen. */
+    val cardioWorkingJson: String? = null,
+    /** Whether the next cardio run uses the plan's block. */
+    @ColumnInfo(defaultValue = "0") val cardioKeepToPlan: Boolean = false,
+    /** ProgressMeasure name, or null for the block's default. */
+    val cardioProgressBy: String? = null,
+    /** Increase percentage, or null for the measure's default. */
+    val cardioIncreasePercent: Int? = null,
 )
 
 /** One exercise slot inside a plan day, ordered by [position] within its [dayId] (spec §7). */

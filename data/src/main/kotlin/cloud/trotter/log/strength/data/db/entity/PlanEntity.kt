@@ -18,6 +18,8 @@ data class PlanEntity(
     /** The plan's rotation position. */
     val suggestedDayId: String? = null,
     @ColumnInfo(defaultValue = "0") val onToday: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val offerStrengthIncreases: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val offerCardioIncreases: Boolean = false,
 ) {
     companion object {
         /** The plan a pre-plans program (Room v7, or a backup older than plans)

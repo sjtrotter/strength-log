@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -29,6 +31,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PlanScreenTest {
+
+    @Test fun progressionSwitchesShowDefaultsAndForwardToggles() {
+        var strength: Boolean? = null
+        var cardio: Boolean? = null
+        rule.setContent { AppTheme {
+            PlanScreen(planScreenFixture(), actions().copy(onOfferStrengthChange = { strength = it }, onOfferCardioChange = { cardio = it }))
+        } }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Offer strength increases"))
+        rule.onNodeWithText("Offer strength increases").assertIsOn().performClick()
+        list.performScrollToNode(hasText("Offer cardio increases"))
+        rule.onNodeWithText("Offer cardio increases").assertIsOff().performClick()
+        rule.runOnIdle {
+            assertEquals(false, strength)
+            assertEquals(true, cardio)
+        }
+    }
     @get:Rule val rule = createComposeRule()
 
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})

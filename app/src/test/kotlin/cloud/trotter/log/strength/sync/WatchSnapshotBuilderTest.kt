@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
@@ -52,6 +53,17 @@ import kotlin.test.assertNull
  * publish only the suggested day.
  */
 class WatchSnapshotBuilderTest {
+
+    @Test fun `cardio Progress sends working values and Plan sends authored values`() {
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
+        val working = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1260))))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening,
+            cardioProgress = CardioProgress(working = working))
+        fun snapshot(day: ProgramDay) = WatchSnapshotBuilder.build(
+            performedDay(Program(listOf(day)), "A", emptyList(), emptyList()), WeightUnit.LB, revision = 1)!!
+        assertEquals(working, snapshot(day).cardioBlock?.toDomain())
+        assertEquals(opening, snapshot(day.copy(cardioProgress = day.cardioProgress.copy(keepToPlan = true))).cardioBlock?.toDomain())
+    }
 
     private val catalog = ExerciseCatalog.CODE_ONLY
     private val cfg = LifterConfig() // the pinned §11 lifter (235/40/INTERMEDIATE/BALANCED)

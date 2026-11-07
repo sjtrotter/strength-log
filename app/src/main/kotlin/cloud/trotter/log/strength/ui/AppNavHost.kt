@@ -384,7 +384,8 @@ internal fun PreviewRoute(
     val conflict by start.conflict.collectAsStateWithLifecycle()
     LaunchedEffect(start) { start.navigation.collect { onOpenDay(it, false) } }
     PreviewScreen(state, PreviewActions(onBack, { onOpenDay(viewModel.selection, true) }, viewModel::start,
-        viewModel::setWorkingWeight))
+        onNextTime = viewModel::setWorkingWeight,
+        onCardioNextTime = viewModel::applyCardioNextTime))
     WorkoutConflictDialog(conflict, start::dismiss, start::resume, start::confirmDiscard, start::discardAndStart)
 }
 
@@ -440,6 +441,8 @@ private fun PlanRoute(
             onOpenPlans = onOpenPlans,
             onSetUpProgram = onSetUpProgram,
             onEmphasisChange = viewModel::setEmphasis,
+            onOfferStrengthChange = viewModel::setOfferStrengthIncreases,
+            onOfferCardioChange = viewModel::setOfferCardioIncreases,
             onAddDay = viewModel::addDay,
             onDayMenu = viewModel::openDayMenu,
             onRenameDay = viewModel::renameDay,
@@ -490,6 +493,7 @@ internal fun DayRoute(
     val actions = DayActions(
         onWeightChange = viewModel::changeWeight,
         onNextTime = viewModel::setWorkingWeight,
+        onApplyCardioNextTime = viewModel::applyCardioNextTime,
         onRepsChange = viewModel::changeReps,
         onSecondsChange = viewModel::changeSeconds,
         onToggleDone = viewModel::toggleDone,
@@ -551,6 +555,9 @@ internal fun DayRoute(
         onSetSuperset = viewModel.editor::setDaySlotSuperset,
         onRemoveSuperset = viewModel.editor::removeDaySlotSuperset,
         onSetKeepToPlan = viewModel.editor::setDaySlotKeepToPlan,
+        onCardioKeepToPlanChange = viewModel.editor::setCardioKeepToPlan,
+        onCardioProgressByChange = viewModel.editor::setCardioProgressBy,
+        onCardioIncreaseChange = viewModel.editor::setCardioIncrease,
         onStructureChange = viewModel.editor::setDaySlotStructure,
         onResetSlotToPlan = viewModel.editor::resetDaySlotToPlan,
         onResetToTemplate = viewModel.editor::resetDayToTemplate,

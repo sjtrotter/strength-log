@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -494,6 +495,7 @@ data class DayActions(
     val onCreateExercise: (MovementPattern) -> Unit,
     /** The recovery out of the no-program state: back into the wizard. */
     val onSetUpProgram: () -> Unit,
+    val onApplyCardioNextTime: (CardioBlock) -> Unit = {},
     val onNextTime: (programExerciseId: Long, slot: String, weightLb: Double) -> Unit = { _, _, _ -> },
     val onStartCardio: () -> Unit = {},
     val onStopCardio: (CardioSetAction) -> Unit = {},

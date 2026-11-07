@@ -47,6 +47,25 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanViewModelTest {
+
+    @Test fun `offer switches update only the viewed plan`() = runTest(dispatcher) {
+        val preferred = repo.plans.createAuthoredPlan("Preferred", "Day")
+        repo.plans.publishCreatedAuthoredPlan(preferred)
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(false, vm.uiState.value.offerCardioIncreases)
+        vm.setOfferStrengthIncreases(false)
+        vm.setOfferCardioIncreases(true)
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(true, vm.uiState.value.offerCardioIncreases)
+        assertEquals(false, db.planDao().plan(viewed)!!.offerStrengthIncreases)
+        assertEquals(true, db.planDao().plan(viewed)!!.offerCardioIncreases)
+        assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
+        assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
+    }
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore

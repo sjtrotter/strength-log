@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -23,6 +27,29 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class CardioEditPageTest {
+
+    @Test fun cardioNextTimeWritesChoicesAndIncreaseWithoutADraft() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
+        val state = mutableStateOf(DayEditUiState(cardioBlock = block, cardioMeasures = CardioProgression.available(block)))
+        var percent: Int? = null
+        rule.setContent { AppTheme {
+            CardioNextTimePage(state.value, DayEditActions({}, {}, {}, { _, _ -> }, {}, {},
+                onCardioKeepToPlanChange = { state.value = state.value.copy(cardioProgress = state.value.cardioProgress.copy(keepToPlan = it)) },
+                onCardioProgressByChange = { state.value = state.value.copy(cardioProgress = state.value.cardioProgress.copy(measure = it)) },
+                onCardioIncreaseChange = { percent = it }), {})
+        } }
+        rule.onNodeWithText("Progress").assertIsSelected()
+        rule.onNodeWithText("Time").assertIsSelected()
+        rule.onNodeWithText("Pace").assertIsNotEnabled()
+        rule.onNodeWithText("Distance").assertIsNotEnabled()
+        rule.onNodeWithText("Increase by (%)").performScrollTo().performTextReplacement("7")
+        rule.runOnIdle { assertEquals(7, percent) }
+        rule.onNodeWithText("Plan").performClick()
+        rule.onNodeWithText("Progress by").assertDoesNotExist()
+        rule.onNodeWithText("Increase by (%)").assertDoesNotExist()
+        rule.onNodeWithText("Progress").performClick()
+        rule.onNodeWithText("Progress by").assertExists()
+    }
     @get:Rule val rule = createComposeRule()
 
     @Test

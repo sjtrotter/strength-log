@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.ui.theme.SetNumerals
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.PaddingValues
@@ -403,6 +404,15 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             spec.aim?.let {
                 Text(stringResource(R.string.workout_cardio_aim, measureText(it, block.activity)), style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (run == null && !done) {
+                when (val nextTime = cardio.nextTime) {
+                    is CardioNextTime.Offer ->
+                        CardioNextTimeChip(nextTime, actions.onApplyCardioNextTime)
+                    CardioNextTime.Repeat ->
+                        Text(stringResource(R.string.next_time_repeat))
+                    null -> Unit
+                }
             }
             if (spec.end is Measure.Distance && run?.running == true) {
                 Text(stringResource(R.string.workout_cardio_to, measureText(spec.end, block.activity)), style = MaterialTheme.typography.titleLarge,

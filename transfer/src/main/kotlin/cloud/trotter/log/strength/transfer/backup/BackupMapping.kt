@@ -95,6 +95,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 createdAt = plan.createdAt,
                 archived = plan.archived,
                 onToday = plan.onToday,
+                offerStrengthIncreases = plan.offerStrengthIncreases,
+                offerCardioIncreases = plan.offerCardioIncreases,
                 recipeJson = plan.recipeJson,
                 suggestedDay = plan.suggestedDayId,
                 days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
@@ -107,6 +109,10 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         cardioBlockJson = day.cardioBlockJson,
                         nextRunId = day.nextRunId,
                         closedAt = day.closedAt,
+                        cardioWorkingJson = day.cardioWorkingJson,
+                        cardioKeepToPlan = day.cardioKeepToPlan,
+                        cardioProgressBy = day.cardioProgressBy,
+                        cardioIncreasePercent = day.cardioIncreasePercent,
                         exercises = exercisesByDay[plan.id to day.dayId].orEmpty().sortedBy { it.position }.map { ex ->
                             ProgramExerciseBackup(
                                 id = ex.id,
@@ -246,6 +252,10 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 cardioBlockJson = if (schemaVersion >= 11) day.cardioBlockJson else null,
                 nextRunId = if (schemaVersion >= 13) day.nextRunId else "",
                 closedAt = if (schemaVersion >= 13) day.closedAt else null,
+                cardioWorkingJson = if (schemaVersion >= 20) day.cardioWorkingJson else null,
+                cardioKeepToPlan = schemaVersion >= 20 && day.cardioKeepToPlan,
+                cardioProgressBy = if (schemaVersion >= 20) day.cardioProgressBy else null,
+                cardioIncreasePercent = if (schemaVersion >= 20) day.cardioIncreasePercent else null,
             )
         }
     }
@@ -329,6 +339,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             createdAt = plan.createdAt,
             archived = plan.archived,
             onToday = schemaVersion >= 15 && plan.onToday == true,
+            offerStrengthIncreases = schemaVersion < 20 || plan.offerStrengthIncreases,
+            offerCardioIncreases = schemaVersion >= 20 && plan.offerCardioIncreases,
             recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
             suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
         )

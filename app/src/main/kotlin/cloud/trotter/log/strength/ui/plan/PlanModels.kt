@@ -20,6 +20,8 @@ data class PlanUiState(
     val dayTitleDraft: String = "",
     val goals: List<GoalPreviewItem> = emptyList(),
     val emphasis: GoalEmphasis? = null,
+    val offerStrengthIncreases: Boolean = true,
+    val offerCardioIncreases: Boolean = false,
 )
 
 data class PlanDay(
@@ -38,6 +40,8 @@ data class PlanActions(
     val onOpenDay: (DaySelection) -> Unit,
     val onOpenPlans: () -> Unit,
     val onSetUpProgram: () -> Unit,
+    val onOfferStrengthChange: (Boolean) -> Unit = {},
+    val onOfferCardioChange: (Boolean) -> Unit = {},
     val onEmphasisChange: (GoalEmphasis) -> Unit = {},
     val onAddDay: () -> Unit = {},
     val onDayMenu: (String?) -> Unit = {},

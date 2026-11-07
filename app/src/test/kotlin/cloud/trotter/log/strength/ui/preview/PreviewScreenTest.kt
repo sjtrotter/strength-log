@@ -1,5 +1,14 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.domain.cardio.CardioIncrease
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Measure
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +39,24 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PreviewScreenTest {
+
+    @Test fun cardioRowShowsOfferAndForwardsBothBlocksOnTap() {
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
+        val offered = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1260))))
+        val offer = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Time(60))
+        var nextTime by mutableStateOf(offer)
+        var applied: CardioBlock? = null
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(loading = false,
+            cardio = PreviewCardio("Road run", "20:00", CardioActivity.ROAD_RUN, nextTime)),
+            PreviewActions({}, {}, {}, onCardioNextTime = {
+                applied = it
+                nextTime = offer.copy(applied = it == offered)
+            })) } }
+        rule.onNodeWithText("+1:00").performClick()
+        rule.runOnIdle { assertEquals(offered, applied) }
+        rule.onNodeWithTag("cardio-next-time-offer").assertIsSelected().performClick()
+        rule.runOnIdle { assertEquals(opening, applied) }
+    }
     @get:Rule val rule = createComposeRule()
 
     @Test
@@ -188,7 +215,7 @@ class PreviewScreenTest {
     @Test fun cardioOnlyDayShowsActivityTimeAndStart() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, selection = DaySelection(1, "C1"), title = "Cardio",
-            cardio = PreviewCardio("Road run", "20:00"),
+            cardio = PreviewCardio("Road run", "20:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
         ), PreviewActions({}, {}, {})) } }
         rule.onNodeWithText("Road run").assertExists()
         rule.onNodeWithText("20:00").assertExists()

@@ -11,6 +11,10 @@ import kotlin.test.assertTrue
 
 class DayEditLogicTest {
 
+    @Test fun cardio_options_back_returns_to_the_slot_list() {
+        assertEquals(DayEditPage.CARDIO_OPTIONS, dayEditBackTarget(false, false, false, false, false, false, cardioOptions = true))
+    }
+
     @Test
     fun every_day_without_cardio_keeps_one_exercise() {
         assertFalse(DayEditRules.canRemove(0))

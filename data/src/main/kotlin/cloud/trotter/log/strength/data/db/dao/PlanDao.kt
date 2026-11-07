@@ -42,6 +42,12 @@ interface PlanDao {
     @Query("UPDATE plan SET onToday = :onToday WHERE id = :id")
     suspend fun updateOnToday(id: Long, onToday: Boolean)
 
+    @Query("UPDATE plan SET offerStrengthIncreases = :on WHERE id = :id")
+    suspend fun updateOfferStrengthIncreases(id: Long, on: Boolean)
+
+    @Query("UPDATE plan SET offerCardioIncreases = :on WHERE id = :id")
+    suspend fun updateOfferCardioIncreases(id: Long, on: Boolean)
+
     @Query("UPDATE plan SET onToday = (id = :id)")
     suspend fun useOnly(id: Long)
 

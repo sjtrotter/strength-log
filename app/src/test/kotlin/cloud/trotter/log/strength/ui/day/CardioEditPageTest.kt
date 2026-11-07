@@ -33,7 +33,7 @@ class CardioEditPageTest {
         val state = mutableStateOf(DayEditUiState(cardioBlock = block, cardioMeasures = CardioProgression.available(block)))
         var percent: Int? = null
         rule.setContent { AppTheme {
-            CardioNextTimePage(state.value, DayEditActions({}, {}, {}, { _, _ -> }, {}, {},
+            CardioNextTimePage(state.value, DayEditActions({ _, _ -> }, {}, {}, { _, _ -> }, {}, {},
                 onCardioKeepToPlanChange = { state.value = state.value.copy(cardioProgress = state.value.cardioProgress.copy(keepToPlan = it)) },
                 onCardioProgressByChange = { state.value = state.value.copy(cardioProgress = state.value.cardioProgress.copy(measure = it)) },
                 onCardioIncreaseChange = { percent = it }), {})

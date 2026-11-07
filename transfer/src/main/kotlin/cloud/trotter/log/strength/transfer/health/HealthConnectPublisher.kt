@@ -66,13 +66,13 @@ class HealthConnectPublisher(
             withExerciseClient { client ->
                 try {
                     val session = repository.cardioSession(cardioSessionId) ?: return@withExerciseClient true
-                    val record = CardioRecordMapper.toExerciseSession(session, zone) ?: return@withExerciseClient true
+                    val record = CardioRecordMapper.toExerciseSession(session, zone)
                     client.deleteRecords(
                         ExerciseSessionRecord::class,
                         recordIdsList = emptyList(),
                         clientRecordIdsList = listOf(CardioRecordMapper.clientRecordId(cardioSessionId)),
                     )
-                    client.insertRecords(listOf(record))
+                    if (record != null) client.insertRecords(listOf(record))
                     true
                 } catch (t: Throwable) {
                     Log.w(TAG, "Health Connect replacement for cardio session $cardioSessionId failed; skipping", t)

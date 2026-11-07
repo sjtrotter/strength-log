@@ -357,6 +357,25 @@ class HealthConnectPublisherTest {
     }
 
     @Test
+    fun cardioReplacementFrom60To59SecondsRemovesThePreviousExportWithoutInserting() = runTest {
+        val id = seedCardio()
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publishCardio(id)
+        val clientId = CardioRecordMapper.clientRecordId(id)
+        val original = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
+        assertEquals(60_000L, original.endTime.toEpochMilli() - original.startTime.toEpochMilli())
+
+        repo.updateCardioSession(id, CardioActivity.ROAD_RUN, 59, null, "Changed")
+        publisher.replaceCardio(id)
+
+        assertEquals(59, repo.cardioSession(id)!!.seconds)
+        assertTrue(client.storedRecords.isEmpty())
+        assertEquals(listOf(clientId), client.deletedClientRecordIds)
+        assertEquals(1, client.insertCallCount)
+    }
+
+    @Test
     fun cardioReplacementAfterLocalRemovalKeepsTheExport() = runTest {
         val id = seedCardio()
         val entered = CompletableDeferred<Unit>()

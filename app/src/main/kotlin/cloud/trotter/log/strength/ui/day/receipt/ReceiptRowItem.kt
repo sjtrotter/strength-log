@@ -68,8 +68,9 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.accentLabelContainer
 
@@ -218,17 +219,25 @@ internal fun GhostRow(name: String, index: Int, gutter: String? = null) {
 }
 
 @Composable
-internal fun StrengthReceiptRow(row: ReceiptRow, unit: WeightUnit, dayIndex: Int, rowKey: String, roll: () -> Float, gutter: String? = null) {
+internal fun StrengthReceiptRow(
+    row: ReceiptRow,
+    unit: WeightUnit,
+    dayIndex: Int,
+    rowKey: String,
+    roll: () -> Float,
+    gutter: String? = null,
+    nextTime: ReceiptNextTime? = null,
+) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit), row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime), row.shape == ReceiptRow.Shape.STRAIGHT,
         dayIndex, row.record?.kind, gutter, values = {
-            row.lines.forEach { line ->
+            row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (row.shape) {
-                        ReceiptRow.Shape.TOP_SET -> ValueLabel(stringResource(R.string.receipt_top_set), Modifier.alignByBaseline())
+                        ReceiptRow.Shape.TOP_SET -> if (lineIndex == 0) ValueLabel(stringResource(R.string.receipt_top_set), Modifier.alignByBaseline())
                         ReceiptRow.Shape.HEAVIEST_NO_TOP -> ValueLabel(stringResource(R.string.receipt_heaviest), Modifier.alignByBaseline())
                         else -> Unit
                     }
@@ -251,13 +260,16 @@ internal fun StrengthReceiptRow(row: ReceiptRow, unit: WeightUnit, dayIndex: Int
                         modifier = Modifier.alignByBaseline().then(if (containsRecord) Modifier.graphicsLayer {
                             translationY = roll() * 0.6f * size.height; alpha = 1 - roll()
                         } else Modifier))
-                    if (row.shape == ReceiptRow.Shape.TOP_SET && row.record != null) {
+                    if (row.shape == ReceiptRow.Shape.TOP_SET && lineIndex == 0 && row.record != null) {
                         OldBest(visibleSet(row.record.previous, row.tracking, unit), Modifier.alignByBaseline())
                     }
                 }
             }
             if (row.lighterSets > 0) ValueLabel(pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets))
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
+            if (nextTime != null) ValueLabel(stringResource(R.string.receipt_next_time,
+                nextTime.offerLb?.let { DayScreenBuilder.offerLabel(it, nextTime.openingLb, unit) }
+                    ?: stringResource(R.string.next_time_repeat)))
         }, children = {
             row.sets.forEachIndexed { index, set ->
                 val mark = row.record?.takeIf { it.setIndex == index }

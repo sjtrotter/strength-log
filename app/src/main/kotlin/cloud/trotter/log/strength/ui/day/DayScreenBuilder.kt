@@ -183,9 +183,14 @@ object DayScreenBuilder {
             display(offer) -> true
             else -> return null
         }
-        val delta = display(offer) - display(opening)
-        return NextTime.Offer("+${WeightStepper.format(delta)} ${unit.name.lowercase(Locale.ROOT)}", applied, offer, opening)
+        return NextTime.Offer(offerLabel(offer, opening, unit), applied, offer, opening)
     }
+
+    fun offerDelta(offerLb: Double, openingLb: Double, unit: WeightUnit): Double =
+        WeightStepper.toDisplayPrecision(unit.fromLb(offerLb)) - WeightStepper.toDisplayPrecision(unit.fromLb(openingLb))
+
+    fun offerLabel(offerLb: Double, openingLb: Double, unit: WeightUnit): String =
+        "+${WeightStepper.format(offerDelta(offerLb, openingLb, unit))} ${unit.name.lowercase(Locale.ROOT)}"
 
     /**
      * The "last time: …" chip's value (PLAN.md A1 bonus) — `null` when [last]

@@ -29,6 +29,18 @@ import kotlin.test.assertTrue
 class DayScreenBuilderTest {
 
     @Test
+    fun `offer label and delta use display precision`() {
+        assertEquals("+5 lb", DayScreenBuilder.offerLabel(225.0, 220.0, WeightUnit.LB))
+        assertEquals(5.0, DayScreenBuilder.offerDelta(225.0, 220.0, WeightUnit.LB))
+        val offer = WeightUnit.KG.toLb(102.5)
+        val opening = WeightUnit.KG.toLb(100.0)
+        assertEquals("+2.5 kg", DayScreenBuilder.offerLabel(offer, opening, WeightUnit.KG))
+        assertEquals(2.5, DayScreenBuilder.offerDelta(offer, opening, WeightUnit.KG))
+        assertEquals("+2.26 kg", DayScreenBuilder.offerLabel(235.0, 230.0, WeightUnit.KG))
+        assertEquals(0.0, DayScreenBuilder.offerDelta(WeightUnit.KG.toLb(45.364), WeightUnit.KG.toLb(45.356), WeightUnit.KG))
+    }
+
+    @Test
     fun `working heading reads the rows not the prescription`() {
         val rows = List(3) { work(80.0, 10) }
         assertEquals("3 × 10 · 80 lb", DayScreenBuilder.workingHeading(rows, TrackingType.WEIGHTED, WeightUnit.LB))

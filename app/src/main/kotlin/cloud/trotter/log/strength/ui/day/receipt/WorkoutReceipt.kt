@@ -44,7 +44,7 @@ data class ReceiptRow(
     val shape: Shape,
     /** Every done set, in logged order. Empty only for [Shape.SKIPPED]. */
     val sets: List<ReceiptSet>,
-    /** Collapsed value lines, heaviest first. Indices into [sets]. One or two lines; see §1.5. */
+    /** Collapsed value lines. A ramped row's first line is its top set, then its other working sets, heaviest first. */
     val lines: List<ValueLine>,
     /** When three or more weights were used: [lines] holds the heaviest set only, this is the rest. */
     val lighterSets: Int,
@@ -128,3 +128,8 @@ internal val WorkoutReceipt.isPartial: Boolean get() = if (cardio) {
 /** Older receipt bundles omitted plans on closed and skipped rows. */
 internal val WorkoutReceipt.hasPlannedSetCount: Boolean get() = cardio ||
     groups.all { group -> group.rows.all { it.planned != null } }
+
+/** Next time for one receipt row; [offerLb] null means Repeat. Saved under its own key, so receipt parcels keep their layout. */
+@Parcelize data class ReceiptNextTime(val groupIndex: Int, val rowIndex: Int, val offerLb: Double?, val openingLb: Double) : Parcelable
+
+@Parcelize data class ReceiptNextTimes(val sessionId: Long, val rows: List<ReceiptNextTime>) : Parcelable

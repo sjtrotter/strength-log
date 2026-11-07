@@ -3,8 +3,10 @@ package cloud.trotter.log.strength.ui.day
 import android.os.Parcelable
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.StrengthStandards
@@ -38,6 +40,25 @@ data class PrescriptionDraft(
     )
 
     companion object {
+        private const val STRAIGHT_SETS = 3
+
+        /** Straight sets from a ramped slot: three sets at its current working weight and reps (#500). */
+        fun straightFrom(
+            slot: DayEditSlotState,
+            working: List<LoggedSet>?,
+            catalog: ExerciseCatalog,
+            config: LifterConfig,
+        ): PrescriptionDraft {
+            val base = from(slot, catalog, config)
+            val set = working?.let { rows -> CarryForward.workingIndices(rows).firstOrNull()?.let(rows::get) }
+            return base.copy(
+                kind = PrescriptionKind.LOAD_REPS,
+                sets = STRAIGHT_SETS,
+                loadLb = set?.weightLb ?: base.loadLb,
+                reps = set?.reps?.takeIf { it >= 1 } ?: base.reps,
+            )
+        }
+
         fun from(slot: DayEditSlotState, catalog: ExerciseCatalog, config: LifterConfig): PrescriptionDraft {
             val prescription = slot.prescription
             val draft = PrescriptionDraft(

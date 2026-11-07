@@ -49,6 +49,9 @@ class DayEditSheetTest {
         slotCount: Int = 1,
         onRemove: (Int) -> Unit = {},
         onOpenPrescription: (Long) -> Unit = {},
+        onOpenStraightSets: (Long) -> Unit = {},
+        prescriptionDraft: PrescriptionDraft? = null,
+        prescriptionStructure: SetStructure? = null,
         prescription: Prescription? = null,
         partnerExerciseId: String? = null,
         edit: Boolean = true,
@@ -82,7 +85,7 @@ class DayEditSheetTest {
             structure = structure,
             targetSets = targetSets,
         )
-        val openedDraft = mutableStateOf<PrescriptionDraft?>(null)
+        val openedDraft = mutableStateOf(prescriptionDraft)
         composeTestRule.setContent {
             AppTheme {
                 DayEditSheet(
@@ -91,6 +94,7 @@ class DayEditSheetTest {
                         runOpen = runOpen,
                         unit = unit,
                         prescriptionDraft = openedDraft.value,
+                        prescriptionStructure = prescriptionStructure,
                         cardioBlock = if (hasCardio) cardioFixture().block else null,
                     ),
                     actions = DayEditActions(
@@ -110,6 +114,7 @@ class DayEditSheetTest {
                         onSetKeepToPlan = onKeepToPlan,
                         onResetSlotToPlan = onResetSlot,
                         onStructureChange = onStructureChange,
+                        onOpenStraightSets = onOpenStraightSets,
                     ),
                     accent = Color.White,
                     onDismiss = onDismiss,
@@ -263,6 +268,36 @@ class DayEditSheetTest {
         composeTestRule.onNodeWithText("Swap Barbell Back Squat? Its 2 logged sets today are removed.").assertIsDisplayed()
         composeTestRule.onNodeWithText("Swap").performClick()
         composeTestRule.runOnIdle { assertEquals(1, confirmed) }
+    }
+
+    @Test
+    fun `choosing straight sets on a ramp opens the straight sets sheet`() {
+        val opened = mutableListOf<Long>()
+        val changed = mutableListOf<Pair<Long, SetStructure>>()
+        show(weightedTarget = true, structure = SetStructure.RAMP_TOP_BACKOFF,
+            exerciseId = "bb_back_squat", targetSets = 6,
+            onOpenStraightSets = { opened += it },
+            onStructureChange = { id, structure -> changed += id to structure })
+
+        composeTestRule.onNodeWithText("Straight sets").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(1L), opened)
+            assertTrue(changed.isEmpty())
+        }
+    }
+
+    @Test
+    fun `the straight sets sheet shows sets reps and weight`() {
+        show(edit = false, weightedTarget = true, structure = SetStructure.RAMP_TOP_BACKOFF,
+            exerciseId = "bb_back_squat", targetSets = 6,
+            prescriptionDraft = PrescriptionDraft(slotId = 1L, sets = 3, reps = 5, loadLb = 215.0),
+            prescriptionStructure = SetStructure.STRAIGHT)
+
+        composeTestRule.onNodeWithText("Straight sets").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sets").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Reps").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Weight (lb)").performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -291,6 +291,8 @@ Backup v18 carries the optional field; older backups restore it as null.
 
 Edit day from a day preview opens the day editor as its own screen with no workout
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.
+Choosing Straight sets on a ramped lift opens one sheet with Sets, Reps and Weight,
+prefilled with three sets at the lift's working weight and reps; Save writes them together.
 
 ## Architecture
 

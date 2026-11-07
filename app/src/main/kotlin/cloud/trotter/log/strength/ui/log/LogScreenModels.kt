@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.text.UiText
+import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 
 /** Immutable render model for the Log screen (PLAN.md A1; Health Connect read path;
  *  journal sections per docs/briefs/journal.md). */
@@ -21,6 +22,9 @@ data class LogUiState(
      *  perfectly good program of not having it. */
     val hasProgram: Boolean = true,
     val nextDayId: String? = null,
+    val cardioEdit: CardioEntryDraft? = null,
+    val cardioEditCompletedAt: Long? = null,
+    val cardioEditSaving: Boolean = false,
 )
 
 /**

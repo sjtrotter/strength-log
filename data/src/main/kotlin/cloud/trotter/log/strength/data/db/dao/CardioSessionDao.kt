@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -10,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 interface CardioSessionDao {
     @Insert
     suspend fun insert(session: CardioSessionEntity): Long
+
+    @Update
+    suspend fun update(session: CardioSessionEntity): Int
 
     @Insert
     suspend fun insertAll(sessions: List<CardioSessionEntity>)

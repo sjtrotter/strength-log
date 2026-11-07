@@ -47,6 +47,9 @@ interface SessionPublisher {
 
     suspend fun publishCardio(cardioSessionId: Long) = Unit
 
+    /** Replaces the exported record after a cardio history edit. */
+    suspend fun replaceCardio(cardioSessionId: Long) = publishCardio(cardioSessionId)
+
     suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean = true
 
     /** The binding used when Health Connect is not wired in (tests, and the

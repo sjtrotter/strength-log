@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 
@@ -10,6 +11,9 @@ import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 interface CardioSetResultDao {
     @Insert
     suspend fun insertAll(sets: List<CardioSetResultEntity>)
+
+    @Update
+    suspend fun update(result: CardioSetResultEntity): Int
 
     @Query("SELECT * FROM cardio_set_result WHERE cardioSessionId = :sessionId ORDER BY position, id")
     suspend fun forSession(sessionId: Long): List<CardioSetResultEntity>

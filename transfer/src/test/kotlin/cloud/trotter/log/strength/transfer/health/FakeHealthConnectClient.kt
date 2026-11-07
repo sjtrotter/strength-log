@@ -34,8 +34,11 @@ import kotlin.reflect.KClass
 class FakeHealthConnectClient(
     grantedPermissions: Set<String> = emptySet(),
     private val insertThrows: Boolean = false,
+    beforePermissionCheck: suspend () -> Unit = {},
 ) : HealthConnectClient {
 
+    var beforeInsert: (suspend () -> Unit)? = null
+    var beforeDelete: (suspend () -> Unit)? = null
     val insertedRecords = mutableListOf<Record>()
 
     /** What the provider would hold afterwards, keyed by client record id. */
@@ -45,13 +48,14 @@ class FakeHealthConnectClient(
     var insertCallCount = 0
         private set
 
-    private val fakePermissionController = FakePermissionController(grantedPermissions)
+    private val fakePermissionController = FakePermissionController(grantedPermissions, beforePermissionCheck)
 
     override val permissionController: PermissionController get() = fakePermissionController
 
     override suspend fun insertRecords(records: List<Record>): InsertRecordsResponse {
         insertCallCount++
         if (insertThrows) throw RuntimeException("provider insert failed")
+        beforeInsert?.invoke()
         insertedRecords += records
         records.forEach { record ->
             record.metadata.clientRecordId?.let { id ->
@@ -75,6 +79,7 @@ class FakeHealthConnectClient(
         recordIdsList: List<String>,
         clientRecordIdsList: List<String>,
     ) {
+        beforeDelete?.invoke()
         deletedClientRecordIds += clientRecordIdsList
         clientRecordIdsList.forEach(storedRecords::remove)
     }
@@ -92,7 +97,13 @@ class FakeHealthConnectClient(
 }
 
 /** Grants exactly the permission set it's constructed with. */
-class FakePermissionController(private val granted: Set<String>) : PermissionController {
-    override suspend fun getGrantedPermissions(): Set<String> = granted
+class FakePermissionController(
+    private val granted: Set<String>,
+    private val beforeCheck: suspend () -> Unit = {},
+) : PermissionController {
+    override suspend fun getGrantedPermissions(): Set<String> {
+        beforeCheck()
+        return granted
+    }
     override suspend fun revokeAllPermissions() = Unit
 }

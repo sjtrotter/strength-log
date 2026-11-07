@@ -11,6 +11,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class BackupV23Test {
     private val codec = BackupCodec()
@@ -29,12 +30,38 @@ class BackupV23Test {
     fun `v23 preserves cardio first answers and edited goals`() {
         val snapshot = document().toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(23, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
         assertEquals(snapshot, restored)
         val restoredAnswers = PlanRecipeJson.decode(restored.plans.single().recipeJson!!, GlobalLifter())
         assertEquals(answers.cardioFirst, restoredAnswers.cardioFirst)
         assertEquals(goals, restoredAnswers.config.goalsLb)
+    }
+
+    @Test
+    fun `backups without lifter answer presence retain their answers`() {
+        val answers = WizardAnswers()
+        for (version in 1..CURRENT_SCHEMA_VERSION) {
+            val legacy = BackupDocument(
+                schemaVersion = version,
+                settings = SettingsBackup(
+                    180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = false,
+                    emphasis = answers.config.emphasis.name,
+                    cardioMode = answers.cardio.mode.name,
+                    cardioPlacement = answers.cardio.placement.name,
+                    fiveKGoal = answers.cardio.fiveKGoal,
+                    daysPerWeek = answers.daysPerWeek,
+                    split = answers.split.name,
+                    anchorScheme = answers.anchorScheme.name,
+                    deadliftVariant = answers.deadliftVariant.name,
+                    equipment = answers.equipment.map { it.name },
+                ),
+            )
+            val text = codec.encode(legacy).replace(",\"hasLifterAnswers\":true", "")
+            val snapshot = codec.decode(text).toSnapshot()
+            assertTrue(snapshot.hasLifterAnswers, "v$version")
+            assertTrue(snapshot.toDocument().settings.hasLifterAnswers, "v$version")
+        }
     }
 
     @Test
@@ -62,7 +89,7 @@ class BackupV23Test {
             assertNull(restoredAnswers.cardioFirst)
             assertEquals(legacyGoals, restoredAnswers.config.goalsLb)
             val exported = restored.toDocument()
-            assertEquals(23, exported.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(restored, codec.decode(codec.encode(exported)).toSnapshot())
         }
     }

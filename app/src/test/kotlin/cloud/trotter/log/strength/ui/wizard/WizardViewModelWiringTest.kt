@@ -1193,6 +1193,45 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun cardioOnlyBackupRestore_thenNewPlanWithLiftingRequiresLifterAnswers() = runVmTest {
+        val first = newViewModel()
+        advanceUntilIdle()
+        first.setFocus(true)
+        repeat(WizardStateBuilder.steps(WizardAnswers(cardioFirst = CardioFirst())).size) { first.onNext() }
+        advanceUntilIdle()
+        assertTrue(first.uiState.value.isComplete)
+        first.viewModelScope.cancel()
+
+        val backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        val service = BackupService(backupRepository, journal)
+        val text = service.export()
+        assertFalse(backupRepository.exportSnapshot().hasLifterAnswers)
+        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185.0, age = 35))
+        assertTrue(settings.hasLifterAnswersFlow.first())
+        service.import(text)
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(backupRepository.exportSnapshot().hasLifterAnswers)
+        assertTrue(settings.wizardCompleteFlow.first())
+        val original = db.planDao().allPlans().single()
+
+        val second = newViewModel()
+        advanceUntilIdle()
+        assertEquals(CardioFirst(), second.uiState.value.answers.cardioFirst)
+        second.setLiftDays(2)
+        val steps = WizardStateBuilder.steps(WizardAnswers(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2)))
+        repeat(steps.indexOf(WizardStep.ABOUT_YOU)) { second.onNext() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.ABOUT_YOU, second.uiState.value.step)
+        assertEquals(null, second.uiState.value.bodyweightLb)
+        assertEquals(null, second.uiState.value.age)
+        assertFalse(second.uiState.value.canContinue)
+        repeat(steps.size) { second.onNext() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.ABOUT_YOU, second.uiState.value.step)
+        assertEquals(listOf(original), db.planDao().allPlans())
+    }
+
+    @Test
     fun `cardio first with two lift days asks the lifting questions`() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()

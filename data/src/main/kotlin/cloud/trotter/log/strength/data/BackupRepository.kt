@@ -60,6 +60,7 @@ class BackupRepository(
         // DataStore and Room have independent commits. Read preferences first;
         // never collect a DataStore-backed flow while holding a Room transaction.
         val global = settings.globalLifterFlow.first()
+        val hasLifterAnswers = settings.hasLifterAnswersFlow.first()
         val unit = settings.unitFlow.first()
         val wizardComplete = settings.wizardCompleteFlow.first()
         val selectedPlanId = settings.selectedPlanIdFlow.first()
@@ -77,6 +78,7 @@ class BackupRepository(
             FullSnapshot(
                 answers = answersForPlan(selectedPlan, global),
                 answersCarryRecipe = false,
+                hasLifterAnswers = hasLifterAnswers,
                 unit = unit,
                 wizardComplete = wizardComplete,
                 suggestedDay = selectedPlan?.suggestedDayId,
@@ -231,6 +233,7 @@ class BackupRepository(
             try {
                 settings.restore(
                     global = GlobalLifter.of(snapshot.answers.config),
+                    hasLifterAnswers = snapshot.hasLifterAnswers,
                     unit = snapshot.unit,
                     wizardComplete = snapshot.wizardComplete,
                     selectedPlanId = restoredSelectedPlanId,

@@ -25,7 +25,8 @@ import kotlinx.serialization.Serializable
  * v19 carries the distance unit when the lifter chose one.
  * v20 carries cardio Next time (working block, Plan choice, Progress by, Increase by) and each plan's offer switches.
  * v21 carries each plan's edited goals inside its recipe.
- * v23 recipes may carry cardio-first answers; v22 is reserved for after-the-fact cardio (#515).
+ * v23 carries lifter-answer presence and recipes may carry cardio-first answers;
+ * v22 is reserved for after-the-fact cardio (#515).
  */
 const val CURRENT_SCHEMA_VERSION: Int = 23
 
@@ -154,6 +155,8 @@ data class SettingsBackup(
     val theme: String = "SYSTEM",
     val distanceUnit: String? = null,
     val bodyweightLbPrecise: Double? = null,
+    /** Older backups always restored their lifter values as answers. */
+    val hasLifterAnswers: Boolean = true,
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking

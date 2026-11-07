@@ -32,6 +32,8 @@ import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTime
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
@@ -175,6 +177,88 @@ class DayViewModelReceiptTest {
     }
 
     // --- it appears, once, and only on a DONE --------------------------------
+
+    @Test
+    fun `the receipt offers the increase after a full success`() = runVmTest {
+        insertStraightProgram()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 220.0, 215.0))),
+            vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
+    fun `the receipt says repeat after a miss`() = runVmTest {
+        insertStraightProgram()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        vm.toggleDone(slotId(), 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        vm.changeReps(slotId(), Slot.MAIN, 2, 4)
+        advanceUntilIdle()
+        completeOneSession(vm)
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, null, 215.0))),
+            vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
+    fun `a mixed session gives each lift its own next time`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Mixed", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(215.0, 5)),
+                superset = SupersetPartner("bb_row")),
+            ProgramExercise("ez_curl", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(35.0, 5))),
+            ProgramExercise("ohp", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5)),
+                keepToPlan = true),
+        )))))
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val slots = repo.plans.slotsFor(planId, "A").first()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val id = slots[0].programExerciseId
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        val tracks = repo.dayTracksFlow(planId, "A").first().tracks
+        val partner = tracks.first { it.programExerciseId == id && it.slot == Slot.SS }.sets
+        vm.changeReps(id, Slot.SS, partner.lastIndex, partner.last().reps - 1)
+        advanceUntilIdle()
+        for (track in tracks.filter { it.programExerciseId != slots[1].programExerciseId }) {
+            track.sets.indices.forEach { vm.toggleDone(track.programExerciseId, it, checked = true, slot = track.slot) }
+        }
+        advanceUntilIdle()
+        vm.skipLift(slots[1].programExerciseId, Slot.MAIN)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(2, receipt.groups[0].rows.size)
+        assertEquals(ReceiptRow.Shape.SKIPPED, receipt.groups[1].rows.single().shape)
+        assertEquals(3, receipt.groups[2].rows.single().sets.size)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(
+            ReceiptNextTime(0, 0, 220.0, 215.0), ReceiptNextTime(0, 1, null, partner.first().weightLb),
+        )), vm.finisher.receiptNextTimes.value)
+    }
+
+    @Test
+    fun `dismissing the receipt clears next times`() = runVmTest {
+        insertStraightProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        completeOneSession(vm)
+        assertNotNull(vm.finisher.receiptNextTimes.value)
+        assertEquals(vm.finisher.receiptNextTimes.value, handle.get<ReceiptNextTimes>("day_receipt_next_times"))
+
+        assertTrue(vm.finisher.dismissReceipt())
+
+        assertNull(vm.finisher.receiptNextTimes.value)
+        assertNull(handle.get<ReceiptNextTimes>("day_receipt_next_times"))
+    }
 
     @Test
     fun aGapInDayLettersKeepsTheCompletedDaysThirdAccentOnTheReceipt() = runVmTest {
@@ -1095,6 +1179,13 @@ class DayViewModelReceiptTest {
                 ),
             ),
         )
+    }
+
+    private suspend fun insertStraightProgram() {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(215.0, 5)), sets = 3)
     }
 
     /** One day with one superset slot. */

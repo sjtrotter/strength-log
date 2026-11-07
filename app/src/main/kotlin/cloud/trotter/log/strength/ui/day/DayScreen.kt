@@ -51,6 +51,7 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
@@ -77,6 +78,7 @@ fun DayScreen(
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
+    receiptNextTimes: ReceiptNextTimes? = null,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -84,6 +86,7 @@ fun DayScreen(
         SessionReceiptScreen(
             receipt = receipt,
             setCounts = receiptSetCounts,
+            nextTimes = receiptNextTimes,
             onShare = onShareSession,
             onFinishSession = onFinishSession,
             onSetNote = actions.onSetSessionNote,

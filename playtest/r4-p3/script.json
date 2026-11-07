@@ -160,6 +160,14 @@
     },
     {
       "checkpoint": "setup-step-10"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-complete-home"
     }
   ]
 }

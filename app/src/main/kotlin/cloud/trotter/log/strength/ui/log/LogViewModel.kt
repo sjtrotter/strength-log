@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
@@ -155,8 +156,10 @@ class LogViewModel @Inject constructor(
     private val mainLifts = combine(
         plans.programFlow,
         catalog.catalogFlow,
-        plans.configFlow,
-    ) { program, catalog, config -> JournalBuilder.mainLifts(program, catalog, config) }
+        plans.wizardAnswersFlow,
+    ) { program, catalog, answers ->
+        JournalBuilder.mainLifts(program, catalog, answers.config, ProgramGenerator.mainLiftIds(answers).toSet())
+    }
 
     private val journalHistory = combine(
         repo.topSetHistoryFlow,

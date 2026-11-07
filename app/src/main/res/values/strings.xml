@@ -133,6 +133,9 @@
 <string name="wizard_cardio_title">Cardio</string>
 <string name="wizard_about_you_title">About you</string>
 <string name="wizard_equipment_title">What equipment do you have?</string>
+<string name="wizard_lifts_title">Your recent lifts</string>
+<string name="wizard_lifts_description">Optional. A recent working set for each lift. Blank lifts use the calculated weight.</string>
+<string name="wizard_lift_per_hand">Per hand</string>
 <string name="wizard_emphasis_strength_title">Strength-leaning</string>
 <string name="wizard_emphasis_strength_description">Fewer reps, more weight on the mains.</string>
 <string name="wizard_emphasis_balanced_title">Balanced strength + muscle</string>

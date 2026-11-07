@@ -7,6 +7,9 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -16,6 +19,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.LocalTime
@@ -62,6 +66,45 @@ class JournalBuilderTest {
     private val bench = JournalBuilder.MainLift("bb_bench", "Barbell Bench Press", dayIndex = 1, goalLb = 195.0)
 
     // --- main lifts -----------------------------------------------------------
+
+    @Test
+    fun `a straight-set main lift keeps its card`() {
+        val cfg = LifterConfig()
+        val exercise = ProgramExercise(
+            "bb_back_squat", structure = SetStructure.STRAIGHT, targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)),
+        )
+        val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(exercise))))
+        val main = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, cfg).single()
+        assertEquals("bb_back_squat", main.exerciseId)
+        assertEquals(GoalCalculator.goalFor(exercise, cfg), main.goalLb)
+        assertEquals(235.0, main.goalLb)
+    }
+
+    @Test
+    fun `equipment-substituted novice mains keep their history cards and calculated goals`() {
+        val answers = WizardAnswers(
+            equipment = setOf(Equipment.MACHINE),
+            config = LifterConfig(level = ExperienceLevel.NOVICE),
+        )
+        val program = ProgramGenerator.generate(answers)
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val mainIds = ProgramGenerator.mainLiftIds(answers)
+        val hackSquat = program.days.first().exercises.first()
+        assertEquals("hack_squat", hackSquat.exerciseId)
+        assertEquals(SetStructure.STRAIGHT, hackSquat.structure)
+        assertTrue(catalog.get(hackSquat.exerciseId).goal is GoalSource.Flat)
+
+        val mains = JournalBuilder.mainLifts(program, catalog, answers.config, mainIds.toSet())
+        assertEquals(mainIds, mains.map { it.exerciseId })
+        val history = mainIds.map { top(it, today, 50.0) }
+        val cards = JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone)
+
+        assertEquals(mainIds, cards.map { it.exerciseId })
+        val card = cards.single { it.exerciseId == "hack_squat" }
+        assertEquals(GoalCalculator.goalFor(hackSquat, answers.config).toFloat(), card.goalValue)
+        assertEquals(listOf(50f), card.points.map { it.value })
+    }
 
     @Test
     fun mainLiftsKeepTheirDayLetterAccentsWhenADayIsRemoved() {

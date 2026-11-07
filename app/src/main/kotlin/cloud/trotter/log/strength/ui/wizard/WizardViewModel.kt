@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.LiftEntry
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -26,6 +27,7 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
@@ -49,8 +51,7 @@ import kotlinx.coroutines.launch
 /**
  * Setup wizard ViewModel (spec §6.1, PLAN.md A4). Every field of the
  * in-progress [WizardAnswers] draft lives in [SavedStateHandle] as an
- * individual primitive — the same shape [cloud.trotter.log.strength.data.prefs.SettingsStore]
- * persists it in, so rotation/process death mid-wizard loses nothing (data
+ * individual key, so rotation/process death mid-wizard loses nothing (data
  * principle: no unsaved truth in a bare ViewModel field).
  *
  * [Finish][finish] creates and selects a new plan from the preview through
@@ -97,6 +98,7 @@ class WizardViewModel @Inject constructor(
         const val LEVEL = "wizard_level"
         const val EMPHASIS = "wizard_emphasis"
         const val EQUIPMENT = "wizard_equipment"
+        const val LIFTS = "wizard_lifts"
         const val UNIT = "wizard_unit"
         /** Retained for this wizard's lifetime so completion retries reuse its plan. */
         const val CREATED_PLAN_ID = "wizard_created_plan_id"
@@ -124,6 +126,7 @@ class WizardViewModel @Inject constructor(
     private val emphasis: StateFlow<String> = savedState.getStateFlow(Keys.EMPHASIS, defaults.config.emphasis.name)
     private val equipment: StateFlow<List<String>> =
         savedState.getStateFlow(Keys.EQUIPMENT, defaults.equipment.map { it.name })
+    private val lifts: StateFlow<List<WizardLiftDraft>> = savedState.getStateFlow(Keys.LIFTS, emptyList())
     private val unit: StateFlow<String> = savedState.getStateFlow(Keys.UNIT, WeightUnit.LB.name)
     private val previewProgram = MutableStateFlow<Program?>(null)
 
@@ -160,7 +163,14 @@ class WizardViewModel @Inject constructor(
             AboutGroup(bw, a, enumOf(l, defaults.config.level), enumOf(e, defaults.config.emphasis))
         }
 
-    private fun assembleAnswers(sg: SplitGroup, cg: CardioGroup, ag: AboutGroup, equip: List<String>, unitName: String): WizardAnswers =
+    private fun assembleAnswers(
+        sg: SplitGroup,
+        cg: CardioGroup,
+        ag: AboutGroup,
+        equip: List<String>,
+        unitName: String,
+        drafts: List<WizardLiftDraft>,
+    ): WizardAnswers =
         WizardAnswers(
             daysPerWeek = sg.days,
             split = sg.split,
@@ -175,11 +185,17 @@ class WizardViewModel @Inject constructor(
                 weightUnit = enumOf(unitName, WeightUnit.LB),
             ),
             equipment = equip.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
+            lifts = drafts.mapNotNull { d ->
+                val lb = d.weightLb?.takeIf { it > 0.0 && it.isFinite() } ?: return@mapNotNull null
+                val reps = (d.reps ?: StrengthStandards.topSetReps(ag.emphasis)).takeIf { it in 1..99 } ?: return@mapNotNull null
+                d.exerciseId to LiftEntry(lb, reps)
+            }.toMap(),
         )
 
     private val answersFlow: Flow<WizardAnswers> =
-        combine(splitGroup, cardioGroup, aboutGroup, equipment, unit) { sg, cg, ag, equip, unitName ->
-            assembleAnswers(sg, cg, ag, equip, unitName)
+        combine(splitGroup, cardioGroup, aboutGroup, combine(equipment, lifts, ::Pair), unit) { sg, cg, ag, equipmentAndLifts, unitName ->
+            val (equip, drafts) = equipmentAndLifts
+            assembleAnswers(sg, cg, ag, equip, unitName, drafts)
         }
 
     /** Synchronous snapshot of the draft straight off the raw SavedStateHandle
@@ -196,6 +212,7 @@ class WizardViewModel @Inject constructor(
         AboutGroup(bodyweight.value, age.value, enumOf(level.value, defaults.config.level), enumOf(emphasis.value, defaults.config.emphasis)),
         equipment.value,
         unit.value,
+        lifts.value,
     )
 
     private data class CompletionGroup(
@@ -224,6 +241,7 @@ class WizardViewModel @Inject constructor(
                 initialized = loaded,
                 bodyweightLb = bodyweight.value,
                 age = age.value,
+                liftDrafts = lifts.value,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState(initialized = initialized.value))
 
@@ -262,7 +280,7 @@ class WizardViewModel @Inject constructor(
         if (current >= WizardStep.entries.lastIndex) {
             finish()
         } else {
-            if (current == WizardStep.EQUIPMENT.ordinal) {
+            if (current == WizardStep.LIFTS.ordinal) {
                 previewProgram.value = generatePreview(currentAnswers())
             }
             savedState[Keys.STEP] = current + 1
@@ -333,6 +351,18 @@ class WizardViewModel @Inject constructor(
     fun toggleEquipment(value: Equipment) {
         val current = equipment.value
         setAnswer(Keys.EQUIPMENT, if (value.name in current) current - value.name else current + value.name)
+    }
+
+    fun setLiftWeight(exerciseId: String, weightLb: Double?) {
+        val draft = lifts.value.firstOrNull { it.exerciseId == exerciseId } ?: WizardLiftDraft(exerciseId, null, null)
+        val updated = draft.copy(weightLb = weightLb?.takeIf { it.isFinite() && it > 0.0 })
+        setAnswer(Keys.LIFTS, ArrayList(lifts.value.filterNot { it.exerciseId == exerciseId } + updated))
+    }
+
+    fun setLiftReps(exerciseId: String, reps: Int?) {
+        val draft = lifts.value.firstOrNull { it.exerciseId == exerciseId } ?: WizardLiftDraft(exerciseId, null, null)
+        val updated = draft.copy(reps = reps)
+        setAnswer(Keys.LIFTS, ArrayList(lifts.value.filterNot { it.exerciseId == exerciseId } + updated))
     }
 
     // --- finish --------------------------------------------------------------

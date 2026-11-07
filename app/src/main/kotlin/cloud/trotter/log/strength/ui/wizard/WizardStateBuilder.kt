@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
+import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.text.UiText
@@ -64,6 +65,7 @@ object WizardStateBuilder {
         initialized: Boolean = true,
         bodyweightLb: Double? = null,
         age: Int? = null,
+        liftDrafts: List<WizardLiftDraft> = emptyList(),
     ): WizardUiState {
         val clamped = stepIndex.coerceIn(0, WizardStep.entries.lastIndex)
         return WizardUiState(
@@ -82,6 +84,11 @@ object WizardStateBuilder {
             initialized = initialized,
             bodyweightLb = bodyweightLb,
             age = age,
+            liftRows = ProgramGenerator.mainLiftIds(answers).map { id ->
+                val entry = ExerciseLibrary.get(id)
+                val draft = liftDrafts.firstOrNull { it.exerciseId == id }
+                WizardLiftRow(id, entry.name, entry.perHand, draft?.weightLb, draft?.reps ?: StrengthStandards.topSetReps(answers.emphasis))
+            },
         )
     }
 }

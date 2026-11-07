@@ -23,6 +23,14 @@ enum class DeadliftVariant { TRAP_BAR, CONVENTIONAL, SUMO }
 /** Concrete split the generator builds days from (spec §6.2). */
 enum class SplitTemplate { FULL_BODY, UPPER_LOWER, PPL, PPLUL }
 
+/** A recent working set the lifter entered for one main lift, in lb. */
+data class LiftEntry(val weightLb: Double, val reps: Int) {
+    init {
+        require(weightLb > 0.0 && weightLb.isFinite())
+        require(reps in 1..99)
+    }
+}
+
 /**
  * Everything the setup wizard collects (spec §6.1). Every field has a default so
  * "next-next-next" yields the prototype 4-day full-body program: BALANCED goal,
@@ -39,6 +47,8 @@ data class WizardAnswers(
     /** Optional equipment profile (PLAN.md A4). Defaults to everything; the
      *  generator filters slot picks down to what's available. */
     val equipment: Set<Equipment> = Equipment.entries.toSet(),
+    /** Optional recent lifts by main-lift id (#499); a lift without one uses the calculated goal. */
+    val lifts: Map<String, LiftEntry> = emptyMap(),
 ) {
     init {
         require(daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was $daysPerWeek" }

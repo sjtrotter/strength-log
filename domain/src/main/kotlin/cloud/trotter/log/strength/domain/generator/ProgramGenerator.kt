@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
 import cloud.trotter.log.strength.domain.model.MovementPattern.CALF_GASTROC
@@ -32,8 +33,13 @@ import cloud.trotter.log.strength.domain.model.MovementPattern.V_PUSH
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.StrengthStandards
+import cloud.trotter.log.strength.domain.units.PlateMath
 
 /**
  * Turns [WizardAnswers] into a concrete, editable [Program] (spec §6.3). Each
@@ -52,9 +58,53 @@ object ProgramGenerator {
     private val LEG_MAIN_PATTERNS = setOf(SQUAT_BILATERAL, HINGE, SINGLE_LEG)
     private val INCLINE_CHEST_IDS = setOf("incline_db", "incline_bb")
 
-    fun generate(answers: WizardAnswers): Program = generate(answers, preserveDayIds = false)
+    private const val NOVICE_SETS = 3
 
-    private fun generate(answers: WizardAnswers, preserveDayIds: Boolean): Program {
+    fun generate(answers: WizardAnswers): Program = seedMains(skeleton(answers), answers)
+
+    /** The plan's main lifts in day order, what the wizard's recent-lifts step asks about. */
+    fun mainLiftIds(answers: WizardAnswers): List<String> = skeleton(answers).days
+        .flatMap { it.exercises }
+        .filter { it.structure.hasTopSet }
+        .map { it.exerciseId }
+        .distinct()
+
+    /**
+     * An entered lift seeds its main; novices start every main as three straight sets,
+     * barbell mains at the empty bar (#499). Six identical sets at the bar is what a
+     * ramp to the bar would be.
+     */
+    private fun seedMains(program: Program, answers: WizardAnswers): Program {
+        val cfg = answers.config
+        return program.copy(days = program.days.map { day ->
+            day.copy(exercises = day.exercises.map slotMap@ { slot ->
+                if (!slot.structure.hasTopSet) return@slotMap slot
+                val entry = answers.lifts[slot.exerciseId]
+                if (cfg.level == ExperienceLevel.NOVICE) {
+                    val libraryEntry = ExerciseLibrary.get(slot.exerciseId)
+                    val weight = entry?.weightLb ?: if (Equipment.BARBELL in libraryEntry.equipment) {
+                        cfg.weightUnit.toLb(PlateMath.barWeight(cfg.weightUnit))
+                    } else {
+                        GoalCalculator.goalFor(libraryEntry, cfg)
+                    }
+                    val reps = entry?.reps ?: StrengthStandards.topSetReps(cfg.emphasis)
+                    slot.copy(
+                        structure = SetStructure.STRAIGHT,
+                        targetSets = NOVICE_SETS,
+                        prescription = Prescription(PrescribedTarget.LoadReps(weight, reps)),
+                    )
+                } else if (entry != null) {
+                    slot.copy(prescription = Prescription(PrescribedTarget.LoadReps(entry.weightLb, entry.reps)))
+                } else {
+                    slot
+                }
+            })
+        })
+    }
+
+    private fun skeleton(answers: WizardAnswers): Program = skeleton(answers, preserveDayIds = false)
+
+    private fun skeleton(answers: WizardAnswers, preserveDayIds: Boolean): Program {
         val kinds = SplitDefaults.dayKinds(answers.split, answers.daysPerWeek)
         val anchors = availableAnchorIds(answers)
         val occurrences = mutableMapOf<DayKind, Int>()
@@ -79,7 +129,7 @@ object ProgramGenerator {
      *  Titles and exercises are editable; emphasis and kind can disambiguate a shifted letter. */
     fun templateFor(answers: WizardAnswers, day: ProgramDay): ProgramDay? {
         val compact = generate(answers).days.firstOrNull { it.id == day.id }
-        val original = generate(answers, preserveDayIds = true).days.firstOrNull { it.id == day.id }
+        val original = seedMains(skeleton(answers, preserveDayIds = true), answers).days.firstOrNull { it.id == day.id }
         if (compact == original) return compact
         return listOfNotNull(compact, original).singleOrNull {
             it.emphasisLine == day.emphasisLine && it.kind == day.kind

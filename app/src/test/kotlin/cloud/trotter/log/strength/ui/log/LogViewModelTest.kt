@@ -17,12 +17,19 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
@@ -720,6 +727,34 @@ class LogViewModelTest {
             ),
             newCustomExercises = emptyList(),
         )
+    }
+
+    @Test
+    fun equipmentSubstitutedNoviceMainsReachHistoryFromTheStoredRecipe() = runVmTest {
+        val answers = WizardAnswers(
+            equipment = setOf(Equipment.MACHINE),
+            config = LifterConfig(level = ExperienceLevel.NOVICE),
+        )
+        val program = ProgramGenerator.generate(answers)
+        val planId = repo.plans.createGeneratedPlan("Machines", answers, program)
+        repo.plans.publishCreatedPlan(planId, answers)
+        val entry = ExerciseLibrary.get("hack_squat")
+        repo.history.importSessionHistory(
+            listOf(ImportedSession(
+                session("A", "Lower", 1_783_512_000_000L),
+                listOf(set(entry.id, entry.name)),
+            )),
+            newCustomExercises = emptyList(),
+        )
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val card = vm.uiState.value.journal.trajectories.single()
+        assertEquals("hack_squat", card.exerciseId)
+        assertEquals(listOf(100f), card.points.map { it.value })
+        assertEquals(GoalCalculator.goalFor(entry, answers.config).toFloat(), card.goalValue)
+        collect.cancel()
     }
 
     @Test

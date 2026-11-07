@@ -130,7 +130,8 @@ class CardioEntrySheetTest {
         } } }
         val field = rule.onNodeWithText("Distance (km)").performScrollTo()
         listOf("0", "-1", ".", "NaN", "Infinity", "200.01").forEach { text ->
-            field.performTextReplacement(text).assertTextContains(text)
+            field.performTextReplacement(text)
+            field.assertTextContains(text)
             rule.onNodeWithText("Save").assertIsNotEnabled()
         }
         field.performTextReplacement("200")

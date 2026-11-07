@@ -28,6 +28,8 @@ data class DayEditUiState(
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
     val editorOpen: Boolean = false,
+    /** Opened from a day preview's Edit: the editor is the whole screen and edits apply to the plan. */
+    val planEditing: Boolean = false,
     val planId: Long? = null,
     val dayId: String? = null,
     val cardioBlock: CardioBlock? = null,

@@ -372,6 +372,7 @@
 <string name="day_edit_add_pattern_title">Add exercise — pick a pattern</string>
 <string name="day_edit_add_exercise_title">Add — %1$s</string>
 <string name="day_edit_title">Edit day</string>
+<string name="day_plan_editor_title">Edit day %1$s</string>
 <string name="day_edit_add_exercise_button">+ Add exercise</string>
 <string name="day_edit_reset_button">Reset day to template</string>
 <string name="day_edit_superset_with_label">SS with %1$s</string>

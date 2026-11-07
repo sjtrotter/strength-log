@@ -286,6 +286,11 @@ The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as 
 Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
 Backup v18 carries the optional field; older backups restore it as null.
 
+### A15. Plans edit as plans (#500, owner-approved 2026-11-06)
+
+Edit day from a day preview opens the day editor as its own screen with no workout
+behind it; Back at its root returns to the preview. During a workout it stays a sheet.
+
 ## Architecture
 
 ```

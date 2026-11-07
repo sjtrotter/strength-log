@@ -11,6 +11,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.sync.WatchDay
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -74,6 +80,25 @@ class TodayWidgetViewsTest {
         assertEquals("Set up a plan", view.findViewById<TextView>(R.id.widget_stat_line).text.toString())
         assertEquals(View.GONE, view.findViewById<View>(R.id.widget_day_letter).visibility)
         assertEquals(View.GONE, view.findViewById<View>(R.id.widget_day_line).visibility)
+        assertEquals(View.GONE, view.findViewById<View>(R.id.widget_progress).visibility)
+    }
+
+    @Test fun generatedRunnerDayShowsItsDayAndActivity() {
+        val day = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst())).rotationDays.first()
+        val snapshot = WatchSnapshot(
+            revision = 0L,
+            suggestedDayId = day.id,
+            day = WatchDay(day.id, day.title, 0, emptyList()),
+            unit = "lb",
+            cardioBlock = requireNotNull(day.cardioBlock).toWatch(),
+        )
+        val view = todayWidgetContent(snapshot).toRemoteViews(context).apply(context, null)
+
+        assertEquals("Day A, Easy", view.findViewById<TextView>(R.id.widget_day_line).text.toString())
+        assertEquals("Road run", view.findViewById<TextView>(R.id.widget_stat_line).text.toString())
+        assertEquals("A", view.findViewById<TextView>(R.id.widget_day_letter).text.toString())
+        assertEquals(View.VISIBLE, view.findViewById<View>(R.id.widget_day_line).visibility)
+        assertEquals(View.VISIBLE, view.findViewById<View>(R.id.widget_day_letter).visibility)
         assertEquals(View.GONE, view.findViewById<View>(R.id.widget_progress).visibility)
     }
 

@@ -88,7 +88,8 @@ class WizardViewModel @Inject constructor(
          *  behind a confirm-overwrite dialog — a second, unguarded destructive
          *  path off a setup screen is exactly the accident worth designing out. */
         const val FIRST_RUN = "wizard_first_run"
-        const val STEP = "wizard_step"
+        const val LEGACY_STEP = "wizard_step"
+        const val STEP = "wizard_step_index_v2"
         const val DAYS = "wizard_days"
         const val SPLIT = "wizard_split"
         const val ANCHOR_SCHEME = "wizard_anchor_scheme"
@@ -120,7 +121,13 @@ class WizardViewModel @Inject constructor(
     private val defaults = WizardAnswers()
 
     private val initialized = savedState.getStateFlow(Keys.INITIALIZED, false)
-    private val stepIndex: StateFlow<Int> = savedState.getStateFlow(Keys.STEP, 0)
+    // Legacy indices describe the lifting flow before FOCUS was added.
+    private val stepIndex: StateFlow<Int> = savedState.getStateFlow(
+        Keys.STEP,
+        savedState.get<Int>(Keys.LEGACY_STEP)?.let {
+            it.coerceIn(0, WizardStateBuilder.steps(defaults).lastIndex - 1) + 1
+        } ?: 0,
+    )
     private val daysPerWeek: StateFlow<Int> = savedState.getStateFlow(Keys.DAYS, defaults.daysPerWeek)
     private val split: StateFlow<String> = savedState.getStateFlow(Keys.SPLIT, defaults.split.name)
     private val anchorScheme: StateFlow<String> =
@@ -239,7 +246,7 @@ class WizardViewModel @Inject constructor(
             viewModelScope.launch {
                 val answers = repo.wizardAnswersFlow.first()
                 val isFirstRun = !settings.wizardCompleteFlow.first()
-                applyAnswers(answers, prefillAboutYou = !isFirstRun || settings.hasLifterAnswersFlow.first())
+                applyAnswers(answers, prefillAboutYou = settings.hasLifterAnswersFlow.first())
                 savedState[Keys.FIRST_RUN] = isFirstRun
                 applyAnswer(Keys.UNIT, if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else settings.unitFlow.first().name)
                 applyAnswer(Keys.DISTANCE_UNIT, if (isFirstRun) {

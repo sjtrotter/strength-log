@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
+import cloud.trotter.log.strength.ui.day.cardioActivityNameRes
 
 /** A [android.graphics.drawable.ClipDrawable] is fully revealed at level 10000. */
 private const val CLIP_MAX = 10_000
@@ -41,6 +42,7 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
         WidgetStatLine.NothingOnToday -> context.getString(R.string.nothing_on_today)
         WidgetStatLine.SetUpProgram -> context.getString(R.string.widget_no_program)
         is WidgetStatLine.Data -> line.value
+        is WidgetStatLine.Cardio -> context.getString(cardioActivityNameRes(line.activity))
     })
     views.setThemeTextColor(context, R.id.widget_stat_line, when (state) {
         TodayWidgetState.NO_PROGRAM, TodayWidgetState.NOTHING_ON_TODAY -> R.color.widget_text_secondary

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.wizard
 import cloud.trotter.log.strength.data.writeTestRows
 import kotlinx.coroutines.flow.map
 import android.content.Context
+import android.os.Parcel
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -17,6 +18,7 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -357,6 +359,59 @@ class WizardViewModelWiringTest {
     // --- navigation --------------------------------------------------------------
 
     @Test
+    fun legacyStepBundles_resumeTheSameQuestionAndMigrateOnlyOnce() = runVmTest {
+        val legacySteps = listOf(
+            WizardStep.EMPHASIS, WizardStep.DAYS_PER_WEEK, WizardStep.SPLIT,
+            WizardStep.ANCHORS, WizardStep.CARDIO, WizardStep.ABOUT_YOU,
+            WizardStep.EQUIPMENT, WizardStep.LIFTS, WizardStep.ROTATION,
+        )
+        for ((index, step) in legacySteps.withIndex()) {
+            val handle = parcelRoundTrip(SavedStateHandle(mapOf(
+                "wizard_initialized" to true,
+                "wizard_first_run" to true,
+                "wizard_step" to index,
+                "wizard_bodyweight" to 205,
+                "wizard_age" to 32,
+            )))
+            val vm = newViewModel(handle)
+            advanceUntilIdle()
+            assertEquals(step, vm.uiState.value.step)
+            assertEquals(205.0, vm.uiState.value.bodyweightLb ?: Double.NaN, 0.0)
+            assertEquals(32, vm.uiState.value.age)
+            if (step == WizardStep.ROTATION) {
+                assertTrue(vm.uiState.value.previewProgram!!.days.isNotEmpty())
+                assertTrue(vm.uiState.value.canContinue)
+            }
+
+            vm.onBack()
+            advanceUntilIdle()
+            val previous = if (index == 0) WizardStep.FOCUS else legacySteps[index - 1]
+            assertEquals(previous, vm.uiState.value.step)
+            assertEquals(index, handle.get<Int>("wizard_step"))
+            vm.viewModelScope.cancel()
+
+            val revived = newViewModel(parcelRoundTrip(handle))
+            advanceUntilIdle()
+            assertEquals(previous, revived.uiState.value.step)
+            revived.onNext()
+            advanceUntilIdle()
+            assertEquals(step, revived.uiState.value.step)
+            revived.viewModelScope.cancel()
+        }
+    }
+
+    private fun parcelRoundTrip(handle: SavedStateHandle): SavedStateHandle {
+        val parcel = Parcel.obtain()
+        return try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(WizardLiftDraft::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
     fun queuedNextFromCardio_stopsAtAboutYouUntilBothAnswersAreEntered() = runVmTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
@@ -366,20 +421,20 @@ class WizardViewModelWiringTest {
 
         vm.onNext()
         vm.onNext()
-        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step"))
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step_index_v2"))
         advanceUntilIdle()
         assertFalse(vm.uiState.value.canContinue)
 
         vm.setAge(33)
         vm.onNext()
-        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step"))
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step_index_v2"))
         vm.setAge(null)
         vm.setBodyweight(210.5)
         vm.onNext()
-        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step"))
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), handle.get<Int>("wizard_step_index_v2"))
         vm.setAge(33)
         vm.onNext()
-        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EQUIPMENT), handle.get<Int>("wizard_step"))
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EQUIPMENT), handle.get<Int>("wizard_step_index_v2"))
     }
 
     @Test
@@ -396,7 +451,7 @@ class WizardViewModelWiringTest {
         for ((bodyweight, age) in invalidAnswers) {
             val handle = SavedStateHandle(mapOf(
                 "wizard_initialized" to true,
-                "wizard_step" to WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION),
+                "wizard_step_index_v2" to WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION),
                 "wizard_bodyweight_lb" to bodyweight,
                 "wizard_age" to age,
             ))
@@ -665,6 +720,7 @@ class WizardViewModelWiringTest {
     @Test
     fun finish_onExistingInstall_createsAndSelectsSecondPlanWithoutChangingOriginal() = runVmTest {
         repo.replaceProgram(restoredProgram())
+        settings.setGlobalLifter(GlobalLifter.of(WizardAnswers().config))
         settings.setWizardComplete(true)
         val slot = db.programDao().exercisesForPlan(1).single().id
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slot) ?: -1, "R").first().runId.orEmpty(), "R", slot, Slot.MAIN, listOf(
@@ -694,6 +750,7 @@ class WizardViewModelWiringTest {
     @Test
     fun finish_twiceQuicklyOnExistingInstall_createsExactlyOnePlan() = runVmTest {
         repo.replaceProgram(restoredProgram())
+        settings.setGlobalLifter(GlobalLifter.of(WizardAnswers().config))
         settings.setWizardComplete(true)
         val recording = newRecordingRepo()
         val gate = CompletableDeferred<Unit>()
@@ -731,6 +788,7 @@ class WizardViewModelWiringTest {
 
     private suspend fun TestScope.retryFailedPublication(failedUpdate: Int) {
         repo.replaceProgram(restoredProgram())
+        settings.setGlobalLifter(GlobalLifter.of(WizardAnswers().config))
         settings.setWizardComplete(true)
         val originalPlans = db.planDao().allPlans()
         // Wrap the already initialized store so updates 1 and 2 are precisely
@@ -821,6 +879,7 @@ class WizardViewModelWiringTest {
     @Test
     fun finish_retriesCompletionWithoutCreatingAnotherPlan() = runVmTest {
         repo.replaceProgram(restoredProgram())
+        settings.setGlobalLifter(GlobalLifter.of(WizardAnswers().config))
         settings.setWizardComplete(true)
         val recording = newRecordingRepo()
         val vm = newViewModel(repository = recording)
@@ -852,6 +911,7 @@ class WizardViewModelWiringTest {
     @Test
     fun finish_savedPlanSurvivesViewModelRecreationBeforeRetry() = runVmTest {
         repo.replaceProgram(restoredProgram())
+        settings.setGlobalLifter(GlobalLifter.of(WizardAnswers().config))
         settings.setWizardComplete(true)
         val recording = newRecordingRepo()
         val handle = SavedStateHandle()
@@ -1082,6 +1142,54 @@ class WizardViewModelWiringTest {
         assertFalse(settings.hasLifterAnswersFlow.first())
         assertEquals(DistanceUnit.KM, settings.distanceUnitFlow.first())
         assertTrue(settings.wizardCompleteFlow.first())
+    }
+
+    @Test
+    fun cardioOnlySetup_thenNewPlanWithLiftingRequiresLifterAnswers() = runVmTest {
+        val first = newViewModel()
+        advanceUntilIdle()
+        first.setFocus(true)
+        repeat(WizardStateBuilder.steps(WizardAnswers(cardioFirst = CardioFirst())).size) { first.onNext() }
+        advanceUntilIdle()
+        assertTrue(first.uiState.value.isComplete)
+        assertTrue(settings.wizardCompleteFlow.first())
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        val global = settings.globalLifterFlow.first()
+        val original = db.planDao().allPlans().single()
+        first.viewModelScope.cancel()
+
+        val second = newViewModel()
+        advanceUntilIdle()
+        assertEquals(CardioFirst(), second.uiState.value.answers.cardioFirst)
+        second.setLiftDays(2)
+        val steps = WizardStateBuilder.steps(WizardAnswers(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2)))
+        repeat(steps.indexOf(WizardStep.ABOUT_YOU)) { second.onNext() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.ABOUT_YOU, second.uiState.value.step)
+        assertEquals(null, second.uiState.value.bodyweightLb)
+        assertEquals(null, second.uiState.value.age)
+        assertFalse(second.uiState.value.canContinue)
+
+        repeat(steps.size) { second.onNext() }
+        advanceUntilIdle()
+        assertEquals(WizardStep.ABOUT_YOU, second.uiState.value.step)
+        assertEquals(listOf(original), db.planDao().allPlans())
+        assertEquals(global, settings.globalLifterFlow.first())
+        assertFalse(settings.hasLifterAnswersFlow.first())
+
+        second.setBodyweight(185.0)
+        second.onNext()
+        advanceUntilIdle()
+        assertEquals(WizardStep.ABOUT_YOU, second.uiState.value.step)
+        second.setAge(35)
+        repeat(steps.size) { second.onNext() }
+        advanceUntilIdle()
+        assertTrue(second.uiState.value.isComplete)
+        assertEquals(2, db.planDao().allPlans().size)
+        assertEquals(original, db.planDao().plan(original.id))
+        assertTrue(settings.hasLifterAnswersFlow.first())
+        assertEquals(185.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(35, settings.globalLifterFlow.first().age)
     }
 
     @Test

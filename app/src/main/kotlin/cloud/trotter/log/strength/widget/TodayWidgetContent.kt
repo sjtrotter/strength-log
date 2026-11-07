@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.widget
 
 import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.glance.GlanceLines
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /** The widget face determines its colors. */
@@ -11,7 +12,7 @@ enum class TodayWidgetState {
     IN_PROGRESS,
     DONE,
 
-    /** No program yet (or a day with no exercises): one tertiary line, never blank. */
+    /** No scheduled work: one tertiary line, never blank. */
     NO_PROGRAM,
     NOTHING_ON_TODAY,
 }
@@ -37,6 +38,7 @@ sealed interface WidgetStatLine {
     data object SetUpProgram : WidgetStatLine
     data object NothingOnToday : WidgetStatLine
     data class Data(val value: String) : WidgetStatLine
+    data class Cardio(val activity: CardioActivity) : WidgetStatLine
 }
 
 /**
@@ -53,7 +55,8 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     if (snapshot != null && snapshot.day.dayId.isBlank()) {
         return TodayWidgetContent(null, WidgetStatLine.NothingOnToday, TodayWidgetState.NOTHING_ON_TODAY, 0, 0, 0)
     }
-    if (snapshot == null || (snapshot.day.exercises.isEmpty() && (snapshot.retiredRoundsDone ?: 0) == 0)) {
+    if (snapshot == null || (snapshot.day.exercises.isEmpty() && snapshot.cardioBlock == null &&
+            (snapshot.retiredRoundsDone ?: 0) == 0)) {
         return TodayWidgetContent(
             dayLine = null,
             statLine = WidgetStatLine.SetUpProgram,
@@ -77,7 +80,11 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     return TodayWidgetContent(
         dayLine = GlanceLines.dayLine(day.dayId, day.title),
         dayLetter = day.dayId,
-        statLine = WidgetStatLine.Data(GlanceLines.statLine(day.exercises.size, done, total)),
+        statLine = if (total == 0 && snapshot.cardioBlock != null) {
+            WidgetStatLine.Cardio(CardioActivity.valueOf(snapshot.cardioBlock.activity))
+        } else {
+            WidgetStatLine.Data(GlanceLines.statLine(day.exercises.size, done, total))
+        },
         state = state,
         accentIndex = day.accentIndex,
         setsDone = done,

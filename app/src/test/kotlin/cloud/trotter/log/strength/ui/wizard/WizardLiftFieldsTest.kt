@@ -170,7 +170,7 @@ class WizardLiftFieldsTest {
         val handle = SavedStateHandle(mapOf(
             "wizard_initialized" to true,
             "wizard_focus" to true,
-            "wizard_step" to 2,
+            "wizard_step_index_v2" to 2,
         ))
         lateinit var initial: WizardViewModel
         rule.runOnUiThread {

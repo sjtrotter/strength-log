@@ -41,12 +41,14 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.EmptyState
 import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoProgramState
+import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.cardioActivityName
@@ -97,7 +99,11 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     }
                     itemsIndexed(state.goals, key = { _, goal -> "goal_${goal.name}" }) { _, goal ->
                         ListItem(
+                            modifier = Modifier.clickable { actions.onOpenGoal(goal.exerciseId) },
                             headlineContent = { Text(goal.name) },
+                            supportingContent = goal.calculated?.let { calculated ->
+                                { Text(stringResource(R.string.plan_goal_calculated, calculated)) }
+                            },
                             trailingContent = {
                                 val suffix = if (goal.perHand) stringResource(R.string.setup_per_hand_suffix) else ""
                                 Text(goal.display + suffix, style = MaterialTheme.typography.titleLarge,
@@ -111,6 +117,43 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 }
             }
         }
+    }
+    state.goalDialog?.let { dialog ->
+        val unit = state.unit
+        val unitLabel = unit.name.lowercase() + if (dialog.perHand) stringResource(R.string.setup_per_hand_suffix) else ""
+        AppAlertDialog(
+            onDismissRequest = actions.onDismissGoal,
+            title = { Text(stringResource(R.string.plan_goal_title, dialog.name)) },
+            text = {
+                Column {
+                    NumberField(
+                        value = dialog.draftLb?.let(unit::fromLb),
+                        onValueChange = { actions.onGoalDraft(unit.toLb(it)) },
+                        onDraftChange = { value -> actions.onGoalDraft(value?.takeIf { it > 0.0 }?.let(unit::toLb)) },
+                        label = stringResource(R.string.plan_goal_weight, unitLabel),
+                        minValue = 0.0,
+                        format = WeightStepper::format,
+                        round = { WeightStepper.round(it, unit) },
+                        decimalInput = true,
+                        weightInput = true,
+                    )
+                    Text(stringResource(R.string.plan_goal_calculated, dialog.calculated))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = actions.onSaveGoal, enabled = (dialog.draftLb ?: 0.0) > 0.0) {
+                    Text(stringResource(R.string.plans_save))
+                }
+            },
+            dismissButton = {
+                Row {
+                    if (dialog.edited) {
+                        TextButton(onClick = actions.onUseCalculatedGoal) { Text(stringResource(R.string.plan_goal_use_calculated)) }
+                    }
+                    TextButton(onClick = actions.onDismissGoal) { Text(stringResource(R.string.setup_cancel_button)) }
+                }
+            },
+        )
     }
     if (state.dialog != null) {
         val renaming = state.dialog == "rename"

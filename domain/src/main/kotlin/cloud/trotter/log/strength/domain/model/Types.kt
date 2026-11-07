@@ -111,6 +111,8 @@ data class LifterConfig(
     val level: ExperienceLevel = ExperienceLevel.INTERMEDIATE,
     val emphasis: GoalEmphasis = GoalEmphasis.BALANCED,
     val weightUnit: WeightUnit = WeightUnit.LB,
+    /** This plan's edited goals by exercise id, in lb. An absent id uses the calculated goal. */
+    val goalsLb: Map<String, Double> = emptyMap(),
 ) {
     constructor(
         bodyweightLb: Int,

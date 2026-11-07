@@ -108,6 +108,94 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun `saving a goal writes it to the plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
+        repo.plans.publishCreatedPlan(preferred, answers)
+        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        advanceUntilIdle()
+        assertEquals(235.0, vm.uiState.value.goalDialog!!.draftLb!!, 0.0)
+        assertEquals(false, vm.uiState.value.goalDialog!!.edited)
+        vm.setGoalDraft(200.0)
+        vm.saveGoal()
+        advanceUntilIdle()
+
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("200", vm.uiState.value.goals.first().display)
+        assertEquals("235", vm.uiState.value.goals.first().calculated)
+        vm.openGoal("bb_back_squat")
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.goalDialog!!.edited)
+        assertEquals("235", vm.uiState.value.goalDialog!!.calculated)
+        vm.useCalculatedGoal()
+        advanceUntilIdle()
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("235", vm.uiState.value.goals.first().display)
+    }
+
+    @Test
+    fun `goal dialog and its draft survive recreation and keep the viewed plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val handle = SavedStateHandle()
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        vm.setGoalDraft(200.0)
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        vm.viewModelScope.cancel()
+        val other = repo.plans.createAuthoredPlan("Other", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(other)
+        val restored = viewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals(PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 200.0, "235", false),
+            restored.uiState.value.goalDialog)
+        restored.saveGoal()
+        advanceUntilIdle()
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(other).first().config.goalsLb)
+        assertNull(restored.uiState.value.goalDialog)
+        assertNull(restoredHandle.get<String>("plan_goal_exercise"))
+        assertNull(restoredHandle.get<Double>("plan_goal_draft_lb"))
+    }
+
+    @Test
+    fun `invalid goal drafts cannot save and a missing goal cannot open`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.openGoal("missing")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        vm.openGoal("bb_back_squat")
+        for (invalid in listOf(null, 0.0, -1.0, Double.NaN, Double.POSITIVE_INFINITY)) {
+            vm.setGoalDraft(invalid)
+            vm.saveGoal()
+            advanceUntilIdle()
+            assertEquals("bb_back_squat", vm.uiState.value.goalDialog!!.exerciseId)
+            assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+        }
+        vm.dismissGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        val restored = viewModel(SavedStateHandle(mapOf(
+            Routes.PLAN_ID_ARG to plan.toString(), "plan_goal_exercise" to "missing", "plan_goal_draft_lb" to 200.0,
+        )))
+        advanceUntilIdle()
+        assertNull(restored.uiState.value.goalDialog)
+    }
+
+    @Test
     fun `tapped plan stays visible and all day actions target it while preferred changes`() = runTest(dispatcher) {
         val preferred = repo.plans.createAuthoredPlan("Preferred", "Preferred day")
         repo.plans.publishCreatedAuthoredPlan(preferred)

@@ -44,6 +44,8 @@ class PlanViewModel @Inject constructor(
     private val dialogState = combine(dialog, dialogDay, title, menu) { kind, day, draft, menuDay ->
         PlanUiState(dialog = kind, dialogDayId = day, dayTitleDraft = draft, menuDayId = menuDay)
     }
+    private val goal = savedState.getStateFlow<String?>(GOAL, null)
+    private val goalDraft = savedState.getStateFlow<Double?>(GOAL_DRAFT, null)
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
@@ -51,12 +53,50 @@ class PlanViewModel @Inject constructor(
         ) { program, answers, catalog, unit ->
             PlanScreenBuilder.buildUiState(plan, program, answers, catalog, unit)
         } }
-    val uiState: StateFlow<PlanUiState> = combine(programState, dialogState) { program, draft ->
+    val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft) { program, draft, goalId, goalLb ->
         program.copy(
+            goalDialog = program.goals.firstOrNull { it.exerciseId == goalId }?.let { row ->
+                PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb,
+                    row.calculated ?: row.display, row.calculated != null)
+            },
             menuDayId = draft.menuDayId, dialog = draft.dialog,
             dialogDayId = draft.dialogDayId, dayTitleDraft = draft.dayTitleDraft,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
+
+    fun openGoal(exerciseId: String) {
+        val row = uiState.value.goals.firstOrNull { it.exerciseId == exerciseId } ?: return
+        savedState[GOAL] = exerciseId
+        savedState[GOAL_DRAFT] = row.goalLb
+    }
+
+    fun setGoalDraft(lb: Double?) { savedState[GOAL_DRAFT] = lb }
+
+    fun saveGoal() {
+        val id = goal.value ?: return
+        val draft = goalDraft.value?.takeIf { it.isFinite() && it > 0.0 } ?: return
+        viewModelScope.launch {
+            mutationLock.withLock {
+                plans.setPlanGoal(planId, id, draft)
+                dismissGoal()
+            }
+        }
+    }
+
+    fun useCalculatedGoal() {
+        val id = goal.value ?: return
+        viewModelScope.launch {
+            mutationLock.withLock {
+                plans.setPlanGoal(planId, id, null)
+                dismissGoal()
+            }
+        }
+    }
+
+    fun dismissGoal() {
+        savedState[GOAL] = null
+        savedState[GOAL_DRAFT] = null
+    }
 
     fun setEmphasis(emphasis: GoalEmphasis) {
         viewModelScope.launch { plans.setPlanEmphasis(planId, emphasis) }
@@ -113,6 +153,8 @@ class PlanViewModel @Inject constructor(
     }
 
     private companion object {
+        const val GOAL = "plan_goal_exercise"
+        const val GOAL_DRAFT = "plan_goal_draft_lb"
         const val DIALOG = "plan_day_dialog"
         const val DAY = "plan_dialog_day"
         const val PLAN = "plan_dialog_plan"

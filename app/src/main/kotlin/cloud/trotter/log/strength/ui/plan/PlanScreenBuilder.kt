@@ -22,6 +22,7 @@ object PlanScreenBuilder {
         val days = days(program, plan?.suggestedDayId, answers.config, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.isNotEmpty()
         return PlanUiState(
+            unit = unit,
             name = plan?.name,
             planId = plan?.id,
             hasProgram = days.isNotEmpty(),

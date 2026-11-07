@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -31,6 +32,11 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.StandardLift
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -573,6 +579,67 @@ class PlanSettingsTest {
 
         assertEquals(before + authored, db.planDao().allPlans())
         assertEquals(prefs, store.data.first())
+    }
+
+    @Test
+    fun `setting a plan goal stores it on that plan only`() = runTest {
+        db.planDao().insertPlans(listOf(plan(1, WizardAnswers()), plan(2, WizardAnswers())))
+        settings.setSelectedPlanId(2)
+        repo.plans.runPlanSettingsFixupIfNeeded()
+        val other = db.planDao().plan(2)
+        val prefs = store.data.first()
+
+        repo.plans.setPlanGoal(1, "bb_back_squat", 200.0)
+
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(1).first().config.goalsLb)
+        assertTrue(repo.plans.wizardAnswersFor(2).first().config.goalsLb.isEmpty())
+        assertEquals(other, db.planDao().plan(2))
+        repo.plans.setPlanEmphasis(1, GoalEmphasis.STRENGTH)
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(1).first().config.goalsLb)
+        repo.plans.setPlanGoal(1, "bb_back_squat", null)
+        assertTrue(repo.plans.wizardAnswersFor(1).first().config.goalsLb.isEmpty())
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(1).first().config.emphasis)
+        assertEquals(prefs, store.data.first())
+    }
+
+    @Test
+    fun `a goal edit leaves stored working values alone`() = runTest {
+        val exercise = ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 6)
+        val program = Program(listOf("A", "B").map { ProgramDay(it, "Day $it", "", listOf(exercise)) })
+        val planId = repo.plans.createGeneratedPlan("Goals", WizardAnswers(), program)
+        repo.ensureSeeded(planId, "A")
+        val original = db.programDao().logsForPlan(planId).single()
+        val working = original.copy(setsJson = SetJson.encodeSets(SetJson.decodeSets(original.setsJson).map {
+            if (it.kind == SetKind.TOP) it.copy(weightLb = 245.0) else it
+        }))
+        db.programDao().upsertLog(working)
+        repo.startRun(planId, "A")
+        val tracks = db.runDao().allTracks()
+        assertTrue(tracks.isNotEmpty())
+
+        repo.plans.setPlanGoal(planId, exercise.exerciseId, 200.0)
+        repo.ensureSeeded(planId, "A")
+
+        assertEquals(listOf(working), db.programDao().logsForPlan(planId))
+        assertEquals(tracks, db.runDao().allTracks())
+        repo.ensureSeeded(planId, "B")
+        val later = db.programDao().logsForPlan(planId).single { it.dayId == "B" }
+        assertEquals(200.0, SetJson.decodeSets(later.setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertEquals(working, db.programDao().logsForPlan(planId).single { it.dayId == "A" })
+        assertEquals(tracks, db.runDao().allTracks())
+    }
+
+    @Test
+    fun `setPlanGoal ignores missing plans and null recipes and rejects invalid weights`() = runTest {
+        db.planDao().insertPlan(plan(1).copy(origin = PlanOrigin.AUTHORED.name))
+        repo.plans.runPlanSettingsFixupIfNeeded()
+        val before = db.planDao().allPlans()
+        repo.plans.setPlanGoal(1, "bb_back_squat", 200.0)
+        repo.plans.setPlanGoal(2, "bb_back_squat", 200.0)
+        for (invalid in listOf(-1.0, 0.0, Double.NaN, Double.POSITIVE_INFINITY)) {
+            assertTrue(runCatching { repo.plans.setPlanGoal(1, "bb_back_squat", invalid) }.exceptionOrNull() is IllegalArgumentException)
+        }
+        assertEquals(before, db.planDao().allPlans())
     }
 
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {

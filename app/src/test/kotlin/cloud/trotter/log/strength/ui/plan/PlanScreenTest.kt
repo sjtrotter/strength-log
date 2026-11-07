@@ -1,19 +1,26 @@
 package cloud.trotter.log.strength.ui.plan
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.ui.components.LOADING_REVEAL_DELAY_MS
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -86,6 +93,81 @@ class PlanScreenTest {
         rule.onNodeWithText("Physique-leaning").assertExists()
         rule.onNodeWithText("Strength-leaning").performClick()
         assertEquals(GoalEmphasis.STRENGTH, emphasis)
+    }
+
+    @Test
+    fun `tapping a goal opens its editor`() {
+        val state = mutableStateOf(planScreenFixture().copy(
+            goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false, "bb_back_squat", 235.0)),
+            emphasis = GoalEmphasis.BALANCED,
+        ))
+        var opened: String? = null
+        var saved = 0
+        var canceled = 0
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(
+                onOpenGoal = { id ->
+                    opened = id
+                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 235.0, "235", false))
+                },
+                onSaveGoal = { saved++ }, onDismissGoal = { canceled++ },
+            ))
+        } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Back Squat"))
+        rule.onNodeWithText("Barbell Back Squat").performClick()
+        assertEquals("bb_back_squat", opened)
+        rule.onNodeWithText("Barbell Back Squat goal").assertExists()
+        rule.onNodeWithText("Goal (lb)").assertExists()
+        rule.onNodeWithText("Calculated 235").assertExists()
+        rule.onNodeWithText("Use calculated").assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsEnabled().performClick()
+        rule.onNodeWithText("Cancel").performClick()
+        assertEquals(1, saved)
+        assertEquals(1, canceled)
+    }
+
+    @Test
+    fun `an edited goal offers use calculated`() {
+        var reset = 0
+        val state = mutableStateOf(planScreenFixture().copy(
+            goals = listOf(GoalPreviewItem("Barbell Back Squat", "200", false, "bb_back_squat", 200.0, "235")),
+            emphasis = GoalEmphasis.BALANCED,
+        ))
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(
+                onOpenGoal = { id ->
+                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 200.0, "235", true))
+                },
+                onUseCalculatedGoal = { reset++ },
+            ))
+        } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Back Squat"))
+        rule.onNodeWithText("Calculated 235").assertExists()
+        rule.onNodeWithText("200").assertExists()
+        rule.onNodeWithText("Barbell Back Squat").performClick()
+        rule.onNodeWithText("Barbell Back Squat goal").assertExists()
+        rule.onNode(hasText("Calculated 235") and hasAnyAncestor(isDialog())).assertExists()
+        rule.onNodeWithText("Use calculated").performClick()
+        assertEquals(1, reset)
+    }
+
+    @Test
+    fun `goal editor converts kg per hand drafts and disables save for an empty draft`() {
+        val state = mutableStateOf(planScreenFixture().copy(
+            unit = WeightUnit.KG,
+            goalDialog = PlanGoalDialog("incline_db", "Incline DB Press", true, WeightUnit.KG.toLb(30.0), "35", false),
+        ))
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(onGoalDraft = { lb ->
+                state.value = state.value.copy(goalDialog = state.value.goalDialog!!.copy(draftLb = lb))
+            }))
+        } }
+        rule.onNodeWithText("Goal (kg/hand)").performTextReplacement("32.5")
+        rule.runOnIdle { assertEquals(WeightUnit.KG.toLb(32.5), state.value.goalDialog!!.draftLb!!, 0.0) }
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.onNodeWithText("Goal (kg/hand)").performTextReplacement("")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(null, state.value.goalDialog!!.draftLb) }
     }
 
     @Test

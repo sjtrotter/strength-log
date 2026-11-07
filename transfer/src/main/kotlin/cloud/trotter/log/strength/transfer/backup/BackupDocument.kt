@@ -23,8 +23,9 @@ import kotlinx.serialization.Serializable
  * v17 adds bodyweight at tenths-of-a-pound precision.
  * v18 carries parked Progress working values while Next time is Plan.
  * v19 carries the distance unit when the lifter chose one.
+ * v20 carries each plan's edited goals inside its recipe.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 19
+const val CURRENT_SCHEMA_VERSION: Int = 20
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */

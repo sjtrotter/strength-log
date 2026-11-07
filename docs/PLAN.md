@@ -311,6 +311,10 @@ Entries are not part of the plan's recipe, so Reset day to template regenerates
 from the formula. Goals stay calculated (#503). Part C appends goal editing to
 this amendment.
 
+Goals are editable from the plan: an edited goal is stored in the plan's recipe,
+replaces only that lift's goal everywhere the goal is read, and never rewrites
+stored working values. Backup v20 carries it inside the recipe.
+
 ## Architecture
 
 ```

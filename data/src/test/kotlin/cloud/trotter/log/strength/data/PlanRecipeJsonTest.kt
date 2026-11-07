@@ -7,8 +7,27 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
+import kotlin.test.assertFailsWith
 
 class PlanRecipeJsonTest {
+    @Test
+    fun `edited goals round-trip and old recipes decode with none`() {
+        val answers = WizardAnswers().let { it.copy(config = it.config.copy(goalsLb = mapOf("bb_bench" to 205.0))) }
+        val encoded = PlanRecipeJson.encode(answers)
+        PlanRecipeJson.validate(encoded)
+        assertEquals(answers, PlanRecipeJson.decode(encoded, GlobalLifter()))
+        val legacy = PlanRecipeJson.encode(WizardAnswers())
+        assertFalse(legacy.contains("goalsLb"))
+        assertEquals(emptyMap<String, Double>(), PlanRecipeJson.decode(legacy, GlobalLifter()).config.goalsLb)
+
+        for (invalid in listOf("-1", "0", "2000.1", "NaN", "1e999")) {
+            assertFailsWith<IllegalArgumentException>(invalid) {
+                PlanRecipeJson.validate(encoded.replace("205.0", invalid))
+            }
+        }
+        PlanRecipeJson.validate(encoded.replace("205.0", "2000.0"))
+    }
+
     @Test
     fun `recipe omits global lifter and decodes with the current globals`() {
         val answers = WizardAnswers()

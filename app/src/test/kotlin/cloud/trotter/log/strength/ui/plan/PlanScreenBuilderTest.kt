@@ -115,8 +115,28 @@ class PlanScreenBuilderTest {
             GoalPreviewItem("Barbell Bench Press", "195", false),
             GoalPreviewItem("Trap-Bar Deadlift", "255", false),
             GoalPreviewItem("Incline DB Press", "75", true),
-        ), state.goals)
+        ), state.goals.map { GoalPreviewItem(it.name, it.display, it.perHand) })
+        assertTrue(state.goals.all { it.calculated == null })
         assertEquals(GoalEmphasis.BALANCED, state.emphasis)
+    }
+
+    @Test
+    fun `an edited goal shows its calculated value`() {
+        val answers = WizardAnswers(config = LifterConfig(goalsLb = mapOf("bb_back_squat" to 200.0)))
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
+        val state = PlanScreenBuilder.buildUiState(
+            plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.LB,
+        )
+        val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
+        assertEquals("200", squat.display)
+        assertEquals(200.0, squat.goalLb, 0.0)
+        assertEquals("235", squat.calculated)
+        assertNull(state.goals.single { it.exerciseId == "bb_bench" }.calculated)
+        val kg = PlanScreenBuilder.buildUiState(
+            plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.KG,
+        )
+        assertEquals(WeightUnit.KG, kg.unit)
+        assertEquals(200.0, kg.goals.single { it.exerciseId == "bb_back_squat" }.goalLb, 0.0)
     }
 
     @Test

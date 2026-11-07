@@ -39,8 +39,9 @@ object GoalCalculator {
     fun goalFor(pe: ProgramExercise, cfg: LifterConfig): Double =
         goalFor(ExerciseLibrary.get(pe.exerciseId), cfg)
 
-    fun goalFor(entry: ExerciseEntry, cfg: LifterConfig): Double =
-        when (val src = entry.goal) {
+    fun goalFor(entry: ExerciseEntry, cfg: LifterConfig): Double {
+        cfg.goalsLb[entry.id]?.let { return it }
+        return when (val src = entry.goal) {
             // perHand asymmetry: Std halves the total (pinned by incline_db = 75/hand),
             // but a FracOfStd fraction is already calibrated per hand — db_bench's
             // 0.4×BENCH is exactly half of incline_bb's 0.8×BENCH total. Never halve twice.
@@ -54,6 +55,7 @@ object GoalCalculator {
             is GoalSource.Reps -> error("goalFor called on a REPS entry: ${entry.id}")
             is GoalSource.Time -> error("goalFor called on a TIMED entry: ${entry.id}")
         }
+    }
 
     /**
      * The read-only display target for any entry — the single SSOT router that

@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.StrengthStandards
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.text.UiText
@@ -24,6 +25,22 @@ import cloud.trotter.log.strength.ui.text.UiText
  * generated program uses), and split options from [SplitDefaults].
  */
 object WizardStateBuilder {
+
+    fun steps(answers: WizardAnswers): List<WizardStep> = buildList {
+        add(WizardStep.FOCUS)
+        val cardio = answers.cardioFirst
+        if (cardio != null) {
+            addAll(listOf(WizardStep.CARDIO_ACTIVITY, WizardStep.CARDIO_START, WizardStep.CARDIO_SESSIONS, WizardStep.ALSO_LIFT))
+        }
+        if (cardio == null || cardio.liftDays > 0) {
+            add(WizardStep.EMPHASIS)
+            if (cardio == null) add(WizardStep.DAYS_PER_WEEK)
+            addAll(listOf(WizardStep.SPLIT, WizardStep.ANCHORS))
+            if (cardio == null) add(WizardStep.CARDIO)
+            addAll(listOf(WizardStep.ABOUT_YOU, WizardStep.EQUIPMENT, WizardStep.LIFTS))
+        }
+        add(WizardStep.ROTATION)
+    }
 
     /**
      * Keeps [current] if the new [days] count still offers it (as default or
@@ -59,6 +76,8 @@ object WizardStateBuilder {
         isComplete: Boolean,
         restore: WizardRestoreState = WizardRestoreState(),
         unit: WeightUnit = WeightUnit.LB,
+        distanceUnit: DistanceUnit = DistanceUnit.MI,
+        cardioStartByTime: Boolean = true,
         previewProgram: Program? = null,
         finishError: UiText? = null,
         finishInFlight: Boolean = false,
@@ -67,14 +86,18 @@ object WizardStateBuilder {
         age: Int? = null,
         liftDrafts: List<WizardLiftDraft> = emptyList(),
     ): WizardUiState {
-        val clamped = stepIndex.coerceIn(0, WizardStep.entries.lastIndex)
+        val steps = steps(answers)
+        val clamped = stepIndex.coerceIn(steps.indices)
         return WizardUiState(
             stepIndex = clamped,
-            step = WizardStep.entries[clamped],
+            step = steps[clamped],
+            steps = steps,
             answers = answers,
             splitOptions = SplitDefaults.optionsFor(answers.daysPerWeek),
             activeAnchorIds = ProgramGenerator.activeAnchorIds(answers),
             unit = unit,
+            distanceUnit = distanceUnit,
+            cardioStartByTime = cardioStartByTime,
             previewProgram = previewProgram,
             previewLifts = previewLifts(previewProgram, answers.config, unit),
             isComplete = isComplete,

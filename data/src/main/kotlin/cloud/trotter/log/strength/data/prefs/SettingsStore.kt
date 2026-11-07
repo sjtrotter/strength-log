@@ -447,6 +447,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         themePreference: ThemePreference = ThemePreference.SYSTEM,
         distanceUnit: DistanceUnit? = null,
         onTodayFixupDone: Boolean = false,
+        hasLifterAnswers: Boolean = true,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -459,7 +460,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val autoFailed = prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED]
         val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
-        prefs.writeGlobalLifter(global)
+        if (hasLifterAnswers) prefs.writeGlobalLifter(global)
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId

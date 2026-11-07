@@ -20,7 +20,7 @@ object PlanScreenBuilder {
         unit: WeightUnit,
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, answers.config, catalog)
-        val generated = plan?.origin == PlanOrigin.GENERATED.name && days.isNotEmpty()
+        val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
         return PlanUiState(
             unit = unit,
             name = plan?.name,

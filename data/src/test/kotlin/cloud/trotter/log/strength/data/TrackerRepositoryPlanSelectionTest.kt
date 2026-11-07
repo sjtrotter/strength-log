@@ -10,6 +10,10 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -25,6 +29,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -42,6 +47,62 @@ class TrackerRepositoryPlanSelectionTest {
     @Test
     fun `select holds archive until the settings write commits`() = runTest {
         raceSelectionAndArchive(archiveFirst = false)
+    }
+
+    @Test
+    fun `generated cardio plans offer increases and start at A on insert and update`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
+            .allowMainThreadQueries()
+            .setQueryCoroutineContext(StandardTestDispatcher(testScheduler))
+            .build()
+        try {
+            val settings = SettingsStore(PausingDataStore())
+            val repo = PlanRepository(db, settings)
+            repo.runPlanSettingsFixupIfNeeded()
+            for (cardioFirst in listOf(false, true)) {
+                val answers = WizardAnswers(cardioFirst = if (cardioFirst) CardioFirst() else null)
+                for (update in listOf(false, true)) {
+                    val emptyId = if (update) db.planDao().insertPlan(PlanEntity(
+                        0, "Empty", PlanOrigin.GENERATED.name, 0, 1000,
+                        offerCardioIncreases = !cardioFirst,
+                    )).also { settings.setSelectedPlanId(it) } else null
+                    val id = repo.createGeneratedPlan("Generated", answers, ProgramGenerator.generate(answers))
+                    if (emptyId != null) assertEquals(emptyId, id)
+                    val plan = db.planDao().plan(id)!!
+                    assertEquals(cardioFirst, plan.offerCardioIncreases)
+                    assertEquals("A", plan.suggestedDayId)
+                    assertEquals(if (cardioFirst) 3 else 4, db.programDao().daysForPlan(id).size)
+                    repo.publishCreatedPlan(id, answers)
+                }
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `publishing without lifter answers preserves the global lifter`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
+            .allowMainThreadQueries()
+            .setQueryCoroutineContext(StandardTestDispatcher(testScheduler))
+            .build()
+        try {
+            val settings = SettingsStore(PausingDataStore())
+            val repo = PlanRepository(db, settings)
+            repo.runPlanSettingsFixupIfNeeded()
+            val global = GlobalLifter(190.0, 55, ExperienceLevel.ADVANCED)
+            settings.setGlobalLifter(global)
+            val answers = WizardAnswers(cardioFirst = CardioFirst())
+            val id = repo.createGeneratedPlan("Running", answers, ProgramGenerator.generate(answers))
+            repo.publishCreatedPlan(id, answers, writeLifter = false)
+            assertEquals(global, settings.globalLifterFlow.first())
+            assertEquals(id, settings.selectedPlanIdFlow.first())
+            assertTrue(db.planDao().plan(id)!!.onToday)
+        } finally {
+            db.close()
+        }
     }
 
     private suspend fun TestScope.raceSelectionAndArchive(archiveFirst: Boolean) {

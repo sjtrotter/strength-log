@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +35,10 @@ internal fun activityLabel(activity: CardioActivity): String =
     cardioActivityLabel(activity)
 
 @Composable
-internal fun cardioActivityName(activity: CardioActivity): String = stringResource(when (activity) {
+internal fun cardioActivityName(activity: CardioActivity): String = stringResource(cardioActivityNameRes(activity))
+
+@StringRes
+internal fun cardioActivityNameRes(activity: CardioActivity): Int = when (activity) {
     CardioActivity.ROAD_RUN -> R.string.cardio_road_run
     CardioActivity.TRAIL_RUN -> R.string.cardio_trail_run
     CardioActivity.TRACK_RUN -> R.string.cardio_track_run
@@ -45,7 +49,7 @@ internal fun cardioActivityName(activity: CardioActivity): String = stringResour
     CardioActivity.STATIONARY_BIKE -> R.string.cardio_stationary_bike
     CardioActivity.ELLIPTICAL -> R.string.cardio_elliptical
     CardioActivity.ROWER -> R.string.cardio_rower
-})
+}
 
 @Composable
 internal fun roleName(role: CardioRole): String = stringResource(when (role) {

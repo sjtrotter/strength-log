@@ -216,9 +216,11 @@ class TypedCardioMigrationTest {
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
         }, settings)
+        assertFalse(snapshot.hasLifterAnswers)
 
         backupRepository.importSnapshot(snapshot, journal)
 
+        assertFalse(settings.hasLifterAnswersFlow.first())
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
             repo.plans.programFor(1).first().days.single().cardioBlock)
@@ -272,9 +274,14 @@ class TypedCardioMigrationTest {
         val failingRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings)
         val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history)
         val exported = failingBackup.exportSnapshot()
-        val snapshot = exported.copy(days = listOf(legacyDay), answers = exported.answers.copy(
-            config = exported.answers.config.copy(bodyweightLb = 190.0, age = 28),
-        ))
+        assertFalse(exported.hasLifterAnswers)
+        val snapshot = exported.copy(
+            days = listOf(legacyDay),
+            hasLifterAnswers = true,
+            answers = exported.answers.copy(
+                config = exported.answers.config.copy(bodyweightLb = 190.0, age = 28),
+            ),
+        )
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")
         }, failingSettings)
@@ -286,6 +293,7 @@ class TypedCardioMigrationTest {
         // Coroutine stack-trace recovery may copy the exception, nesting the original under it.
         assertTrue(generateSequence(failure) { it.cause }.any { it === readFailure })
         assertNull(db.restoreMarkerDao().nonce())
+        assertTrue(settings.hasLifterAnswersFlow.first())
         assertEquals(GlobalLifter.of(snapshot.answers.config), settings.globalLifterFlow.first())
         assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),

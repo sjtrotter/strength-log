@@ -60,7 +60,10 @@ object ProgramGenerator {
 
     private const val NOVICE_SETS = 3
 
-    fun generate(answers: WizardAnswers): Program = seedMains(skeleton(answers), answers)
+    fun generate(answers: WizardAnswers): Program {
+        answers.cardioFirst?.let { return CardioFirstPlanner.program(answers, it) }
+        return seedMains(skeleton(answers), answers)
+    }
 
     /** The plan's main lifts in day order, what the wizard's recent-lifts step asks about. */
     fun mainLiftIds(answers: WizardAnswers): List<String> = skeleton(answers).days

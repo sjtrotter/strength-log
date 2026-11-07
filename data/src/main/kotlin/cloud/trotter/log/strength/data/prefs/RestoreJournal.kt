@@ -63,6 +63,7 @@ class RestoreJournal(
     suspend fun stage(snapshot: FullSnapshot, nonce: String) {
         staged.restore(
             global = GlobalLifter.of(snapshot.answers.config),
+            hasLifterAnswers = snapshot.hasLifterAnswers,
             unit = snapshot.unit,
             wizardComplete = snapshot.wizardComplete,
             selectedPlanId = snapshot.selectedPlanId,
@@ -124,6 +125,7 @@ class RestoreJournal(
         applyLegacySessionNotes(staged.legacySessionNotesFlow.first())
         settings.restore(
             global = staged.globalLifterFlow.first(),
+            hasLifterAnswers = staged.hasLifterAnswersFlow.first(),
             unit = staged.unitFlow.first(),
             wizardComplete = staged.wizardCompleteFlow.first(),
             selectedPlanId = selectedPlanId,

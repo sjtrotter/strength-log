@@ -4,6 +4,17 @@
   "steps": [
     {
       "tap": {
+        "text": "Lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
         "text": "Balanced strength + muscle"
       }
     },
@@ -124,6 +135,11 @@
     },
     {
       "checkpoint": "equipment-top-again"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {

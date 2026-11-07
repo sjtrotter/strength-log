@@ -9,12 +9,9 @@
   },
   "steps": [
     {
-      "checkpoint": "first-open-before-gym"
-    },
-    {
       "tap": {
-        "role": "RadioButton",
-        "index": 0
+        "text": "Lifting",
+        "role": "RadioButton"
       }
     },
     {
@@ -23,30 +20,8 @@
       }
     },
     {
-      "checkpoint": "setup-question-two"
-    },
-    {
-      "type": {
-        "text": "Days per week",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "three-days-entered"
-    },
-    {
       "tap": {
         "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-question-three"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 0
       }
     },
     {
@@ -55,32 +30,8 @@
       }
     },
     {
-      "checkpoint": "setup-question-four"
-    },
-    {
-      "note": "The scroll attempt on Main lifts timed out in run 6. Continue with Next to look for a later way to replace the barbell exercises; I am not ready to perform them."
-    },
-    {
-      "checkpoint": "main-lifts-before-continuing"
-    },
-    {
       "tap": {
         "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-question-five"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 4
       }
     },
     {
@@ -89,7 +40,21 @@
       }
     },
     {
-      "checkpoint": "setup-question-six"
+      "scrollTo": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "type": {
@@ -107,18 +72,8 @@
     },
     {
       "tap": {
-        "role": "RadioButton",
-        "index": 1
+        "text": "Next"
       }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 2
-      }
-    },
-    {
-      "checkpoint": "pounds-and-novice"
     },
     {
       "tap": {
@@ -126,56 +81,9 @@
       }
     },
     {
-      "checkpoint": "setup-question-seven"
-    },
-    {
-      "tap": {
-        "text": "Clear all"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 3
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 4
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 5
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 6
-      }
-    },
-    {
-      "checkpoint": "equipment-without-barbells"
-    },
-    {
       "tap": {
         "text": "Next"
       }
-    },
-    {
-      "checkpoint": "setup-question-eight"
-    },
-    {
-      "note": "The preview still shows Barbell Back Squat and Barbell Bench Press after I unchecked bars. I am continuing to look for exercise replacements, not agreeing to train with barbells."
     },
     {
       "tap": {
@@ -183,79 +91,12 @@
       }
     },
     {
-      "checkpoint": "after-setup-looking-for-machine-plan"
-    },
-    {
-      "tap": {
-        "desc": "Settings"
+      "expect": {
+        "text": "Start day A"
       }
     },
     {
-      "checkpoint": "settings-reminders-backup-and-preferences"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Other days"
-      }
-    },
-    {
-      "checkpoint": "other-days-scheduling"
-    },
-    {
-      "tap": {
-        "text": "Other days"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "full body \u00b7 Day A"
-      }
-    },
-    {
-      "checkpoint": "day-a-preview-looking-for-replacements"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "History"
-      }
-    },
-    {
-      "checkpoint": "history-before-first-visit"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "recreate": true
-    },
-    {
-      "checkpoint": "today-after-reopening"
-    },
-    {
-      "tap": {
-        "text": "Plans"
-      }
-    },
-    {
-      "checkpoint": "plans-looking-for-machine-customization"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "advance": "1h"
+      "checkpoint": "day-a-before-logging"
     },
     {
       "tap": {
@@ -263,1010 +104,25 @@
       }
     },
     {
-      "checkpoint": "first-workout-before-any-sets"
-    },
-    {
       "tap": {
         "text": "All sets"
       }
     },
     {
-      "checkpoint": "all-sets-looking-for-machine-replacement"
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "desc": "Edit set 1"
+        "tag": "lift-check-main-0"
       }
-    },
-    {
-      "checkpoint": "set-editor-before-logging-anything"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 0 of 21 sets"
-      }
-    },
-    {
-      "checkpoint": "workout-lift-list-looking-for-swap-and-instructions"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "leave-unlogged-barbell-workout"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "desc": "Plan options"
-      }
-    },
-    {
-      "checkpoint": "plan-options-for-machine-routine"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "New plan"
-      }
-    },
-    {
-      "checkpoint": "new-plan-options-for-my-machine-routine"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "full body \u00b7 Day A",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "checkpoint": "edit-day-a-to-match-my-machine-workout"
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "squat-options-looking-for-machine-replacement"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "textContains": "Barbell Back Squat",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "exercise-prescription-editor-for-beginner-sets"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "textContains": "DB Bench Press",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "accessory-prescription-editor-for-three-by-ten"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "checkpoint": "cardio-editor-for-short-treadmill-walking"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "edit-day-options-for-repeating-machine-routine"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "checkpoint": "row-options-for-substitution-and-order"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "exercise-picker-for-my-four-machines"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "leg-press-replacement-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "chest-machine-replacement-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "row-machine-replacement-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "checkpoint": "main-lift-options-for-simple-three-by-ten"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Back Extension"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Plank / Side Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "removed-exercises-outside-my-machine-routine"
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Knee flexion (leg curl)"
-      }
-    },
-    {
-      "checkpoint": "looking-for-seated-leg-curl"
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "checkpoint": "leg-curl-added"
-    },
-    {
-      "tap": {
-        "textContains": "Seated Leg Curl",
-        "inDialog": true
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "curl-two-sets-at-twenty"
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "text": "Machine Chest Press"
-      }
-    },
-    {
-      "checkpoint": "selected-machine-chest-press"
-    },
-    {
-      "tap": {
-        "text": "The plan"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Machine Chest Press",
-        "inDialog": true
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "text": "Machine Row"
-      }
-    },
-    {
-      "checkpoint": "selected-machine-row"
-    },
-    {
-      "tap": {
-        "text": "The plan"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Machine Row",
-        "inDialog": true
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "chest-and-row-starting-weights"
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "note": "The harness rejected tapping the Activity dropdown as editable. Leave Treadmill run selected for now; inspect the duration row and continue lifting."
-    },
-    {
-      "checkpoint": "cardio-activity-dropdown-harness-boundary"
-    },
-    {
-      "note": "No activity menu opened, so stay in Edit cardio before opening Set 1."
-    },
-    {
-      "tap": {
-        "textContains": "Set 1 \u00b7 Work",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "cardio-duration-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "text": "Leg Press"
-      }
-    },
-    {
-      "checkpoint": "leg-press-replaces-squat"
-    },
-    {
-      "tap": {
-        "text": "The plan"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Leg Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "tap": {
-        "text": "Straight sets"
-      }
-    },
-    {
-      "checkpoint": "leg-press-straight-sets"
-    },
-    {
-      "tap": {
-        "text": "Prescription"
-      }
-    },
-    {
-      "checkpoint": "leg-press-prescription-after-changing-structure"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "60"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "leg-press-starting-prescription-saved"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "machine-workout-ready-to-train"
-    },
-    {
-      "expect": {
-        "text": "Log 60 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "advance": "9m"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-leg-press-set-and-rest"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "checkpoint": "logged-set-and-rest-after-reopening"
-    },
-    {
-      "tap": {
-        "textContains": "Undo ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "undo-first-set-to-check-correction"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-set-restored-after-correction-check"
-    },
-    {
-      "tap": {
-        "text": "+15 s"
-      }
-    },
-    {
-      "tap": {
-        "text": "+15 s"
-      }
-    },
-    {
-      "checkpoint": "rest-extended-to-two-minutes"
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "actual-leg-press-set-and-remaining-targets"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "logged-exercise-options-looking-for-seat-notes"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "checkpoint": "next-leg-press-set-editor"
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "60"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "three-leg-press-sets-before-chest"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "expect": {
-        "text": "Machine Chest Press"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "expect": {
-        "text": "Log 30 lb \u00d7 6"
-      }
-    },
-    {
-      "advance": "9m"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-chest-attempt-six-reps-at-thirty"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "checkpoint": "chest-note-entry-looking-for-seat-four"
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "seat 4"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "recreate": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "checkpoint": "seat-four-note-after-reopening"
-    },
-    {
-      "expect": {
-        "text": "seat 4",
-        "inDialog": true,
-        "editable": true
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "back-from-note-to-workout"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "chest-weight-lowered-for-second-set"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "second-chest-set-and-next-weight"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "chest-review-original-six-reps-and-lowered-weights"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "chest-three-attempts-with-weight-change"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "expect": {
-        "text": "Machine Row"
-      }
-    },
-    {
-      "advance": "9m"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Learning where this machine is. First visit."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "row-note-saved-during-workout"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-day-row-complete"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "expect": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "advance": "450s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "review-first-curl-actual-set-before-last-set"
     },
     {
       "back": true
     },
     {
       "advance": "90s"
-    },
-    {
-      "tap": {
-        "textContains": "Log ",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-day-lifting-done-looking-for-walk"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 11 of 11 sets"
-      }
-    },
-    {
-      "checkpoint": "all-lifts-review-and-order-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "8m"
-    },
-    {
-      "checkpoint": "eight-minute-walk-elapsed-not-yet-recorded"
     },
     {
       "tap": {
         "tag": "workout-finish"
       }
-    },
-    {
-      "checkpoint": "first-workout-review-before-saving"
     },
     {
       "tap": {
@@ -1275,28 +131,26 @@
       }
     },
     {
-      "checkpoint": "monday-saved-with-walking-unrecorded"
-    },
-    {
-      "tap": {
-        "desc": "Share"
-      }
-    },
-    {
-      "checkpoint": "monday-sharing-reaches-system-sheet-boundary"
-    },
-    {
       "tap": {
         "text": "Done"
       }
     },
     {
-      "tap": {
-        "text": "History"
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
       }
     },
     {
-      "checkpoint": "first-visit-history"
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Trends and calendar"
+      }
     },
     {
       "tap": {
@@ -1304,25 +158,45 @@
       }
     },
     {
-      "checkpoint": "first-visit-progress-and-calendar"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
+      "scrollTo": {
+        "text": "November 2026"
       }
     },
     {
-      "advance": "46h"
+      "expect": {
+        "desc": "November 9, today, day A, 1 session"
+      }
     },
     {
-      "advance": "57m"
+      "checkpoint": "finished-day-a-on-november-nine"
     },
     {
-      "checkpoint": "wednesday-november-eleven-before-training"
+      "advance": "2d"
+    },
+    {
+      "expect": {
+        "desc": "November 11, today, no session"
+      }
+    },
+    {
+      "expect": {
+        "desc": "November 9, day A, 1 session"
+      }
+    },
+    {
+      "checkpoint": "finished-session-keeps-its-date"
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day B",
+        "role": "Button"
+      }
     },
     {
       "tap": {
@@ -1330,29 +204,64 @@
       }
     },
     {
-      "tap": {
-        "textContains": "full body \u00b7 Day A"
+      "scrollTo": {
+        "textContains": "· Day A"
       }
     },
     {
-      "checkpoint": "repeat-machine-day-last-results"
-    },
-    {
       "tap": {
-        "text": "Start day A"
+        "textContains": "· Day A"
       }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "checkpoint": "after-advance"
     },
     {
       "expect": {
-        "text": "Leg Press"
-      },
-      "timeoutMs": 20000
+        "text": "Start day A",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "other-days-selected-day-a"
+    },
+    {
+      "tap": {
+        "text": "Start day A",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Day A"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "expect": {
+        "text": "Day B",
+        "absent": true
+      }
+    },
+    {
+      "checkpoint": "day-a-opened-from-other-days"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "text": "Day A"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "selected-day-a-after-reopening"
     }
   ]
 }

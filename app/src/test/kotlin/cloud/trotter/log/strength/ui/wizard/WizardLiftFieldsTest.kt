@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.requestFocus
@@ -25,6 +26,8 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -93,6 +96,7 @@ class WizardLiftFieldsTest {
         onEquipmentToggle = vm::toggleEquipment, onRestoreFromBackup = {},
         onLiftWeightChange = { id, weight -> onWeightChange(weight); vm.setLiftWeight(id, weight) },
         onLiftRepsChange = vm::setLiftReps,
+        onCardioStartSecondsChange = vm::setCardioStartSeconds,
     )
 
     private fun show(handle: SavedStateHandle, onWeightChange: (Double?) -> Unit = {}): WizardViewModel {
@@ -112,7 +116,7 @@ class WizardLiftFieldsTest {
         rule.runOnIdle {
             vm.setBodyweight(235.0)
             vm.setAge(40)
-            repeat(WizardStep.LIFTS.ordinal) { vm.onNext() }
+            repeat(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.LIFTS)) { vm.onNext() }
         }
         rule.waitUntil(5_000) { rule.runOnIdle { vm.uiState.value.step == WizardStep.LIFTS } }
         return vm
@@ -160,6 +164,45 @@ class WizardLiftFieldsTest {
 
     @Test fun zeroRecentLiftWeightIsDiscardedOnDraftAndFocusLoss() {
         assertZeroWeightDiscarded { rule.onAllNodesWithText("Reps").onFirst().requestFocus() }
+    }
+
+    @Test fun typedCardioMinutesSurviveProcessDeathWithoutDoneOrFocusLoss() {
+        val handle = SavedStateHandle(mapOf(
+            "wizard_initialized" to true,
+            "wizard_focus" to true,
+            "wizard_step_index_v2" to 2,
+        ))
+        lateinit var initial: WizardViewModel
+        rule.runOnUiThread {
+            initial = newViewModel(handle)
+            current = initial
+        }
+        rule.setContent { AppTheme {
+            val displayed = requireNotNull(current)
+            key(displayed) {
+                val state by displayed.uiState.collectAsState()
+                WizardScreen(state, actions(displayed) {})
+            }
+        } }
+        rule.waitUntil(5_000) { rule.runOnIdle { initial.uiState.value.step == WizardStep.CARDIO_START } }
+        rule.onNodeWithText("Minutes").requestFocus().performTextReplacement("45")
+        rule.onNodeWithText("Minutes").assertIsFocused()
+        rule.runOnIdle {
+            val parcel = Parcel.obtain()
+            val restored = try {
+                parcel.writeBundle(handle.savedStateProvider().saveState())
+                parcel.setDataPosition(0)
+                SavedStateHandle.createHandle(parcel.readBundle(WizardLiftDraft::class.java.classLoader), null)
+            } finally {
+                parcel.recycle()
+            }
+            initial.viewModelScope.cancel()
+            current = newViewModel(restored)
+        }
+        val revived = rule.runOnIdle { requireNotNull(current) }
+        rule.waitUntil(5_000) { rule.runOnIdle { revived.uiState.value.step == WizardStep.CARDIO_START } }
+        assertEquals("45", rule.onNodeWithText("Minutes").fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.runOnIdle { assertEquals(Measure.Time(2700), revived.uiState.value.answers.cardioFirst?.comfortable) }
     }
 
     private fun assertZeroWeightDiscarded(commit: () -> Unit) {

@@ -1,11 +1,20 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.data.DayTracks
+import cloud.trotter.log.strength.data.PerformedDay
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /**
@@ -92,6 +101,30 @@ class TodayWidgetContentTest {
         assertNull(content.dayLetter)
         assertEquals(WidgetStatLine.SetUpProgram, content.statLine)
         assertEquals(TodayWidgetState.NO_PROGRAM, content.state)
+    }
+
+    @Test
+    fun `generated runner rotation shows scheduled cardio on every day`() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst())
+        val program = ProgramGenerator.generate(answers)
+        assertEquals(listOf("Easy", "Intervals", "Long"), program.rotationDays.map { it.title })
+        for (day in program.rotationDays) {
+            val performed = PerformedDay.of(
+                1L, day.id, program, emptyList(), DayTracks(null, false, emptyList()),
+                answers, ExerciseCatalog.CODE_ONLY,
+            )
+            val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 0L)
+            val content = todayWidgetContent(snapshot)
+
+            assertEquals("Day ${day.id}, ${day.title}", content.dayLine)
+            assertEquals(day.id, content.dayLetter)
+            assertEquals(TodayWidgetState.BEFORE, content.state)
+            assertFalse(content.statLine == WidgetStatLine.SetUpProgram)
+            assertFalse(content.statLine == WidgetStatLine.Data("0 lifts, 0 sets"))
+            assertEquals(program.rotationDays.indexOf(day), content.accentIndex)
+            assertEquals(0, content.setsDone)
+            assertEquals(0, content.totalSets)
+        }
     }
 
     @Test

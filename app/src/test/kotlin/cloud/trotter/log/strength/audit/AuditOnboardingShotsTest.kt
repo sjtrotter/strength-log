@@ -76,17 +76,17 @@ class AuditOnboardingShotsTest : UiAuditTest() {
 
     @Test fun shot11WizardRestoreOffered() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("onboarding/11-wizard-restore-offered") { WizardScreen(auditWizardFixture(WizardStep.EMPHASIS).copy(restore = WizardRestoreState(offered = true)), wizardActions()) }
+        rule.auditShot("onboarding/11-wizard-restore-offered") { WizardScreen(auditWizardFixture(WizardStep.FOCUS).copy(restore = WizardRestoreState(offered = true)), wizardActions()) }
     }
 
     @Test fun shot12WizardRestoreRunning() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("onboarding/12-wizard-restore-running") { WizardScreen(auditWizardFixture(WizardStep.EMPHASIS).copy(restore = WizardRestoreState(offered = true, inFlight = true)), wizardActions()) }
+        rule.auditShot("onboarding/12-wizard-restore-running") { WizardScreen(auditWizardFixture(WizardStep.FOCUS).copy(restore = WizardRestoreState(offered = true, inFlight = true)), wizardActions()) }
     }
 
     @Test fun shot13WizardRestoreFailed() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("onboarding/13-wizard-restore-failed") { WizardScreen(auditWizardFixture(WizardStep.EMPHASIS).copy(restore = WizardRestoreState(offered = true, error = UiText.BackupError(BackupErrorKind.BACKUP_MALFORMED))), wizardActions()) }
+        rule.auditShot("onboarding/13-wizard-restore-failed") { WizardScreen(auditWizardFixture(WizardStep.FOCUS).copy(restore = WizardRestoreState(offered = true, error = UiText.BackupError(BackupErrorKind.BACKUP_MALFORMED))), wizardActions()) }
     }
 
     @Test fun shot14WizardFinishRunning() {
@@ -110,6 +110,31 @@ class AuditOnboardingShotsTest : UiAuditTest() {
             SetupActions(onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {}, onOpenLicenses = {}, onBack = {}),
             openRestTimer = true) }
+    }
+
+    @Test fun shot18WizardFocus() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("onboarding/18-wizard-focus") { WizardScreen(auditWizardFixture(WizardStep.FOCUS), wizardActions()) }
+    }
+
+    @Test fun shot19WizardCardioActivity() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("onboarding/19-wizard-cardio-activity") { WizardScreen(auditWizardFixture(WizardStep.CARDIO_ACTIVITY), wizardActions()) }
+    }
+
+    @Test fun shot20WizardCardioStart() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("onboarding/20-wizard-cardio-start") { WizardScreen(auditWizardFixture(WizardStep.CARDIO_START), wizardActions()) }
+    }
+
+    @Test fun shot21WizardCardioSessions() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("onboarding/21-wizard-cardio-sessions") { WizardScreen(auditWizardFixture(WizardStep.CARDIO_SESSIONS), wizardActions()) }
+    }
+
+    @Test fun shot22WizardAlsoLift() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("onboarding/22-wizard-also-lift") { WizardScreen(auditWizardFixture(WizardStep.ALSO_LIFT), wizardActions()) }
     }
 
     private fun wizardActions() = WizardActions(onNext = {}, onBack = {}, onEmphasisChange = {},

@@ -38,9 +38,11 @@ import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -65,6 +67,20 @@ internal fun CardioEntrySheet(
     var dateOpen by rememberSaveable { mutableStateOf(false) }
     var timeOpen by rememberSaveable { mutableStateOf(false) }
     var durationText by rememberSaveable { mutableStateOf(formatCardioTime(draft.seconds)) }
+    val unit = distanceUnitFor(draft.activity)
+    // The Parcelable keeps meters; editable display text has separate saved state.
+    var distanceText by rememberSaveable(unit) {
+        mutableStateOf(draft.metres?.let(unit::inputText) ?: draft.metresText)
+    }
+    val onDistanceChange: (String) -> Unit = { text ->
+        distanceText = text
+        val meters = when {
+            text.isBlank() -> ""
+            unit == DistanceUnit.M -> text
+            else -> text.toDoubleOrNull()?.let(unit::toMetres)?.toString() ?: "0"
+        }
+        onChange(draft.copy(metresText = meters))
+    }
     val zone = ZoneId.systemDefault()
     val start = Instant.ofEpochMilli(draft.startedAt).atZone(zone)
     val today = Instant.ofEpochMilli(nowMillis()).atZone(zone).toLocalDate()
@@ -132,13 +148,15 @@ internal fun CardioEntrySheet(
                     },
                 )
                 NumericSetField(
-                    identity = "cardio-entry:distance", value = (draft.metres ?: 0).toDouble(),
-                    label = stringResource(R.string.cardio_distance_label, DistanceUnit.M.symbol), field = stringResource(R.string.sheet_distance_field),
+                    identity = "cardio-entry:distance:$unit", value = distanceText.toDoubleOrNull() ?: 0.0,
+                    label = stringResource(R.string.cardio_distance_label, unit.symbol), field = stringResource(R.string.sheet_distance_field),
                     partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = 0.0,
-                    maximum = ManualCardio.MAX_METRES.toDouble(), step = { 1.0 },
+                    maximum = unit.fromMetres(ManualCardio.MAX_METRES), decimal = unit != DistanceUnit.M,
+                    step = { if (unit == DistanceUnit.M) 1.0 else 0.05 },
+                    round = { WeightStepper.format(it).toDouble() },
                     enabled = !saving,
-                    onChange = { onChange(draft.copy(metresText = it.toInt().takeIf { metres -> metres > 0 }?.toString().orEmpty())) },
-                    textOverride = draft.metresText, onTextChange = { onChange(draft.copy(metresText = it)) },
+                    onChange = { onDistanceChange(it.takeIf { value -> value > 0 }?.let(WeightStepper::format).orEmpty()) },
+                    textOverride = distanceText, onTextChange = onDistanceChange,
                 )
             }
             OutlinedTextField(

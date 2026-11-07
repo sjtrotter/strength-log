@@ -990,4 +990,10 @@
     <string name="plan_name_rowing">Rowing</string>
     <string name="plan_name_walking">Walking</string>
     <string name="plan_name_with_lifting">%1$s + lifting</string>
+    <string name="rest_day_title">Rest</string>
+    <string name="today_rest_day">%1$s — Rest</string>
+    <string name="today_rest_taken">Rest taken</string>
+    <string name="today_skip_rest">Skip rest and train</string>
+    <string name="plan_add_rest">Add rest</string>
+    <string name="wizard_cardio_rest_days">Rest days</string>
 </resources>

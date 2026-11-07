@@ -40,7 +40,17 @@ internal object CardioFirstPlanner {
             }
             addAll(lifts.drop(sessions.size))
         }
-        return Program(days.mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) })
+        val secondRestAfter = days.indexOfFirst { it.title == Session.INTERVALS.title }
+            .takeIf { it >= 0 } ?: days.indexOfFirst { it.title == Session.EASY.title }
+        val withRest = buildList {
+            days.forEachIndexed { index, day ->
+                add(day)
+                if ((cardio.restDays >= 1 && day.title == Session.LONG.title) ||
+                    (cardio.restDays == 2 && index == secondRestAfter)
+                ) add(ProgramDay("", "Rest", "", emptyList(), kind = ProgramDayKind.REST))
+            }
+        }
+        return Program(withRest.mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) })
     }
 
     private fun longMeasure(comfortable: Measure): Measure = when (comfortable) {

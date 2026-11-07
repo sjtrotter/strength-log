@@ -106,12 +106,47 @@ class TrackerRepository(
         if (trimmed.length !in 1..30) return@withTransaction null
         val days = programDao.daysForPlan(planId)
         if (days.count { it.kind == ProgramDayKind.STRENGTH.name } >= 7) return@withTransaction null
-        val letter = ('A'..'G').firstOrNull { candidate -> days.none { it.dayId == candidate.toString() } }
+        val letter = ('A'..'Z').firstOrNull { candidate -> days.none { it.dayId == candidate.toString() } }
             ?.toString() ?: return@withTransaction null
         programDao.upsertDay(ProgramDayEntity(
             planId, letter, (days.maxOfOrNull { it.position } ?: -1) + 1, trimmed, "", null,
         ).freshRunId(mintRunId))
         letter
+    }
+
+    suspend fun addRestDay(planId: Long, title: String): String? = db.withTransaction {
+        if (planDao.plan(planId) == null) return@withTransaction null
+        val trimmed = title.trim()
+        if (trimmed.length !in 1..30) return@withTransaction null
+        val days = programDao.daysForPlan(planId)
+        val letter = ('A'..'Z').firstOrNull { candidate -> days.none { it.dayId == candidate.toString() } }
+            ?.toString() ?: return@withTransaction null
+        programDao.upsertDay(ProgramDayEntity(
+            planId, letter, (days.maxOfOrNull { it.position } ?: -1) + 1, trimmed, "", null,
+            kind = ProgramDayKind.REST.name,
+        ).freshRunId(mintRunId))
+        letter
+    }
+
+    suspend fun moveDay(planId: Long, dayId: String, up: Boolean) {
+        db.withTransaction {
+            val days = programDao.daysForPlan(planId).sortedBy { it.position }
+            val index = days.indexOfFirst { it.dayId == dayId }
+            if (index < 0) return@withTransaction
+            val neighbor = days.getOrNull(index + if (up) -1 else 1) ?: return@withTransaction
+            val day = days[index]
+            programDao.upsertDay(day.copy(position = neighbor.position))
+            programDao.upsertDay(neighbor.copy(position = day.position))
+        }
+    }
+
+    suspend fun takeRest(planId: Long, restDayId: String): Boolean = db.withTransaction {
+        val plan = planDao.plan(planId) ?: return@withTransaction false
+        if (plan.suggestedDayId != restDayId) return@withTransaction false
+        val days = programDao.daysForPlan(planId)
+        if (days.none { it.dayId == restDayId && it.kind == ProgramDayKind.REST.name }) return@withTransaction false
+        planDao.updateSuggestedDay(planId, Rotation.nextFor(assemble(days, emptyList()), restDayId))
+        true
     }
 
     suspend fun renameDay(planId: Long, dayId: String, title: String) {
@@ -130,7 +165,8 @@ class TrackerRepository(
             val plan = planDao.plan(planId) ?: return@withTransaction false
             val days = programDao.daysForPlan(planId)
             val removed = days.firstOrNull { it.dayId == dayId } ?: return@withTransaction false
-            if (days.size <= 1) return@withTransaction false
+            if (days.size <= 1 || (removed.kind != ProgramDayKind.REST.name &&
+                    days.count { it.kind != ProgramDayKind.REST.name } <= 1)) return@withTransaction false
             closeRemovedRun(planId, setOf(dayId), bodyweight, catalog)
             programDao.deleteLogsForDay(planId, dayId)
             programDao.deleteExercisesForDay(planId, dayId)
@@ -138,9 +174,9 @@ class TrackerRepository(
             if (plan.suggestedDayId == dayId) {
                 val remaining = days.filter { it.dayId != dayId }
                 val rotationIds = assemble(remaining, emptyList()).rotationDays.map { it.id }.toSet()
-                val rotation = remaining.filter { it.dayId in rotationIds }
-                val next = rotation.firstOrNull { it.position > removed.position } ?: rotation.first()
-                planDao.updateSuggestedDay(planId, next.dayId)
+                val rotation = remaining.filter { it.dayId in rotationIds && it.kind != ProgramDayKind.REST.name }
+                val next = rotation.firstOrNull { it.position > removed.position } ?: rotation.firstOrNull()
+                planDao.updateSuggestedDay(planId, next?.dayId)
             }
             true
         }
@@ -319,7 +355,9 @@ class TrackerRepository(
                     programDao.insertExercise(pe.toEntity(planId, day.id, pos))
                 }
             }
-            program.rotationDays.firstOrNull()?.let { planDao.updateSuggestedDay(planId, it.id) }
+            program.rotationDays.firstOrNull()?.let {
+                planDao.updateSuggestedDay(planId, Rotation.trainingDayFrom(program, it.id))
+            }
         }
     }
 

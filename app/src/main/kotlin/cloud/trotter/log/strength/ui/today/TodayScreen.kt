@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,11 +57,16 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     ScreenStateButton(
                         ScreenStateAction(
                             label = stringResource(
-                                if (state.resume != null) R.string.screen_resume_day else R.string.screen_start_day,
+                                when {
+                                    state.resume != null -> R.string.screen_resume_day
+                                    primaryDay.rest -> R.string.today_rest_taken
+                                    else -> R.string.screen_start_day
+                                },
                                 primaryDay.dayId,
                             ),
                             onClick = {
                                 if (state.resume != null) actions.onResume(primaryDay.selection)
+                                else if (primaryDay.rest) actions.onRestTaken(primaryDay.selection)
                                 else actions.onStart(primaryDay.selection)
                             },
                             dayIndex = primaryDay.dayIndex,
@@ -82,8 +88,12 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     } }
                     if (state.upNext.isNotEmpty()) item { Text(stringResource(R.string.today_up_next), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium) }
                     state.upNext.forEachIndexed { index, day -> item(key = "next:${day.planId}:${day.dayId}") {
-                        TodayDayItem(day, onClick = { actions.onOpenPreview(day.selection) },
-                            start = if (index == 0 && state.resume != null) ({ actions.onStart(day.selection) }) else null)
+                        if (day.rest) {
+                            TodayRestItem(day, actions, showRestTaken = state.resume != null || index != 0)
+                        } else {
+                            TodayDayItem(day, onClick = { actions.onOpenPreview(day.selection) },
+                                start = if (index == 0 && state.resume != null) ({ actions.onStart(day.selection) }) else null)
+                        }
                     } }
                     if (state.otherDays.isNotEmpty()) {
                         item {
@@ -128,6 +138,29 @@ private fun TodayUnavailable(state: TodayUiState, actions: TodayActions) {
             TextButton(onClick = actions.onOpenPlans) { Text(stringResource(R.string.screen_open_plans)) }
         }
     }
+}
+
+@Composable
+private fun TodayRestItem(day: TodayDay, actions: TodayActions, showRestTaken: Boolean) {
+    ListItem(
+        leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
+        headlineContent = { Text(stringResource(R.string.today_rest_day, day.dayId)) },
+        supportingContent = { Text(day.planName) },
+        trailingContent = {
+            Column(horizontalAlignment = Alignment.End) {
+                day.trainDayId?.let { trainDayId ->
+                    TextButton(onClick = { actions.onSkipRest(day.selection.copy(dayId = trainDayId)) }) {
+                        Text(stringResource(R.string.today_skip_rest))
+                    }
+                }
+                if (showRestTaken) {
+                    FilledTonalButton(onClick = { actions.onRestTaken(day.selection) }) {
+                        Text(stringResource(R.string.today_rest_taken))
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable

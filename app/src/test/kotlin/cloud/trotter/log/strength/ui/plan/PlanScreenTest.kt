@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
@@ -474,6 +475,42 @@ class PlanScreenTest {
         } }
         rule.onNodeWithText("Remove Day B and its exercises? History is kept.").assertExists()
     }
+    @Test fun addRestAndRestMenuForwardActions() {
+        var added = false
+        val moves = mutableListOf<Pair<String, Boolean>>()
+        val removed = mutableListOf<String>()
+        val state = mutableStateOf(planScreenFixture().copy(days = listOf(
+            PlanDay("A", 0, "Lift", 1, 3, false),
+            PlanDay("C", 2, "Rest", 0, 0, true, kind = ProgramDayKind.REST),
+        )))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onAddRest = { added = true },
+            onDayMenu = { state.value = state.value.copy(menuDayId = it) },
+            onMoveDay = { id, up -> moves += id to up },
+            onRemoveDay = { removed += it },
+        )) } }
+        rule.onNodeWithText("Day C").assertHasNoClickAction()
+        rule.onNodeWithText("Add rest").performClick()
+        assertEquals(true, added)
+        rule.runOnIdle { state.value = state.value.copy(menuDayId = "C") }
+        rule.onNodeWithText("Rename").assertDoesNotExist()
+        rule.onNodeWithText("Move down").assertIsNotEnabled()
+        rule.onNodeWithText("Move up").assertIsEnabled().performClick()
+        assertEquals(listOf("C" to true), moves)
+        rule.onNodeWithText("Remove").performClick()
+        assertEquals(listOf("C"), removed)
+    }
+
+    @Test fun restAtTheStartCannotMoveUp() {
+        val state = planScreenFixture().copy(menuDayId = "C", days = listOf(
+            PlanDay("C", 2, "Rest", 0, 0, true, kind = ProgramDayKind.REST),
+            PlanDay("A", 0, "Lift", 1, 3, false),
+        ))
+        rule.setContent { AppTheme { PlanScreen(state, actions()) } }
+        rule.onNodeWithText("Move up").assertIsNotEnabled()
+        rule.onNodeWithText("Move down").assertIsEnabled()
+    }
+
 }
 
 /** Robolectric's full-screen frame for wrap-content dialogs can prevent text fields from settling. */

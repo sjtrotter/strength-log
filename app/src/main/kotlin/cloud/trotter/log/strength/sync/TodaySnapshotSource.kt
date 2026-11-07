@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * The one observed projection of *today* — the open run or suggested day, its sets, their
@@ -76,25 +78,28 @@ class TodaySnapshotSource(
                 ) { unit, rest, cardio, edits ->
                     Context(unit, rest, cardio, edits)
                 }
-                combine(
-                    repo.observeDay(plan.id, dayId), repo.openRunFlow, context, historyRepository.cardioSessionsFlow, today,
-                ) { performedDay, open, ctx, cardioHistory, civilDate ->
-                    val loggedCardio = cardioHistory.firstOrNull { session ->
-                        session.planId == plan.id && session.dayId == dayId &&
-                            Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
+                plans.programFor(plan.id).map { it.dayToShow(dayId)?.id }.distinctUntilChanged().flatMapLatest resolved@ { resolvedId ->
+                    if (resolvedId == null) return@resolved flowOf(null)
+                    combine(
+                        repo.observeDay(plan.id, resolvedId), repo.openRunFlow, context, historyRepository.cardioSessionsFlow, today,
+                    ) { performedDay, open, ctx, cardioHistory, civilDate ->
+                        val loggedCardio = cardioHistory.firstOrNull { session ->
+                            session.planId == plan.id && session.dayId == resolvedId &&
+                                Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
+                        }
+                        WatchSnapshotBuilder.build(
+                            day = performedDay,
+                            unit = ctx.unit,
+                            revision = 0L,
+                            restSettings = ctx.restSettings,
+                            loggedCardio = loggedCardio,
+                            cardioAckStamp = ctx.cardioAck.highest,
+                            cardioAckedStamps = ctx.cardioAck.recent,
+                            planName = plan.name,
+                            runStartedAt = open?.takeIf { performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
+                            processedEditStamps = ctx.processedEdits,
+                        )
                     }
-                    WatchSnapshotBuilder.build(
-                        day = performedDay,
-                        unit = ctx.unit,
-                        revision = 0L,
-                        restSettings = ctx.restSettings,
-                        loggedCardio = loggedCardio,
-                        cardioAckStamp = ctx.cardioAck.highest,
-                        cardioAckedStamps = ctx.cardioAck.recent,
-                        planName = plan.name,
-                        runStartedAt = open?.takeIf { performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
-                        processedEditStamps = ctx.processedEdits,
-                    )
                 }
             }
         })

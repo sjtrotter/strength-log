@@ -123,6 +123,7 @@ data class WizardActions(
     val onCardioStartSecondsChange: (Int) -> Unit = {},
     val onCardioStartMetresChange: (Int) -> Unit = {},
     val onCardioSessionsChange: (Int) -> Unit = {},
+    val onRestDaysChange: (Int) -> Unit = {},
     val onLiftDaysChange: (Int) -> Unit = {},
     val onDistanceUnitChange: (DistanceUnit) -> Unit = {},
     val onLiftWeightChange: (String, Double?) -> Unit = { _, _ -> },

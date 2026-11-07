@@ -1121,6 +1121,7 @@ class WizardViewModelWiringTest {
         vm.setCardioStartByTime(true)
         vm.setCardioStartSeconds(1800)
         vm.setCardioSessions(3)
+        vm.setRestDays(0)
         vm.setLiftDays(0)
         vm.setDistanceUnit(DistanceUnit.KM)
         val visited = mutableListOf<WizardStep>()
@@ -1149,6 +1150,7 @@ class WizardViewModelWiringTest {
         val first = newViewModel()
         advanceUntilIdle()
         first.setFocus(true)
+        first.setRestDays(0)
         repeat(WizardStateBuilder.steps(WizardAnswers(cardioFirst = CardioFirst())).size) { first.onNext() }
         advanceUntilIdle()
         assertTrue(first.uiState.value.isComplete)
@@ -1197,6 +1199,7 @@ class WizardViewModelWiringTest {
         val first = newViewModel()
         advanceUntilIdle()
         first.setFocus(true)
+        first.setRestDays(0)
         repeat(WizardStateBuilder.steps(WizardAnswers(cardioFirst = CardioFirst())).size) { first.onNext() }
         advanceUntilIdle()
         assertTrue(first.uiState.value.isComplete)
@@ -1236,6 +1239,7 @@ class WizardViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         vm.setFocus(true)
+        vm.setRestDays(0)
         repeat(4) { vm.onNext() }
         vm.setLiftDays(2)
         vm.onNext()
@@ -1297,6 +1301,7 @@ class WizardViewModelWiringTest {
         vm.setCardioStartSeconds(2700)
         vm.setCardioStartMetres(4828)
         vm.setCardioSessions(6)
+        vm.setRestDays(0)
         vm.setLiftDays(3)
         vm.setDistanceUnit(DistanceUnit.KM)
         val revived = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
@@ -1330,4 +1335,21 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
         assertEquals(DistanceUnit.KM, vm.uiState.value.distanceUnit)
     }
+    @Test fun `cardio rest defaults to one and survives process death`() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        vm.setFocus(true)
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.answers.cardioFirst?.restDays)
+        vm.setRestDays(2)
+        val revived = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
+        advanceUntilIdle()
+        assertEquals(2, revived.uiState.value.answers.cardioFirst?.restDays)
+        repeat(5) { revived.onNext() }
+        advanceUntilIdle()
+        assertEquals(listOf("Easy", "Intervals", "Rest", "Long", "Rest"),
+            revived.uiState.value.previewProgram!!.days.map { it.title })
+    }
+
 }

@@ -224,17 +224,27 @@ strength day; the shipped cardio vectors stay pinned.
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.
 - **Identity on the wire.** Snapshots carry the run: the open run, or the day's next run ID. Deltas carry the run and the exercise. A delta for a finished or unknown run is rejected. A delta with no run (an old watch) only edits a run the phone opened after that day's last close. `schemaVersion` stays 1; a field's presence is the capability.
-- **Exercise floor (§8.3 amendment).** Generated days lose the floor of three; every day keeps at least one exercise unless it has a cardio block.
+- **Exercise floor (§8.3 amendment).** Generated days lose the floor of three; every training day keeps at least one exercise unless it has a cardio block. Rest entries have no exercises or cardio.
 - **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
   reps-in-time, each side, a band described in text, a note. Authored slots
-  have no GOAL and never cascade. Every day keeps at least one exercise
+  have no GOAL and never cascade. Every training day keeps at least one exercise
   unless it has a cardio block. Rotation visits every training day in plan
   order, lift and cardio alike (#493). Generated Cardio + Core extras
   (C1/C2 marked `ProgramDayKind.CARDIO`) stay outside the rotation; legacy
   plans containing only those extras retain their all-days fallback. Initial
   and fallback selection use the same order. Finishing a day out of order
   leaves the suggestion unchanged.
+- **Rest entries (#495).** A plan may hold lettered Rest entries (no exercises,
+  no cardio). The rotation visits them in order. Today shows “C — Rest” with
+  “Rest taken”, which advances once, and “Skip rest and train”, which opens the
+  next training day; finishing the training day after a rest moves past it, and
+  finishing any other day leaves the rest up next. Nothing is recorded: calendar
+  gaps consume nothing, and rest never counts as a workout, volume or progression.
+  Other surfaces show the training day after a rest. Rest entries are added, moved
+  and removed on the Plan screen; the cardio-first wizard places 0 to 2 (after the
+  long run, then after intervals, or the first Easy run without intervals).
+  Backup v24 carries them; Room remains v22.
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
   A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v22 adds `cardio_session.note` through migration 21→22; backup v22 carries it.

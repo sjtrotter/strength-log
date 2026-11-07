@@ -91,9 +91,12 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     PlanDayItem(day, state, actions)
                     if (index != state.days.lastIndex) HorizontalDivider()
                 }
-                if (state.days.count { it.kind == ProgramDayKind.STRENGTH } < 7) {
-                    item(key = "add_day") {
-                        TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
+                item(key = "add_day") {
+                    Row {
+                        if (state.days.count { it.kind == ProgramDayKind.STRENGTH } < 7) {
+                            TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
+                        }
+                        TextButton(onClick = actions.onAddRest) { Text(stringResource(R.string.plan_add_rest)) }
                     }
                 }
                 item(key = "progression_header") {
@@ -224,7 +227,7 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
     val lifts = pluralStringResource(R.plurals.plan_lifts, day.liftCount, day.liftCount)
     val sets = pluralStringResource(R.plurals.plan_sets, day.setCount, day.setCount)
     ListItem(
-        modifier = Modifier.clickable { actions.onOpenDay(DaySelection(state.planId, day.dayId)) },
+        modifier = if (day.kind == ProgramDayKind.REST) Modifier else Modifier.clickable { actions.onOpenDay(DaySelection(state.planId, day.dayId)) },
         leadingContent = {
             DayIndex(day.dayIndex, day.dayId, DayIndexSize.Medium)
         },
@@ -234,10 +237,12 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
         headlineContent = { Text(day.title) },
         supportingContent = {
             val activity = day.cardioActivity
-            Text(if (day.liftCount == 0 && activity != null) {
-                stringResource(R.string.plan_cardio_summary, cardioActivityName(activity),
-                    pluralStringResource(R.plurals.plan_sets, day.cardioSetCount, day.cardioSetCount))
-            } else "$lifts, $sets")
+            Text(when {
+                day.kind == ProgramDayKind.REST -> stringResource(R.string.rest_day_title)
+                day.liftCount == 0 && activity != null -> stringResource(R.string.plan_cardio_summary,
+                    cardioActivityName(activity), pluralStringResource(R.plurals.plan_sets, day.cardioSetCount, day.cardioSetCount))
+                else -> "$lifts, $sets"
+            })
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,7 +252,16 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
                         Icon(Icons.Default.MoreVert, stringResource(R.string.plan_day_menu))
                     }
                     DropdownMenu(expanded = state.menuDayId == day.dayId, onDismissRequest = { actions.onDayMenu(null) }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.plans_rename)) }, onClick = { actions.onRenameDay(day.dayId) })
+                        if (day.kind == ProgramDayKind.REST) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_move_up)) },
+                                enabled = state.days.first().dayId != day.dayId,
+                                onClick = { actions.onMoveDay(day.dayId, true) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_move_down)) },
+                                enabled = state.days.last().dayId != day.dayId,
+                                onClick = { actions.onMoveDay(day.dayId, false) })
+                        } else {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.plans_rename)) }, onClick = { actions.onRenameDay(day.dayId) })
+                        }
                         if (state.days.size > 1) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_remove_button)) }, onClick = { actions.onRemoveDay(day.dayId) })
                         }

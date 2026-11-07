@@ -339,4 +339,71 @@ class TodayViewModelWiringTest : OverviewFixture() {
     private fun completionAt(date: String) = java.time.LocalDate.parse(date).atTime(12, 0)
         .atZone(java.time.ZoneId.of("America/Chicago")).toInstant().toEpochMilli()
 
+    private suspend fun restPlan(): Long {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        assertEquals("C", repo.addRestDay(plan, "Rest"))
+        db.planDao().updateSuggestedDay(plan, "C")
+        return plan
+    }
+
+    @Test fun `rest up next`() = runTest(dispatcher) {
+        val plan = restPlan()
+        val vm = today()
+        advanceUntilIdle()
+        val rest = vm.uiState.value.upNext.single()
+        assertEquals(DaySelection(plan, "C"), rest.selection)
+        assertTrue(rest.rest)
+        assertEquals("A", rest.trainDayId)
+        assertFalse(vm.uiState.value.otherDays.any { it.rest })
+        assertEquals(listOf("A", "B"), vm.uiState.value.otherDays.map { it.dayId })
+    }
+
+    @Test fun `Rest taken advances the displayed suggestion once`() = runTest(dispatcher) {
+        val plan = restPlan()
+        val vm = today()
+        advanceUntilIdle()
+        vm.takeRest(DaySelection(plan, "C"))
+        advanceUntilIdle()
+        assertEquals("A", vm.uiState.value.upNext.single().dayId)
+        vm.takeRest(DaySelection(plan, "C"))
+        advanceUntilIdle()
+        assertEquals("A", vm.uiState.value.upNext.single().dayId)
+        assertNull(vm.uiState.value.fact)
+    }
+
+    @Test fun `Skip rest and train opens the next training day and moves nothing`() = runTest(dispatcher) {
+        val plan = restPlan()
+        val vm = today()
+        advanceUntilIdle()
+        val rest = vm.uiState.value.upNext.single()
+        val selection = DaySelection(plan, requireNotNull(rest.trainDayId))
+        preview(plan, selection.dayId)
+        advanceUntilIdle()
+        assertEquals(DaySelection(plan, "A"), selection)
+        assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
+        assertTrue(db.runDao().allRuns().isEmpty())
+        assertTrue(db.sessionDao().allSessions().isEmpty())
+        assertTrue(db.cardioSessionDao().all().isEmpty())
+    }
+
+    @Test fun `a gap of several days consumes nothing`() = runTest(dispatcher) {
+        val plan = restPlan()
+        val zone = java.time.ZoneId.of("America/Chicago")
+        val instant = java.time.Instant.parse("2026-10-31T18:00:00Z")
+        val civil = kotlinx.coroutines.flow.MutableStateFlow(
+            cloud.trotter.log.strength.time.CivilTime(instant, zone, instant.atZone(zone).toLocalDate()))
+        val vm = today(civilTimeSource = object : cloud.trotter.log.strength.time.CivilTimeSource {
+            override val civilTime = civil
+            override fun refresh() = Unit
+        })
+        advanceUntilIdle()
+        assertEquals("C", vm.uiState.value.upNext.single().dayId)
+        val later = instant.plusSeconds(5 * 86400L)
+        civil.value = cloud.trotter.log.strength.time.CivilTime(later, zone, later.atZone(zone).toLocalDate())
+        advanceUntilIdle()
+        assertEquals("C", vm.uiState.value.upNext.single().dayId)
+        assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
+    }
+
 }

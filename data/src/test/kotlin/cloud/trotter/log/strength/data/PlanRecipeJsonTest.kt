@@ -122,4 +122,18 @@ class PlanRecipeJsonTest {
         assertEquals(2, answers.daysPerWeek)
         assertEquals(2, answers.cardioFirst?.liftDays)
     }
+    @Test fun `rest days round trip default clamp and validate`() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst(restDays = 2))
+        val encoded = PlanRecipeJson.encode(answers)
+        PlanRecipeJson.validate(encoded)
+        assertEquals(answers, PlanRecipeJson.decode(encoded, GlobalLifter()))
+        val legacy = encoded.replace(",\"restDays\":2", "")
+        assertEquals(0, PlanRecipeJson.decode(legacy, GlobalLifter()).cardioFirst?.restDays)
+        for ((invalid, clamped) in listOf(-1 to 0, 3 to 2)) {
+            val json = encoded.replace("\"restDays\":2", "\"restDays\":$invalid")
+            assertFailsWith<IllegalArgumentException> { PlanRecipeJson.validate(json) }
+            assertEquals(clamped, PlanRecipeJson.decode(json, GlobalLifter()).cardioFirst?.restDays)
+        }
+    }
+
 }

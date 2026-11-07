@@ -367,6 +367,7 @@ internal fun TodayRoute(
     TodayScreen(state, TodayActions(
         onStart = start::start, onResume = onStart,
         onOpenCardio = onOpenCardio, onOpenPreview = onOpenPreview,
+        onRestTaken = viewModel::takeRest, onSkipRest = onOpenPreview,
         onOpenSettings = onOpenSettings, onSetUpProgram = onSetUpProgram,
         onOpenPlans = onOpenPlans, onToggleOtherDays = viewModel::toggleOtherDays,
     ))
@@ -444,6 +445,8 @@ private fun PlanRoute(
             onOfferStrengthChange = viewModel::setOfferStrengthIncreases,
             onOfferCardioChange = viewModel::setOfferCardioIncreases,
             onAddDay = viewModel::addDay,
+            onAddRest = viewModel::addRest,
+            onMoveDay = viewModel::moveDay,
             onDayMenu = viewModel::openDayMenu,
             onRenameDay = viewModel::renameDay,
             onRemoveDay = viewModel::removeDay,
@@ -849,6 +852,7 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
                 onCardioStartSecondsChange = viewModel::setCardioStartSeconds,
                 onCardioStartMetresChange = viewModel::setCardioStartMetres,
                 onCardioSessionsChange = viewModel::setCardioSessions,
+                onRestDaysChange = viewModel::setRestDays,
                 onLiftDaysChange = viewModel::setLiftDays,
                 onDistanceUnitChange = viewModel::setDistanceUnit,
                 onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },

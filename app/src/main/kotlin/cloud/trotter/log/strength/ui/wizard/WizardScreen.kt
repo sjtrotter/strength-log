@@ -33,6 +33,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -45,18 +46,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.Bodyweight
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
@@ -64,9 +70,11 @@ import cloud.trotter.log.strength.ui.components.BodyweightInput
 import cloud.trotter.log.strength.ui.components.EmptyState
 import cloud.trotter.log.strength.ui.components.LiftListItem
 import cloud.trotter.log.strength.ui.components.LoadingState
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateAction
 import cloud.trotter.log.strength.ui.day.activityLabel
+import cloud.trotter.log.strength.ui.day.measureText
 import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -127,6 +135,11 @@ private fun WizardHeader(state: WizardUiState) {
 
 @Composable
 private fun stepTitle(step: WizardStep): String = when (step) {
+    WizardStep.FOCUS -> stringResource(R.string.wizard_focus_title)
+    WizardStep.CARDIO_ACTIVITY -> stringResource(R.string.wizard_cardio_activity_title)
+    WizardStep.CARDIO_START -> stringResource(R.string.wizard_cardio_start_title)
+    WizardStep.CARDIO_SESSIONS -> stringResource(R.string.wizard_cardio_sessions_title)
+    WizardStep.ALSO_LIFT -> stringResource(R.string.wizard_also_lift_title)
     WizardStep.EMPHASIS -> stringResource(R.string.wizard_emphasis_title)
     WizardStep.DAYS_PER_WEEK -> stringResource(R.string.wizard_days_per_week_title)
     WizardStep.SPLIT -> stringResource(R.string.wizard_split_title)
@@ -148,6 +161,11 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
     ) { stepState ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             when (stepState.step) {
+                WizardStep.FOCUS -> FocusStep(stepState, actions)
+                WizardStep.CARDIO_ACTIVITY -> CardioActivityStep(stepState, actions)
+                WizardStep.CARDIO_START -> CardioStartStep(stepState, actions)
+                WizardStep.CARDIO_SESSIONS -> CardioSessionsStep(stepState, actions)
+                WizardStep.ALSO_LIFT -> AlsoLiftStep(stepState, actions)
                 WizardStep.EMPHASIS -> EmphasisStep(stepState, actions)
                 WizardStep.DAYS_PER_WEEK -> DaysPerWeekStep(stepState.answers, actions)
                 WizardStep.SPLIT -> SplitStep(stepState, actions)
@@ -156,7 +174,137 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
                 WizardStep.ABOUT_YOU -> AboutYouStep(stepState, actions)
                 WizardStep.EQUIPMENT -> EquipmentStep(stepState.answers, actions)
                 WizardStep.LIFTS -> LiftsStep(stepState, actions)
-                WizardStep.ROTATION -> RotationStep(stepState, actions)
+                WizardStep.ROTATION -> CompositionLocalProvider(LocalDistanceUnit provides stepState.distanceUnit) {
+                    RotationStep(stepState, actions)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(label) },
+        leadingContent = { RadioButton(selected = selected, onClick = null) },
+        colors = ListItemDefaults.colors(containerColor = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+    )
+}
+
+@Composable
+private fun FocusStep(state: WizardUiState, actions: WizardActions) {
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ChoiceRow(stringResource(R.string.wizard_focus_lifting), state.answers.cardioFirst == null) { actions.onFocusChange(false) }
+        ChoiceRow(stringResource(R.string.wizard_focus_cardio), state.answers.cardioFirst != null) { actions.onFocusChange(true) }
+    }
+    if (state.restore.offered) RestoreFromBackupEntry(state.restore, actions.onRestoreFromBackup)
+}
+
+@Composable
+private fun CardioActivityStep(state: WizardUiState, actions: WizardActions) {
+    val activity = state.answers.cardioFirst?.activity ?: return
+    val family = CardioFamily.of(activity)
+    val families = listOf(
+        CardioFamily.RUN to R.string.wizard_cardio_run,
+        CardioFamily.RIDE to R.string.wizard_cardio_ride,
+        CardioFamily.ROW to R.string.wizard_cardio_row,
+        CardioFamily.WALK to R.string.wizard_cardio_walk,
+    )
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        families.forEach { (option, label) ->
+            ChoiceRow(stringResource(label), family == option) { actions.onCardioFamilyChange(option) }
+        }
+    }
+    if (family.activities.size > 1) {
+        Text(stringResource(R.string.wizard_cardio_where_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            family.activities.forEach { option ->
+                ChoiceRow(stringResource(when (option) {
+                    CardioActivity.ROAD_RUN -> R.string.wizard_where_road
+                    CardioActivity.TRAIL_RUN -> R.string.wizard_where_trail
+                    CardioActivity.TRACK_RUN -> R.string.wizard_where_track
+                    CardioActivity.TREADMILL_RUN, CardioActivity.TREADMILL_WALK -> R.string.wizard_where_treadmill
+                    CardioActivity.STATIONARY_BIKE -> R.string.wizard_where_stationary
+                    else -> R.string.wizard_where_outdoor
+                }), activity == option) { actions.onCardioActivityChange(option) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardioStartStep(state: WizardUiState, actions: WizardActions) {
+    val cardio = state.answers.cardioFirst ?: return
+    val focusManager = LocalFocusManager.current
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(true to R.string.cardio_edit_time, false to R.string.cardio_edit_distance).forEachIndexed { index, (byTime, label) ->
+            SegmentedButton(
+                selected = state.cardioStartByTime == byTime,
+                onClick = { focusManager.clearFocus(); actions.onCardioStartByTimeChange(byTime) },
+                shape = SegmentedButtonDefaults.itemShape(index, 2),
+                label = { Text(stringResource(label)) },
+            )
+        }
+    }
+    if (state.cardioStartByTime) {
+        NumberField(
+            value = (cardio.comfortable as? Measure.Time)?.seconds?.div(60.0),
+            onValueChange = { actions.onCardioStartSecondsChange((it * 60).toInt()) },
+            onDraftChange = { value -> value?.let { actions.onCardioStartSecondsChange((it * 60).toInt()) } },
+            label = stringResource(R.string.wizard_cardio_minutes),
+            minValue = 5.0,
+            maxValue = 240.0,
+            round = { (Math.round(it / 5.0) * 5).toDouble().coerceIn(5.0, 240.0) },
+        )
+    } else {
+        val unit = DistanceUnit.forActivity(state.distanceUnit, cardio.activity)
+        key(unit) {
+            NumberField(
+                value = (cardio.comfortable as? Measure.Distance)?.metres?.let(unit::fromMetres),
+                onValueChange = { value -> unit.toMetres(value)?.let(actions.onCardioStartMetresChange) },
+                onDraftChange = { value -> value?.let(unit::toMetres)?.let(actions.onCardioStartMetresChange) },
+                label = stringResource(R.string.cardio_distance_label, unit.symbol),
+                minValue = unit.fromMetres(1),
+                maxValue = unit.fromMetres(200_000),
+                format = WeightStepper::format,
+                decimalInput = true,
+            )
+        }
+    }
+    Text(stringResource(R.string.settings_distance), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(DistanceUnit.MI, DistanceUnit.KM).forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = state.distanceUnit == option,
+                onClick = { focusManager.clearFocus(); actions.onDistanceUnitChange(option) },
+                shape = SegmentedButtonDefaults.itemShape(index, 2),
+                label = { Text(option.symbol) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardioSessionsStep(state: WizardUiState, actions: WizardActions) {
+    NumberField(
+        value = state.answers.cardioFirst?.sessions?.toDouble(),
+        onValueChange = { actions.onCardioSessionsChange(it.toInt()) },
+        onDraftChange = { value -> value?.let { actions.onCardioSessionsChange(it.toInt()) } },
+        label = stringResource(R.string.wizard_cardio_sessions_label),
+        minValue = 1.0,
+        maxValue = 6.0,
+    )
+}
+
+@Composable
+private fun AlsoLiftStep(state: WizardUiState, actions: WizardActions) {
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        CardioFirst.LIFT_DAY_CHOICES.forEach { days ->
+            ChoiceRow(if (days == 0) stringResource(R.string.wizard_also_lift_none)
+                else stringResource(R.string.wizard_also_lift_days, days), state.answers.cardioFirst?.liftDays == days) {
+                actions.onLiftDaysChange(days)
             }
         }
     }
@@ -185,7 +333,6 @@ private fun EmphasisStep(state: WizardUiState, actions: WizardActions) {
             )
         }
     }
-    if (state.restore.offered) RestoreFromBackupEntry(state.restore, actions.onRestoreFromBackup)
 }
 
 /**
@@ -593,7 +740,9 @@ private fun RotationStep(state: WizardUiState, actions: WizardActions) {
             Text(day.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             day.cardioBlock?.let { block ->
                 Spacer(Modifier.size(4.dp))
-                Text(listOf(activityLabel(block.activity), block.plannedTimeDetail())
+                Text(listOf(activityLabel(block.activity),
+                    if (day.exercises.isEmpty() && block.sets.size == 1) measureText(block.sets.single().end, block.activity)
+                    else block.plannedTimeDetail())
                     .filter { it.isNotEmpty() }.joinToString(" · "),
                     color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
@@ -695,6 +844,9 @@ private fun WizardScreenPreview() {
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEquipmentToggle = {},
                 onUnitChange = {},
                 onRestoreFromBackup = {},
+                onFocusChange = {}, onCardioFamilyChange = {}, onCardioActivityChange = {},
+                onCardioStartByTimeChange = {}, onCardioStartSecondsChange = {}, onCardioStartMetresChange = {},
+                onCardioSessionsChange = {}, onLiftDaysChange = {}, onDistanceUnitChange = {},
             ),
         )
     }

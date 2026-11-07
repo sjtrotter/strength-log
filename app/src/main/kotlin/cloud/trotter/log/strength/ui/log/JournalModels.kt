@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 
@@ -8,7 +9,11 @@ data class JournalUiState(
     val trajectories: List<TrajectoryCard> = emptyList(),
     val volume: VolumeChart? = null,
     val calendar: CalendarMonth? = null,
+    val weeklyDistance: List<WeeklyDistance> = emptyList(),
 )
+
+/** This ISO week's recorded distance for one activity group. [missing] counts sessions with a performed set and no distance. */
+data class WeeklyDistance(val family: CardioFamily, val metres: Long, val missing: Int)
 
 /**
  * One main lift's top-set story (§1.1). [points] is one entry per session that

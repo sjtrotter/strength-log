@@ -22,6 +22,7 @@ class BackupV22Test {
     private val day = ProgramDayBackup("A", "Run", "", cardioBlockJson = block(1200),
         cardioWorkingJson = block(1260), cardioKeepToPlan = true, cardioProgressBy = "TIME", cardioIncreasePercent = 7)
     private fun document(note: String = "Easy") = BackupDocument(
+        schemaVersion = 22,
         settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
             selectedPlanId = 1, distanceUnit = "KM"),
         plans = listOf(PlanBackup(1, "Running", "AUTHORED", 1000, days = listOf(day), onToday = true,
@@ -34,9 +35,11 @@ class BackupV22Test {
     )
 
     @Test fun `v22 export and restore preserve the cardio note and distance choice`() {
-        val snapshot = document().toSnapshot()
+        val decoded = codec.decode(codec.encode(document()))
+        assertEquals(22, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(22, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals("Easy", exported.cardioSessions.single().note)
         assertEquals("KM", exported.settings.distanceUnit)
         assertEquals(day, exported.plans.single().days.single())
@@ -53,9 +56,11 @@ class BackupV22Test {
         val source = base.copy(plans = listOf(base.plans.single().copy(
             origin = "GENERATED", recipeJson = recipe,
         )))
-        val snapshot = codec.decode(codec.encode(source)).toSnapshot()
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(22, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(22, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals("Easy", exported.cardioSessions.single().note)
         assertEquals(recipe, exported.plans.single().recipeJson)
         assertEquals(goals, PlanRecipeJson.decode(exported.plans.single().recipeJson!!, GlobalLifter()).config.goalsLb)
@@ -65,7 +70,7 @@ class BackupV22Test {
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }
 
-    @Test fun `v18 through v21 without cardio notes restore through v22 export`() {
+    @Test fun `v18 through v21 without cardio notes restore and re-export at the current version`() {
         for (version in 18..21) {
             val encoded = codec.encode(document("").copy(schemaVersion = version)).replace(",\"note\":\"\"", "")
             val decoded = codec.decode(encoded)
@@ -80,7 +85,7 @@ class BackupV22Test {
             assertEquals(version < 20, snapshot.plans.single().offerStrengthIncreases)
             assertEquals(version >= 20, snapshot.plans.single().offerCardioIncreases)
             val exported = snapshot.toDocument()
-            assertEquals(22, exported.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
         }
     }

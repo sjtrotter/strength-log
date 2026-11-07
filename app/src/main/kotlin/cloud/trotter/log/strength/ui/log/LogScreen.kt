@@ -139,6 +139,10 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
                     TrajectoryCardView(card)
                 }
+                if (state.journal.weeklyDistance.isNotEmpty()) {
+                    item(key = "distance-header") { LogSectionHeader(stringResource(R.string.log_distance_section)) }
+                    items(state.journal.weeklyDistance, key = { "distance-${it.family}" }) { WeeklyDistanceRow(it) }
+                }
                 item(key = "trends-disclosure") {
                     val disclosureState = stringResource(if (trendsExpanded) R.string.log_expanded_state else R.string.log_collapsed_state)
                     ListItem(
@@ -316,6 +320,7 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long, trendsExpanded: 
     var index = 1 // leading spacer
     if (state.health.available && state.health.publishing && state.health.backfill != null) index += 1
     index += state.journal.trajectories.size
+    if (state.journal.weeklyDistance.isNotEmpty()) index += 1 + state.journal.weeklyDistance.size
     index += 1 // disclosure
     if (trendsExpanded) {
         state.journal.volume?.let { index += 1 + it.weeks.size }

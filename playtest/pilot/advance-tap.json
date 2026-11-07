@@ -9,6 +9,17 @@
   "steps": [
     {
       "tap": {
+        "text": "Lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
@@ -44,6 +55,11 @@
         "text": "Age",
         "value": "40",
         "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
       }
     },
     {

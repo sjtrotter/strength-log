@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
@@ -17,7 +18,7 @@ class WizardStateBuilderTest {
     @Test
     fun `lift rows follow the plan's mains and default reps to the top set`() {
         val answers = WizardAnswers()
-        val state = WizardStateBuilder.buildUiState(WizardStep.LIFTS.ordinal, answers, false)
+        val state = WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.LIFTS), answers, false)
         assertEquals(ProgramGenerator.mainLiftIds(answers), state.liftRows.map { it.exerciseId })
         assertEquals(4, state.liftRows.size)
         assertTrue(state.liftRows.all { it.reps == 5 && it.weightLb == null })
@@ -28,7 +29,7 @@ class WizardStateBuilderTest {
         }
 
         val drafted = WizardStateBuilder.buildUiState(
-            WizardStep.LIFTS.ordinal, answers, false,
+            WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.LIFTS), answers, false,
             liftDrafts = listOf(WizardLiftDraft("bb_back_squat", 100.0, null)),
         )
         assertEquals(100.0, drafted.liftRows.first().weightLb)
@@ -39,7 +40,7 @@ class WizardStateBuilderTest {
     fun `novice squat preview shows three sets at the empty bar`() {
         val answers = WizardAnswers(config = WizardAnswers().config.copy(level = ExperienceLevel.NOVICE))
         val state = WizardStateBuilder.buildUiState(
-            WizardStep.ROTATION.ordinal, answers, false, previewProgram = ProgramGenerator.generate(answers),
+            WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION), answers, false, previewProgram = ProgramGenerator.generate(answers),
         )
         val squat = state.previewLifts.getValue("A").first()
         assertEquals(3, squat.setCount)
@@ -59,9 +60,9 @@ class WizardStateBuilderTest {
     }
 
     @Test
-    fun buildUiState_at_step_zero_starts_on_emphasis_with_no_narrowing() {
+    fun buildUiState_at_step_zero_starts_on_focus_with_no_narrowing() {
         val state = WizardStateBuilder.buildUiState(0, WizardAnswers(), isComplete = false)
-        assertEquals(WizardStep.EMPHASIS, state.step)
+        assertEquals(WizardStep.FOCUS, state.step)
         assertTrue(state.isFirstStep)
         assertFalse(state.isLastStep)
         // 4-day prototype default: all four anchors rotate, nothing narrowed.
@@ -71,15 +72,15 @@ class WizardStateBuilderTest {
     @Test
     fun buildUiState_clamps_an_out_of_range_step_index() {
         val tooHigh = WizardStateBuilder.buildUiState(99, WizardAnswers(), isComplete = false)
-        assertEquals(WizardStep.entries.last(), tooHigh.step)
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).last(), tooHigh.step)
 
         val tooLow = WizardStateBuilder.buildUiState(-3, WizardAnswers(), isComplete = false)
-        assertEquals(WizardStep.entries.first(), tooLow.step)
+        assertEquals(WizardStateBuilder.steps(WizardAnswers()).first(), tooLow.step)
     }
 
     @Test
     fun buildUiState_last_step_is_rotation() {
-        val last = WizardStep.entries.size - 1
+        val last = WizardStateBuilder.steps(WizardAnswers()).size - 1
         val state = WizardStateBuilder.buildUiState(last, WizardAnswers(), isComplete = false)
         assertEquals(WizardStep.ROTATION, state.step)
         assertTrue(state.isLastStep)
@@ -90,7 +91,7 @@ class WizardStateBuilderTest {
         val answers = WizardAnswers()
         val program = ProgramGenerator.generate(answers)
         val state = WizardStateBuilder.buildUiState(
-            WizardStep.ROTATION.ordinal, answers, false, previewProgram = program,
+            WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION), answers, false, previewProgram = program,
         )
 
         for (day in program.days) {
@@ -123,7 +124,7 @@ class WizardStateBuilderTest {
             WizardAnswers(daysPerWeek = 3, split = SplitTemplate.PPL),
         )
         cases.forEach { answers ->
-            val state = WizardStateBuilder.buildUiState(WizardStep.ANCHORS.ordinal, answers, isComplete = false)
+            val state = WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ANCHORS), answers, isComplete = false)
             assertEquals(ProgramGenerator.activeAnchorIds(answers), state.activeAnchorIds)
         }
     }
@@ -146,5 +147,38 @@ class WizardStateBuilderTest {
     @Test
     fun splitForDays_is_a_no_op_when_the_current_split_is_already_that_days_default() {
         assertEquals(SplitTemplate.FULL_BODY, WizardStateBuilder.splitForDays(SplitTemplate.FULL_BODY, 4))
+    }
+
+    @Test
+    fun `lifting first steps preserve the lifting flow after focus`() {
+        assertEquals(listOf(WizardStep.FOCUS, WizardStep.EMPHASIS, WizardStep.DAYS_PER_WEEK,
+            WizardStep.SPLIT, WizardStep.ANCHORS, WizardStep.CARDIO, WizardStep.ABOUT_YOU,
+            WizardStep.EQUIPMENT, WizardStep.LIFTS, WizardStep.ROTATION), WizardStateBuilder.steps(WizardAnswers()))
+    }
+
+    @Test
+    fun `cardio first steps with no lifting skip the lifting questions`() {
+        assertEquals(listOf(WizardStep.FOCUS, WizardStep.CARDIO_ACTIVITY, WizardStep.CARDIO_START,
+            WizardStep.CARDIO_SESSIONS, WizardStep.ALSO_LIFT, WizardStep.ROTATION),
+            WizardStateBuilder.steps(WizardAnswers(cardioFirst = CardioFirst())))
+    }
+
+    @Test
+    fun `cardio first steps with lifting include recent lifts and omit days and finishers`() {
+        for (liftDays in listOf(2, 3)) {
+            assertEquals(listOf(WizardStep.FOCUS, WizardStep.CARDIO_ACTIVITY, WizardStep.CARDIO_START,
+                WizardStep.CARDIO_SESSIONS, WizardStep.ALSO_LIFT, WizardStep.EMPHASIS, WizardStep.SPLIT,
+                WizardStep.ANCHORS, WizardStep.ABOUT_YOU, WizardStep.EQUIPMENT, WizardStep.LIFTS, WizardStep.ROTATION),
+                WizardStateBuilder.steps(WizardAnswers(daysPerWeek = liftDays, cardioFirst = CardioFirst(liftDays = liftDays))))
+        }
+    }
+
+    @Test
+    fun `also lift saved index stays valid when lifting days change`() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst())
+        val before = WizardStateBuilder.buildUiState(4, answers, false)
+        val after = WizardStateBuilder.buildUiState(4, answers.copy(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2)), false)
+        assertEquals(WizardStep.ALSO_LIFT, before.step)
+        assertEquals(WizardStep.ALSO_LIFT, after.step)
     }
 }

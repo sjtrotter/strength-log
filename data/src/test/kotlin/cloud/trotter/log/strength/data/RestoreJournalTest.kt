@@ -148,6 +148,7 @@ class RestoreJournalTest {
     )
 
     private suspend fun assertSettingsRestored() {
+        assertTrue(settings.hasLifterAnswersFlow.first())
         assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
         assertEquals(28, settings.globalLifterFlow.first().age)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
@@ -177,6 +178,24 @@ class RestoreJournalTest {
         answersCarryRecipe = false,
         plans = listOf(PlanEntity(1, "Paused", "GENERATED", 0, 1000, suggestedDayId = "R")),
     )
+
+    @Test fun stagedAbsentLifterAnswersClearExistingAnswers() = runTest {
+        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185.0, age = 35))
+        val restored = snapshot().copy(answers = WizardAnswers(), hasLifterAnswers = false)
+        journal.stage(restored, "lifter-answers-absent")
+        commitPreviousBuildRoomHalf(restored, "lifter-answers-absent")
+        assertTrue(settings.hasLifterAnswersFlow.first())
+
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
+
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertNull(settingsStore.data.first()[longPreferencesKey("bodyweight_tenths_lb")])
+        assertNull(settingsStore.data.first()[intPreferencesKey("age")])
+        assertFalse(backupRepository.exportSnapshot().hasLifterAnswers)
+        assertTrue(settings.wizardCompleteFlow.first())
+        settings.updateGlobalLifter { it.copy(bodyweightLb = 190.0, age = 36) }
+        assertTrue(settings.hasLifterAnswersFlow.first())
+    }
 
     @Test fun stagedDistanceChoiceCommits() = runTest {
         val restored = snapshot().copy(distanceUnit = DistanceUnit.KM)

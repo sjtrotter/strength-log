@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -27,12 +28,15 @@ import cloud.trotter.log.strength.audit.auditHistoryFixture
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
@@ -76,6 +80,7 @@ class LogScreenInteractionTest {
         journal: JournalUiState = JournalUiState(),
         restoration: StateRestorationTester? = null,
         withNavigation: Boolean = false,
+        distanceUnit: DistanceUnit = DistanceUnit.MI,
     ) {
         val content: @Composable () -> Unit = {
             AppTheme {
@@ -95,10 +100,62 @@ class LogScreenInteractionTest {
                         ),
                     )
                 }
-                if (withNavigation) AuditDestination(TopLevelDestination.LOG, screen) else screen()
+                CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) {
+                    if (withNavigation) AuditDestination(TopLevelDestination.LOG, screen) else screen()
+                }
             }
         }
         if (restoration == null) composeTestRule.setContent(content) else restoration.setContent(content)
+    }
+
+    @Test
+    fun weeklyDistanceShowsMilesMissingSessionsAndRowingMeters() {
+        setContent(false, journal = JournalUiState(weeklyDistance = listOf(
+            WeeklyDistance(CardioFamily.RUN, 13_519, 1),
+            WeeklyDistance(CardioFamily.ROW, 2000, 0),
+            WeeklyDistance(CardioFamily.WALK, 0, 2),
+        )), distanceUnit = DistanceUnit.MI)
+
+        composeTestRule.onNodeWithText("Distance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Running this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("8.4 mi").assertIsDisplayed()
+        composeTestRule.onNodeWithText("1 session without distance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rowing this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("2,000 m").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Walking this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Distance not entered").assertIsDisplayed()
+        composeTestRule.onNodeWithText("2 sessions without distance").assertIsDisplayed()
+        assertEquals(
+            "Collapsed",
+            composeTestRule.onNodeWithText("Trends and calendar").fetchSemanticsNode()
+                .config.getOrNull(SemanticsProperties.StateDescription),
+        )
+    }
+
+    @Test
+    fun weeklyDistanceUsesTheKilometerSettingForActivityGroups() {
+        setContent(false, journal = JournalUiState(weeklyDistance = listOf(
+            WeeklyDistance(CardioFamily.RUN, 5000, 0),
+            WeeklyDistance(CardioFamily.RIDE, 20_000, 0),
+            WeeklyDistance(CardioFamily.ELLIPTICAL, 1000, 0),
+        )), distanceUnit = DistanceUnit.KM)
+
+        composeTestRule.onNodeWithText("Running this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("5 km").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cycling this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("20 km").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Elliptical this week").assertIsDisplayed()
+        composeTestRule.onNodeWithText("1 km").assertIsDisplayed()
+        composeTestRule.onNodeWithText("session without distance", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun weeklyDistanceCapsLargeTotalsBeforeFormatting() {
+        setContent(false, journal = JournalUiState(weeklyDistance = listOf(
+            WeeklyDistance(CardioFamily.ROW, Long.MAX_VALUE, 0),
+        )))
+
+        composeTestRule.onNodeWithText("2,147,483,647 m").assertIsDisplayed()
     }
 
     @Test fun roadHistoryTotalsUseMiles() {
@@ -485,6 +542,39 @@ class LogScreenInteractionTest {
         }
         setContent(
             false, sessions = sessions, journal = history.journal,
+            health = HealthSectionUi(
+                available = true, publishing = true,
+                backfill = BackfillOfferUi(LogScreenBuilder.backfillLabel(sessions.size, false), true),
+                bodyweightPrompt = BodyweightPromptUi("185", "190"),
+            ),
+        )
+        composeTestRule.onNodeWithText("Trends and calendar").performScrollTo().performClick()
+        composeTestRule.onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription("November 3, today, day A, 1 session"))
+        composeTestRule.onNodeWithContentDescription("November 3, today, day A, 1 session").performClick()
+        composeTestRule.waitForIdle()
+
+        val session = composeTestRule.onNodeWithText(history.sessions.first().dateDisplay).assertIsDisplayed()
+        val listTop = composeTestRule.onNode(hasScrollAction()).getUnclippedBoundsInRoot().top
+        assertTrue(session.getUnclippedBoundsInRoot().top - listTop < 96.dp)
+    }
+
+    @Test
+    fun calendarTapScrollsToItsSessionWithDistanceRows() {
+        val history = auditHistoryFixture()
+        val cardio = logSessionFixture(false).copy(
+            sessionId = history.sessions.first().sessionId, cardioId = history.sessions.first().sessionId,
+            dayTitle = "Easy run", dateDisplay = "Latest cardio", cardioSummary = "Road run", cardioDuration = "20:00",
+        )
+        val sessions = listOf(cardio) + history.sessions + List(20) { i ->
+            logSessionFixture(false).copy(sessionId = 100L + i, dateDisplay = "Older session $i")
+        }
+        val journal = history.journal.copy(weeklyDistance = listOf(
+            WeeklyDistance(CardioFamily.RUN, 13_519, 1),
+            WeeklyDistance(CardioFamily.ROW, 2000, 0),
+        ))
+        setContent(
+            false, sessions = sessions, journal = journal,
             health = HealthSectionUi(
                 available = true, publishing = true,
                 backfill = BackfillOfferUi(LogScreenBuilder.backfillLabel(sessions.size, false), true),

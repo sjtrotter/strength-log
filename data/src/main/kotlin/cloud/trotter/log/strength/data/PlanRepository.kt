@@ -271,6 +271,7 @@ class PlanRepository(
                         origin = PlanOrigin.GENERATED.name,
                         recipeJson = recipe,
                         suggestedDayId = nextDay,
+                        offerCardioIncreases = answers.cardioFirst != null,
                     ))
                     selected.id
                 } else {
@@ -282,6 +283,7 @@ class PlanRepository(
                         createdAt = clock.millis(),
                         recipeJson = recipe,
                         suggestedDayId = nextDay,
+                        offerCardioIncreases = answers.cardioFirst != null,
                     ))
                 }
                 program.days.forEachIndexed { index, day ->
@@ -295,14 +297,14 @@ class PlanRepository(
         }
     }
 
-    /** Idempotently writes the global lifter and selects an existing active plan
-     * under the selection lock. */
-    suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers) {
+    /** Idempotently selects an existing active plan under the selection lock,
+     * optionally writing the global lifter when setup collected those answers. */
+    suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers, writeLifter: Boolean = true) {
         ensurePlanSettingsMigrated()
         planSelectionLock.withLock {
             val active = planDao.plan(id)?.archived == false
             if (active) planDao.updateOnToday(id, true)
-            settings.setGlobalLifter(GlobalLifter.of(answers.config))
+            if (writeLifter) settings.setGlobalLifter(GlobalLifter.of(answers.config))
             if (active) settings.setSelectedPlanId(id)
         }
     }

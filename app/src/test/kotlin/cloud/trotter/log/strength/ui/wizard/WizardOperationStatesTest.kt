@@ -21,12 +21,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -52,15 +55,15 @@ class WizardOperationStatesTest {
     @Test fun loadingHidesStepInputsAndDisablesNext() {
         var state by mutableStateOf(WizardUiState(initialized = false))
         rule.setContent { AppTheme { WizardScreen(state, actions()) } }
-        rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
+        rule.onNodeWithText("Lifting").assertDoesNotExist()
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { state = state.copy(initialized = true) }
-        rule.onNodeWithText("Strength-leaning").assertExists()
+        rule.onNodeWithText("Lifting").assertExists()
         rule.onNodeWithText("Next").assertIsEnabled()
     }
 
     @Test fun freshAboutYouIsEmptyAndNextRequiresBothValidValues() {
-        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStep.ABOUT_YOU.ordinal, WizardAnswers(), false))
+        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU), WizardAnswers(), false))
         rule.setContent { AppTheme { WizardScreen(state, actions().copy(
             onBodyweightChange = { state = state.copy(bodyweightLb = it) },
             onAgeChange = { state = state.copy(age = it) },
@@ -80,9 +83,9 @@ class WizardOperationStatesTest {
     }
 
     @Test fun tappingARadioRowSelectsTheAnswer() {
-        var state by mutableStateOf(WizardStateBuilder.buildUiState(0, WizardAnswers(), false))
+        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EMPHASIS), WizardAnswers(), false))
         rule.setContent { AppTheme { WizardScreen(state, actions().copy(onEmphasisChange = {
-            state = WizardStateBuilder.buildUiState(0, state.answers.copy(config = state.answers.config.copy(emphasis = it)), false)
+            state = WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EMPHASIS), state.answers.copy(config = state.answers.config.copy(emphasis = it)), false)
         })) } }
         rule.onNodeWithText("Strength-leaning").performClick().assertIsSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
@@ -90,12 +93,12 @@ class WizardOperationStatesTest {
     }
 
     @Test fun selectAllChecksEveryEquipmentRowAndClearAllUnchecksThem() {
-        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStep.EQUIPMENT.ordinal,
+        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EQUIPMENT),
             WizardAnswers(equipment = setOf(Equipment.BARBELL)), false))
         rule.setContent { AppTheme { WizardScreen(state, actions().copy(onEquipmentToggle = { equipment ->
             val current = state.answers.equipment
             val changed = if (equipment in current) current - equipment else current + equipment
-            state = WizardStateBuilder.buildUiState(WizardStep.EQUIPMENT.ordinal, state.answers.copy(equipment = changed), false)
+            state = WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.EQUIPMENT), state.answers.copy(equipment = changed), false)
         })) } }
         rule.onNodeWithText("Select all").performClick()
         rule.runOnIdle { assertEquals(Equipment.entries.toSet(), state.answers.equipment) }
@@ -109,7 +112,7 @@ class WizardOperationStatesTest {
 
     @Test fun emptyRotationDisablesStartAndReviewKeepsAnswers() {
         val answers = WizardAnswers(daysPerWeek = 3).let { it.copy(config = it.config.copy(emphasis = GoalEmphasis.PHYSIQUE)) }
-        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStep.ROTATION.ordinal, answers, false,
+        var state by mutableStateOf(WizardStateBuilder.buildUiState(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION), answers, false,
             previewProgram = Program(days = emptyList())))
         var starts = 0
         rule.setContent { AppTheme { WizardScreen(state, actions(onNext = { starts++ }, onBack = {
@@ -120,7 +123,7 @@ class WizardOperationStatesTest {
         rule.onNodeWithText("Review answers").performScrollTo().performClick()
         rule.runOnIdle {
             assertEquals(0, starts)
-            assertEquals(WizardStep.EMPHASIS, state.step)
+            assertEquals(WizardStep.FOCUS, state.step)
             assertEquals(answers, state.answers)
         }
     }
@@ -129,7 +132,7 @@ class WizardOperationStatesTest {
         val answers = WizardAnswers()
         val program = ProgramGenerator.generate(answers)
         val state = WizardStateBuilder.buildUiState(
-            WizardStep.ROTATION.ordinal, answers, false, previewProgram = program,
+            WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION), answers, false, previewProgram = program,
         )
         rule.setContent { AppTheme { WizardScreen(state, actions()) } }
 
@@ -160,7 +163,7 @@ class WizardOperationStatesTest {
     @Test fun failedPlanCreationNamesTheFailureAndRetriesThroughTheExistingAction() {
         var retries = 0
         rule.setContent { AppTheme { WizardScreen(WizardUiState(
-            stepIndex = WizardStep.ROTATION.ordinal, step = WizardStep.ROTATION,
+            stepIndex = WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION), step = WizardStep.ROTATION,
             previewProgram = cloud.trotter.log.strength.domain.generator.ProgramGenerator.generate(WizardAnswers()),
             finishError = UiText.FileAccessFailure("Disk full"),
         ), actions(onNext = { retries++ })) } }
@@ -168,5 +171,15 @@ class WizardOperationStatesTest {
         rule.onNodeWithText("Couldn't access that file: Disk full").assertIsDisplayed()
         rule.onNodeWithText("Try again").performClick()
         assertEquals(1, retries)
+    }
+
+    @Test fun cardioRotationShowsDistancesInTheChosenUnit() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst(comfortable = Measure.Distance(4828)))
+        val state = WizardStateBuilder.buildUiState(WizardStateBuilder.steps(answers).indexOf(WizardStep.ROTATION),
+            answers, false, distanceUnit = DistanceUnit.KM, previewProgram = ProgramGenerator.generate(answers))
+        rule.setContent { AppTheme { WizardScreen(state, actions()) } }
+        rule.onNodeWithText("Road run · 4.83 km").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Road run · 25:00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Road run · 7.24 km").performScrollTo().assertIsDisplayed()
     }
 }

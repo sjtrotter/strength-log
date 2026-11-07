@@ -181,10 +181,10 @@ class LogViewModel @Inject constructor(
         settings.unitFlow,
         repo.cardioSessionsFlow,
         ::JournalHistory,
-    )
+    ).combine(repo.cardioSetResultsFlow) { history, sets -> history to sets }
 
     /**
-     * The journal's three sections all hang off *today* — the today marker, the
+     * The journal sections all hang off *today* — the today marker, the
      * month grid, the twelve-week window — so the civil day is an upstream flow
      * like any other. When the day turns under a parked screen, or the device
      * changes zone, this re-emits and the sections are rebuilt in the new day
@@ -196,11 +196,12 @@ class LogViewModel @Inject constructor(
         mainLifts,
         calendarOffset,
         civilTimeSource.civilTime,
-    ) { history, mains, offset, now ->
+    ) { (history, sets), mains, offset, now ->
         JournalUiState(
             trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
             calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
+            weeklyDistance = JournalBuilder.weeklyDistance(history.cardio, sets, now.date, now.zone),
         )
     }
 

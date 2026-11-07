@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.plan
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -108,7 +109,7 @@ class PlanScreenBuilderTest {
     fun generatedPlansShowTheFourPinnedGoalsAndTheirEmphasis() {
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
         val state = PlanScreenBuilder.buildUiState(
-            plan, Program(listOf(day("A", "Day A"))), WizardAnswers(), catalog, WeightUnit.LB,
+            plan, ProgramGenerator.generate(WizardAnswers()), WizardAnswers(), catalog, WeightUnit.LB,
         )
         assertEquals(listOf(
             GoalPreviewItem("Barbell Back Squat", "235", false),
@@ -152,6 +153,23 @@ class PlanScreenBuilderTest {
         assertFalse("Barbell Back Squat" in names)
         assertFalse("Trap-Bar Deadlift" in names)
         assertTrue(names.all { it in plannedNames })
+    }
+
+    @Test
+    fun generatedPlansWithoutLiftsHideGoalsAndEmphasisRegardlessOfRecipe() {
+        val answers = WizardAnswers(cardioFirst = CardioFirst())
+        val program = ProgramGenerator.generate(answers)
+        val plan = PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0)
+
+        for (recipe in listOf(answers, WizardAnswers())) {
+            val state = PlanScreenBuilder.buildUiState(plan, program, recipe, catalog, WeightUnit.LB)
+
+            assertTrue(state.hasProgram)
+            assertEquals(listOf("Easy", "Intervals", "Long"), state.days.map { it.title })
+            assertTrue(state.days.all { it.liftCount == 0 && it.cardioSetCount > 0 })
+            assertTrue(state.goals.isEmpty())
+            assertNull(state.emphasis)
+        }
     }
 
     @Test

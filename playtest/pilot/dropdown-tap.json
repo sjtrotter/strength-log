@@ -4,6 +4,17 @@
   "steps": [
     {
       "tap": {
+        "text": "Lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
         "text": "Balanced strength + muscle"
       }
     },
@@ -131,6 +142,11 @@
       }
     },
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "scrollTo": {
         "text": "Missing a day never skips the next workout."
       }
@@ -216,7 +232,7 @@
     },
     {
       "expect": {
-        "text": "Edit day"
+        "textContains": "Edit day"
       }
     },
     {

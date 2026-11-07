@@ -1,9 +1,11 @@
 package cloud.trotter.log.strength.domain.generator
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Measure
 
 /** Which four main lifts anchor the rotation (spec §6.1 step 4). */
 enum class AnchorScheme {
@@ -49,10 +51,27 @@ data class WizardAnswers(
     val equipment: Set<Equipment> = Equipment.entries.toSet(),
     /** Optional recent lifts by main-lift id (#499); a lift without one uses the calculated goal. */
     val lifts: Map<String, LiftEntry> = emptyMap(),
+    val cardioFirst: CardioFirst? = null,
 ) {
     init {
+        require(cardioFirst == null || cardioFirst.liftDays == 0 || daysPerWeek == cardioFirst.liftDays)
         require(daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was $daysPerWeek" }
     }
 
     val emphasis: GoalEmphasis get() = config.emphasis
+}
+
+/** Null in [WizardAnswers.cardioFirst] means lifting first. With [liftDays] > 0, [WizardAnswers.daysPerWeek] equals it. */
+data class CardioFirst(
+    val activity: CardioActivity = CardioActivity.ROAD_RUN,
+    val comfortable: Measure = Measure.Time(1_800),
+    val sessions: Int = 3,
+    val liftDays: Int = 0,
+) {
+    init {
+        require(sessions in 1..6) { "sessions must be 1..6, was $sessions" }
+        require(liftDays in LIFT_DAY_CHOICES) { "liftDays must be 0, 2 or 3, was $liftDays" }
+    }
+
+    companion object { val LIFT_DAY_CHOICES = listOf(0, 2, 3) }
 }

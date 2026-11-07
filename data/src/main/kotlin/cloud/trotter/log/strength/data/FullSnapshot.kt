@@ -63,4 +63,5 @@ data class FullSnapshot(
     val runs: List<WorkoutRunEntity> = emptyList(),
     val runTracks: List<RunTrackEntity> = emptyList(),
     val legacyLogs: List<LegacyLog> = emptyList(),
+    val hasLifterAnswers: Boolean = true,
 )

@@ -30,7 +30,9 @@ class BackupV21Test {
 
     @Test
     fun `v21 export and restore preserve edited goals`() {
-        val snapshot = document().toSnapshot()
+        val decoded = codec.decode(codec.encode(document()))
+        assertEquals(21, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
@@ -51,7 +53,9 @@ class BackupV21Test {
         val source = base.copy(plans = listOf(base.plans.single().copy(
             days = listOf(day), offerStrengthIncreases = false, offerCardioIncreases = true,
         )))
-        val snapshot = codec.decode(codec.encode(source)).toSnapshot()
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(21, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(recipe, exported.plans.single().recipeJson)
@@ -67,7 +71,9 @@ class BackupV21Test {
         assertFalse(legacyRecipe.contains("goalsLb"))
         for (version in 18..20) {
             val legacy = document(legacyRecipe).copy(schemaVersion = version)
-            val snapshot = codec.decode(codec.encode(legacy)).toSnapshot()
+            val decoded = codec.decode(codec.encode(legacy))
+            assertEquals(version, decoded.schemaVersion)
+            val snapshot = decoded.toSnapshot()
             val restoredRecipe = snapshot.plans.single().recipeJson!!
             assertEquals(legacyRecipe, restoredRecipe)
             assertTrue(PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb.isEmpty())

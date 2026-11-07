@@ -6,21 +6,28 @@ import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 import kotlinx.parcelize.Parcelize
 
 /**
- * The wizard's questions in order (spec §6.1) plus the optional equipment and
- * recent-lifts steps (PLAN.md A4, A15).
+ * Wizard questions; [WizardStateBuilder.steps] owns their order in each branch.
  */
 enum class WizardStep {
+    FOCUS,
+    CARDIO_ACTIVITY,
+    CARDIO_START,
+    CARDIO_SESSIONS,
+    ALSO_LIFT,
     EMPHASIS,
     DAYS_PER_WEEK,
     SPLIT,
@@ -49,11 +56,14 @@ data class WizardPreviewLift(val name: String, val setCount: Int, val detail: St
  */
 data class WizardUiState(
     val stepIndex: Int = 0,
-    val step: WizardStep = WizardStep.EMPHASIS,
+    val step: WizardStep = WizardStep.FOCUS,
     val answers: WizardAnswers = WizardAnswers(),
+    val steps: List<WizardStep> = WizardStateBuilder.steps(answers),
     val splitOptions: SplitDefaults.Options = SplitDefaults.optionsFor(WizardAnswers().daysPerWeek),
     val activeAnchorIds: List<String> = emptyList(),
     val unit: WeightUnit = WeightUnit.LB,
+    val distanceUnit: DistanceUnit = DistanceUnit.MI,
+    val cardioStartByTime: Boolean = true,
     val previewProgram: Program? = null,
     val previewLifts: Map<String, List<WizardPreviewLift>> = emptyMap(),
     val isComplete: Boolean = false,
@@ -68,9 +78,9 @@ data class WizardUiState(
     val canContinue: Boolean get() = initialized && (step != WizardStep.ABOUT_YOU ||
         (bodyweightLb != null && bodyweightLb.isFinite() && bodyweightLb >= 1.0 && age != null && age >= 1))
     val emptyRotation: Boolean get() = isLastStep && previewProgram?.days.isNullOrEmpty()
-    val totalSteps: Int get() = WizardStep.entries.size
+    val totalSteps: Int get() = steps.size
     val isFirstStep: Boolean get() = stepIndex == 0
-    val isLastStep: Boolean get() = stepIndex == totalSteps - 1
+    val isLastStep: Boolean get() = step == WizardStep.ROTATION
 }
 
 /**
@@ -106,6 +116,15 @@ data class WizardActions(
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEquipmentToggle: (Equipment) -> Unit,
     val onRestoreFromBackup: () -> Unit,
+    val onFocusChange: (Boolean) -> Unit = {},
+    val onCardioFamilyChange: (CardioFamily) -> Unit = {},
+    val onCardioActivityChange: (CardioActivity) -> Unit = {},
+    val onCardioStartByTimeChange: (Boolean) -> Unit = {},
+    val onCardioStartSecondsChange: (Int) -> Unit = {},
+    val onCardioStartMetresChange: (Int) -> Unit = {},
+    val onCardioSessionsChange: (Int) -> Unit = {},
+    val onLiftDaysChange: (Int) -> Unit = {},
+    val onDistanceUnitChange: (DistanceUnit) -> Unit = {},
     val onLiftWeightChange: (String, Double?) -> Unit = { _, _ -> },
     val onLiftRepsChange: (String, Int?) -> Unit = { _, _ -> },
 )

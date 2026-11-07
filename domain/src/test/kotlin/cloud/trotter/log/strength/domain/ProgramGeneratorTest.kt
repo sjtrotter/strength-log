@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.domain
 
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.DayKind
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.LiftEntry
@@ -16,17 +16,23 @@ import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
@@ -563,5 +569,93 @@ class ProgramGeneratorTest {
         )
         assertEquals(200.0, answers.config.bodyweightLb)
         assertEquals(answers.config.emphasis, answers.emphasis)
+    }
+
+    @Test
+    fun `cardio first with no lifting is three lettered run days`() {
+        val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst()))
+        assertEquals(listOf("A", "B", "C"), program.days.map { it.id })
+        assertEquals(listOf("Easy", "Intervals", "Long"), titles(program))
+        assertTrue(program.days.all { it.kind == ProgramDayKind.STRENGTH && it.exercises.isEmpty() && it.emphasisLine.isEmpty() })
+        val easy = assertNotNull(program.days[0].cardioBlock)
+        assertEquals(CardioActivity.ROAD_RUN, easy.activity)
+        assertEquals(listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1800))), easy.sets)
+        assertTrue(easy.openEnded)
+        val intervals = assertNotNull(program.days[1].cardioBlock)
+        assertEquals(11, intervals.sets.size)
+        assertEquals(CardioBlocks.fromLegacy(CardioSuggestion("", "", hard = true), true, CardioActivity.ROAD_RUN), intervals)
+        assertEquals(listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(2700))), program.days[2].cardioBlock?.sets)
+        assertEquals("B", Rotation.nextFor(program, "A"))
+        assertEquals("C", Rotation.nextFor(program, "B"))
+        assertEquals("A", Rotation.nextFor(program, "C"))
+    }
+
+    @Test
+    fun `a distance answer gives distance sets`() {
+        val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(comfortable = Measure.Distance(4828))))
+        assertEquals(Measure.Distance(4828), program.days.first().cardioBlock?.sets?.single()?.end)
+        assertEquals(Measure.Distance(7242), program.days.last().cardioBlock?.sets?.single()?.end)
+        assertEquals(false, program.days.first().cardioBlock?.openEnded)
+    }
+
+    @Test
+    fun `long time rounds to the minute`() {
+        val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(comfortable = Measure.Time(1250))))
+        assertEquals(Measure.Time(1860), program.days.last().cardioBlock?.sets?.single()?.end)
+    }
+
+    @Test
+    fun `two lift days interleave`() {
+        val answers = WizardAnswers(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2),
+            lifts = mapOf("bb_back_squat" to LiftEntry(225.0, 5)))
+        val program = ProgramGenerator.generate(answers)
+        assertEquals(listOf("Easy", "Full Body", "Intervals", "Full Body", "Long"), titles(program))
+        assertEquals(listOf("A", "B", "C", "D", "E"), program.days.map { it.id })
+        val lifts = program.days.filter { it.exercises.isNotEmpty() }
+        assertEquals(2, lifts.size)
+        assertTrue(lifts.all { it.cardioBlock == null && it.kind == ProgramDayKind.STRENGTH })
+        assertEquals(Prescription(PrescribedTarget.LoadReps(225.0, 5)), lifts.first().exercises.first().prescription)
+        assertTrue(program.cardioDays.isEmpty())
+    }
+
+    @Test
+    fun `six sessions`() {
+        val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(sessions = 6)))
+        assertEquals(listOf("Easy", "Intervals", "Easy", "Intervals", "Easy", "Long"), titles(program))
+    }
+
+    @Test
+    fun `one two four and five sessions use their planned sequences`() {
+        val expected = mapOf(
+            1 to listOf("Easy"),
+            2 to listOf("Easy", "Long"),
+            4 to listOf("Easy", "Intervals", "Easy", "Long"),
+            5 to listOf("Easy", "Intervals", "Easy", "Easy", "Long"),
+        )
+        expected.forEach { (sessions, expectedTitles) ->
+            val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(sessions = sessions)))
+            assertEquals(expectedTitles, titles(program))
+        }
+    }
+
+    @Test
+    fun `remaining lift days follow the last cardio session`() {
+        val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = 3, cardioFirst = CardioFirst(sessions = 1, liftDays = 3)))
+        assertEquals(listOf("Easy", "Full Body", "Full Body", "Full Body"), titles(program))
+        assertEquals(listOf("A", "B", "C", "D"), program.days.map { it.id })
+    }
+
+    @Test
+    fun `long sessions respect measure bounds and retain the activity`() {
+        for (comfortable in listOf(Measure.Time(1), Measure.Time(86400), Measure.Distance(200000))) {
+            val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(
+                activity = CardioActivity.STATIONARY_BIKE, comfortable = comfortable,
+            )))
+            assertTrue(program.days.all { it.cardioBlock?.activity == CardioActivity.STATIONARY_BIKE })
+            assertEquals(when (comfortable) {
+                is Measure.Time -> Measure.Time(if (comfortable.seconds == 1) 60 else 86400)
+                is Measure.Distance -> Measure.Distance(200000)
+            }, program.days.last().cardioBlock?.sets?.single()?.end)
+        }
     }
 }

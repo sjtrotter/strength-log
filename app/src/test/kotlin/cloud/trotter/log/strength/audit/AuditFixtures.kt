@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.tracking
@@ -120,8 +121,12 @@ internal fun auditHistoryFixture(): LogUiState {
     )
 }
 
-internal fun auditWizardFixture(step: WizardStep) = WizardAnswers().let { answers ->
-    WizardStateBuilder.buildUiState(step.ordinal, answers, false, previewProgram = ProgramGenerator.generate(answers))
+internal fun auditWizardFixture(step: WizardStep) = WizardAnswers(
+    cardioFirst = if (step in listOf(WizardStep.CARDIO_ACTIVITY, WizardStep.CARDIO_START,
+            WizardStep.CARDIO_SESSIONS, WizardStep.ALSO_LIFT)) CardioFirst() else null,
+).let { answers ->
+    WizardStateBuilder.buildUiState(WizardStateBuilder.steps(answers).indexOf(step), answers, false,
+        previewProgram = ProgramGenerator.generate(answers))
 }
 
 /** The selected real entry also supplies tracking and equipment, not just a long label. */

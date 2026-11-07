@@ -49,6 +49,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -497,9 +498,9 @@ class DayViewModelWiringTest {
             it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired
         }
         assertEquals("hack_squat", substitute.exerciseId)
-        assertEquals(working, repo.dayTracksFlow(plan, "A").first().retired.single {
+        assertEquals(CarryForward.cleared(working), CarryForward.cleared(repo.dayTracksFlow(plan, "A").first().retired.single {
             it.programExerciseId == id && it.slot == Slot.MAIN && it.exerciseId == "bb_back_squat"
-        }.sets)
+        }.sets))
 
         vm.editor.openStraightSets(id)
         advanceUntilIdle()

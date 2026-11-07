@@ -4,6 +4,11 @@
   "steps": [
     {
       "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
         "text": "Balanced strength + muscle"
       }
     },

@@ -65,3 +65,16 @@ data class CardioBlock(val activity: CardioActivity, val sets: List<CardioSetSpe
 
 /** What a cardio block's increase changes. Stored by name; new constants go at the end. */
 enum class ProgressMeasure { DISTANCE, TIME, PACE }
+
+/** The wizard's activity groups; History totals use the same grouping (#497). */
+enum class CardioFamily(val activities: List<CardioActivity>) {
+    RUN(listOf(CardioActivity.ROAD_RUN, CardioActivity.TRAIL_RUN, CardioActivity.TRACK_RUN, CardioActivity.TREADMILL_RUN)),
+    RIDE(listOf(CardioActivity.OUTDOOR_RIDE, CardioActivity.STATIONARY_BIKE)),
+    ROW(listOf(CardioActivity.ROWER)),
+    WALK(listOf(CardioActivity.OUTDOOR_WALK, CardioActivity.TREADMILL_WALK)),
+    ELLIPTICAL(listOf(CardioActivity.ELLIPTICAL));
+
+    companion object {
+        fun of(activity: CardioActivity): CardioFamily = entries.first { activity in it.activities }
+    }
+}

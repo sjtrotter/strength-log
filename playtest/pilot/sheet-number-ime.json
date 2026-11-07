@@ -3,6 +3,11 @@
   "capture": "checkpoints",
   "steps": [
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "advance": "1d2h3m4s"
     },
     {
@@ -138,6 +143,11 @@
     },
     {
       "checkpoint": "equipment"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {

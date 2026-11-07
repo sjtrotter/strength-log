@@ -8,17 +8,20 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.BackupRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.LiftEntry
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -26,9 +29,11 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import cloud.trotter.log.strength.domain.units.Bodyweight
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -99,6 +104,14 @@ class WizardViewModel @Inject constructor(
         const val EMPHASIS = "wizard_emphasis"
         const val EQUIPMENT = "wizard_equipment"
         const val LIFTS = "wizard_lifts"
+        const val FOCUS = "wizard_focus"
+        const val CF_ACTIVITY = "wizard_cf_activity"
+        const val CF_BY_TIME = "wizard_cf_by_time"
+        const val CF_SECONDS = "wizard_cf_seconds"
+        const val CF_METRES = "wizard_cf_metres"
+        const val CF_SESSIONS = "wizard_cf_sessions"
+        const val CF_LIFT_DAYS = "wizard_cf_lift_days"
+        const val DISTANCE_UNIT = "wizard_distance_unit"
         const val UNIT = "wizard_unit"
         /** Retained for this wizard's lifetime so completion retries reuse its plan. */
         const val CREATED_PLAN_ID = "wizard_created_plan_id"
@@ -128,6 +141,17 @@ class WizardViewModel @Inject constructor(
         savedState.getStateFlow(Keys.EQUIPMENT, defaults.equipment.map { it.name })
     private val lifts: StateFlow<List<WizardLiftDraft>> = savedState.getStateFlow(Keys.LIFTS, emptyList())
     private val unit: StateFlow<String> = savedState.getStateFlow(Keys.UNIT, WeightUnit.LB.name)
+    private val focus = savedState.getStateFlow(Keys.FOCUS, false)
+    private val cfActivity = savedState.getStateFlow(Keys.CF_ACTIVITY, CardioActivity.ROAD_RUN.name)
+    private val cfByTime = savedState.getStateFlow(Keys.CF_BY_TIME, true)
+    private val cfSeconds = savedState.getStateFlow(Keys.CF_SECONDS, 1_800)
+    private val cfMetres = savedState.getStateFlow(Keys.CF_METRES, 5_000)
+    private val cfSessions = savedState.getStateFlow(Keys.CF_SESSIONS, 3)
+    private val cfLiftDays = savedState.getStateFlow(Keys.CF_LIFT_DAYS, 0)
+    private val distanceUnit = savedState.getStateFlow(Keys.DISTANCE_UNIT, DistanceUnit.MI.name)
+    private val cardioFirstChanges = combine(listOf<Flow<Any?>>(
+        focus, cfActivity, cfByTime, cfSeconds, cfMetres, cfSessions, cfLiftDays, distanceUnit,
+    )) { Unit }
     private val previewProgram = MutableStateFlow<Program?>(null)
 
     private val isComplete = MutableStateFlow(false)
@@ -150,8 +174,15 @@ class WizardViewModel @Inject constructor(
      *  still carry older answers after restore has cleared its in-flight flag. */
     private fun currentAnswers(): WizardAnswers {
         val currentEmphasis = enumOf(emphasis.value, defaults.config.emphasis)
+        val cardioFirst = if (focus.value) CardioFirst(
+            activity = enumOf(cfActivity.value, CardioActivity.ROAD_RUN),
+            comfortable = if (cfByTime.value) Measure.Time(cfSeconds.value) else Measure.Distance(cfMetres.value),
+            sessions = cfSessions.value,
+            liftDays = cfLiftDays.value,
+        ) else null
         return WizardAnswers(
-            daysPerWeek = daysPerWeek.value,
+            cardioFirst = cardioFirst,
+            daysPerWeek = cardioFirst?.liftDays?.takeIf { it > 0 } ?: daysPerWeek.value,
             split = enumOf(split.value, defaults.split),
             anchorScheme = enumOf(anchorScheme.value, defaults.anchorScheme),
             deadliftVariant = enumOf(deadliftVariant.value, defaults.deadliftVariant),
@@ -181,7 +212,7 @@ class WizardViewModel @Inject constructor(
             stepIndex, daysPerWeek, split, anchorScheme, deadliftVariant,
             cardioMode, cardioPlacement, fiveK, bodyweight, age, level, emphasis,
             equipment, lifts, unit, isComplete, firstRun, restoreProgress,
-            previewProgram, finishProgress, initialized,
+            previewProgram, finishProgress, initialized, cardioFirstChanges,
         )) {
             val restore = restoreProgress.value
             val finish = finishProgress.value
@@ -191,6 +222,8 @@ class WizardViewModel @Inject constructor(
                 isComplete = isComplete.value,
                 restore = WizardRestoreState(offered = firstRun.value, inFlight = restore.inFlight, error = restore.error),
                 unit = enumOf(unit.value, WeightUnit.LB),
+                distanceUnit = enumOf(distanceUnit.value, DistanceUnit.MI),
+                cardioStartByTime = cfByTime.value,
                 previewProgram = previewProgram.value,
                 finishError = finish.error,
                 finishInFlight = finish.inFlight,
@@ -209,12 +242,15 @@ class WizardViewModel @Inject constructor(
                 applyAnswers(answers, prefillAboutYou = !isFirstRun || settings.hasLifterAnswersFlow.first())
                 savedState[Keys.FIRST_RUN] = isFirstRun
                 applyAnswer(Keys.UNIT, if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else settings.unitFlow.first().name)
-                if (stepIndex.value == WizardStep.ROTATION.ordinal) {
+                applyAnswer(Keys.DISTANCE_UNIT, if (isFirstRun) {
+                    DistanceUnit.suggestedFor(deviceWeightUnitProvider.defaultUnit()).name
+                } else settings.distanceUnitFlow.first().name)
+                if (currentStep() == WizardStep.ROTATION) {
                     previewProgram.value = generatePreview(currentAnswers())
                 }
                 savedState[Keys.INITIALIZED] = true
             }
-        } else if (stepIndex.value == WizardStep.ROTATION.ordinal) {
+        } else if (currentStep() == WizardStep.ROTATION) {
             previewProgram.value = generatePreview(currentAnswers())
         }
     }
@@ -231,12 +267,13 @@ class WizardViewModel @Inject constructor(
 
     fun onNext() {
         if (!initialized.value) return
-        val current = stepIndex.value
-        if (current == WizardStep.ABOUT_YOU.ordinal && !hasValidAboutYouAnswers()) return
-        if (current >= WizardStep.entries.lastIndex) {
+        val steps = WizardStateBuilder.steps(currentAnswers())
+        val current = stepIndex.value.coerceIn(steps.indices)
+        if (steps[current] == WizardStep.ABOUT_YOU && !hasValidAboutYouAnswers()) return
+        if (steps[current] == WizardStep.ROTATION) {
             finish()
         } else {
-            if (current == WizardStep.LIFTS.ordinal) {
+            if (steps[current + 1] == WizardStep.ROTATION) {
                 previewProgram.value = generatePreview(currentAnswers())
             }
             savedState[Keys.STEP] = current + 1
@@ -244,14 +281,44 @@ class WizardViewModel @Inject constructor(
     }
 
     fun onBack() {
-        val current = stepIndex.value
+        val steps = WizardStateBuilder.steps(currentAnswers())
+        val current = stepIndex.value.coerceIn(steps.indices)
         if (current > 0) {
-            if (current == WizardStep.ROTATION.ordinal) previewProgram.value = null
+            if (steps[current] == WizardStep.ROTATION) previewProgram.value = null
             savedState[Keys.STEP] = current - 1
         }
     }
 
+    private fun currentStep(): WizardStep = WizardStateBuilder.steps(currentAnswers()).let { steps ->
+        steps[stepIndex.value.coerceIn(steps.indices)]
+    }
+
     // --- field setters -----------------------------------------------------------
+
+    fun setFocus(cardio: Boolean) = setAnswer(Keys.FOCUS, cardio)
+
+    fun setCardioFamily(family: CardioFamily) = setCardioActivity(family.activities.first())
+
+    fun setCardioActivity(activity: CardioActivity) = setAnswer(Keys.CF_ACTIVITY, activity.name)
+
+    fun setCardioStartByTime(byTime: Boolean) = setAnswer(Keys.CF_BY_TIME, byTime)
+
+    fun setCardioStartSeconds(seconds: Int) = setAnswer(Keys.CF_SECONDS, seconds.coerceIn(1, 86_400))
+
+    fun setCardioStartMetres(metres: Int) = setAnswer(Keys.CF_METRES, metres.coerceIn(1, 200_000))
+
+    fun setCardioSessions(sessions: Int) = setAnswer(Keys.CF_SESSIONS, sessions.coerceIn(1, 6))
+
+    fun setLiftDays(days: Int) {
+        require(days in CardioFirst.LIFT_DAY_CHOICES)
+        setAnswer(Keys.CF_LIFT_DAYS, days)
+        if (days > 0) setDaysPerWeek(days)
+    }
+
+    fun setDistanceUnit(value: DistanceUnit) {
+        require(value != DistanceUnit.M)
+        setAnswer(Keys.DISTANCE_UNIT, value.name)
+    }
 
     fun setEmphasis(value: GoalEmphasis) {
         setAnswer(Keys.EMPHASIS, value.name)
@@ -350,7 +417,7 @@ class WizardViewModel @Inject constructor(
      * publish it, the unit and completion.
      */
     private fun finish() {
-        if (!hasValidAboutYouAnswers()) return
+        if (WizardStep.ABOUT_YOU in WizardStateBuilder.steps(currentAnswers()) && !hasValidAboutYouAnswers()) return
         if (finishProgress.value.inFlight || isComplete.value || previewProgram.value?.days.isNullOrEmpty()) return
         finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
@@ -362,22 +429,17 @@ class WizardViewModel @Inject constructor(
                     val planId = if (rememberedId != null && repo.planHasDays(rememberedId)) {
                         rememberedId
                     } else {
-                        val nameResource = when (answers.split) {
-                            SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
-                            SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
-                            SplitTemplate.PPL -> R.string.plan_name_ppl
-                            SplitTemplate.PPLUL -> R.string.plan_name_pplul
-                        }
                         val createdId = repo.createGeneratedPlan(
-                            context.getString(nameResource, answers.daysPerWeek),
+                            planName(answers),
                             answers,
                             previewProgram.value ?: generatePreview(answers),
                         )
                         savedState[Keys.CREATED_PLAN_ID] = createdId
                         createdId
                     }
-                    repo.publishCreatedPlan(planId, answers)
+                    repo.publishCreatedPlan(planId, answers, writeLifter = WizardStep.ABOUT_YOU in WizardStateBuilder.steps(answers))
                     settings.setUnit(enumOf(unit.value, WeightUnit.LB))
+                    if (answers.cardioFirst != null) settings.setDistanceUnit(enumOf(distanceUnit.value, DistanceUnit.MI))
                     settings.setWizardComplete(true)
                 }
                 // Either branch leaves the device set up, so the wizard leaves.
@@ -390,6 +452,26 @@ class WizardViewModel @Inject constructor(
                 finishProgress.value = finishProgress.value.copy(inFlight = false)
             }
         }
+    }
+
+    private fun planName(answers: WizardAnswers): String {
+        val cardio = answers.cardioFirst
+        if (cardio != null) {
+            val name = context.getString(when (CardioFamily.of(cardio.activity)) {
+                CardioFamily.RUN -> R.string.plan_name_running
+                CardioFamily.RIDE -> R.string.plan_name_cycling
+                CardioFamily.ROW -> R.string.plan_name_rowing
+                CardioFamily.WALK -> R.string.plan_name_walking
+                CardioFamily.ELLIPTICAL -> R.string.cardio_elliptical
+            })
+            return if (cardio.liftDays > 0) context.getString(R.string.plan_name_with_lifting, name) else name
+        }
+        return context.getString(when (answers.split) {
+            SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
+            SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
+            SplitTemplate.PPL -> R.string.plan_name_ppl
+            SplitTemplate.PPLUL -> R.string.plan_name_pplul
+        }, answers.daysPerWeek)
     }
 
     private fun generatePreview(answers: WizardAnswers): Program = ProgramGenerator.generate(answers)
@@ -433,6 +515,7 @@ class WizardViewModel @Inject constructor(
                 // Discard the retry id only once Room has been replaced.
                 savedState.remove<Long>(Keys.CREATED_PLAN_ID)
                 applyAnswers(repo.wizardAnswersFlow.first(), prefillAboutYou = true)
+                applyAnswer(Keys.DISTANCE_UNIT, settings.distanceUnitFlow.first().name)
                 if (settings.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
                     // with it. Nothing is owed the user — the app finishes the
@@ -477,6 +560,14 @@ class WizardViewModel @Inject constructor(
     }
 
     private fun applyAnswers(answers: WizardAnswers, prefillAboutYou: Boolean) {
+        val cardio = answers.cardioFirst ?: CardioFirst()
+        applyAnswer(Keys.FOCUS, answers.cardioFirst != null)
+        applyAnswer(Keys.CF_ACTIVITY, cardio.activity.name)
+        applyAnswer(Keys.CF_BY_TIME, cardio.comfortable is Measure.Time)
+        applyAnswer(Keys.CF_SECONDS, (cardio.comfortable as? Measure.Time)?.seconds ?: 1_800)
+        applyAnswer(Keys.CF_METRES, (cardio.comfortable as? Measure.Distance)?.metres ?: 5_000)
+        applyAnswer(Keys.CF_SESSIONS, cardio.sessions)
+        applyAnswer(Keys.CF_LIFT_DAYS, cardio.liftDays)
         applyAnswer(Keys.DAYS, answers.daysPerWeek)
         applyAnswer(Keys.SPLIT, answers.split.name)
         applyAnswer(Keys.ANCHOR_SCHEME, answers.anchorScheme.name)

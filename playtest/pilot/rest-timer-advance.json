@@ -28,6 +28,11 @@
       }
     },
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "scrollTo": {
         "text": "None",
         "role": "RadioButton"
@@ -56,6 +61,11 @@
         "text": "Age",
         "value": "40",
         "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
       }
     },
     {

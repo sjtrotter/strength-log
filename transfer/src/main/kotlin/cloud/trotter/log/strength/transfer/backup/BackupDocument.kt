@@ -23,9 +23,10 @@ import kotlinx.serialization.Serializable
  * v17 adds bodyweight at tenths-of-a-pound precision.
  * v18 carries parked Progress working values while Next time is Plan.
  * v19 carries the distance unit when the lifter chose one.
+ * v21 recipes may carry cardio-first answers.
  * v20 carries cardio Next time (working block, Plan choice, Progress by, Increase by) and each plan's offer switches.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 20
+const val CURRENT_SCHEMA_VERSION: Int = 21
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */

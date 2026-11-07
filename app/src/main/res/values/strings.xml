@@ -953,4 +953,31 @@
     <string name="cardio_progress_pace">Pace</string>
     <string name="cardio_increase_by" formatted="false">Increase by (%)</string>
     <string name="next_time_faster">%1$d s faster</string>
+    <string name="wizard_focus_title">What comes first?</string>
+    <string name="wizard_focus_lifting">Lifting</string>
+    <string name="wizard_focus_cardio">Cardio</string>
+    <string name="wizard_cardio_activity_title">Activity</string>
+    <string name="wizard_cardio_run">Run</string>
+    <string name="wizard_cardio_ride">Ride</string>
+    <string name="wizard_cardio_row">Row</string>
+    <string name="wizard_cardio_walk">Walk</string>
+    <string name="wizard_cardio_where_label">Where</string>
+    <string name="wizard_where_road">Road</string>
+    <string name="wizard_where_trail">Trail</string>
+    <string name="wizard_where_track">Track</string>
+    <string name="wizard_where_treadmill">Treadmill</string>
+    <string name="wizard_where_outdoor">Outdoor</string>
+    <string name="wizard_where_stationary">Stationary</string>
+    <string name="wizard_cardio_start_title">Comfortable session</string>
+    <string name="wizard_cardio_minutes">Minutes</string>
+    <string name="wizard_cardio_sessions_title">Sessions per rotation</string>
+    <string name="wizard_cardio_sessions_label">Sessions</string>
+    <string name="wizard_also_lift_title">Also lift?</string>
+    <string name="wizard_also_lift_none">No</string>
+    <string name="wizard_also_lift_days">%1$d days</string>
+    <string name="plan_name_running">Running</string>
+    <string name="plan_name_cycling">Cycling</string>
+    <string name="plan_name_rowing">Rowing</string>
+    <string name="plan_name_walking">Walking</string>
+    <string name="plan_name_with_lifting">%1$s + lifting</string>
 </resources>

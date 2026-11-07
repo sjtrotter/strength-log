@@ -258,6 +258,15 @@ strength day; the shipped cardio vectors stay pinned.
 - **Plans stay generic and rotation-based.** No stored plan kind (derive one
   if a screen ever needs it); alternating plans by weekday is the lifter
   switching, not a calendar.
+- **Cardio-first setup (#494).** Setup asks “What comes first?”. Cardio first asks
+  the activity and where, a comfortable time or distance, sessions per rotation
+  and “Also lift?” (0, 2 or 3 days); lifting questions follow only with lifting
+  days, including recent lifts. It generates one rotation: Easy, Intervals and
+  Long days (1 to 6 sessions), lift days interleaved after the run days, lettered
+  in order. A time answer gives open-ended timed sets; a distance answer gives
+  distance sets. Cardio-first plans start with cardio increase offers on. The
+  answers are stored in the plan’s recipe as generator inputs; there is still
+  no stored plan kind. Backup v21 recipes may carry them.
 - §11 numbers and the shipped cardio vectors do not move.
 
 ### A14. Next time carries the plan, not the result (owner council, 2026-11-05, #467)

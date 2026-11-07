@@ -92,6 +92,17 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        if (version < 21) {
+            (obj["plans"] as? JsonArray)?.forEach { plan ->
+                val recipe = ((plan as? JsonObject)?.get("recipeJson") as? JsonPrimitive)?.content
+                if (recipe != null) {
+                    val fields = runCatching { json.parseToJsonElement(recipe) as? JsonObject }.getOrNull()
+                    if (fields?.containsKey("cardioFirst") == true) {
+                        throw BackupError.Inconsistent("cardioFirst requires schema v21")
+                    }
+                }
+            }
+        }
         val document = when (version) {
             // Every version shares one decoder, with defaulted additions: v2
             // added session-set `seconds` and custom-exercise tracking/targets,
@@ -104,7 +115,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)

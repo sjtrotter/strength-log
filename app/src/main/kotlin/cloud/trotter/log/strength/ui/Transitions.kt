@@ -51,7 +51,7 @@ internal val dayFadeThroughExitTransition: ExitTransition
     get() = fadeOut(tween(DAY_FADE_THROUGH_MILLIS, easing = emphasizedAccelerate))
 
 internal fun AnimatedContentTransitionScope<WizardUiState>.wizardStepTransition(): ContentTransform {
-    val movingForward = targetState.step.ordinal > initialState.step.ordinal
+    val movingForward = targetState.stepIndex > initialState.stepIndex
     return (
         slideIntoContainer(
             towards = if (movingForward) AnimatedContentTransitionScope.SlideDirection.Left else AnimatedContentTransitionScope.SlideDirection.Right,

@@ -33,6 +33,11 @@
       }
     },
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "type": {
         "text": "Bodyweight (lb)",
         "value": "185",
@@ -44,6 +49,11 @@
         "text": "Age",
         "value": "40",
         "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
       }
     },
     {

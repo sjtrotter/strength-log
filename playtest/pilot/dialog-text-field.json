@@ -3,6 +3,11 @@
   "capture": "checkpoints",
   "steps": [
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "note": "Wizard. No skip button, no 'build my own'. Closest answers it is."
     },
     {
@@ -104,6 +109,11 @@
     },
     {
       "checkpoint": "about-me"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {

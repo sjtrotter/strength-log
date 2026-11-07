@@ -9,6 +9,11 @@
   },
   "steps": [
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "checkpoint": "first-open-before-gym"
     },
     {
@@ -165,6 +170,11 @@
     },
     {
       "checkpoint": "equipment-without-barbells"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {

@@ -237,7 +237,7 @@ strength day; the shipped cardio vectors stay pinned.
   leaves the suggestion unchanged.
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
-  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v22 adds `cardio_session.note` through migration 21→22; backup v21 carries it.
+  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v22 adds `cardio_session.note` through migration 21→22; backup v22 carries it.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
@@ -315,6 +315,10 @@ every main as three straight sets, barbell mains at the empty bar.
 Entries are not part of the plan's recipe, so Reset day to template regenerates
 from the formula. Goals stay calculated (#503). Part C appends goal editing to
 this amendment.
+
+Goals are editable from the plan: an edited goal is stored in the plan's recipe,
+replaces only that lift's goal everywhere the goal is read, and never rewrites
+stored working values. Backup v21 carries it inside the recipe.
 
 ## Architecture
 

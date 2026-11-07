@@ -18,9 +18,12 @@ internal data class PlanRecipeDto(
     val cardioPlacement: String,
     val fiveKGoal: Boolean,
     val equipment: List<String>,
+    val goalsLb: Map<String, Double> = emptyMap(),
 )
 
 object PlanRecipeJson {
+    const val MAX_GOAL_LB = 2000.0
+
     fun encode(answers: WizardAnswers): String = SetJson.encode(
         PlanRecipeDto.serializer(),
         PlanRecipeDto(
@@ -33,6 +36,7 @@ object PlanRecipeJson {
             cardioPlacement = answers.cardio.placement.name,
             fiveKGoal = answers.cardio.fiveKGoal,
             equipment = answers.equipment.map { it.name },
+            goalsLb = answers.config.goalsLb,
         ),
     )
 
@@ -40,6 +44,7 @@ object PlanRecipeJson {
     fun validate(json: String) {
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
         require(recipe.daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was ${recipe.daysPerWeek}" }
+        require(recipe.goalsLb.values.all { it.isFinite() && it > 0.0 && it <= MAX_GOAL_LB })
     }
 
     fun decode(json: String, global: GlobalLifter): WizardAnswers {
@@ -50,7 +55,10 @@ object PlanRecipeJson {
             split = enum(recipe.split, defaults.split),
             anchorScheme = enum(recipe.anchorScheme, defaults.anchorScheme),
             deadliftVariant = enum(recipe.deadliftVariant, defaults.deadliftVariant),
-            config = global.toConfig().copy(emphasis = enum(recipe.emphasis, defaults.config.emphasis)),
+            config = global.toConfig().copy(
+                emphasis = enum(recipe.emphasis, defaults.config.emphasis),
+                goalsLb = recipe.goalsLb,
+            ),
             cardio = CardioPrefs(
                 mode = enum(recipe.cardioMode, defaults.cardio.mode),
                 placement = enum(recipe.cardioPlacement, defaults.cardio.placement),

@@ -450,6 +450,11 @@ private fun PlanRoute(
             onDayTitleDraft = viewModel::setDayTitleDraft,
             onSaveDayDialog = viewModel::saveDayDialog,
             onDismissDayDialog = viewModel::dismissDayDialog,
+            onOpenGoal = viewModel::openGoal,
+            onGoalDraft = viewModel::setGoalDraft,
+            onSaveGoal = viewModel::saveGoal,
+            onUseCalculatedGoal = viewModel::useCalculatedGoal,
+            onDismissGoal = viewModel::dismissGoal,
         ),
     )
 }

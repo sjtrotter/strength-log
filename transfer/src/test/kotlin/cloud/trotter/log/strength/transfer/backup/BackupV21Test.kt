@@ -1,85 +1,87 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class BackupV21Test {
     private val codec = BackupCodec()
-    private fun block(seconds: Int) = CardioBlockJson.encode(CardioBlock(CardioActivity.ROAD_RUN,
-        listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds)))))
-    private val day = ProgramDayBackup("A", "Run", "", cardioBlockJson = block(1200),
-        cardioWorkingJson = block(1260), cardioKeepToPlan = true, cardioProgressBy = "TIME", cardioIncreasePercent = 7)
-    private fun document(note: String = "Easy") = BackupDocument(
-        settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
-            selectedPlanId = 1, distanceUnit = "KM"),
-        plans = listOf(PlanBackup(1, "Running", "AUTHORED", 1000, days = listOf(day), onToday = true,
-            offerStrengthIncreases = false, offerCardioIncreases = true)),
-        cardioSessions = listOf(CardioSessionBackup(
-            id = 7, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
-            startedAt = 1000, completedAt = 2413000, seconds = 2412, stepsCompleted = 1,
-            activity = "ROAD_RUN", note = note,
-        )),
+    private val goals = mapOf("bb_back_squat" to 200.0)
+    private val recipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = goals)))
+
+    private fun document(recipeJson: String = recipe) = BackupDocument(
+        schemaVersion = 21,
+        settings = SettingsBackup(235, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
+            selectedPlanId = 1),
+        plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, recipeJson = recipeJson)),
     )
 
-    @Test fun `v21 export and restore preserve the cardio note and distance choice`() {
+    @Test
+    fun `v21 export and restore preserve edited goals`() {
         val snapshot = document().toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(21, exported.schemaVersion)
-        assertEquals("Easy", exported.cardioSessions.single().note)
-        assertEquals("KM", exported.settings.distanceUnit)
-        assertEquals(day, exported.plans.single().days.single())
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
-        assertEquals("Easy", restored.cardioSessions.single().note)
-        assertEquals(DistanceUnit.KM, restored.distanceUnit)
+        val restoredRecipe = restored.plans.single().recipeJson!!
+        assertEquals(recipe, restoredRecipe)
+        assertEquals(goals, PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb)
         assertEquals(snapshot, restored)
     }
 
-    @Test fun `v18 through v20 without cardio notes restore through v21 export`() {
+    @Test
+    fun `v21 preserves edited goals together with offer switches and cardio Next time`() {
+        fun block(seconds: Int) = CardioBlockJson.encode(CardioBlock(CardioActivity.ROAD_RUN,
+            listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds)))))
+        val day = ProgramDayBackup("A", "Run", "", cardioBlockJson = block(1200),
+            cardioWorkingJson = block(1260), cardioKeepToPlan = true,
+            cardioProgressBy = "TIME", cardioIncreasePercent = 7)
+        val base = document()
+        val source = base.copy(plans = listOf(base.plans.single().copy(
+            days = listOf(day), offerStrengthIncreases = false, offerCardioIncreases = true,
+        )))
+        val snapshot = codec.decode(codec.encode(source)).toSnapshot()
+        val exported = snapshot.toDocument()
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
+        assertEquals(recipe, exported.plans.single().recipeJson)
+        assertEquals(day, exported.plans.single().days.single())
+        assertFalse(exported.plans.single().offerStrengthIncreases)
+        assertTrue(exported.plans.single().offerCardioIncreases)
+        assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
+    }
+
+    @Test
+    fun `v18 through v20 restore with no edited goals and re-export at the current version`() {
+        val legacyRecipe = PlanRecipeJson.encode(WizardAnswers())
+        assertFalse(legacyRecipe.contains("goalsLb"))
         for (version in 18..20) {
-            val encoded = codec.encode(document("").copy(schemaVersion = version)).replace(",\"note\":\"\"", "")
-            val decoded = codec.decode(encoded)
-            assertEquals(version, decoded.schemaVersion)
-            val snapshot = decoded.toSnapshot()
-            assertEquals("", snapshot.cardioSessions.single().note)
-            assertEquals(if (version >= 19) DistanceUnit.KM else null, snapshot.distanceUnit)
-            assertEquals(if (version >= 20) block(1260) else null, snapshot.days.single().cardioWorkingJson)
-            assertEquals(if (version >= 20) "TIME" else null, snapshot.days.single().cardioProgressBy)
-            assertEquals(if (version >= 20) 7 else null, snapshot.days.single().cardioIncreasePercent)
-            assertEquals(version >= 20, snapshot.days.single().cardioKeepToPlan)
-            assertEquals(version < 20, snapshot.plans.single().offerStrengthIncreases)
-            assertEquals(version >= 20, snapshot.plans.single().offerCardioIncreases)
+            val legacy = document(legacyRecipe).copy(schemaVersion = version)
+            val snapshot = codec.decode(codec.encode(legacy)).toSnapshot()
+            val restoredRecipe = snapshot.plans.single().recipeJson!!
+            assertEquals(legacyRecipe, restoredRecipe)
+            assertTrue(PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb.isEmpty())
             val exported = snapshot.toDocument()
-            assertEquals(21, exported.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
         }
     }
 
-    @Test fun `older versions ignore future cardio notes even with the wrong type`() {
-        for (version in 9..20) {
-            val encoded = codec.encode(document().copy(schemaVersion = version))
-            val poisoned = encoded.replace("\"note\":\"Easy\"", "\"note\":{}")
-            val expected = codec.decode(encoded).toSnapshot()
-            assertEquals(expected, codec.decode(poisoned).toSnapshot(), "schema v$version")
-            assertEquals(expected, document().copy(schemaVersion = version).toSnapshot(), "schema v$version")
-            assertEquals("", expected.cardioSessions.single().note)
+    @Test
+    fun `a malformed goal is rejected before restore`() {
+        for (invalid in listOf("-1", "0", "2000.1", "NaN", "1e999")) {
+            val malformed = document(recipe.replace("200.0", invalid))
+            assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(malformed)) }
         }
-    }
-
-    @Test fun `v21 rejects malformed cardio notes`() {
-        val encoded = codec.encode(document()).replace("\"note\":\"Easy\"", "\"note\":{}")
-        assertFailsWith<BackupError.Malformed> { codec.decode(encoded) }
-    }
-
-    @Test fun `v21 without a cardio note restores an empty note`() {
-        val encoded = codec.encode(document("")).replace(",\"note\":\"\"", "")
-        assertEquals("", codec.decode(encoded).toSnapshot().cardioSessions.single().note)
     }
 }

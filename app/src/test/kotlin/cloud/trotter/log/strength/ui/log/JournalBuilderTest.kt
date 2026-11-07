@@ -158,6 +158,20 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun `an edited goal is the history card goal line`() {
+        val cfg = LifterConfig(goalsLb = mapOf("bb_back_squat" to 200.0))
+        val exercise = ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF,
+            prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
+        val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(exercise))))
+        val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, cfg)
+        val card = JournalBuilder.trajectories(mains, listOf(top(exercise.exerciseId, today, 45.0)), WeightUnit.LB, zone).single()
+        assertEquals(200.0, mains.single().goalLb)
+        assertEquals(200f, card.goalValue)
+        assertEquals("200", card.goalLabel)
+        assertFalse(card.goalMet)
+    }
+
+    @Test
     fun weighted_prescriptions_keep_trajectories_after_swaps_to_reps_or_time_goals() {
         val catalog = ExerciseCatalog.CODE_ONLY
         val cfg = LifterConfig()

@@ -33,13 +33,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
@@ -172,6 +176,28 @@ internal fun VolumeWeekRow(week: VolumeWeek) {
         headlineContent = { Text(stringResource(R.string.log_week_of, dateFormat.format(week.startDate))) },
         trailingContent = { Text(trailing, style = MaterialTheme.typography.bodyMedium) },
     )
+}
+
+@Composable
+internal fun WeeklyDistanceRow(row: WeeklyDistance) {
+    val unit = distanceUnitFor(if (row.family == CardioFamily.ROW) CardioActivity.ROWER else null)
+    val distance = if (row.metres > 0) unit.format(row.metres.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+        else stringResource(R.string.cardio_distance_unknown)
+    ListItem(
+        headlineContent = { Text(stringResource(familyWeekLabel(row.family))) },
+        trailingContent = { Text(distance, style = MaterialTheme.typography.bodyMedium) },
+        supportingContent = if (row.missing > 0) {
+            { Text(pluralStringResource(R.plurals.log_week_missing_distance, row.missing, row.missing)) }
+        } else null,
+    )
+}
+
+private fun familyWeekLabel(family: CardioFamily): Int = when (family) {
+    CardioFamily.RUN -> R.string.log_week_distance_run
+    CardioFamily.RIDE -> R.string.log_week_distance_ride
+    CardioFamily.ROW -> R.string.log_week_distance_row
+    CardioFamily.WALK -> R.string.log_week_distance_walk
+    CardioFamily.ELLIPTICAL -> R.string.log_week_distance_elliptical
 }
 
 private val WEEKDAY_INITIALS = listOf(

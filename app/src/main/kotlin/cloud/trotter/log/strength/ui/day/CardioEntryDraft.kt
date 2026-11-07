@@ -13,12 +13,12 @@ data class CardioEntryDraft(
     val seconds: Int,
     val metresText: String = "",
     val note: String = "",
-    /** False for a session of several sets: History edits its note, activity and start only. */
+    /** False for a session of several sets: History edits its note and activity only. */
     val measuresEditable: Boolean = true,
 ) : Parcelable {
     val metres: Int? get() = metresText.toIntOrNull()?.takeIf { it > 0 }
     val completedAt: Long get() = startedAt + seconds * 1_000L
-    fun valid(nowMillis: Long): Boolean =
+    fun valid(nowMillis: Long, completedAt: Long = this.completedAt): Boolean =
         seconds in 1..ManualCardio.MAX_SECONDS &&
             (metresText.isBlank() || (metresText.all(Char::isDigit) && (metres ?: 0) in 1..ManualCardio.MAX_METRES)) &&
             completedAt <= nowMillis

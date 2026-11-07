@@ -87,6 +87,8 @@ import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateButton
 import cloud.trotter.log.strength.ui.components.emptyJournalAction
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.day.CardioEntryDraft
+import cloud.trotter.log.strength.ui.day.CardioEntrySheet
 import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -136,6 +138,10 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 }
                 items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
                     TrajectoryCardView(card)
+                }
+                if (state.journal.weeklyDistance.isNotEmpty()) {
+                    item(key = "distance-header") { LogSectionHeader(stringResource(R.string.log_distance_section)) }
+                    items(state.journal.weeklyDistance, key = { "distance-${it.family}" }) { WeeklyDistanceRow(it) }
                 }
                 item(key = "trends-disclosure") {
                     val disclosureState = stringResource(if (trendsExpanded) R.string.log_expanded_state else R.string.log_collapsed_state)
@@ -188,7 +194,11 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     }
                 }
                 items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
-                    if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session, showPlanNames) else
+                    if (session.undoPending) {
+                        UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession)
+                    } else if (session.cardioId != null) {
+                        CardioSessionCard(session, showPlanNames, onEdit = { actions.onEditCardio(session.cardioId) })
+                    } else {
                         SessionCard(
                             session,
                             showPlanNames = showPlanNames,
@@ -202,6 +212,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                             onDelete = { deleteConfirmation = session.sessionId },
                             onEditNote = { noteSessionId = session.sessionId },
                         )
+                    }
                 }
 
                 if (state.health.externalSessions.isNotEmpty()) {
@@ -248,11 +259,24 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
             if (item != null) NoteSheet(item.note, { actions.onSetSessionNote(sessionId, it) }, { noteSessionId = null })
             else noteSessionId = null
         }
+        state.cardioEdit?.let { draft ->
+            CardioEntrySheet(
+                draft = draft,
+                title = stringResource(R.string.log_edit_cardio_title),
+                nowMillis = { System.currentTimeMillis() },
+                onChange = actions.onCardioEditChange,
+                onSave = actions.onSaveCardioEdit,
+                onDismiss = actions.onDismissCardioEdit,
+                saving = state.cardioEditSaving,
+                startEditable = false,
+                completedAt = state.cardioEditCompletedAt ?: draft.completedAt,
+            )
+        }
     }
 }
 
 @Composable
-private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
+private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean, onEdit: () -> Unit) {
     val supportingLine = item.planName?.takeIf { showPlanNames }?.let {
         stringResource(R.string.log_session_plan_date, it, item.dateDisplay)
     } ?: item.dateDisplay
@@ -275,6 +299,12 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
         if (item.cardioSets.isNotEmpty()) {
             cloud.trotter.log.strength.ui.day.CardioSummary(item.cardioSets, item.cardioSeconds, item.activity)
         }
+        if (item.note.isNotBlank()) {
+            Text(item.note, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onEdit) { Text(stringResource(R.string.log_edit)) }
+        }
     }
 }
 
@@ -290,6 +320,7 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long, trendsExpanded: 
     var index = 1 // leading spacer
     if (state.health.available && state.health.publishing && state.health.backfill != null) index += 1
     index += state.journal.trajectories.size
+    if (state.journal.weeklyDistance.isNotEmpty()) index += 1 + state.journal.weeklyDistance.size
     index += 1 // disclosure
     if (trendsExpanded) {
         state.journal.volume?.let { index += 1 + it.weeks.size }
@@ -688,6 +719,10 @@ data class LogActions(
     /** The same slot's way out when there is no program to start. */
     val onSetUpProgram: () -> Unit,
     val onOpenBackup: () -> Unit = {},
+    val onEditCardio: (Long) -> Unit = {},
+    val onCardioEditChange: (CardioEntryDraft) -> Unit = {},
+    val onSaveCardioEdit: () -> Unit = {},
+    val onDismissCardioEdit: () -> Unit = {},
 )
 
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)

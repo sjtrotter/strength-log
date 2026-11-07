@@ -247,7 +247,7 @@ strength day; the shipped cardio vectors stay pinned.
   Backup v24 carries them; Room remains v22.
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
-  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v22 adds `cardio_session.note` through migration 21→22; backup v22 carries it.
+  A finished cardio session can be logged after the fact from the day's cardio page (activity, date and start time, duration, optional distance and note); it is stored as one finished timed work set and counts toward its day like a live one (#498). Room v22 adds `cardio_session.note` through migration 21→22; backup v22 carries it. History edits a cardio session's activity and note, and the duration and distance of a one-set session; date and start time are read-only, with no delete action.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
@@ -310,6 +310,8 @@ Backup v18 carries the optional field; older backups restore it as null.
 ### A15. Cardio distance unit (owner, #494)
 
 Distance shows in mi or km from a global setting, suggested from the weight unit until the lifter chooses; track and rower segments show meters. Storage, CSV, Health Connect and the watch stay in meters. Backup v19 carries the setting when chosen.
+
+History shows this ISO week's recorded distance per activity group (running, cycling, rowing, walking, elliptical) and counts sessions without distance; it never estimates a missing distance.
 
 ### A16. Cardio Next time (owner, #496)
 

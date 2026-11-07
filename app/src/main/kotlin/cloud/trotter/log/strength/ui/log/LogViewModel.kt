@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
@@ -28,6 +29,7 @@ import cloud.trotter.log.strength.transfer.health.ExternalSessionFormatter
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -99,6 +101,9 @@ class LogViewModel @Inject constructor(
     private val editingSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EDITING, null)
     private val pendingDeletion = MutableStateFlow<PendingDeletion?>(null)
     private var deletionExpiry: Job? = null
+    private val cardioEditId: StateFlow<Long?> = savedState.getStateFlow(KEY_CARDIO_EDIT, null)
+    private val cardioEditDraft: StateFlow<CardioEntryDraft?> = savedState.getStateFlow(KEY_CARDIO_EDIT_DRAFT, null)
+    private val cardioEditSaving = MutableStateFlow(false)
     private val editMutex = Mutex()
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
@@ -143,7 +148,9 @@ class LogViewModel @Inject constructor(
         }
     }
 
-    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow, pendingDeletion, repo.cardioSetResultsFlow) { strength, cardio, deleted, sets ->
+    private val historyItems = combine(
+        ownSessions, repo.cardioSessionsFlow, pendingDeletion, repo.cardioSetResultsFlow,
+    ) { strength, cardio, deleted, sets ->
         val items = LogScreenBuilder.interleave(strength, cardio.map {
             LogScreenBuilder.cardioItem(it, sets[it.id].orEmpty())
         }).toMutableList()
@@ -151,6 +158,12 @@ class LogViewModel @Inject constructor(
             items.add(pending.index.coerceIn(0, items.size), pending.item.copy(undoPending = true, editing = false))
         }
         items
+    }
+
+    private val cardioEditor = combine(cardioEditId, cardioEditDraft, repo.cardioSessionsFlow) { id, draft, sessions ->
+        val session = sessions.firstOrNull { it.id == id }
+        val entry = if (session != null) draft?.copy(startedAt = session.startedAt) else null
+        entry to if (entry?.measuresEditable == false) session?.completedAt else entry?.completedAt
     }
 
     private val mainLifts = combine(
@@ -168,10 +181,10 @@ class LogViewModel @Inject constructor(
         settings.unitFlow,
         repo.cardioSessionsFlow,
         ::JournalHistory,
-    )
+    ).combine(repo.cardioSetResultsFlow) { history, sets -> history to sets }
 
     /**
-     * The journal's three sections all hang off *today* — the today marker, the
+     * The journal sections all hang off *today* — the today marker, the
      * month grid, the twelve-week window — so the civil day is an upstream flow
      * like any other. When the day turns under a parked screen, or the device
      * changes zone, this re-emits and the sections are rebuilt in the new day
@@ -183,11 +196,12 @@ class LogViewModel @Inject constructor(
         mainLifts,
         calendarOffset,
         civilTimeSource.civilTime,
-    ) { history, mains, offset, now ->
+    ) { (history, sets), mains, offset, now ->
         JournalUiState(
             trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
             calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
+            weeklyDistance = JournalBuilder.weeklyDistance(history.cardio, sets, now.date, now.zone),
         )
     }
 
@@ -224,6 +238,8 @@ class LogViewModel @Inject constructor(
             hasProgram = program.first,
             nextDayId = program.second,
         )
+    }.combine(combine(cardioEditor, cardioEditSaving, ::Pair)) { state, (editor, saving) ->
+        state.copy(cardioEdit = editor.first, cardioEditCompletedAt = editor.second, cardioEditSaving = saving)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
@@ -284,6 +300,67 @@ class LogViewModel @Inject constructor(
 
     fun setSessionNote(sessionId: Long, text: String) {
         viewModelScope.launch { repo.setSessionNote(sessionId, text) }
+    }
+
+    fun editCardio(cardioId: Long) {
+        if (cardioEditSaving.value) return
+        viewModelScope.launch {
+            val session = repo.cardioSession(cardioId) ?: return@launch
+            val results = repo.cardioSetsFor(cardioId)
+            if (cardioEditSaving.value) return@launch
+            savedState[KEY_CARDIO_EDIT_DRAFT] = CardioEntryDraft(
+                activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: CardioActivity.ROAD_RUN,
+                startedAt = session.startedAt,
+                seconds = session.seconds,
+                metresText = results.singleOrNull()?.metres?.toString().orEmpty(),
+                note = session.note,
+                measuresEditable = results.size == 1,
+            )
+            savedState[KEY_CARDIO_EDIT] = cardioId
+        }
+    }
+
+    fun changeCardioEdit(draft: CardioEntryDraft) {
+        if (cardioEditSaving.value) return
+        val current = cardioEditDraft.value ?: return
+        savedState[KEY_CARDIO_EDIT_DRAFT] = draft.copy(startedAt = current.startedAt, measuresEditable = current.measuresEditable)
+    }
+
+    fun dismissCardioEdit() {
+        if (cardioEditSaving.value) return
+        savedState[KEY_CARDIO_EDIT] = null
+        savedState[KEY_CARDIO_EDIT_DRAFT] = null
+    }
+
+    private fun dismissCardioEdit(id: Long, draft: CardioEntryDraft) {
+        if (cardioEditId.value != id || cardioEditDraft.value !== draft) return
+        savedState[KEY_CARDIO_EDIT] = null
+        savedState[KEY_CARDIO_EDIT_DRAFT] = null
+    }
+
+    fun saveCardioEdit() {
+        if (cardioEditSaving.value) return
+        val id = cardioEditId.value ?: return
+        val draft = cardioEditDraft.value ?: return
+        cardioEditSaving.value = true
+        viewModelScope.launch {
+            try {
+                val now = civilTimeSource.civilTime.first().instant.toEpochMilli()
+                val session = repo.cardioSession(id) ?: return@launch
+                val entry = draft.copy(startedAt = session.startedAt)
+                val completedAt = if (entry.measuresEditable) entry.completedAt else session.completedAt
+                if (!entry.valid(now, completedAt)) return@launch
+                repo.updateCardioSession(
+                    id, draft.activity,
+                    draft.seconds.takeIf { draft.measuresEditable },
+                    draft.metres.takeIf { draft.measuresEditable }, draft.note,
+                )
+                dismissCardioEdit(id, draft)
+                viewModelScope.launch { sessionPublisher.replaceCardio(id) }
+            } finally {
+                cardioEditSaving.value = false
+            }
+        }
     }
 
     fun deleteSession(sessionId: Long) {
@@ -557,6 +634,8 @@ class LogViewModel @Inject constructor(
         const val KEY_BW_DISMISSED = "log_bodyweight_dismissed"
         const val KEY_MONTH_OFFSET = "log_calendar_month_offset"
         const val KEY_EDITING = "log_editing_session"
+        const val KEY_CARDIO_EDIT = "log_cardio_edit_id"
+        const val KEY_CARDIO_EDIT_DRAFT = "log_cardio_edit_draft"
         const val STOP_TIMEOUT_MS = 5_000L
         const val UNDO_WINDOW_MS = 5_000L
     }

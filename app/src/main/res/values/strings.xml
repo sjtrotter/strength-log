@@ -291,6 +291,7 @@
 <string name="log_share_label">Share session</string>
 <string name="log_share_button">Share</string>
 <string name="log_edit">Edit</string>
+<string name="log_edit_cardio_title">Edit session</string>
 <string name="log_edit_done">Done</string>
 <string name="log_delete_session">Delete session</string>
 <string name="log_delete_dialog_title">Delete this session?</string>
@@ -820,6 +821,16 @@
     <string name="screen_start_session">Start a session</string>
 
     <string name="log_trends_and_calendar">Trends and calendar</string>
+    <string name="log_distance_section">Distance</string>
+    <string name="log_week_distance_run">Running this week</string>
+    <string name="log_week_distance_ride">Cycling this week</string>
+    <string name="log_week_distance_row">Rowing this week</string>
+    <string name="log_week_distance_walk">Walking this week</string>
+    <string name="log_week_distance_elliptical">Elliptical this week</string>
+    <plurals name="log_week_missing_distance">
+        <item quantity="one">%d session without distance</item>
+        <item quantity="other">%d sessions without distance</item>
+    </plurals>
     <string name="log_weekly_volume">Weekly volume</string>
     <string name="log_calendar_section">Calendar</string>
     <string name="log_external_section">From other apps</string>

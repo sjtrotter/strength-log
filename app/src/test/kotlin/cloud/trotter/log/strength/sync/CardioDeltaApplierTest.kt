@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +41,7 @@ class CardioDeltaApplierTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
     private lateinit var scope: CoroutineScope
+    private lateinit var syncStore: WearSyncStore
     private val recordedStamps = mutableListOf<Long>()
     private val ackLog = object : CardioAckLog {
         override val acksFlow = flowOf(CardioAcks())
@@ -56,6 +59,7 @@ class CardioDeltaApplierTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + Job())
         val dataStore = PreferenceDataStoreFactory.create(scope = scope) { File.createTempFile("cardio-applier", ".preferences_pb") }
+        syncStore = WearSyncStore(dataStore)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(dataStore))
     }
 
@@ -128,7 +132,7 @@ class CardioDeltaApplierTest {
         listOf(true to mixed, false to cardioOnly).forEachIndexed { index, (eligibleAtStart, edited) ->
             repo.replaceProgram(edited)
             db.planDao().updateSuggestedDay(planId, "A")
-            val event = delta(startedAt = 1_000L + index * 100_000L).copy(
+            val event = delta(stamp = 10L + index, startedAt = 1_000L + index * 100_000L).copy(
                 planId = planId, activity = "TRACK_RUN", finishesDay = eligibleAtStart,
                 sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)),
             )
@@ -214,6 +218,37 @@ class CardioDeltaApplierTest {
         assertEquals(1, repo.history.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
         assertEquals(listOf(10L, 11L), recordedStamps)
+    }
+
+    @Test fun `a watch retry after an edit with an already evicted acknowledgment stays deduplicated`() = runTest {
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B").map {
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
+        }))
+        val event = delta().copy(planId = planId, activity = "TRACK_RUN", finishesDay = true,
+            sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)))
+        val applier = CardioDeltaApplier(repo, syncStore, publisher, repo.history)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
+        val session = repo.history.cardioSessionsFlow.first().single()
+        for (stamp in 11L..50L) syncStore.record(stamp)
+        assertFalse(event.stamp in syncStore.acksFlow.first().recent)
+        repo.history.updateCardioSession(session.id, CardioActivity.ROWER, 120, 500, "Edited")
+        assertEquals(session.startedAt, repo.history.cardioSession(session.id)!!.startedAt)
+        val history = repo.history.cardioSessionsFlow.first()
+        val sets = db.cardioSetResultDao().all()
+        db.planDao().updateSuggestedDay(planId, "A")
+        val resumed = CardioDeltaApplier(repo, syncStore, publisher, repo.history)
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, resumed.apply(event))
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, resumed.apply(event.copy(stamp = 51L)))
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertEquals(history, repo.history.cardioSessionsFlow.first())
+        assertEquals(sets, db.cardioSetResultDao().all())
+        assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals(1, publisher.cardioPublishes)
+        assertEquals(51L, syncStore.acksFlow.first().recent.last())
     }
 
     @Test fun `an older stamp arriving late still inserts its session`() = runTest {

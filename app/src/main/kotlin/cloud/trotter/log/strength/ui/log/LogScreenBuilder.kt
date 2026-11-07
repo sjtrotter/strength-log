@@ -81,6 +81,7 @@ object LogScreenBuilder {
             cardioSemantics = session.label,
             cardioDuration = duration,
             cardioSets = sets,
+            note = session.note,
             activity = CardioActivity.entries.firstOrNull { it.name == session.activity },
             cardioSeconds = if (sets.isEmpty()) 0 else session.seconds,
             planName = session.planName,

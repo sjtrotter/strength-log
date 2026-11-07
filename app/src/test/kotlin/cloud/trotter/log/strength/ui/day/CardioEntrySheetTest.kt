@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -168,16 +167,29 @@ class CardioEntrySheetTest {
         rule.runOnIdle { assertEquals(7100, draft.metres) }
     }
 
-    @Test fun `a save failure stays visible and History can supply an extra action`() {
+    @Test fun `a save failure stays visible with measures locked`() {
         val draft = CardioEntryDraft(CardioActivity.OUTDOOR_RIDE, now - 1_800_000, 1800, measuresEditable = false)
         rule.setContent { AppTheme {
-            CardioEntrySheet(draft, "Log past session", { now }, {}, {}, {}, saveFailed = true,
-                extraAction = { Text("Extra action") })
+            CardioEntrySheet(draft, "Log past session", { now }, {}, {}, {}, saveFailed = true)
         } }
         rule.onNodeWithText("Duration").assertDoesNotExist()
         rule.onNodeWithText("Distance (mi)").assertDoesNotExist()
         rule.onNodeWithText("Couldn't save the session.").performScrollTo().assertExists()
-        rule.onNodeWithText("Extra action").assertExists()
+    }
+
+    @Test fun `locked measures use elapsed completion for Save and Ends after now`() {
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 1_800_000, 1800, measuresEditable = false)
+        var wallClock by mutableStateOf(now)
+        rule.setContent { AppTheme {
+            CardioEntrySheet(draft, "Edit session", { wallClock }, {}, {}, {},
+                startEditable = false, completedAt = now + 1_800_000)
+        } }
+        rule.onNodeWithText("Duration").assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNodeWithText("Ends after now").performScrollTo().assertExists()
+        rule.runOnIdle { wallClock += 1_800_000 }
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.onNodeWithText("Ends after now").assertDoesNotExist()
     }
 
     @Test fun `a start time collision keeps the entry editable`() {

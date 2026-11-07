@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import android.os.Parcelable
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
@@ -13,10 +14,11 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
+import kotlinx.parcelize.Parcelize
 
 /**
- * The wizard's questions in order (spec §6.1) plus the optional equipment step
- * (PLAN.md A4), appended last since it is the one step the spec doesn't ask for.
+ * The wizard's questions in order (spec §6.1) plus the optional equipment and
+ * recent-lifts steps (PLAN.md A4, A15).
  */
 enum class WizardStep {
     EMPHASIS,
@@ -26,8 +28,15 @@ enum class WizardStep {
     CARDIO,
     ABOUT_YOU,
     EQUIPMENT,
+    LIFTS,
     ROTATION,
 }
+
+/** One recent-lifts row as typed; weight in lb. Saved under its own key. */
+@Parcelize
+data class WizardLiftDraft(val exerciseId: String, val weightLb: Double?, val reps: Int?) : Parcelable
+
+data class WizardLiftRow(val exerciseId: String, val name: String, val perHand: Boolean, val weightLb: Double?, val reps: Int)
 
 data class WizardPreviewLift(val name: String, val setCount: Int, val detail: String?)
 
@@ -54,6 +63,7 @@ data class WizardUiState(
     val initialized: Boolean = true,
     val bodyweightLb: Double? = null,
     val age: Int? = null,
+    val liftRows: List<WizardLiftRow> = emptyList(),
 ) {
     val canContinue: Boolean get() = initialized && (step != WizardStep.ABOUT_YOU ||
         (bodyweightLb != null && bodyweightLb.isFinite() && bodyweightLb >= 1.0 && age != null && age >= 1))
@@ -96,4 +106,6 @@ data class WizardActions(
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEquipmentToggle: (Equipment) -> Unit,
     val onRestoreFromBackup: () -> Unit,
+    val onLiftWeightChange: (String, Double?) -> Unit = { _, _ -> },
+    val onLiftRepsChange: (String, Int?) -> Unit = { _, _ -> },
 )

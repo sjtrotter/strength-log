@@ -83,16 +83,17 @@ internal class DayEditor(
             )
         }
     }
+    private val planEditing = savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
     private val dayEditorOpen = savedState.getStateFlow(
-        KEY_DAY_EDITOR_OPEN, savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true,
+        KEY_DAY_EDITOR_OPEN, planEditing,
     )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
         editProgramState, unitFlow, prescriptionDraft, dayEditorOpen,
     ) { state, unit, draft, editorOpen ->
         state.copy(
-            unit = unit, editorOpen = editorOpen,
+            unit = unit, editorOpen = editorOpen, planEditing = planEditing,
             prescriptionDraft = draft?.takeIf { restored ->
                 state.slots.any { it.programExerciseId == restored.slotId }
             },
@@ -104,7 +105,7 @@ internal class DayEditor(
         state.copy(cardioDraft = draft?.takeIf {
             it.planId == state.planId && it.dayId == state.dayId
         }, otherWorkoutOpenMessage = message)
-    }.stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
+    }.stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState(planEditing = planEditing))
 
     init {
         scope.launch {

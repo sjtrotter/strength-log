@@ -231,6 +231,39 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     @Test
+    fun `last sets come from the newest session's working sets`() = runTest {
+        repo.importSessionHistory(listOf(
+            ImportedSession(session(1_000L), List(3) { index ->
+                set("bb_bench", "Bench", SetKind.WORK, 220.0, 5, true).copy(setIndex = index)
+            }),
+            ImportedSession(session(2_000L), listOf(
+                set("bb_bench", "Bench", SetKind.RAMP, 135.0, 5, true).copy(setIndex = 0),
+                set("bb_bench", "Bench", SetKind.WORK, 225.0, 4, true).copy(setIndex = 3),
+                set("bb_bench", "Bench", SetKind.WORK, 225.0, 5, true).copy(setIndex = 2),
+                set("bb_bench", "Bench", SetKind.WORK, 225.0, 5, true).copy(setIndex = 1),
+                set("bb_bench", "Bench", SetKind.EXTRA, 245.0, 5, false).copy(setIndex = 4),
+            )),
+        ), emptyList())
+
+        val result = repo.lastSets(listOf("bb_bench", "unknown"))
+        assertEquals(listOf(
+            LoggedSet(225.0, 5, SetKind.WORK, done = true),
+            LoggedSet(225.0, 5, SetKind.WORK, done = true),
+            LoggedSet(225.0, 4, SetKind.WORK, done = true),
+        ), result["bb_bench"])
+        assertNull(result["unknown"])
+        assertTrue(repo.lastSets(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `last sets stay empty after a warmup only session`() = runTest {
+        seedOlderSession()
+        seedNewerSessionWithAnUncheckedTop()
+        assertEquals(emptyList<LoggedSet>(), repo.lastSets(listOf("bb_back_squat"))["bb_back_squat"])
+        assertEquals(LastPerformed(135.0, 5), repo.lastPerformed(listOf("bb_back_squat"))["bb_back_squat"])
+    }
+
+    @Test
     fun `slotSessions returns planned and actual rows for the newest session of the day and nothing without plannedJson`() = runTest {
         assertTrue(repo.slotSessions(10L, "A").isEmpty())
         val planned = listOf(LoggedSet(70.0, 5, SetKind.WORK), LoggedSet(70.0, 5, SetKind.EXTRA))
@@ -322,7 +355,7 @@ class HistoryRepositoryHistoryReadTest {
         val own = repo.slotSessions(10L, "A").getValue("bb_back_squat" to Slot.MAIN)
         assertNull(CarryForward.offer(own.planned, own.actual, WeightUnit.LB))
         assertEquals(opening, CarryForward.next(own.planned, own.actual))
-        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A"),
+        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A", listOf(LoggedSet(45.0, 4, SetKind.WORK, done = true))),
             repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat"))["bb_back_squat" to Slot.MAIN])
         assertTrue(repo.progressionSessions(10L, emptyList()).isEmpty())
         assertTrue(repo.progressionSessions(30L, listOf("bb_back_squat")).isEmpty())
@@ -402,7 +435,7 @@ class HistoryRepositoryHistoryReadTest {
         val evidence = repo.progressionSessions(10L, listOf("bb_back_squat")).getValue("bb_back_squat")
         assertEquals(55.0, CarryForward.offer(opening, WeightUnit.LB, evidence)!!, 0.0)
         assertTrue(repo.slotSessions(10L, "B").getValue("bb_back_squat" to Slot.MAIN).actual.isEmpty())
-        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A"),
+        assertEquals(SlotLast(LastPerformed(45.0, 4), true, 10L, null, "A", listOf(LoggedSet(45.0, 4, SetKind.WORK, done = true))),
             repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat"))["bb_back_squat" to Slot.MAIN])
     }
 
@@ -421,10 +454,11 @@ class HistoryRepositoryHistoryReadTest {
         ), emptyList())
         val result = repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat", "ez_curl", "unknown"))
         assertEquals(4, result.size)
-        assertEquals(SlotLast(LastPerformed(70.0, 5), true, 10L, "Own", "A"), result["bb_back_squat" to Slot.MAIN])
-        assertEquals(SlotLast(LastPerformed(80.0, 5), false, 10L, "Own", "B"), result["bb_back_squat" to Slot.SS])
+        assertEquals(SlotLast(LastPerformed(70.0, 5), true, 10L, "Own", "A", listOf(
+            LoggedSet(70.0, 5, SetKind.WORK, done = true), LoggedSet(65.0, 8, SetKind.WORK, done = true))), result["bb_back_squat" to Slot.MAIN])
+        assertEquals(SlotLast(LastPerformed(80.0, 5), false, 10L, "Own", "B", listOf(LoggedSet(80.0, 5, SetKind.WORK, done = true))), result["bb_back_squat" to Slot.SS])
         for (slot in listOf(Slot.MAIN, Slot.SS)) {
-            assertEquals(SlotLast(LastPerformed(50.0, 10, 20), false, 10L, "Own", "B"), result["ez_curl" to slot])
+            assertEquals(SlotLast(LastPerformed(50.0, 10, 20), false, 10L, "Own", "B", listOf(LoggedSet(50.0, 10, SetKind.WORK, done = true, seconds = 20))), result["ez_curl" to slot])
         }
         assertTrue(repo.lastPerformedForSlots(10L, "A", emptyList()).isEmpty())
     }

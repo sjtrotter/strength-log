@@ -100,6 +100,12 @@ fun DayScreen(
         else FinishingScreen(finish, state)
         return
     }
+    if (dayEditState.planEditing) {
+        DayPlanEditor(dayEditState, state.viewDayId, state.loading, dayAccent(state.dayIndex), dayEditActions,
+            onBack = { onBack?.invoke() }, onCreateExercise = actions.onCreateExercise)
+        state.pendingPlanSwap?.let { PlanSwapConfirmDialog(it, actions.onConfirmPlanSwap, actions.onDismissPlanSwap) }
+        return
+    }
     val accent = dayAccent(state.dayIndex)
     val hasUnloggedSets = state.runSetCounts?.let { it.remaining > 0 }
         ?: state.exercises.any { card -> card.rows.any { !it.complete } }
@@ -376,15 +382,7 @@ fun DayScreen(
         )
     }
 
-    state.pendingPlanSwap?.let { pending ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = actions.onDismissPlanSwap,
-            title = { Text(stringResource(if (pending.doneCount == 1) R.string.day_plan_swap_confirm_one else R.string.day_plan_swap_confirm,
-                pending.title, pending.doneCount)) },
-            confirmButton = { TextButton(onClick = actions.onConfirmPlanSwap) { Text(stringResource(R.string.day_swap_apply)) } },
-            dismissButton = { TextButton(onClick = actions.onDismissPlanSwap) { Text(stringResource(R.string.day_cancel_button)) } },
-        )
-    }
+    state.pendingPlanSwap?.let { PlanSwapConfirmDialog(it, actions.onConfirmPlanSwap, actions.onDismissPlanSwap) }
 
     if (confirmingUntickChecks && state.runOpen) {
         androidx.compose.material3.AlertDialog(
@@ -540,3 +538,14 @@ data class DayActions(
     val onConfirmPlanSwap: () -> Unit = {},
     val onDismissPlanSwap: () -> Unit = {},
 )
+
+@Composable
+private fun PlanSwapConfirmDialog(pending: PendingPlanSwap, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (pending.doneCount == 1) R.string.day_plan_swap_confirm_one else R.string.day_plan_swap_confirm,
+            pending.title, pending.doneCount)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.day_swap_apply)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.day_cancel_button)) } },
+    )
+}

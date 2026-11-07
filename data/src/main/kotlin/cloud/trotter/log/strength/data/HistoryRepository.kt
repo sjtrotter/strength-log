@@ -246,6 +246,10 @@ class HistoryRepository(
         return sessionDao.lastPerformedRows(exerciseIds).toLastPerformedByExercise()
     }
 
+    /** Every done working set from each exercise's most recent session, in logged order. */
+    suspend fun lastSets(exerciseIds: List<String>): Map<String, List<LoggedSet>> =
+        if (exerciseIds.isEmpty()) emptyMap() else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSetsByExercise()
+
     /** Archived tracks of the newest session for this plan and day, keyed by exercise and slot.
      *  For duplicate keys, the last archived track wins. */
     suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {

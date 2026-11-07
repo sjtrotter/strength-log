@@ -1753,7 +1753,7 @@ class DayViewModel @Inject constructor(
     private suspend fun fetchDayHistory(ids: List<String>, planId: Long, dayId: String): DayHistory {
         return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
             historyRepository.lastPerformedDates(ids), historyRepository.slotSessions(planId, dayId),
-            historyRepository.progressionSessions(planId, ids))
+            historyRepository.progressionSessions(planId, ids), historyRepository.lastSets(ids))
     }
 
     private fun buildState(
@@ -2035,11 +2035,12 @@ class DayViewModel @Inject constructor(
             timedShowsWeight = slot.main.showsLoad,
             partnerTracking = partnerTracking,
             partnerTimedShowsWeight = slot.partner?.showsLoad == true,
-            lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
+            lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, history.lastSets[performed.exerciseId].orEmpty(), unit),
             lastTimeDate = history.lastPerformedDates[performed.exerciseId]?.let(::lastTimeDate),
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
             partnerHeaderTarget = partnerHeaderTarget,
-            partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.lastPerformed::get), unit),
+            partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.lastPerformed::get),
+                partner?.exerciseId?.let(history.lastSets::get).orEmpty(), unit),
             partnerLastTimeDate = partner?.exerciseId?.let(history.lastPerformedDates::get)?.let(::lastTimeDate),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[performed.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
@@ -2064,6 +2065,7 @@ class DayViewModel @Inject constructor(
         val lastPerformedDates: Map<String, Long> = emptyMap(),
         val slotSessions: Map<Pair<String, String>, SlotSession> = emptyMap(),
         val progressionSessions: Map<String, List<CarryForward.Session>> = emptyMap(),
+        val lastSets: Map<String, List<LoggedSet>> = emptyMap(),
     )
 
     private data class DayContext(

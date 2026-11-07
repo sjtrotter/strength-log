@@ -439,6 +439,39 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun editRouteOpensThePlanEditor() = runVmTest {
+        insertProgram()
+        val workout = newViewModel()
+        val collectWorkout = launch { workout.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertFalse(workout.dayEditState.value.planEditing)
+        workout.editor.setDayEditorOpen(true)
+        advanceUntilIdle()
+        assertTrue(workout.dayEditState.value.editorOpen)
+        assertFalse(workout.dayEditState.value.planEditing)
+        collectWorkout.cancel()
+        workout.viewModelScope.cancel()
+
+        val handle = SavedStateHandle(mapOf(Routes.DAY_EDITOR_ARG to true))
+        val first = newViewModel(handle)
+        assertTrue(first.dayEditState.value.planEditing)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(first.dayEditState.value.planEditing)
+        assertTrue(first.dayEditState.value.editorOpen)
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+
+        val restored = newViewModel(handle)
+        assertTrue(restored.dayEditState.value.planEditing)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.dayEditState.value.planEditing)
+        assertTrue(restored.dayEditState.value.editorOpen)
+        collectEdit.cancel()
+    }
+
+    @Test
     fun authoredPrescriptionDraftAndPageSurviveProcessRecreationThenSaveAndReseed() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Physio", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
@@ -3087,11 +3120,11 @@ class DayViewModelWiringTest {
         vm.swapWorkoutSlot(0, "db_bench")
         advanceUntilIdle()
         val card = vm.uiState.value.exercises.single()
-        assertEquals("35 × 8", card.lastTimeDisplay)
+        assertEquals("35 lb × 8", card.lastTimeDisplay)
         assertEquals("45×8", card.personalRecordDisplay)
         repo.history.updateSessionSet(repo.history.sessionSets(recent).single().copy(weightLb = 40.0))
         advanceUntilIdle()
-        assertEquals("40 × 8", vm.uiState.value.exercises.single().lastTimeDisplay)
+        assertEquals("40 lb × 8", vm.uiState.value.exercises.single().lastTimeDisplay)
         assertEquals("45×8", vm.uiState.value.exercises.single().personalRecordDisplay)
         vm.swapWorkoutSlot(0, "bb_bench")
         advanceUntilIdle()

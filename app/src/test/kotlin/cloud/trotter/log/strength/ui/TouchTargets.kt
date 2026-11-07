@@ -102,7 +102,7 @@ object TouchTargets {
      * *sibling* whose 48dp target was never given 48dp of layout and so quietly
      * annexed the control next to it.
      */
-    private fun ComposeContentTestRule.overlappingTouchTargets(): Map<Set<String>, Int> {
+    private fun ComposeContentTestRule.overlappingTouchTargets(details: MutableList<String>): Map<Set<String>, Int> {
         val nodes = interactiveNodes()
         val found = mutableMapOf<Set<String>, Int>()
         for (i in nodes.indices) {
@@ -110,9 +110,12 @@ object TouchTargets {
                 val a = nodes[i]
                 val b = nodes[j]
                 if (a.isWithin(b) || b.isWithin(a)) continue
-                if (!a.visibleTouchBoundsInRoot().overlaps(b.visibleTouchBoundsInRoot())) continue
+                val aBounds = a.visibleTouchBoundsInRoot()
+                val bBounds = b.visibleTouchBoundsInRoot()
+                if (!aBounds.overlaps(bBounds)) continue
                 val pair = setOf(a.describe(), b.describe())
                 found[pair] = (found[pair] ?: 0) + 1
+                details += "${a.describeGeometry(aBounds)} overlaps ${b.describeGeometry(bBounds)}"
             }
         }
         return found
@@ -128,9 +131,10 @@ object TouchTargets {
      * licence for a shape of bug.
      */
     fun ComposeContentTestRule.assertOverlappingTouchTargetsAreExactly(expected: Map<Set<String>, Int>) {
-        val actual = overlappingTouchTargets()
+        val details = mutableListOf<String>()
+        val actual = overlappingTouchTargets(details)
         assertEquals(
-            "overlapping touch targets changed — expected ${render(expected)}, found ${render(actual)}",
+            "overlapping touch targets changed — expected ${render(expected)}, found ${render(actual, details)}",
             expected,
             actual,
         )
@@ -140,8 +144,15 @@ object TouchTargets {
     fun ComposeContentTestRule.assertNoOverlappingTouchTargets() =
         assertOverlappingTouchTargetsAreExactly(emptyMap())
 
-    private fun render(pairs: Map<Set<String>, Int>): String =
-        if (pairs.isEmpty()) "none" else pairs.entries.joinToString { "${it.key} x${it.value}" }
+    private fun SemanticsNode.describeGeometry(visibleTouchBounds: Rect): String =
+        "'${describe()}' (boundsInRoot=$boundsInRoot, touchBoundsInRoot=$touchBoundsInRoot, " +
+            "size=$size, visibleTouchBoundsInRoot=$visibleTouchBounds)"
+
+    private fun render(pairs: Map<Set<String>, Int>, details: List<String> = emptyList()): String =
+        if (pairs.isEmpty()) "none" else buildString {
+            append(pairs.entries.joinToString { "${it.key} x${it.value}" })
+            details.forEach { append("\n  $it") }
+        }
 
     /**
      * Every fully visible control answers to at least 48dp in both axes.

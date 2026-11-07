@@ -1,7 +1,11 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.view.View
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -12,7 +16,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -32,6 +40,9 @@ class DayEditSheetTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private lateinit var backDispatcher: OnBackPressedDispatcher
+    private lateinit var view: View
 
     private fun show(
         canResetToTemplate: Boolean = false,
@@ -54,6 +65,8 @@ class DayEditSheetTest {
         exerciseId: String = "plank",
         targetSets: Int = 3,
         unit: WeightUnit = WeightUnit.LB,
+        onResetToTemplate: () -> Unit = {},
+        onDismiss: () -> Unit = {},
     ) {
         val slot = DayEditSlotState(
             programExerciseId = 1L,
@@ -92,14 +105,14 @@ class DayEditSheetTest {
                         },
                         onSetSuperset = { _, _ -> },
                         onRemoveSuperset = {},
-                        onResetToTemplate = {},
+                        onResetToTemplate = onResetToTemplate,
                         onRemoveCardio = onRemoveCardio,
                         onSetKeepToPlan = onKeepToPlan,
                         onResetSlotToPlan = onResetSlot,
                         onStructureChange = onStructureChange,
                     ),
                     accent = Color.White,
-                    onDismiss = {},
+                    onDismiss = onDismiss,
                     onCreateExercise = {},
                 )
             }
@@ -108,6 +121,148 @@ class DayEditSheetTest {
             composeTestRule.onNodeWithContentDescription("More options for ${slot.title}").performClick()
             composeTestRule.onNodeWithText("Lift options").performClick()
         }
+    }
+
+    private fun showPlanEditor(
+        onBack: () -> Unit = {},
+        onSwap: (Int, String) -> Unit = { _, _ -> },
+        canResetToTemplate: Boolean = false,
+        onResetToTemplate: () -> Unit = {},
+        prescriptionDraft: PrescriptionDraft? = null,
+    ) {
+        val entry = ExerciseCatalog.CODE_ONLY.get("bb_back_squat")
+        composeTestRule.setContent {
+            backDispatcher = requireNotNull(LocalOnBackPressedDispatcherOwner.current).onBackPressedDispatcher
+            view = LocalView.current
+            AppTheme {
+                DayPlanEditor(
+                    state = DayEditUiState(
+                        planEditing = true,
+                        canResetToTemplate = canResetToTemplate,
+                        prescriptionDraft = prescriptionDraft,
+                        slots = listOf(DayEditSlotState(
+                            programExerciseId = 1L, position = 0, exerciseId = entry.id,
+                            title = entry.name, pattern = entry.pattern, isSuperset = false,
+                        )),
+                    ),
+                    dayId = "A",
+                    loading = false,
+                    accent = Color.White,
+                    actions = DayEditActions(
+                        onSwap = onSwap, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+                        onRemoveSuperset = {}, onResetToTemplate = onResetToTemplate,
+                    ),
+                    onBack = onBack,
+                    onCreateExercise = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun planEditorResetKeepsTheEditorOpen() {
+        var resets = 0
+        var exits = 0
+        showPlanEditor(canResetToTemplate = true, onResetToTemplate = { resets++ }, onBack = { exits++ })
+        composeTestRule.onNodeWithContentDescription("More").performClick()
+        composeTestRule.onNodeWithText("Reset day to template").performClick()
+        composeTestRule.onNodeWithText("Reset day to template?").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(0, resets) }
+        composeTestRule.onNodeWithText("Reset").performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(1, resets)
+            assertEquals(0, exits)
+        }
+        composeTestRule.onNodeWithText("Reset day to template?").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
+    }
+
+    @Test
+    fun workoutSheetResetStillDismissesTheSheet() {
+        val events = mutableListOf<String>()
+        show(canResetToTemplate = true, edit = false,
+            onResetToTemplate = { events += "reset" }, onDismiss = { events += "dismiss" })
+        composeTestRule.onNodeWithContentDescription("More").performClick()
+        composeTestRule.onNodeWithText("Reset day to template").performClick()
+        composeTestRule.onNodeWithText("Reset").performClick()
+        composeTestRule.runOnIdle { assertEquals(listOf("reset", "dismiss"), events) }
+    }
+
+    @Test
+    fun planEditorPrescriptionKeepsItsBodyAndFooterAboveTheKeyboard() {
+        showPlanEditor(prescriptionDraft = PrescriptionDraft(slotId = 1L))
+        val resistance = composeTestRule.onNodeWithText("Band or resistance")
+        resistance.performScrollTo().performClick()
+        val imeHeight = (300 * view.resources.displayMetrics.density).toInt()
+        val navigationBarHeight = (24 * view.resources.displayMetrics.density).toInt()
+        val keyboardTop = view.height - imeHeight
+        composeTestRule.runOnIdle {
+            ViewCompat.dispatchApplyWindowInsets(view, WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, navigationBarHeight))
+                .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, imeHeight))
+                .setVisible(WindowInsetsCompat.Type.ime(), true)
+                .build())
+        }
+        resistance.performScrollTo().assertIsDisplayed()
+        val save = composeTestRule.onNodeWithText("Save").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val cancel = composeTestRule.onNodeWithText("Cancel").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("Save must stay above the keyboard", save.bottom <= keyboardTop)
+        assertTrue("Cancel must stay above the keyboard", cancel.bottom <= keyboardTop)
+        assertTrue("Resistance must scroll above the keyboard", resistance.fetchSemanticsNode().boundsInRoot.bottom <= keyboardTop)
+    }
+
+    @Test
+    fun planEditorRootBackLeavesTheEditor() {
+        var exits = 0
+        showPlanEditor(onBack = { exits++ })
+        composeTestRule.onNodeWithText("Edit day A").assertIsDisplayed()
+        composeTestRule.runOnIdle { backDispatcher.onBackPressed() }
+        composeTestRule.runOnIdle { assertEquals(1, exits) }
+    }
+
+    @Test
+    fun planEditorBackFromAPageReturnsToTheSlotList() {
+        var exits = 0
+        showPlanEditor(onBack = { exits++ })
+        composeTestRule.onNodeWithContentDescription("More options for Barbell Back Squat").performClick()
+        composeTestRule.onNodeWithText("Lift options").performClick()
+        composeTestRule.onNodeWithText("Prescription").assertIsDisplayed()
+        composeTestRule.runOnIdle { backDispatcher.onBackPressed() }
+        composeTestRule.onNodeWithText("Prescription").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(0, exits) }
+    }
+
+    @Test
+    fun planEditorSwapsApplyToThePlanWithoutAsking() {
+        val swaps = mutableListOf<Pair<Int, String>>()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        showPlanEditor(onSwap = { position, id -> swaps += position to id })
+        composeTestRule.onNodeWithContentDescription("More options for Barbell Back Squat").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        composeTestRule.onNodeWithText("This workout").assertDoesNotExist()
+        composeTestRule.onNodeWithText(target.name).performScrollTo().performClick()
+        composeTestRule.runOnIdle { assertEquals(listOf(0 to target.id), swaps) }
+        composeTestRule.onNodeWithText("This workout").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
+    }
+
+    @Test
+    fun planEditorKeepsConfirmationForSwapsThatRemoveLegacyLoggedSets() {
+        var confirmed = 0
+        val state = workoutDayFixture().copy(viewDayId = "A", pendingPlanSwap = PendingPlanSwap(
+            "A", 1L, 1L, Slot.MAIN, "hack_squat", "Barbell Back Squat", 2,
+        ))
+        composeTestRule.setContent {
+            AppTheme {
+                DayScreen(state, workoutActions().copy(onConfirmPlanSwap = { confirmed++ }),
+                    DayEditUiState(planEditing = true), workoutEditActions())
+            }
+        }
+        composeTestRule.onNodeWithText("Edit day A").assertExists()
+        composeTestRule.onNodeWithText("Swap Barbell Back Squat? Its 2 logged sets today are removed.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        composeTestRule.runOnIdle { assertEquals(1, confirmed) }
     }
 
     @Test

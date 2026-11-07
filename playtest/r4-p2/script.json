@@ -1,8 +1,96 @@
 {
-  "seat": "r4-p2",
-  "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "first-open"}
-  ]
+ "seat": "r4-p2",
+ "capture": "compact",
+ "start": {
+  "date": "2026-11-08",
+  "time": "20:30",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "tap": {
+    "text": "Lifting"
+   }
+  },
+  {
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "checkpoint": "w2"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w3"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w4"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w5"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w6"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w7"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w8"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w9"
+  },
+  {
+   "tap": {
+    "text": "Next"
+   },
+   "timeoutMs": 4000
+  },
+  {
+   "checkpoint": "w10"
+  }
+ ]
 }

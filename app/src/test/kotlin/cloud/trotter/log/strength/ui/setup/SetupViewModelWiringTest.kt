@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -92,6 +93,21 @@ class SetupViewModelWiringTest {
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+
+    @Test fun distanceFollowsWeightUntilThePreferenceIsChosen() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        assertEquals(DistanceUnit.MI, vm.uiState.value.distanceUnit)
+        assertNull(settings.storedDistanceUnitFlow.first())
+        vm.setUnit(WeightUnit.KG)
+        advanceUntilIdle()
+        assertEquals(DistanceUnit.KM, vm.uiState.value.distanceUnit)
+        vm.setUnit(WeightUnit.LB)
+        vm.setDistanceUnit(DistanceUnit.KM)
+        advanceUntilIdle()
+        assertEquals(DistanceUnit.KM, settings.storedDistanceUnitFlow.first())
+        assertEquals(DistanceUnit.KM, vm.uiState.value.distanceUnit)
+    }
 
     @Test
     fun keepScreenOnReadsAndWritesTheExistingPreference() = runVmTest {

@@ -21,8 +21,11 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import java.time.Instant
 import java.time.ZoneId
 
@@ -61,9 +64,9 @@ internal fun statusName(status: CardioSetStatus?, running: Boolean): String = st
 })
 
 @Composable
-internal fun measureText(measure: Measure): String = when (measure) {
+internal fun measureText(measure: Measure, activity: CardioActivity?): String = when (measure) {
     is Measure.Time -> formatCardioTime(measure.seconds)
-    is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
+    is Measure.Distance -> distanceUnitFor(activity).format(measure.metres)
 }
 
 internal fun formatCardioTime(seconds: Int): String = ClockText.minutesSeconds(seconds)
@@ -84,7 +87,7 @@ internal fun List<CardioSessionEntity>.loggedToday(planId: Long?, dayId: String?
 }
 
 @Composable
-internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, modifier: Modifier = Modifier) {
+internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, activity: CardioActivity?, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(stringResource(R.string.day_cardio_logged, formatCardioTime(seconds)))
         Text(stringResource(R.string.cardio_outcomes,
@@ -95,8 +98,8 @@ internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, modifier: 
         val distance = performed.mapNotNull { it.metres }
         Text(when {
             distance.isEmpty() -> stringResource(R.string.cardio_distance_unknown)
-            distance.size == performed.size -> stringResource(R.string.cardio_distance_total, distance.sumOf { it.toLong() })
-            else -> stringResource(R.string.cardio_distance_recorded, distance.sumOf { it.toLong() })
+            distance.size == performed.size -> stringResource(R.string.cardio_distance_total, distanceUnitFor(activity).format(distance.sum()))
+            else -> stringResource(R.string.cardio_distance_recorded, distanceUnitFor(activity).format(distance.sum()))
         })
     }
 }
@@ -113,8 +116,18 @@ internal val CardioCardState.position: Int get() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActions) {
+internal fun CardioDistanceSheet(
+    run: CardioRun,
+    position: Int,
+    actions: DayActions,
+    distanceUnit: DistanceUnit,
+    input: CardioDistanceInput? = null,
+) {
     val draft = run.drafts.firstOrNull { it.position == position } ?: return
+    val unit = DistanceUnit.forActivity(distanceUnit, run.block.activity)
+    val text = input?.takeIf { it.unit == unit }?.text
+        ?: draft.metres()?.let(unit::inputText) ?: draft.text
+    val valid = draft.valid()
     AppModalBottomSheet(
         onDismissRequest = actions.onCloseSetEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -122,7 +135,7 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
             SheetCommitButton(
                 label = stringResource(if (draft.text.isBlank()) R.string.sheet_without_distance else R.string.sheet_save_distance),
                 onClick = { actions.onSaveCardioDistance(run.action(position)) },
-                enabled = draft.valid,
+                enabled = valid,
             )
         },
         title = {
@@ -135,20 +148,22 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
         body = {
             NumericSetField(
                 identity = "distance:${run.action(position)}",
-                value = (draft.metres ?: 0).toDouble(),
-                label = stringResource(R.string.cardio_distance_label),
+                value = text.toDoubleOrNull() ?: 0.0,
+                label = stringResource(R.string.cardio_distance_label, unit.symbol),
                 field = stringResource(R.string.sheet_distance_field),
                 partnerName = null,
                 modifier = Modifier.fillMaxWidth(),
                 minimum = 0.0,
-                maximum = Int.MAX_VALUE.toDouble(),
-                step = { 1.0 },
-                onChange = { actions.onCardioDistanceChange(it.toInt().takeIf { metres -> metres > 0 }?.toString().orEmpty()) },
-                textOverride = draft.text,
+                maximum = unit.fromMetres(200_000),
+                decimal = unit != DistanceUnit.M,
+                step = { if (unit == DistanceUnit.M) 1.0 else 0.05 },
+                round = { WeightStepper.format(it).toDouble() },
+                onChange = { actions.onCardioDistanceChange(it.takeIf { value -> value > 0 }?.let(WeightStepper::format).orEmpty()) },
+                textOverride = text,
                 onTextChange = actions.onCardioDistanceChange,
-                isError = !draft.valid,
+                isError = !valid,
             )
-            if (!draft.valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
+            if (!valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
         },
     )
 }

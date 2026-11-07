@@ -290,7 +290,12 @@ fun DayScreen(
                 onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
                 startEnabled = state.cardioStartEnabled)
         }
-        if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
+        if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.let { cardio ->
+            cardio.distanceRuns.firstOrNull { it.runId == sheet.cardioRunId }?.let {
+                CardioDistanceSheet(it, sheet.setIndex, actions, cardio.distanceUnit,
+                    cardio.distanceInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex })
+            }
+        }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
             when (sheet.kind) {
                 OpenSheet.Kind.CARDIO_SETS, OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.DAY -> Unit

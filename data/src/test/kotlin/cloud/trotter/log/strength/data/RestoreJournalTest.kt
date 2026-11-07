@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -176,6 +177,33 @@ class RestoreJournalTest {
         answersCarryRecipe = false,
         plans = listOf(PlanEntity(1, "Paused", "GENERATED", 0, 1000, suggestedDayId = "R")),
     )
+
+    @Test fun stagedDistanceChoiceCommits() = runTest {
+        val restored = snapshot().copy(distanceUnit = DistanceUnit.KM)
+        journal.stage(restored, "distance-choice")
+        commitPreviousBuildRoomHalf(restored, "distance-choice")
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
+        assertEquals(DistanceUnit.KM, settings.storedDistanceUnitFlow.first())
+        assertEquals(DistanceUnit.KM, backupRepository.exportSnapshot().distanceUnit)
+    }
+
+    @Test fun stagedAbsentDistanceClearsAnExistingChoice() = runTest {
+        settings.setDistanceUnit(DistanceUnit.MI)
+        val restored = snapshot()
+        journal.stage(restored, "distance-absent")
+        commitPreviousBuildRoomHalf(restored, "distance-absent")
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
+        assertNull(settings.storedDistanceUnitFlow.first())
+        assertNull(settingsStore.data.first()[stringPreferencesKey("distance_unit")])
+        assertEquals(DistanceUnit.KM, settings.distanceUnitFlow.first())
+        assertNull(backupRepository.exportSnapshot().distanceUnit)
+    }
+
+    @Test fun fullImportRestoresTheChosenDistance() = runTest {
+        backupRepository.importSnapshot(snapshot().copy(distanceUnit = DistanceUnit.MI), journal)
+        assertEquals(DistanceUnit.MI, settings.storedDistanceUnitFlow.first())
+        assertEquals(DistanceUnit.MI, settings.distanceUnitFlow.first())
+    }
 
     @Test fun importMarksMembershipFixupDoneAndPreservesAllPaused() = runTest {
         backupRepository.importSnapshot(pausedSnapshot(), journal)

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.log
 
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.text.UiText
 
@@ -88,6 +89,7 @@ data class SessionListItem(
     val cardioDuration: String? = null,
     val cardioSets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
     val cardioSeconds: Int = 0,
+    val activity: CardioActivity? = null,
     val editing: Boolean = false,
     val note: String = "",
     val undoPending: Boolean = false,

@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -18,6 +19,7 @@ data class SavedCardioResult(
     val metres: Int? = null,
 ) : Parcelable
 
+/** Text under the original saved keys stays in meters, including restored drafts. */
 @Parcelize
 data class CardioDistanceDraft(
     val position: Int,
@@ -28,15 +30,24 @@ data class CardioDistanceDraft(
     val saved: Boolean = false,
     val amended: Boolean = false,
 ) : Parcelable {
-    val metres: Int? get() = text.toIntOrNull()?.takeIf { it > 0 }
-    val valid: Boolean get() = text.isBlank() || (text.all(Char::isDigit) && metres != null)
+    fun metres(): Int? = text.toIntOrNull()?.takeIf { it > 0 }
+    fun valid(): Boolean = text.isBlank() || metres() != null
 }
 
-/** Metres typed on the running screen for a lone timed set. Its own saved key, so [CardioRun] keeps its layout. */
+/** Text under the original saved key stays in meters, including restored drafts. */
 @Parcelize
 data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
-    val metres: Int? get() = text.toIntOrNull()?.takeIf { it > 0 }
+    fun metres(): Int? = text.toIntOrNull()?.takeIf { it > 0 }
 }
+
+/** Editable display text has its own saved key so the original keys keep their meaning. */
+@Parcelize
+data class CardioDistanceInput(
+    val runId: String,
+    val position: Int,
+    val text: String,
+    val unit: DistanceUnit,
+) : Parcelable
 
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize

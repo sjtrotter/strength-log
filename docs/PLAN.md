@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A14)
+## Amendments (A1–A16)
 
 ### A1. Session history is now required (biggest change)
 
@@ -287,7 +287,11 @@ The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as 
 Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
 Backup v18 carries the optional field; older backups restore it as null.
 
-### A15. Plans edit as plans (#500, owner-approved 2026-11-06)
+### A15. Cardio distance unit (owner, #494)
+
+Distance shows in mi or km from a global setting, suggested from the weight unit until the lifter chooses; track and rower segments show meters. Storage, CSV, Health Connect and the watch stay in meters. Backup v19 carries the setting when chosen.
+
+### A16. Plans edit as plans (#500, owner-approved 2026-11-06)
 
 Edit day from a day preview opens the day editor as its own screen with no workout
 behind it; Back at its root returns to the preview. During a workout it stays a sheet.

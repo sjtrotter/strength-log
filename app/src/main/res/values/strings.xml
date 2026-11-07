@@ -622,12 +622,11 @@
 <string name="cardio_recovery">Recovery</string>
 <string name="cardio_cooldown">Cool-down</string>
 <string name="cardio_end_aim">%1$s · aim %2$s</string>
-<string name="cardio_metres">%1$d m</string>
-<string name="cardio_reached">Reached %1$d m</string>
+<string name="cardio_reached">Reached %1$s</string>
 <string name="cardio_outcomes">%1$d finished · %2$d shortened · %3$d skipped</string>
 <string name="cardio_distance_unknown">Distance not entered</string>
-<string name="cardio_distance_total">Distance %1$d m</string>
-<string name="cardio_distance_recorded">Recorded distance %1$d m</string>
+<string name="cardio_distance_total">Distance %1$s</string>
+<string name="cardio_distance_recorded">Recorded distance %1$s</string>
 <string name="cardio_skip">Skip set</string>
 <string name="cardio_add_set">Add set</string>
 <string name="cardio_finished">Finished</string>
@@ -639,12 +638,12 @@
 <string name="cardio_times_up">Time’s up</string>
 <string name="cardio_set_stopped">Set stopped</string>
 <string name="cardio_entry_identity">%1$s · Set %2$d</string>
-<string name="cardio_distance_label">Distance (m)</string>
+<string name="cardio_distance_label">Distance (%1$s)</string>
 <string name="cardio_done">Done</string>
 <string name="cardio_enter_distance">Enter distance</string>
 <string name="cardio_decrease_distance">Decrease distance</string>
 <string name="cardio_increase_distance">Increase distance</string>
-<string name="cardio_distance_invalid">Enter meters greater than 0</string>
+<string name="cardio_distance_invalid">Enter a distance greater than 0</string>
 <string name="cardio_end_title">End cardio?</string>
 <string name="cardio_end_message">Log completed work and skip remaining sets?</string>
 <string name="cardio_keep_going">Keep going</string>
@@ -764,9 +763,8 @@
     <string name="workout_cardio_position">%1$s, set %2$d of %3$d</string>
     <string name="workout_cardio_aim">Aim %1$s</string>
     <string name="workout_cardio_to">to %1$s</string>
-    <string name="workout_cardio_status_distance">%1$s, %2$d m</string>
+    <string name="workout_cardio_status_distance">%1$s, %2$s</string>
     <string name="workout_end_cardio">End cardio</string>
-    <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
     <string name="day_finish_save_cardio_title">Finish and save %1$s?</string>
     <string name="workout_plates_with_unit">%1$s %2$s a side</string>
@@ -938,4 +936,9 @@
     <string name="form_custom_reps_required">Enter target reps to save it</string>
     <string name="form_custom_hold_required">Enter a hold time to save it</string>
     <string name="form_custom_load_required">Enter an added load to save it</string>
+    <string name="settings_distance">Distance</string>
+    <string name="settings_distance_miles">Miles</string>
+    <string name="settings_distance_kilometers">Kilometers</string>
+    <string name="receipt_say_miles">miles</string>
+    <string name="receipt_say_kilometers">kilometers</string>
 </resources>

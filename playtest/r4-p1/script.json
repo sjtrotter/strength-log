@@ -1,0 +1,12 @@
+{
+  "seat": "r4-p1",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    { "checkpoint": "fresh-install-setup" }
+  ]
+}

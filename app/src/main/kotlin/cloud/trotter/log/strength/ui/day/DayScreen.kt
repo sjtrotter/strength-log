@@ -81,6 +81,7 @@ fun DayScreen(
     receiptNextTimes: ReceiptNextTimes? = null,
     pastCardio: CardioEntryDraft? = null,
     pastCardioSaveFailed: Boolean = false,
+    pastCardioSaving: Boolean = false,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -290,7 +291,7 @@ fun DayScreen(
         if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let {
             WorkoutCardioSheet(it, state.viewDayId.orEmpty(), actions,
                 onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
-                startEnabled = state.cardioStartEnabled, executionBusy = state.executionBusy)
+                startEnabled = state.cardioStartEnabled, executionBusy = state.executionBusy || state.timedRep != null)
         }
         if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
@@ -352,7 +353,7 @@ fun DayScreen(
     pastCardio?.let {
         CardioEntrySheet(it, stringResource(R.string.cardio_log_past), nowMillis,
             actions.onPastCardioChange, actions.onSavePastCardio, actions.onDismissPastCardio,
-            saveFailed = pastCardioSaveFailed)
+            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving)
     }
 
     if (showEditSheet) {

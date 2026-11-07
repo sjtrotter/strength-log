@@ -9,6 +9,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.dao.ProgramDao
+import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -34,11 +36,13 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -72,6 +76,9 @@ class DayViewModelManualCardioTest {
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<DayViewModel>()
     private val published = mutableListOf<Long>()
+    private var failReceiptRead = false
+    private var beforeReceiptRead: (suspend () -> Unit)? = null
+    private var beforeProgramRead: (suspend () -> Unit)? = null
     private val publisher = object : SessionPublisher by SessionPublisher.NoOp {
         override suspend fun publishCardio(cardioSessionId: Long) { published += cardioSessionId }
     }
@@ -87,7 +94,16 @@ class DayViewModelManualCardioTest {
         settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("manual-cardio-vm", ".preferences_pb")
         })
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        repo = TrackerRepository(db, object : ProgramDao by db.programDao() {
+            override fun observeDays(planId: Long) = db.programDao().observeDays(planId).onStart {
+                beforeProgramRead?.also { beforeProgramRead = null }?.invoke()
+            }
+        }, object : SessionDao by db.sessionDao() {
+            override fun observeSessions() = db.sessionDao().observeSessions().onStart {
+                beforeReceiptRead?.also { beforeReceiptRead = null }?.invoke()
+                check(!failReceiptRead)
+            }
+        }, db.customExerciseDao(), settings)
         share = ShareCardService(context, repo.history, settings = settings)
     }
 
@@ -207,6 +223,121 @@ class DayViewModelManualCardioTest {
         assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
         assertNotNull(vm.pastCardio.value)
         assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    @Test fun `saving freezes the draft before the first read`() = runTest(dispatcher) {
+        prepare()
+        val vm = readyVm()
+        enter(vm)
+        val draft = requireNotNull(vm.pastCardio.value)
+        val resume = CompletableDeferred<Unit>()
+        beforeProgramRead = { resume.await() }
+        vm.savePastCardio()
+        vm.changePastCardio(draft.copy(startedAt = draft.startedAt - 60_000, metresText = "9000", note = "Changed"))
+        vm.dismissPastCardio()
+        vm.openPastCardio()
+        vm.savePastCardio()
+        runCurrent()
+        assertEquals(draft, vm.pastCardio.value)
+        assertTrue(vm.pastCardioSaving.value)
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        resume.complete(Unit)
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(draft.startedAt, session.startedAt)
+        assertEquals(draft.note, session.note)
+        assertEquals(7100, repo.history.cardioSetsFor(session.id).single().metres)
+        assertFalse(vm.pastCardioSaving.value)
+        assertNull(vm.pastCardio.value)
+    }
+
+    @Test fun `a receipt failure clears the committed draft and retry reads the saved session`() = runTest(dispatcher) {
+        val plan = prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        enter(vm)
+        val draft = requireNotNull(vm.pastCardio.value)
+        val readingReceipt = CompletableDeferred<Unit>()
+        val resumeReceipt = CompletableDeferred<Unit>()
+        beforeReceiptRead = { readingReceipt.complete(Unit); resumeReceipt.await() }
+        failReceiptRead = true
+        vm.savePastCardio()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertTrue(readingReceipt.isCompleted)
+        assertNull(vm.pastCardio.value)
+        assertNull(handle.get<DaySelection>("day_past_cardio_day"))
+        assertFalse(vm.pastCardioSaveFailed.value)
+        assertNull(vm.finisher.receipt.value)
+        assertEquals(session.id, handle.get<Long>("day_past_cardio_receipt_id"))
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+        resumeReceipt.complete(Unit)
+        runCurrent()
+        assertFalse(vm.pastCardioSaveFailed.value)
+        vm.changePastCardio(draft.copy(metresText = "9000", note = "Changed"))
+        vm.savePastCardio()
+        vm.changePastCardio(draft.copy(startedAt = draft.startedAt - 60_000))
+        vm.savePastCardio()
+        runCurrent()
+        assertEquals(session, repo.history.cardioSessionsFlow.first().single())
+        failReceiptRead = false
+        vm.setCardioScreenLive(true)
+        vm.retryCardioSave()
+        vm.retryCardioSave()
+        runCurrent()
+        assertEquals(session.id, vm.finisher.receipt.value?.sessionId)
+        assertEquals("Easy", vm.finisher.receipt.value?.note)
+        assertEquals(7100, vm.finisher.receipt.value?.cardioRows?.single()?.intervals?.single()?.metres)
+        assertNull(handle.get<Long>("day_past_cardio_receipt_id"))
+        assertEquals(listOf(session.id), published)
+        assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
+    }
+
+    @Test fun `a committed manual session recovers its receipt after restoration`() = runTest(dispatcher) {
+        prepare()
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        enter(first)
+        failReceiptRead = true
+        first.savePastCardio()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertNull(first.pastCardio.value)
+        assertNull(first.finisher.receipt.value)
+        first.viewModelScope.cancel()
+        failReceiptRead = false
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        val restored = readyVm(restoredHandle)
+        assertNull(restored.pastCardio.value)
+        assertEquals(session.id, restored.finisher.receipt.value?.sessionId)
+        assertEquals("Easy", restored.finisher.receipt.value?.note)
+        assertNull(restoredHandle.get<Long>("day_past_cardio_receipt_id"))
+        assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
+        assertEquals(listOf(session.id), published)
+    }
+
+    @Test fun `completed cardio uses the entered activity on a mixed day`() = runTest(dispatcher) {
+        val plan = prepare(mixed = true)
+        repo.startRun(plan, "A")
+        val vm = readyVm()
+        enter(vm)
+        vm.changePastCardio(requireNotNull(vm.pastCardio.value).copy(activity = CardioActivity.OUTDOOR_RIDE))
+        vm.savePastCardio()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertEquals("OUTDOOR_RIDE", session.activity)
+        assertEquals(session.id, cardio.loggedSessionId)
+        assertEquals(CardioActivity.OUTDOOR_RIDE, cardio.block?.activity)
+        assertEquals("Outdoor ride", cardio.label)
+        assertEquals("Outdoor ride", vm.uiState.value.pages.last().title)
+        assertEquals(repo.history.cardioSetsFor(session.id).map { it.spec }, cardio.block?.sets)
+        assertEquals(CardioActivity.ROAD_RUN, repo.plans.programFor(plan).first().days.first().cardioBlock?.activity)
+        assertNull(vm.finisher.receipt.value)
+        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        vm.completeDay()
+        runCurrent()
+        assertEquals(CardioActivity.OUTDOOR_RIDE, vm.finisher.receipt.value?.activity)
     }
 
     @Test fun `a failed save keeps the draft and retry commits once with a trimmed note`() = runTest(dispatcher) {

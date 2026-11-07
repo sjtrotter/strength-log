@@ -55,6 +55,23 @@ class CardioEntrySheetTest {
         rule.onNodeWithText("Log past session").assertDoesNotExist()
     }
 
+    @Test fun `an awaiting timed rep count hides both past session entry points`() {
+        val base = workoutSetCardioBlockedByTimedRepFixture()
+        var state by mutableStateOf(base.copy(executionBusy = false, timedRep = base.timedRep?.let {
+            it.copy(event = it.event.copy(awaitingCount = true, sheetDismissed = true), remainingSeconds = 0)
+        }))
+        val actions = workoutActions().copy(onOpenCardioSets = {
+            state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0, 0))
+        })
+        rule.setContent { AppTheme { WorkoutSetHost(state, actions) } }
+        rule.onNodeWithText("Log past session").assertDoesNotExist()
+        rule.onNodeWithText("All sets").performClick()
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Log past session").assertDoesNotExist()
+        rule.runOnIdle { state = state.copy(timedRep = null, openSheet = null) }
+        rule.onNodeWithText("Log past session").assertExists()
+    }
+
     @Test fun `the entry sheet saves only a valid draft`() {
         var draft by mutableStateOf(CardioEntryDraft(CardioActivity.ROAD_RUN, now - 2_472_000, 0))
         var saved = 0
@@ -85,5 +102,27 @@ class CardioEntrySheetTest {
         rule.onNodeWithText("Distance (m)").assertDoesNotExist()
         rule.onNodeWithText("Couldn't save the session.").performScrollTo().assertExists()
         rule.onNodeWithText("Extra action").assertExists()
+    }
+
+    @Test fun `saving disables entry fields and duplicate saves until a failure allows editing`() {
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 2_472_000, 2412, "7100", "Easy")
+        var saving by mutableStateOf(false)
+        rule.setContent { AppTheme {
+            DayScreen(workoutSetCardioFixture(), workoutActions().copy(onSavePastCardio = { saving = true }),
+                DayEditUiState(), workoutEditActions(), pastCardio = draft, pastCardioSaving = saving,
+                pastCardioSaveFailed = !saving, nowMillis = { now })
+        } }
+        rule.onNodeWithText("Save").performClick().assertIsNotEnabled()
+        listOf("Activity", "Date", "Start time", "Duration", "Distance (m)", "Note").forEach {
+            rule.onNodeWithText(it).performScrollTo().assertIsNotEnabled()
+        }
+        listOf("Increase duration", "Decrease duration", "Increase distance", "Decrease distance").forEach {
+            rule.onNodeWithContentDescription(it).assertIsNotEnabled()
+        }
+        rule.onNodeWithText("Cancel").assertDoesNotExist()
+        rule.runOnIdle { saving = false }
+        rule.onNodeWithText("Note").performScrollTo().assertIsEnabled()
+        rule.onNodeWithText("Couldn't save the session.").performScrollTo().assertExists()
+        rule.onNodeWithText("Save").assertIsEnabled()
     }
 }

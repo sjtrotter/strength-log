@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -55,8 +56,10 @@ internal fun CardioEntrySheet(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     saveFailed: Boolean = false,
+    saving: Boolean = false,
     extraAction: (@Composable () -> Unit)? = null,
 ) {
+    val currentSaving by rememberUpdatedState(saving)
     var expanded by remember { mutableStateOf(false) }
     var dateOpen by rememberSaveable { mutableStateOf(false) }
     var timeOpen by rememberSaveable { mutableStateOf(false) }
@@ -68,26 +71,27 @@ internal fun CardioEntrySheet(
     val timeInteraction = remember { MutableInteractionSource() }
     val datePressed by dateInteraction.collectIsPressedAsState()
     val timePressed by timeInteraction.collectIsPressedAsState()
-    LaunchedEffect(datePressed) { if (datePressed) dateOpen = true }
-    LaunchedEffect(timePressed) { if (timePressed) timeOpen = true }
+    LaunchedEffect(datePressed, saving) { if (datePressed && !saving) dateOpen = true }
+    LaunchedEffect(timePressed, saving) { if (timePressed && !saving) timeOpen = true }
     AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        onDismissRequest = { if (!saving) onDismiss() },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { !currentSaving }),
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         footer = {
-            SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = draft.valid(nowMillis()),
-                cancelLabel = stringResource(R.string.day_cancel_button), onCancel = onDismiss)
+            SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = !saving && draft.valid(nowMillis()),
+                cancelLabel = if (saving) null else stringResource(R.string.day_cancel_button), onCancel = onDismiss)
             extraAction?.invoke()
         },
         body = {
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            ExposedDropdownMenuBox(expanded = expanded && !saving, onExpandedChange = { if (!saving) expanded = it }) {
                 OutlinedTextField(
                     value = cardioActivityName(draft.activity), onValueChange = {}, readOnly = true,
+                    enabled = !saving,
                     label = { Text(stringResource(R.string.cardio_edit_activity)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = !saving),
                 )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                ExposedDropdownMenu(expanded = expanded && !saving, onDismissRequest = { expanded = false }) {
                     CardioActivity.entries.forEach { activity ->
                         DropdownMenuItem(text = { Text(cardioActivityName(activity)) }, onClick = {
                             onChange(draft.copy(activity = activity))
@@ -99,16 +103,18 @@ internal fun CardioEntrySheet(
             OutlinedTextField(
                 value = start.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US)),
                 onValueChange = {}, readOnly = true,
+                enabled = !saving,
                 label = { Text(stringResource(R.string.cardio_entry_date)) },
                 interactionSource = dateInteraction,
-                modifier = Modifier.fillMaxWidth().semantics { onClick { dateOpen = true; true } },
+                modifier = Modifier.fillMaxWidth().then(if (saving) Modifier else Modifier.semantics { onClick { dateOpen = true; true } }),
             )
             OutlinedTextField(
                 value = start.format(DateTimeFormatter.ofPattern("HH:mm", Locale.US)),
                 onValueChange = {}, readOnly = true,
+                enabled = !saving,
                 label = { Text(stringResource(R.string.cardio_entry_start)) },
                 interactionSource = timeInteraction,
-                modifier = Modifier.fillMaxWidth().semantics { onClick { timeOpen = true; true } },
+                modifier = Modifier.fillMaxWidth().then(if (saving) Modifier else Modifier.semantics { onClick { timeOpen = true; true } }),
             )
             if (draft.measuresEditable) {
                 NumericSetField(
@@ -116,6 +122,7 @@ internal fun CardioEntrySheet(
                     label = stringResource(R.string.sheet_duration), field = stringResource(R.string.sheet_duration),
                     partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = 1.0,
                     maximum = ManualCardio.MAX_SECONDS.toDouble(), step = { 30.0 }, duration = true,
+                    enabled = !saving,
                     onChange = { durationText = formatCardioTime(it.toInt()); onChange(draft.copy(seconds = it.toInt())) },
                     textOverride = durationText,
                     onTextChange = {
@@ -128,12 +135,14 @@ internal fun CardioEntrySheet(
                     label = stringResource(R.string.cardio_distance_label), field = stringResource(R.string.sheet_distance_field),
                     partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = 0.0,
                     maximum = ManualCardio.MAX_METRES.toDouble(), step = { 1.0 },
+                    enabled = !saving,
                     onChange = { onChange(draft.copy(metresText = it.toInt().takeIf { metres -> metres > 0 }?.toString().orEmpty())) },
                     textOverride = draft.metresText, onTextChange = { onChange(draft.copy(metresText = it)) },
                 )
             }
             OutlinedTextField(
                 value = draft.note, onValueChange = { onChange(draft.copy(note = it.take(NOTE_MAX_LENGTH))) },
+                enabled = !saving,
                 label = { Text(stringResource(R.string.sheet_note_label)) },
                 supportingText = { Text(stringResource(R.string.sheet_note_counter, draft.note.length, NOTE_MAX_LENGTH)) },
                 minLines = 1, maxLines = 3, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -145,7 +154,7 @@ internal fun CardioEntrySheet(
             if (saveFailed) Text(stringResource(R.string.cardio_entry_save_failed), color = MaterialTheme.colorScheme.error)
         },
     )
-    if (dateOpen) {
+    if (dateOpen && !saving) {
         val dateState = rememberDatePickerState(
             initialSelectedDateMillis = start.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
             selectableDates = object : SelectableDates {
@@ -166,7 +175,7 @@ internal fun CardioEntrySheet(
             dismissButton = { TextButton(onClick = { dateOpen = false }) { Text(stringResource(R.string.day_cancel_button)) } },
         ) { DatePicker(dateState) }
     }
-    if (timeOpen) {
+    if (timeOpen && !saving) {
         val timeState = rememberTimePickerState(initialHour = start.hour, initialMinute = start.minute)
         AppAlertDialog(
             onDismissRequest = { timeOpen = false },

@@ -147,6 +147,9 @@ class DayViewModel @Inject constructor(
     private val pastCardioDay = savedState.getStateFlow<DaySelection?>(KEY_PAST_CARDIO_DAY, null)
     private val _pastCardioSaveFailed = MutableStateFlow(false)
     val pastCardioSaveFailed: StateFlow<Boolean> = _pastCardioSaveFailed.asStateFlow()
+    private val _pastCardioSaving = MutableStateFlow(false)
+    val pastCardioSaving: StateFlow<Boolean> = _pastCardioSaving.asStateFlow()
+    private val pastCardioReceiptId = savedState.getStateFlow<Long?>(KEY_PAST_CARDIO_RECEIPT_ID, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val runDistance = savedState.getStateFlow<CardioRunDistance?>(KEY_CARDIO_RUN_DISTANCE, null)
     private val pendingCardioDistances = savedState.getStateFlow<ArrayList<CardioRun>>(KEY_CARDIO_DISTANCES, arrayListOf())
@@ -570,6 +573,13 @@ class DayViewModel @Inject constructor(
                 if (ready) mutationLock.withLock { showDeferredCardioReceipt() }
             }
         }
+        viewModelScope.launch {
+            combine(cardioRun, timedRepEvent, pastCardioReceiptId) { run, reps, receipt ->
+                run == null && reps == null && receipt != null
+            }.distinctUntilChanged().collect { ready ->
+                if (ready) recoverPastCardioReceipt()
+            }
+        }
     }
 
     // --- user intents --------------------------------------------------------
@@ -793,6 +803,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_CARDIO_DISTANCES] = ArrayList(pendingCardioDistances.value.map { it.copy(saveFailed = false) })
         maybeLogCardio()
         maybeAmendCardioDistances()
+        recoverPastCardioReceipt()
     }
 
     private fun cardioElapsedSeconds(run: CardioRun): Int =
@@ -817,7 +828,7 @@ class DayViewModel @Inject constructor(
         val block = state.cardio?.block ?: return
         val planId = state.planId ?: return
         val dayId = state.viewDayId ?: return
-        if (executionActive) return
+        if (executionActive || _pastCardioSaving.value) return
         val seconds = if (block.sets.all { it.end is Measure.Time }) {
             block.sets.sumOf { (it.end as Measure.Time).seconds }
         } else 1800
@@ -828,18 +839,21 @@ class DayViewModel @Inject constructor(
     }
 
     fun changePastCardio(draft: CardioEntryDraft) {
-        if (pastCardio.value == null) return
+        if (pastCardio.value == null || _pastCardioSaving.value) return
         savedState[KEY_PAST_CARDIO] = draft.copy(note = draft.note.take(NOTE_MAX_LENGTH))
         _pastCardioSaveFailed.value = false
     }
 
     fun dismissPastCardio() {
+        if (_pastCardioSaving.value) return
         savedState[KEY_PAST_CARDIO] = null
         savedState[KEY_PAST_CARDIO_DAY] = null
         _pastCardioSaveFailed.value = false
     }
 
     fun savePastCardio() {
+        if (_pastCardioSaving.value || pastCardio.value == null) return
+        _pastCardioSaving.value = true
         viewModelScope.launch {
             try {
                 mutationLock.withLock {
@@ -858,24 +872,48 @@ class DayViewModel @Inject constructor(
                         startedAt = draft.startedAt, completedAt = draft.completedAt, seconds = draft.seconds,
                         stepsCompleted = 1, planId = planId, activity = draft.activity.name, note = draft.note,
                     ), results, finishDay = finishDay)
+                    if (finishDay) savedState[KEY_PAST_CARDIO_RECEIPT_ID] = id
+                    savedState[KEY_PAST_CARDIO] = null
+                    savedState[KEY_PAST_CARDIO_DAY] = null
+                    _pastCardioSaveFailed.value = false
                     viewModelScope.launch { sessionPublisher.publishCardio(id) }
-                    if (finishDay) {
-                        val standing = try {
-                            historyRepository.cardioBestsFor(draft.activity, excludedDayId = dayId, excludedStartedAt = draft.startedAt)
-                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
-                            throw cancelled
-                        } catch (_: Exception) {
-                            null
-                        }
-                        val session = requireNotNull(historyRepository.cardioSession(id))
-                        finisher.showLoggedCardio(session, historyRepository.cardioSetsFor(id), Program.accentIndex(dayId), standing)
-                    }
-                    dismissPastCardio()
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
                 _pastCardioSaveFailed.value = true
+            } finally {
+                _pastCardioSaving.value = false
+            }
+        }
+    }
+
+    private fun recoverPastCardioReceipt() {
+        if (pastCardioReceiptId.value == null) return
+        viewModelScope.launch {
+            mutationLock.withLock {
+                val id = pastCardioReceiptId.value ?: return@withLock
+                if (executionActive) return@withLock
+                try {
+                    val session = requireNotNull(historyRepository.cardioSession(id))
+                    val dayId = requireNotNull(session.dayId)
+                    val activity = CardioActivity.entries.firstOrNull { it.name == session.activity }
+                    val standing = try {
+                        activity?.let {
+                            historyRepository.cardioBestsFor(it, excludedDayId = dayId, excludedStartedAt = session.startedAt)
+                        }
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        null
+                    }
+                    finisher.showLoggedCardio(session, historyRepository.cardioSetsFor(id), Program.accentIndex(dayId), standing)
+                    if (!executionActive) savedState[KEY_PAST_CARDIO_RECEIPT_ID] = null
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    // The session is committed; retry its receipt on return or process restoration.
+                }
             }
         }
     }
@@ -1024,7 +1062,10 @@ class DayViewModel @Inject constructor(
             timedRepAlertAnchor = null
             cardioAlertAnchor = null
             cardioAlarm.cancel()
-        } else cardioTick.value++
+        } else {
+            cardioTick.value++
+            recoverPastCardioReceipt()
+        }
     }
 
     fun startTimedRep(programExerciseId: Long, setIndex: Int) {
@@ -1936,9 +1977,10 @@ class DayViewModel @Inject constructor(
         }
         val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
-        val frozen = savedRun?.takeIf {
+        val activeRun = savedRun?.takeIf {
             it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId
-        } ?: pendingCardioDistances.value.firstOrNull {
+        }
+        val frozen = activeRun ?: pendingCardioDistances.value.firstOrNull {
             it.planId == state.planId && it.dayId == state.viewDayId && it.drafts.isNotEmpty()
         }
         // Removing the source block must leave the frozen run and pending distances accessible.
@@ -1947,13 +1989,16 @@ class DayViewModel @Inject constructor(
                 block = it.block, finishesDay = it.finishesDay)
         }
         val base = sourceCard?.let { source ->
+            val loggedActivity = logged?.activity?.let { name -> CardioActivity.entries.firstOrNull { it.name == name } }
+            val completed = activeRun == null && loggedSets.isNotEmpty()
             source.copy(loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
+                label = if (completed && loggedActivity != null) activityLabel(loggedActivity) else source.label,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
                     cardioRun.value?.canAddSet != false &&
                     timedRepEvent.value?.awaitingCount != false,
-                block = if (savedRun?.dayId != state.viewDayId && loggedSets.isNotEmpty()) {
-                    source.block?.copy(sets = loggedSets.map { it.spec })
+                block = if (completed) {
+                    source.block?.copy(activity = loggedActivity ?: source.block.activity, sets = loggedSets.map { it.spec })
                 } else source.block)
         }
         if (state.loading || savedRun == null || savedRun != cardioRun.value) return base
@@ -2120,6 +2165,7 @@ class DayViewModel @Inject constructor(
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_PAST_CARDIO = "day_past_cardio_draft"
         const val KEY_PAST_CARDIO_DAY = "day_past_cardio_day"
+        const val KEY_PAST_CARDIO_RECEIPT_ID = "day_past_cardio_receipt_id"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_RUN_DISTANCE = "day_cardio_run_distance"
         const val KEY_CARDIO_DISTANCES = "day_cardio_distances"

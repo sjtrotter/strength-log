@@ -823,6 +823,8 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
                 onAgeChange = viewModel::setAge,
                 onLevelChange = viewModel::setLevel,
                 onEquipmentToggle = viewModel::toggleEquipment,
+                onLiftWeightChange = viewModel::setLiftWeight,
+                onLiftRepsChange = viewModel::setLiftReps,
                 onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },
             ),
         )

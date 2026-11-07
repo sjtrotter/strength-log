@@ -7,12 +7,44 @@ import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class WizardStateBuilderTest {
+    @Test
+    fun `lift rows follow the plan's mains and default reps to the top set`() {
+        val answers = WizardAnswers()
+        val state = WizardStateBuilder.buildUiState(WizardStep.LIFTS.ordinal, answers, false)
+        assertEquals(ProgramGenerator.mainLiftIds(answers), state.liftRows.map { it.exerciseId })
+        assertEquals(4, state.liftRows.size)
+        assertTrue(state.liftRows.all { it.reps == 5 && it.weightLb == null })
+        state.liftRows.forEach { row ->
+            val entry = ExerciseLibrary.get(row.exerciseId)
+            assertEquals(entry.name, row.name)
+            assertEquals(entry.perHand, row.perHand)
+        }
+
+        val drafted = WizardStateBuilder.buildUiState(
+            WizardStep.LIFTS.ordinal, answers, false,
+            liftDrafts = listOf(WizardLiftDraft("bb_back_squat", 100.0, null)),
+        )
+        assertEquals(100.0, drafted.liftRows.first().weightLb)
+        assertEquals(5, drafted.liftRows.first().reps)
+    }
+
+    @Test
+    fun `novice squat preview shows three sets at the empty bar`() {
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(level = ExperienceLevel.NOVICE))
+        val state = WizardStateBuilder.buildUiState(
+            WizardStep.ROTATION.ordinal, answers, false, previewProgram = ProgramGenerator.generate(answers),
+        )
+        val squat = state.previewLifts.getValue("A").first()
+        assertEquals(3, squat.setCount)
+        assertEquals("3 × 5 · 45 lb", squat.detail)
+    }
 
     // --- step defaults (spec §6.1 "next-next-next") --------------------------
 

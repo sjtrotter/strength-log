@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -41,7 +42,7 @@ object JournalBuilder {
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
     private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
 
-    /** One ramped main lift and its optional read-only weight GOAL — the input to [trajectories]. */
+    /** One main lift and its optional read-only weight GOAL — the input to [trajectories]. */
     data class MainLift(
         val exerciseId: String,
         val name: String,
@@ -50,17 +51,24 @@ object JournalBuilder {
     )
 
     /**
-     * The program's ramped mains in day order, de-duplicated by exercise (a lift
+     * The program's main lifts in day order, de-duplicated by exercise (a lift
      * anchored on two days keeps its first day's accent).
+     * Generated membership survives novice mains becoming straight sets.
      *
      * REPS/TIMED prescriptions have no top-set weight to plot.
      */
-    fun mainLifts(program: Program, catalog: ExerciseCatalog, cfg: LifterConfig): List<MainLift> {
+    fun mainLifts(
+        program: Program,
+        catalog: ExerciseCatalog,
+        cfg: LifterConfig,
+        generatedMainIds: Set<String> = emptySet(),
+    ): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
         program.days.forEach { day ->
             for (pe in day.exercises) {
-                if (!pe.structure.hasTopSet || pe.exerciseId in lifts) continue
                 val entry = catalog.find(pe.exerciseId) ?: continue
+                val isMain = pe.structure.hasTopSet || entry.goal is GoalSource.Std || pe.exerciseId in generatedMainIds
+                if (!isMain || pe.exerciseId in lifts) continue
                 val target = pe.prescription?.target
                 if (target != null && target !is PrescribedTarget.LoadReps) continue
                 val goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb

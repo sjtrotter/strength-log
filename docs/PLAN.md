@@ -304,6 +304,16 @@ prefilled with three sets at the lift's working weight and reps; Save writes the
 An added lift, and a lift swapped in for the plan or the workout, arrives as straight sets
 (a ramp's six rows become three) at the nearby weight #492 chooses; a main-capable lift does
 its top-set reps. A plan swap drops the old exercise's prescription.
+### A15. Plans from the lifter's numbers (#499, owner-approved 2026-11-06)
+
+The wizard's optional recent-lifts step takes a recent working weight and reps
+per main lift. Each entered lift seeds its main as a load × reps prescription.
+Skipped, the plan is generated as before and §11 does not move. Novices start
+every main as three straight sets, barbell mains at the empty bar.
+
+Entries are not part of the plan's recipe, so Reset day to template regenerates
+from the formula. Goals stay calculated (#503). Part C appends goal editing to
+this amendment.
 
 ## Architecture
 

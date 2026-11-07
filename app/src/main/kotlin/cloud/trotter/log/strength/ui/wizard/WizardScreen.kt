@@ -542,19 +542,20 @@ private fun LiftsStep(state: WizardUiState, actions: WizardActions) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     NumberField(
                         value = row.weightLb?.let(state.unit::fromLb),
-                        onValueChange = { actions.onLiftWeightChange(row.exerciseId, state.unit.toLb(it)) },
+                        onValueChange = { v -> actions.onLiftWeightChange(row.exerciseId, v.takeIf { it > 0.0 }?.let(state.unit::toLb)) },
                         onDraftChange = { v -> actions.onLiftWeightChange(row.exerciseId, v?.takeIf { it > 0.0 }?.let(state.unit::toLb)) },
                         label = stringResource(R.string.sheet_weight, state.unit.name.lowercase()),
                         modifier = Modifier.weight(1f),
                         minValue = 0.0,
                         format = WeightStepper::format,
-                        round = { WeightStepper.round(it, state.unit) },
+                        round = { if (it == 0.0) it else WeightStepper.round(it, state.unit) },
                         decimalInput = true,
                         weightInput = true,
                     )
                     NumberField(
                         value = row.reps.toDouble(),
                         onValueChange = { actions.onLiftRepsChange(row.exerciseId, it.toInt()) },
+                        onDraftChange = { actions.onLiftRepsChange(row.exerciseId, it?.toInt()) },
                         label = stringResource(R.string.prescription_reps),
                         modifier = Modifier.weight(1f),
                         minValue = 1.0,

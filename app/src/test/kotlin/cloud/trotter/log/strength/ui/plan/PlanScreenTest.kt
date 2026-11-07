@@ -30,7 +30,9 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,14 +60,20 @@ class PlanScreenTest {
         }
     }
     @get:Rule val rule = createComposeRule()
+    private var previousWindowSize: String? = null
+
+    @Before fun useRequestedWindowSize() {
+        previousWindowSize = System.getProperty(REQUESTED_WINDOW_SIZE)
+        System.setProperty(REQUESTED_WINDOW_SIZE, "true")
+    }
+
+    @After fun restoreWindowSize() {
+        val previous = previousWindowSize
+        if (previous == null) System.clearProperty(REQUESTED_WINDOW_SIZE)
+        else System.setProperty(REQUESTED_WINDOW_SIZE, previous)
+    }
 
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
-
-    private fun settleGoalEditor() {
-        // Bound dialog text-field animations instead of advancing until every animation is idle.
-        rule.mainClock.advanceTimeBy(500)
-        rule.waitForIdle()
-    }
 
     @Test
     fun emptyPlanOffersAddDayEvenWhenHasProgramIsFalse() {
@@ -122,7 +130,7 @@ class PlanScreenTest {
         assertEquals(GoalEmphasis.STRENGTH, emphasis)
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `tapping a goal opens its editor`() {
         val state = mutableStateOf(planScreenFixture().copy(
             goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false, "bb_back_squat", 235.0)),
@@ -142,29 +150,23 @@ class PlanScreenTest {
             ))
         } }
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Back Squat"))
-        rule.mainClock.autoAdvance = false
         rule.onNodeWithText("Barbell Back Squat").performClick()
-        settleGoalEditor()
         assertEquals("bb_back_squat", opened)
         rule.onNodeWithText("Barbell Back Squat goal").assertExists()
         rule.onNodeWithText("Goal (lb)").assertExists()
         rule.onNodeWithText("Calculated 235").assertExists()
         rule.onNodeWithText("Use calculated").assertDoesNotExist()
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
-        settleGoalEditor()
         rule.onNode(isDialog()).assertDoesNotExist()
         rule.onNodeWithText("Barbell Back Squat").performClick()
-        settleGoalEditor()
         rule.onNodeWithText("Cancel").performClick()
-        settleGoalEditor()
         rule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, saved)
         assertEquals(1, canceled)
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `opening and recomposing the goal editor do not emit draft changes`() {
-        rule.mainClock.autoAdvance = false
         val dialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 235.0, "235", false)
         val state = mutableStateOf(planScreenFixture().copy(goalDialog = dialog))
         val drafts = mutableListOf<Double?>()
@@ -177,28 +179,21 @@ class PlanScreenTest {
                 onDismissGoal = { state.value = state.value.copy(goalDialog = null) },
             ))
         } }
-        settleGoalEditor()
         rule.runOnIdle {
             assertEquals(emptyList<Double?>(), drafts)
             state.value = state.value.copy(offerStrengthIncreases = false, offerCardioIncreases = true)
         }
-        settleGoalEditor()
         rule.runOnIdle {
             assertEquals(dialog, state.value.goalDialog)
             assertEquals(emptyList<Double?>(), drafts)
         }
         rule.onNodeWithText("Goal (lb)").performTextReplacement("200")
-        settleGoalEditor()
-        rule.mainClock.advanceTimeBy(1_000)
-        rule.waitForIdle()
         rule.runOnIdle {
             assertEquals(listOf(200.0), drafts)
             assertEquals(200.0, state.value.goalDialog!!.draftLb!!, 0.0)
         }
         rule.onNodeWithText("Cancel").performClick()
-        settleGoalEditor()
         rule.onNode(isDialog()).assertDoesNotExist()
-        rule.mainClock.autoAdvance = true
         val list = rule.onNode(hasScrollAction())
         list.performScrollToNode(hasText("Offer strength increases"))
         rule.onNodeWithText("Offer strength increases").assertIsOff()
@@ -206,7 +201,7 @@ class PlanScreenTest {
         rule.onNodeWithText("Offer cardio increases").assertIsOn()
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `an edited goal offers use calculated`() {
         var reset = 0
         val state = mutableStateOf(planScreenFixture().copy(
@@ -224,20 +219,16 @@ class PlanScreenTest {
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Back Squat"))
         rule.onNodeWithText("Calculated 235").assertExists()
         rule.onNodeWithText("200").assertExists()
-        rule.mainClock.autoAdvance = false
         rule.onNodeWithText("Barbell Back Squat").performClick()
-        settleGoalEditor()
         rule.onNodeWithText("Barbell Back Squat goal").assertExists()
         rule.onNode(hasText("Calculated 235") and hasAnyAncestor(isDialog())).assertExists()
         rule.onNodeWithText("Use calculated").performClick()
-        settleGoalEditor()
         rule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, reset)
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `goal editor converts kg per hand drafts and disables save for an empty draft`() {
-        rule.mainClock.autoAdvance = false
         val state = mutableStateOf(planScreenFixture().copy(
             unit = WeightUnit.KG,
             goalDialog = PlanGoalDialog("incline_db", "Incline DB Press", true, WeightUnit.KG.toLb(30.0), "35", false),
@@ -247,29 +238,25 @@ class PlanScreenTest {
                 state.value = state.value.copy(goalDialog = state.value.goalDialog!!.copy(draftLb = lb))
             }))
         } }
-        settleGoalEditor()
         rule.onNodeWithText("Goal (kg/hand)").performTextReplacement("32.5")
-        settleGoalEditor()
         rule.runOnIdle { assertEquals(WeightUnit.KG.toLb(32.5), state.value.goalDialog!!.draftLb!!, 0.0) }
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.onNodeWithText("Goal (kg/hand)").performTextReplacement("")
-        settleGoalEditor()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(null, state.value.goalDialog!!.draftLb) }
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `zero goal drafts stay invalid through rounding and Done in pounds`() {
         assertZeroGoalRejected(WeightUnit.LB)
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `zero goal drafts stay invalid through rounding and Done in kilograms`() {
         assertZeroGoalRejected(WeightUnit.KG)
     }
 
     private fun assertZeroGoalRejected(unit: WeightUnit) {
-        rule.mainClock.autoAdvance = false
         val state = mutableStateOf(planScreenFixture().copy(
             unit = unit,
             goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 200.0, "235", true),
@@ -281,15 +268,12 @@ class PlanScreenTest {
                 onSaveGoal = { saved += state.value.goalDialog!!.draftLb },
             ))
         } }
-        settleGoalEditor()
         val field = rule.onNodeWithText(if (unit == WeightUnit.LB) "Goal (lb)" else "Goal (kg)")
         field.performTextReplacement("0")
-        settleGoalEditor()
         rule.onNodeWithText("0").assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(null, state.value.goalDialog!!.draftLb) }
         field.performImeAction()
-        settleGoalEditor()
         rule.onNodeWithText("0").assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled().performClick()
         rule.runOnIdle {
@@ -297,23 +281,21 @@ class PlanScreenTest {
             assertEquals(emptyList<Double?>(), saved)
         }
         field.performTextReplacement("200")
-        settleGoalEditor()
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(listOf(unit.toLb(200.0)), saved) }
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `goal editor enforces the canonical ceiling in pounds`() {
         assertGoalCeiling(WeightUnit.LB, "2000.1", "2000")
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun `goal editor enforces the canonical ceiling in kilograms`() {
         assertGoalCeiling(WeightUnit.KG, "907.2", "907")
     }
 
     private fun assertGoalCeiling(unit: WeightUnit, overLimit: String, roundsToLimit: String) {
-        rule.mainClock.autoAdvance = false
         val state = mutableStateOf(planScreenFixture().copy(
             unit = unit,
             goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 2500.0, "235", true),
@@ -325,15 +307,12 @@ class PlanScreenTest {
                 onSaveGoal = { saved += state.value.goalDialog!!.draftLb },
             ))
         } }
-        settleGoalEditor()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         val field = rule.onNodeWithText(if (unit == WeightUnit.LB) "Goal (lb)" else "Goal (kg)")
         for (invalid in listOf(overLimit, "2500", "-1", "NaN", "Infinity")) {
             field.performTextReplacement(invalid)
-            settleGoalEditor()
             rule.onNodeWithText("Save").assertIsNotEnabled()
             field.performImeAction()
-            settleGoalEditor()
             rule.onNodeWithText(invalid).assertExists()
             rule.onNodeWithText("Save").assertIsNotEnabled().performClick()
             rule.runOnIdle {
@@ -343,10 +322,8 @@ class PlanScreenTest {
         }
         for (valid in listOf(roundsToLimit, unit.fromLb(PlanRecipeJson.MAX_GOAL_LB).toString())) {
             field.performTextReplacement(valid)
-            settleGoalEditor()
             rule.runOnIdle { assertEquals(PlanRecipeJson.MAX_GOAL_LB, state.value.goalDialog!!.draftLb!!, 0.0) }
             field.performImeAction()
-            settleGoalEditor()
             rule.onNodeWithText("Save").assertIsEnabled().performClick()
         }
         rule.runOnIdle { assertEquals(List(2) { PlanRecipeJson.MAX_GOAL_LB }, saved) }
@@ -466,7 +443,7 @@ class PlanScreenTest {
         rule.onNodeWithText("Add day").assertExists()
     }
 
-    @Test
+    @Test(timeout = 30_000)
     fun removalExplainsWhatIsDeletedAndThatHistoryIsKept() {
         rule.setContent { AppTheme {
             PlanScreen(planScreenFixture(count = 2).copy(dialog = "remove", dialogDayId = "B", dayTitleDraft = "Day B"), actions())
@@ -474,3 +451,6 @@ class PlanScreenTest {
         rule.onNodeWithText("Remove Day B and its exercises? History is kept.").assertExists()
     }
 }
+
+/** Robolectric's full-screen frame for wrap-content dialogs can prevent text fields from settling. */
+private const val REQUESTED_WINDOW_SIZE = "robolectric.windowManager.useRequestedSize"

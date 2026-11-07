@@ -99,6 +99,14 @@ class PlanViewModel @Inject constructor(
         savedState[GOAL_DRAFT] = null
     }
 
+    fun setOfferStrengthIncreases(on: Boolean) {
+        viewModelScope.launch { plans.setOfferStrengthIncreases(planId, on) }
+    }
+
+    fun setOfferCardioIncreases(on: Boolean) {
+        viewModelScope.launch { plans.setOfferCardioIncreases(planId, on) }
+    }
+
     fun setEmphasis(emphasis: GoalEmphasis) {
         viewModelScope.launch { plans.setPlanEmphasis(planId, emphasis) }
     }

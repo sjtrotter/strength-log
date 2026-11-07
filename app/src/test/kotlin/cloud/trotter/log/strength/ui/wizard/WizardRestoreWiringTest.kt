@@ -379,10 +379,45 @@ class WizardRestoreWiringTest {
         assertEquals("STRENGTH", state.answers.config.emphasis.name)
         assertEquals(cloud.trotter.log.strength.domain.units.WeightUnit.KG, state.unit)
         assertEquals(state.unit, state.answers.config.weightUnit)
+        assertEquals(document.toSnapshot().answers, state.answers)
         assertEquals(state.answers, repo.plans.wizardAnswersFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
+    }
+
+    @Test
+    fun restoringAnExportedMidFirstRunBackupWithoutAProgram_keepsEveryStoredAnswer() = runBlocking {
+        val codec = BackupCodec()
+        val legacy = backup(wizardComplete = false).copy(program = emptyList())
+        val expected = legacy.toSnapshot().answers
+        service.import(codec.encode(legacy))
+        val exported = service.export()
+        service.import(codec.encode(legacy.copy(settings = legacy.settings.copy(
+            daysPerWeek = 6,
+            equipment = emptyList(),
+            weightUnit = "LB",
+        ))))
+        val vm = newViewModel()
+        vm.awaitOffered()
+
+        vm.restoreFromBackup(pickable(exported))
+
+        val state = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == expected.daysPerWeek }
+        }
+        assertNull(state.restore.error)
+        assertFalse(state.isComplete)
+        assertEquals(expected, state.answers)
+        assertEquals(expected.config.bodyweightLb, state.bodyweightLb ?: Double.NaN, 0.0)
+        assertEquals(expected.config.age, state.age)
+        assertEquals(expected.config.weightUnit, state.unit)
+        assertEquals(expected, repo.plans.wizardAnswersFlow.first())
+        assertEquals(expected, backupRepository.exportSnapshot().answers)
+        assertEquals(PlanRecipeJson.encode(expected), db.planDao().allPlans().single().recipeJson)
+        assertTrue(repo.plans.programFlow.first().days.isEmpty())
+        assertFalse(settings.wizardCompleteFlow.first())
+        assertEquals(exported, service.export())
     }
 
     @Test

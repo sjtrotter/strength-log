@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -93,6 +95,25 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     item(key = "add_day") {
                         TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
                     }
+                }
+                item(key = "progression_header") {
+                    Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_progression)) }
+                }
+                item(key = "offer_strength") {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.plan_offer_strength)) },
+                        trailingContent = { Switch(checked = state.offerStrengthIncreases, onCheckedChange = null) },
+                        modifier = Modifier.toggleable(state.offerStrengthIncreases, role = Role.Switch,
+                            onValueChange = actions.onOfferStrengthChange),
+                    )
+                }
+                item(key = "offer_cardio") {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.plan_offer_cardio)) },
+                        trailingContent = { Switch(checked = state.offerCardioIncreases, onCheckedChange = null) },
+                        modifier = Modifier.toggleable(state.offerCardioIncreases, role = Role.Switch,
+                            onValueChange = actions.onOfferCardioChange),
+                    )
                 }
                 if (state.emphasis != null) {
                     item(key = "goals_header") {

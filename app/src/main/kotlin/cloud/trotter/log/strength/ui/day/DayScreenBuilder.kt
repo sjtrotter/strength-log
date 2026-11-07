@@ -1,5 +1,12 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.SlotSession
@@ -167,8 +174,9 @@ object DayScreenBuilder {
         unit: WeightUnit,
         progression: List<CarryForward.Session>? = null,
         openingWeightLb: Double? = null,
+        offersOn: Boolean,
     ): NextTime? {
-        if (keepToPlan || rows.any { it.done }) return null
+        if (!offersOn || keepToPlan || rows.any { it.done }) return null
         val local = history?.takeUnless { it.retired }
         val carried = local?.let { CarryForward.next(it.planned, it.actual) }
             ?: rows.map { it.copy(weightLb = openingWeightLb ?: it.weightLb) }
@@ -184,6 +192,20 @@ object DayScreenBuilder {
             else -> return null
         }
         return NextTime.Offer(offerLabel(offer, opening, unit), applied, offer, opening)
+    }
+
+    fun cardioNextTime(
+        day: ProgramDay,
+        plan: PlanEntity,
+        last: CardioSessionEntity?,
+        lastSets: List<CardioSetResult>?,
+    ): CardioNextTime? {
+        if (!plan.offerCardioIncreases || day.cardioProgress.keepToPlan) return null
+        val block = day.cardioToRun ?: return null
+        val measure = CardioProgression.resolve(block, day.cardioProgress.measure) ?: return null
+        val percent = day.cardioProgress.increasePercent ?: CardioProgression.defaultPercent(measure)
+        val lastActivity = CardioActivity.entries.firstOrNull { it.name == last?.activity }
+        return CardioProgression.nextTime(block, lastActivity, lastSets, measure, percent)
     }
 
     fun offerDelta(offerLb: Double, openingLb: Double, unit: WeightUnit): Double =

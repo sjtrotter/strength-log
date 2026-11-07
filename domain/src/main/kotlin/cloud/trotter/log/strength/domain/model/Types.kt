@@ -74,6 +74,14 @@ data class ProgramExercise(
 
 enum class ProgramDayKind { STRENGTH, CARDIO }
 
+/** A day's Progress block stays parked while Plan is chosen; null uses the plan's block. */
+data class CardioProgress(
+    val keepToPlan: Boolean = false,
+    val measure: ProgressMeasure? = null,
+    val increasePercent: Int? = null,
+    val working: CardioBlock? = null,
+)
+
 data class ProgramDay(
     val id: String, // "A", "B", ...
     val title: String,
@@ -81,7 +89,18 @@ data class ProgramDay(
     val exercises: List<ProgramExercise>,
     val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
     val cardioBlock: CardioBlock? = null,
-)
+    val cardioProgress: CardioProgress = CardioProgress(),
+) {
+    /** A working block with different activity or set roles cannot replace the plan's block. */
+    val cardioToRun: CardioBlock?
+        get() {
+            val plan = cardioBlock ?: return null
+            if (cardioProgress.keepToPlan) return plan
+            return cardioProgress.working?.takeIf {
+                it.activity == plan.activity && it.sets.map { set -> set.role } == plan.sets.map { set -> set.role }
+            } ?: plan
+        }
+}
 
 data class Program(val days: List<ProgramDay>) {
     val strengthDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.STRENGTH }

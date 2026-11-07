@@ -48,6 +48,25 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanViewModelTest {
+
+    @Test fun `offer switches update only the viewed plan`() = runTest(dispatcher) {
+        val preferred = repo.plans.createAuthoredPlan("Preferred", "Day")
+        repo.plans.publishCreatedAuthoredPlan(preferred)
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(false, vm.uiState.value.offerCardioIncreases)
+        vm.setOfferStrengthIncreases(false)
+        vm.setOfferCardioIncreases(true)
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(true, vm.uiState.value.offerCardioIncreases)
+        assertEquals(false, db.planDao().plan(viewed)!!.offerStrengthIncreases)
+        assertEquals(true, db.planDao().plan(viewed)!!.offerCardioIncreases)
+        assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
+        assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
+    }
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
@@ -139,6 +158,39 @@ class PlanViewModelTest {
         assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
         assertNull(vm.uiState.value.goalDialog)
         assertEquals("235", vm.uiState.value.goals.first().display)
+    }
+
+    @Test
+    fun `offer switches and goal edits preserve each other on the viewed generated plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
+        repo.plans.publishCreatedPlan(preferred, answers)
+        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        vm.setGoalDraft(200.0)
+        advanceUntilIdle()
+        val dialog = vm.uiState.value.goalDialog
+
+        vm.setOfferStrengthIncreases(false)
+        vm.setOfferCardioIncreases(true)
+        advanceUntilIdle()
+
+        assertEquals(dialog, vm.uiState.value.goalDialog)
+        assertEquals(false, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(true, vm.uiState.value.offerCardioIncreases)
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("200", vm.uiState.value.goals.first().display)
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(false, db.planDao().plan(viewed)!!.offerStrengthIncreases)
+        assertEquals(true, db.planDao().plan(viewed)!!.offerCardioIncreases)
+        assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
+        assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
     }
 
     @Test

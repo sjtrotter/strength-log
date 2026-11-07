@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.ui.plan
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -38,6 +40,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PlanScreenTest {
+
+    @Test fun progressionSwitchesShowDefaultsAndForwardToggles() {
+        var strength: Boolean? = null
+        var cardio: Boolean? = null
+        rule.setContent { AppTheme {
+            PlanScreen(planScreenFixture(), actions().copy(onOfferStrengthChange = { strength = it }, onOfferCardioChange = { cardio = it }))
+        } }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Offer strength increases"))
+        rule.onNodeWithText("Offer strength increases").assertIsOn().performClick()
+        list.performScrollToNode(hasText("Offer cardio increases"))
+        rule.onNodeWithText("Offer cardio increases").assertIsOff().performClick()
+        rule.runOnIdle {
+            assertEquals(false, strength)
+            assertEquals(true, cardio)
+        }
+    }
     @get:Rule val rule = createComposeRule()
 
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
@@ -141,6 +160,50 @@ class PlanScreenTest {
         rule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, saved)
         assertEquals(1, canceled)
+    }
+
+    @Test
+    fun `opening and recomposing the goal editor do not emit draft changes`() {
+        rule.mainClock.autoAdvance = false
+        val dialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 235.0, "235", false)
+        val state = mutableStateOf(planScreenFixture().copy(goalDialog = dialog))
+        val drafts = mutableListOf<Double?>()
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(
+                onGoalDraft = { lb ->
+                    drafts += lb
+                    state.value = state.value.copy(goalDialog = state.value.goalDialog?.copy(draftLb = lb))
+                },
+                onDismissGoal = { state.value = state.value.copy(goalDialog = null) },
+            ))
+        } }
+        settleGoalEditor()
+        rule.runOnIdle {
+            assertEquals(emptyList<Double?>(), drafts)
+            state.value = state.value.copy(offerStrengthIncreases = false, offerCardioIncreases = true)
+        }
+        settleGoalEditor()
+        rule.runOnIdle {
+            assertEquals(dialog, state.value.goalDialog)
+            assertEquals(emptyList<Double?>(), drafts)
+        }
+        rule.onNodeWithText("Goal (lb)").performTextReplacement("200")
+        settleGoalEditor()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.waitForIdle()
+        rule.runOnIdle {
+            assertEquals(listOf(200.0), drafts)
+            assertEquals(200.0, state.value.goalDialog!!.draftLb!!, 0.0)
+        }
+        rule.onNodeWithText("Cancel").performClick()
+        settleGoalEditor()
+        rule.onNode(isDialog()).assertDoesNotExist()
+        rule.mainClock.autoAdvance = true
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Offer strength increases"))
+        rule.onNodeWithText("Offer strength increases").assertIsOff()
+        list.performScrollToNode(hasText("Offer cardio increases"))
+        rule.onNodeWithText("Offer cardio increases").assertIsOn()
     }
 
     @Test

@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.NextTime
 
@@ -31,10 +34,16 @@ data class PreviewPreviousResult(
     val source: String? = null,
     val sourcePlanName: String? = null,
 )
-data class PreviewCardio(val activity: String, val time: String)
+data class PreviewCardio(
+    val activity: String,
+    val time: String,
+    val activityType: CardioActivity,
+    val nextTime: CardioNextTime? = null,
+)
 data class PreviewActions(
     val onBack: () -> Unit,
     val onEdit: () -> Unit,
     val onStart: () -> Unit,
     val onNextTime: (programExerciseId: Long, weightLb: Double) -> Unit = { _, _ -> },
+    val onCardioNextTime: (CardioBlock) -> Unit = {},
 )

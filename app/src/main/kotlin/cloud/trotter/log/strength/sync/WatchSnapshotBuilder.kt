@@ -89,7 +89,7 @@ object WatchSnapshotBuilder {
             ),
             unit = unit.name.lowercase(),
             cycle = watchDays.map { it.toCycleDay(day.catalog) },
-            cardioBlock = programDay.cardioBlock?.toWatch(),
+            cardioBlock = programDay.cardioToRun?.toWatch(),
             cardioAckStamp = cardioAckStamp,
             cardioAckedStamps = cardioAckedStamps,
             planId = day.planId,
@@ -98,7 +98,7 @@ object WatchSnapshotBuilder {
             runStartedAt = runStartedAt,
             retiredRoundsDone = day.tracks.retiredRoundsDone.takeIf { it > 0 },
             processedEditStamps = processedEditStamps,
-            cardio = programDay.cardioBlock?.let { block ->
+            cardio = programDay.cardioToRun?.let { block ->
                 CardioSuggestion(
                     label = activityLabel(block.activity),
                     detail = "",

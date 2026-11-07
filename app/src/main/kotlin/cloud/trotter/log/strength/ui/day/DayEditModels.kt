@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -34,6 +36,8 @@ data class DayEditUiState(
     val planId: Long? = null,
     val dayId: String? = null,
     val cardioBlock: CardioBlock? = null,
+    val cardioProgress: CardioProgress = CardioProgress(),
+    val cardioMeasures: Set<ProgressMeasure> = emptySet(),
     val cardioDraft: CardioBlockDraft? = null,
     val runOpen: Boolean = false,
     val performedExerciseIds: Map<Long, String> = emptyMap(),
@@ -82,6 +86,9 @@ data class DayEditActions(
     val onDiscardPrescription: () -> Unit = {},
     val onEditorOpen: (Boolean) -> Unit = {},
     val onOpenCardio: () -> Unit = {},
+    val onCardioKeepToPlanChange: (Boolean) -> Unit = {},
+    val onCardioProgressByChange: (ProgressMeasure) -> Unit = {},
+    val onCardioIncreaseChange: (Int) -> Unit = {},
     val onCardioDraft: (CardioBlockDraft) -> Unit = {},
     val onSaveCardio: () -> Unit = {},
     val onBackCardio: () -> Unit = {},

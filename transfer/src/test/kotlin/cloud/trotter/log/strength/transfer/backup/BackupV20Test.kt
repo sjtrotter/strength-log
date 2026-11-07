@@ -1,59 +1,79 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BackupV20Test {
     private val codec = BackupCodec()
-    private val goals = mapOf("bb_back_squat" to 200.0)
-    private val recipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = goals)))
-
-    private fun document(recipeJson: String = recipe) = BackupDocument(
-        settings = SettingsBackup(235, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
-            selectedPlanId = 1),
-        plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, recipeJson = recipeJson)),
+    private fun block(seconds: Int) = CardioBlockJson.encode(CardioBlock(CardioActivity.ROAD_RUN,
+        listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds)))))
+    private val day = ProgramDayBackup("A", "Run", "", cardioBlockJson = block(1200),
+        cardioWorkingJson = block(1260), cardioKeepToPlan = true, cardioProgressBy = "TIME", cardioIncreasePercent = 7)
+    private fun document(day: ProgramDayBackup = this.day) = BackupDocument(
+        schemaVersion = 20,
+        settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
+        plans = listOf(PlanBackup(1, "Running", "AUTHORED", 1000, days = listOf(day), onToday = true,
+            offerStrengthIncreases = false, offerCardioIncreases = true)),
     )
 
-    @Test
-    fun `v20 export and restore preserve edited goals`() {
-        val snapshot = document().toSnapshot()
+    @Test fun `v20 export and restore preserve cardio Next time and offer switches verbatim`() {
+        val decoded = codec.decode(codec.encode(document()))
+        assertEquals(20, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(20, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
+        assertEquals(day, exported.plans.single().days.single())
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
-        val restoredRecipe = restored.plans.single().recipeJson!!
-        assertEquals(recipe, restoredRecipe)
-        assertEquals(goals, PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb)
         assertEquals(snapshot, restored)
+        assertEquals(block(1260), restored.days.single().cardioWorkingJson)
+        assertEquals("TIME", restored.days.single().cardioProgressBy)
+        assertEquals(7, restored.days.single().cardioIncreasePercent)
+        assertTrue(restored.days.single().cardioKeepToPlan)
+        assertFalse(restored.plans.single().offerStrengthIncreases)
+        assertTrue(restored.plans.single().offerCardioIncreases)
     }
 
-    @Test
-    fun `a v19 document restores with no edited goals and re-exports as v20`() {
-        val legacyRecipe = PlanRecipeJson.encode(WizardAnswers())
-        assertFalse(legacyRecipe.contains("goalsLb"))
-        for (version in listOf(18, 19)) {
-            val legacy = document(legacyRecipe).copy(schemaVersion = version)
-            val snapshot = codec.decode(codec.encode(legacy)).toSnapshot()
-            val restoredRecipe = snapshot.plans.single().recipeJson!!
-            assertEquals(legacyRecipe, restoredRecipe)
-            assertTrue(PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb.isEmpty())
-            val exported = snapshot.toDocument()
-            assertEquals(20, exported.schemaVersion)
-            assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
+    @Test fun `v19 ignores future cardio Next time and restores offer defaults`() {
+        val legacy = document().copy(schemaVersion = 19)
+        val snapshot = codec.decode(codec.encode(legacy)).toSnapshot()
+        assertNull(snapshot.days.single().cardioWorkingJson)
+        assertNull(snapshot.days.single().cardioProgressBy)
+        assertNull(snapshot.days.single().cardioIncreasePercent)
+        assertFalse(snapshot.days.single().cardioKeepToPlan)
+        assertTrue(snapshot.plans.single().offerStrengthIncreases)
+        assertFalse(snapshot.plans.single().offerCardioIncreases)
+        assertEquals(snapshot, legacy.toSnapshot())
+    }
+
+    @Test fun `older schemas ignore malformed future fields`() {
+        for (version in 9..19) {
+            val legacy = document().copy(schemaVersion = version)
+            val encoded = codec.encode(legacy)
+            val poisoned = encoded.replace("\"offerStrengthIncreases\":false", "\"offerStrengthIncreases\":{}")
+                .replace("\"offerCardioIncreases\":true", "\"offerCardioIncreases\":{}")
+                .replace("\"cardioKeepToPlan\":true", "\"cardioKeepToPlan\":{}")
+                .replace("\"cardioProgressBy\":\"TIME\"", "\"cardioProgressBy\":{}")
+                .replace("\"cardioIncreasePercent\":7", "\"cardioIncreasePercent\":{}")
+                .replace(kotlinx.serialization.json.JsonPrimitive(block(1260)).toString(), "{}")
+            assertEquals(codec.decode(encoded).toSnapshot(), codec.decode(poisoned).toSnapshot(), "schema v$version")
         }
     }
 
-    @Test
-    fun `a malformed goal is rejected before restore`() {
-        for (invalid in listOf("-1", "0", "2000.1", "NaN", "1e999")) {
-            val malformed = document(recipe.replace("200.0", invalid))
-            assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(malformed)) }
+    @Test fun `invalid progression fields fail as inconsistent`() {
+        val badDays = listOf(day.copy(cardioProgressBy = "UNKNOWN"), day.copy(cardioIncreasePercent = 0),
+            day.copy(cardioIncreasePercent = 26), day.copy(cardioWorkingJson = "bad block"), day.copy(cardioBlockJson = null))
+        badDays.forEach { invalid ->
+            assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(document(invalid))) }
         }
     }
 }

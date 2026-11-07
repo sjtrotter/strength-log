@@ -69,6 +69,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -139,6 +141,7 @@ internal fun DayEditPages(
     var pickingPattern by rememberSaveable { mutableStateOf(false) }
     var addPatternName by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmingReset by rememberSaveable { mutableStateOf(false) }
+    var cardioOptions by rememberSaveable { mutableStateOf(false) }
     var optionsSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var ssSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var ssPatternName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -153,6 +156,7 @@ internal fun DayEditPages(
         pickingPattern = pickingPattern,
         addingFromPattern = addPatternName != null,
         options = optionsSlotId != null,
+        cardioOptions = cardioOptions,
         prescription = state.prescriptionDraft != null,
         cardio = state.cardioDraft != null,
         cardioSet = state.cardioDraft?.editingSet != null,
@@ -167,6 +171,7 @@ internal fun DayEditPages(
             DayEditPage.ADD_PATTERN -> pickingPattern = false
             DayEditPage.ADD_EXERCISE -> addPatternName = null
             DayEditPage.OPTIONS -> optionsSlotId = null
+            DayEditPage.CARDIO_OPTIONS -> cardioOptions = false
             null -> Unit
         }
     }
@@ -288,6 +293,7 @@ internal fun DayEditPages(
                 onCreateExercise = onCreateExercise,
             )
         }
+        cardioOptions && state.cardioBlock != null -> CardioNextTimePage(state, actions, onBack)
         optionsSlot != null -> SlotOptionsScreen(
             slot = optionsSlot,
             onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
@@ -316,6 +322,7 @@ internal fun DayEditPages(
             onAddClick = { pickingPattern = true },
             onResetClick = { confirmingReset = true },
             onOpenCardio = actions.onOpenCardio,
+            onCardioOptions = { cardioOptions = true },
             onRemoveCardio = actions.onRemoveCardio,
             showTitle = !state.planEditing,
         )
@@ -345,6 +352,7 @@ private fun DaySlotList(
     onAddClick: () -> Unit,
     onResetClick: () -> Unit,
     onOpenCardio: () -> Unit,
+    onCardioOptions: () -> Unit,
     onRemoveCardio: () -> Unit,
     showTitle: Boolean = true,
 ) {
@@ -381,10 +389,62 @@ private fun DaySlotList(
                     modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onOpenCardio))
             }
             if (state.cardioBlock != null) item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.day_edit_next_time)) },
+                    supportingContent = { Text(stringResource(if (state.cardioProgress.keepToPlan)
+                        R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
+                    modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onCardioOptions),
+                )
+            }
+            if (state.cardioBlock != null) item {
                 TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty(), modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(stringResource(R.string.day_edit_remove_cardio))
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CardioNextTimePage(state: DayEditUiState, actions: DayEditActions, onBack: () -> Unit) {
+    val block = state.cardioBlock ?: return
+    val progress = state.cardioProgress
+    val measure = CardioProgression.resolve(block, progress.measure)
+    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
+        .padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        PickerHeader(stringResource(R.string.day_edit_next_time), onBack)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            listOf(false, true).forEachIndexed { index, keep ->
+                SegmentedButton(
+                    selected = progress.keepToPlan == keep,
+                    onClick = { actions.onCardioKeepToPlanChange(keep) },
+                    shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
+                )
+            }
+        }
+        if (!progress.keepToPlan && state.cardioMeasures.isNotEmpty() && measure != null) {
+            Text(stringResource(R.string.cardio_progress_by), style = MaterialTheme.typography.titleSmall)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                ProgressMeasure.entries.forEachIndexed { index, choice ->
+                    SegmentedButton(
+                        selected = measure == choice,
+                        enabled = choice in state.cardioMeasures,
+                        onClick = { actions.onCardioProgressByChange(choice) },
+                        shape = SegmentedButtonDefaults.itemShape(index, ProgressMeasure.entries.size),
+                        label = { Text(stringResource(when (choice) {
+                            ProgressMeasure.DISTANCE -> R.string.cardio_progress_distance
+                            ProgressMeasure.TIME -> R.string.cardio_progress_time
+                            ProgressMeasure.PACE -> R.string.cardio_progress_pace
+                        })) },
+                    )
+                }
+            }
+            PrescriptionNumber(stringResource(R.string.cardio_increase_by),
+                progress.increasePercent ?: CardioProgression.defaultPercent(measure),
+                CardioProgression.MIN_PERCENT, CardioProgression.MAX_PERCENT,
+                onChange = actions.onCardioIncreaseChange)
         }
     }
 }

@@ -475,6 +475,10 @@ internal fun DayRoute(
     val finish by viewModel.finisher.attempt.collectAsStateWithLifecycle()
     val noteSave by viewModel.finisher.noteSave.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
+    val pastCardio by viewModel.pastCardio.collectAsStateWithLifecycle()
+    val pastCardioSaveFailed by viewModel.pastCardioSaveFailed.collectAsStateWithLifecycle()
+    val pastCardioSaving by viewModel.pastCardioSaving.collectAsStateWithLifecycle()
+    val pastCardioCollision by viewModel.pastCardioCollision.collectAsStateWithLifecycle()
     // The receipt's SHARE, launched exactly the way the Log screen's is
     // (session-share brief §3): the ViewModel only ever builds the Intent, and
     // this is the call site that hands it to the chooser.
@@ -530,6 +534,10 @@ internal fun DayRoute(
         onSkipCardioSet = viewModel::skipCardioSet,
         onEndCardioBlock = viewModel::endCardioBlock,
         onAddCardioSet = viewModel::addCardioSet,
+        onOpenPastCardio = viewModel::openPastCardio,
+        onPastCardioChange = viewModel::changePastCardio,
+        onSavePastCardio = viewModel::savePastCardio,
+        onDismissPastCardio = viewModel::dismissPastCardio,
         onOpenCardioSets = viewModel::openCardioSets,
         onOpenCardioDistance = viewModel::openCardioDistance,
         onRequestCardioDistance = viewModel::requestCardioDistance,
@@ -599,6 +607,10 @@ internal fun DayRoute(
         onBack = onBack,
         nowMillis = viewModel.nowMillis,
         removedSets = removedSets,
+        pastCardio = pastCardio,
+        pastCardioSaveFailed = pastCardioSaveFailed,
+        pastCardioSaving = pastCardioSaving,
+        pastCardioCollision = pastCardioCollision,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )
 }

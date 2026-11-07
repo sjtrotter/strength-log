@@ -80,6 +80,10 @@ fun DayScreen(
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
     receiptNextTimes: ReceiptNextTimes? = null,
+    pastCardio: CardioEntryDraft? = null,
+    pastCardioSaveFailed: Boolean = false,
+    pastCardioSaving: Boolean = false,
+    pastCardioCollision: Boolean = false,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -129,7 +133,7 @@ fun DayScreen(
     // Only the newest removal can be undone against the current row indices.
     val openOffer = removedSets.lastOrNull()
     val openSheet = state.openSheet
-    val countHostFree = !showEditSheet && openSheet == null &&
+    val countHostFree = pastCardio == null && !showEditSheet && openSheet == null &&
         noteCardId == null &&
         !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
@@ -141,7 +145,7 @@ fun DayScreen(
         if (cardioRequestsSheet && countHostFree) actions.onOpenCardioDistance()
     }
     val dayBackProgress = rememberBackGestureProgress(
-        enabled = onBack != null &&
+        enabled = onBack != null && pastCardio == null &&
             !showEditSheet && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
             !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null,
@@ -289,7 +293,7 @@ fun DayScreen(
         if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let {
             WorkoutCardioSheet(it, state.viewDayId.orEmpty(), actions,
                 onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
-                startEnabled = state.cardioStartEnabled)
+                startEnabled = state.cardioStartEnabled, executionBusy = state.executionBusy || state.timedRep != null)
         }
         if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.let { cardio ->
             cardio.distanceRuns.firstOrNull { it.runId == sheet.cardioRunId }?.let {
@@ -351,6 +355,12 @@ fun DayScreen(
                 }
             }
         }
+    }
+
+    pastCardio?.let {
+        CardioEntrySheet(it, stringResource(R.string.cardio_log_past), nowMillis,
+            actions.onPastCardioChange, actions.onSavePastCardio, actions.onDismissPastCardio,
+            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving, collision = pastCardioCollision)
     }
 
     if (showEditSheet) {
@@ -497,6 +507,10 @@ data class DayActions(
     val onSetUpProgram: () -> Unit,
     val onApplyCardioNextTime: (CardioBlock) -> Unit = {},
     val onNextTime: (programExerciseId: Long, slot: String, weightLb: Double) -> Unit = { _, _, _ -> },
+    val onOpenPastCardio: () -> Unit = {},
+    val onPastCardioChange: (CardioEntryDraft) -> Unit = {},
+    val onSavePastCardio: () -> Unit = {},
+    val onDismissPastCardio: () -> Unit = {},
     val onStartCardio: () -> Unit = {},
     val onStopCardio: (CardioSetAction) -> Unit = {},
     val onReachCardioTarget: (CardioSetAction) -> Unit = {},

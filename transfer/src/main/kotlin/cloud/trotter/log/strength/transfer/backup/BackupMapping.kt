@@ -192,6 +192,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
                 planId = it.planId, planName = it.planName,
                 activity = it.activity,
+                note = it.note,
                 sets = cardioSetsBySession[it.id].orEmpty().sortedWith(compareBy({ it.position }, { it.id })).map { set ->
                     CardioSetResultBackup(
                         id = set.id, specJson = set.specJson, status = set.status,
@@ -409,6 +410,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
                 planId = it.planId, planName = it.planName,
                 activity = if (schemaVersion >= 12) it.activity else null,
+                note = if (schemaVersion >= 22) it.note else "",
             )
         },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->

@@ -143,6 +143,8 @@ class CardioSetsScreenTest {
             ))
         rule.setContent { AppTheme { WorkoutCardioSheet(cardio, "D", workoutActions(), {}) } }
 
+        rule.onNodeWithText("Track run").assertExists()
+        rule.onNodeWithText("Road run").assertDoesNotExist()
         rule.onNodeWithText("400 m · aim 1:45").assertExists()
         rule.onNodeWithText("2:00 · aim 800 m").assertExists()
         rule.onNodeWithText("Shortened, 300 m").assertExists()

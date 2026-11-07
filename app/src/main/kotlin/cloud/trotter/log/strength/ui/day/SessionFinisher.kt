@@ -284,19 +284,55 @@ internal class SessionFinisher(
     ) {
         val title = plans.programFor(run.planId).first().days.firstOrNull { it.id == run.dayId }?.title ?: run.dayId
         val completedAt = session?.completedAt ?: clock.millis()
-        val unit = settings.unitFlow.first()
-        val allPlansDone = allPlansDone(completedAt)
+        val receipt = cardioReceipt(
+            requireNotNull(run.sessionId), run.dayId, run.dayIndex, title, run.planName,
+            completedAt, session?.seconds, run.block.activity, run.resultSets, standing,
+        )
+        showCardioReceipt(receipt)
+    }
+
+    suspend fun showLoggedCardio(
+        session: CardioSessionEntity,
+        results: List<CardioSetResult>,
+        dayIndex: Int,
+        standing: Map<CardioRecordKey, CardioSetResult>?,
+    ) {
+        val dayId = requireNotNull(session.dayId)
+        val title = session.planId?.let { plans.programFor(it).first().days.firstOrNull { day -> day.id == dayId }?.title } ?: dayId
+        val activity = CardioActivity.entries.firstOrNull { it.name == session.activity }
+        showCardioReceipt(cardioReceipt(
+            session.id, dayId, dayIndex, title, session.planName.orEmpty(), session.completedAt,
+            session.seconds, activity, results, standing, session.note,
+        ))
+    }
+
+    private suspend fun cardioReceipt(
+        sessionId: Long,
+        dayId: String,
+        dayIndex: Int,
+        title: String,
+        planName: String,
+        completedAt: Long,
+        seconds: Int?,
+        activity: CardioActivity?,
+        results: List<CardioSetResult>,
+        standing: Map<CardioRecordKey, CardioSetResult>?,
+        note: String = "",
+    ): WorkoutReceipt = WorkoutReceipt(
+        sessionId = sessionId, cardio = true, dayId = dayId, dayIndex = dayIndex,
+        dayTitle = title, planName = planName, completedAt = completedAt,
+        minutes = seconds?.let { (it / 60.0).roundToInt().coerceAtLeast(1) },
+        unit = settings.unitFlow.first(), recordsChecked = standing != null, allPlansDone = allPlansDone(completedAt),
+        groups = emptyList(), activity = activity,
+        cardioRows = activity?.let { ReceiptBuilder.cardio(it, results, standing.orEmpty()) }.orEmpty(),
+        note = note,
+    )
+
+    private fun showCardioReceipt(receipt: WorkoutReceipt) {
         if (executionActive()) return
         savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_RECEIPT_NEXT_TIMES] = null
-        savedState[KEY_WORKOUT_RECEIPT] = WorkoutReceipt(
-            sessionId = requireNotNull(run.sessionId), cardio = true, dayId = run.dayId, dayIndex = run.dayIndex,
-            dayTitle = title, planName = run.planName, completedAt = completedAt,
-            minutes = session?.seconds?.let { (it / 60.0).roundToInt().coerceAtLeast(1) },
-            unit = unit, recordsChecked = standing != null, allPlansDone = allPlansDone,
-            groups = emptyList(), activity = run.block.activity,
-            cardioRows = ReceiptBuilder.cardio(run.block.activity, run.resultSets, standing.orEmpty()),
-        )
+        savedState[KEY_WORKOUT_RECEIPT] = receipt
     }
 
     private suspend fun allPlansDone(completedAt: Long): Boolean = ReceiptBuilder.allPlansDone(

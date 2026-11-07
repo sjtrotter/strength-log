@@ -156,12 +156,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withMembership = if (version < 15) {
-            val plans = shaped["plans"] as? JsonArray
-            if (plans == null) shaped else JsonObject(shaped + ("plans" to JsonArray(
-                plans.map { if (it is JsonObject) JsonObject(it - "onToday") else it },
+        val withCardioNotes = if (version < 22) {
+            val sessions = shaped["cardioSessions"] as? JsonArray
+            if (sessions == null) shaped else JsonObject(shaped + ("cardioSessions" to JsonArray(
+                sessions.map { if (it is JsonObject) JsonObject(it - "note") else it },
             )))
         } else shaped
+        val withMembership = if (version < 15) {
+            val plans = withCardioNotes["plans"] as? JsonArray
+            if (plans == null) withCardioNotes else JsonObject(withCardioNotes + ("plans" to JsonArray(
+                plans.map { if (it is JsonObject) JsonObject(it - "onToday") else it },
+            )))
+        } else withCardioNotes
         val withDayFields = if (version < 11) withoutFutureDayFields(withMembership, version) else withMembership
         val withRunFields = if (version < 13) withoutRunFields(withDayFields) else withDayFields
         val withSlotAndNoteFields = if (version < 14) withoutSlotAndNoteFields(withRunFields) else withRunFields

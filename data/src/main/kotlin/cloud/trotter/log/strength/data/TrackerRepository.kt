@@ -684,6 +684,7 @@ class TrackerRepository(
      * and decoded with [decodedCardioMode] on read. An explicit plan id is
      * preserved and its current name copied when the plan exists. Sessions
      * without a plan cannot advance a rotation.
+     * A note is trimmed and capped at [NOTE_MAX_LENGTH].
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -713,7 +714,7 @@ class TrackerRepository(
             if (sets.isNotEmpty()) {
                 cardioSessionDao.forRun(stamped.dayId, stamped.startedAt)?.let { return@withTransaction it.id }
             }
-            val id = cardioSessionDao.insert(stamped.copy(id = 0))
+            val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH)))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 set.toEntity(id, position)
             })

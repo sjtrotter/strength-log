@@ -45,6 +45,7 @@ internal fun WorkoutCardioSheet(
     actions: DayActions,
     onEnd: () -> Unit,
     startEnabled: Boolean = true,
+    executionBusy: Boolean = false,
 ) {
     val block = cardio.block ?: return
     val run = cardio.run
@@ -57,10 +58,17 @@ internal fun WorkoutCardioSheet(
         title = {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(cardioActivityName(block.activity), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Text(cardioActivityName(activity ?: block.activity), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
                         DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
+                            if (!cardio.completed && run?.startedAt == null && !executionBusy && startEnabled) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.cardio_log_past)) }, onClick = {
+                                    menuOpen = false
+                                    onDismiss()
+                                    actions.onOpenPastCardio()
+                                })
+                            }
                             if (run?.running != true && !cardio.completed && startEnabled) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.cardio_skip)) }, onClick = {
                                     menuOpen = false; onDismiss()

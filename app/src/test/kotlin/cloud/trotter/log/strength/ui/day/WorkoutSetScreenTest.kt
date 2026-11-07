@@ -1170,7 +1170,7 @@ class WorkoutSetScreenTest {
         show(base.copy(cardio = cardio.copy(run = null, loggedSets = results, loggedSeconds = 100,
             loggedActivity = CardioActivity.TRACK_RUN)))
 
-        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Track run").assertIsDisplayed()
         rule.onNodeWithText("Distance 400 m").assertIsDisplayed()
         rule.onNodeWithText("Distance 0.25 mi").assertDoesNotExist()
     }

@@ -162,7 +162,7 @@ class SessionLifecycleScreenTest {
     }
 
     @Test
-    fun cardioKeepsItsResultsWithoutShareOrNote() {
+    fun cardioKeepsItsResultsAndReadOnlyNoteWithoutShare() {
         setDayContent(dayState(done = 3), receipt = cardioReceiptFixture().copy(note = "Strength note"))
         composeTestRule.onNodeWithText("Intervals, done.").assertExists()
         composeTestRule.onNodeWithText("Track run").assertExists()
@@ -171,7 +171,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.onNodeWithContentDescription("Share").assertDoesNotExist()
         composeTestRule.onNodeWithText("Add a note").assertDoesNotExist()
         composeTestRule.onNodeWithText("Edit note").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Strength note").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Strength note").assertExists()
         composeTestRule.onNodeWithText("Done").assertHasClickAction()
     }
 

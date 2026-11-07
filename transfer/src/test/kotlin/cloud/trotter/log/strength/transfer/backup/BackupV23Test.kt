@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -36,6 +37,30 @@ class BackupV23Test {
         val restoredAnswers = PlanRecipeJson.decode(restored.plans.single().recipeJson!!, GlobalLifter())
         assertEquals(answers.cardioFirst, restoredAnswers.cardioFirst)
         assertEquals(goals, restoredAnswers.config.goalsLb)
+    }
+
+    @Test
+    fun `v23 preserves cardio notes and absent lifter answers with cardio first recipes`() {
+        val base = document()
+        val source = base.copy(
+            settings = base.settings.copy(hasLifterAnswers = false),
+            cardioSessions = listOf(CardioSessionBackup(
+                id = 7, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Trail run",
+                startedAt = 1000, completedAt = 1801000, seconds = 1800, stepsCompleted = 1,
+                activity = "TRAIL_RUN", note = "Easy",
+            )),
+        )
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(23, decoded.schemaVersion)
+        assertFalse(decoded.settings.hasLifterAnswers)
+        assertEquals("Easy", decoded.cardioSessions.single().note)
+        val snapshot = decoded.toSnapshot()
+        val exported = snapshot.toDocument()
+        assertEquals(23, exported.schemaVersion)
+        assertFalse(exported.settings.hasLifterAnswers)
+        assertEquals("Easy", exported.cardioSessions.single().note)
+        assertEquals(base.plans.single().recipeJson, exported.plans.single().recipeJson)
+        assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }
 
     @Test

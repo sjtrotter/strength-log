@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_20_21
+import cloud.trotter.log.strength.data.db.MIGRATION_21_22
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -38,7 +39,7 @@ class Migration20To21Test {
         createV20().close()
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_20_21).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_20_21, MIGRATION_21_22).allowMainThreadQueries().build()
             try {
                 assertEquals(PlanEntity(1, "Running", "AUTHORED", 0, 1000,
                     suggestedDayId = "A", onToday = true), db.planDao().allPlans().single())

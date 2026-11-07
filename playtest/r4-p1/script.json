@@ -22,7 +22,13 @@
       }
     },
     {
-      "checkpoint": "setup-page-2"
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "strength-goal"
     },
     {
       "tap": {
@@ -30,7 +36,14 @@
       }
     },
     {
-      "checkpoint": "setup-page-3"
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "three-days"
     },
     {
       "tap": {
@@ -38,7 +51,13 @@
       }
     },
     {
-      "checkpoint": "setup-page-4"
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "full-body-rotation"
     },
     {
       "tap": {
@@ -46,7 +65,7 @@
       }
     },
     {
-      "checkpoint": "setup-page-5"
+      "checkpoint": "main-lifts-no-machine-option"
     },
     {
       "tap": {
@@ -54,7 +73,19 @@
       }
     },
     {
-      "checkpoint": "setup-page-6"
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "checkpoint": "treadmill-finisher"
     },
     {
       "tap": {
@@ -62,7 +93,27 @@
       }
     },
     {
-      "checkpoint": "setup-page-7"
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "160",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "novice-in-pounds"
     },
     {
       "tap": {

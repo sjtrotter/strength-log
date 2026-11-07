@@ -135,24 +135,26 @@ fun SetupScreen(
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                                 .clickable { showDistanceUnitDialog = true },
                         )
-                        "theme" -> Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Text(stringResource(R.string.setup_theme_label), style = MaterialTheme.typography.bodyLarge)
-                            val themes = listOf(
-                                ThemePreference.SYSTEM to R.string.setup_theme_system_title,
-                                ThemePreference.DARK to R.string.setup_theme_dark_title,
-                                ThemePreference.LIGHT to R.string.setup_theme_light_title,
-                            )
-                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
-                                themes.forEachIndexed { index, (theme, label) ->
-                                    SegmentedButton(
-                                        selected = state.themePreference == theme,
-                                        onClick = { actions.onThemePreferenceChange(theme) },
-                                        shape = SegmentedButtonDefaults.itemShape(index, themes.size),
-                                        icon = {},
-                                    ) { Text(stringResource(label)) }
+                        "theme" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
+                            supportingContent = {
+                                val themes = listOf(
+                                    ThemePreference.SYSTEM to R.string.setup_theme_system_title,
+                                    ThemePreference.DARK to R.string.setup_theme_dark_title,
+                                    ThemePreference.LIGHT to R.string.setup_theme_light_title,
+                                )
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = 48.dp), space = 0.dp) {
+                                    themes.forEachIndexed { index, (theme, label) ->
+                                        SegmentedButton(
+                                            selected = state.themePreference == theme,
+                                            onClick = { actions.onThemePreferenceChange(theme) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, themes.size),
+                                            icon = {},
+                                        ) { Text(stringResource(label)) }
+                                    }
                                 }
-                            }
-                        }
+                            },
+                        )
                         "keep_screen_on" -> {
                             val label = stringResource(R.string.setup_keep_screen_on)
                             ListItem(

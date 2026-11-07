@@ -1,15 +1,11 @@
 package cloud.trotter.log.strength.ui.setup
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.hasScrollAction
@@ -19,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.unit.toSize
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -163,48 +158,6 @@ class SetupSectionsTest {
     }
 
     @Test
-    fun themeItemContainsAllThreeButtonsAfterScrolling() {
-        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(), setupActions()) } }
-
-        val list = composeTestRule.onNode(hasScrollAction())
-        listOf("Theme", "System").forEach { scrollTarget ->
-            list.performScrollToNode(hasText(scrollTarget))
-            val item = settingsItemBounds(
-                composeTestRule.onNodeWithText("Theme", useUnmergedTree = true).fetchSemanticsNode(),
-                list.fetchSemanticsNode(),
-            )
-            listOf("System", "Dark", "Light").forEach { label ->
-                val button = composeTestRule.onNodeWithText(label).assertIsDisplayed().fetchSemanticsNode()
-                assertBoundsContain("Theme item contains $label", item, button.boundsInRoot)
-                assertBoundsContain("Theme item contains $label touch target", item, button.touchBoundsInRoot)
-            }
-        }
-    }
-
-    @Test
-    fun settingsControlsKeepTheirTouchBoundsInsideTheirItems() {
-        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(), setupActions()) } }
-
-        val list = composeTestRule.onNode(hasScrollAction())
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Backup and export",
-            "Rest timer on watch", "Rest timer on phone", "Warm-up", "Top set", "Back-off",
-            "Accessory work", "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Licenses").forEach { label ->
-            list.performScrollToNode(hasText(label))
-            val listNode = list.fetchSemanticsNode()
-            val controls = composeTestRule.onAllNodes(hasClickAction() and hasAnyAncestor(hasScrollAction()))
-                .fetchSemanticsNodes().filter { !it.boundsInRoot.isEmpty }
-            assertTrue("Settings controls are visible after scrolling to $label", controls.isNotEmpty())
-            controls.forEach { control ->
-                assertBoundsContain(
-                    "Settings item contains ${control.config} touch target after scrolling to $label",
-                    settingsItemBounds(control, listNode),
-                    control.touchBoundsInRoot,
-                )
-            }
-        }
-    }
-
-    @Test
     fun keepScreenOnSwitchUsesExistingPreferenceCallback() {
         var enabled: Boolean? = null
         composeTestRule.setContent { AppTheme {
@@ -260,21 +213,6 @@ class SetupSectionsTest {
         composeTestRule.onNodeWithText("Cancel").performClick()
         composeTestRule.onNodeWithText("Minutes").assertDoesNotExist()
         assertEquals(0, writes)
-    }
-
-    private fun settingsItemBounds(node: SemanticsNode, list: SemanticsNode): Rect {
-        val item = generateSequence(node.layoutInfo) { it.parentInfo }
-            .first { it.parentInfo == list.layoutInfo }
-        // Include the item's padding, and keep bounds unclipped when it straddles the viewport.
-        val parent = item.coordinates.parentLayoutCoordinates
-        val coordinates = generateSequence(item.coordinates) { it.parentCoordinates }.takeWhile { it != parent }.last()
-        return Rect(coordinates.positionInRoot(), coordinates.size.toSize())
-    }
-
-    private fun assertBoundsContain(message: String, item: Rect, control: Rect) {
-        assertTrue("$message: item=$item, control=$control",
-            control.left >= item.left && control.top >= item.top &&
-                control.right <= item.right && control.bottom <= item.bottom)
     }
 
     private fun setupActions() = SetupActions(

@@ -104,8 +104,6 @@ class LogViewModel @Inject constructor(
     private val cardioEditId: StateFlow<Long?> = savedState.getStateFlow(KEY_CARDIO_EDIT, null)
     private val cardioEditDraft: StateFlow<CardioEntryDraft?> = savedState.getStateFlow(KEY_CARDIO_EDIT_DRAFT, null)
     private val cardioEditSaving = MutableStateFlow(false)
-    private val pendingCardioDeletion = MutableStateFlow<PendingCardioDeletion?>(null)
-    private var cardioDeletionExpiry: Job? = null
     private val editMutex = Mutex()
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
@@ -151,22 +149,21 @@ class LogViewModel @Inject constructor(
     }
 
     private val historyItems = combine(
-        ownSessions, repo.cardioSessionsFlow, pendingDeletion, repo.cardioSetResultsFlow, pendingCardioDeletion,
-    ) { strength, cardio, deleted, sets, deletedCardio ->
+        ownSessions, repo.cardioSessionsFlow, pendingDeletion, repo.cardioSetResultsFlow,
+    ) { strength, cardio, deleted, sets ->
         val items = LogScreenBuilder.interleave(strength, cardio.map {
             LogScreenBuilder.cardioItem(it, sets[it.id].orEmpty())
         }).toMutableList()
         deleted?.let { pending ->
             items.add(pending.index.coerceIn(0, items.size), pending.item.copy(undoPending = true, editing = false))
         }
-        deletedCardio?.let { pending ->
-            items.add(pending.index.coerceIn(0, items.size), pending.item.copy(undoPending = true))
-        }
         items
     }
 
     private val cardioEditor = combine(cardioEditId, cardioEditDraft, repo.cardioSessionsFlow) { id, draft, sessions ->
-        draft.takeIf { sessions.any { it.id == id } }
+        val session = sessions.firstOrNull { it.id == id }
+        val entry = if (session != null) draft?.copy(startedAt = session.startedAt) else null
+        entry to if (entry?.measuresEditable == false) session?.completedAt else entry?.completedAt
     }
 
     private val mainLifts = combine(
@@ -240,8 +237,8 @@ class LogViewModel @Inject constructor(
             hasProgram = program.first,
             nextDayId = program.second,
         )
-    }.combine(combine(cardioEditor, cardioEditSaving, ::Pair)) { state, (draft, saving) ->
-        state.copy(cardioEdit = draft, cardioEditSaving = saving)
+    }.combine(combine(cardioEditor, cardioEditSaving, ::Pair)) { state, (editor, saving) ->
+        state.copy(cardioEdit = editor.first, cardioEditCompletedAt = editor.second, cardioEditSaving = saving)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
@@ -324,7 +321,8 @@ class LogViewModel @Inject constructor(
 
     fun changeCardioEdit(draft: CardioEntryDraft) {
         if (cardioEditSaving.value) return
-        savedState[KEY_CARDIO_EDIT_DRAFT] = draft
+        val current = cardioEditDraft.value ?: return
+        savedState[KEY_CARDIO_EDIT_DRAFT] = draft.copy(startedAt = current.startedAt, measuresEditable = current.measuresEditable)
     }
 
     fun dismissCardioEdit() {
@@ -347,14 +345,12 @@ class LogViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val now = civilTimeSource.civilTime.first().instant.toEpochMilli()
-                if (!draft.valid(now)) return@launch
-                if (!draft.measuresEditable) {
-                    val session = repo.cardioSession(id) ?: return@launch
-                    val duration = session.completedAt - session.startedAt
-                    if (draft.startedAt + duration > now) return@launch
-                }
+                val session = repo.cardioSession(id) ?: return@launch
+                val entry = draft.copy(startedAt = session.startedAt)
+                val completedAt = if (entry.measuresEditable) entry.completedAt else session.completedAt
+                if (!entry.valid(now, completedAt)) return@launch
                 repo.updateCardioSession(
-                    id, draft.activity, draft.startedAt,
+                    id, draft.activity,
                     draft.seconds.takeIf { draft.measuresEditable },
                     draft.metres.takeIf { draft.measuresEditable }, draft.note,
                 )
@@ -363,40 +359,6 @@ class LogViewModel @Inject constructor(
             } finally {
                 cardioEditSaving.value = false
             }
-        }
-    }
-
-    fun deleteCardio() {
-        if (cardioEditSaving.value) return
-        val id = cardioEditId.value ?: return
-        val draft = cardioEditDraft.value ?: return
-        cardioEditSaving.value = true
-        viewModelScope.launch {
-            try {
-                val currentItems = uiState.value.sessions
-                val index = currentItems.indexOfFirst { it.cardioId == id }
-                val item = currentItems.getOrNull(index) ?: return@launch
-                val deleted = repo.deleteCardioSession(id) ?: return@launch
-                dismissCardioEdit(id, draft)
-                pendingCardioDeletion.value = PendingCardioDeletion(item, deleted, index)
-                cardioDeletionExpiry?.cancel()
-                cardioDeletionExpiry = launch {
-                    delay(UNDO_WINDOW_MS)
-                    pendingCardioDeletion.value = null
-                }
-            } finally {
-                cardioEditSaving.value = false
-            }
-        }
-    }
-
-    fun undoDeleteCardio() {
-        val pending = pendingCardioDeletion.value ?: return
-        pendingCardioDeletion.value = null
-        cardioDeletionExpiry?.cancel()
-        viewModelScope.launch {
-            repo.restoreCardioSession(pending.deleted)
-            sessionPublisher.publishCardio(pending.deleted.session.id)
         }
     }
 
@@ -663,12 +625,6 @@ class LogViewModel @Inject constructor(
     private data class PendingDeletion(
         val item: SessionListItem,
         val deleted: HistoryRepository.DeletedSession,
-        val index: Int,
-    )
-
-    private data class PendingCardioDeletion(
-        val item: SessionListItem,
-        val deleted: HistoryRepository.DeletedCardio,
         val index: Int,
     )
 

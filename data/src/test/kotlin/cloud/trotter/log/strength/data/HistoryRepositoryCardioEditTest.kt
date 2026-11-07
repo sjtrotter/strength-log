@@ -80,15 +80,17 @@ class HistoryRepositoryCardioEditTest {
     }
 
     @Test
-    fun `editing a one-set session rewrites its time, distance and note`() = runTest {
+    fun `editing a one-set session keeps its start and rewrites duration distance and note`() = runTest {
         val id = insert()
 
-        history.updateCardioSession(id, CardioActivity.TRAIL_RUN, start, 2412, 7000, "Hilly")
+        history.updateCardioSession(id, CardioActivity.TRAIL_RUN, 2412, 7000, "Hilly")
 
         val session = history.cardioSession(id)!!
         assertEquals(CardioActivity.TRAIL_RUN.name, session.activity)
         assertEquals("Trail run", session.label)
         assertEquals(ManualCardio.summary(CardioActivity.TRAIL_RUN, 2412).mode.name, session.mode)
+        assertEquals(start, session.startedAt)
+        assertEquals("A", session.dayId)
         assertEquals(2412, session.seconds)
         assertEquals(start + 2_412_000, session.completedAt)
         assertEquals("Hilly", session.note)
@@ -110,13 +112,13 @@ class HistoryRepositoryCardioEditTest {
         val before = history.cardioSession(id)!!
         val rows = db.cardioSetResultDao().forSession(id)
 
-        history.updateCardioSession(id, CardioActivity.ROWER, start + 3_600_000, null, null, "Moved")
+        history.updateCardioSession(id, CardioActivity.ROWER, null, null, "Moved")
 
         val after = history.cardioSession(id)!!
         assertEquals(rows, db.cardioSetResultDao().forSession(id))
         assertEquals(before.completedAt - before.startedAt, after.completedAt - after.startedAt)
         assertEquals(before.seconds, after.seconds)
-        assertEquals(start + 3_600_000, after.startedAt)
+        assertEquals(before.startedAt, after.startedAt)
         assertEquals("Moved", after.note)
         assertEquals(CardioActivity.ROWER.name, after.activity)
     }
@@ -153,7 +155,7 @@ class HistoryRepositoryCardioEditTest {
         val id = insert(listOf(result))
         val before = db.cardioSetResultDao().forSession(id).single()
 
-        history.updateCardioSession(id, CardioActivity.TRACK_RUN, start, 1489, null, "  Track  ")
+        history.updateCardioSession(id, CardioActivity.TRACK_RUN, 1489, null, "  Track  ")
 
         val after = db.cardioSetResultDao().forSession(id).single()
         assertEquals(before.copy(elapsedSeconds = 1489, metres = null, distanceSource = null), after)
@@ -169,11 +171,12 @@ class HistoryRepositoryCardioEditTest {
         val id = insert(emptyList(), planId)
         val before = history.cardioSession(id)!!
 
-        history.updateCardioSession(id, CardioActivity.ROWER, start + 60_000, 100, 100, "  ${"x".repeat(130)}  ")
+        history.updateCardioSession(id, CardioActivity.ROWER, 100, 100, "  ${"x".repeat(130)}  ")
 
         val after = history.cardioSession(id)!!
         assertEquals(before.seconds, after.seconds)
-        assertEquals(before.completedAt + 60_000, after.completedAt)
+        assertEquals(before.startedAt, after.startedAt)
+        assertEquals(before.completedAt, after.completedAt)
         assertEquals("x".repeat(NOTE_MAX_LENGTH), after.note)
         assertTrue(db.cardioSetResultDao().forSession(id).isEmpty())
         assertEquals("B", db.planDao().plan(planId)!!.suggestedDayId)
@@ -186,7 +189,7 @@ class HistoryRepositoryCardioEditTest {
         val sets = db.cardioSetResultDao().forSession(id)
         for ((seconds, metres) in listOf(0 to 7000, 86_401 to 7000, 2412 to 0, 2412 to 200_001)) {
             val failure = runCatching {
-                history.updateCardioSession(id, CardioActivity.TRAIL_RUN, start, seconds, metres, "Changed")
+                history.updateCardioSession(id, CardioActivity.TRAIL_RUN, seconds, metres, "Changed")
             }.exceptionOrNull()
             assertTrue(failure is IllegalArgumentException)
             assertEquals(session, history.cardioSession(id))

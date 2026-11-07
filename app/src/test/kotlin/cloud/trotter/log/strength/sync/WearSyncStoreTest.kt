@@ -16,7 +16,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -210,30 +209,5 @@ class WearSyncStoreTest {
         val resumed = newStore().first
         assertEquals(listOf(101L, 100L), resumed.acksFlow.first().recent)
         assertEquals(101L, resumed.lastApplied(CardioDeltaApplier.MARKER_KEY))
-    }
-
-    @Test
-    fun `processed cardio identity survives acknowledgment eviction and restart`() = runTest {
-        val (store, scope) = newStore()
-        assertFalse(store.hasProcessed(1L))
-        for (stamp in 1L..40L) store.record(stamp)
-        assertFalse(1L in store.acksFlow.first().recent)
-        scope.release()
-
-        val resumed = newStore().first
-        assertTrue(resumed.hasProcessed(1L))
-        assertFalse(resumed.hasProcessed(41L))
-        assertEquals((9L..40L).toList(), resumed.acksFlow.first().recent)
-    }
-
-    @Test
-    fun `existing cardio acknowledgments seed durable replay detection`() = runTest {
-        val store = newStore().first
-        preferences.edit { it[stringPreferencesKey("cardio_acked_stamps")] = "101,100" }
-        assertTrue(store.hasProcessed(100L))
-        for (stamp in 102L..140L) store.record(stamp)
-        assertFalse(100L in store.acksFlow.first().recent)
-        assertTrue(store.hasProcessed(100L))
-        assertFalse(store.hasProcessed(99L))
     }
 }

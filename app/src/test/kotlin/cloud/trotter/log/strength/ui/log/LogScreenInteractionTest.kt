@@ -6,6 +6,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -35,7 +37,11 @@ import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -118,7 +124,6 @@ class LogScreenInteractionTest {
         val item = LogScreenBuilder.cardioItem(session, listOf(ManualCardio.result(2413, 7100)))
         val state = mutableStateOf(LogUiState(sessions = listOf(item)))
         val edited = mutableListOf<Long>()
-        var deleted = 0
         composeTestRule.setContent { AppTheme {
             LogScreen(state.value, LogActions(
                 onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
@@ -130,7 +135,6 @@ class LogScreenInteractionTest {
                         CardioActivity.ROAD_RUN, start, 2413, "7100", "Easy",
                     ))
                 },
-                onDeleteCardio = { deleted++ },
             ))
         } }
 
@@ -139,14 +143,14 @@ class LogScreenInteractionTest {
         composeTestRule.runOnIdle { assertEquals(listOf(8L), edited) }
         composeTestRule.onNodeWithText("Edit session").assertIsDisplayed()
         composeTestRule.onNodeWithText("Save").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Delete session").assertIsDisplayed().performClick()
-        composeTestRule.onNodeWithText("Delete this session?").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Its time and distance leave the log.").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Keep").performClick()
-        composeTestRule.runOnIdle { assertEquals(0, deleted) }
-        composeTestRule.onNodeWithText("Delete session").performClick()
-        composeTestRule.onNodeWithText("Delete").performClick()
-        composeTestRule.runOnIdle { assertEquals(1, deleted) }
+        composeTestRule.onNodeWithText("Delete session").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Date").performScrollTo().assertHasNoClickAction()
+        composeTestRule.onNodeWithText("Start time").performScrollTo().assertHasNoClickAction()
+        val shownStart = Instant.ofEpochMilli(start).atZone(ZoneId.systemDefault())
+        composeTestRule.onNodeWithText(shownStart.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US)))
+            .assertHasNoClickAction()
+        composeTestRule.onNodeWithText(shownStart.format(DateTimeFormatter.ofPattern("HH:mm", Locale.US)))
+            .assertHasNoClickAction()
     }
 
     @Test
@@ -180,24 +184,23 @@ class LogScreenInteractionTest {
     }
 
     @Test
-    fun `a cardio undo row calls the cardio action`() {
-        var strengthUndos = 0
-        var cardioUndos = 0
-        val item = logSessionFixture(false).copy(cardioId = 7, undoPending = true)
+    fun `a History interval editor shows its elapsed completion error and disables Save`() {
+        val now = System.currentTimeMillis()
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 1_800_000, 1800, measuresEditable = false)
+        val state = mutableStateOf(LogUiState(cardioEdit = draft, cardioEditCompletedAt = now + 1_800_000))
         composeTestRule.setContent { AppTheme {
-            LogScreen(LogUiState(sessions = listOf(item)), LogActions(
+            LogScreen(state.value, LogActions(
                 onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {}, onPublishPastWorkouts = {},
                 onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
                 onStartSession = {}, onSetUpProgram = {},
-                onUndoDeleteSession = { strengthUndos++ }, onUndoDeleteCardio = { cardioUndos++ },
             ))
         } }
 
-        composeTestRule.onNodeWithText("Undo").performClick()
-        composeTestRule.runOnIdle {
-            assertEquals(1, cardioUndos)
-            assertEquals(0, strengthUndos)
-        }
+        composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Ends after now").performScrollTo().assertIsDisplayed()
+        composeTestRule.runOnIdle { state.value = state.value.copy(cardioEditCompletedAt = now - 1_000) }
+        composeTestRule.onNodeWithText("Save").assertIsEnabled()
+        composeTestRule.onNodeWithText("Ends after now").assertDoesNotExist()
     }
 
     @Test

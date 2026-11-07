@@ -7,6 +7,8 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import cloud.trotter.log.strength.data.HistoryRepository
 import java.time.ZoneId
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Writes completed sessions to Health Connect (docs/briefs/m4-transfer.md,
@@ -38,6 +40,8 @@ class HealthConnectPublisher(
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : SessionPublisher {
 
+    private val cardioPublicationMutex = Mutex()
+
     override suspend fun publish(sessionId: Long) {
         publishAll(listOf(sessionId))
     }
@@ -58,25 +62,27 @@ class HealthConnectPublisher(
     }
 
     override suspend fun replaceCardio(cardioSessionId: Long) {
-        withExerciseClient { client ->
-            try {
-                client.deleteRecords(
-                    ExerciseSessionRecord::class,
-                    recordIdsList = emptyList(),
-                    clientRecordIdsList = listOf(CardioRecordMapper.clientRecordId(cardioSessionId)),
-                )
-                repository.cardioSession(cardioSessionId)?.let { session ->
-                    CardioRecordMapper.toExerciseSession(session, zone)?.let { client.insertRecords(listOf(it)) }
+        cardioPublicationMutex.withLock {
+            withExerciseClient { client ->
+                try {
+                    val session = repository.cardioSession(cardioSessionId) ?: return@withExerciseClient true
+                    val record = CardioRecordMapper.toExerciseSession(session, zone) ?: return@withExerciseClient true
+                    client.deleteRecords(
+                        ExerciseSessionRecord::class,
+                        recordIdsList = emptyList(),
+                        clientRecordIdsList = listOf(CardioRecordMapper.clientRecordId(cardioSessionId)),
+                    )
+                    client.insertRecords(listOf(record))
+                    true
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Health Connect replacement for cardio session $cardioSessionId failed; skipping", t)
+                    false
                 }
-                true
-            } catch (t: Throwable) {
-                Log.w(TAG, "Health Connect replacement for cardio session $cardioSessionId failed; skipping", t)
-                false
             }
         }
     }
 
-    override suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean =
+    override suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean = cardioPublicationMutex.withLock {
         withExerciseClient { client ->
             var allPublished = true
             for (id in cardioSessionIds) {
@@ -91,6 +97,7 @@ class HealthConnectPublisher(
             }
             allPublished
         }
+    }
 
     override suspend fun publishAll(sessionIds: List<Long>): Boolean {
         return withExerciseClient { client, granted ->

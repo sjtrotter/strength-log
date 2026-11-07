@@ -23,6 +23,7 @@ data class LogUiState(
     val hasProgram: Boolean = true,
     val nextDayId: String? = null,
     val cardioEdit: CardioEntryDraft? = null,
+    val cardioEditCompletedAt: Long? = null,
     val cardioEditSaving: Boolean = false,
 )
 

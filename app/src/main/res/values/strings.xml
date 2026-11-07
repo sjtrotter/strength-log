@@ -292,7 +292,6 @@
 <string name="log_share_button">Share</string>
 <string name="log_edit">Edit</string>
 <string name="log_edit_cardio_title">Edit session</string>
-<string name="log_delete_cardio_body">Its time and distance leave the log.</string>
 <string name="log_edit_done">Done</string>
 <string name="log_delete_session">Delete session</string>
 <string name="log_delete_dialog_title">Delete this session?</string>

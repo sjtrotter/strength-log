@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,7 +46,6 @@ class CardioDeltaApplierTest {
     private val ackLog = object : CardioAckLog {
         override val acksFlow = flowOf(CardioAcks())
         override suspend fun record(stamp: Long) { recordedStamps += stamp }
-        override suspend fun hasProcessed(stamp: Long) = stamp in recordedStamps
     }
     private val publisher = object : SessionPublisher {
         var cardioPublishes = 0
@@ -220,15 +220,7 @@ class CardioDeltaApplierTest {
         assertEquals(listOf(10L, 11L), recordedStamps)
     }
 
-    @Test fun `a watch retry after editing its start does not insert or advance rotation`() = runTest {
-        assertReplayAfterHistoryChange(delete = false)
-    }
-
-    @Test fun `a watch retry after deletion does not resurrect history or advance rotation`() = runTest {
-        assertReplayAfterHistoryChange(delete = true)
-    }
-
-    private suspend fun assertReplayAfterHistoryChange(delete: Boolean) {
+    @Test fun `a watch retry after an edit with an already evicted acknowledgment stays deduplicated`() = runTest {
         val planId = repo.plans.createAuthoredPlan("Running", "Run")
         repo.plans.publishCreatedAuthoredPlan(planId)
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
@@ -241,24 +233,22 @@ class CardioDeltaApplierTest {
         val applier = CardioDeltaApplier(repo, syncStore, publisher, repo.history)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
         val session = repo.history.cardioSessionsFlow.first().single()
-        if (delete) {
-            repo.history.deleteCardioSession(session.id)
-        } else {
-            repo.history.updateCardioSession(session.id, CardioActivity.TRACK_RUN,
-                session.startedAt + 60_000L, 60, null, "Moved")
-        }
+        for (stamp in 11L..50L) syncStore.record(stamp)
+        assertFalse(event.stamp in syncStore.acksFlow.first().recent)
+        repo.history.updateCardioSession(session.id, CardioActivity.ROWER, 120, 500, "Edited")
+        assertEquals(session.startedAt, repo.history.cardioSession(session.id)!!.startedAt)
         val history = repo.history.cardioSessionsFlow.first()
         val sets = db.cardioSetResultDao().all()
         db.planDao().updateSuggestedDay(planId, "A")
-        // The replay guard must outlive the published acknowledgment window and applier instance.
-        for (stamp in 11L..50L) syncStore.record(stamp)
         val resumed = CardioDeltaApplier(repo, syncStore, publisher, repo.history)
         assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, resumed.apply(event))
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, resumed.apply(event.copy(stamp = 51L)))
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
         assertEquals(history, repo.history.cardioSessionsFlow.first())
         assertEquals(sets, db.cardioSetResultDao().all())
         assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
         assertEquals(1, publisher.cardioPublishes)
-        assertEquals(event.stamp, syncStore.acksFlow.first().recent.last())
+        assertEquals(51L, syncStore.acksFlow.first().recent.last())
     }
 
     @Test fun `an older stamp arriving late still inserts its session`() = runTest {

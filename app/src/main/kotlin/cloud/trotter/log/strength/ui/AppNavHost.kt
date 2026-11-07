@@ -791,8 +791,6 @@ private fun LogRoute(
             onCardioEditChange = viewModel::changeCardioEdit,
             onSaveCardioEdit = viewModel::saveCardioEdit,
             onDismissCardioEdit = viewModel::dismissCardioEdit,
-            onDeleteCardio = viewModel::deleteCardio,
-            onUndoDeleteCardio = viewModel::undoDeleteCardio,
             onSetSessionNote = viewModel::setSessionNote,
             onStartSession = onStartSession,
             onSetUpProgram = onSetUpProgram,

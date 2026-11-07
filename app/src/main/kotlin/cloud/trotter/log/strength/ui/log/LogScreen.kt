@@ -119,7 +119,6 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
     var trendsExpanded by rememberSaveable { mutableStateOf(false) }
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var deleteConfirmation by remember { mutableStateOf<Long?>(null) }
-    var confirmingCardioDelete by remember(state.cardioEdit != null) { mutableStateOf(false) }
     var noteSessionId by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
@@ -192,8 +191,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 }
                 items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
                     if (session.undoPending) {
-                        UndoDeletedSessionRow(session.dayIndex,
-                            if (session.cardioId != null) actions.onUndoDeleteCardio else actions.onUndoDeleteSession)
+                        UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession)
                     } else if (session.cardioId != null) {
                         CardioSessionCard(session, showPlanNames, onEdit = { actions.onEditCardio(session.cardioId) })
                     } else {
@@ -266,31 +264,9 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 onSave = actions.onSaveCardioEdit,
                 onDismiss = actions.onDismissCardioEdit,
                 saving = state.cardioEditSaving,
-                extraAction = {
-                    TextButton(onClick = { confirmingCardioDelete = true }, enabled = !state.cardioEditSaving) {
-                        Text(stringResource(R.string.log_delete_session), color = MaterialTheme.colorScheme.error)
-                    }
-                },
+                startEditable = false,
+                completedAt = state.cardioEditCompletedAt ?: draft.completedAt,
             )
-            if (confirmingCardioDelete) {
-                AppAlertDialog(
-                    onDismissRequest = { confirmingCardioDelete = false },
-                    title = { Text(stringResource(R.string.log_delete_dialog_title)) },
-                    text = { Text(stringResource(R.string.log_delete_cardio_body)) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                confirmingCardioDelete = false
-                                actions.onDeleteCardio()
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        ) { Text(stringResource(R.string.log_delete_confirm)) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { confirmingCardioDelete = false }) { Text(stringResource(R.string.log_delete_keep)) }
-                    },
-                )
-            }
         }
     }
 }
@@ -742,8 +718,6 @@ data class LogActions(
     val onCardioEditChange: (CardioEntryDraft) -> Unit = {},
     val onSaveCardioEdit: () -> Unit = {},
     val onDismissCardioEdit: () -> Unit = {},
-    val onDeleteCardio: () -> Unit = {},
-    val onUndoDeleteCardio: () -> Unit = {},
 )
 
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)

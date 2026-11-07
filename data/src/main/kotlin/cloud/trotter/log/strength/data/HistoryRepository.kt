@@ -127,7 +127,6 @@ class HistoryRepository(
     suspend fun updateCardioSession(
         id: Long,
         activity: CardioActivity,
-        startedAt: Long,
         seconds: Int?,
         metres: Int?,
         note: String,
@@ -151,13 +150,11 @@ class HistoryRepository(
                     distanceSource = metres?.let { DistanceSource.MANUAL.name },
                 ))
             }
-            val duration = editedSeconds?.let { it * 1_000L } ?: (session.completedAt - session.startedAt)
             cardioSessionDao.update(session.copy(
                 activity = activity.name,
                 mode = summary.mode.name,
                 label = summary.label,
-                startedAt = startedAt,
-                completedAt = startedAt + duration,
+                completedAt = editedSeconds?.let { session.startedAt + it * 1_000L } ?: session.completedAt,
                 seconds = editedSeconds ?: session.seconds,
                 note = note.trim().take(NOTE_MAX_LENGTH),
             ))

@@ -21,11 +21,15 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -48,6 +52,7 @@ import org.robolectric.annotation.Config
  * about: which sessions it writes, that a re-run deduplicates instead of
  * duplicating, and that it reports when a session didn't make it.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class HealthConnectPublisherTest {
@@ -88,6 +93,16 @@ class HealthConnectPublisherTest {
             newCustomExercises = emptyList(),
         )
         return repo.sessionSummariesFlow.first().first().session.id
+    }
+
+    private suspend fun seedCardio(): Long {
+        val id = db.cardioSessionDao().insert(CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
+            startedAt = 10_000L, completedAt = 70_000L, seconds = 60,
+            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name,
+        ))
+        db.cardioSetResultDao().insertAll(listOf(ManualCardio.result(60, 200).toEntity(id, 0)))
+        return id
     }
 
     private fun session(
@@ -315,12 +330,7 @@ class HealthConnectPublisherTest {
 
     @Test
     fun replacingEditedCardioChangesTheProvidersStoredActivityAndDuration() = runTest {
-        val id = db.cardioSessionDao().insert(CardioSessionEntity(
-            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
-            startedAt = 10_000L, completedAt = 70_000L, seconds = 60,
-            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name,
-        ))
-        db.cardioSetResultDao().insertAll(listOf(ManualCardio.result(60, 200).toEntity(id, 0)))
+        val id = seedCardio()
         val client = grantedClient()
         val publisher = publisher(client)
         publisher.publishCardio(id)
@@ -332,18 +342,128 @@ class HealthConnectPublisherTest {
             Triple(CardioActivity.ROWER, 120, ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE),
             Triple(CardioActivity.OUTDOOR_RIDE, 180, ExerciseSessionRecord.EXERCISE_TYPE_BIKING),
         )) {
-            repo.updateCardioSession(id, activity, 20_000L, seconds, null, "Changed")
+            repo.updateCardioSession(id, activity, seconds, null, "Changed")
             publisher.replaceCardio(id)
 
             val stored = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
             assertEquals(type, stored.exerciseType)
-            assertEquals(Instant.ofEpochMilli(20_000L), stored.startTime)
-            assertEquals(Instant.ofEpochMilli(20_000L + seconds * 1_000L), stored.endTime)
+            assertEquals(Instant.ofEpochMilli(10_000L), stored.startTime)
+            assertEquals(Instant.ofEpochMilli(10_000L + seconds * 1_000L), stored.endTime)
             assertEquals(ManualCardio.summary(activity, seconds).label, stored.title)
             assertEquals(original.metadata.clientRecordId, stored.metadata.clientRecordId)
             assertEquals(setOf(clientId), client.storedRecords.keys)
         }
         assertEquals(listOf(clientId, clientId), client.deletedClientRecordIds)
+    }
+
+    @Test
+    fun cardioReplacementAfterLocalRemovalKeepsTheExport() = runTest {
+        val id = seedCardio()
+        val entered = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        var waitForPermission = false
+        val client = FakeHealthConnectClient(
+            grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE),
+            beforePermissionCheck = {
+                if (waitForPermission) {
+                    entered.complete(Unit)
+                    resume.await()
+                }
+            },
+        )
+        val publisher = publisher(client)
+        publisher.publishCardio(id)
+        val original = client.storedRecords.toMap()
+        waitForPermission = true
+        val replacement = launch { publisher.replaceCardio(id) }
+        entered.await()
+        repo.deleteCardioSession(id)
+        resume.complete(Unit)
+        replacement.join()
+
+        assertEquals(original, client.storedRecords)
+        assertTrue(client.deletedClientRecordIds.isEmpty())
+        assertEquals(1, client.insertCallCount)
+    }
+
+    @Test
+    fun cardioReplacementCapturesTheSessionBeforeDeletingProviderRecords() = runTest {
+        val id = seedCardio()
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publishCardio(id)
+        repo.updateCardioSession(id, CardioActivity.ROWER, 120, null, "Edited")
+        client.beforeDelete = { repo.deleteCardioSession(id) }
+
+        publisher.replaceCardio(id)
+
+        val stored = client.storedRecords.getValue(CardioRecordMapper.clientRecordId(id)) as ExerciseSessionRecord
+        assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE, stored.exerciseType)
+        assertEquals(Instant.ofEpochMilli(130_000L), stored.endTime)
+        assertEquals(2, client.insertCallCount)
+    }
+
+    @Test
+    fun overlappingCardioReplacementsKeepTheLatestEdit() = runTest {
+        val id = seedCardio()
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publishCardio(id)
+        repo.updateCardioSession(id, CardioActivity.ROWER, 120, null, "A")
+        val entered = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        client.beforeInsert = {
+            client.beforeInsert = null
+            entered.complete(Unit)
+            resume.await()
+        }
+        val first = launch { publisher.replaceCardio(id) }
+        entered.await()
+        repo.updateCardioSession(id, CardioActivity.OUTDOOR_RIDE, 180, null, "B")
+        val second = launch { publisher.replaceCardio(id) }
+        runCurrent()
+        val deletionsWhileFirstPending = client.deletedClientRecordIds.size
+        resume.complete(Unit)
+        first.join()
+        second.join()
+
+        val clientId = CardioRecordMapper.clientRecordId(id)
+        val stored = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
+        assertEquals(1, deletionsWhileFirstPending)
+        assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_BIKING, stored.exerciseType)
+        assertEquals(Instant.ofEpochMilli(190_000L), stored.endTime)
+        assertEquals(setOf(clientId), client.storedRecords.keys)
+        assertEquals(listOf(clientId, clientId), client.deletedClientRecordIds)
+    }
+
+    @Test
+    fun cardioReplacementWaitsForPendingPublication() = runTest {
+        val id = seedCardio()
+        val client = grantedClient()
+        val publisher = publisher(client)
+        val entered = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        client.beforeInsert = {
+            client.beforeInsert = null
+            entered.complete(Unit)
+            resume.await()
+        }
+        val publication = launch { publisher.publishCardio(id) }
+        entered.await()
+        repo.updateCardioSession(id, CardioActivity.ROWER, 120, null, "Edited")
+        val replacement = launch { publisher.replaceCardio(id) }
+        runCurrent()
+        val deletionsWhilePublicationPending = client.deletedClientRecordIds.size
+        resume.complete(Unit)
+        publication.join()
+        replacement.join()
+
+        val clientId = CardioRecordMapper.clientRecordId(id)
+        val stored = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
+        assertEquals(0, deletionsWhilePublicationPending)
+        assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE, stored.exerciseType)
+        assertEquals(Instant.ofEpochMilli(130_000L), stored.endTime)
+        assertEquals(setOf(clientId), client.storedRecords.keys)
     }
 
     @Test

@@ -103,6 +103,7 @@ class LogViewModel @Inject constructor(
     private var deletionExpiry: Job? = null
     private val cardioEditId: StateFlow<Long?> = savedState.getStateFlow(KEY_CARDIO_EDIT, null)
     private val cardioEditDraft: StateFlow<CardioEntryDraft?> = savedState.getStateFlow(KEY_CARDIO_EDIT_DRAFT, null)
+    private val cardioEditSaving = MutableStateFlow(false)
     private val pendingCardioDeletion = MutableStateFlow<PendingCardioDeletion?>(null)
     private var cardioDeletionExpiry: Job? = null
     private val editMutex = Mutex()
@@ -239,8 +240,8 @@ class LogViewModel @Inject constructor(
             hasProgram = program.first,
             nextDayId = program.second,
         )
-    }.combine(cardioEditor) { state, draft ->
-        state.copy(cardioEdit = draft)
+    }.combine(combine(cardioEditor, cardioEditSaving, ::Pair)) { state, (draft, saving) ->
+        state.copy(cardioEdit = draft, cardioEditSaving = saving)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
@@ -304,9 +305,11 @@ class LogViewModel @Inject constructor(
     }
 
     fun editCardio(cardioId: Long) {
+        if (cardioEditSaving.value) return
         viewModelScope.launch {
             val session = repo.cardioSession(cardioId) ?: return@launch
             val results = repo.cardioSetsFor(cardioId)
+            if (cardioEditSaving.value) return@launch
             savedState[KEY_CARDIO_EDIT_DRAFT] = CardioEntryDraft(
                 activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: CardioActivity.ROAD_RUN,
                 startedAt = session.startedAt,
@@ -320,42 +323,69 @@ class LogViewModel @Inject constructor(
     }
 
     fun changeCardioEdit(draft: CardioEntryDraft) {
+        if (cardioEditSaving.value) return
         savedState[KEY_CARDIO_EDIT_DRAFT] = draft
     }
 
     fun dismissCardioEdit() {
+        if (cardioEditSaving.value) return
+        savedState[KEY_CARDIO_EDIT] = null
+        savedState[KEY_CARDIO_EDIT_DRAFT] = null
+    }
+
+    private fun dismissCardioEdit(id: Long, draft: CardioEntryDraft) {
+        if (cardioEditId.value != id || cardioEditDraft.value !== draft) return
         savedState[KEY_CARDIO_EDIT] = null
         savedState[KEY_CARDIO_EDIT_DRAFT] = null
     }
 
     fun saveCardioEdit() {
+        if (cardioEditSaving.value) return
+        val id = cardioEditId.value ?: return
+        val draft = cardioEditDraft.value ?: return
+        cardioEditSaving.value = true
         viewModelScope.launch {
-            val id = cardioEditId.value ?: return@launch
-            val draft = cardioEditDraft.value ?: return@launch
-            if (!draft.valid(civilTimeSource.civilTime.first().instant.toEpochMilli())) return@launch
-            repo.updateCardioSession(
-                id, draft.activity, draft.startedAt,
-                draft.seconds.takeIf { draft.measuresEditable },
-                draft.metres.takeIf { draft.measuresEditable }, draft.note,
-            )
-            sessionPublisher.publishCardio(id)
-            dismissCardioEdit()
+            try {
+                val now = civilTimeSource.civilTime.first().instant.toEpochMilli()
+                if (!draft.valid(now)) return@launch
+                if (!draft.measuresEditable) {
+                    val session = repo.cardioSession(id) ?: return@launch
+                    val duration = session.completedAt - session.startedAt
+                    if (draft.startedAt + duration > now) return@launch
+                }
+                repo.updateCardioSession(
+                    id, draft.activity, draft.startedAt,
+                    draft.seconds.takeIf { draft.measuresEditable },
+                    draft.metres.takeIf { draft.measuresEditable }, draft.note,
+                )
+                dismissCardioEdit(id, draft)
+                viewModelScope.launch { sessionPublisher.replaceCardio(id) }
+            } finally {
+                cardioEditSaving.value = false
+            }
         }
     }
 
     fun deleteCardio() {
+        if (cardioEditSaving.value) return
+        val id = cardioEditId.value ?: return
+        val draft = cardioEditDraft.value ?: return
+        cardioEditSaving.value = true
         viewModelScope.launch {
-            val id = cardioEditId.value ?: return@launch
-            val currentItems = uiState.value.sessions
-            val index = currentItems.indexOfFirst { it.cardioId == id }
-            val item = currentItems.getOrNull(index) ?: return@launch
-            val deleted = repo.deleteCardioSession(id) ?: return@launch
-            dismissCardioEdit()
-            pendingCardioDeletion.value = PendingCardioDeletion(item, deleted, index)
-            cardioDeletionExpiry?.cancel()
-            cardioDeletionExpiry = launch {
-                delay(UNDO_WINDOW_MS)
-                pendingCardioDeletion.value = null
+            try {
+                val currentItems = uiState.value.sessions
+                val index = currentItems.indexOfFirst { it.cardioId == id }
+                val item = currentItems.getOrNull(index) ?: return@launch
+                val deleted = repo.deleteCardioSession(id) ?: return@launch
+                dismissCardioEdit(id, draft)
+                pendingCardioDeletion.value = PendingCardioDeletion(item, deleted, index)
+                cardioDeletionExpiry?.cancel()
+                cardioDeletionExpiry = launch {
+                    delay(UNDO_WINDOW_MS)
+                    pendingCardioDeletion.value = null
+                }
+            } finally {
+                cardioEditSaving.value = false
             }
         }
     }

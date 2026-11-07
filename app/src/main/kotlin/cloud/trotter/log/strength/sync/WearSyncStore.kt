@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -30,8 +31,8 @@ import kotlinx.coroutines.flow.map
  *    hold";
  *  - the per-row applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
  *    watch deltas;
- *  - the recent processed wrist cardio stamps ([CardioAckLog]), so out-of-order
- *    delivery cannot acknowledge a session the phone never received;
+ *  - processed wrist cardio stamps and their recent acknowledgment window
+ *    ([CardioAckLog]), so history changes cannot make a queued retry new work;
  *  - the recent processed wrist set-edit and swap stamps ([EditAckLog]),
  *    recorded after commit or permanent refusal.
  */
@@ -79,11 +80,18 @@ class WearSyncStore(
 
     override suspend fun record(stamp: Long) {
         dataStore.edit { prefs ->
+            prefs[PROCESSED_CARDIO_STAMPS] = prefs[PROCESSED_CARDIO_STAMPS].orEmpty() +
+                cardioAckedStamps(prefs).map { it.toString() } + stamp.toString()
             val recent = (cardioAckedStamps(prefs).filterNot { it == stamp } + stamp).takeLast(32)
             prefs[CARDIO_ACKED_STAMPS] = recent.joinToString(",")
             val marker = appliedKey(CardioDeltaApplier.MARKER_KEY)
             if (stamp > (prefs[marker] ?: 0L)) prefs[marker] = stamp
         }
+    }
+
+    override suspend fun hasProcessed(stamp: Long): Boolean {
+        val prefs = dataStore.data.first()
+        return stamp.toString() in prefs[PROCESSED_CARDIO_STAMPS].orEmpty() || stamp in cardioAckedStamps(prefs)
     }
 
     override val acksFlow: Flow<CardioAcks> = dataStore.data.map { prefs ->
@@ -164,6 +172,7 @@ class WearSyncStore(
         const val APPLIED_PREFIX = "applied:"
         val PROCESSED_EDIT_STAMPS = stringPreferencesKey("processed_edit_stamps")
         val CARDIO_ACKED_STAMPS = stringPreferencesKey("cardio_acked_stamps")
+        val PROCESSED_CARDIO_STAMPS = stringSetPreferencesKey("processed_cardio_stamps")
         val LAST_CONTACT = longPreferencesKey("last_watch_contact")
         val SYNCING_CHANGES = intPreferencesKey("syncing_changes")
         val REMOTE_TICK_DAY = stringPreferencesKey("remote_tick_day")

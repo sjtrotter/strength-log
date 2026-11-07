@@ -57,6 +57,25 @@ class HealthConnectPublisher(
         publishAllCardio(listOf(cardioSessionId))
     }
 
+    override suspend fun replaceCardio(cardioSessionId: Long) {
+        withExerciseClient { client ->
+            try {
+                client.deleteRecords(
+                    ExerciseSessionRecord::class,
+                    recordIdsList = emptyList(),
+                    clientRecordIdsList = listOf(CardioRecordMapper.clientRecordId(cardioSessionId)),
+                )
+                repository.cardioSession(cardioSessionId)?.let { session ->
+                    CardioRecordMapper.toExerciseSession(session, zone)?.let { client.insertRecords(listOf(it)) }
+                }
+                true
+            } catch (t: Throwable) {
+                Log.w(TAG, "Health Connect replacement for cardio session $cardioSessionId failed; skipping", t)
+                false
+            }
+        }
+    }
+
     override suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean =
         withExerciseClient { client ->
             var allPublished = true

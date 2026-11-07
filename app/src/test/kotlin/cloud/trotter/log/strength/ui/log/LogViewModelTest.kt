@@ -45,6 +45,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -158,11 +159,13 @@ class LogViewModelTest {
         val published = mutableListOf<Long>()
         val deleted = mutableListOf<Long>()
         val cardioPublished = mutableListOf<Long>()
+        val cardioReplaced = mutableListOf<Long>()
 
         /** Session completion doesn't happen on the Log screen. */
         override suspend fun publish(sessionId: Long) { published += sessionId }
         override suspend fun delete(sessionId: Long) { deleted += sessionId }
         override suspend fun publishCardio(cardioSessionId: Long) { cardioPublished += cardioSessionId }
+        override suspend fun replaceCardio(cardioSessionId: Long) { cardioReplaced += cardioSessionId }
 
         override suspend fun publishAll(sessionIds: List<Long>): Boolean {
             backfilled += sessionIds
@@ -190,12 +193,14 @@ class LogViewModelTest {
         // clock NOW (not a replayed past value), and same-(date, zone) signals
         // stay quiet.
         override val civilTime: Flow<CivilTime> = kotlinx.coroutines.flow.flow {
+            beforeRead?.also { beforeRead = null }?.invoke()
             emissions.value = wallClock
             emitAll(emissions)
         }.distinctUntilChanged { a, b -> a.date == b.date && a.zone == b.zone }
 
         var wallClock: CivilTime = initial
             private set
+        var beforeRead: (suspend () -> Unit)? = null
 
         fun set(instant: Instant, zone: ZoneId = wallClock.zone) {
             wallClock = CivilTime.now(instant, zone)
@@ -735,7 +740,158 @@ class LogViewModelTest {
         assertEquals("40:12", vm.uiState.value.sessions.single().cardioDuration)
         assertEquals("Hilly", vm.uiState.value.sessions.single().note)
         assertNull(vm.uiState.value.cardioEdit)
-        assertEquals(listOf(id), publisher.cardioPublished)
+        assertEquals(listOf(id), publisher.cardioReplaced)
+        assertTrue(publisher.cardioPublished.isEmpty())
+        collect.cancel()
+    }
+
+    @Test
+    fun `a cardio save freezes its captured editor until the database commit`() = runVmTest {
+        val id = seedCardio()
+        val otherId = seedCardio()
+        val publisher = RecordingPublisher()
+        val vm = newViewModel(publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.editCardio(id)
+        advanceUntilIdle()
+        val draft = vm.uiState.value.cardioEdit!!.copy(seconds = 2412, note = "Saved")
+        vm.changeCardioEdit(draft)
+        val resume = CompletableDeferred<Unit>()
+        civilTime.beforeRead = { resume.await() }
+
+        vm.saveCardioEdit()
+        vm.changeCardioEdit(draft.copy(note = "Changed"))
+        vm.dismissCardioEdit()
+        vm.editCardio(otherId)
+        vm.deleteCardio()
+        vm.saveCardioEdit()
+        runCurrent()
+
+        assertTrue(vm.uiState.value.cardioEditSaving)
+        assertEquals(draft, vm.uiState.value.cardioEdit)
+        assertEquals("Easy", repo.history.cardioSession(id)!!.note)
+        assertTrue(publisher.cardioReplaced.isEmpty())
+        resume.complete(Unit)
+        runCurrent()
+
+        assertFalse(vm.uiState.value.cardioEditSaving)
+        assertNull(vm.uiState.value.cardioEdit)
+        assertEquals("Saved", repo.history.cardioSession(id)!!.note)
+        assertEquals(2412, repo.history.cardioSession(id)!!.seconds)
+        assertEquals("Easy", repo.history.cardioSession(otherId)!!.note)
+        assertEquals(listOf(id), publisher.cardioReplaced)
+        collect.cancel()
+    }
+
+    @Test
+    fun `a slow cardio publication cannot clear a newer editor or its saved draft`() = runVmTest {
+        val id = seedCardio()
+        val otherId = seedCardio()
+        val resume = CompletableDeferred<Unit>()
+        val publications = mutableListOf<Long>()
+        val publisher = object : SessionPublisher by SessionPublisher.NoOp {
+            override suspend fun publishCardio(cardioSessionId: Long) {
+                publications += cardioSessionId
+                resume.await()
+            }
+            override suspend fun replaceCardio(cardioSessionId: Long) = publishCardio(cardioSessionId)
+        }
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle, publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.editCardio(id)
+        advanceUntilIdle()
+        vm.changeCardioEdit(vm.uiState.value.cardioEdit!!.copy(seconds = 2412, note = "Saved"))
+        vm.saveCardioEdit()
+        runCurrent()
+
+        assertEquals(listOf(id), publications)
+        assertEquals("Saved", repo.history.cardioSession(id)!!.note)
+        assertNull(vm.uiState.value.cardioEdit)
+        assertFalse(vm.uiState.value.cardioEditSaving)
+        vm.dismissCardioEdit()
+        vm.editCardio(otherId)
+        runCurrent()
+        val newerDraft = vm.uiState.value.cardioEdit!!.copy(note = "New draft")
+        vm.changeCardioEdit(newerDraft)
+        runCurrent()
+        resume.complete(Unit)
+        runCurrent()
+
+        assertEquals(newerDraft, vm.uiState.value.cardioEdit)
+        assertEquals(otherId, handle.get<Long>("log_cardio_edit_id"))
+        assertEquals(newerDraft, handle.get<CardioEntryDraft>("log_cardio_edit_draft"))
+        assertEquals("Easy", repo.history.cardioSession(otherId)!!.note)
+        collect.cancel()
+    }
+
+    @Test
+    fun `a cardio delete freezes its captured editor until the database commit`() = runVmTest {
+        val id = seedCardio()
+        val otherId = seedCardio()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.editCardio(id)
+        advanceUntilIdle()
+        val draft = vm.uiState.value.cardioEdit!!
+
+        vm.deleteCardio()
+        vm.changeCardioEdit(draft.copy(note = "Changed"))
+        vm.dismissCardioEdit()
+        vm.editCardio(otherId)
+        vm.saveCardioEdit()
+        vm.deleteCardio()
+        runCurrent()
+
+        assertNull(repo.history.cardioSession(id))
+        assertEquals("Easy", repo.history.cardioSession(otherId)!!.note)
+        assertNull(vm.uiState.value.cardioEdit)
+        assertFalse(vm.uiState.value.cardioEditSaving)
+        assertTrue(vm.uiState.value.sessions.single { it.cardioId == id }.undoPending)
+        collect.cancel()
+    }
+
+    @Test
+    fun `an interval edit validates elapsed time including gaps before saving`() = runVmTest {
+        val id = seedCardio(List(3) { ManualCardio.result(600, 1000) })
+        val session = repo.history.cardioSession(id)!!
+        db.cardioSessionDao().update(session.copy(completedAt = session.startedAt + 3_600_000))
+        val before = repo.history.cardioSession(id)
+        val rows = db.cardioSetResultDao().forSession(id)
+        val publisher = RecordingPublisher()
+        val vm = newViewModel(publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.editCardio(id)
+        advanceUntilIdle()
+        val now = civilTime.wallClock.instant.toEpochMilli()
+        val draft = vm.uiState.value.cardioEdit!!.copy(startedAt = now - 1_800_000, note = "Moved")
+        assertTrue(draft.valid(now))
+        vm.changeCardioEdit(draft)
+        vm.saveCardioEdit()
+        advanceUntilIdle()
+
+        assertEquals(before, repo.history.cardioSession(id))
+        assertEquals(rows, db.cardioSetResultDao().forSession(id))
+        assertEquals(draft, vm.uiState.value.cardioEdit)
+        assertFalse(vm.uiState.value.cardioEditSaving)
+        assertTrue(publisher.cardioPublished.isEmpty())
+        assertTrue(publisher.cardioReplaced.isEmpty())
+
+        vm.changeCardioEdit(draft.copy(startedAt = now - 3_600_000))
+        vm.saveCardioEdit()
+        advanceUntilIdle()
+
+        val saved = repo.history.cardioSession(id)!!
+        assertEquals(now, saved.completedAt)
+        assertEquals(now - 3_600_000, saved.startedAt)
+        assertEquals(1800, saved.seconds)
+        assertEquals(rows, db.cardioSetResultDao().forSession(id))
+        assertNull(vm.uiState.value.cardioEdit)
+        assertEquals(listOf(id), publisher.cardioReplaced)
         collect.cancel()
     }
 

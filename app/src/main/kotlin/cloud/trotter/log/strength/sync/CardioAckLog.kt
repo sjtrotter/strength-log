@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.Flow
 interface CardioAckLog {
     suspend fun record(stamp: Long)
 
+    /** Replay detection survives history edits, deletion and acknowledgment window eviction. */
+    suspend fun hasProcessed(stamp: Long): Boolean
+
     /** Both acknowledgements, read from one stored state. */
     val acksFlow: Flow<CardioAcks>
 }

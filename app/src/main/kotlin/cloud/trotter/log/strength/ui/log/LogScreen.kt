@@ -265,8 +265,9 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 onChange = actions.onCardioEditChange,
                 onSave = actions.onSaveCardioEdit,
                 onDismiss = actions.onDismissCardioEdit,
+                saving = state.cardioEditSaving,
                 extraAction = {
-                    TextButton(onClick = { confirmingCardioDelete = true }) {
+                    TextButton(onClick = { confirmingCardioDelete = true }, enabled = !state.cardioEditSaving) {
                         Text(stringResource(R.string.log_delete_session), color = MaterialTheme.colorScheme.error)
                     }
                 },

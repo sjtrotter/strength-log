@@ -10,12 +10,17 @@ import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.mapping.toEntity
+import cloud.trotter.log.strength.domain.cardio.ManualCardio
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -306,6 +311,50 @@ class HealthConnectPublisherTest {
         assertTrue(SessionRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
         assertTrue(CaloriesRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
         assertTrue(SessionRecordMapper.clientRecordId(id) in client.storedRecords)
+    }
+
+    @Test
+    fun replacingEditedCardioChangesTheProvidersStoredActivityAndDuration() = runTest {
+        val id = db.cardioSessionDao().insert(CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
+            startedAt = 10_000L, completedAt = 70_000L, seconds = 60,
+            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name,
+        ))
+        db.cardioSetResultDao().insertAll(listOf(ManualCardio.result(60, 200).toEntity(id, 0)))
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publishCardio(id)
+        val clientId = CardioRecordMapper.clientRecordId(id)
+        val original = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
+        assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_RUNNING, original.exerciseType)
+
+        for ((activity, seconds, type) in listOf(
+            Triple(CardioActivity.ROWER, 120, ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE),
+            Triple(CardioActivity.OUTDOOR_RIDE, 180, ExerciseSessionRecord.EXERCISE_TYPE_BIKING),
+        )) {
+            repo.updateCardioSession(id, activity, 20_000L, seconds, null, "Changed")
+            publisher.replaceCardio(id)
+
+            val stored = client.storedRecords.getValue(clientId) as ExerciseSessionRecord
+            assertEquals(type, stored.exerciseType)
+            assertEquals(Instant.ofEpochMilli(20_000L), stored.startTime)
+            assertEquals(Instant.ofEpochMilli(20_000L + seconds * 1_000L), stored.endTime)
+            assertEquals(ManualCardio.summary(activity, seconds).label, stored.title)
+            assertEquals(original.metadata.clientRecordId, stored.metadata.clientRecordId)
+            assertEquals(setOf(clientId), client.storedRecords.keys)
+        }
+        assertEquals(listOf(clientId, clientId), client.deletedClientRecordIds)
+    }
+
+    @Test
+    fun cardioReplacementWithoutWritePermissionDoesNotDeleteOrInsert() = runTest {
+        val client = FakeHealthConnectClient(grantedPermissions = emptySet())
+
+        publisher(client).replaceCardio(42L)
+
+        assertTrue(client.deletedClientRecordIds.isEmpty())
+        assertEquals(0, client.insertCallCount)
+        publisher(client = null).replaceCardio(42L)
     }
 
     @Test

@@ -22,9 +22,9 @@ class CardioDeltaApplier(
     private val lock = Mutex()
 
     /**
-     * Idempotence is CONTENT identity (dayId + startedAt — the same key the
-     * phone's own STOP uses), never stamp order: fire-and-forget sends carry no
-     * ordering contract, so an older stamp arriving late must still insert.
+     * The durable processed stamp survives history edits and deletion. Content
+     * identity also catches the same session under a new stamp. Neither check
+     * uses stamp order: an older unseen stamp arriving late must still insert.
      * The ack log records each processed stamp and preserves the highest stamp
      * for old watches. Every outcome records its stamp, INVALID included: a
      * delta this phone can never apply must be acked and dropped, or the watch
@@ -45,7 +45,7 @@ class CardioDeltaApplier(
             return Outcome.INVALID
         }
 
-        val duplicate = historyRepository.cardioSessionsFlow.first().any {
+        val duplicate = ackLog.hasProcessed(delta.stamp) || historyRepository.cardioSessionsFlow.first().any {
             it.dayId == delta.dayId && it.startedAt == delta.startedAt
         }
         if (!duplicate) {
@@ -58,10 +58,12 @@ class CardioDeltaApplier(
                     planId = delta.planId, activity = delta.activity,
                 ), sets, finishDay = delta.finishesDay,
             )
+            ackLog.record(delta.stamp)
             sessionPublisher.publishCardio(id)
+            return Outcome.APPLIED
         }
         ackLog.record(delta.stamp)
-        if (duplicate) Outcome.DUPLICATE else Outcome.APPLIED
+        Outcome.DUPLICATE
     }
 
     companion object { const val MARKER_KEY = "cardio:event" }

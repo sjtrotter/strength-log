@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -32,6 +35,8 @@ class DayEditSheetTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private lateinit var backDispatcher: OnBackPressedDispatcher
 
     private fun show(
         canResetToTemplate: Boolean = false,
@@ -108,6 +113,90 @@ class DayEditSheetTest {
             composeTestRule.onNodeWithContentDescription("More options for ${slot.title}").performClick()
             composeTestRule.onNodeWithText("Lift options").performClick()
         }
+    }
+
+    private fun showPlanEditor(
+        onBack: () -> Unit = {},
+        onSwap: (Int, String) -> Unit = { _, _ -> },
+    ) {
+        val entry = ExerciseCatalog.CODE_ONLY.get("bb_back_squat")
+        composeTestRule.setContent {
+            backDispatcher = requireNotNull(LocalOnBackPressedDispatcherOwner.current).onBackPressedDispatcher
+            AppTheme {
+                DayPlanEditor(
+                    state = DayEditUiState(
+                        planEditing = true,
+                        slots = listOf(DayEditSlotState(
+                            programExerciseId = 1L, position = 0, exerciseId = entry.id,
+                            title = entry.name, pattern = entry.pattern, isSuperset = false,
+                        )),
+                    ),
+                    dayId = "A",
+                    loading = false,
+                    accent = Color.White,
+                    actions = DayEditActions(
+                        onSwap = onSwap, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+                        onRemoveSuperset = {}, onResetToTemplate = {},
+                    ),
+                    onBack = onBack,
+                    onCreateExercise = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun planEditorRootBackLeavesTheEditor() {
+        var exits = 0
+        showPlanEditor(onBack = { exits++ })
+        composeTestRule.onNodeWithText("Edit day A").assertIsDisplayed()
+        composeTestRule.runOnIdle { backDispatcher.onBackPressed() }
+        composeTestRule.runOnIdle { assertEquals(1, exits) }
+    }
+
+    @Test
+    fun planEditorBackFromAPageReturnsToTheSlotList() {
+        var exits = 0
+        showPlanEditor(onBack = { exits++ })
+        composeTestRule.onNodeWithContentDescription("More options for Barbell Back Squat").performClick()
+        composeTestRule.onNodeWithText("Lift options").performClick()
+        composeTestRule.onNodeWithText("Prescription").assertIsDisplayed()
+        composeTestRule.runOnIdle { backDispatcher.onBackPressed() }
+        composeTestRule.onNodeWithText("Prescription").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(0, exits) }
+    }
+
+    @Test
+    fun planEditorSwapsApplyToThePlanWithoutAsking() {
+        val swaps = mutableListOf<Pair<Int, String>>()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        showPlanEditor(onSwap = { position, id -> swaps += position to id })
+        composeTestRule.onNodeWithContentDescription("More options for Barbell Back Squat").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        composeTestRule.onNodeWithText("This workout").assertDoesNotExist()
+        composeTestRule.onNodeWithText(target.name).performScrollTo().performClick()
+        composeTestRule.runOnIdle { assertEquals(listOf(0 to target.id), swaps) }
+        composeTestRule.onNodeWithText("This workout").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
+    }
+
+    @Test
+    fun planEditorKeepsConfirmationForSwapsThatRemoveLegacyLoggedSets() {
+        var confirmed = 0
+        val state = workoutDayFixture().copy(viewDayId = "A", pendingPlanSwap = PendingPlanSwap(
+            "A", 1L, 1L, Slot.MAIN, "hack_squat", "Barbell Back Squat", 2,
+        ))
+        composeTestRule.setContent {
+            AppTheme {
+                DayScreen(state, workoutActions().copy(onConfirmPlanSwap = { confirmed++ }),
+                    DayEditUiState(planEditing = true), workoutEditActions())
+            }
+        }
+        composeTestRule.onNodeWithText("Edit day A").assertExists()
+        composeTestRule.onNodeWithText("Swap Barbell Back Squat? Its 2 logged sets today are removed.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        composeTestRule.runOnIdle { assertEquals(1, confirmed) }
     }
 
     @Test

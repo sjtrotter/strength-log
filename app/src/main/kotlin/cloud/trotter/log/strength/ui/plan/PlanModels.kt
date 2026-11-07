@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -25,7 +26,12 @@ data class PlanUiState(
     val offerCardioIncreases: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val goalDialog: PlanGoalDialog? = null,
+    val goal: PlanGoalUi? = null,
+    val goalDraft: PlanGoalDraft? = null,
+    val shuttleEntry: String? = null,
 )
+
+data class PlanGoalUi(val goal: PlanGoal, val best: Int?, val met: Boolean)
 
 data class PlanGoalDialog(
     val exerciseId: String,
@@ -67,4 +73,11 @@ data class PlanActions(
     val onSaveGoal: () -> Unit = {},
     val onUseCalculatedGoal: () -> Unit = {},
     val onDismissGoal: () -> Unit = {},
+    val onOpenCardioGoal: () -> Unit = {},
+    val onCardioGoalDraft: (PlanGoalDraft) -> Unit = {},
+    val onRemoveGoal: () -> Unit = {},
+    val onOpenShuttleEntry: () -> Unit = {},
+    val onShuttleEntry: (String) -> Unit = {},
+    val onSaveShuttleEntry: () -> Unit = {},
+    val onDismissShuttleEntry: () -> Unit = {},
 )

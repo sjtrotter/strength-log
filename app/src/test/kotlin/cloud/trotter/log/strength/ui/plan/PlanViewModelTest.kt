@@ -6,6 +6,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toEntity
+import android.os.Parcel
+import kotlinx.parcelize.parcelableCreator
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -67,6 +79,109 @@ class PlanViewModelTest {
         assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
         assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
     }
+
+    @Test fun `save a timed goal from the draft and preserve it across process death`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openGoal()
+        advanceUntilIdle()
+        assertEquals(PlanGoalDraft(), vm.uiState.value.goalDraft)
+        val draft = PlanGoalDraft(activity = "TRAIL_RUN", metres = 5000, underSeconds = 1500, byEpochDay = 21000)
+        vm.changeGoalDraft(draft)
+        val parcel = Parcel.obtain()
+        val restoredDraft = try {
+            handle.get<PlanGoalDraft>("plan_goal_draft")!!.writeToParcel(parcel, 0)
+            parcel.setDataPosition(0)
+            parcelableCreator<PlanGoalDraft>().createFromParcel(parcel)
+        } finally { parcel.recycle() }
+        val restoredHandle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString(), "plan_goal_draft" to restoredDraft))
+        vm.viewModelScope.cancel()
+        val restored = viewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals(draft, restored.uiState.value.goalDraft)
+        restored.saveGoal()
+        advanceUntilIdle()
+        assertEquals(draft.goal(), PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
+        assertNull(restored.uiState.value.goalDraft)
+        assertNull(restoredHandle.get<PlanGoalDraft>("plan_goal_draft"))
+        restored.openGoal()
+        advanceUntilIdle()
+        assertEquals(draft, restored.uiState.value.goalDraft)
+        restored.removeGoal()
+        advanceUntilIdle()
+        assertNull(restored.uiState.value.goal)
+    }
+
+    @Test fun `invalid cardio goal drafts cannot save and cancel leaves storage alone`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal()
+        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = 0),
+            PlanGoalDraft(activity = "UNKNOWN"), PlanGoalDraft(timed = false, protocol = " "))) {
+            vm.changeGoalDraft(invalid)
+            vm.saveGoal()
+            advanceUntilIdle()
+            assertEquals(invalid, vm.uiState.value.goalDraft)
+            assertNull(db.planDao().plan(viewed)!!.goalJson)
+        }
+        vm.dismissGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDraft)
+    }
+
+    @Test fun `shuttle entry survives recreation and logging updates best`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openGoal()
+        vm.changeGoalDraft(PlanGoalDraft(timed = false, protocol = " PACER ", targetShuttles = 52))
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(PlanGoal.Shuttle("PACER", 52), vm.uiState.value.goal!!.goal)
+        vm.openShuttleEntry()
+        vm.saveShuttleEntry()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goal!!.best)
+        vm.changeShuttleEntry("44")
+        vm.changeShuttleEntry("4444")
+        vm.changeShuttleEntry("4x")
+        assertEquals("44", handle.get<String>("plan_shuttle_entry"))
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        vm.viewModelScope.cancel()
+        val restored = viewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals("44", restored.uiState.value.shuttleEntry)
+        restored.saveShuttleEntry()
+        advanceUntilIdle()
+        assertEquals(44, restored.uiState.value.goal!!.best)
+        assertEquals(false, restored.uiState.value.goal!!.met)
+        assertNull(restored.uiState.value.shuttleEntry)
+    }
+
+    @Test fun `timed goal observes cardio attempts from every plan and later history edits`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val other = repo.plans.createAuthoredPlan("Other", "Run")
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960)
+        repo.plans.setGoal(viewed, goal)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goal!!.best)
+        val session = CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
+            startedAt = 1000, completedAt = 985000, seconds = 984, stepsCompleted = 1, planId = other, activity = "ROAD_RUN")
+        val id = db.cardioSessionDao().insert(session)
+        db.cardioSetResultDao().insertAll(listOf(CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(3219)),
+            CardioSetStatus.FINISHED, 984).toEntity(id, 0)))
+        advanceUntilIdle()
+        assertEquals(PlanGoalUi(goal, 984, false), vm.uiState.value.goal)
+        db.cardioSessionDao().update(session.copy(id = id, activity = "TRACK_RUN"))
+        advanceUntilIdle()
+        assertEquals(PlanGoalUi(goal, null, false), vm.uiState.value.goal)
+    }
+
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore

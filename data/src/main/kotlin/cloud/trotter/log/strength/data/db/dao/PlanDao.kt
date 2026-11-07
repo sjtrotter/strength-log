@@ -30,6 +30,9 @@ interface PlanDao {
     @Query("UPDATE plan SET suggestedDayId = :dayId WHERE id = :id")
     suspend fun updateSuggestedDay(id: Long, dayId: String?)
 
+    @Query("UPDATE plan SET goalJson = :json WHERE id = :id")
+    suspend fun updateGoal(id: Long, json: String?)
+
     @Update
     suspend fun updatePlan(plan: PlanEntity)
 

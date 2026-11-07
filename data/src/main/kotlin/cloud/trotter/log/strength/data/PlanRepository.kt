@@ -14,6 +14,9 @@ import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -234,6 +237,24 @@ class PlanRepository(
     suspend fun setOfferStrengthIncreases(planId: Long, on: Boolean) = planDao.updateOfferStrengthIncreases(planId, on)
 
     suspend fun setOfferCardioIncreases(planId: Long, on: Boolean) = planDao.updateOfferCardioIncreases(planId, on)
+
+    suspend fun setGoal(planId: Long, goal: PlanGoal?) = db.withTransaction {
+        val stored = PlanGoalJson.decode(planDao.plan(planId)?.goalJson)
+        val next = if (goal is PlanGoal.Shuttle) {
+            val attempts = (stored as? PlanGoal.Shuttle)?.takeIf {
+                it.protocol.trim().equals(goal.protocol.trim(), ignoreCase = true)
+            }?.attempts.orEmpty()
+            goal.copy(protocol = goal.protocol.trim(), attempts = attempts)
+        } else goal
+        planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
+    }
+
+    suspend fun logShuttleAttempt(planId: Long, shuttles: Int) = db.withTransaction {
+        val goal = PlanGoalJson.decode(planDao.plan(planId)?.goalJson) as? PlanGoal.Shuttle
+            ?: return@withTransaction
+        val next = goal.copy(attempts = goal.attempts + ShuttleAttempt(clock.millis(), shuttles))
+        planDao.updateGoal(planId, PlanGoalJson.encode(next))
+    }
 
     private suspend fun setOnToday(id: Long, onToday: Boolean) {
         planSelectionLock.withLock {

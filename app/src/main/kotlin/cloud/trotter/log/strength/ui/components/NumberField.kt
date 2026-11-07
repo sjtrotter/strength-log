@@ -50,13 +50,18 @@ fun NumberField(
     weightInput: Boolean = false,
     onValidityChange: (Boolean) -> Unit = {},
     onDraftChange: (Double?) -> Unit = {},
+    parse: ((String) -> Double?)? = null,
+    keyboardType: KeyboardType? = null,
 ) {
     var draft by rememberSaveable(label) { mutableStateOf(value?.let(format).orEmpty()) }
     var dirty by rememberSaveable(label) { mutableStateOf(false) }
     var pendingCommit by rememberSaveable(label) { mutableStateOf<Double?>(null) }
     var focused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
-    val parsed = resolveNumberCommit(draft, minValue, maxValue, round)
+    fun resolve(text: String) = resolveNumberCommit(
+        if (parse == null) text else parse(text.trim())?.toString().orEmpty(), minValue, maxValue, round,
+    )
+    val parsed = resolve(draft)
     val invalid = dirty && parsed == null
     SideEffect { onValidityChange(parsed != null) }
     var seenValue by remember { mutableStateOf(value) }
@@ -79,7 +84,7 @@ fun NumberField(
     }
     fun commit() {
         if (!dirty) return
-        val committed = resolveNumberCommit(draft, minValue, maxValue, round) ?: return
+        val committed = resolve(draft) ?: return
         dirty = false
         draft = format(committed)
         // A commit equal to the stored value produces no new value to wait for.
@@ -91,7 +96,7 @@ fun NumberField(
         onValueChange = {
             draft = it
             dirty = true
-            onDraftChange(resolveNumberCommit(it, minValue, maxValue, round))
+            onDraftChange(resolve(it))
         },
         label = { Text(label) },
         modifier = modifier.fillMaxWidth().onFocusChanged {
@@ -102,7 +107,7 @@ fun NumberField(
         isError = invalid,
         supportingText = if (invalid) { { Text(rangeError) } } else null,
         keyboardOptions = KeyboardOptions(
-            keyboardType = if (decimalInput) KeyboardType.Decimal else KeyboardType.Number,
+            keyboardType = keyboardType ?: if (decimalInput) KeyboardType.Decimal else KeyboardType.Number,
             imeAction = ImeAction.Done,
         ),
         keyboardActions = KeyboardActions(onDone = { commit(); focusManager.clearFocus() }),

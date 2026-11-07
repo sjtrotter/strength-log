@@ -20,6 +20,8 @@ data class PlanEntity(
     @ColumnInfo(defaultValue = "0") val onToday: Boolean = false,
     @ColumnInfo(defaultValue = "1") val offerStrengthIncreases: Boolean = true,
     @ColumnInfo(defaultValue = "0") val offerCardioIncreases: Boolean = false,
+    /** The plan's optional cardio goal as PlanGoalJson. */
+    val goalJson: String? = null,
 ) {
     companion object {
         /** The plan a pre-plans program (Room v7, or a backup older than plans)

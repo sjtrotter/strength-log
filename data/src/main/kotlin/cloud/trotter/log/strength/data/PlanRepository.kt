@@ -127,7 +127,7 @@ class PlanRepository(
         emitAll(planAnswersFlow.map { it.config }.distinctUntilChanged())
     }
 
-    /** Plan recipes hold only emphasis, so lifter edits write the global lifter alone. */
+    /** Lifter edits write the global lifter alone; plan settings stay in the recipe. */
     suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
         ensurePlanSettingsMigrated()
         settings.updateGlobalLifter(transform)
@@ -144,6 +144,24 @@ class PlanRepository(
             planDao.updateRecipe(
                 planId,
                 PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),
+            )
+        }
+    }
+
+    suspend fun setPlanGoal(planId: Long, exerciseId: String, goalLb: Double?) {
+        require(goalLb == null || (goalLb.isFinite() && goalLb > 0.0 && goalLb <= PlanRecipeJson.MAX_GOAL_LB))
+        ensurePlanSettingsMigrated()
+        // Read DataStore before the transaction: suspending on it inside one can deadlock.
+        val global = settings.globalLifterFlow.first()
+        db.withTransaction {
+            val plan = planDao.plan(planId) ?: return@withTransaction
+            val recipe = plan.recipeJson ?: return@withTransaction
+            val answers = PlanRecipeJson.decode(recipe, global)
+            val goals = if (goalLb == null) answers.config.goalsLb - exerciseId
+                else answers.config.goalsLb + (exerciseId to goalLb)
+            planDao.updateRecipe(
+                planId,
+                PlanRecipeJson.encode(answers.copy(config = answers.config.copy(goalsLb = goals))),
             )
         }
     }

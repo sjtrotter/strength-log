@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -124,6 +125,147 @@ class PlanViewModelTest {
         advanceUntilIdle()
         assertEquals(false, pounds == vm.uiState.value.goals)
         assertEquals(tapped, vm.uiState.value.planId)
+    }
+
+    @Test
+    fun `saving a goal writes it to the plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
+        repo.plans.publishCreatedPlan(preferred, answers)
+        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        advanceUntilIdle()
+        assertEquals(235.0, vm.uiState.value.goalDialog!!.draftLb!!, 0.0)
+        assertEquals(false, vm.uiState.value.goalDialog!!.edited)
+        vm.setGoalDraft(200.0)
+        vm.saveGoal()
+        advanceUntilIdle()
+
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("200", vm.uiState.value.goals.first().display)
+        assertEquals("235", vm.uiState.value.goals.first().calculated)
+        vm.openGoal("bb_back_squat")
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.goalDialog!!.edited)
+        assertEquals("235", vm.uiState.value.goalDialog!!.calculated)
+        vm.useCalculatedGoal()
+        advanceUntilIdle()
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("235", vm.uiState.value.goals.first().display)
+    }
+
+    @Test
+    fun `offer switches and goal edits preserve each other on the viewed generated plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
+        repo.plans.publishCreatedPlan(preferred, answers)
+        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        vm.setGoalDraft(200.0)
+        advanceUntilIdle()
+        val dialog = vm.uiState.value.goalDialog
+
+        vm.setOfferStrengthIncreases(false)
+        vm.setOfferCardioIncreases(true)
+        advanceUntilIdle()
+
+        assertEquals(dialog, vm.uiState.value.goalDialog)
+        assertEquals(false, vm.uiState.value.offerStrengthIncreases)
+        assertEquals(true, vm.uiState.value.offerCardioIncreases)
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        assertEquals("200", vm.uiState.value.goals.first().display)
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(false, db.planDao().plan(viewed)!!.offerStrengthIncreases)
+        assertEquals(true, db.planDao().plan(viewed)!!.offerCardioIncreases)
+        assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
+        assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
+    }
+
+    @Test
+    fun `goal dialog and its draft survive recreation and keep the viewed plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val handle = SavedStateHandle()
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openGoal("bb_back_squat")
+        vm.setGoalDraft(200.0)
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        vm.viewModelScope.cancel()
+        val other = repo.plans.createAuthoredPlan("Other", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(other)
+        val restored = viewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals(PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 200.0, "235", false),
+            restored.uiState.value.goalDialog)
+        restored.saveGoal()
+        advanceUntilIdle()
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(other).first().config.goalsLb)
+        assertNull(restored.uiState.value.goalDialog)
+        assertNull(restoredHandle.get<String>("plan_goal_exercise"))
+        assertNull(restoredHandle.get<Double>("plan_goal_draft_lb"))
+    }
+
+    @Test
+    fun `invalid goal drafts cannot save and a missing goal cannot open`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.openGoal("missing")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        vm.openGoal("bb_back_squat")
+        for (invalid in listOf(null, 0.0, -1.0, Double.NaN, Double.POSITIVE_INFINITY,
+            PlanRecipeJson.MAX_GOAL_LB + 0.1, 2500.0, WeightUnit.KG.toLb(907.2))) {
+            vm.setGoalDraft(invalid)
+            vm.saveGoal()
+            advanceUntilIdle()
+            assertEquals("bb_back_squat", vm.uiState.value.goalDialog!!.exerciseId)
+            assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+        }
+        vm.dismissGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDialog)
+        val restored = viewModel(SavedStateHandle(mapOf(
+            Routes.PLAN_ID_ARG to plan.toString(), "plan_goal_exercise" to "missing", "plan_goal_draft_lb" to 200.0,
+        )))
+        advanceUntilIdle()
+        assertNull(restored.uiState.value.goalDialog)
+    }
+
+    @Test
+    fun `saving the goal ceiling accepts canonical pounds in either display unit`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(plan, answers)
+        val vm = viewModel()
+        for (unit in WeightUnit.entries) {
+            settings.setUnit(unit)
+            advanceUntilIdle()
+            vm.openGoal("bb_back_squat")
+            vm.setGoalDraft(PlanRecipeJson.MAX_GOAL_LB)
+            vm.saveGoal()
+            advanceUntilIdle()
+            assertEquals(mapOf("bb_back_squat" to PlanRecipeJson.MAX_GOAL_LB),
+                repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+            assertNull(vm.uiState.value.goalDialog)
+        }
     }
 
     @Test

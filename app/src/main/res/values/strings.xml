@@ -78,6 +78,10 @@
 <string name="you_goals_note">Generated plans set their goals from these.</string>
 <string name="plans_you_summary">%1$s, age %2$d, %3$s</string>
 <string name="plan_goals">Goals</string>
+<string name="plan_goal_title">%1$s goal</string>
+<string name="plan_goal_weight">Goal (%1$s)</string>
+<string name="plan_goal_calculated">Calculated %1$s</string>
+<string name="plan_goal_use_calculated">Use calculated</string>
 <string name="plan_emphasis">Emphasis</string>
 <string name="setup_back_description">Back</string>
     <string name="setup_rest_timer_section">Rest timer</string>

@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -25,6 +26,11 @@ object SetupStateBuilder {
                 name = entry.name,
                 display = GoalFormatter.label(GoalCalculator.targetFor(entry, cfg), unit),
                 perHand = entry.perHand,
+                exerciseId = entry.id,
+                goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb ?: 0.0,
+                calculated = if (entry.id in cfg.goalsLb) {
+                    GoalFormatter.label(GoalCalculator.targetFor(entry, cfg.copy(goalsLb = emptyMap())), unit)
+                } else null,
             )
         }
 

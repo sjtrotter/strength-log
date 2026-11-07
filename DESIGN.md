@@ -57,7 +57,7 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
 | Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit lifter facts |
-| Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals and let the lifter set emphasis |
+| Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals, which open for editing, and let the lifter set emphasis |
 | Settings | `ui/setup/SetupScreen.kt` | Rarely | App preferences: units, theme, keep screen on and rest timer; open custom exercises, backup and licenses |
 | You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight, age and experience level, which generated plans use for goals |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |

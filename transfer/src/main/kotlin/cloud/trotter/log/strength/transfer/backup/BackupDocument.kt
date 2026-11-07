@@ -25,8 +25,9 @@ import kotlinx.serialization.Serializable
  * v19 carries the distance unit when the lifter chose one.
  * v20 carries cardio Next time (working block, Plan choice, Progress by, Increase by) and each plan's offer switches.
  * v21 carries each plan's edited goals inside its recipe.
+ * v22 carries each cardio session's note.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 21
+const val CURRENT_SCHEMA_VERSION: Int = 22
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -79,6 +80,7 @@ data class CardioSessionBackup(
     val planName: String? = null,
     val activity: String? = null,
     val sets: List<CardioSetResultBackup> = emptyList(),
+    val note: String = "",
 )
 
 /** Position is list order; ids and the stored spec survive a full restore verbatim. */

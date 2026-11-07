@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -23,4 +24,5 @@ data class CardioSessionEntity(
     val planName: String? = null,
     /** CardioActivity.name when recorded by a set-aware caller; unknown for legacy summaries. */
     val activity: String? = null,
+    @ColumnInfo(defaultValue = "") val note: String = "",
 )

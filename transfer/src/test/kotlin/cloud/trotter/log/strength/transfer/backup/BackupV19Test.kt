@@ -11,13 +11,16 @@ class BackupV19Test {
     private val codec = BackupCodec()
 
     private fun document(distanceUnit: String? = "KM") = BackupDocument(
+        schemaVersion = 19,
         settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
             selectedPlanId = 1, distanceUnit = distanceUnit),
         plans = listOf(PlanBackup(1, "Running", "AUTHORED", 1000)),
     )
 
     @Test fun `v19 export and restore preserve the chosen distance unit`() {
-        val snapshot = document().toSnapshot()
+        val decoded = codec.decode(codec.encode(document()))
+        assertEquals(19, decoded.schemaVersion)
+        val snapshot = decoded.toSnapshot()
         assertEquals(DistanceUnit.KM, snapshot.distanceUnit)
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)

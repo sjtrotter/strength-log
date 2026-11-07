@@ -243,6 +243,7 @@ internal fun NumericSetField(
     isError: Boolean = false,
     textOverride: String? = null,
     onTextChange: ((String) -> Unit)? = null,
+    enabled: Boolean = true,
 ) {
     val format: (Double) -> String = if (duration) { { ClockText.minutesSeconds(it.toInt()) } } else WeightStepper::format
     var text by rememberSaveable(identity) { mutableStateOf(format(value)) }
@@ -268,6 +269,7 @@ internal fun NumericSetField(
             label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
             textStyle = DisplayXl,
             singleLine = true,
+            enabled = enabled,
             isError = isError,
             modifier = fieldModifier.heightIn(min = 80.dp),
             interactionSource = interactionSource,
@@ -282,6 +284,7 @@ internal fun NumericSetField(
     }
     val buttons: @Composable (Boolean) -> Unit = { increaseValue ->
         IconButton(
+            enabled = enabled,
             onClick = {
                 focusManager.clearFocus()
                 val next = round(value + if (increaseValue) step(value) else -step(value)).coerceIn(minimum, maximum)

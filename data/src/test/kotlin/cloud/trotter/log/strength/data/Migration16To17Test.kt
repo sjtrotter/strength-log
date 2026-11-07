@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_17_18
 import cloud.trotter.log.strength.data.db.MIGRATION_18_19
 import cloud.trotter.log.strength.data.db.MIGRATION_19_20
 import cloud.trotter.log.strength.data.db.MIGRATION_20_21
+import cloud.trotter.log.strength.data.db.MIGRATION_21_22
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -67,7 +68,7 @@ class Migration16To17Test {
         val before = tables.associateWith { rows(helper.writableDatabase, it) }
         helper.close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22).allowMainThreadQueries().build()
         try {
             assertTrue(db.runDao().tracks("open").none { it.dropped })
             db.openHelper.writableDatabase.query("SELECT dropped FROM run_track").use { cursor ->

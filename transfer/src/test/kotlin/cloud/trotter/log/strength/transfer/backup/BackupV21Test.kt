@@ -22,6 +22,7 @@ class BackupV21Test {
     private val recipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = goals)))
 
     private fun document(recipeJson: String = recipe) = BackupDocument(
+        schemaVersion = 21,
         settings = SettingsBackup(235, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
             selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, recipeJson = recipeJson)),
@@ -31,7 +32,7 @@ class BackupV21Test {
     fun `v21 export and restore preserve edited goals`() {
         val snapshot = document().toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(21, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
         val restoredRecipe = restored.plans.single().recipeJson!!
         assertEquals(recipe, restoredRecipe)
@@ -52,7 +53,7 @@ class BackupV21Test {
         )))
         val snapshot = codec.decode(codec.encode(source)).toSnapshot()
         val exported = snapshot.toDocument()
-        assertEquals(21, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(recipe, exported.plans.single().recipeJson)
         assertEquals(day, exported.plans.single().days.single())
         assertFalse(exported.plans.single().offerStrengthIncreases)
@@ -61,7 +62,7 @@ class BackupV21Test {
     }
 
     @Test
-    fun `v18 through v20 restore with no edited goals and re-export as v21`() {
+    fun `v18 through v20 restore with no edited goals and re-export at the current version`() {
         val legacyRecipe = PlanRecipeJson.encode(WizardAnswers())
         assertFalse(legacyRecipe.contains("goalsLb"))
         for (version in 18..20) {
@@ -71,7 +72,7 @@ class BackupV21Test {
             assertEquals(legacyRecipe, restoredRecipe)
             assertTrue(PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb.isEmpty())
             val exported = snapshot.toDocument()
-            assertEquals(21, exported.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
         }
     }

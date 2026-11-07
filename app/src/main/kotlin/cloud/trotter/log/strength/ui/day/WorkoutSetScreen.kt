@@ -353,6 +353,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
     val run = cardio.run
     val done = cardio.completed || state.workoutCardioOnlyDone ||
         (state.workout?.shown as? WorkoutSelection.Shown.Group)?.complete == true
+    val activity = if (done && run == null) cardio.loggedActivity ?: block.activity else block.activity
     val entryUnit = DistanceUnit.forActivity(cardio.distanceUnit, block.activity)
     val spec = block.sets.getOrNull(cardio.position)
     val position = spec?.let { stringResource(R.string.workout_cardio_position, roleName(it.role), cardio.position + 1, block.sets.size) }
@@ -361,7 +362,12 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             liveRegion = LiveRegionMode.Polite
             if (position != null) contentDescription = position
         }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(cardioActivityName(block.activity), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Text(cardioActivityName(activity), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            if (!done && run?.startedAt == null && !state.executionBusy && state.timedRep == null) {
+                TextButton(onClick = actions.onOpenPastCardio, colors = neutralTextButtonColors()) {
+                    Text(stringResource(R.string.cardio_log_past))
+                }
+            }
             TextButton(onClick = actions.onOpenCardioSets, colors = neutralTextButtonColors()) { Text(stringResource(R.string.day_all_sets)) }
         }
         if (cardio.hasSaveFailure) {

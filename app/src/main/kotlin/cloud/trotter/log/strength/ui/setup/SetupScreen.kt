@@ -114,7 +114,6 @@ fun SetupScreen(
                                             selected = state.unit == unit,
                                             onClick = { actions.onUnitToggle(unit) },
                                             shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
-                                            modifier = Modifier.heightIn(min = 48.dp),
                                             icon = {},
                                         ) { Text(unit.name.lowercase()) }
                                     }
@@ -131,7 +130,6 @@ fun SetupScreen(
                                             selected = state.distanceUnit == unit,
                                             onClick = { actions.onDistanceUnitChange(unit) },
                                             shape = SegmentedButtonDefaults.itemShape(index, units.size),
-                                            modifier = Modifier.heightIn(min = 48.dp),
                                             icon = {},
                                         ) { Text(unit.symbol) }
                                     }

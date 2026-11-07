@@ -1,10 +1,14 @@
 package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
@@ -29,6 +33,8 @@ import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayDay
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayUiState
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,13 +69,57 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
             "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
             composeTestRule.assertNoOverlappingTouchTargets()
         }
+    }
+
+    @Test
+    fun theDistanceButtonsFitInsideTheirRow() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+        }
+
+        val weightRow = composeTestRule.onNodeWithText("Units").fetchSemanticsNode().boundsInRoot
+        val distanceRow = composeTestRule.onNodeWithText("Distance").fetchSemanticsNode().boundsInRoot
+        assertEquals(weightRow.height, distanceRow.height, 0.01f)
+        listOf("mi", "km").forEach { label ->
+            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
+            val bounds = node.touchBoundsInRoot
+            assertEquals(node.size.height.toFloat(), node.boundsInRoot.height, 0.01f)
+            assertTrue(
+                "$label target $bounds must fit in Distance $distanceRow",
+                bounds.left >= distanceRow.left && bounds.right <= distanceRow.right &&
+                    bounds.top >= distanceRow.top && bounds.bottom <= distanceRow.bottom,
+            )
+        }
+        assertTouchContract()
+    }
+
+    @Test
+    fun aPartlyScrolledDistanceRowKeepsItsTargetsApart() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
+        }
+
+        val list = composeTestRule.onNode(hasScrollAction())
+        val viewport = list.fetchSemanticsNode().boundsInRoot
+        val target = composeTestRule.onNodeWithText("mi").fetchSemanticsNode().boundsInRoot
+        val clippedPixels = with(composeTestRule.density) { 3.dp.toPx() }
+        list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy ->
+            scrollBy(0f, target.top - viewport.top + clippedPixels)
+        }
+
+        listOf("mi", "km").forEach { label ->
+            val node = composeTestRule.onNodeWithText(label).fetchSemanticsNode()
+            assertTrue("$label must remain partly visible", !node.boundsInRoot.isEmpty)
+            assertTrue("$label must be clipped", node.boundsInRoot.height < node.size.height)
+        }
+        assertTouchContract()
     }
 
     @Test

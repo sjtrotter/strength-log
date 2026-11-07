@@ -125,11 +125,45 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Clear all"
       }
     },
     {
-      "checkpoint": "setup-page-9"
+      "tap": {
+        "role": "Checkbox",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 3
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 5
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bench"
+      }
+    },
+    {
+      "checkpoint": "equipment-without-bars"
     },
     {
       "tap": {
@@ -137,7 +171,39 @@
       }
     },
     {
-      "checkpoint": "setup-page-10"
+      "checkpoint": "recent-lifts-optional"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "filtered-rotation-preview"
+    },
+    {
+      "scrollTo": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "filtered-preview-day-b"
+    },
+    {
+      "scrollTo": {
+        "text": "Day C"
+      }
+    },
+    {
+      "checkpoint": "filtered-preview-day-c"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-completed-today"
     }
   ]
 }

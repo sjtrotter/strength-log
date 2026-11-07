@@ -1,0 +1,10 @@
+{
+  "seat": "r4-p4",
+  "capture": "compact",
+  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
+  "steps": [
+    {"checkpoint": "first-open"},
+    {"tap": {"text": "Get started"}},
+    {"checkpoint": "after-get-started"}
+  ]
+}

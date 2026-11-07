@@ -111,8 +111,8 @@ interface ProgramDao {
     @Insert
     suspend fun insertExercises(exercises: List<ProgramExerciseEntity>)
 
-    @Query("UPDATE program_exercise SET exerciseId = :exerciseId WHERE id = :id")
-    suspend fun setExerciseId(id: Long, exerciseId: String)
+    @Query("UPDATE program_exercise SET exerciseId = :exerciseId, structure = :structure, targetSets = :targetSets, prescriptionJson = NULL WHERE id = :id")
+    suspend fun replaceExercise(id: Long, exerciseId: String, structure: String, targetSets: Int)
 
     @Query("UPDATE program_exercise SET prescriptionJson = :json, targetSets = :sets WHERE id = :id")
     suspend fun setPrescription(id: Long, json: String, sets: Int)

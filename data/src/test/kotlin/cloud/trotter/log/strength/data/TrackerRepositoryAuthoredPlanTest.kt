@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -433,7 +434,9 @@ class TrackerRepositoryAuthoredPlanTest {
         val catalog = repo.catalog.catalogFlow.first()
         repo.ensureSeeded(id, "A")
         for (slot in slots) {
-            val expected = SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(catalog.get(slot.exercise.exerciseId), config), config)
+            val entry = catalog.get(slot.exercise.exerciseId)
+            val expected = SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(entry, config), config,
+                mainLift = entry.goal is GoalSource.Std)
             val actual = repo.dayTracksFlow(id, "A").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
             assertEquals(expected, actual)
             assertTrue(actual.first().weightLb > 0.0 || actual.first().reps > 0 || actual.first().seconds > 0)

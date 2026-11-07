@@ -335,12 +335,14 @@ class TrackerRepository(
         config: LifterConfig,
         catalog: ExerciseCatalog,
     ) {
+        val row = programDao.exercise(programExerciseId) ?: return
         clearSlotSkipState(planId, dayId, programExerciseId)
         retireActiveTrack(planId, dayId, programExerciseId, Slot.MAIN)
-        programDao.setExerciseId(programExerciseId, newExerciseId)
+        programDao.replaceExercise(row.id, newExerciseId, SetStructure.STRAIGHT.name,
+            if (row.toDomain().structure.hasTopSet) 3 else row.targetSets)
         programDao.deleteLogsForExercise(planId, dayId, programExerciseId)
-        val row = programDao.exercise(programExerciseId) ?: return
-        seedFromHistory(row, Slot.MAIN, config, catalog)
+        val replacement = programDao.exercise(programExerciseId) ?: return
+        seedFromHistory(replacement, Slot.MAIN, config, catalog)
     }
 
     /** The open run's active track for this slot: retired when it holds done work, deleted otherwise. */

@@ -317,9 +317,7 @@ internal class DayEditor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val entry = catalog.catalogFlow.first().find(exerciseId)
-            val structure = entry?.let { SetStructure.defaultFor(it) } ?: SetStructure.STRAIGHT
-            repo.addExercise(day, ProgramExercise(exerciseId, structure = structure), targetPlanId = planId)
+            repo.addExercise(day, ProgramExercise(exerciseId), targetPlanId = planId)
         }
     }
 

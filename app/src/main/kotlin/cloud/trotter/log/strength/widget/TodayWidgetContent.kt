@@ -68,6 +68,7 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     }
 
     val day = snapshot.day
+    val cardioBlock = snapshot.cardioBlock
     val progress = DayProgress.of(snapshot)
     val total = progress.total
     val done = progress.done
@@ -80,8 +81,8 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     return TodayWidgetContent(
         dayLine = GlanceLines.dayLine(day.dayId, day.title),
         dayLetter = day.dayId,
-        statLine = if (total == 0 && snapshot.cardioBlock != null) {
-            WidgetStatLine.Cardio(CardioActivity.valueOf(snapshot.cardioBlock.activity))
+        statLine = if (total == 0 && cardioBlock != null) {
+            WidgetStatLine.Cardio(CardioActivity.valueOf(cardioBlock.activity))
         } else {
             WidgetStatLine.Data(GlanceLines.statLine(day.exercises.size, done, total))
         },

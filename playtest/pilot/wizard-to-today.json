@@ -9,6 +9,12 @@
   "steps": [
     {
       "tap": {
+        "text": "Lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },

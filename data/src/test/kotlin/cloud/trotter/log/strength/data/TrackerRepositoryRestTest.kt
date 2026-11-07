@@ -125,6 +125,48 @@ class TrackerRepositoryRestTest {
         assertEquals(listOf("B", "C"), db.programDao().daysForPlan(plan).map { it.dayId })
     }
 
+    @Test fun `generated extras cannot replace the last training day when rest remains`() = runTest {
+        for (extraIds in listOf(listOf("C1"), listOf("C2"), listOf("C1", "C2"))) {
+            val extras = extraIds.map { program().days[0].copy(id = it, kind = ProgramDayKind.CARDIO) }
+            repo.replaceProgram(Program(listOf(
+                program().days[1].copy(id = "A"),
+                program().days[2].copy(id = "B"),
+            ) + extras))
+            val plan = repo.plans.selectedPlanIdFlow.first()!!
+            db.planDao().updateSuggestedDay(plan, "B")
+            val beforeDays = db.programDao().daysForPlan(plan)
+            val beforeExercises = db.programDao().exercisesForPlan(plan)
+            val beforePlan = db.planDao().plan(plan)
+
+            assertFalse(repo.removeDay(plan, "A"))
+
+            assertEquals(beforeDays, db.programDao().daysForPlan(plan))
+            assertEquals(beforeExercises, db.programDao().exercisesForPlan(plan))
+            assertEquals(beforePlan, db.planDao().plan(plan))
+            assertEquals(listOf("A", "B"), repo.plans.programFor(plan).first().rotationDays.map { it.id })
+            assertTrue(repo.takeRest(plan, "B"))
+            assertEquals("A", db.planDao().plan(plan)!!.suggestedDayId)
+            assertFalse(repo.takeRest(plan, "B"))
+        }
+    }
+
+    @Test fun `adding rest to a legacy extras only plan is rejected without changing its rotation`() = runTest {
+        for (extraIds in listOf(listOf("C1"), listOf("C2"), listOf("C1", "C2"))) {
+            repo.replaceProgram(Program(extraIds.map {
+                program().days[0].copy(id = it, kind = ProgramDayKind.CARDIO)
+            }))
+            val plan = repo.plans.selectedPlanIdFlow.first()!!
+            val beforeDays = db.programDao().daysForPlan(plan)
+            val beforePlan = db.planDao().plan(plan)
+
+            assertEquals(null, repo.addRestDay(plan, "Rest"))
+
+            assertEquals(beforeDays, db.programDao().daysForPlan(plan))
+            assertEquals(beforePlan, db.planDao().plan(plan))
+            assertEquals(extraIds, repo.plans.programFor(plan).first().rotationDays.map { it.id })
+        }
+    }
+
     @Test fun `rest does not use the seven training day cap or reserve training letters`() = runTest {
         val plan = repo.plans.createAuthoredPlan("Plan", "Lift")
         assertEquals("B", repo.addRestDay(plan, "Rest"))

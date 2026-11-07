@@ -677,6 +677,30 @@ class ProgramGeneratorTest {
         assertEquals(listOf("D", "G"), program.days.filter { it.kind == ProgramDayKind.REST }.map { it.id })
     }
 
+    @Test fun `one session with one rest ends with rest`() {
+        for (liftDays in CardioFirst.LIFT_DAY_CHOICES) {
+            val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = maxOf(2, liftDays),
+                cardioFirst = CardioFirst(sessions = 1, liftDays = liftDays, restDays = 1)))
+            assertEquals(listOf("Easy") + List(liftDays) { "Full Body" } + "Rest", titles(program))
+            assertEquals(List(program.days.size) { ('A' + it).toString() }, program.days.map { it.id })
+            val rest = program.days.filter { it.kind == ProgramDayKind.REST }.single()
+            assertTrue(rest.exercises.isEmpty())
+            assertNull(rest.cardioBlock)
+        }
+    }
+
+    @Test fun `one session with two rests places both after easy and at the end`() {
+        for (liftDays in CardioFirst.LIFT_DAY_CHOICES) {
+            val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = maxOf(2, liftDays),
+                cardioFirst = CardioFirst(sessions = 1, liftDays = liftDays, restDays = 2)))
+            assertEquals(listOf("Easy", "Rest") + List(liftDays) { "Full Body" } + "Rest", titles(program))
+            assertEquals(List(program.days.size) { ('A' + it).toString() }, program.days.map { it.id })
+            val rests = program.days.filter { it.kind == ProgramDayKind.REST }
+            assertEquals(2, rests.size)
+            assertTrue(rests.all { it.exercises.isEmpty() && it.cardioBlock == null })
+        }
+    }
+
     @Test fun `without intervals two rests follow easy and long`() {
         val program = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst(sessions = 2, restDays = 2)))
         assertEquals(listOf("Easy", "Rest", "Long", "Rest"), titles(program))

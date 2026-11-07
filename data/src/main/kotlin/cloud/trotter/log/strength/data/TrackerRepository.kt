@@ -121,10 +121,14 @@ class TrackerRepository(
         val days = programDao.daysForPlan(planId)
         val letter = ('A'..'Z').firstOrNull { candidate -> days.none { it.dayId == candidate.toString() } }
             ?.toString() ?: return@withTransaction null
-        programDao.upsertDay(ProgramDayEntity(
+        val day = ProgramDayEntity(
             planId, letter, (days.maxOfOrNull { it.position } ?: -1) + 1, trimmed, "", null,
             kind = ProgramDayKind.REST.name,
-        ).freshRunId(mintRunId))
+        )
+        if (assemble(days + day, emptyList()).rotationDays.none { it.kind != ProgramDayKind.REST }) {
+            return@withTransaction null
+        }
+        programDao.upsertDay(day.freshRunId(mintRunId))
         letter
     }
 
@@ -165,16 +169,16 @@ class TrackerRepository(
             val plan = planDao.plan(planId) ?: return@withTransaction false
             val days = programDao.daysForPlan(planId)
             val removed = days.firstOrNull { it.dayId == dayId } ?: return@withTransaction false
-            if (days.size <= 1 || (removed.kind != ProgramDayKind.REST.name &&
-                    days.count { it.kind != ProgramDayKind.REST.name } <= 1)) return@withTransaction false
+            val remaining = days.filter { it.dayId != dayId }
+            val trainingDays = assemble(remaining, emptyList()).rotationDays.filter { it.kind != ProgramDayKind.REST }
+            if (trainingDays.isEmpty()) return@withTransaction false
             closeRemovedRun(planId, setOf(dayId), bodyweight, catalog)
             programDao.deleteLogsForDay(planId, dayId)
             programDao.deleteExercisesForDay(planId, dayId)
             programDao.deleteDay(planId, dayId)
             if (plan.suggestedDayId == dayId) {
-                val remaining = days.filter { it.dayId != dayId }
-                val rotationIds = assemble(remaining, emptyList()).rotationDays.map { it.id }.toSet()
-                val rotation = remaining.filter { it.dayId in rotationIds && it.kind != ProgramDayKind.REST.name }
+                val rotationIds = trainingDays.map { it.id }.toSet()
+                val rotation = remaining.filter { it.dayId in rotationIds }
                 val next = rotation.firstOrNull { it.position > removed.position } ?: rotation.firstOrNull()
                 planDao.updateSuggestedDay(planId, next?.dayId)
             }

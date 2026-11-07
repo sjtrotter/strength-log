@@ -85,17 +85,22 @@ internal class DayEditor(
     }
     private val planEditing = savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
+    private val prescriptionStructure = savedState.getStateFlow<String?>(KEY_PRESCRIPTION_STRUCTURE, null)
     private val dayEditorOpen = savedState.getStateFlow(
         KEY_DAY_EDITOR_OPEN, planEditing,
     )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
-        editProgramState, unitFlow, prescriptionDraft, dayEditorOpen,
-    ) { state, unit, draft, editorOpen ->
+        editProgramState, unitFlow, combine(prescriptionDraft, prescriptionStructure, ::Pair), dayEditorOpen,
+    ) { state, unit, (draft, structure), editorOpen ->
+        val shownDraft = draft?.takeIf { restored ->
+            state.slots.any { it.programExerciseId == restored.slotId }
+        }
         state.copy(
             unit = unit, editorOpen = editorOpen, planEditing = planEditing,
-            prescriptionDraft = draft?.takeIf { restored ->
-                state.slots.any { it.programExerciseId == restored.slotId }
+            prescriptionDraft = shownDraft,
+            prescriptionStructure = structure?.takeIf { shownDraft != null }?.let { name ->
+                SetStructure.entries.firstOrNull { it.name == name }
             },
         )
     }
@@ -185,7 +190,22 @@ internal class DayEditor(
     fun openPrescription(slotId: Long) {
         val state = dayEditState.value
         val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
+        savedState[KEY_PRESCRIPTION_STRUCTURE] = null
         savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot, state.catalog, state.config)
+    }
+
+    fun openStraightSets(slotId: Long) {
+        val state = dayEditState.value
+        val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
+        val plan = state.planId ?: return
+        val day = state.dayId ?: return
+        mutate {
+            val working = repo.dayTracksFlow(plan, day).first().tracks.firstOrNull {
+                it.programExerciseId == slotId && it.slot == Slot.MAIN
+            }?.sets
+            savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.straightFrom(slot, working, state.catalog, state.config)
+            savedState[KEY_PRESCRIPTION_STRUCTURE] = SetStructure.STRAIGHT.name
+        }
     }
 
     fun changePrescriptionDraft(draft: PrescriptionDraft) {
@@ -194,12 +214,18 @@ internal class DayEditor(
         savedState[KEY_PRESCRIPTION_DRAFT] = draft.copy(resistance = draft.resistance.take(40))
     }
 
-    fun discardPrescription() { savedState[KEY_PRESCRIPTION_DRAFT] = null }
+    fun discardPrescription() {
+        savedState[KEY_PRESCRIPTION_DRAFT] = null
+        savedState[KEY_PRESCRIPTION_STRUCTURE] = null
+    }
 
     fun savePrescription() {
         val draft = prescriptionDraft.value ?: return
+        val structure = savedState.get<String>(KEY_PRESCRIPTION_STRUCTURE)?.let { name ->
+            SetStructure.entries.firstOrNull { it.name == name }
+        }
         mutate {
-            repo.setPrescription(draft.slotId, draft.prescription(), draft.sets)
+            repo.setPrescription(draft.slotId, draft.prescription(), draft.sets, structure)
             discardPrescription()
         }
     }
@@ -392,6 +418,7 @@ internal class DayEditor(
 
     private companion object {
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
+        const val KEY_PRESCRIPTION_STRUCTURE = "day_prescription_structure"
         const val KEY_CARDIO_SET_BEFORE_EDIT = "day_cardio_set_before_edit"
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"

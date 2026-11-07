@@ -122,7 +122,8 @@ class WizardLiftFieldsTest {
         val handle = SavedStateHandle()
         val initial = show(handle)
         rule.onAllNodesWithText("Weight (lb)").onFirst().requestFocus().performTextReplacement("225")
-        rule.onAllNodesWithText("Reps").onFirst().requestFocus().performTextReplacement("8").assertIsFocused()
+        rule.onAllNodesWithText("Reps").onFirst().requestFocus().performTextReplacement("8")
+        rule.onAllNodesWithText("Reps").onFirst().assertIsFocused()
 
         rule.runOnIdle {
             val parcel = Parcel.obtain()
@@ -167,7 +168,8 @@ class WizardLiftFieldsTest {
         val vm = show(handle) { writes += it }
         rule.onAllNodesWithText("Weight (lb)").onFirst().requestFocus().performTextReplacement("225")
         rule.runOnIdle { writes.clear() }
-        rule.onAllNodesWithText("Weight (lb)").onFirst().performTextReplacement("0").assertIsFocused()
+        rule.onAllNodesWithText("Weight (lb)").onFirst().performTextReplacement("0")
+        rule.onAllNodesWithText("Weight (lb)").onFirst().assertIsFocused()
         rule.runOnIdle {
             assertEquals(listOf<Double?>(null), writes)
             assertNull(handle.get<ArrayList<WizardLiftDraft>>("wizard_lifts")!!.single().weightLb)

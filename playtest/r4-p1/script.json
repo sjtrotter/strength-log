@@ -258,6 +258,202 @@
     },
     {
       "checkpoint": "row-swap-with-dumbbell-and-bench-available"
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "checkpoint": "one-arm-row-selected-scope-and-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "one-arm-row-active-after-edit"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "one-arm-row-actual-sets-logged"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "leg-curl-actual-sets-logged"
+    },
+    {
+      "advance": "37m30s"
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "15:00"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Walk 5 before + 10 after. Busy machine: One-Arm DB Row 10 lb, 3x10 EACH SIDE today. Return to machine next time."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "nov18-finished-swap-actuals-and-advice"
     }
   ]
 }

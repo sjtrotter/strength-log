@@ -45,21 +45,19 @@
    }
   },
   {
-   "checkpoint": "rower-picked"
-  },
-  {
    "tap": {
     "text": "Set 1 \u00b7 Work"
    }
   },
   {
-   "checkpoint": "cardio-set-editor"
+   "type": {
+    "text": "Duration",
+    "value": "15:00",
+    "ime": "done"
+   }
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "after-back"
+   "checkpoint": "duration-15"
   },
   {
    "tap": {
@@ -67,7 +65,20 @@
    }
   },
   {
-   "checkpoint": "day-a-saved"
+   "checkpoint": "cardio-after-set"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Next time"
+   }
+  },
+  {
+   "checkpoint": "edit-day-bottom"
   },
   {
    "back": true
@@ -80,7 +91,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -89,7 +100,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -98,7 +109,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -107,7 +118,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -116,7 +127,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -125,7 +136,7 @@
   {
    "tap": {
     "textContains": "Log ",
-    "inDialog": false
+    "role": "Button"
    }
   },
   {
@@ -133,6 +144,32 @@
   },
   {
    "checkpoint": "after-squat"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "checkpoint": "set-sheet"
   }
  ]
 }

@@ -33,6 +33,13 @@
       "checkpoint": "setup-step-3"
     },
     {
+      "type": {
+        "text": "Days per week",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
       "tap": {
         "text": "Next"
       }
@@ -58,11 +65,46 @@
     },
     {
       "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
     {
       "checkpoint": "setup-step-7"
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "160",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "novice-profile-filled"
     },
     {
       "tap": {

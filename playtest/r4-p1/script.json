@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-23",
+    "date": "2026-11-25",
     "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov23-today-after-temporary-swap"
+      "checkpoint": "nov25-short-visit-today"
     },
     {
       "tap": {
@@ -22,7 +22,7 @@
       }
     },
     {
-      "checkpoint": "nov23-offers-and-machine-row-return"
+      "checkpoint": "nov25-offers-after-80lb-missed-reps"
     },
     {
       "tap": {
@@ -30,7 +30,7 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "3m"
     },
     {
       "checkpoint": "leg-press-offered"
@@ -105,7 +105,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8"
+        "value": "10"
       }
     },
     {
@@ -113,7 +113,7 @@
     },
     {
       "tap": {
-        "text": "Log 80 lb \u00d7 8"
+        "text": "Log 80 lb \u00d7 10"
       }
     },
     {
@@ -179,184 +179,23 @@
       "advance": "90s"
     },
     {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
+      "checkpoint": "nov25-only-five-sets-done"
     },
     {
       "tap": {
-        "text": "Log 20 lb \u00d7 10"
+        "desc": "Day A lifts, 5 of 11 sets"
       }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "machine-row-offered"
     },
     {
       "tap": {
-        "desc": "Edit set 1"
+        "text": "Treadmill run"
       }
     },
     {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35"
-      }
+      "checkpoint": "nov25-log-warmup-only"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Log 35 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Log 35 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Log 35 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "leg-curl-offered"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Log 25 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Log 25 lb \u00d7 10"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "nov23-all-actual-lifting-logged"
-    },
-    {
-      "advance": "33m30s"
+      "advance": "13m30s"
     },
     {
       "tap": {
@@ -366,13 +205,13 @@
     {
       "type": {
         "text": "Duration",
-        "value": "15:00"
+        "value": "3:00"
       }
     },
     {
       "type": {
         "text": "Note",
-        "value": "Walk 5 before + 10 after. Leg press 80: missed last two reps. Want to repeat 80 next time."
+        "value": "Walked 3 min before lifting. Only 24 min today: LP 3 sets, chest 2 sets. No row, curl, or finishing walk."
       }
     },
     {
@@ -389,23 +228,7 @@
       }
     },
     {
-      "checkpoint": "nov23-finished-80lb-missed-reps-advice"
-    },
-    {
-      "tap": {
-        "desc": "Leg Press. 80 pounds: 10, 10 and 8 reps. Weight record on set 1, up from 70 pounds for 10 reps. Next time, add 20 pounds."
-      }
-    },
-    {
-      "checkpoint": "nov23-leg-press-repeat-explanation-and-choice"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "checkpoint": "nov23-closed-session"
+      "checkpoint": "nov25-finish-short-session-only-actual-work"
     }
   ]
 }

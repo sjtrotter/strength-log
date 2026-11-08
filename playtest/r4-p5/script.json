@@ -144,6 +144,60 @@
     },
     {
       "checkpoint": "hinge-exercise-options"
+    },
+    {
+      "scrollTo": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "checkpoint": "hinge-dumbbell-options"
+    },
+    {
+      "tap": {
+        "desc": "Back",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "return-to-movement-picker"
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "checkpoint": "single-leg-exercise-options"
+    },
+    {
+      "tap": {
+        "desc": "Back",
+        "index": 0
+      }
+    },
+    {
+      "swipe": {
+        "text": "Knee flexion (leg curl)",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "more-movement-categories"
+    },
+    {
+      "swipe": {
+        "text": "Pick a movement",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "lower-movement-categories"
     }
   ]
 }

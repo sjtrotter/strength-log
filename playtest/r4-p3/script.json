@@ -455,7 +455,8 @@
     },
     {
       "tap": {
-        "text": "Today"
+        "text": "Today",
+        "role": "Tab"
       }
     },
     {

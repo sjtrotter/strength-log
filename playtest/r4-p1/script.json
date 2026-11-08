@@ -229,6 +229,31 @@
     },
     {
       "checkpoint": "nov25-finish-short-session-only-actual-work"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "nov25-short-visit-saved-summary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "nov25-short-visit-closed"
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "month-history-after-short-visit"
     }
   ]
 }

@@ -358,7 +358,7 @@
   },
   {
    "tap": {
-    "text": "Stop"
+    "text": "Reached 2,000 m"
    }
   },
   {
@@ -369,7 +369,7 @@
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "text": "Finish day C"
    }
   },
   {

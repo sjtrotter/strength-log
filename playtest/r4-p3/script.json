@@ -380,6 +380,42 @@
     },
     {
       "checkpoint": "tuesday-bike-log-controls"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "checkpoint": "bike-twenty-minutes-elapsed"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "checkpoint": "bike-after-completion-action"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "tuesday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "tuesday-saved"
     }
   ]
 }

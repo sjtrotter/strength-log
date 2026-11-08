@@ -188,12 +188,6 @@
   },
   {
    "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "tap": {
     "text": "All sets"
    }
   },
@@ -222,12 +216,17 @@
   },
   {
    "tap": {
-    "text": "Save",
-    "inDialog": true
+    "text": "Save note"
    }
   },
   {
    "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
   },
   {
    "advance": "2m"

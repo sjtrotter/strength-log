@@ -13,9 +13,15 @@ on:
         required: false
         type: string
         default: '0'
-  # A change to the harness replays the pilot scripts, so it is proven before merge.
+  # A harness change replays every pilot. An app change replays the core pilots,
+  # which walk setup, a workout, History and Plans, so a screen change that
+  # breaks a script fails its own PR instead of the next harness PR.
   pull_request:
     paths:
+      - 'app/src/main/**'
+      - 'data/src/main/**'
+      - 'domain/src/main/**'
+      - 'transfer/src/main/**'
       - 'app/src/test/kotlin/cloud/trotter/log/strength/playtest/**'
       - 'playtest/pilot/**'
       - '.github/workflows/playtest.yml'
@@ -25,13 +31,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pick:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      scripts: ${{ steps.pick.outputs.scripts }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SCRIPT: ${{ inputs.script }}
+        run: |
+          core='["playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/history-day-start.json","playtest/pilot/dialog-text-field.json"]'
+          all='["playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json","playtest/pilot/zero-size-tap.json","playtest/pilot/dropdown-tap.json","playtest/pilot/advance-tap.json","playtest/pilot/page-transition-settle.json","playtest/pilot/compact-capture.json"]'
+          if [ -z "$PR" ]; then
+            scripts=$(jq -nc --arg s "$SCRIPT" '[$s]')
+          else
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" -q '.[].filename')
+            if grep -qE '^(app/src/test/kotlin/cloud/trotter/log/strength/playtest/|playtest/pilot/|\.github/workflows/playtest\.yml$)' <<<"$files"; then
+              scripts=$all
+            else
+              scripts=$core
+            fi
+          fi
+          echo "scripts=$scripts" >> "$GITHUB_OUTPUT"
+
   replay:
+    needs: pick
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        script: ${{ github.event_name == 'pull_request' && fromJSON('["playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json","playtest/pilot/zero-size-tap.json","playtest/pilot/dropdown-tap.json","playtest/pilot/advance-tap.json","playtest/pilot/page-transition-settle.json","playtest/pilot/compact-capture.json"]') || fromJSON(format('["{0}"]', inputs.script)) }}
+        script: ${{ fromJSON(needs.pick.outputs.scripts) }}
     steps:
       - uses: actions/checkout@v4
 

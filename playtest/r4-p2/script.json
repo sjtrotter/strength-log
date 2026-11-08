@@ -208,6 +208,13 @@
    }
   },
   {
+   "expect": {
+    "text": "Creating your plan\u2026",
+    "absent": true
+   },
+   "timeoutMs": 30000
+  },
+  {
    "checkpoint": "today"
   }
  ]

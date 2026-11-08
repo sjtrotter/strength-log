@@ -65,9 +65,7 @@
       }
     },
     {
-      "tap": {
-        "text": "2 days"
-      }
+      "checkpoint": "running-first-defer-custom-lifts"
     },
     {
       "tap": {
@@ -75,61 +73,7 @@
       }
     },
     {
-      "checkpoint": "supporting-lift-goal"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-7"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-8"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-9"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-10"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-11"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-page-12"
+      "checkpoint": "cardio-plan-review"
     },
     {
       "tap": {

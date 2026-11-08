@@ -32,6 +32,58 @@
     },
     {
       "checkpoint": "monday-squat-session-controls"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "squat-set-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "checkpoint": "whole-session-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-unlogged-session"
+    },
+    {
+      "tap": {
+        "text": "Plans"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "existing-plan-options"
     }
   ]
 }

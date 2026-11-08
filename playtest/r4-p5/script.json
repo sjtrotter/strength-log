@@ -23,6 +23,25 @@
     },
     {
       "checkpoint": "standalone-easy-run-controls"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "43m5s"
+    },
+    {
+      "checkpoint": "easy-run-after-43m05s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "easy-run-stop-review"
     }
   ]
 }

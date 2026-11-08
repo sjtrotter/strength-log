@@ -57,6 +57,14 @@
     },
     {
       "checkpoint": "day-a-exercise-editor"
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "strength-a-edit-day-controls"
     }
   ]
 }

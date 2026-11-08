@@ -49,6 +49,15 @@
     },
     {
       "checkpoint": "supporting-strength-created"
+    },
+    {
+      "tap": {
+        "text": "Day A",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "day-a-exercise-editor"
     }
   ]
 }

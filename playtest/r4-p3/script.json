@@ -118,17 +118,17 @@
     },
     {
       "type": {
-        "text": "Search exercises",
-        "value": ""
+        "text": "pause",
+        "value": "Paused Deadlift (pause just off floor)"
       }
     },
     {
       "tap": {
-        "text": "Conventional Deadlift"
+        "text": "Create exercise"
       }
     },
     {
-      "checkpoint": "add-deadlift-controls"
+      "checkpoint": "create-exact-paused-deadlift-variation"
     }
   ]
 }

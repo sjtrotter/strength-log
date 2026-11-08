@@ -329,13 +329,20 @@
     },
     {
       "tap": {
-        "textContains": "Finish",
-        "role": "Button",
-        "inDialog": true
+        "text": "Done",
+        "role": "Button"
       }
     },
     {
       "checkpoint": "strength-a-saved"
+    },
+    {
+      "tap": {
+        "textContains": "Running \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "running-session-preview-before-week-two"
     }
   ]
 }

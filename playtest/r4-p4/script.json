@@ -3,48 +3,29 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-16",
-  "time": "17:30",
+  "date": "2026-11-28",
+  "time": "12:00",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "checkpoint": "today-mon"
+   "checkpoint": "today-sat"
   },
   {
    "tap": {
-    "text": "Plans"
+    "text": "Start day B"
    }
+  },
+  {
+   "checkpoint": "bench-page"
   },
   {
    "tap": {
-    "text": "3-day full body"
+    "tag": "next-time-offer-main"
    }
   },
   {
-   "tap": {
-    "text": "Day A"
-   }
-  },
-  {
-   "checkpoint": "day-a-offers"
-  },
-  {
-   "tap": {
-    "tag": "next-time-offer-main",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "squat-offer-accepted"
-  },
-  {
-   "tap": {
-    "text": "Start day A"
-   }
-  },
-  {
-   "checkpoint": "squat-page"
+   "checkpoint": "bench-offer"
   },
   {
    "tap": {
@@ -83,30 +64,6 @@
    "advance": "2m"
   },
   {
-   "expect": {
-    "textContains": "(TOP)"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Edit set 5"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "value": "195"
-   }
-  },
-  {
-   "checkpoint": "top-195"
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
    "tap": {
     "textContains": "Log ",
     "role": "Button"
@@ -125,7 +82,7 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "db-bench-page"
+   "checkpoint": "after-bench"
   },
   {
    "tap": {
@@ -201,23 +158,15 @@
   },
   {
    "tap": {
-    "desc": "Edit set 3"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "tap": {
-    "desc": "Decrease reps"
-   }
+   "advance": "2m"
   },
   {
-   "tap": {
-    "desc": "Decrease reps"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
+   "checkpoint": "superset"
   },
   {
    "tap": {
@@ -256,20 +205,55 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "plank-page"
-  },
-  {
    "tap": {
-    "desc": "Day A lifts, 18 of 21 sets"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
+   "advance": "2m"
+  },
+  {
    "tap": {
-    "text": "Rower"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "rower-page"
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "pallof"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bike-page"
   },
   {
    "tap": {
@@ -277,34 +261,73 @@
    }
   },
   {
-   "advance": "15m"
-  },
-  {
-   "type": {
-    "tag": "workout-cardio-distance",
-    "value": "3470"
-   }
+   "advance": "2m"
   },
   {
    "tap": {
-    "text": "Stop"
+    "text": "Start"
    }
   },
   {
-   "checkpoint": "rower-done"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bike-done"
   },
   {
    "advance": "5s"
   },
   {
    "tap": {
-    "tag": "workout-finish"
-   }
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
+    "text": "Finish day B"
    }
   },
   {

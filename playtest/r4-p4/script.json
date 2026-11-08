@@ -343,16 +343,6 @@
    "checkpoint": "lifts-done"
   },
   {
-   "tap": {
-    "desc": "Day C lifts, 21 of 21 sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Rower"
-   }
-  },
-  {
    "checkpoint": "rower-2k-page"
   },
   {

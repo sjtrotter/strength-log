@@ -373,15 +373,6 @@
    }
   },
   {
-   "checkpoint": "finish-dlg"
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
    "checkpoint": "summary"
   }
  ]

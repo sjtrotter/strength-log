@@ -455,6 +455,37 @@
     },
     {
       "checkpoint": "record-first-visit-walking-controls"
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "13:00"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Walking: 5 min before lifting, 8 min after. Chest press seat 4."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "first-walks-saved"
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-after-recording-walks"
     }
   ]
 }

@@ -285,26 +285,13 @@
    }
   },
   {
-   "checkpoint": "add-set"
-  },
-  {
-   "tap": {
-    "text": "Work"
+   "scrollTo": {
+    "text": "Add set"
    }
   },
   {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "new-work-set"
-  },
-  {
    "tap": {
-    "text": "Save"
+    "text": "Add set"
    }
   },
   {
@@ -318,128 +305,8 @@
    }
   },
   {
-   "tap": {
-    "text": "Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
    "scrollTo": {
     "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
    }
   },
   {

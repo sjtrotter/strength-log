@@ -3,13 +3,13 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-11",
+  "date": "2026-11-13",
   "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "checkpoint": "today-wed"
+   "checkpoint": "today-fri"
   },
   {
    "tap": {
@@ -28,6 +28,9 @@
    }
   },
   {
+   "checkpoint": "day-c-view"
+  },
+  {
    "tap": {
     "text": "Edit"
    }
@@ -39,24 +42,12 @@
   },
   {
    "tap": {
-    "text": "Intervals 5 \u00d7 2:00"
+    "text": "Activity"
    }
-  },
-  {
-   "checkpoint": "intervals-template"
   },
   {
    "tap": {
-    "text": "Remove",
-    "index": 0
-   }
-  },
-  {
-   "checkpoint": "warmup-removed"
-  },
-  {
-   "scrollTo": {
-    "text": "Set 1 \u00b7 Work"
+    "text": "Rower"
    }
   },
   {
@@ -65,11 +56,22 @@
    }
   },
   {
+   "tap": {
+    "text": "Distance"
+   }
+  },
+  {
+   "checkpoint": "distance-end"
+  },
+  {
    "type": {
-    "text": "Duration",
-    "value": "0:30",
+    "textContains": "Distance",
+    "value": "2000",
     "ime": "done"
    }
+  },
+  {
+   "checkpoint": "distance-2000"
   },
   {
    "tap": {
@@ -77,240 +79,7 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Set 2 \u00b7 Recovery"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 2 \u00b7 Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 3 \u00b7 Work"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 3 \u00b7 Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 4 \u00b7 Recovery"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 4 \u00b7 Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 5 \u00b7 Work"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 5 \u00b7 Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 6 \u00b7 Recovery"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 6 \u00b7 Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 7 \u00b7 Work"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 7 \u00b7 Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 8 \u00b7 Recovery"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 8 \u00b7 Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 9 \u00b7 Work"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 9 \u00b7 Work"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "0:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Set 10 \u00b7 Recovery"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 10 \u00b7 Recovery"
-   }
-  },
-  {
-   "type": {
-    "text": "Duration",
-    "value": "1:30",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "tap": {
-    "text": "Add set"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Add set"
-   }
-  },
-  {
-   "checkpoint": "intervals-built"
+   "checkpoint": "rower-2k-set"
   },
   {
    "tap": {
@@ -322,67 +91,11 @@
   },
   {
    "tap": {
-    "text": "Start day B"
+    "text": "Start day C"
    }
   },
   {
-   "checkpoint": "day-b-start"
-  },
-  {
-   "tap": {
-    "desc": "Day B lifts, 0 of 24 sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Bulgarian Split Squat"
-   }
-  },
-  {
-   "checkpoint": "jumped-bss"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "after-bss"
-  },
-  {
-   "tap": {
-    "desc": "Day B lifts, 3 of 24 sets"
-   }
-  },
-  {
-   "tap": {
-    "text": "Barbell Bench Press"
-   }
-  },
-  {
-   "checkpoint": "bench-page"
+   "checkpoint": "day-c-first"
   },
   {
    "tap": {
@@ -439,7 +152,7 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "after-bench"
+   "checkpoint": "db-bench"
   },
   {
    "tap": {
@@ -461,102 +174,24 @@
   },
   {
    "tap": {
-    "textContains": "Log ",
-    "role": "Button"
+    "desc": "Edit set 3"
    }
   },
   {
-   "advance": "2m"
+   "tap": {
+    "desc": "Decrease reps"
+   }
   },
   {
-   "checkpoint": "after-third"
+   "tap": {
+    "text": "Save set"
+   }
   },
   {
    "tap": {
     "textContains": "Log ",
     "role": "Button"
    }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "after-fourth"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "at-pallof"
   },
   {
    "tap": {
@@ -570,34 +205,38 @@
   },
   {
    "tap": {
-    "text": "Swap exercise"
+    "text": "Note"
    }
   },
   {
-   "checkpoint": "swap-screen"
+   "checkpoint": "note-ui"
   },
   {
-   "back": true
-  },
-  {
-   "checkpoint": "after-swap-back"
-  },
-  {
-   "tap": {
-    "desc": "Day B lifts, 21 of 24 sets"
+   "type": {
+    "editable": true,
+    "inDialog": true,
+    "value": "right arm gave out first"
    }
   },
   {
+   "checkpoint": "note-typed"
+  },
+  {
    "tap": {
-    "text": "Stationary bike"
+    "text": "Save",
+    "inDialog": true
    }
   },
   {
-   "checkpoint": "bike-page"
+   "checkpoint": "note-saved"
+  },
+  {
+   "advance": "2m"
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -605,7 +244,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -613,7 +253,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -621,7 +262,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -629,7 +271,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -637,7 +280,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -645,7 +289,8 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
@@ -653,14 +298,86 @@
   },
   {
    "tap": {
-    "text": "Start"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
    "advance": "2m"
   },
   {
-   "checkpoint": "bike-done"
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "lifts-done"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 21 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Rower"
+   }
+  },
+  {
+   "checkpoint": "rower-2k-page"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "8m11s"
+  },
+  {
+   "checkpoint": "rower-811"
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "rower-stopped"
+  },
+  {
+   "advance": "5s"
   },
   {
    "tap": {

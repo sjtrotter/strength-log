@@ -25,7 +25,12 @@
    }
   },
   {
-   "checkpoint": "day-a"
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "edit-day"
   },
   {
    "scrollTo": {
@@ -33,7 +38,7 @@
    }
   },
   {
-   "checkpoint": "day-a-bottom"
+   "checkpoint": "edit-day-bottom"
   },
   {
    "tap": {
@@ -42,6 +47,14 @@
   },
   {
    "checkpoint": "edit-cardio"
+  },
+  {
+   "tap": {
+    "text": "Activity"
+   }
+  },
+  {
+   "checkpoint": "activity-menu"
   }
  ]
 }

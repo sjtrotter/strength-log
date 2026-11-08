@@ -133,6 +133,53 @@
     },
     {
       "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "KG"
+      }
+    },
+    {
+      "type": {
+        "textContains": "Bodyweight",
+        "value": "100",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "41",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Advanced"
+      }
+    },
+    {
+      "checkpoint": "about-me-kg-41-advanced"
+    },
+    {
+      "tap": {
         "text": "Next"
       }
     },
@@ -154,6 +201,15 @@
     },
     {
       "checkpoint": "setup-page-10"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "after-final-setup-action"
     }
   ]
 }

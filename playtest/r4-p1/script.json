@@ -216,6 +216,14 @@
     },
     {
       "checkpoint": "workout-lifts-options-for-swap"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "workout-more-find-temporary-swap"
     }
   ]
 }

@@ -2,182 +2,43 @@
  "seat": "r4-p4",
  "capture": "compact",
  "start": {
-  "date": "2026-11-08",
-  "time": "20:30",
+  "restore": "start-backup.json",
+  "date": "2026-11-09",
+  "time": "17:35",
   "zone": "America/Chicago"
  },
  "steps": [
   {
    "tap": {
-    "text": "Lifting"
+    "text": "Plans"
+   }
+  },
+  {
+   "checkpoint": "plans"
+  },
+  {
+   "tap": {
+    "text": "Today"
    }
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Other days"
    }
+  },
+  {
+   "checkpoint": "other-days"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
-    "text": "Balanced strength + muscle"
+    "text": "Start day A"
    }
   },
   {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "type": {
-    "text": "Days per week",
-    "value": "3",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Full-body rotation"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
-   }
-  },
-  {
-   "tap": {
-    "text": "Conventional"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Bike / elliptical"
-   }
-  },
-  {
-   "tap": {
-    "text": "Finishers after lifting"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "LB"
-   }
-  },
-  {
-   "type": {
-    "text": "Bodyweight (lb)",
-    "value": "190",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Age",
-    "value": "38",
-    "ime": "done"
-   }
-  },
-  {
-   "tap": {
-    "text": "Intermediate"
-   }
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "tap": {
-    "text": "Trap Bar"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Kettlebell"
-   }
-  },
-  {
-   "tap": {
-    "text": "Ez Bar"
-   }
-  },
-  {
-   "tap": {
-    "text": "Kettlebell"
-   }
-  },
-  {
-   "checkpoint": "equipment"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "index": 0,
-    "value": "185",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "index": 1,
-    "value": "155",
-    "ime": "done"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (lb)",
-    "index": 2,
-    "value": "225",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "recent-lifts"
-  },
-  {
-   "tap": {
-    "text": "Next"
-   }
-  },
-  {
-   "checkpoint": "rotation"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "checkpoint": "today"
+   "checkpoint": "workout"
   }
  ]
 }

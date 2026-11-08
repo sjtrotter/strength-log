@@ -35,27 +35,42 @@
    }
   },
   {
-   "checkpoint": "edit-cardio"
-  },
-  {
    "tap": {
     "text": "Activity"
    }
   },
   {
-   "checkpoint": "activity-menu"
+   "tap": {
+    "text": "Rower"
+   }
+  },
+  {
+   "checkpoint": "rower-picked"
+  },
+  {
+   "tap": {
+    "text": "Set 1 \u00b7 Work"
+   }
+  },
+  {
+   "checkpoint": "cardio-set-editor"
   },
   {
    "back": true
   },
   {
-   "back": true
+   "checkpoint": "after-back"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "day-a-saved"
   },
   {
    "back": true
-  },
-  {
-   "checkpoint": "after-backs"
   },
   {
    "tap": {
@@ -64,16 +79,60 @@
   },
   {
    "tap": {
-    "desc": "Day A lifts, 0 of 21 sets"
+    "textContains": "Log ",
+    "inDialog": false
    }
+  },
+  {
+   "advance": "2m"
   },
   {
    "tap": {
-    "text": "Stationary bike"
+    "textContains": "Log ",
+    "inDialog": false
    }
   },
   {
-   "checkpoint": "cardio-in-workout"
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "inDialog": false
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "inDialog": false
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "inDialog": false
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "inDialog": false
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-squat"
   }
  ]
 }

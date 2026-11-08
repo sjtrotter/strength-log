@@ -481,7 +481,7 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day A"
       }
     },
     {

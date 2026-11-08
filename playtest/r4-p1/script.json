@@ -245,6 +245,19 @@
     },
     {
       "checkpoint": "row-swap-choices-and-scope"
+    },
+    {
+      "tap": {
+        "text": "Dumbbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bench"
+      }
+    },
+    {
+      "checkpoint": "row-swap-with-dumbbell-and-bench-available"
     }
   ]
 }

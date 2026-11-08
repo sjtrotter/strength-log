@@ -75,6 +75,14 @@
       "checkpoint": "add-strength-exercise-picker"
     },
     {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "checkpoint": "squat-movement-exercise-options"
+    },
+    {
       "scrollTo": {
         "textContains": "Goblet"
       }

@@ -89,7 +89,7 @@
   },
   {
    "tap": {
-    "tag": "workout-hero"
+    "desc": "Edit set 5"
    }
   },
   {
@@ -201,7 +201,7 @@
   },
   {
    "tap": {
-    "tag": "workout-hero"
+    "desc": "Edit set 3"
    }
   },
   {
@@ -260,30 +260,13 @@
   },
   {
    "tap": {
-    "textContains": "Log ",
-    "role": "Button"
+    "desc": "Day A lifts, 18 of 21 sets"
    }
-  },
-  {
-   "advance": "2m"
   },
   {
    "tap": {
-    "textContains": "Log ",
-    "role": "Button"
+    "text": "Rower"
    }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
   },
   {
    "checkpoint": "rower-page"
@@ -315,7 +298,13 @@
   },
   {
    "tap": {
-    "text": "Finish day A"
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
    }
   },
   {

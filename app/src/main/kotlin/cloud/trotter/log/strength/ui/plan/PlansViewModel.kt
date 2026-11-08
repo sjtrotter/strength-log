@@ -45,7 +45,8 @@ class PlansViewModel @Inject constructor(
     private val existingState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
         PlansUiState(plans, menu, rename, draft)
     }
-    private val you = combine(repo.configFlow, settings.unitFlow) { config, unit ->
+    private val you = combine(repo.configFlow, settings.unitFlow, settings.hasLifterAnswersFlow) { config, unit, hasAnswers ->
+        if (!hasAnswers) return@combine null
         val levelLabel = when (config.level) {
             ExperienceLevel.NOVICE -> R.string.setup_level_novice
             ExperienceLevel.INTERMEDIATE -> R.string.setup_level_intermediate

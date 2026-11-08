@@ -78,10 +78,28 @@ class PlansViewModelTest {
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
 
-    private suspend fun seed() {
+    private suspend fun seed(hasLifterAnswers: Boolean = true) {
         repo.replaceProgram(Program(listOf(ProgramDay(
             id = "A", title = "Day A", emphasisLine = "", exercises = emptyList(),
         ))))
+        if (hasLifterAnswers) settings.updateGlobalLifter { it }
+    }
+
+    @Test
+    fun `you summary is absent until lifter answers exist`() = runTest(dispatcher) {
+        seed(hasLifterAnswers = false)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.plans.size)
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertNull(vm.uiState.value.you)
+
+        repo.plans.updateLifter { it }
+        advanceUntilIdle()
+
+        assertTrue(settings.hasLifterAnswersFlow.first())
+        assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
     }
 
     @Test

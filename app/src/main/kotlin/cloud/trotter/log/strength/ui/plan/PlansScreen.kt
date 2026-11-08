@@ -69,15 +69,8 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
     ) { padding ->
         if (state.plans.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(padding)) {
-                state.you?.let { you ->
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.you_title)) },
-                        supportingContent = { Text(stringResource(R.string.plans_you_summary, you.bodyweightDisplay, you.age, you.level)) },
-                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
-                        modifier = Modifier.clickable(onClick = actions.onOpenYou),
-                    )
-                    HorizontalDivider()
-                }
+                YouRow(state.you, actions.onOpenYou)
+                HorizontalDivider()
                 EmptyState(
                     title = stringResource(R.string.screen_no_plans_title),
                     body = stringResource(R.string.screen_no_plans_body),
@@ -86,16 +79,9 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
                 )
             }
         } else LazyColumn(contentPadding = padding) {
-            state.you?.let { you ->
-                item(key = "you") {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.you_title)) },
-                        supportingContent = { Text(stringResource(R.string.plans_you_summary, you.bodyweightDisplay, you.age, you.level)) },
-                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
-                        modifier = Modifier.clickable(onClick = actions.onOpenYou),
-                    )
-                    HorizontalDivider()
-                }
+            item(key = "you") {
+                YouRow(state.you, actions.onOpenYou)
+                HorizontalDivider()
             }
             items(active, key = { it.id }) { plan ->
                 PlanRow(plan, state.menuPlanId == plan.id, active.size > 1, actions)
@@ -174,6 +160,20 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             },
         )
     }
+}
+
+@Composable
+private fun YouRow(you: YouSummary?, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.you_title)) },
+        supportingContent = {
+            Text(you?.let {
+                stringResource(R.string.plans_you_summary, it.bodyweightDisplay, it.age, it.level)
+            } ?: stringResource(R.string.plans_you_not_set))
+        },
+        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
+        modifier = Modifier.clickable(onClick = onClick),
+    )
 }
 
 @Composable

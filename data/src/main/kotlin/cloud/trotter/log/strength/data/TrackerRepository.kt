@@ -163,7 +163,9 @@ class TrackerRepository(
     }
 
     suspend fun removeDay(planId: Long, dayId: String): Boolean {
-        val bodyweight = plans.configFlow.first().bodyweightLb
+        val config = plans.configFlow.first()
+        val hasAnswers = settings.hasLifterAnswersFlow.first()
+        val bodyweight = config.bodyweightLb.takeIf { hasAnswers }
         val catalog = this.catalog.snapshot()
         return db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction false
@@ -346,7 +348,9 @@ class TrackerRepository(
     suspend fun replaceProgram(program: Program) {
         plans.ensurePlanSettingsMigrated()
         val planId = plans.ensureSelectedPlan()
-        val bodyweight = plans.configFlow.first().bodyweightLb
+        val config = plans.configFlow.first()
+        val hasAnswers = settings.hasLifterAnswersFlow.first()
+        val bodyweight = config.bodyweightLb.takeIf { hasAnswers }
         val catalog = this.catalog.snapshot()
         db.withTransaction {
             closeRemovedRun(planId, programDao.daysForPlan(planId).map { it.dayId }.toSet(), bodyweight, catalog)
@@ -1550,13 +1554,14 @@ class TrackerRepository(
      *  applier does not share the phone's lock). */
     suspend fun finishRunCapturing(runId: String): FinishedRun? {
         val config = plans.configFlow.first()
+        val hasAnswers = settings.hasLifterAnswersFlow.first()
         val catalog = this.catalog.snapshot()
         return db.withTransaction {
             sessionDao.sessionByRunId(runId)?.let { return@withTransaction FinishedRun(it.id, null) }
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction null
             val tracks = runDao.tracks(runId)
             val now = clock.millis()
-            val sessionId = archiveRun(run, tracks, config.bodyweightLb, catalog, now)
+            val sessionId = archiveRun(run, tracks, config.bodyweightLb.takeIf { hasAnswers }, catalog, now)
             val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
             val slots = day?.let { programDao.exercisesForDay(it.planId, it.dayId) }
                 .orEmpty().map { ProgramSlot(it.id, it.position, it.toDomain()) }
@@ -1574,7 +1579,7 @@ class TrackerRepository(
     private suspend fun archiveRun(
         run: WorkoutRunEntity,
         tracks: List<RunTrackEntity>,
-        bodyweight: Double,
+        bodyweight: Double?,
         catalog: ExerciseCatalog,
         now: Long,
     ): Long {
@@ -1669,7 +1674,7 @@ class TrackerRepository(
         true
     }
 
-    private suspend fun closeRemovedRun(planId: Long, dayIds: Set<String>, bodyweight: Double, catalog: ExerciseCatalog) {
+    private suspend fun closeRemovedRun(planId: Long, dayIds: Set<String>, bodyweight: Double?, catalog: ExerciseCatalog) {
         val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId in dayIds } ?: return
         val tracks = runDao.tracks(run.id)
         if (tracks.any { track -> SetJson.decodeSets(track.setsJson).any { it.done } }) {

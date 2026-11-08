@@ -210,6 +210,11 @@ then checks day B on Today. The wizard has no dialog in this version;
 the dialog pilot opens the workout Finish confirmation after completing it.
 For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/zero-step-launch.json`.
 
+CI replays every pilot on a PR that touches the harness, the pilots or the
+playtest workflow. A PR that changes app, data, domain or transfer code replays
+the core four: wizard-to-today, rest-timer-advance, history-day-start and
+dialog-text-field. When an app change breaks one, update the script in the same PR.
+
 The second-pass harness regressions have these checks:
 
 | Item | Pilot or workaround |

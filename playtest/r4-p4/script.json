@@ -209,6 +209,12 @@
    "advance": "2m"
   },
   {
+   "recreate": true
+  },
+  {
+   "checkpoint": "after-recreate"
+  },
+  {
    "tap": {
     "textContains": "Log ",
     "role": "Button"
@@ -300,6 +306,31 @@
   },
   {
    "checkpoint": "rower-15m"
+  },
+  {
+   "type": {
+    "tag": "workout-cardio-distance",
+    "value": "3412"
+   }
+  },
+  {
+   "checkpoint": "distance-typed"
+  },
+  {
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "rower-stopped"
+  },
+  {
+   "tap": {
+    "text": "Finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dialog"
   }
  ]
 }

@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-28",
-    "time": "09:00",
+    "date": "2026-11-30",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov28-reduced-close-grip-and-walk"
+      "checkpoint": "nov30-planned-deload"
     },
     {
       "tap": {
@@ -23,134 +23,15 @@
     },
     {
       "tap": {
-        "text": "Day B"
+        "text": "Day A"
       }
+    },
+    {
+      "checkpoint": "deload-monday-offered-prescription"
     },
     {
       "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Close-grip competition bench"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Close-grip competition bench"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (kg)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (kg)",
-        "value": "95"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "text": "Close-grip competition bench",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "close-grip-added-separately-from-competition-bench"
-    },
-    {
-      "scrollTo": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Activity"
-      }
-    },
-    {
-      "checkpoint": "treadmill-options-for-final-week"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "checkpoint": "nov28-started-day-with-close-grip"
-    },
-    {
-      "tap": {
-        "desc": "Day B lifts, 0 of 33 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Close-grip competition bench"
-      }
-    },
-    {
-      "tap": {
-        "text": "Close-grip competition bench"
+        "text": "Start day A"
       }
     },
     {
@@ -159,28 +40,28 @@
       }
     },
     {
-      "checkpoint": "nov28-close-grip-template95x10x3"
+      "checkpoint": "deload-squat-offered-sets"
     },
     {
       "scrollTo": {
-        "tag": "lift-set-0"
+        "tag": "lift-set-4"
       }
     },
     {
       "tap": {
-        "tag": "lift-set-0"
+        "tag": "lift-set-4"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "90"
+        "value": "175"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "6"
+        "value": "1"
       }
     },
     {
@@ -195,37 +76,40 @@
     },
     {
       "scrollTo": {
-        "tag": "lift-check-main-0"
+        "tag": "lift-check-main-4"
       }
     },
     {
-      "advance": "3m"
+      "advance": "4m"
     },
     {
       "tap": {
-        "tag": "lift-check-main-0"
+        "tag": "lift-check-main-4"
       }
+    },
+    {
+      "checkpoint": "deload-single175x1"
     },
     {
       "scrollTo": {
-        "tag": "lift-set-1"
+        "tag": "lift-set-5"
       }
     },
     {
       "tap": {
-        "tag": "lift-set-1"
+        "tag": "lift-set-5"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "90"
+        "value": "145"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "6"
+        "value": "4"
       }
     },
     {
@@ -240,64 +124,65 @@
     },
     {
       "scrollTo": {
-        "tag": "lift-check-main-1"
+        "tag": "lift-check-main-5"
       }
     },
     {
-      "advance": "3m"
+      "advance": "5m"
     },
     {
       "tap": {
-        "tag": "lift-check-main-1"
+        "tag": "lift-check-main-5"
       }
     },
     {
       "scrollTo": {
-        "tag": "lift-set-2"
+        "text": "Add a set"
       }
     },
     {
       "tap": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "90"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
+        "text": "Add a set"
       }
     },
     {
       "scrollTo": {
-        "tag": "lift-check-main-2"
+        "tag": "lift-check-main-6"
       }
     },
     {
-      "advance": "3m"
+      "advance": "5m"
     },
     {
       "tap": {
-        "tag": "lift-check-main-2"
+        "tag": "lift-check-main-6"
       }
     },
     {
-      "checkpoint": "nov28-actual90x6x3"
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "checkpoint": "deload-backoffs145x4x3"
     },
     {
       "back": true
@@ -320,7 +205,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Warmup80x5 heavy. Planned95x6x4; did90x6x3. DB press22/hand x10x3. Walk20min 4.8km/h 3%. Rows/raises/curls done."
+        "value": "Week4 planned deload. Squat175x1 @6;145x4x3. Everything moved well. No extra work."
       }
     },
     {
@@ -329,10 +214,222 @@
       }
     },
     {
-      "checkpoint": "nov28-walk-and-reduction-note"
+      "tap": {
+        "desc": "Day A lifts, 4 of 23 sets"
+      }
     },
     {
-      "advance": "35m"
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "deload-bench-offered-after-swap"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "checkpoint": "deload-bench90x5x3"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Deload: competition pause90x5x3. Two easy sets each curls/ab wheel done, note only. No extra work."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "advance": "10m"
     },
     {
       "tap": {
@@ -340,7 +437,7 @@
       }
     },
     {
-      "checkpoint": "nov28-partial-finish"
+      "checkpoint": "nov30-finish-review"
     },
     {
       "tap": {
@@ -349,7 +446,25 @@
       }
     },
     {
-      "checkpoint": "nov28-saved-reduced-session"
+      "checkpoint": "nov30-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings-export-discovery"
     }
   ]
 }

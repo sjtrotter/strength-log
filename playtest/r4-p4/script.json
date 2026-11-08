@@ -3,11 +3,14 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-09",
-  "time": "17:35",
+  "date": "2026-11-11",
+  "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
+  {
+   "checkpoint": "today-wed"
+  },
   {
    "tap": {
     "text": "Plans"
@@ -21,7 +24,7 @@
   {
    "tap": {
     "text": "6 lifts, 21 sets",
-    "index": 0
+    "index": 1
    }
   },
   {
@@ -36,13 +39,11 @@
   },
   {
    "tap": {
-    "text": "Activity"
+    "text": "Intervals 5 \u00d7 2:00"
    }
   },
   {
-   "tap": {
-    "text": "Rower"
-   }
+   "checkpoint": "intervals-template"
   },
   {
    "tap": {
@@ -50,43 +51,82 @@
    }
   },
   {
-   "type": {
-    "text": "Duration",
-    "value": "15:00",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "duration-15"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "cardio-after-set"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "scrollTo": {
-    "text": "Next time"
-   }
-  },
-  {
-   "checkpoint": "edit-day-bottom"
+   "checkpoint": "interval-set-editor"
   },
   {
    "back": true
   },
   {
    "tap": {
-    "text": "Start day A"
+    "text": "Save"
    }
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Start day B"
+   }
+  },
+  {
+   "checkpoint": "day-b-start"
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Bulgarian Split Squat"
+   }
+  },
+  {
+   "checkpoint": "jumped-bss"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-bss"
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 3 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Barbell Bench Press"
+   }
+  },
+  {
+   "checkpoint": "bench-page"
   },
   {
    "tap": {
@@ -143,43 +183,7 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "after-squat"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "tap": {
-    "desc": "Decrease reps"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "checkpoint": "after-save-set"
+   "checkpoint": "after-bench"
   },
   {
    "tap": {
@@ -209,10 +213,7 @@
    "advance": "2m"
   },
   {
-   "recreate": true
-  },
-  {
-   "checkpoint": "after-recreate"
+   "checkpoint": "after-third"
   },
   {
    "tap": {
@@ -242,13 +243,7 @@
    "advance": "2m"
   },
   {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
+   "checkpoint": "after-fourth"
   },
   {
    "tap": {
@@ -278,23 +273,39 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "at-plank"
+   "checkpoint": "at-pallof"
   },
   {
    "tap": {
-    "desc": "Day A lifts, 18 of 21 sets"
+    "text": "All sets"
    }
-  },
-  {
-   "checkpoint": "overview"
   },
   {
    "tap": {
-    "text": "Rower"
+    "desc": "More"
    }
   },
   {
-   "checkpoint": "rower-page"
+   "checkpoint": "exercise-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day B lifts, 18 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stationary bike"
+   }
+  },
+  {
+   "checkpoint": "bike-page"
   },
   {
    "tap": {
@@ -302,44 +313,16 @@
    }
   },
   {
-   "advance": "15m"
+   "advance": "4m"
   },
   {
-   "checkpoint": "rower-15m"
+   "checkpoint": "bike-4m"
   },
   {
-   "type": {
-    "tag": "workout-cardio-distance",
-    "value": "3412"
-   }
+   "advance": "14m"
   },
   {
-   "checkpoint": "distance-typed"
-  },
-  {
-   "tap": {
-    "text": "Stop"
-   }
-  },
-  {
-   "checkpoint": "rower-stopped"
-  },
-  {
-   "tap": {
-    "text": "Finish"
-   }
-  },
-  {
-   "checkpoint": "finish-dialog"
-  },
-  {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
-  },
-  {
-   "checkpoint": "summary"
+   "checkpoint": "bike-18m"
   }
  ]
 }

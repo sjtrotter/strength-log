@@ -3,13 +3,23 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-17",
+    "date": "2026-11-24",
     "time": "06:45",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "week-two-tuesday-before-easy-run"
+      "checkpoint": "week-three-before-easy-run"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Running \u00b7 Day A"
+      }
     },
     {
       "tap": {
@@ -22,7 +32,7 @@
       }
     },
     {
-      "checkpoint": "standalone-easy-run-controls"
+      "checkpoint": "week-three-offered-easy-run"
     },
     {
       "tap": {
@@ -30,10 +40,10 @@
       }
     },
     {
-      "advance": "43m5s"
+      "advance": "42m50s"
     },
     {
-      "checkpoint": "easy-run-after-43m05s"
+      "checkpoint": "week-three-run-timer"
     },
     {
       "tap": {
@@ -41,7 +51,21 @@
       }
     },
     {
-      "checkpoint": "easy-run-stop-review"
+      "checkpoint": "week-three-saved-run"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "week-three-history-and-totals"
     }
   ]
 }

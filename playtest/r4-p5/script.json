@@ -217,6 +217,27 @@
     },
     {
       "checkpoint": "choose-strength-session"
+    },
+    {
+      "tap": {
+        "textContains": "Supporting strength \u00b7 Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "strength-a-active-squat"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-set-entry-controls"
     }
   ]
 }

@@ -2,86 +2,22 @@
   "seat": "r4-p5",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "20:30",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "fresh-install-setup"
+      "checkpoint": "monday-before-strength-a"
     },
     {
       "tap": {
-        "role": "RadioButton",
-        "index": 1
+        "text": "Plans"
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "km"
-      }
-    },
-    {
-      "tap": {
-        "text": "Distance",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Distance",
-        "value": "7",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "comfortable-7km"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Rest days",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "running-first-defer-custom-lifts"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "cardio-plan-review"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "checkpoint": "setup-complete-today"
+      "checkpoint": "find-custom-strength-plan"
     }
   ]
 }

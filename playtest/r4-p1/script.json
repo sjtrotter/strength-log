@@ -148,10 +148,40 @@
       "checkpoint": "leg-curl-exercise-choices"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
     },
     {
-      "back": true
+      "checkpoint": "leg-curl-added"
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "tap": {
@@ -165,6 +195,61 @@
     },
     {
       "checkpoint": "squat-swap-exercise-choices"
+    },
+    {
+      "scrollTo": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "leg-press-replacement"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "60"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "machine-routine-ready"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "first-workout-started"
     }
   ]
 }

@@ -7,65 +7,6 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    {
-      "checkpoint": "fresh-install"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "cardio-setup-next"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-defaults-review"
-    }
+    { "checkpoint": "fresh-install-setup" }
   ]
 }

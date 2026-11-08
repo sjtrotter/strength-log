@@ -57,6 +57,28 @@
       "checkpoint": "tuesday-bike-prescription-controls"
     },
     {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "bike-duration-editor"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "lift-template-prescription-controls"
+    },
+    {
       "back": true
     },
     {
@@ -65,16 +87,12 @@
       }
     },
     {
-      "checkpoint": "add-my-paused-deadlift"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "paused"
+      "tap": {
+        "text": "Hinge"
       }
     },
     {
-      "checkpoint": "paused-variation-search"
+      "checkpoint": "hinge-exercise-choices"
     }
   ]
 }

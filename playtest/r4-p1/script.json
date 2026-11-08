@@ -393,11 +393,19 @@
     },
     {
       "tap": {
-        "text": "Leg Press"
+        "desc": "Leg Press. 80 pounds: 10, 10 and 8 reps. Weight record on set 1, up from 70 pounds for 10 reps. Next time, add 20 pounds."
       }
     },
     {
       "checkpoint": "nov23-leg-press-repeat-explanation-and-choice"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "nov23-closed-session"
     }
   ]
 }

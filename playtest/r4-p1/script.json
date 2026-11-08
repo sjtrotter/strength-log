@@ -442,6 +442,19 @@
     },
     {
       "checkpoint": "first-visit-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Keep going"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "checkpoint": "record-first-visit-walking-controls"
     }
   ]
 }

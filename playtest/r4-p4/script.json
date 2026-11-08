@@ -331,6 +331,15 @@
   },
   {
    "checkpoint": "finish-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
   }
  ]
 }

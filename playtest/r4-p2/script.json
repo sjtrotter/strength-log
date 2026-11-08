@@ -13,7 +13,9 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "tap": {
+    "text": "Strength-leaning"
+   }
   },
   {
    "tap": {
@@ -21,7 +23,17 @@
    }
   },
   {
-   "checkpoint": "w3"
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Upper / Lower"
+   }
+  },
+  {
+   "checkpoint": "split-chosen"
   },
   {
    "tap": {
@@ -29,7 +41,22 @@
    }
   },
   {
-   "checkpoint": "w4"
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Conventional"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
+  },
+  {
+   "checkpoint": "mains-chosen"
   },
   {
    "tap": {
@@ -37,7 +64,17 @@
    }
   },
   {
-   "checkpoint": "w5"
+   "tap": {
+    "text": "Separate days"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Keep me 5k-ready"
+   }
+  },
+  {
+   "checkpoint": "cardio-chosen"
   },
   {
    "tap": {
@@ -45,15 +82,21 @@
    }
   },
   {
-   "checkpoint": "w6"
+   "type": {
+    "text": "Bodyweight (lb)"
+   },
+   "value": "190",
+   "ime": "done"
   },
   {
-   "tap": {
-    "text": "Next"
-   }
+   "type": {
+    "text": "Age"
+   },
+   "value": "34",
+   "ime": "done"
   },
   {
-   "checkpoint": "w7"
+   "checkpoint": "about-you"
   },
   {
    "tap": {

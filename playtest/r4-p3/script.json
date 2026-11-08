@@ -470,6 +470,211 @@
     },
     {
       "checkpoint": "competition-bench-substitution-choices"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "barbell-bench-swapped-for-today"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "bench-sets-after-swap"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "five-bench-sets-100x5"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Competition pause. 100x5x5. First set stiff, then fine."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "bench-stiffness-note-saved"
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "monday-finish-review"
     }
   ]
 }

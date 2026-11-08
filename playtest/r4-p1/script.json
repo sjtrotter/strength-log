@@ -224,6 +224,27 @@
     },
     {
       "checkpoint": "workout-more-find-temporary-swap"
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "edit-day-during-active-session"
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "row-swap-choices-and-scope"
     }
   ]
 }

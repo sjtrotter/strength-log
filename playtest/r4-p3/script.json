@@ -65,10 +65,23 @@
       "checkpoint": "bike-duration-editor"
     },
     {
-      "back": true
+      "type": {
+        "text": "Duration",
+        "value": "20:00"
+      }
     },
     {
-      "back": true
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "bike-plan-twenty-minutes-easy"
     },
     {
       "tap": {
@@ -93,6 +106,29 @@
     },
     {
       "checkpoint": "hinge-exercise-choices"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pause"
+      }
+    },
+    {
+      "checkpoint": "search-paused-hinge-variation"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": ""
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "checkpoint": "add-deadlift-controls"
     }
   ]
 }

@@ -20,25 +20,20 @@
   },
   {
    "tap": {
-    "desc": "Day options",
+    "text": "6 lifts, 21 sets",
     "index": 0
    }
   },
   {
-   "checkpoint": "day-options"
-  },
-  {
-   "tap": {
-    "textContains": "Edit"
-   }
-  },
-  {
-   "checkpoint": "edit-day"
+   "checkpoint": "day-a"
   },
   {
    "scrollTo": {
     "textContains": "Stationary bike"
    }
+  },
+  {
+   "checkpoint": "day-a-bottom"
   },
   {
    "tap": {

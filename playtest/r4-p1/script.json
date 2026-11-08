@@ -250,6 +250,58 @@
     },
     {
       "checkpoint": "first-workout-started"
+    },
+    {
+      "note": "Walked five minutes before lifting. Cardio logging route still undiscovered; elapsed time is not a cardio record."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "first-leg-press-set-and-rest"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "rest-after-ninety-seconds"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 60 lb \u00d7 10"
+      }
+    },
+    {
+      "checkpoint": "leg-press-three-sets-done"
+    },
+    {
+      "tap": {
+        "text": "Next: Machine Chest Press"
+      }
+    },
+    {
+      "checkpoint": "chest-before-missed-reps"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "actual-reps-entry-controls"
     }
   ]
 }

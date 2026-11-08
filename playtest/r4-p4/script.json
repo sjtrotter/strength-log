@@ -18,7 +18,9 @@
    }
   },
   {
-   "checkpoint": "w2"
+   "tap": {
+    "text": "Balanced strength + muscle"
+   }
   },
   {
    "tap": {
@@ -26,7 +28,14 @@
    }
   },
   {
-   "checkpoint": "w3"
+   "type": {
+    "text": "Days per week",
+    "value": "3",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "days3"
   },
   {
    "tap": {
@@ -34,7 +43,12 @@
    }
   },
   {
-   "checkpoint": "w4"
+   "checkpoint": "split"
+  },
+  {
+   "tap": {
+    "text": "Full-body rotation"
+   }
   },
   {
    "tap": {
@@ -42,7 +56,14 @@
    }
   },
   {
-   "checkpoint": "w5"
+   "tap": {
+    "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Conventional"
+   }
   },
   {
    "tap": {
@@ -50,7 +71,22 @@
    }
   },
   {
-   "checkpoint": "w6"
+   "tap": {
+    "text": "Bike / elliptical"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finishers after lifting"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Keep me 5k-ready"
+   }
+  },
+  {
+   "checkpoint": "cardio"
   },
   {
    "tap": {
@@ -58,7 +94,31 @@
    }
   },
   {
-   "checkpoint": "w7"
+   "tap": {
+    "text": "LB"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (lb)",
+    "value": "190",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Age",
+    "value": "38",
+    "ime": "done"
+   }
+  },
+  {
+   "tap": {
+    "text": "Intermediate"
+   }
+  },
+  {
+   "checkpoint": "about"
   },
   {
    "tap": {
@@ -83,9 +143,6 @@
   },
   {
    "checkpoint": "w10"
-  },
-  {
-   "checkpoint": "after-wizard"
   }
  ]
 }

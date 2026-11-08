@@ -268,7 +268,19 @@
       "checkpoint": "one-arm-row-selected-scope-and-prescription"
     },
     {
-      "back": true
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 1 of 3"
+      }
     },
     {
       "checkpoint": "one-arm-row-active-after-edit"

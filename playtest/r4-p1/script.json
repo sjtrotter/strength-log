@@ -288,9 +288,7 @@
       "checkpoint": "leg-press-three-sets-done"
     },
     {
-      "tap": {
-        "text": "Next: Machine Chest Press"
-      }
+      "advance": "90s"
     },
     {
       "checkpoint": "chest-before-missed-reps"
@@ -302,6 +300,15 @@
     },
     {
       "checkpoint": "actual-reps-entry-controls"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "checkpoint": "chest-six-reps-entered"
     }
   ]
 }

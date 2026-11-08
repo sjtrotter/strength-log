@@ -26,6 +26,14 @@
     },
     {
       "checkpoint": "new-strength-plan-options"
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "empty-strength-plan-editor"
     }
   ]
 }

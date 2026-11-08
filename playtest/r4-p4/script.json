@@ -3,13 +3,13 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-13",
+  "date": "2026-11-16",
   "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "checkpoint": "today-fri"
+   "checkpoint": "today-mon"
   },
   {
    "tap": {
@@ -23,78 +23,109 @@
   },
   {
    "tap": {
-    "text": "Day C"
+    "text": "Day A"
    }
   },
   {
-   "checkpoint": "day-c-view"
+   "checkpoint": "day-a-offers"
   },
   {
    "tap": {
-    "text": "Edit"
+    "tag": "next-time-offer-main",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "squat-offer-accepted"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "checkpoint": "squat-page"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "expect": {
+    "textContains": "(TOP)"
    }
   },
   {
    "tap": {
-    "text": "Edit cardio"
+    "tag": "workout-hero"
    }
-  },
-  {
-   "tap": {
-    "text": "Activity"
-   }
-  },
-  {
-   "tap": {
-    "text": "Rower"
-   }
-  },
-  {
-   "tap": {
-    "text": "Set 1 \u00b7 Work"
-   }
-  },
-  {
-   "tap": {
-    "text": "Distance"
-   }
-  },
-  {
-   "checkpoint": "distance-end"
   },
   {
    "type": {
-    "textContains": "Distance",
-    "value": "2000",
-    "ime": "done"
+    "text": "Weight (lb)",
+    "value": "195"
    }
   },
   {
-   "checkpoint": "distance-2000"
+   "checkpoint": "top-195"
   },
   {
    "tap": {
-    "text": "Save"
+    "text": "Save set"
    }
-  },
-  {
-   "checkpoint": "rower-2k-set"
   },
   {
    "tap": {
-    "text": "Save"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "back": true
+   "advance": "2m"
   },
   {
    "tap": {
-    "text": "Start day C"
+    "textContains": "Log ",
+    "role": "Button"
    }
   },
   {
-   "checkpoint": "day-c-first"
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "db-bench-page"
   },
   {
    "tap": {
@@ -151,9 +182,6 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "db-bench"
-  },
-  {
    "tap": {
     "textContains": "Log ",
     "role": "Button"
@@ -173,7 +201,12 @@
   },
   {
    "tap": {
-    "desc": "Edit set 3"
+    "tag": "workout-hero"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
    }
   },
   {
@@ -188,42 +221,6 @@
   },
   {
    "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Note"
-   }
-  },
-  {
-   "checkpoint": "note-ui"
-  },
-  {
-   "type": {
-    "editable": true,
-    "inDialog": true,
-    "value": "right arm gave out first"
-   }
-  },
-  {
-   "checkpoint": "note-typed"
-  },
-  {
-   "tap": {
-    "text": "Save note"
-   }
-  },
-  {
-   "checkpoint": "note-saved"
-  },
-  {
-   "tap": {
     "textContains": "Log ",
     "role": "Button"
    }
@@ -259,13 +256,7 @@
    "advance": "2m"
   },
   {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
+   "checkpoint": "plank-page"
   },
   {
    "tap": {
@@ -295,55 +286,7 @@
    "advance": "2m"
   },
   {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "lifts-done"
-  },
-  {
-   "checkpoint": "rower-2k-page"
+   "checkpoint": "rower-page"
   },
   {
    "tap": {
@@ -351,25 +294,28 @@
    }
   },
   {
-   "advance": "8m11s"
+   "advance": "15m"
   },
   {
-   "checkpoint": "rower-811"
-  },
-  {
-   "tap": {
-    "text": "Reached 2,000 m"
+   "type": {
+    "tag": "workout-cardio-distance",
+    "value": "3470"
    }
   },
   {
-   "checkpoint": "rower-stopped"
+   "tap": {
+    "text": "Stop"
+   }
+  },
+  {
+   "checkpoint": "rower-done"
   },
   {
    "advance": "5s"
   },
   {
    "tap": {
-    "text": "Finish day C"
+    "text": "Finish day A"
    }
   },
   {

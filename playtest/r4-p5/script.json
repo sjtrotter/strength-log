@@ -321,11 +321,21 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day A"
       }
     },
     {
       "checkpoint": "strength-a-finish-review"
+    },
+    {
+      "tap": {
+        "textContains": "Finish",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "strength-a-saved"
     }
   ]
 }

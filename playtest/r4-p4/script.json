@@ -30,19 +30,8 @@
    }
   },
   {
-   "checkpoint": "edit-day"
-  },
-  {
-   "scrollTo": {
-    "textContains": "Stationary bike"
-   }
-  },
-  {
-   "checkpoint": "edit-day-bottom"
-  },
-  {
    "tap": {
-    "textContains": "Stationary bike"
+    "text": "Edit cardio"
    }
   },
   {
@@ -55,6 +44,36 @@
   },
   {
    "checkpoint": "activity-menu"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-backs"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Stationary bike"
+   }
+  },
+  {
+   "checkpoint": "cardio-in-workout"
   }
  ]
 }

@@ -68,12 +68,24 @@
     },
     {
       "tap": {
-        "text": "",
-        "index": 0
+        "text": "Add exercise"
       }
     },
     {
       "checkpoint": "add-strength-exercise-picker"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Goblet"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Goblet"
+      }
+    },
+    {
+      "checkpoint": "goblet-squat-prescription-controls"
     }
   ]
 }

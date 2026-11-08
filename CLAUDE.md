@@ -7,30 +7,27 @@ delivery plan and spec amendments are `docs/PLAN.md`. When those two disagree,
 
 ## Model usage & delegation policy
 
-This repo is built with a deliberate division of labor to spend Fable capacity
-where it matters:
-
-- **Fable (if available) plans and reviews. It does not grind.** Use Fable for:
-  architecture and design decisions, breaking work into tasks, anything with
-  cross-cutting consequences, and every PR/initial-commit review (below).
-- **Delegate discrete, well-bounded implementation tasks** to subagents at the
-  appropriate intelligence tier:
-  - **Opus** — tricky logic: goal math, cascade rules, program generator, sync,
-    Room migrations, anything the pinned verification numbers depend on.
-  - **Sonnet** — well-specified mechanical work: library data entry, UI built to
-    an exact behavioral contract, boilerplate, test scaffolding, docs.
-  - **Never Haiku.**
-- If Fable is not available in a session, fall back to Opus for the planning/
-  review role and say so.
+- **Claude plans, briefs, adjudicates reviews and merges.** It does not grind.
+- **Codex builds.** Bounded implementation goes to `codex exec` with Sol from a
+  written spec (the `codex-harness` skill). Claude subagents take what codex
+  can't: Opus for tricky logic (goal math, cascade rules, the program
+  generator, sync, Room migrations, anything the pinned numbers depend on),
+  Sonnet for mechanical work (library data, docs, test scaffolding). Never
+  Haiku.
+- **Fable designs heavy code changes** (new domain rules, the data model,
+  multi-PR features) when its budget allows. Without it, Opus takes that role;
+  say so.
 
 ## PR loop (applies to every PR and to the initial commit)
 
 ```
-PR submitted → Fable review → subagent fixes (as applicable)
-            → Fable final check (must pass) → merge
+PR → council round → fixes → next round (at most 3) → merge
 ```
 
-The Fable review checks, every time:
+Reviews run through the `council` skill with the seats in
+`~/.claude/council.md` (Opus and Sol; Astra when added; Fable only when its
+budget allows). Every seat gets the same read-only brief, and every round
+checks:
 1. **Design principles** (below) are upheld.
 2. **Normal security hygiene** — not an in-depth audit; think: no secrets in the
    repo, no unnecessary permissions, exported components locked down, input from
@@ -40,15 +37,23 @@ The Fable review checks, every time:
 4. **No regressions elsewhere** — pinned domain tests (spec §11) still pass;
    behaviors the diff touches adjacently still hold.
 
-Loop until the final check passes cleanly, then merge. Don't merge on a review
-with unresolved findings.
+Rounds follow the sol-loop method:
+- **Three rounds at most.** A round that returns only nits is the last one.
+- **Nits don't block.** Merge with them open and list them in the PR
+  description as follow-ups.
+- **Step back after round three.** Blockers or shoulds still arriving mean the
+  approach is wrong: stop patching and redesign. Bring the redesign to the
+  user if it changes scope.
+- **Record each round** in the PR description: the council's score table and
+  each finding's outcome.
 
-Once CI is green and the adversarial review is accepted, Claude merges the PR
-itself (`gh pr merge <n> --squash --delete-branch`) and moves straight on to
-the next task — the review loop is the quality gate, not a human on the merge
-button (policy changed 2026-07-07; the user granted the merge permission).
-Never merge with unresolved findings or red CI. Escalate to the user only when
-a review finding can't be resolved or a change would alter pinned spec numbers.
+Once CI is green (the playtest pilots included, though only `build` is a
+required check) and no blocker or should is open, Claude merges the PR itself
+(`gh pr merge <n> --squash --delete-branch`) and moves straight on to the next
+task — the review loop is the quality gate, not a human on the merge button
+(policy changed 2026-07-07; the user granted the merge permission). Escalate
+to the user only when a finding survives the step-back or a change would alter
+pinned spec numbers.
 
 ## Design principles
 

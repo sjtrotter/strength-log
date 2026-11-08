@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-10",
+    "date": "2026-11-16",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "tuesday-after-monday-save"
+      "checkpoint": "nov16-after-unplayed-week-one-days"
     },
     {
       "tap": {
@@ -23,184 +23,15 @@
     },
     {
       "tap": {
-        "text": "Day B"
+        "text": "Day A"
       }
     },
     {
-      "checkpoint": "tuesday-generated-plan"
+      "checkpoint": "week-two-monday-offered-prescription"
     },
     {
       "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "checkpoint": "tuesday-edit-day"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "day-edit-more-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "checkpoint": "tuesday-bike-prescription-controls"
-    },
-    {
-      "tap": {
-        "text": "Set 1 \u00b7 Work"
-      }
-    },
-    {
-      "checkpoint": "bike-duration-editor"
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "20:00"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "bike-plan-twenty-minutes-easy"
-    },
-    {
-      "tap": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "checkpoint": "lift-template-prescription-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "checkpoint": "hinge-exercise-choices"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "pause"
-      }
-    },
-    {
-      "checkpoint": "search-paused-hinge-variation"
-    },
-    {
-      "type": {
-        "text": "pause",
-        "value": "Paused Deadlift (pause just off floor)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "checkpoint": "create-exact-paused-deadlift-variation"
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Paused Deadlift (pause just off floor)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (kg)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (kg)",
-        "value": "170"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "paused-deadlift-custom-exercise-saved"
-    },
-    {
-      "tap": {
-        "text": "Paused Deadlift (pause just off floor)",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "paused-deadlift-added-to-tuesday"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "checkpoint": "tuesday-workout-started"
-    },
-    {
-      "tap": {
-        "desc": "Day B lifts, 0 of 27 sets"
-      }
-    },
-    {
-      "checkpoint": "tuesday-lift-drawer"
-    },
-    {
-      "scrollTo": {
-        "text": "Paused Deadlift (pause just off floor)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Paused Deadlift (pause just off floor)"
+        "text": "Start day A"
       }
     },
     {
@@ -209,11 +40,64 @@
       }
     },
     {
-      "checkpoint": "paused-deadlift-initial-sets"
+      "checkpoint": "week-two-squat-offered-sets"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
     },
     {
       "tap": {
-        "tag": "lift-set-0"
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "195"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "squat-single-195-at-8-point-5"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
       }
     },
     {
@@ -225,7 +109,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "3"
+        "value": "5"
       }
     },
     {
@@ -236,6 +120,240 @@
     {
       "tap": {
         "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "planned-backoff-170-before-reduction"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-8"
+      }
+    },
+    {
+      "checkpoint": "four-reduced-backoffs-165x5"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Sleep5h. Squat195x1 target@7.5 actual@8.5. Planned170 backoffs reduced to165x5x4 today. Lousy sleep, not suddenly weaker."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 5 of 24 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week-two-bench-offered-after-swap"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "102.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
       }
     },
     {
@@ -247,6 +365,11 @@
       }
     },
     {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
       "tap": {
         "tag": "lift-set-1"
       }
@@ -254,13 +377,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "170"
+        "value": "102.5"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "3"
+        "value": "5"
       }
     },
     {
@@ -271,6 +394,11 @@
     {
       "tap": {
         "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
       }
     },
     {
@@ -282,6 +410,11 @@
       }
     },
     {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
       "tap": {
         "tag": "lift-set-2"
       }
@@ -289,13 +422,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "170"
+        "value": "102.5"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "3"
+        "value": "5"
       }
     },
     {
@@ -306,6 +439,11 @@
     {
       "tap": {
         "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
       }
     },
     {
@@ -340,7 +478,38 @@
       }
     },
     {
-      "checkpoint": "paused-deadlift-four-triples"
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "bench-102-point-5-five-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {
@@ -355,7 +524,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "170x3x4 easy. First set pause rushed. Today only: DB row40x8x4 each side; chest-supported row occupied."
+        "value": "Competition pause. 102.5x5x5, last@8. No need to punish myself for squat. Curls/ab wheel done; not entered here."
       }
     },
     {
@@ -364,41 +533,7 @@
       }
     },
     {
-      "tap": {
-        "desc": "Day B lifts, 4 of 28 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "tap": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "checkpoint": "tuesday-bike-log-controls"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "20m"
-    },
-    {
-      "checkpoint": "bike-twenty-minutes-elapsed"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-tonal"
-      }
-    },
-    {
-      "checkpoint": "bike-after-completion-action"
+      "advance": "15m"
     },
     {
       "tap": {
@@ -406,7 +541,7 @@
       }
     },
     {
-      "checkpoint": "tuesday-finish-review"
+      "checkpoint": "nov16-finish-review"
     },
     {
       "tap": {
@@ -415,7 +550,7 @@
       }
     },
     {
-      "checkpoint": "tuesday-saved"
+      "checkpoint": "nov16-saved"
     }
   ]
 }

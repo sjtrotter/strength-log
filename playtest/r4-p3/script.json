@@ -145,14 +145,11 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-4"
+        "text": "All sets"
       }
     },
     {
-      "checkpoint": "squat-190-single-logged"
-    },
-    {
-      "advance": "5m"
+      "checkpoint": "squat-after-top-edit-all-sets"
     },
     {
       "tap": {
@@ -160,7 +157,51 @@
       }
     },
     {
-      "checkpoint": "squat-options-for-backoffs-and-notes"
+      "checkpoint": "squat-more-menu"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "checkpoint": "backoff-editor"
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "top-single-and-first-backoff-ready"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "squat-190-single-logged"
     }
   ]
 }

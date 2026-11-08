@@ -164,6 +164,224 @@
     },
     {
       "checkpoint": "paused-deadlift-custom-exercise-saved"
+    },
+    {
+      "tap": {
+        "text": "Paused Deadlift (pause just off floor)",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-added-to-tuesday"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "tuesday-workout-started"
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "tuesday-lift-drawer"
+    },
+    {
+      "scrollTo": {
+        "text": "Paused Deadlift (pause just off floor)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Paused Deadlift (pause just off floor)"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-initial-sets"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-four-triples"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "170x3x4 easy. First set pause rushed. Today only: DB row40x8x4 each side; chest-supported row occupied."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "role": "Image",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bike-log-controls"
     }
   ]
 }

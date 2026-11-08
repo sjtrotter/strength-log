@@ -8,12 +8,13 @@ delivery plan and spec amendments are `docs/PLAN.md`. When those two disagree,
 ## Model usage & delegation policy
 
 - **Claude plans, briefs, adjudicates reviews and merges.** It does not grind.
-- **Codex builds.** Bounded implementation goes to `codex exec` with Sol from a
-  written spec (the `codex-harness` skill). Claude subagents take what codex
-  can't: Opus for tricky logic (goal math, cascade rules, the program
-  generator, sync, Room migrations, anything the pinned numbers depend on),
-  Sonnet for mechanical work (library data, docs, test scaffolding). Never
-  Haiku.
+- **Codex builds.** Bounded implementation, tricky logic included, goes to
+  `codex exec` with Sol from a written spec (the `codex-harness` skill). When
+  codex can't take a task (it fails, or the task needs network, `gh` or
+  judgment), use a Claude subagent: Opus if it touches tricky logic (goal math,
+  cascade rules, the program generator, sync, Room migrations, anything the
+  pinned numbers depend on), Sonnet if it is mechanical (library data, docs,
+  test scaffolding). Never Haiku.
 - **Fable designs heavy code changes** (new domain rules, the data model,
   multi-PR features) when its budget allows. Without it, Opus takes that role;
   say so.
@@ -25,9 +26,8 @@ PR → council round → fixes → next round (at most 3) → merge
 ```
 
 Reviews run through the `council` skill with the seats in
-`~/.claude/council.md` (Opus and Sol; Astra when added; Fable only when its
-budget allows). Every seat gets the same read-only brief, and every round
-checks:
+`~/.claude/council.md`; Fable sits out routine PRs. Every seat gets the same
+read-only brief, and every round checks:
 1. **Design principles** (below) are upheld.
 2. **Normal security hygiene** — not an in-depth audit; think: no secrets in the
    repo, no unnecessary permissions, exported components locked down, input from
@@ -38,21 +38,27 @@ checks:
    behaviors the diff touches adjacently still hold.
 
 Rounds follow the sol-loop method:
-- **Three rounds at most.** A round that returns only nits is the last one.
+- **Three rounds at most**, for every PR; this overrides the council skill's
+  five-round extension. A round that returns only nits is the last one.
 - **Nits don't block.** Merge with them open and list them in the PR
   description as follow-ups.
-- **Step back after round three.** Blockers or shoulds still arriving mean the
-  approach is wrong: stop patching and redesign. Bring the redesign to the
-  user if it changes scope.
+- **Step back after round three** if a blocker or should is still open. First
+  check whether the review is misconfigured (shifting criteria, scope creep)
+  and ask each seat for a plain merge verdict, as the council skill says. If
+  the findings are real, the approach is wrong: stop patching, redesign, and
+  run the redesign through a fresh council loop.
 - **Record each round** in the PR description: the council's score table and
   each finding's outcome.
 
 Once CI is green (the playtest pilots included, though only `build` is a
-required check) and no blocker or should is open, Claude merges the PR itself
+required check) and the latest council round covers the current head with no
+blocker or should open, Claude merges the PR itself
 (`gh pr merge <n> --squash --delete-branch`) and moves straight on to the next
 task — the review loop is the quality gate, not a human on the merge button
-(policy changed 2026-07-07; the user granted the merge permission). Escalate
-to the user only when a finding survives the step-back or a change would alter
+(policy changed 2026-07-07; the user granted the merge permission). Fixes
+made after a round need another round before merge; running out of rounds is
+not approval. Escalate to the user when a
+finding can't be resolved, a redesign changes scope, or a change would alter
 pinned spec numbers.
 
 ## Design principles

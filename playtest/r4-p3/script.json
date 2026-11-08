@@ -1,8 +1,26 @@
 {
   "seat": "r4-p3",
   "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
   "steps": [
-    {"checkpoint": "fresh-install-setup"}
+    {
+      "checkpoint": "fresh-install-setup"
+    },
+    {
+      "advance": "5s"
+    },
+    {
+      "checkpoint": "setup-after-wait"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-after-reopen"
+    }
   ]
 }

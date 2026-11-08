@@ -55,9 +55,29 @@ class PlansScreenTest {
     }
 
     @Test
-    fun youRowIsAbsentUntilTheLifterEmits() {
-        composeTestRule.setContent { AppTheme { PlansScreen(PlansUiState(you = null), actions()) } }
-        composeTestRule.onNodeWithText("You").assertDoesNotExist()
+    fun youRowShowsNotSetAndOpensYouWithoutPlans() {
+        var opened = 0
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(you = null), actions().copy(onOpenYou = { opened++ }))
+        } }
+        composeTestRule.onNodeWithText("Not set").assertExists()
+        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertDoesNotExist()
+        composeTestRule.onNodeWithText("You").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun youRowShowsNotSetAndOpensYouWithPlans() {
+        var opened = 0
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(plans = listOf(
+                PlanSummary(1, "Full body", "A", "Squat", true, false, null),
+            ), you = null), actions().copy(onOpenYou = { opened++ }))
+        } }
+        composeTestRule.onNodeWithText("Not set").assertExists()
+        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertDoesNotExist()
+        composeTestRule.onNodeWithText("You").performClick()
+        assertEquals(1, opened)
     }
 
     @Test

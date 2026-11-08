@@ -380,6 +380,28 @@ class TrackerRepositoryRunTest {
         assertEquals(RunWriteResult.Rejected, repo.applyToRun(id, plan, "A", emptyList()))
     }
 
+    @Test fun `finish stores no bodyweight without lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertEquals(235.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+
+        val sessionId = repo.finishRun(id)!!
+
+        assertNull(db.sessionDao().sessionById(sessionId)!!.bodyweightLb)
+    }
+
+    @Test fun `finish stores config bodyweight with lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        settings.updateGlobalLifter { it }
+        assertTrue(settings.hasLifterAnswersFlow.first())
+
+        val sessionId = repo.finishRun(id)!!
+
+        assertEquals(235.0, db.sessionDao().sessionById(sessionId)!!.bodyweightLb!!, 0.0)
+    }
+
     /** [F] */
     @Test fun `finish archives prescriptions and row identity and carries forward by next time choice`() = runTest {
         repo.replaceProgram(generated())
@@ -575,6 +597,27 @@ class TrackerRepositoryRunTest {
         assertEquals(RunWriteResult.Rejected, repo.applyToRun(id, plan, "A", listOf(tick(slot))))
     }
 
+    @Test fun `removing a day stores no bodyweight without lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan, "B")
+        assertFalse(settings.hasLifterAnswersFlow.first())
+
+        assertTrue(repo.removeDay(plan, "B"))
+
+        assertNull(db.sessionDao().sessionByRunId(id)!!.bodyweightLb)
+    }
+
+    @Test fun `removing a day stores config bodyweight with lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan, "B")
+        settings.updateGlobalLifter { it }
+        assertTrue(settings.hasLifterAnswersFlow.first())
+
+        assertTrue(repo.removeDay(plan, "B"))
+
+        assertEquals(235.0, db.sessionDao().sessionByRunId(id)!!.bodyweightLb!!, 0.0)
+    }
+
     /** [F] */
     @Test fun `removing a day archives only performed runs without advancing rotation`() = runTest {
         for (done in listOf(true, false)) {
@@ -586,6 +629,27 @@ class TrackerRepositoryRunTest {
             assertNull(db.runDao().openRun())
             assertEquals("A", db.planDao().plan(plan)!!.suggestedDayId)
         }
+    }
+
+    @Test fun `replacing a program stores no bodyweight without lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        assertFalse(settings.hasLifterAnswersFlow.first())
+
+        repo.replaceProgram(Program(emptyList()))
+
+        assertNull(db.sessionDao().sessionByRunId(id)!!.bodyweightLb)
+    }
+
+    @Test fun `replacing a program stores config bodyweight with lifter answers`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        settings.updateGlobalLifter { it }
+        assertTrue(settings.hasLifterAnswersFlow.first())
+
+        repo.replaceProgram(Program(emptyList()))
+
+        assertEquals(235.0, db.sessionDao().sessionByRunId(id)!!.bodyweightLb!!, 0.0)
     }
 
     /** [F] */

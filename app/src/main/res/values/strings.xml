@@ -77,6 +77,7 @@
 <string name="you_title">You</string>
 <string name="you_goals_note">Generated plans set their goals from these.</string>
 <string name="plans_you_summary">%1$s, age %2$d, %3$s</string>
+<string name="plans_you_not_set">Not set</string>
 <string name="plan_goals">Goals</string>
 <string name="plan_goal_title">%1$s goal</string>
 <string name="plan_goal_weight">Goal (%1$s)</string>

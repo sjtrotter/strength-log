@@ -169,7 +169,137 @@
    }
   },
   {
-   "checkpoint": "set-sheet"
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "after-save-set"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "at-plank"
+  },
+  {
+   "tap": {
+    "desc": "Day A lifts, 18 of 21 sets"
+   }
+  },
+  {
+   "checkpoint": "overview"
+  },
+  {
+   "tap": {
+    "text": "Rower"
+   }
+  },
+  {
+   "checkpoint": "rower-page"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "15m"
+  },
+  {
+   "checkpoint": "rower-15m"
   }
  ]
 }

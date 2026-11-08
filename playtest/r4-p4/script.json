@@ -19,61 +19,34 @@
    }
   },
   {
-   "checkpoint": "plan-detail"
-  },
-  {
-   "back": true
-  },
-  {
    "tap": {
-    "desc": "Plan options"
+    "desc": "Day options",
+    "index": 0
    }
   },
   {
-   "checkpoint": "plan-options"
-  },
-  {
-   "back": true
+   "checkpoint": "day-options"
   },
   {
    "tap": {
-    "text": "Today"
+    "textContains": "Edit"
    }
   },
   {
-   "tap": {
-    "text": "Start day A"
+   "checkpoint": "edit-day"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Stationary bike"
    }
   },
   {
    "tap": {
-    "desc": "Day A lifts, 0 of 21 sets"
+    "textContains": "Stationary bike"
    }
   },
   {
-   "checkpoint": "day-overview"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "checkpoint": "all-sets"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "textContains": "Log 100 lb"
-   }
-  },
-  {
-   "checkpoint": "after-log1"
+   "checkpoint": "edit-cardio"
   }
  ]
 }

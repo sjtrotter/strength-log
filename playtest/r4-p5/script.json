@@ -65,6 +65,15 @@
     },
     {
       "checkpoint": "strength-a-edit-day-controls"
+    },
+    {
+      "tap": {
+        "text": "",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "add-strength-exercise-picker"
     }
   ]
 }

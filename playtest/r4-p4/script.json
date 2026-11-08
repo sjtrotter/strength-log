@@ -569,13 +569,18 @@
    }
   },
   {
-   "checkpoint": "exercise-more"
+   "tap": {
+    "text": "Swap exercise"
+   }
+  },
+  {
+   "checkpoint": "swap-screen"
   },
   {
    "back": true
   },
   {
-   "back": true
+   "checkpoint": "after-swap-back"
   },
   {
    "tap": {
@@ -596,16 +601,83 @@
    }
   },
   {
-   "advance": "4m"
+   "advance": "2m"
   },
   {
-   "checkpoint": "bike-4m"
+   "tap": {
+    "text": "Start"
+   }
   },
   {
-   "advance": "14m"
+   "advance": "2m"
   },
   {
-   "checkpoint": "bike-18m"
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bike-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-dlg"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "summary"
   }
  ]
 }

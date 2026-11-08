@@ -1,5 +1,1 @@
-{"seat":"r4-p2","capture":"compact","start":{"restore":"start-backup.json","date":"2026-11-08","time":"21:00","zone":"America/Chicago"},"steps":[
-{"tap":{"desc":"Settings"}},{"tap":{"text":"Backup and export"}},{"checkpoint":"backup-export"},{"back":true},{"back":true},
-{"tap":{"text":"Plans"}},{"tap":{"desc":"Plan options"}},{"checkpoint":"plan-options"},{"back":true},
-{"tap":{"text":"4-day upper/lower"}},{"checkpoint":"plan-open"}
-]}
+{"seat": "r4-p2", "capture": "compact", "start": {"restore": "start-backup.json", "date": "2026-11-08", "time": "21:00", "zone": "America/Chicago"}, "steps": [{"tap": {"desc": "Settings"}}, {"tap": {"text": "Backup and export"}}, {"checkpoint": "backup-export"}, {"back": true}, {"back": true}, {"tap": {"text": "Plans"}}, {"tap": {"desc": "Plan options"}}, {"checkpoint": "plan-options"}, {"back": true}, {"tap": {"text": "4-day upper/lower"}}, {"checkpoint": "plan-open"}, {"tap": {"desc": "Day options", "index": 2}}, {"checkpoint": "dayC-options"}, {"back": true}, {"tap": {"text": "Day C"}}, {"checkpoint": "dayC"}]}

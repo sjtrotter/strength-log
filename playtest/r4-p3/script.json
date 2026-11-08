@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-19",
-    "time": "17:30",
+    "date": "2026-11-26",
+    "time": "07:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov19-tuesday-skipped-work-trip-no-makeup"
+      "checkpoint": "nov26-thanksgiving-early-hard-stop"
     },
     {
       "tap": {
@@ -27,77 +27,7 @@
       }
     },
     {
-      "checkpoint": "thursday-plan-offered-after-skipped-tuesday"
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Two-second paused squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Two-second paused squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (kg)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (kg)",
-        "value": "150"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
-        "text": "Two-second paused squat",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "paused-squat-added"
-    },
-    {
-      "back": true
+      "checkpoint": "nov26-plan-and-last-bench-after-miss"
     },
     {
       "tap": {
@@ -110,7 +40,7 @@
       }
     },
     {
-      "checkpoint": "nov19-bench-offered-sets"
+      "checkpoint": "nov26-bench-offered"
     },
     {
       "scrollTo": {
@@ -125,7 +55,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "127.5"
+        "value": "130"
       }
     },
     {
@@ -170,6 +100,41 @@
     {
       "type": {
         "text": "Weight (kg)",
+        "value": "112.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "planned-backoff-112point5"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
         "value": "110"
       }
     },
@@ -260,41 +225,6 @@
     },
     {
       "scrollTo": {
-        "tag": "lift-set-8"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-8"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "3"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "last-backoff-three-completed-reps"
-    },
-    {
-      "scrollTo": {
         "tag": "lift-check-main-8"
       }
     },
@@ -307,7 +237,7 @@
       }
     },
     {
-      "checkpoint": "bench-missed-fourth-logged-three"
+      "checkpoint": "nov26-bench-all-four-backoffs-complete"
     },
     {
       "back": true
@@ -330,7 +260,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "127.5x1 @8. 110x4,4,4,3; failed fourth on last set, spotter took it. Lost upper back before rep. Nov17 skipped: work trip."
+        "value": "130x1 @8.5. Planned 112.5 backoffs; reduced to110x4x4 after high RPE and last week miss. No misses today. Hard stop."
       }
     },
     {
@@ -359,7 +289,7 @@
       }
     },
     {
-      "checkpoint": "paused-squat-prescription"
+      "checkpoint": "nov26-paused-squat-offered"
     },
     {
       "scrollTo": {
@@ -374,7 +304,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "150"
+        "value": "155"
       }
     },
     {
@@ -419,7 +349,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "150"
+        "value": "155"
       }
     },
     {
@@ -452,75 +382,7 @@
       }
     },
     {
-      "scrollTo": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "150"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "checkpoint": "paused-squat-four-sets-of-four"
+      "checkpoint": "nov26-only-two-paused-squat-sets"
     },
     {
       "back": true
@@ -543,7 +405,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "150x4x4, two-second pauses, all fine. Thursday stayed Nov19 after skipped Tuesday. Pressdowns/Pallof done but not entered."
+        "value": "155x4x2; planned four sets. Thanksgiving hard stop,47min total. No pressdowns or Pallof presses. Omitted, not failed."
       }
     },
     {
@@ -552,7 +414,7 @@
       }
     },
     {
-      "advance": "10m"
+      "advance": "21m"
     },
     {
       "tap": {
@@ -560,7 +422,7 @@
       }
     },
     {
-      "checkpoint": "nov19-partial-finish-review"
+      "checkpoint": "nov26-short-session-finish-review"
     },
     {
       "tap": {
@@ -569,7 +431,7 @@
       }
     },
     {
-      "checkpoint": "nov19-saved"
+      "checkpoint": "nov26-saved-47-minutes"
     }
   ]
 }

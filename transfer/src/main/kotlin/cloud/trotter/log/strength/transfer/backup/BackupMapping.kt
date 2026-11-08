@@ -395,7 +395,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             run.tracks.map {
                 RunTrackEntity(it.id, run.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
                     it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped,
-                    note = if (schemaVersion >= 26) it.note else "")
+                    note = if (schemaVersion >= 26) it.note.trim().take(NOTE_MAX_LENGTH) else "")
             }
         } else emptyList(),
         days = dayEntities,

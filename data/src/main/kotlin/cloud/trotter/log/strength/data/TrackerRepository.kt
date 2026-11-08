@@ -1625,7 +1625,8 @@ class TrackerRepository(
 
     private suspend fun snapshotNote(track: RunTrackEntity, startedAt: Long): String? {
         if (track.note.isNotBlank()) return track.note
-        val slot = track.programExerciseId?.let { programDao.exercise(it) } ?: return null
+        val slot = track.programExerciseId?.let { programDao.exercise(it) }
+            ?.takeIf { it.exerciseId == track.exerciseId } ?: return null
         val updatedAt = slot.noteUpdatedAt ?: return null
         return slot.note.takeIf { it.isNotBlank() && updatedAt >= startedAt }
     }

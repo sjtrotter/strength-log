@@ -34,6 +34,21 @@
     },
     {
       "checkpoint": "empty-strength-plan-editor"
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Supporting strength",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create"
+      }
+    },
+    {
+      "checkpoint": "supporting-strength-created"
     }
   ]
 }

@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-18",
+    "date": "2026-11-23",
     "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov18-today"
+      "checkpoint": "nov23-today-after-temporary-swap"
     },
     {
       "tap": {
@@ -22,7 +22,7 @@
       }
     },
     {
-      "checkpoint": "nov18-offered-after-missed-chest-reps"
+      "checkpoint": "nov23-offers-and-machine-row-return"
     },
     {
       "tap": {
@@ -43,7 +43,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70"
+        "value": "80"
       }
     },
     {
@@ -57,7 +57,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb \u00d7 10"
+        "text": "Log 80 lb \u00d7 10"
       }
     },
     {
@@ -71,7 +71,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70"
+        "value": "80"
       }
     },
     {
@@ -85,7 +85,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb \u00d7 10"
+        "text": "Log 80 lb \u00d7 10"
       }
     },
     {
@@ -99,13 +99,13 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70"
+        "value": "80"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10"
+        "value": "8"
       }
     },
     {
@@ -113,7 +113,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb \u00d7 10"
+        "text": "Log 80 lb \u00d7 8"
       }
     },
     {
@@ -207,83 +207,7 @@
       "advance": "90s"
     },
     {
-      "checkpoint": "row-machine-busy-look-for-today-swap"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 6 of 11 sets"
-      }
-    },
-    {
-      "checkpoint": "workout-lifts-options-for-swap"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "workout-more-find-temporary-swap"
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "checkpoint": "edit-day-during-active-session"
-    },
-    {
-      "tap": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "row-swap-choices-and-scope"
-    },
-    {
-      "tap": {
-        "text": "Dumbbell"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bench"
-      }
-    },
-    {
-      "checkpoint": "row-swap-with-dumbbell-and-bench-available"
-    },
-    {
-      "tap": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "checkpoint": "one-arm-row-selected-scope-and-prescription"
-    },
-    {
-      "tap": {
-        "text": "This workout"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "expect": {
-        "desc": "One-Arm DB Row, set 1 of 3"
-      }
-    },
-    {
-      "checkpoint": "one-arm-row-active-after-edit"
+      "checkpoint": "machine-row-offered"
     },
     {
       "tap": {
@@ -293,7 +217,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "10"
+        "value": "35"
       }
     },
     {
@@ -307,7 +231,7 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Log 35 lb \u00d7 10"
       }
     },
     {
@@ -321,7 +245,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "10"
+        "value": "35"
       }
     },
     {
@@ -335,7 +259,7 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Log 35 lb \u00d7 10"
       }
     },
     {
@@ -349,7 +273,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "10"
+        "value": "35"
       }
     },
     {
@@ -363,14 +287,14 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Log 35 lb \u00d7 10"
       }
     },
     {
       "advance": "90s"
     },
     {
-      "checkpoint": "one-arm-row-actual-sets-logged"
+      "checkpoint": "leg-curl-offered"
     },
     {
       "tap": {
@@ -394,7 +318,7 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
@@ -422,17 +346,17 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Log 25 lb \u00d7 10"
       }
     },
     {
       "advance": "90s"
     },
     {
-      "checkpoint": "leg-curl-actual-sets-logged"
+      "checkpoint": "nov23-all-actual-lifting-logged"
     },
     {
-      "advance": "37m30s"
+      "advance": "33m30s"
     },
     {
       "tap": {
@@ -448,7 +372,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Walk 5 before + 10 after. Busy machine: One-Arm DB Row 10 lb, 3x10 EACH SIDE today. Return to machine next time."
+        "value": "Walk 5 before + 10 after. Leg press 80: missed last two reps. Want to repeat 80 next time."
       }
     },
     {
@@ -465,7 +389,15 @@
       }
     },
     {
-      "checkpoint": "nov18-finished-swap-actuals-and-advice"
+      "checkpoint": "nov23-finished-80lb-missed-reps-advice"
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "nov23-leg-press-repeat-explanation-and-choice"
     }
   ]
 }

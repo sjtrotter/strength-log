@@ -35,15 +35,9 @@
    }
   },
   {
-   "checkpoint": "days3"
-  },
-  {
    "tap": {
     "text": "Next"
    }
-  },
-  {
-   "checkpoint": "split"
   },
   {
    "tap": {
@@ -81,14 +75,6 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Keep me 5k-ready"
-   }
-  },
-  {
-   "checkpoint": "cardio"
-  },
-  {
    "tap": {
     "text": "Next"
    }
@@ -118,7 +104,32 @@
    }
   },
   {
-   "checkpoint": "about"
+   "tap": {
+    "text": "Next"
+   }
+  },
+  {
+   "tap": {
+    "text": "Trap Bar"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "tap": {
+    "text": "Ez Bar"
+   }
+  },
+  {
+   "tap": {
+    "text": "Kettlebell"
+   }
+  },
+  {
+   "checkpoint": "equipment"
   },
   {
    "tap": {
@@ -126,7 +137,31 @@
    }
   },
   {
-   "checkpoint": "w8"
+   "type": {
+    "text": "Weight (lb)",
+    "index": 0,
+    "value": "185",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 1,
+    "value": "155",
+    "ime": "done"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "index": 2,
+    "value": "225",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "recent-lifts"
   },
   {
    "tap": {
@@ -134,15 +169,15 @@
    }
   },
   {
-   "checkpoint": "w9"
+   "checkpoint": "rotation"
   },
   {
    "tap": {
-    "text": "Next"
+    "text": "Start"
    }
   },
   {
-   "checkpoint": "w10"
+   "checkpoint": "today"
   }
  ]
 }

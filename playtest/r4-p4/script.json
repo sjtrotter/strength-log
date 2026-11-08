@@ -3,21 +3,18 @@
  "capture": "compact",
  "start": {
   "restore": "start-backup.json",
-  "date": "2026-11-28",
-  "time": "12:00",
+  "date": "2026-12-04",
+  "time": "17:30",
   "zone": "America/Chicago"
  },
  "steps": [
   {
-   "checkpoint": "today-sat"
+   "checkpoint": "today-dec4"
   },
   {
    "tap": {
-    "text": "Start day B"
+    "text": "Start day C"
    }
-  },
-  {
-   "checkpoint": "bench-page"
   },
   {
    "tap": {
@@ -25,7 +22,129 @@
    }
   },
   {
-   "checkpoint": "bench-offer"
+   "checkpoint": "deadlift-offer"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "inDialog": true,
+    "value": "used straps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "db-bench"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
   },
   {
    "tap": {
@@ -82,9 +201,6 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "after-bench"
-  },
-  {
    "tap": {
     "textContains": "Log ",
     "role": "Button"
@@ -148,112 +264,7 @@
    "advance": "2m"
   },
   {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "superset"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "pallof"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "textContains": "Log ",
-    "role": "Button"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "bike-page"
+   "checkpoint": "rower-2k"
   },
   {
    "tap": {
@@ -261,77 +272,48 @@
    }
   },
   {
-   "advance": "2m"
+   "advance": "7m57s"
   },
   {
    "tap": {
-    "text": "Start"
+    "text": "Reached 2,000 m"
    }
   },
   {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "tap": {
-    "text": "Start"
-   }
-  },
-  {
-   "advance": "2m"
-  },
-  {
-   "checkpoint": "bike-done"
+   "checkpoint": "rower-done"
   },
   {
    "advance": "5s"
   },
   {
    "tap": {
-    "text": "Finish day B"
+    "text": "Finish day C"
    }
   },
   {
    "checkpoint": "summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "textContains": "Rower",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "history-rower"
   }
  ]
 }

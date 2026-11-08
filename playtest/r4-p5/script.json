@@ -94,6 +94,14 @@
     },
     {
       "checkpoint": "goblet-squat-prescription-controls"
+    },
+    {
+      "tap": {
+        "textContains": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "edit-goblet-prescription"
     }
   ]
 }

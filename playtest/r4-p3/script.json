@@ -477,7 +477,20 @@
       }
     },
     {
-      "checkpoint": "barbell-bench-swapped-for-today"
+      "checkpoint": "barbell-bench-swap-scope"
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "barbell-bench-confirmed-for-today"
     },
     {
       "tap": {
@@ -675,6 +688,15 @@
     },
     {
       "checkpoint": "monday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-saved"
     }
   ]
 }

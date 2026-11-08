@@ -53,6 +53,107 @@
     },
     {
       "checkpoint": "setup-page-5"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Strength-leaning"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "five-training-days"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "five-day-split-options"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional"
+      }
+    },
+    {
+      "checkpoint": "conventional-deadlift"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-9"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-10"
     }
   ]
 }

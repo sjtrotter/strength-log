@@ -169,6 +169,11 @@
     },
     {
       "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
         "text": "Single-leg"
       }
     },
@@ -182,22 +187,36 @@
       }
     },
     {
-      "swipe": {
-        "text": "Knee flexion (leg curl)",
-        "direction": "up"
+      "tap": {
+        "desc": "Back"
       }
     },
     {
-      "checkpoint": "more-movement-categories"
-    },
-    {
-      "swipe": {
-        "text": "Pick a movement",
-        "direction": "up"
+      "tap": {
+        "desc": "Back"
       }
     },
     {
-      "checkpoint": "lower-movement-categories"
+      "tap": {
+        "desc": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "today-after-custom-strength-plan"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "choose-strength-session"
     }
   ]
 }

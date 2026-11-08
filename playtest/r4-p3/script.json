@@ -84,6 +84,83 @@
     },
     {
       "checkpoint": "existing-plan-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "5-day full body"
+      }
+    },
+    {
+      "checkpoint": "plan-detail-editing-route"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Resume day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "checkpoint": "top-set-before-edit"
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "190"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "top-single-prescription-saved"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "checkpoint": "squat-190-single-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "squat-options-for-backoffs-and-notes"
     }
   ]
 }

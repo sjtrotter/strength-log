@@ -18,6 +18,14 @@
     },
     {
       "checkpoint": "find-custom-strength-plan"
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-strength-plan-options"
     }
   ]
 }

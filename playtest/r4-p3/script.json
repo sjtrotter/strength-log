@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
+    "date": "2026-11-19",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov16-after-unplayed-week-one-days"
+      "checkpoint": "nov19-tuesday-skipped-work-trip-no-makeup"
     },
     {
       "tap": {
@@ -23,15 +23,85 @@
     },
     {
       "tap": {
-        "text": "Day A"
+        "text": "Day B"
       }
     },
     {
-      "checkpoint": "week-two-monday-offered-prescription"
+      "checkpoint": "thursday-plan-offered-after-skipped-tuesday"
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Two-second paused squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Two-second paused squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Starting weight (kg)"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "150"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Two-second paused squat",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "paused-squat-added"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day B"
       }
     },
     {
@@ -40,7 +110,7 @@
       }
     },
     {
-      "checkpoint": "week-two-squat-offered-sets"
+      "checkpoint": "nov19-bench-offered-sets"
     },
     {
       "scrollTo": {
@@ -55,7 +125,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "195"
+        "value": "127.5"
       }
     },
     {
@@ -88,9 +158,6 @@
       }
     },
     {
-      "checkpoint": "squat-single-195-at-8-point-5"
-    },
-    {
       "scrollTo": {
         "tag": "lift-set-5"
       }
@@ -103,48 +170,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "170"
+        "value": "110"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "planned-backoff-170-before-reduction"
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5"
+        "value": "4"
       }
     },
     {
@@ -163,7 +195,7 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -186,7 +218,7 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -209,7 +241,7 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -228,11 +260,46 @@
     },
     {
       "scrollTo": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "last-backoff-three-completed-reps"
+    },
+    {
+      "scrollTo": {
         "tag": "lift-check-main-8"
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -240,7 +307,7 @@
       }
     },
     {
-      "checkpoint": "four-reduced-backoffs-165x5"
+      "checkpoint": "bench-missed-fourth-logged-three"
     },
     {
       "back": true
@@ -263,7 +330,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Sleep5h. Squat195x1 target@7.5 actual@8.5. Planned170 backoffs reduced to165x5x4 today. Lousy sleep, not suddenly weaker."
+        "value": "127.5x1 @8. 110x4,4,4,3; failed fourth on last set, spotter took it. Lost upper back before rep. Nov17 skipped: work trip."
       }
     },
     {
@@ -273,42 +340,17 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 5 of 24 sets"
+        "desc": "Day B lifts, 5 of 33 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Two-second paused squat"
       }
     },
     {
       "tap": {
-        "text": "DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "This workout"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
+        "text": "Two-second paused squat"
       }
     },
     {
@@ -317,7 +359,7 @@
       }
     },
     {
-      "checkpoint": "week-two-bench-offered-after-swap"
+      "checkpoint": "paused-squat-prescription"
     },
     {
       "scrollTo": {
@@ -332,13 +374,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "102.5"
+        "value": "150"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5"
+        "value": "4"
       }
     },
     {
@@ -377,13 +419,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "102.5"
+        "value": "150"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5"
+        "value": "4"
       }
     },
     {
@@ -422,13 +464,13 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "102.5"
+        "value": "150"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5"
+        "value": "4"
       }
     },
     {
@@ -478,30 +520,7 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "checkpoint": "bench-102-point-5-five-sets"
+      "checkpoint": "paused-squat-four-sets-of-four"
     },
     {
       "back": true
@@ -524,7 +543,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Competition pause. 102.5x5x5, last@8. No need to punish myself for squat. Curls/ab wheel done; not entered here."
+        "value": "150x4x4, two-second pauses, all fine. Thursday stayed Nov19 after skipped Tuesday. Pressdowns/Pallof done but not entered."
       }
     },
     {
@@ -533,7 +552,7 @@
       }
     },
     {
-      "advance": "15m"
+      "advance": "10m"
     },
     {
       "tap": {
@@ -541,7 +560,7 @@
       }
     },
     {
-      "checkpoint": "nov16-finish-review"
+      "checkpoint": "nov19-partial-finish-review"
     },
     {
       "tap": {
@@ -550,7 +569,7 @@
       }
     },
     {
-      "checkpoint": "nov16-saved"
+      "checkpoint": "nov19-saved"
     }
   ]
 }

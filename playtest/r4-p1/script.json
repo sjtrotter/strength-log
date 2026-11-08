@@ -2,216 +2,14 @@
   "seat": "r4-p1",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "20:30",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "fresh-install-setup"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-2"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-3"
-    },
-    {
-      "type": {
-        "text": "Days per week",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-4"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-5"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-6"
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 4
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-7"
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "160",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 2
-      }
-    },
-    {
-      "checkpoint": "novice-profile-filled"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-8"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-9"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "setup-step-10"
-    },
-    {
-      "tap": {
-        "text": "Back"
-      }
-    },
-    {
-      "tap": {
-        "text": "Back"
-      }
-    },
-    {
-      "tap": {
-        "text": "Clear all"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 3
-      }
-    },
-    {
-      "checkpoint": "machine-equipment-only"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "machine-plan-preview-a"
-    },
-    {
-      "scrollTo": {
-        "text": "Day B"
-      }
-    },
-    {
-      "checkpoint": "machine-plan-preview-b"
-    },
-    {
-      "scrollTo": {
-        "text": "Day C"
-      }
-    },
-    {
-      "checkpoint": "machine-plan-preview-c"
-    },
-    {
-      "scrollTo": {
-        "text": "Missing a day never skips the next workout."
-      }
-    },
-    {
-      "checkpoint": "machine-plan-preview-end"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "checkpoint": "setup-complete-today"
-    },
-    {
-      "tap": {
-        "text": "Plans"
-      }
-    },
-    {
-      "checkpoint": "plans-customization-entry"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
+      "checkpoint": "first-visit-today"
     },
     {
       "tap": {
@@ -219,7 +17,12 @@
       }
     },
     {
-      "checkpoint": "day-a-details-before-first-visit"
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "edit-day-a-before-first-workout"
     }
   ]
 }

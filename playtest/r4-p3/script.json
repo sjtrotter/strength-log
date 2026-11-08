@@ -129,6 +129,41 @@
     },
     {
       "checkpoint": "create-exact-paused-deadlift-variation"
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Paused Deadlift (pause just off floor)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Starting weight (kg)"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "170"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "paused-deadlift-custom-exercise-saved"
     }
   ]
 }

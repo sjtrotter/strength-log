@@ -17,6 +17,7 @@ data class PerformedTrack(
     val goal: GoalTarget?,
     val stored: List<LoggedSet>?,
     val seed: List<LoggedSet>?,
+    val note: String = "",
 ) {
     val tracking: TrackingType get() = performed.tracking
     val sets: List<LoggedSet> get() = stored ?: seed.orEmpty()
@@ -67,7 +68,8 @@ data class PerformedDay(
             fun track(slot: ProgramSlot, trackSlot: String): PerformedTrack {
                 val key = slot.programExerciseId to trackSlot
                 val performed = performedExercise(slot, stored[key]?.exerciseId, catalog, trackSlot)
-                return PerformedTrack(performed, performed.goal(answers.config), stored[key]?.sets, seeds[key])
+                return PerformedTrack(performed, performed.goal(answers.config), stored[key]?.sets, seeds[key],
+                    note = stored[key]?.note.orEmpty())
             }
             return PerformedDay(
                 planId, dayId, program, program.days.firstOrNull { it.id == dayId },

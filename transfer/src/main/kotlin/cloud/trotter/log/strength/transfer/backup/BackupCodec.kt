@@ -116,7 +116,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -232,14 +232,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     }
 
     private fun withVersionedSlotFields(root: JsonObject, version: Int): JsonObject {
-        val ignoredField = if (version >= 16) "isMain" else "structure"
+        val ignoredFields = buildSet {
+            add(if (version >= 16) "isMain" else "structure")
+            if (version < 18) add("parkedLogsJson")
+            if (version < 26) add("noteUpdatedAt")
+        }
         fun stripDays(value: JsonElement?): JsonElement? = (value as? JsonArray)?.let { days ->
             JsonArray(days.map { day ->
                 if (day !is JsonObject) day else {
                     val exercises = day["exercises"] as? JsonArray
                     if (exercises == null) day else JsonObject(day + ("exercises" to JsonArray(exercises.map {
                         if (it is JsonObject) {
-                            JsonObject(if (version < 18) it - ignoredField - "parkedLogsJson" else it - ignoredField)
+                            JsonObject(it - ignoredFields)
                         } else it
                     })))
                 }
@@ -254,6 +258,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         if (days == null) plan else JsonObject(plan + ("days" to days))
                     }
                 }))
+            }
+            if (version < 26) {
+                (get("runs") as? JsonArray)?.let { runs ->
+                    put("runs", JsonArray(runs.map { run ->
+                        if (run !is JsonObject) run else {
+                            val tracks = run["tracks"] as? JsonArray
+                            if (tracks == null) run else JsonObject(run + ("tracks" to JsonArray(tracks.map {
+                                if (it is JsonObject) JsonObject(it - "note") else it
+                            })))
+                        }
+                    }))
+                }
             }
         })
     }

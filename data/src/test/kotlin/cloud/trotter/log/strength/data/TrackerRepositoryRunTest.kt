@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
@@ -61,7 +62,12 @@ class TrackerRepositoryRunTest {
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private val ids = ArrayDeque((1..100).map { "id-$it" })
-    private val clock = Clock.fixed(Instant.parse("2026-10-19T12:00:00Z"), ZoneOffset.UTC)
+    private var now = Instant.parse("2026-10-19T12:00:00Z")
+    private val clock = object : Clock() {
+        override fun getZone() = ZoneOffset.UTC
+        override fun withZone(zone: java.time.ZoneId): Clock = this
+        override fun instant() = now
+    }
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private val databaseName = "run-persistence-test.db"
 
@@ -196,6 +202,113 @@ class TrackerRepositoryRunTest {
         val slot = slot(plan, dayId)
         assertEquals(RunWriteResult.InRun(id, true), repo.applyToRun(id, plan, dayId, listOf(tick(slot))))
         return id
+    }
+
+    @Test fun `lift note snapshots only the run where it was written and remains a reminder`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val firstRun = start(plan)
+        repo.setExerciseNote(slot, "Belt on top")
+        assertEquals(clock.millis(), db.programDao().exercise(slot)!!.noteUpdatedAt)
+        val firstSession = checkNotNull(repo.finishRun(firstRun))
+
+        now = now.plusSeconds(3600)
+        val secondRun = start(plan)
+        assertEquals("Belt on top", repo.observeDay(plan, "A").first().slots.single().slot.exercise.note)
+        val secondSession = checkNotNull(repo.finishRun(secondRun))
+
+        assertEquals("Belt on top", SessionPlanJson.decode(repo.history.session(firstSession)!!.plannedJson!!).single().note)
+        assertNull(SessionPlanJson.decode(repo.history.session(secondSession)!!.plannedJson!!).single().note)
+        assertEquals("Belt on top", db.programDao().exercise(slot)!!.note)
+    }
+
+    @Test fun `editing a lift note in the next run snapshots the new text and preserves history`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val firstRun = start(plan)
+        repo.setExerciseNote(slot, "Seat 4")
+        val firstSession = checkNotNull(repo.finishRun(firstRun))
+        val firstSnapshot = repo.history.session(firstSession)!!.plannedJson!!
+
+        now = now.plusSeconds(3600)
+        val secondRun = start(plan)
+        now = now.plusSeconds(60)
+        repo.setExerciseNote(slot, "Seat 5")
+        val secondSession = checkNotNull(repo.finishRun(secondRun))
+
+        assertEquals("Seat 5", SessionPlanJson.decode(repo.history.session(secondSession)!!.plannedJson!!).single().note)
+        assertEquals(firstSnapshot, repo.history.session(firstSession)!!.plannedJson)
+        assertEquals("Seat 4", SessionPlanJson.decode(firstSnapshot).single().note)
+        assertEquals("Seat 5", db.programDao().exercise(slot)!!.note)
+    }
+
+    @Test fun `lift note written between runs stays a reminder without a session snapshot`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setExerciseNote(slot, "Seat 4")
+        assertNull(repo.openRunFlow.first())
+        val reminder = db.programDao().exercise(slot)!!
+
+        now = now.plusSeconds(3600)
+        val run = start(plan)
+        assertEquals("Seat 4", repo.observeDay(plan, "A").first().slots.single().slot.exercise.note)
+        val session = checkNotNull(repo.finishRun(run))
+
+        assertNull(SessionPlanJson.decode(repo.history.session(session)!!.plannedJson!!).single().note)
+        assertEquals(reminder, db.programDao().exercise(slot))
+    }
+
+    @Test fun `today only swap note belongs to the run track and leaves the slot reminder unchanged`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setExerciseNote(slot, "Belt on top")
+        val reminder = db.programDao().exercise(slot)!!
+        now = now.plusSeconds(3600)
+        val run = start(plan)
+        assertTrue(repo.swapInRun(run, slot, Slot.MAIN, "hack_squat"))
+        repo.setExerciseNote(slot, "  Seat 4  ")
+
+        assertEquals(reminder, db.programDao().exercise(slot))
+        assertEquals("Seat 4", db.runDao().tracks(run).single { !it.retired }.note)
+        assertEquals("", db.runDao().tracks(run).single { it.retired }.note)
+        assertEquals("Seat 4", repo.observeDay(plan, "A").first().slots.single().main.note)
+        val session = checkNotNull(repo.finishRun(run))
+        val snapshot = SessionPlanJson.decode(repo.history.session(session)!!.plannedJson!!)
+        assertEquals("Seat 4", snapshot.single { it.exerciseId == "hack_squat" }.note)
+        assertNull(snapshot.single { it.exerciseId == "bb_back_squat" }.note)
+        assertEquals(reminder, db.programDao().exercise(slot))
+        assertEquals("Belt on top", repo.observeDay(plan, "A").first().slots.single().slot.exercise.note)
+    }
+
+    @Test fun `legacy lift note without a timestamp remains a reminder without a snapshot`() = runTest {
+        val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench", note = "Bench 2"))
+        val slot = db.programDao().exercisesForDay(plan, "A").last()
+        assertNull(slot.noteUpdatedAt)
+        val run = start(plan)
+        val session = checkNotNull(repo.finishRun(run))
+
+        assertNull(SessionPlanJson.decode(repo.history.session(session)!!.plannedJson!!)
+            .single { it.exerciseId == "bb_bench" }.note)
+        assertEquals("Bench 2", db.programDao().exercise(slot.id)!!.note)
+    }
+
+    @Test fun `today only swap note trims caps and clears without changing the slot`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setExerciseNote(slot, "Belt on top")
+        val reminder = db.programDao().exercise(slot)!!
+        now = now.plusSeconds(3600)
+        val run = start(plan)
+        assertTrue(repo.swapInRun(run, slot, Slot.MAIN, "hack_squat"))
+
+        repo.setExerciseNote(slot, "  ${"x".repeat(NOTE_MAX_LENGTH + 10)}  ")
+        assertEquals("x".repeat(NOTE_MAX_LENGTH), db.runDao().tracks(run).single { !it.retired }.note)
+        repo.setExerciseNote(slot, "   ")
+        assertEquals("", db.runDao().tracks(run).single { !it.retired }.note)
+        assertEquals(reminder, db.programDao().exercise(slot))
+        val session = checkNotNull(repo.finishRun(run))
+        assertTrue(SessionPlanJson.decode(repo.history.session(session)!!.plannedJson!!).all { it.note == null })
     }
 
     /** [F] */

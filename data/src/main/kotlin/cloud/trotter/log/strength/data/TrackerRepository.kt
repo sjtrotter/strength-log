@@ -476,7 +476,20 @@ class TrackerRepository(
         }
 
     suspend fun setExerciseNote(programExerciseId: Long, text: String) {
-        programDao.setExerciseNote(programExerciseId, text.trim().take(NOTE_MAX_LENGTH))
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == row.dayId }
+            val track = run?.let { runDao.tracks(it.id) }?.firstOrNull {
+                it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
+            }
+            val note = text.trim().take(NOTE_MAX_LENGTH)
+            val now = clock.millis()
+            if (track != null && track.exerciseId != row.exerciseId) {
+                runDao.updateTrack(track.copy(note = note, updatedAt = now))
+            } else {
+                programDao.setExerciseNote(row.id, note, now)
+            }
+        }
     }
 
     suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {
@@ -655,7 +668,7 @@ class TrackerRepository(
     ) { open, days, logs, slots ->
         if (open?.planId == planId && open.dayId == dayId) {
             DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
-                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId) }
+                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId, track.note) }
             }, retired = open.tracks.filter { it.retired && (!it.dropped || it.sets.any { set -> set.done }) },
                 droppedPartners = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
                     open.isPartnerDropped(id)
@@ -807,7 +820,7 @@ class TrackerRepository(
 
     private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
         id, position, programExerciseId, slot, exerciseId, retired,
-        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson), dropped,
+        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson), dropped, note,
     )
 
     suspend fun startRun(planId: Long, dayId: String): RunStartResult {
@@ -1592,7 +1605,7 @@ class TrackerRepository(
                     track.position, track.exerciseId, track.slot, track.retired,
                     SetJson.decodeSets(track.plannedJson).map(SetDto::of),
                     liveSetCount = track.toRunTrack().setCounts().total,
-                    note = track.programExerciseId?.let { programDao.exercise(it)?.note }?.takeIf { it.isNotBlank() },
+                    note = snapshotNote(track, run.startedAt),
                 )
             }),
         ))
@@ -1608,6 +1621,13 @@ class TrackerRepository(
             }
         })
         return sessionId
+    }
+
+    private suspend fun snapshotNote(track: RunTrackEntity, startedAt: Long): String? {
+        if (track.note.isNotBlank()) return track.note
+        val slot = track.programExerciseId?.let { programDao.exercise(it) } ?: return null
+        val updatedAt = slot.noteUpdatedAt ?: return null
+        return slot.note.takeIf { it.isNotBlank() && updatedAt >= startedAt }
     }
 
     private suspend fun carryForward(

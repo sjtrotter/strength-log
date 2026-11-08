@@ -77,6 +77,7 @@ data class ProgramExerciseEntity(
     val keepToPlan: Boolean = false,
     /** The slot's Progress working values while Next time is Plan; null otherwise. Restored by `setKeepToPlan(false)`. */
     val parkedLogsJson: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val noteUpdatedAt: Long? = null,
 )
 
 /** The plan's working values for one slot track: next time's sets. Never holds results. */

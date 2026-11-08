@@ -135,8 +135,8 @@ interface ProgramDao {
     @Query("DELETE FROM program_day WHERE planId = :planId AND dayId = :dayId")
     suspend fun deleteDay(planId: Long, dayId: String)
 
-    @Query("UPDATE program_exercise SET note = :note WHERE id = :id")
-    suspend fun setExerciseNote(id: Long, note: String)
+    @Query("UPDATE program_exercise SET note = :note, noteUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun setExerciseNote(id: Long, note: String, updatedAt: Long)
 
     /** Sets (or with a null [partnerId], clears) a slot's superset partner. */
     @Query("UPDATE program_exercise SET supersetExerciseId = :partnerId WHERE id = :id")

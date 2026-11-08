@@ -47,6 +47,7 @@ data class RunTrack(
     val planned: List<LoggedSet>,
     val sets: List<LoggedSet>,
     val dropped: Boolean = false,
+    val note: String = "",
 )
 
 data class RunSetCounts(val done: Int, val total: Int, val remaining: Int)

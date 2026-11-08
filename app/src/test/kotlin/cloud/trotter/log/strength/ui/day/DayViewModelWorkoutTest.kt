@@ -193,6 +193,33 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
+    fun `lift reminder returns after a today only swap shows its own note`() = test {
+        prepare(listOf(bench().copy(note = "Bench 2")))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        assertEquals("Bench 2", vm.uiState.value.exercises.single().note)
+
+        vm.swapWorkoutSlot(0, "machine_chest", Slot.MAIN)
+        runCurrent()
+        assertEquals("machine_chest", vm.uiState.value.exercises.single().exerciseId)
+        assertEquals("", vm.uiState.value.exercises.single().note)
+        vm.setExerciseNote(id, "  Seat 4  ")
+        runCurrent()
+        assertEquals("Seat 4", vm.uiState.value.exercises.single().note)
+        val recreated = readyVm()
+        assertEquals("Seat 4", recreated.uiState.value.exercises.single().note)
+        assertEquals("Bench 2", db.programDao().exercise(id)!!.note)
+        assertNull(db.programDao().exercise(id)!!.noteUpdatedAt)
+
+        vm.swapWorkoutSlot(0, "db_bench", Slot.MAIN)
+        runCurrent()
+        assertEquals("Bench 2", vm.uiState.value.exercises.single().note)
+        vm.swapWorkoutSlot(0, "machine_chest", Slot.MAIN)
+        runCurrent()
+        assertEquals("Seat 4", vm.uiState.value.exercises.single().note)
+    }
+
+    @Test
     fun `legacy plan MAIN swap confirms before deleting either half logged rows`() = test {
         prepare(listOf(bench(superset = true)))
         val saved = SavedStateHandle()

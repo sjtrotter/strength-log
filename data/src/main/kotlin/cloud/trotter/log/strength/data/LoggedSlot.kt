@@ -7,4 +7,5 @@ data class LoggedSlot(
     val slot: String,
     val sets: List<LoggedSet>,
     val exerciseId: String? = null,
+    val note: String = "",
 )

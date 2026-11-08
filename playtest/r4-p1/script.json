@@ -23,6 +23,58 @@
     },
     {
       "checkpoint": "edit-day-a-before-first-workout"
+    },
+    {
+      "tap": {
+        "text": "Hack Squat"
+      }
+    },
+    {
+      "checkpoint": "hack-squat-prescription-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-prescription-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next time"
+      }
+    },
+    {
+      "checkpoint": "next-time-progression-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
+      "checkpoint": "hack-squat-options"
     }
   ]
 }

@@ -28,7 +28,35 @@
     },
     {
       "tap": {
+        "text": "km"
+      }
+    },
+    {
+      "tap": {
+        "text": "Distance",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Distance",
+        "value": "7",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "comfortable-7km"
+    },
+    {
+      "tap": {
         "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Rest days",
+        "value": "2",
+        "ime": "done"
       }
     },
     {
@@ -38,7 +66,7 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "2 days"
       }
     },
     {
@@ -47,17 +75,15 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
+      "checkpoint": "mixed-plan-review"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Start"
       }
     },
     {
-      "checkpoint": "setup-plan-review"
+      "checkpoint": "setup-complete-today"
     }
   ]
 }

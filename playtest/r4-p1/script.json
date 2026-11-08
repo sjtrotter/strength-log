@@ -1,6 +1,92 @@
 {
   "seat": "r4-p1",
   "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
-  "steps": [{"checkpoint": "fresh-install-setup"}]
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "fresh-install-setup"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-2"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-3"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-4"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-5"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-7"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-8"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-9"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-step-10"
+    }
+  ]
 }

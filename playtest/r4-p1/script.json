@@ -129,6 +129,75 @@
     },
     {
       "checkpoint": "setup-step-10"
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Back"
+      }
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 3
+      }
+    },
+    {
+      "checkpoint": "machine-equipment-only"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "machine-plan-preview-a"
+    },
+    {
+      "scrollTo": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "machine-plan-preview-b"
+    },
+    {
+      "scrollTo": {
+        "text": "Day C"
+      }
+    },
+    {
+      "checkpoint": "machine-plan-preview-c"
+    },
+    {
+      "scrollTo": {
+        "text": "Missing a day never skips the next workout."
+      }
+    },
+    {
+      "checkpoint": "machine-plan-preview-end"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-complete-today"
     }
   ]
 }

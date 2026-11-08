@@ -27,8 +27,8 @@
       }
     },
     {
-      "tap": {
-        "text": "Start day A"
+      "expect": {
+        "text": "7 km"
       }
     },
     {

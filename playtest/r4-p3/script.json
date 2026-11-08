@@ -3,238 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
+    "date": "2026-11-10",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "monday-before-training"
-    },
-    {
-      "tap": {
-        "text": "Plans"
-      }
-    },
-    {
-      "checkpoint": "plans-for-my-existing-block"
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "checkpoint": "monday-squat-session-controls"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "checkpoint": "squat-set-editor"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "squat-all-sets-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 0 of 21 sets"
-      }
-    },
-    {
-      "checkpoint": "whole-session-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "leave-unlogged-session"
-    },
-    {
-      "tap": {
-        "text": "Plans"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Plan options"
-      }
-    },
-    {
-      "checkpoint": "existing-plan-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "5-day full body"
-      }
-    },
-    {
-      "checkpoint": "plan-detail-editing-route"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Resume day A"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-4"
-      }
-    },
-    {
-      "checkpoint": "top-set-before-edit"
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "190"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "1"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "top-single-prescription-saved"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "squat-after-top-edit-all-sets"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "squat-more-menu"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "checkpoint": "backoff-editor"
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "top-single-and-first-backoff-ready"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "checkpoint": "squat-190-single-logged"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "checkpoint": "first-backoff-165x5-logged"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "checkpoint": "squat-note-entry-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "tuesday-after-monday-save"
     },
     {
       "tap": {
@@ -248,172 +23,11 @@
     },
     {
       "tap": {
-        "text": "Day A"
+        "text": "Day B"
       }
     },
     {
-      "checkpoint": "edit-my-monday-program"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Resume day A"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Set menu"
-      }
-    },
-    {
-      "checkpoint": "completed-backoff-set-menu"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "checkpoint": "add-second-squat-backoff"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-6"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-7"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-7"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-8"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-8"
-      }
-    },
-    {
-      "checkpoint": "all-four-squat-backoffs-logged"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "190x1 @7; 165x5x4 last @7.5. Side video Nov9: depth good. Last rest 5min."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "squat-effort-and-video-note-saved"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Plans"
-      }
-    },
-    {
-      "tap": {
-        "text": "5-day full body"
-      }
-    },
-    {
-      "tap": {
-        "text": "Day A"
-      }
+      "checkpoint": "tuesday-generated-plan"
     },
     {
       "tap": {
@@ -421,42 +35,7 @@
       }
     },
     {
-      "checkpoint": "day-a-edit-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "role": "Tab",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Resume day A"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 5 of 24 sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
+      "checkpoint": "tuesday-edit-day"
     },
     {
       "tap": {
@@ -464,239 +43,38 @@
       }
     },
     {
-      "tap": {
-        "text": "Swap exercise"
-      }
+      "checkpoint": "day-edit-more-options"
     },
     {
-      "checkpoint": "competition-bench-substitution-choices"
-    },
-    {
-      "tap": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "checkpoint": "barbell-bench-swap-scope"
+      "back": true
     },
     {
       "tap": {
-        "text": "This workout"
+        "text": "Edit cardio"
       }
+    },
+    {
+      "checkpoint": "tuesday-bike-prescription-controls"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Swap"
+        "text": "Add exercise"
       }
     },
     {
-      "checkpoint": "barbell-bench-confirmed-for-today"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "bench-sets-after-swap"
-    },
-    {
-      "tap": {
-        "tag": "lift-set-0"
-      }
+      "checkpoint": "add-my-paused-deadlift"
     },
     {
       "type": {
-        "text": "Weight (kg)",
-        "value": "100"
+        "text": "Search exercises",
+        "value": "paused"
       }
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-0"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "100"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "100"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "checkpoint": "five-bench-sets-100x5"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Competition pause. 100x5x5. First set stiff, then fine."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "bench-stiffness-note-saved"
-    },
-    {
-      "advance": "15m"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "checkpoint": "monday-finish-review"
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "monday-saved"
+      "checkpoint": "paused-variation-search"
     }
   ]
 }

@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-26",
-    "time": "07:00",
+    "date": "2026-11-28",
+    "time": "09:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "checkpoint": "nov26-thanksgiving-early-hard-stop"
+      "checkpoint": "nov28-reduced-close-grip-and-walk"
     },
     {
       "tap": {
@@ -27,411 +27,97 @@
       }
     },
     {
-      "checkpoint": "nov26-plan-and-last-bench-after-miss"
-    },
-    {
       "tap": {
-        "text": "Start day B"
+        "text": "Edit"
       }
     },
     {
       "tap": {
-        "text": "All sets"
+        "text": "Add exercise"
       }
-    },
-    {
-      "checkpoint": "nov26-bench-offered"
     },
     {
       "scrollTo": {
-        "tag": "lift-set-4"
+        "text": "Horizontal push"
       }
     },
     {
       "tap": {
-        "tag": "lift-set-4"
+        "text": "Horizontal push"
       }
     },
     {
       "type": {
-        "text": "Weight (kg)",
-        "value": "130"
+        "text": "Search exercises",
+        "value": "Close-grip competition bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
       }
     },
     {
       "type": {
-        "text": "Reps",
-        "value": "1"
+        "text": "Name",
+        "value": "Close-grip competition bench"
       }
     },
     {
       "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
+        "text": "Movement pattern"
       }
     },
     {
       "scrollTo": {
-        "tag": "lift-check-main-4"
+        "text": "Horizontal push"
       }
     },
     {
-      "advance": "4m"
-    },
-    {
       "tap": {
-        "tag": "lift-check-main-4"
+        "text": "Horizontal push"
       }
     },
     {
       "scrollTo": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-5"
+        "text": "Starting weight (kg)"
       }
     },
     {
       "type": {
-        "text": "Weight (kg)",
-        "value": "112.5"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4"
+        "text": "Starting weight (kg)",
+        "value": "95"
       }
     },
     {
       "tap": {
-        "text": "Save set"
+        "text": "Save"
       }
     },
     {
       "tap": {
-        "text": "All sets"
+        "text": "Close-grip competition bench",
+        "index": 1
       }
     },
     {
-      "checkpoint": "planned-backoff-112point5"
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-set-5"
-      }
+      "checkpoint": "close-grip-added-separately-from-competition-bench"
     },
     {
       "tap": {
-        "tag": "lift-set-5"
+        "text": "Edit cardio"
       }
     },
     {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4"
-      }
+      "checkpoint": "saturday-cardio-edit"
     },
     {
       "tap": {
-        "text": "Save set"
+        "text": "Activity"
       }
     },
     {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-6"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-6"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-7"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-7"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-8"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-8"
-      }
-    },
-    {
-      "checkpoint": "nov26-bench-all-four-backoffs-complete"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "130x1 @8.5. Planned 112.5 backoffs; reduced to110x4x4 after high RPE and last week miss. No misses today. Hard stop."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day B lifts, 5 of 33 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Two-second paused squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Two-second paused squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "nov26-paused-squat-offered"
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-set-0"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-0"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "155"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-0"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-0"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-set-1"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "155"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "checkpoint": "nov26-only-two-paused-squat-sets"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "155x4x2; planned four sets. Thanksgiving hard stop,47min total. No pressdowns or Pallof presses. Omitted, not failed."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "advance": "21m"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "checkpoint": "nov26-short-session-finish-review"
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "nov26-saved-47-minutes"
+      "checkpoint": "choose-treadmill-for-shorter-walk"
     }
   ]
 }

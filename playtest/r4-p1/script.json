@@ -309,6 +309,139 @@
     },
     {
       "checkpoint": "chest-six-reps-entered"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 6"
+      }
+    },
+    {
+      "checkpoint": "chest-missed-six-logged"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "chest-lowered-weight-complete"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "row-three-sets-complete"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 20 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "all-lifting-complete-cardio-next"
+    },
+    {
+      "note": "Eight minutes finishing walk, plus finding machines and seat help. Walks are not yet entered as cardio. Seat note intended: seat 4."
+    },
+    {
+      "advance": "41m30s"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "first-visit-finish-review"
     }
   ]
 }

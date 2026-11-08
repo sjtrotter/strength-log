@@ -39,6 +39,8 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
 
     private suspend fun seedOneLoggedSession() {
         settings.setUnit(WeightUnit.LB)
+        // A session records bodyweight only once the lifter has answered About you.
+        settings.updateGlobalLifter { it }
         val day = ProgramDay(
             id = "A",
             title = "Day A",

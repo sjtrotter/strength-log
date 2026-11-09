@@ -1,15 +1,19 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/** The log to next targets for a lift slot. Pure: callers pass the slot's stored rows and rule and write back
- *  [Outcome.rows] and [Outcome.rule] together. */
+/** The log to next targets for a lift slot or a cardio day. Pure: callers pass the slot's stored rows and rule and write back
+ *  [Outcome.rows] and [Outcome.rule] together; cardio callers pass the day's block and rule and write back [CardioOutcome]. */
 object Progression {
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(
@@ -198,6 +202,61 @@ object Progression {
                 result(Reason.EffortMiss)
             }
         }
+    }
+
+    /** [measure] and [percent] are the day's resolved A16 settings ([CardioMeasures.resolve], the day's or plan's
+     *  percent); [runCap] is the plan's Run cap setting, on by default. */
+    data class CardioContext(
+        val todayEpochDay: Long,
+        val measure: ProgressMeasure?,
+        val percent: Int,
+        val runCap: Boolean = true,
+    )
+
+    /** The block a cardio day opens with, as a view: the taper from [goal]'s date, then the run cap against [recent].
+     *  A ladder day opens unchanged: the ladder is its own guardrail. */
+    fun cardioAtStart(block: CardioBlock, rule: CardioRule?, recent: CardioHistory, goal: PlanGoal?, ctx: CardioContext): CardioBlock {
+        if (rule?.ladderLevel != null) return block
+        val tapered = Taper.factor(goal, ctx.todayEpochDay)?.let { Taper.applied(block, it) } ?: block
+        return if (ctx.runCap) RunCap.capped(tapered, RunCap.anchor(recent, ctx.todayEpochDay), recent.secondsPerMetre) else tapered
+    }
+
+    /** After Finish: next time's block and rule. A ladder day moves by [effort] (null reads as Easy, the ladder's band)
+     *  and [pain]; any other day takes A16's increase on full success, capped against [recent] and this session. */
+    fun cardioAfterSession(
+        block: CardioBlock,
+        rule: CardioRule?,
+        results: List<CardioSetResult>,
+        effort: CardioEffort?,
+        recent: CardioHistory,
+        ctx: CardioContext,
+        pain: Boolean = false,
+    ): CardioOutcome {
+        fun repeat() = CardioOutcome(block, rule, CardioChange.Repeat)
+        val level = rule?.ladderLevel
+        if (rule != null && level != null) {
+            val finished = CardioMeasures.fullSuccess(block, results)
+            val word = effort ?: CardioEffort.EASY
+            val next = when {
+                pain || word == CardioEffort.HARD -> maxOf(1, level - 1)
+                !finished || word == CardioEffort.GOOD -> level
+                level == RunWalkLadder.TOP -> return CardioOutcome(block, rule.copy(ladderLevel = null), CardioChange.LadderDone)
+                else -> level + 1
+            }
+            return if (next == level) repeat()
+            else CardioOutcome(RunWalkLadder.block(next, block.activity), rule.copy(ladderLevel = next), CardioChange.LevelTo(next))
+        }
+        val measure = ctx.measure ?: return repeat()
+        if (!CardioMeasures.fullSuccess(block, results)) return repeat()
+        val increased = CardioMeasures.increased(block, measure, ctx.percent)
+        if (increased == block) return repeat()
+        val next = if (ctx.runCap) {
+            val session = RunCap.maxima(listOf(results))
+            val anchor = if (session == null) recent.longest else recent.longest?.max(session) ?: session
+            RunCap.capped(increased, anchor, recent.secondsPerMetre)
+        } else increased
+        return if (next == block) repeat()
+        else CardioOutcome(next, rule, CardioChange.Increase(measure, capped = next != increased))
     }
 
     private fun success(

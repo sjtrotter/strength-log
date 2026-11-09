@@ -46,11 +46,19 @@ data class CardioSetResult(
     val elapsedSeconds: Int,
     val metres: Int? = null,
     val distanceSource: DistanceSource? = null,
+    /** #526: the reading when the planned end was reached, written at that moment by the phone and watch executors
+     *  and the past-session form (PR 2b): [secondsAtEnd] always, [metresAtEnd] when a distance is known. Null on a set
+     *  that never reached its end and on rows from before v25. [elapsedSeconds] and [metres] stay the totals, so the
+     *  overrun is the difference. */
+    val metresAtEnd: Int? = null,
+    val secondsAtEnd: Int? = null,
 ) {
     init {
         require(elapsedSeconds >= 0) { "elapsedSeconds must not be negative" }
         require(metres == null || metres >= 0) { "metres must not be negative" }
         require((metres != null) == (distanceSource != null)) { "distanceSource is required iff metres is present" }
+        require(metresAtEnd == null || metresAtEnd >= 0) { "metresAtEnd must not be negative" }
+        require(secondsAtEnd == null || secondsAtEnd >= 0) { "secondsAtEnd must not be negative" }
     }
 }
 

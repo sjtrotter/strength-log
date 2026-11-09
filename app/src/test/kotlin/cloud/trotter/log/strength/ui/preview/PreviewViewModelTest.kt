@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.domain.cardio.CardioIncrease
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -125,10 +126,11 @@ class PreviewViewModelTest : OverviewFixture() {
         assertEquals("", vm.uiState.value.lifts.single().note)
     }
 
-    @Test fun previewKeepsAnOfferAfterSuccessThenAMissAndHidesItInPlanMode() = runTest(dispatcher) {
+    @Test fun previewOffersAfterSuccessRepeatsAfterAMissAndHidesItInPlanMode() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
         )))))
+        db.convertTestPlans(settings)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val vm = preview(plan, "A")
@@ -148,7 +150,7 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.finishRun(miss.runId)
         advanceUntilIdle()
         assertEquals("3 × 5 · 70 lb", vm.uiState.value.lifts.single().working)
-        assertEquals(NextTime.Offer("+5 lb", false, 75.0, 70.0), vm.uiState.value.lifts.single().nextTime)
+        assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
         repo.setKeepToPlan(id, true)
         advanceUntilIdle()
         assertNull(vm.uiState.value.lifts.single().nextTime)
@@ -176,7 +178,7 @@ class PreviewViewModelTest : OverviewFixture() {
         assertNull(fallback.sourcePlanName)
     }
 
-    @Test fun heavierSquatOnDayBOffersOnDayAAndAMissElsewhereDoesNotChangeLast() = runTest(dispatcher) {
+    @Test fun aSquatElsewhereNeverOffersOnDayAAndAMissElsewhereDoesNotChangeLast() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf("A", "B").map { day ->
             ProgramDay(day, "Squat", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3,
                 prescription = Prescription(PrescribedTarget.LoadReps(if (day == "A") 45.0 else 50.0, 5)))))
@@ -198,9 +200,8 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.finishRun(success.runId)
         val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
         advanceUntilIdle()
-        val offer = NextTime.Offer("+10 lb", false, 55.0, 45.0)
-        assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
-        assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
+        assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
+        assertEquals(NextTime.Repeat, workout.uiState.value.exercises.single().nextTime)
         assertEquals("3 × 5 · 45 lb", vm.uiState.value.lifts.single().working)
         assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
         assertNull(vm.uiState.value.lifts.single().previous.single().source)
@@ -210,46 +211,36 @@ class PreviewViewModelTest : OverviewFixture() {
             List(3) { LoggedSet(60.0, 4, SetKind.WORK, done = true, plannedIndex = it) }, miss.runId)
         repo.finishRun(miss.runId)
         advanceUntilIdle()
-        assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
-        assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
+        assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
+        assertEquals(NextTime.Repeat, workout.uiState.value.exercises.single().nextTime)
         assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
         assertNull(vm.uiState.value.lifts.single().previous.single().source)
     }
 
-    @Test fun heavierSquatOnDayBOffersOnUnperformedDayAInPreviewAndWorkout() = runTest(dispatcher) {
+    @Test fun anUnperformedDayAShowsDayBLastAndNoOffer() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf("A", "B").map { day ->
             ProgramDay(day, "Squat", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3,
                 prescription = Prescription(PrescribedTarget.LoadReps(if (day == "A") 45.0 else 50.0, 5)))))
         }))
         val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val a = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val b = repo.plans.slotsFor(plan, "B").first().single().programExerciseId
         val success = repo.startRun(plan, "B") as RunStartResult.Started
         db.storeTestRows("B", b, Slot.MAIN,
             List(3) { LoggedSet(55.0, 5, SetKind.WORK, done = true, plannedIndex = it) }, success.runId)
         repo.finishRun(success.runId)
-        assertTrue(repo.history.slotSessions(plan, "A").isEmpty())
+        assertTrue(repo.history.slotSessionsById(plan, "A").isEmpty())
 
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        val offer = NextTime.Offer("+10 lb", false, 55.0, 45.0)
-        assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
+        assertNull(vm.uiState.value.lifts.single().nextTime)
         assertEquals("3 × 5 · 45 lb", vm.uiState.value.lifts.single().working)
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.isEmpty())
         val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
         advanceUntilIdle()
-        assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
+        assertNull(workout.uiState.value.exercises.single().nextTime)
         assertEquals("55 lb × 5, 5, 5", vm.uiState.value.lifts.single().previous.single().last)
         assertEquals("B", vm.uiState.value.lifts.single().previous.single().source)
 
-        vm.setWorkingWeight(a, offer.offerLb)
-        advanceUntilIdle()
-        assertEquals(offer.copy(applied = true), vm.uiState.value.lifts.single().nextTime)
-        assertEquals(offer.copy(applied = true), workout.uiState.value.exercises.single().nextTime)
-        workout.setWorkingWeight(a, Slot.MAIN, offer.openingLb)
-        advanceUntilIdle()
-        assertEquals(offer, vm.uiState.value.lifts.single().nextTime)
-        assertEquals(offer, workout.uiState.value.exercises.single().nextTime)
     }
 
     @Test fun lastLabelsAnotherPlanAndDoesNotTreatAnotherSlotAsItsOwn() = runTest(dispatcher) {
@@ -500,6 +491,7 @@ class PreviewViewModelTest : OverviewFixture() {
             )),
             ProgramDay("B", "Arms", "", listOf(ProgramExercise("ez_curl"))),
         )))
+        db.convertTestPlans(settings)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val success = repo.startRun(plan, "A") as RunStartResult.Started

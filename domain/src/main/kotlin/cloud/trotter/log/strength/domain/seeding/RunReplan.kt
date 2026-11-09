@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.model.LoggedSet
 
 /** Re-plans a run track after a prescription edit: done rows stay, the rest follow [seeded]. */
@@ -26,7 +27,7 @@ object RunReplan {
         val count = maxOf(main.size, partner.size)
         fun pad(current: List<LoggedSet>, seeded: List<LoggedSet>): List<LoggedSet> =
             (0 until count).map { index ->
-                current.getOrNull(index) ?: CarryForward.cleared(listOf(
+                current.getOrNull(index) ?: WorkingRows.cleared(listOf(
                     current.lastOrNull() ?: seeded.getOrNull(index) ?: seeded.last(),
                 )).single()
             }
@@ -51,7 +52,7 @@ object RunReplan {
                     c != null && (keepExisting || c.done) -> c
                     s != null && !keepExisting -> s.copy(plannedIndex = c?.plannedIndex, watchEditedAt = c?.watchEditedAt)
                     c != null -> c
-                    else -> CarryForward.cleared(listOf(
+                    else -> WorkingRows.cleared(listOf(
                         if (current.isEmpty()) s ?: seeded.last() else last(),
                     )).single()
                 })

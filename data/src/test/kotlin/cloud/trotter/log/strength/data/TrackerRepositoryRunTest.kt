@@ -26,7 +26,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -548,7 +548,7 @@ class TrackerRepositoryRunTest {
         assertEquals(clock.millis(), day(plan).closedAt)
         assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
         val mainTrack = before.tracks.first { it.programExerciseId == main }
-        assertEquals(CarryForward.next(mainTrack.planned, mainTrack.sets), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", main, Slot.MAIN)!!.setsJson))
+        assertEquals(WorkingRows.carried(mainTrack.planned, mainTrack.sets), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", main, Slot.MAIN)!!.setsJson))
         assertNull(db.programDao().logForSlot(plan, "A", authored, Slot.MAIN))
     }
 
@@ -571,7 +571,7 @@ class TrackerRepositoryRunTest {
         assertEquals(beforePlan, db.planDao().plan(plan))
         assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
         assertEquals(beforeB, day(plan, "B"))
-        assertEquals(CarryForward.next(track.planned, track.sets), SetJson.decodeSets(
+        assertEquals(WorkingRows.carried(track.planned, track.sets), SetJson.decodeSets(
             db.programDao().logForSlot(plan, "C", checkNotNull(track.programExerciseId), track.slot)!!.setsJson,
         ))
         assertNotEquals(id, day(plan, "C").nextRunId)
@@ -1197,7 +1197,7 @@ class TrackerRepositoryRunTest {
         val main = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }
         repo.finishRun(runId)
         assertEquals(originalPartner, db.programDao().logForSlot(plan, "A", slot, Slot.SS))
-        assertEquals(CarryForward.next(main.planned, main.sets),
+        assertEquals(WorkingRows.carried(main.planned, main.sets),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
 
         val secondRunId = day(plan).nextRunId
@@ -1208,21 +1208,22 @@ class TrackerRepositoryRunTest {
         val partner = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == slot && it.slot == Slot.SS }
         assertTrue(partner.dropped && partner.retired)
         repo.finishRun(secondRunId)
-        assertEquals(CarryForward.next(partner.planned, partner.sets),
+        assertEquals(WorkingRows.carried(partner.planned, partner.sets),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
         assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
     }
 
-    @Test fun `a skipped ramp with done work carries its manual ramp edit`() = runTest {
+    @Test fun `a skipped ramp with done work holds its stored rows in Ask`() = runTest {
         repo.replaceProgram(generated())
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
+        repo.plans.convertPlans()
         val runId = start(plan)
         repo.applyToRun(runId, plan, "A", listOf(weight(slot, 140.0)))
         assertTrue(repo.skipLift(plan, "A", slot, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
         repo.finishRun(runId)
-        assertEquals(squat().mapIndexed { i, row -> if (i == 0) row.copy(weightLb = 140.0) else row },
+        assertEquals(squat(),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 
@@ -1243,7 +1244,7 @@ class TrackerRepositoryRunTest {
         val rows = SetJson.decodeSets(track.setsJson)
         assertEquals(List(3) { 55.0 }, rows.map { it.weightLb })
         assertEquals(listOf(0, 1, 2), rows.map { it.plannedIndex })
-        assertEquals(CarryForward.cleared(rows), SetJson.decodeSets(track.plannedJson))
+        assertEquals(WorkingRows.cleared(rows), SetJson.decodeSets(track.plannedJson))
         repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
         val before = db.runDao().tracks(runId)
         assertEquals(RunWriteResult.Unchanged, repo.setWorkingWeight(runId, plan, "A", slot, Slot.MAIN, 60.0))
@@ -1253,7 +1254,7 @@ class TrackerRepositoryRunTest {
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 
-    @Test fun `setWorkingWeight after removing a row matches the new opening and earns the next offer`() = runTest {
+    @Test fun `setWorkingWeight after removing a row matches the new opening and records the next offer`() = runTest {
         val plan = authored()
         val slot = slot(plan)
         repo.setKeepToPlan(slot, false)
@@ -1270,15 +1271,15 @@ class TrackerRepositoryRunTest {
         val track = repo.openRunFlow.first()!!.tracks.single()
         assertEquals(listOf(0, 1), track.sets.map { it.plannedIndex })
         assertEquals(List(2) { LoggedSet(55.0, 10, SetKind.WORK) }, track.planned)
-        assertEquals(track.planned, CarryForward.cleared(track.sets))
+        assertEquals(track.planned, WorkingRows.cleared(track.sets))
         repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
         repo.finishRun(runId)
-        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        val archived = repo.history.slotSessionsById(plan, "A").getValue(slot to Slot.MAIN)
         assertEquals(listOf(0, 1), archived.actual.map { it.plannedIndex })
-        assertEquals(60.0, CarryForward.offer(archived.planned, archived.actual, WeightUnit.LB)!!, 0.0)
+        assertEquals(NextOffer(55.0, 60.0), archived.offer)
     }
 
-    @Test fun `setWorkingWeight after adding an extra matches the new opening and earns the next offer`() = runTest {
+    @Test fun `setWorkingWeight after adding an extra matches the new opening and records the next offer`() = runTest {
         val plan = authored()
         val slot = slot(plan)
         repo.setKeepToPlan(slot, false)
@@ -1295,12 +1296,12 @@ class TrackerRepositoryRunTest {
         val track = repo.openRunFlow.first()!!.tracks.single()
         assertEquals(listOf(0, 1, 2, 3), track.sets.map { it.plannedIndex })
         assertEquals(work().map { it.copy(weightLb = 55.0) } + LoggedSet(55.0, 10, SetKind.EXTRA), track.planned)
-        assertEquals(track.planned, CarryForward.cleared(track.sets))
+        assertEquals(track.planned, WorkingRows.cleared(track.sets))
         repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
         repo.finishRun(runId)
-        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        val archived = repo.history.slotSessionsById(plan, "A").getValue(slot to Slot.MAIN)
         assertEquals(listOf(0, 1, 2, 3), archived.actual.map { it.plannedIndex })
-        assertEquals(60.0, CarryForward.offer(archived.planned, archived.actual, WeightUnit.LB)!!, 0.0)
+        assertEquals(NextOffer(55.0, 60.0), archived.offer)
     }
 
     @Test fun `setWorkingWeight rejects stale runs mismatched days and missing or retired tracks`() = runTest {
@@ -1348,7 +1349,7 @@ class TrackerRepositoryRunTest {
         listOf(20.0, 20.0, 20.0, 20.0, 22.5, 20.0).zip(rows).forEach { (expected, row) ->
             assertEquals(expected, WeightUnit.KG.fromLb(row.weightLb), 1e-6)
         }
-        assertEquals(CarryForward.cleared(rows), SetJson.decodeSets(track.plannedJson))
+        assertEquals(WorkingRows.cleared(rows), SetJson.decodeSets(track.plannedJson))
     }
 
     @Test fun `remembered prescribed slot carries forward the run track`() = runTest {
@@ -1362,7 +1363,7 @@ class TrackerRepositoryRunTest {
 
         repo.finishRun(runId)
 
-        assertEquals(CarryForward.next(track.planned, track.sets),
+        assertEquals(WorkingRows.carried(track.planned, track.sets),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 
@@ -1381,7 +1382,7 @@ class TrackerRepositoryRunTest {
         repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
         val firstTrack = repo.openRunFlow.first()!!.tracks.first { it.slot == Slot.MAIN }
         repo.finishRun(runId)
-        assertEquals(CarryForward.next(firstTrack.planned, firstTrack.sets),
+        assertEquals(WorkingRows.carried(firstTrack.planned, firstTrack.sets),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
 
         runId = day(plan).nextRunId
@@ -1461,7 +1462,7 @@ class TrackerRepositoryRunTest {
         val main = db.runDao().tracks(runId).single()
         db.runDao().updateTrack(main.copy(plannedJson = "[]"))
         repo.finishRun(runId)
-        assertEquals(CarryForward.next(emptyList(), SetJson.decodeSets(main.setsJson)),
+        assertEquals(emptyList<LoggedSet>(),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 

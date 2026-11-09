@@ -53,7 +53,7 @@ import org.junit.Before
 open class OverviewFixture {
     protected val dispatcher = StandardTestDispatcher()
     protected lateinit var db: StrengthDatabase
-    private lateinit var settings: SettingsStore
+    protected lateinit var settings: SettingsStore
     protected lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var context: Context

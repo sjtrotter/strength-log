@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.standards
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotRole
 
 /**
@@ -77,6 +78,11 @@ object RestPolicy {
             else -> null
         }
     }
+
+    /** The slot's role and rest override, with the plan's Defaults for goal. */
+    fun effectiveRestSeconds(kind: SetKind, tracking: TrackingType, overrides: Map<RestCategory, Int>,
+                             rule: SlotRule?, goal: LiftGoal): Int =
+        effectiveRestSeconds(kind, tracking, overrides, rule?.role, goal, rule?.restSeconds)
 
     /**
      * THE resolver — the only place effective rest is computed. An absent

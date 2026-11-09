@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
@@ -153,6 +154,7 @@ class DayViewModelTimedRepExecutionTest {
     @Test
     fun timedRepCountLogsOnlyMainAndPartnerTickStartsRest() = test {
         prepare()
+        db.convertTestPlans(settings)
         val id = repo.plans.daySlotsFlow("A").first().single().programExerciseId
         repo.setSupersetPartner("A", id, "rope_pushdown")
         settings.setPhoneRestTimerEnabled(true)
@@ -175,7 +177,7 @@ class DayViewModelTimedRepExecutionTest {
         vm.toggleDone(id, 0, true, Slot.SS)
         runCurrent()
         assertTrue(vm.uiState.value.exercises.single().rows[0].complete)
-        assertEquals(60, rest.armed.single().totalSeconds)
+        assertEquals(90, rest.armed.single().totalSeconds)
     }
 
     @Test

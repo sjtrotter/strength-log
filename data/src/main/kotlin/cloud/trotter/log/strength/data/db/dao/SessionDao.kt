@@ -135,24 +135,14 @@ interface SessionDao {
     @Query("SELECT * FROM workout_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
     suspend fun lastSessionForDay(planId: Long, dayId: String): WorkoutSessionEntity?
 
-    @Query(
-        """
-        SELECT ws.* FROM workout_session ws
-        WHERE ws.planId = :planId
-        ORDER BY ws.completedAt DESC, ws.id DESC
-        """,
-    )
-    suspend fun sessionsForPlan(planId: Long): List<WorkoutSessionEntity>
+    @Query("UPDATE workout_session SET progressionUndoJson = NULL WHERE id = :sessionId")
+    suspend fun clearProgressionUndo(sessionId: Long)
 
-    @Query(
-        """
-        SELECT ss.* FROM session_set ss
-        INNER JOIN workout_session ws ON ws.id = ss.sessionId
-        WHERE ws.planId = :planId AND ss.exerciseId IN (:exerciseIds)
-        ORDER BY ss.id
-        """,
-    )
-    suspend fun setsForPlan(planId: Long, exerciseIds: List<String>): List<SessionSetEntity>
+    @Query("UPDATE workout_session SET progressionUndoJson = NULL WHERE planId = :planId AND progressionUndoJson IS NOT NULL")
+    suspend fun clearProgressionUndoForPlan(planId: Long)
+
+    @Query("UPDATE workout_session SET progressionUndoJson = NULL WHERE planId = :planId AND dayId = :dayId AND progressionUndoJson IS NOT NULL")
+    suspend fun clearProgressionUndoForDay(planId: Long, dayId: String)
 
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of

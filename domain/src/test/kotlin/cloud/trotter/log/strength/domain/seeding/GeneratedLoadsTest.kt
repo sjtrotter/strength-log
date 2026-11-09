@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -7,7 +8,6 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -107,7 +107,7 @@ class GeneratedLoadsTest {
         assertKg(List(6) { 20.0 }, low.map { it.weightLb })
         val completed = sets.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }
         val edited = SetEditor.editWeight(completed, 4, WeightUnit.KG.toLb(42.5), WeightUnit.KG, barbell)
-        assertEquals(CarryForward.cleared(sets), CarryForward.next(sets, edited, WeightUnit.KG, barbell))
+        assertEquals(WorkingRows.cleared(sets), WorkingRows.carried(sets, edited))
         val manual = SetEditor.editWeight(after, 0, WeightUnit.KG.toLb(21.3), WeightUnit.KG, barbell)
         assertEquals(21.3, WeightUnit.KG.fromLb(manual[0].weightLb), 1e-9)
         assertEquals(after.drop(1), manual.drop(1))

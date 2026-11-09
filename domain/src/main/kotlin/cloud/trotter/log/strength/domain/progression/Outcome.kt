@@ -26,4 +26,9 @@ sealed interface LayoffKind {
  *  long layoff). It is a view; nothing is written. */
 data class Opening(val rows: List<LoggedSet>, val layoff: LayoffKind, val ruleOverride: SlotRule?)
 
-data class Outcome(val rows: List<LoggedSet>, val rule: SlotRule, val change: Change, val reason: Reason)
+data class Outcome(
+    val rows: List<LoggedSet>,
+    val rule: SlotRule,
+    val change: Change,
+    val reason: Reason,
+)

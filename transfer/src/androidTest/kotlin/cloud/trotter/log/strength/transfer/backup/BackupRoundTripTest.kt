@@ -221,10 +221,16 @@ class BackupRoundTripTest : BackupTestHarness() {
     )
 
     private suspend fun captureState(): State {
-        val sessions = repository.history.sessionsFlow.first()
+        // A Finish's undo record is never exported (Undo doesn't cross a restore; BackupV27Test "Undo is never exported" pins it).
+        val sessions = repository.history.sessionsFlow.first().map { it.copy(progressionUndoJson = null) }
         return State(
             // Rules are derived state (see BackupTestHarness.programWithoutRules).
-            snapshot = backupRepository.exportSnapshot().let { s -> s.copy(exercises = s.exercises.map { it.copy(ruleJson = null) }) },
+            snapshot = backupRepository.exportSnapshot().let { s ->
+                s.copy(
+                    exercises = s.exercises.map { it.copy(ruleJson = null) },
+                    sessions = s.sessions.map { it.copy(progressionUndoJson = null) },
+                )
+            },
             program = programWithoutRules(),
             logsA = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
             logsB = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },

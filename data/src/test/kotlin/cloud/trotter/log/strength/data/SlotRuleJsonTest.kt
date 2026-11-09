@@ -130,4 +130,14 @@ class SlotRuleJsonTest {
             assertFailsWith<IllegalArgumentException> { SlotRuleJson.validate(json) }
         }
     }
+
+    @Test fun `pending shared increases are optional and survive rule storage`() {
+        val original = SlotRuleJson.encode(squat)
+        assertTrue("pendingIncrease" !in original)
+        assertEquals(squat, SlotRuleJson.decode(original))
+        val pending = original.dropLast(1) + ",\"state\":{\"successStreak\":2,\"pendingIncrease\":true}}"
+        val restored = requireNotNull(SlotRuleJson.decode(pending))
+        assertTrue("\"pendingIncrease\":true" in SlotRuleJson.encode(restored))
+    }
+
 }

@@ -15,13 +15,15 @@ import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilder
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTime
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTime
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
@@ -61,6 +63,7 @@ internal class SessionFinisher(
     val receipt = savedState.getStateFlow<WorkoutReceipt?>(KEY_WORKOUT_RECEIPT, null)
     val receiptSetCounts = savedState.getStateFlow<ReceiptSetCounts?>(KEY_RECEIPT_SET_COUNTS, null)
     val receiptNextTimes = savedState.getStateFlow<ReceiptNextTimes?>(KEY_RECEIPT_NEXT_TIMES, null)
+    val receiptRepNextTimes = savedState.getStateFlow<ReceiptRepNextTimes?>(KEY_RECEIPT_REP_NEXT_TIMES, null)
     private val _noteSave = MutableStateFlow<NoteSave?>(null)
     val noteSave: StateFlow<NoteSave?> = _noteSave.asStateFlow()
     private val _pendingShare = MutableStateFlow<Intent?>(null)
@@ -154,10 +157,11 @@ internal class SessionFinisher(
             rows?.let { track.id to it }
         }.toMap()
         val groupsWithTracks = ReceiptBuilder.strengthWithTracks(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty(), targets)
+        val repNextTimes = mutableListOf<ReceiptRepNextTime>()
         val nextTimes = try {
             val offersOn = plans.plansFlow.first().firstOrNull { it.id == planId }?.offerStrengthIncreases ?: true
             val working = repo.dayTracksFlow(planId, dayId).first().tracks
-            val history = historyRepository.slotSessions(planId, dayId)
+            val history = historyRepository.slotSessionsById(planId, dayId)
             val items = buildList {
                 for ((g, pair) in groupsWithTracks.withIndex()) {
                     val (group, rowTracks) = pair
@@ -174,10 +178,12 @@ internal class SessionFinisher(
                             it.programExerciseId == track.programExerciseId && it.slot == track.slot
                         }?.sets ?: continue
                         when (val next = DayScreenBuilder.nextTime(
-                            rows, history[track.exerciseId to track.slot], slot.exercise.keepToPlan, unit, offersOn = offersOn,
+                            rows, history[slot.programExerciseId to track.slot], slot.exercise.keepToPlan, unit, offersOn = offersOn,
                         )) {
-                            is NextTime.Offer -> add(ReceiptNextTime(g, r, next.offerLb, next.openingLb))
-                            NextTime.Repeat -> add(ReceiptNextTime(g, r, null, CarryForward.workingWeight(rows) ?: 0.0))
+                            is NextTime.Offer -> if (next.reps != null) {
+                                repNextTimes.add(ReceiptRepNextTime(g, r, next.reps))
+                            } else if (!next.calibration) add(ReceiptNextTime(g, r, next.offerLb, next.openingLb))
+                            NextTime.Repeat -> add(ReceiptNextTime(g, r, null, WorkingRows.workingWeight(rows) ?: 0.0))
                             null -> Unit
                         }
                     }
@@ -202,6 +208,7 @@ internal class SessionFinisher(
         val allPlansDone = allPlansDone(completedAt)
         savedState[KEY_RECEIPT_SET_COUNTS] = ReceiptSetCounts(sessionId, counts.total, counts.remaining)
         savedState[KEY_RECEIPT_NEXT_TIMES] = nextTimes
+        savedState[KEY_RECEIPT_REP_NEXT_TIMES] = ReceiptRepNextTimes(sessionId, repNextTimes)
         savedState[KEY_WORKOUT_RECEIPT] = WorkoutReceipt(
             sessionId = sessionId, cardio = false, dayId = dayId, dayIndex = dayIndex,
             dayTitle = program.days.firstOrNull { it.id == dayId }?.title ?: current.dayTitle,
@@ -240,6 +247,7 @@ internal class SessionFinisher(
         savedState[KEY_WORKOUT_RECEIPT] = null
         savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_RECEIPT_NEXT_TIMES] = null
+        savedState[KEY_RECEIPT_REP_NEXT_TIMES] = null
         return true
     }
 
@@ -332,6 +340,7 @@ internal class SessionFinisher(
         if (executionActive()) return
         savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_RECEIPT_NEXT_TIMES] = null
+        savedState[KEY_RECEIPT_REP_NEXT_TIMES] = null
         savedState[KEY_WORKOUT_RECEIPT] = receipt
     }
 
@@ -344,6 +353,7 @@ internal class SessionFinisher(
         const val KEY_FINISH = "day_finish"
         const val KEY_WORKOUT_RECEIPT = "day_workout_receipt"
         const val KEY_RECEIPT_SET_COUNTS = "day_receipt_set_counts"
+        const val KEY_RECEIPT_REP_NEXT_TIMES = "day_receipt_rep_next_times"
         const val KEY_RECEIPT_NEXT_TIMES = "day_receipt_next_times"
     }
 }

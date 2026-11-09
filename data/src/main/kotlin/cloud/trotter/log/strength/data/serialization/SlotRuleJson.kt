@@ -44,7 +44,7 @@ import kotlinx.serialization.Serializable
         require(state.resetEpochDays.zipWithNext().all { (a, b) -> a <= b })
         return SlotRule(parsedRole, parsedTarget, rir, incrementPct, everyExposures, dropPct, parsedScheme,
             restSeconds, parsedNextTime, SlotState(state.calibrating, state.successStreak, state.repMissStreak,
-                state.effortMissStreak, state.resetEpochDays, state.exposures))
+                state.effortMissStreak, state.resetEpochDays, state.exposures, state.pendingIncrease))
     }
 }
 
@@ -56,7 +56,7 @@ import kotlinx.serialization.Serializable
 @Serializable internal data class RampDto(val pct: Double, val reps: Int)
 @Serializable internal data class SlotStateDto(val calibrating: Boolean = false, val successStreak: Int = 0,
     val repMissStreak: Int = 0, val effortMissStreak: Int = 0, val resetEpochDays: List<Long> = emptyList(),
-    val exposures: Int = 0)
+    val exposures: Int = 0, val pendingIncrease: Boolean = false)
 
 /** Persistence shape of a [SlotRule] (`program_exercise.ruleJson`). */
 object SlotRuleJson {
@@ -70,7 +70,7 @@ object SlotRuleJson {
             rule.dropPct, SchemeDto(rule.scheme.ramps.map { RampDto(it.pct, it.reps) }, rule.scheme.backoffs,
                 rule.scheme.backoffPct, rule.scheme.backoffReps), rule.restSeconds, rule.nextTime?.name,
             SlotStateDto(state.calibrating, state.successStreak, state.repMissStreak, state.effortMissStreak,
-                state.resetEpochDays, state.exposures))
+                state.resetEpochDays, state.exposures, state.pendingIncrease))
         dto.toDomain()
         return SetJson.encode(SlotRuleDto.serializer(), dto)
     }

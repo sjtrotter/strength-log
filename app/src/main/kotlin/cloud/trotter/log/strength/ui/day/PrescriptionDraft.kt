@@ -7,7 +7,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -51,7 +51,7 @@ data class PrescriptionDraft(
             config: LifterConfig,
         ): PrescriptionDraft {
             val base = from(slot, catalog, config)
-            val set = working?.let { rows -> CarryForward.workingIndices(rows).firstOrNull()?.let(rows::get) }
+            val set = working?.let { rows -> WorkingRows.workingIndices(rows).firstOrNull()?.let(rows::get) }
             return base.copy(
                 kind = PrescriptionKind.LOAD_REPS,
                 sets = STRAIGHT_SETS,
@@ -65,7 +65,7 @@ data class PrescriptionDraft(
             val seeded = SlotSeeds.main(
                 ProgramExercise(slot.exerciseId, slot.structure, slot.targetSets), catalog.find(slot.exerciseId), config,
             )
-            val working = seeded?.let { rows -> CarryForward.workingIndices(rows).firstOrNull()?.let(rows::get) }
+            val working = seeded?.let { rows -> WorkingRows.workingIndices(rows).firstOrNull()?.let(rows::get) }
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
                 reps = working?.reps?.takeIf { it >= 1 } ?: 10,

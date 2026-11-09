@@ -794,5 +794,15 @@ class ReceiptScreenTest {
         const val CURL = "Dumbbell Curl. 35 pounds: 10 and 10 reps. 30 pounds: 8 reps. Rep record on set 1, up from 35 pounds for 9 reps."
         const val CARDIO = "6 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds."
     }
+    @Test fun `a lower next time reads with a minus sign`() {
+        val bench = ReceiptRow("Bench", TrackingType.WEIGHTED, ReceiptRow.Shape.STRAIGHT,
+            List(3) { ReceiptSet(185.0, 5, 0) }, listOf(ValueLine(185.0, listOf(0, 1, 2))),
+            0, PlannedSets(3, 185.0, 5, 0), null)
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(3, listOf(bench))))
+        setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 175.0, 185.0))))
+        rule.onNodeWithText("Next time: −10 lb", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Bench. 185 pounds: 5, 5 and 5 reps. Next time, lower by 10 pounds.").assertExists()
+    }
+
 }
 

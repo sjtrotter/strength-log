@@ -27,7 +27,7 @@ import cloud.trotter.log.strength.domain.model.StandardLift
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.seeding.RunReplan
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
@@ -552,7 +552,7 @@ class TrackerRepositoryRunEditsTest {
     }
 
     /** [F] */
-    @Test fun `swapping back retires a done alternate archives it and carries restored values forward`() = runTest {
+    @Test fun `swapping back retires a done alternate archives it and keeps the stored 45 lb rows`() = runTest {
         val plan = generated()
         val slot = slot(plan)
         val restoredRows = squat().mapIndexed { i, row ->
@@ -580,7 +580,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(alternateRows.all { it.done })
         assertEquals(expected.size, archived.count { it.exerciseId == "bb_back_squat" })
         val carried = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
-        assertEquals(CarryForward.next(SetJson.decodeSets(original.plannedJson), expected), carried)
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, carried)
         assertEquals("bb_back_squat", db.programDao().exercise(slot)!!.exerciseId)
     }
 
@@ -2062,7 +2062,7 @@ class TrackerRepositoryRunEditsTest {
         )))
         val created = db.runDao().tracks(runId).single { it.programExerciseId == unknown }
         assertEquals(listOf(row), SetJson.decodeSets(created.setsJson))
-        assertEquals(CarryForward.cleared(listOf(row)),
+        assertEquals(WorkingRows.cleared(listOf(row)),
             SetJson.decodeSets(created.plannedJson))
     }
 
@@ -2092,7 +2092,7 @@ class TrackerRepositoryRunEditsTest {
         )))
         val created = db.runDao().tracks(next).single { it.programExerciseId == unknown }
         assertEquals(listOf(row.copy(plannedIndex = 0)), SetJson.decodeSets(created.setsJson))
-        assertEquals(CarryForward.cleared(listOf(row)),
+        assertEquals(WorkingRows.cleared(listOf(row)),
             SetJson.decodeSets(created.plannedJson))
         assertTrue(db.runDao().tracks(next).any { it.programExerciseId == slot(plan) })
     }

@@ -1,29 +1,28 @@
 package cloud.trotter.log.strength.sync
 
-import cloud.trotter.log.strength.data.serialization.planSettings
-
 import cloud.trotter.log.strength.data.HistoryRepository
-import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.sync.WatchDay
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import java.time.LocalDate
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * The one observed projection of *today* — the open run or suggested day, its sets, their

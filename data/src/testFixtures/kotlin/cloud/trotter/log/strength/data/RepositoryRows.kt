@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -75,4 +76,9 @@ suspend fun TrackerRepository.writeTestRowsPaired(
         TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { main },
         TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { ss },
     ))
+}
+
+/** Replacing a program after migration requires a fresh conversion latch for the new fixture slots. */
+suspend fun StrengthDatabase.convertTestPlans(settings: SettingsStore) {
+    PlanRepository(this, settings).runPlanSettingsFixupIfNeeded()
 }

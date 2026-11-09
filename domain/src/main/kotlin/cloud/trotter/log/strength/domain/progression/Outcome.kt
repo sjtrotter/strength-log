@@ -26,15 +26,9 @@ sealed interface LayoffKind {
  *  long layoff). It is a view; nothing is written. */
 data class Opening(val rows: List<LoggedSet>, val layoff: LayoffKind, val ruleOverride: SlotRule?)
 
-/** [held] preserves the opening rows while an Ask-mode change waits for acceptance. */
 data class Outcome(
     val rows: List<LoggedSet>,
     val rule: SlotRule,
     val change: Change,
     val reason: Reason,
-    val held: List<LoggedSet> = rows,
-) {
-    /** Ask never applies a load, rep target, calibration, or range reset without acceptance. */
-    val asks: Boolean get() = (change != Change.Hold && change != Change.LightCycle) ||
-        WorkingRows.workingWeight(rows) != WorkingRows.workingWeight(held)
-}
+)

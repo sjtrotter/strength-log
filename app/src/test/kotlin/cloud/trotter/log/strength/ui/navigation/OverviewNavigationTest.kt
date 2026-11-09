@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.navigation
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import android.content.Context
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -304,6 +305,7 @@ class OverviewNavigationTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
         )))))
+        db.convertTestPlans(settings)
         val id = repo.plans.slotsFor(preferred, "A").first().single().programExerciseId
         val run = repo.startRun(preferred, "A") as RunStartResult.Started
         db.storeTestRows("A", id, Slot.MAIN,

@@ -1,71 +1,71 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.isSlotSkipped
-import cloud.trotter.log.strength.data.forRun
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.DayTracks
-import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.prefs.WorkoutRecord
-import cloud.trotter.log.strength.data.prefs.UndoTarget
-import cloud.trotter.log.strength.data.serialization.SetDto
-import cloud.trotter.log.strength.domain.standards.PhoneRest
-import cloud.trotter.log.strength.data.TodayTarget
-import cloud.trotter.log.strength.data.performedExercise
-import cloud.trotter.log.strength.data.RunStartResult
-import cloud.trotter.log.strength.data.RunWriteResult
-import cloud.trotter.log.strength.data.setCounts
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.LastPerformed
-import cloud.trotter.log.strength.data.PersonalRecord
-import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
-import cloud.trotter.log.strength.data.HistoryRepository
-import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.RunWriteResult
+import cloud.trotter.log.strength.data.SlotSession
+import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.domain.cardio.ManualCardio
-import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
-import cloud.trotter.log.strength.domain.cardio.BootAnchor
-import cloud.trotter.log.strength.domain.records.CardioBests
-import cloud.trotter.log.strength.domain.generator.Rotation
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.glance.GlanceLines
-import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.forRun
+import cloud.trotter.log.strength.data.isSlotSkipped
+import cloud.trotter.log.strength.data.performedExercise
+import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.prefs.UndoTarget
+import cloud.trotter.log.strength.data.prefs.WorkoutRecord
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.data.setCounts
+import cloud.trotter.log.strength.domain.cardio.BootAnchor
+import cloud.trotter.log.strength.domain.cardio.ManualCardio
+import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.glance.GlanceLines
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
-import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
-import cloud.trotter.log.strength.domain.standards.SetFormatter
-import cloud.trotter.log.strength.data.serialization.planSettings
-import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.standards.RestPolicy
-import cloud.trotter.log.strength.rest.PhoneRestController
-import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.sync.WatchContinuitySource
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
-import cloud.trotter.log.strength.sync.WatchContinuitySource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -77,17 +77,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -1927,7 +1927,7 @@ class DayViewModel @Inject constructor(
      *  — never one query per exercise for either. */
     private suspend fun fetchDayHistory(ids: List<String>, planId: Long, dayId: String): DayHistory {
         return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
-            historyRepository.lastPerformedDates(ids), historyRepository.slotSessions(planId, dayId),
+            historyRepository.lastPerformedDates(ids), historyRepository.slotSessionsById(planId, dayId),
             historyRepository.lastSets(ids))
     }
 
@@ -2214,10 +2214,10 @@ class DayViewModel @Inject constructor(
                 else DayScreenBuilder.workingHeading(main, tracking, unit),
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
-            nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[performed.exerciseId to Slot.MAIN], pe.keepToPlan, unit,
+            nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[id to Slot.MAIN]?.takeIf { performed.exerciseId == pe.exerciseId }, pe.keepToPlan, unit,
                 offersOn = offersOn, rule = pe.rule),
-            partnerNextTime = slot.partner?.let {
-                DayScreenBuilder.nextTime(it.sets, history.slotSessions[it.performed.exerciseId to Slot.SS], pe.keepToPlan, unit,
+            partnerNextTime = slot.partner?.let { partnerTrack ->
+                DayScreenBuilder.nextTime(partnerTrack.sets, history.slotSessions[id to Slot.SS]?.takeIf { partnerTrack.performed.exerciseId == pe.superset?.exerciseId }, pe.keepToPlan, unit,
                     offersOn = offersOn)
             },
             perHand = entry?.perHand == true,
@@ -2255,7 +2255,7 @@ class DayViewModel @Inject constructor(
         val lastPerformed: Map<String, LastPerformed>,
         val personalRecords: Map<String, PersonalRecord>,
         val lastPerformedDates: Map<String, Long> = emptyMap(),
-        val slotSessions: Map<Pair<String, String>, SlotSession> = emptyMap(),
+        val slotSessions: Map<Pair<Long, String>, SlotSession> = emptyMap(),
         val lastSets: Map<String, List<LoggedSet>> = emptyMap(),
     )
 

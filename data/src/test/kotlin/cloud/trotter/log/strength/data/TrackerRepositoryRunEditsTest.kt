@@ -580,7 +580,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(alternateRows.all { it.done })
         assertEquals(expected.size, archived.count { it.exerciseId == "bb_back_squat" })
         val carried = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
-        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) }, carried)
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, carried)
         assertEquals("bb_back_squat", db.programDao().exercise(slot)!!.exerciseId)
     }
 

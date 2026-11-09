@@ -1218,6 +1218,7 @@ class TrackerRepositoryRunTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
+        repo.plans.convertPlans()
         val runId = start(plan)
         repo.applyToRun(runId, plan, "A", listOf(weight(slot, 140.0)))
         assertTrue(repo.skipLift(plan, "A", slot, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
@@ -1461,7 +1462,7 @@ class TrackerRepositoryRunTest {
         val main = db.runDao().tracks(runId).single()
         db.runDao().updateTrack(main.copy(plannedJson = "[]"))
         repo.finishRun(runId)
-        assertEquals(work(),
+        assertEquals(emptyList<LoggedSet>(),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 

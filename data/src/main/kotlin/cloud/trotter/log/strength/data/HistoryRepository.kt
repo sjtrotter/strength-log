@@ -12,16 +12,17 @@ import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
-import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
-import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -29,6 +30,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
@@ -38,8 +40,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -295,26 +297,46 @@ class HistoryRepository(
      *  For duplicate keys, the last archived track wins. */
     suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
-        archivedTracks(session, sessionDao.setsForSession(session.id))
+        archivedTracks(session, sessionDao.setsForSession(session.id)).entries.associate { (dto, track) ->
+            (dto.exerciseId to dto.slot) to track
+        }
+    }
+
+    /** Offers belong to a program slot, including when an exercise appears twice on the same day. */
+    suspend fun slotSessionsById(planId: Long, dayId: String): Map<Pair<Long, String>, SlotSession> = db.withTransaction {
+        val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
+        val slots = db.programDao().exercisesForDay(planId, dayId)
+        archivedTracks(session, sessionDao.setsForSession(session.id)).entries.mapNotNull { (dto, track) ->
+            val owner = slots.singleOrNull { slot ->
+                (if (dto.programExerciseId != null) slot.id == dto.programExerciseId else slot.position == dto.position) &&
+                    when (dto.slot) {
+                        Slot.MAIN -> slot.exerciseId
+                        Slot.SS -> slot.supersetExerciseId
+                        else -> null
+                    } == dto.exerciseId
+            } ?: return@mapNotNull null
+            (owner.id to dto.slot) to if (dto.programExerciseId == null) track.copy(offer = null) else track
+        }.toMap()
     }
 
     private fun archivedTracks(
         session: WorkoutSessionEntity,
         sets: List<SessionSetEntity>,
-    ): Map<Pair<String, String>, SlotSession> {
+    ): Map<PlannedTrackDto, SlotSession> {
         val plannedJson = session.plannedJson ?: return emptyMap()
-        return SessionPlanJson.decode(plannedJson).associateBy { it.exerciseId to it.slot }.mapValues { (_, dto) ->
+        return SessionPlanJson.decode(plannedJson).associateBy { it }.mapValues { (_, dto) ->
             SlotSession(
                 dto.sets.map(SetDto::toDomain),
                 sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot && it.trackPosition == dto.position }
                     .sortedBy { it.setIndex }.map { it.toLoggedSet() },
                 dto.retired,
                 dto.offer?.let { offer ->
-                    val before = offer.beforeRuleJson?.let(SlotRuleJson::decode)?.target
+                    val beforeRule = offer.beforeRuleJson?.let(SlotRuleJson::decode)
+                    val before = beforeRule?.target
                     val after = offer.afterRuleJson?.let(SlotRuleJson::decode)?.target
                     NextOffer(offer.fromLb, offer.toLb,
                         before?.reps.takeIf { before != after }, after?.reps.takeIf { before != after },
-                        offer.beforeRuleJson?.let(SlotRuleJson::decode)?.state?.calibrating == true)
+                        beforeRule?.state?.calibrating == true)
                 },
             )
         }

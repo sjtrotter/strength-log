@@ -1,27 +1,26 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.progression.LiftGoal
-import cloud.trotter.log.strength.domain.progression.SlotRule
-
 import android.os.Parcelable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.RunSetCounts
-import cloud.trotter.log.strength.domain.model.Measure
-import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
+import kotlinx.parcelize.Parcelize
 
 @Parcelize
 @Immutable

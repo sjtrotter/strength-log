@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -554,6 +555,7 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("bb_back_squat", targetSets = 3), ProgramExercise("ez_curl", targetSets = 3),
         )))))
+        db.convertTestPlans(settings)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         db.planDao().updateSuggestedDay(plan, "A")
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore,

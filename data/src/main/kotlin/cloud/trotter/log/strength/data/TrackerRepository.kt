@@ -1280,7 +1280,7 @@ class TrackerRepository(
         if (owner.keepToPlan || name != Slot.MAIN) return null
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return null
         val offer = session.plannedJson?.let { SessionPlanJson.decode(it) }
-            ?.lastOrNull { it.exerciseId == owner.exerciseId && it.slot == name && !it.retired }?.offer ?: return null
+            ?.lastOrNull { it.programExerciseId == owner.id && it.exerciseId == owner.exerciseId && it.slot == name && !it.retired }?.offer ?: return null
         val before = offer.beforeSets?.map(SetDto::toDomain) ?: return null
         val after = offer.afterSets?.map(SetDto::toDomain) ?: return null
         val beforeRule = offer.beforeRuleJson?.let(SlotRuleJson::decode) ?: return null
@@ -1636,6 +1636,7 @@ class TrackerRepository(
                     liveSetCount = track.toRunTrack().setCounts().total,
                     note = snapshotNote(track, run.startedAt),
                     offer = offers[track.id],
+                    programExerciseId = track.programExerciseId,
                 )
             }),
         ))
@@ -1680,8 +1681,7 @@ class TrackerRepository(
             val record = UndoLogDto(slot.id, name, prior, rows?.let(SetJson::encodeSets))
             if (index >= 0) logs[index] = record else logs.add(record)
         }
-        suspend fun writeRule(slot: ProgramExerciseEntity, stored: String, rule: SlotRule) {
-            val after = SlotRuleJson.encode(rule)
+        suspend fun writeRule(slot: ProgramExerciseEntity, stored: String, after: String) {
             if (after == stored) return
             programDao.setRule(slot.id, after)
             val index = rules.indexOfFirst { it.programExerciseId == slot.id }
@@ -1728,33 +1728,43 @@ class TrackerRepository(
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: WorkingRows.cleared(planned)
             val entry = catalog.find(track.exerciseId)
+            val automatic = (rule.nextTime ?: if (plan?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
             // A malformed row must never block Finish; the slot carries forward as before PR 2b.
-            val outcome = try {
-                Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, roughDay = false),
+            val prepared = try {
+                val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, roughDay = false),
                     Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today))
-            } catch (_: IllegalArgumentException) { null } catch (_: IllegalStateException) { null }
-            if (outcome == null) {
+                val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
+                    state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
+                Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, planned, working, rule))
+            } catch (_: RuntimeException) { null }
+            if (prepared == null) {
                 writeLog(slot, track.slot, WorkingRows.carried(planned, actual))
                 continue
             }
-            val automatic = (rule.nextTime ?: if (plan?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
-            val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
-                state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
+            val (outcome, encodedRule, offer) = prepared
             writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
-            writeRule(slot, requireNotNull(stored), writtenRule)
-            offerOf(outcome, planned, working, rule)?.let { offers[track.id] = it }
+            writeRule(slot, requireNotNull(stored), encodedRule)
+            offer?.let { offers[track.id] = it }
+            // MaxSet blocks an increase and therefore gives no shared credit.
             if (outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight)) {
                 credits.add(Triple(slot.id, track.exerciseId, rule.target.reps))
             }
         }
         // Cross-day credit participates in the same compare-and-swap undo record.
+        val credited = mutableSetOf<Long>()
         for ((sourceId, exerciseId, reps) in credits) {
             for (other in programDao.exercisesForPlan(day.planId)) {
-                if (other.id == sourceId || other.keepToPlan || other.exerciseId != exerciseId) continue
+                if (other.id == sourceId || other.dayId == day.dayId || other.keepToPlan || other.exerciseId != exerciseId) continue
                 val stored = other.ruleJson ?: continue
                 val rule = SlotRuleJson.decode(stored) ?: continue
-                if (rule.target.reps != reps) continue
-                writeRule(other, stored, rule.copy(state = rule.state.copy(successStreak = rule.state.successStreak + 1)))
+                if (rule.target.reps != reps || other.id in credited) continue
+                val streak = rule.state.successStreak + 1
+                val creditedRule = rule.copy(state = rule.state.copy(successStreak = streak,
+                    pendingIncrease = rule.state.pendingIncrease ||
+                        streak / rule.everyExposures > rule.state.successStreak / rule.everyExposures))
+                val encoded = try { SlotRuleJson.encode(creditedRule) } catch (_: RuntimeException) { continue }
+                writeRule(other, stored, encoded)
+                credited.add(other.id)
             }
         }
         val undo = if (logs.isEmpty() && rules.isEmpty()) null else ProgressionUndoJson.encode(ProgressionUndoDto(logs, rules))

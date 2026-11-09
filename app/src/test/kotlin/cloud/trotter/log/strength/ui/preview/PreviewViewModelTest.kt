@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.domain.cardio.CardioIncrease
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -129,6 +130,7 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
         )))))
+        db.convertTestPlans(settings)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val vm = preview(plan, "A")
@@ -489,6 +491,7 @@ class PreviewViewModelTest : OverviewFixture() {
             )),
             ProgramDay("B", "Arms", "", listOf(ProgramExercise("ez_curl"))),
         )))
+        db.convertTestPlans(settings)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val success = repo.startRun(plan, "A") as RunStartResult.Started

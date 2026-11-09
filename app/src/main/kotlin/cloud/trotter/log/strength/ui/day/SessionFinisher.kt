@@ -161,7 +161,7 @@ internal class SessionFinisher(
         val nextTimes = try {
             val offersOn = plans.plansFlow.first().firstOrNull { it.id == planId }?.offerStrengthIncreases ?: true
             val working = repo.dayTracksFlow(planId, dayId).first().tracks
-            val history = historyRepository.slotSessions(planId, dayId)
+            val history = historyRepository.slotSessionsById(planId, dayId)
             val items = buildList {
                 for ((g, pair) in groupsWithTracks.withIndex()) {
                     val (group, rowTracks) = pair
@@ -178,7 +178,7 @@ internal class SessionFinisher(
                             it.programExerciseId == track.programExerciseId && it.slot == track.slot
                         }?.sets ?: continue
                         when (val next = DayScreenBuilder.nextTime(
-                            rows, history[track.exerciseId to track.slot], slot.exercise.keepToPlan, unit, offersOn = offersOn,
+                            rows, history[slot.programExerciseId to track.slot], slot.exercise.keepToPlan, unit, offersOn = offersOn,
                         )) {
                             is NextTime.Offer -> if (next.reps != null) {
                                 repNextTimes.add(ReceiptRepNextTime(g, r, next.reps))

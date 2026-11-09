@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -194,6 +195,7 @@ class DayViewModelReceiptTest {
         assertEquals(List(3) { LoggedSet(215.0, 5, SetKind.WORK) }, SetJson.decodeSets(
             db.programDao().logForSlot(plan, "A", slotId(), Slot.MAIN)!!.setsJson))
         assertTrue(vm.finisher.dismissReceipt())
+        vm.selectDay("A")
         advanceUntilIdle()
         assertEquals(NextTime.Offer("+5 lb", false, 220.0, 215.0), vm.uiState.value.exercises.single().nextTime)
     }
@@ -275,6 +277,7 @@ class DayViewModelReceiptTest {
             ProgramExercise("ohp", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5)),
                 keepToPlan = true),
         )))))
+        db.convertTestPlans(settings)
         val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
         val slots = repo.plans.slotsFor(planId, "A").first()
         val vm = newCollectingViewModel()

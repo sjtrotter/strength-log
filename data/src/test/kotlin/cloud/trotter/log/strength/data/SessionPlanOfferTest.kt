@@ -22,9 +22,20 @@ class SessionPlanOfferTest {
     @Test fun `an offer round trips and rejects invalid load pairs`() {
         val dto = PlannedTrackDto(0, "bb_bench", "main", sets = emptyList(), offer = OfferDto(185.0, 190.0))
         assertEquals(listOf(dto), SessionPlanJson.decode(SessionPlanJson.encode(listOf(dto))))
-        for (weight in listOf(-1.0, Double.NaN, Double.POSITIVE_INFINITY)) {
-            assertFailsWith<IllegalArgumentException> { OfferDto(weight, 190.0) }
-            assertFailsWith<IllegalArgumentException> { OfferDto(185.0, weight) }
+        for (weight in listOf("-1.0", "NaN", "Infinity", "-Infinity", "1e999")) {
+            assertFailsWith<IllegalArgumentException> {
+                SessionPlanJson.decode("""[{"position":0,"exerciseId":"bb_bench","slot":"main","sets":[],"offer":{"fromLb":$weight,"toLb":190.0}}]""")
+            }
+            assertFailsWith<IllegalArgumentException> {
+                SessionPlanJson.decode("""[{"position":0,"exerciseId":"bb_bench","slot":"main","sets":[],"offer":{"fromLb":185.0,"toLb":$weight}}]""")
+            }
         }
+    }
+
+    @Test fun `an archived offer tolerates an obsolete nested rule`() {
+        val offer = OfferDto(185.0, 190.0, beforeSets = emptyList(), afterSets = emptyList(),
+            beforeRuleJson = "obsolete", afterRuleJson = "obsolete")
+        val dto = PlannedTrackDto(0, "bb_bench", "main", sets = emptyList(), offer = offer)
+        assertEquals(listOf(dto), SessionPlanJson.decode(SessionPlanJson.encode(listOf(dto))))
     }
 }

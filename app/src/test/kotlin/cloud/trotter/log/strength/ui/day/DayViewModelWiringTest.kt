@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -177,6 +178,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
         )))))
+        db.convertTestPlans(settings)
         val first = newViewModel()
         val collectFirst = launch { first.uiState.collect {} }
         advanceUntilIdle()
@@ -1822,6 +1824,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
             ProgramExercise("bb_back_squat", targetSets = 2),
         )))))
+        db.convertTestPlans(settings)
         settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {

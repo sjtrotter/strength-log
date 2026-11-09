@@ -51,7 +51,7 @@ class PreviewViewModel @Inject constructor(
     private val history = dayHistoryKeys(repo.observeDay(planId, dayId), historyRepository.sessionSummariesFor(planId)).flatMapLatest { ids ->
         flow {
             emit(Pair(historyRepository.lastPerformedForSlots(planId, dayId, ids),
-                historyRepository.slotSessions(planId, dayId)))
+                historyRepository.slotSessionsById(planId, dayId)))
         }
     }
 
@@ -86,7 +86,9 @@ class PreviewViewModel @Inject constructor(
                     } else DayScreenBuilder.workingHeading(track.sets, track.tracking, unit)
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
                 val nextTime = DayScreenBuilder.nextTime(slot.main.sets,
-                    slotSessions[slot.main.performed.exerciseId to Slot.MAIN], slot.slot.exercise.keepToPlan, unit,
+                    slotSessions[slot.slot.programExerciseId to Slot.MAIN]?.takeIf {
+                        slot.main.performed.exerciseId == slot.slot.exercise.exerciseId
+                    }, slot.slot.exercise.keepToPlan, unit,
                     offersOn = plan?.offerStrengthIncreases ?: true, rule = slot.slot.exercise.rule)
                 val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
                     val slotLast = last[track.performed.exerciseId to slotName]

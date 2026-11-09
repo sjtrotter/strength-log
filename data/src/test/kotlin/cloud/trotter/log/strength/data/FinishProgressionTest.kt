@@ -326,6 +326,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         finish(plan, a)
         assertEquals(before, rule(c))
     }
+
     @Test fun `Ask calibration waits for acceptance and an in-run acceptance survives Discard`() = runTest {
         val plan = converted(day("bb_back_squat"))
         val id = id(plan, "bb_back_squat")
@@ -426,6 +427,135 @@ class FinishProgressionTest : FinishProgressionFixture() {
             plan, "A", id, Slot.MAIN, 40.0))
         assertEquals(edited, log(plan, id))
         assertEquals(beforeRule, db.programDao().exercise(id)!!.ruleJson)
+    }
+
+    @Test fun `shared credit preserves a due increase from recipient streak zero or one`() = runTest {
+        for (initial in listOf(0, 1)) {
+            val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
+            val a = id(plan, "bb_back_squat")
+            val c = id(plan, "bb_back_squat", "C")
+            val cadence = rule(inc = 0.025).copy(everyExposures = 2)
+            lifter(plan, a, rule = cadence)
+            lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = initial)), day = "C")
+            finish(plan, a)
+            assertEquals(initial + 1, rule(c).state.successStreak)
+            assertEquals(work(), rows(plan, c, "C"))
+            finish(plan, c, day = "C")
+            assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
+        }
+    }
+
+    @Test fun `a pending shared increase applies once then cadence resumes`() = runTest {
+        for (automatic in listOf(false, true)) {
+            val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
+            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+            val a = id(plan, "bb_back_squat")
+            val c = id(plan, "bb_back_squat", "C")
+            val cadence = rule(inc = 0.025).copy(everyExposures = 2)
+            lifter(plan, a, rule = cadence)
+            lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = 1)), day = "C")
+            finish(plan, a)
+            finish(plan, c, day = "C")
+            assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
+            assertEquals(work(w = if (automatic) 190.0 else 185.0), rows(plan, c, "C"))
+            if (!automatic) repo.setWorkingWeight(db.programDao().day(plan, "C")!!.nextRunId,
+                plan, "C", c, Slot.MAIN, 190.0)
+            finish(plan, c, weight = 190.0, day = "C")
+            assertNull(offer(plan, "bb_back_squat", "C"))
+            assertEquals(work(w = 190.0), rows(plan, c, "C"))
+            finish(plan, c, weight = 190.0, day = "C")
+            assertEquals(NextOffer(190.0, 195.0), offer(plan, "bb_back_squat", "C"))
+        }
+    }
+
+    @Test fun `a recipient miss clears its pending shared increase`() = runTest {
+        val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
+        val a = id(plan, "bb_back_squat")
+        val c = id(plan, "bb_back_squat", "C")
+        val cadence = rule(inc = 0.025).copy(everyExposures = 2)
+        lifter(plan, a, rule = cadence)
+        lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = 1)), day = "C")
+        finish(plan, a)
+        assertTrue("\"pendingIncrease\":true" in SlotRuleJson.encode(rule(c)))
+        finish(plan, c, reps = listOf(5, 5, 4), day = "C")
+        assertTrue("pendingIncrease" !in SlotRuleJson.encode(rule(c)))
+        assertEquals(0, rule(c).state.successStreak)
+        assertEquals(1, rule(c).state.repMissStreak)
+        assertNull(offer(plan, "bb_back_squat", "C"))
+        finish(plan, c, day = "C")
+        assertNull(offer(plan, "bb_back_squat", "C"))
+        finish(plan, c, day = "C")
+        assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
+    }
+
+    @Test fun `bodyweight above the cap keeps its target through Automatic and Ask Finish`() = runTest {
+        for (automatic in listOf(false, true)) {
+            val plan = converted(day("pushup"))
+            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+            val id = id(plan, "pushup")
+            lifter(plan, id, work(w = 0.0, r = 30), rule(SlotRole.ACCESSORY, 30))
+            finish(plan, id, weight = 0.0, reps = listOf(30, 30, 30))
+            assertEquals(work(w = 0.0, r = 30), rows(plan, id))
+            assertEquals(RepTarget.Fixed(30), rule(id).target)
+            assertEquals(1, rule(id).state.exposures)
+            assertNull(offer(plan, "pushup"))
+        }
+    }
+
+    @Test fun `a second stall finishes after the clock moves back`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val id = id(plan, "bb_bench")
+        val today = java.time.LocalDate.of(2026, 11, 9).toEpochDay()
+        lifter(plan, id, rule = rule().copy(state = SlotState(repMissStreak = 1, resetEpochDays = listOf(today + 10))))
+        finish(plan, id, reps = listOf(5, 5, 4))
+        assertEquals(listOf(today, today + 10), rule(id).state.resetEpochDays)
+        assertEquals(work(), rows(plan, id))
+        assertEquals(NextOffer(185.0, 175.0), offer(plan, "bb_bench"))
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test fun `an unencodable outcome carries rows without blocking Finish`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val id = id(plan, "bb_bench")
+        val original = rule().copy(state = SlotState(exposures = 9999))
+        lifter(plan, id, rule = original)
+        finish(plan, id)
+        assertEquals(work(), rows(plan, id))
+        assertEquals(original, rule(id))
+        assertNull(offer(plan, "bb_bench"))
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test fun `duplicate exercise slots keep their own offers and grant shared credit once`() = runTest {
+        val plan = converted(day("db_row", "db_row"), day("db_row", id = "C"))
+        val slots = db.programDao().exercisesForDay(plan, "A")
+        val first = slots[0].id
+        val second = slots[1].id
+        val c = id(plan, "db_row", "C")
+        lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
+        lifter(plan, second, work(w = 40.0, r = 12), rule(reps = 12))
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2), day = "C")
+        val run = start(plan)
+        perform(run, plan, first, 40.0, listOf(10, 10, 10))
+        perform(run, plan, second, 40.0, listOf(12, 12, 12))
+        repo.finishRun(run)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        repo.setWorkingWeight(next, plan, "A", first, Slot.MAIN, 40.0)
+        assertEquals(work(w = 40.0, r = 11), rows(plan, first))
+        assertEquals(work(w = 40.0, r = 12), rows(plan, second))
+        assertEquals(RepTarget.Range(10, 14, 11), rule(first).target)
+        repo.setWorkingWeight(next, plan, "A", second, Slot.MAIN, 40.0)
+        assertEquals(work(w = 40.0, r = 13), rows(plan, second))
+        assertEquals(work(w = 40.0, r = 11), rows(plan, first))
+        assertEquals(1, rule(c).state.successStreak)
+        lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
+        lifter(plan, second, work(w = 40.0, r = 10), rule(reps = 10))
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2), day = "C")
+        val both = start(plan)
+        perform(both, plan, first, 40.0, listOf(10, 10, 10))
+        perform(both, plan, second, 40.0, listOf(10, 10, 10))
+        repo.finishRun(both)
+        assertEquals(1, rule(c).state.successStreak)
     }
 
 }

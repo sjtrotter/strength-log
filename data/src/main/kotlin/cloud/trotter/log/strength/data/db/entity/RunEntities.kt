@@ -34,4 +34,6 @@ data class RunTrackEntity(
     val updatedAt: Long,
     @ColumnInfo(defaultValue = "0") val dropped: Boolean = false,
     @ColumnInfo(defaultValue = "''") val note: String = "",
+    /** How the track opened (OpeningJson); null is a normal opening. */
+    val openingJson: String? = null,
 )

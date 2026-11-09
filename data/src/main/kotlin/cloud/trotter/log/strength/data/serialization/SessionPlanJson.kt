@@ -16,6 +16,7 @@ data class PlannedTrackDto(
     val note: String? = null,
     val offer: OfferDto? = null,
     val programExerciseId: Long? = null,
+    val opening: OpeningDto? = null,
 )
 
 /** The change Finish recorded. Proposed rows and targets travel together for Ask acceptance. */
@@ -39,6 +40,7 @@ object SessionPlanJson {
     fun decode(text: String): List<PlannedTrackDto> =
         SetJson.decode(ListSerializer(PlannedTrackDto.serializer()), text).also { tracks ->
             tracks.forEach { track ->
+                track.opening?.layoffKind()
                 track.offer?.let { offer ->
                     require(offer.fromLb.isFinite() && offer.toLb.isFinite() && offer.fromLb >= 0.0 && offer.toLb >= 0.0)
                     require((offer.beforeSets == null) == (offer.afterSets == null))

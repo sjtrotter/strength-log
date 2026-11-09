@@ -343,4 +343,5 @@ data class RunTrackBackup(
     val updatedAt: Long,
     val dropped: Boolean = false,
     val note: String = "",
+    val openingJson: String? = null,
 )

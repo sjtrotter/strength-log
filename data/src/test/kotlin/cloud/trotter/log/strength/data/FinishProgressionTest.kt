@@ -24,6 +24,7 @@ import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotState
 import cloud.trotter.log.strength.domain.progression.WorkingRows
 import java.io.File
+import java.time.Duration
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -83,6 +84,8 @@ abstract class FinishProgressionFixture {
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) { settingsFile })
     }
+
+    protected fun advanceDays(days: Long) { now = now.plus(Duration.ofDays(days)) }
 
     protected suspend fun restart() {
         db.close()

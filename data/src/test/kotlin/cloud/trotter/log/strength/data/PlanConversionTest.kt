@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_24_25
+import cloud.trotter.log.strength.data.db.MIGRATION_25_26
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -116,7 +117,7 @@ class PlanConversionTest {
         before = V24Fixture.dump(helper.writableDatabase)
         helper.close()
         db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_24_25).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_24_25, MIGRATION_25_26).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("plan-conversion", ".preferences_pb")

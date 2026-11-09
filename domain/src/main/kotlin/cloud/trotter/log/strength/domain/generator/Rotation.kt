@@ -9,14 +9,19 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
  */
 object Rotation {
 
-    fun upNextAfter(program: Program, suggestedDayId: String?, finishedDayId: String): String? {
-        val suggested = program.days.firstOrNull { it.id == suggestedDayId }
-        return when {
-            suggested?.kind == ProgramDayKind.REST && trainingDayFrom(program, suggested.id) == finishedDayId ->
-                nextFor(program, finishedDayId)
-            suggestedDayId != finishedDayId && suggested != null -> suggestedDayId
-            else -> nextFor(program, finishedDayId)
-        }
+    fun upNextAfter(program: Program, suggestedDayId: String?, finishedDayId: String): String? =
+        if (advancesFrom(program, suggestedDayId, finishedDayId)) nextFor(program, finishedDayId) else suggestedDayId
+
+    /** Whether finishing [finishedDayId] completes a cycle: it is the rotation's last training day and the rotation
+     *  advances from it. */
+    fun wraps(program: Program, suggestedDayId: String?, finishedDayId: String): Boolean =
+        program.rotationDays.lastOrNull { it.kind != ProgramDayKind.REST }?.id == finishedDayId &&
+            advancesFrom(program, suggestedDayId, finishedDayId)
+
+    private fun advancesFrom(program: Program, suggestedDayId: String?, finishedDayId: String): Boolean {
+        val suggested = program.days.firstOrNull { it.id == suggestedDayId } ?: return true
+        return suggested.id == finishedDayId ||
+            (suggested.kind == ProgramDayKind.REST && trainingDayFrom(program, suggested.id) == finishedDayId)
     }
 
     fun trainingDayFrom(program: Program, dayId: String): String? {

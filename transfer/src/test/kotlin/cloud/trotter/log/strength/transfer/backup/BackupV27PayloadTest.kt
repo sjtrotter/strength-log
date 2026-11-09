@@ -203,4 +203,14 @@ class BackupV27PayloadTest {
         assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(invalid)) }
     }
 
+    @Test fun `v27 run track opening round trips and a bad opening is malformed`() {
+        val opening = """{"layoff":"SCALED","factor":0.95}"""
+        val source = document().withRunTrack { it.copy(openingJson = opening) }
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(source, decoded)
+        assertEquals(opening, decoded.toSnapshot().runTracks.single().openingJson)
+        val invalid = source.withRunTrack { it.copy(openingJson = """{"layoff":"SCALED"}""") }
+        assertFailsWith<BackupError.Malformed> { codec.decode(codec.encode(invalid)) }
+    }
+
 }

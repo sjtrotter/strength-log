@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -579,6 +580,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         for (run in doc.runs) for (track in run.tracks) {
             checkSets("plannedJson of run track ${track.id}", track.plannedJson, malformed = true)
+            decodePayload("openingJson of run track ${track.id}", malformed = true) { track.openingJson?.let(OpeningJson::validate) }
             checkSets("setsJson of run track ${track.id}", track.setsJson, malformed = true)
         }
         for (session in doc.sessions) {

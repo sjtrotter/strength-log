@@ -15,6 +15,9 @@ import kotlin.math.floor
 /** The log to next targets for a lift slot or a cardio day. Pure: callers pass the slot's stored rows and rule and write back
  *  [Outcome.rows] and [Outcome.rule] together; cardio callers pass the day's block and rule and write back [CardioOutcome]. */
 object Progression {
+    /** The 65+ path's age; PR 6's setup answer replaces the age read. */
+    const val OLDER_ADULT_AGE = 65
+
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(
         val planned: List<LoggedSet>,
@@ -40,19 +43,22 @@ object Progression {
         ceil(7.0 * trainingEntries / (daysPerWeek * appearancesPerRotation)).toInt()
 
     /** Rows a run opens with: layoff scaling and the light cycle applied as a view. Nothing is written back.
-     *  [lastTrainedEpochDay] is the exercise's last session anywhere in the plan; [expectedRecurrenceDays] comes from the plan. */
+     *  [lastTrainedEpochDay] is the exercise's last session anywhere in the plan; [expectedRecurrenceDays] comes from the plan.
+     *  [olderOrNew] is the 65+ path or a New lifter with under six months in the log: a layoff over 14 days recalibrates. */
     fun atStart(
         rule: SlotRule,
         working: List<LoggedSet>,
         lastTrainedEpochDay: Long?,
         expectedRecurrenceDays: Int,
         ctx: Context,
+        olderOrNew: Boolean = false,
     ): Opening {
         val layoffDays = lastTrainedEpochDay?.let { ctx.todayEpochDay - it - expectedRecurrenceDays } ?: 0L
         val layoff = when {
             layoffDays <= 3 -> LayoffKind.None
             layoffDays <= 7 -> LayoffKind.Hold
             layoffDays <= 14 -> LayoffKind.Scaled(0.95)
+            olderOrNew -> LayoffKind.Recalibrate
             layoffDays <= 42 -> LayoffKind.Scaled(0.85)
             else -> LayoffKind.Recalibrate
         }

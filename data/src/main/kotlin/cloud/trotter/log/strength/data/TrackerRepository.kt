@@ -1543,7 +1543,7 @@ class TrackerRepository(
                 ?: return@map track
             val count = SetJson.decodeSets(main.plannedJson).size
             val rows = SetJson.decodeSets(track.plannedJson)
-            if (rows.isEmpty() || rows.size == count) return@map track
+            if (count == 0 || rows.isEmpty() || rows.size == count) return@map track
             val fit = fitted(rows, count)
             track.copy(plannedJson = SetJson.encodeSets(fit),
                 setsJson = SetJson.encodeSets(fit.mapIndexed { i, s -> s.copy(plannedIndex = i) }),
@@ -1804,12 +1804,14 @@ class TrackerRepository(
             val planned = SetJson.decodeSets(track.plannedJson)
             val stored = slot.ruleJsonFor(track.slot)
             val rule = stored?.let(SlotRuleJson::decode)
-            val working = programDao.logForSlot(day.planId, day.dayId, slot.id, track.slot)?.let {
+            val log = programDao.logForSlot(day.planId, day.dayId, slot.id, track.slot)
+            val working = log?.let {
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: WorkingRows.cleared(planned)
             val opening = OpeningJson.decode(track.openingJson)
+            val keepLazyPartner = track.slot == Slot.SS && log == null && opening?.layoff == OpeningDto.HOLD
             if (rule == null) {
-                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                if (!keepLazyPartner) writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
                 continue
             }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
@@ -1825,11 +1827,11 @@ class TrackerRepository(
                 Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))
             } catch (_: RuntimeException) { null }
             if (prepared == null) {
-                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                if (!keepLazyPartner) writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
                 continue
             }
             val (outcome, encodedRule, offer) = prepared
-            writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
+            if (!keepLazyPartner) writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
             writeRule(slot, track.slot, requireNotNull(stored), encodedRule)
             if (outcome.reason == Reason.Stall) stalled = true
             offer?.let { offers[track.id] = it }

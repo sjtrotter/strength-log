@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
+import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -121,6 +122,22 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(RepTarget.Fixed(10), partnerRule(b)!!.target)
     }
 
+    @Test fun `accepting an equal-weight Ask partner calibration changes only the partner rule`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val b = id(plan, "bb_bench")
+        lifter(plan, b)
+        repo.setSupersetPartner("A", b, "cable_row")
+        partner(plan, b, rule = rule(SlotRole.ACCESSORY, 10, calibrating = true))
+        finishBoth(plan, b)
+        assertEquals(NextOffer(120.0, 120.0, calibration = true), ssOffer(plan, b))
+        assertTrue(partnerRule(b)!!.state.calibrating)
+        val mainRule = db.programDao().exercise(b)!!.ruleJson
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        assertEquals(RunWriteResult.WorkingValues, repo.setWorkingWeight(next, plan, "A", b, Slot.SS, 120.0))
+        assertFalse(partnerRule(b)!!.state.calibrating)
+        assertEquals(mainRule, db.programDao().exercise(b)!!.ruleJson)
+    }
+
     @Test fun `an Automatic partner applies the increase and opens at 130 next time`() = runTest {
         val plan = authored()
         val b = add(plan, "bb_bench")
@@ -212,6 +229,31 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(work(5, 120.0, 10), ssRows(plan, s))
         assertNull(offer(plan, "bb_back_squat"))
         assertNull(ssOffer(plan, s))
+    }
+
+    @Test fun `a never-stored partner fitted to its light main records exposure without storing rows`() = runTest {
+        val plan = converted(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_back_squat", targetSets = 3, superset = SupersetPartner("cable_row")),
+        )))
+        val s = id(plan, "bb_back_squat")
+        lifter(plan, s, squat(), squatRule())
+        assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        val beforeRule = db.programDao().exercise(s)!!.partnerRuleJson
+        val exposures = partnerRule(s)!!.state.exposures
+        db.planDao().updateLightCycle(plan, 2, 0)
+        val tracks = db.runDao().tracks(start(plan))
+        val main = tracks.single { it.slot == Slot.MAIN }
+        val ss = tracks.single { it.slot == Slot.SS }
+        assertEquals(4, planned(main).size)
+        assertEquals("""{"light":true}""", main.openingJson)
+        assertEquals(planned(main).size, planned(ss).size)
+        assertEquals("""{"layoff":"HOLD"}""", ss.openingJson)
+        val session = finishBoth(plan, s)
+        assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        assertEquals(exposures + 1, partnerRule(s)!!.state.exposures)
+        val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+        assertTrue(undo.logs.none { it.programExerciseId == s && it.slot == Slot.SS })
+        assertEquals(beforeRule, undo.rules.single { it.programExerciseId == s && it.slot == Slot.SS }.beforeJson)
     }
 
     @Test fun `a partner fitted to its main's layoff keeps its stored row count`() = runTest {

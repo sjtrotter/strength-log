@@ -24,6 +24,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -42,6 +43,8 @@ import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import java.io.File
 import java.time.Clock
@@ -856,7 +859,11 @@ class TrackerRepositoryPlanScopeTest {
 
         repo.setSupersetPartner("A", slot.id, "rope_pushdown")
 
-        assertEquals(slot.copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slot.id))
+        assertEquals(slot.copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slot.id)!!.copy(partnerRuleJson = null))
+        val partnerRule = SlotRuleJson.decode(db.programDao().exercise(slot.id)!!.partnerRuleJson)!!
+        assertEquals(RepTarget.Fixed(10), partnerRule.target)
+        assertEquals(SlotRole.ACCESSORY, partnerRule.role)
+        assertTrue(partnerRule.state.calibrating)
         assertEquals(mainOnly.single(), db.programDao().allLogs().single { it.slot == Slot.MAIN })
         assertEquals(listOf(LoggedSet(20.0, 10, SetKind.WORK)),
             SetJson.decodeSets(db.programDao().allLogs().single { it.slot == Slot.SS }.setsJson))
@@ -887,7 +894,11 @@ class TrackerRepositoryPlanScopeTest {
 
             repo.setSupersetPartner("A", slots[1].id, "rope_pushdown")
 
-            assertEquals(slots[1].copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slots[1].id))
+            assertEquals(slots[1].copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slots[1].id)!!.copy(partnerRuleJson = null))
+            val partnerRule = SlotRuleJson.decode(db.programDao().exercise(slots[1].id)!!.partnerRuleJson)!!
+            assertEquals(RepTarget.Fixed(10), partnerRule.target)
+            assertEquals(SlotRole.ACCESSORY, partnerRule.role)
+            assertTrue(partnerRule.state.calibrating)
             assertEquals(slots[2], db.programDao().exercise(slots[2].id))
             assertEquals(main, db.programDao().allLogs().filter { it.slot == Slot.MAIN })
             assertEquals(listOf(LoggedSet(20.0, 10, SetKind.WORK)),

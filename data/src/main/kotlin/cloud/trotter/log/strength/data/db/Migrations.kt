@@ -531,6 +531,29 @@ val MIGRATION_23_24 = object : Migration(23, 24) {
     }
 }
 
+/** v24 → v25 (wizard rebuild, design §4.1): additive columns only. Plan conversion is not here: it needs the exercise
+ *  catalog and runs after the database opens ([PlanRepository.convertPlans]). */
+val MIGRATION_24_25 = object : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_exercise ADD COLUMN ruleJson TEXT")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioRuleJson TEXT")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN rir INTEGER")
+        db.execSQL("ALTER TABLE cardio_session ADD COLUMN effort TEXT")
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN metresAtEnd INTEGER")
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN secondsAtEnd INTEGER")
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN centis INTEGER")
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN timingMethod TEXT")
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN startProtocol TEXT")
+        db.execSQL("ALTER TABLE plan ADD COLUMN settingsJson TEXT")
+        db.execSQL("ALTER TABLE plan ADD COLUMN autoApply INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE plan ADD COLUMN lightCycleRemaining INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE plan ADD COLUMN deloadEveryCycles INTEGER")
+        db.execSQL("ALTER TABLE plan ADD COLUMN cyclesCompleted INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE workout_session ADD COLUMN roughDay INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE workout_session ADD COLUMN progressionUndoJson TEXT")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

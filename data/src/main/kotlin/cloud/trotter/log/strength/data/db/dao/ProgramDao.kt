@@ -104,6 +104,12 @@ interface ProgramDao {
     @Query("SELECT COALESCE(MAX(position), -1) FROM program_exercise WHERE planId = :planId AND dayId = :dayId")
     suspend fun maxPosition(planId: Long, dayId: String): Int
 
+    @Query("UPDATE program_exercise SET ruleJson = :json WHERE id = :id")
+    suspend fun setRule(id: Long, json: String)
+
+    @Query("SELECT * FROM program_exercise WHERE ruleJson IS NULL ORDER BY planId, dayId, position")
+    suspend fun unruledExercises(): List<ProgramExerciseEntity>
+
     // --- writes --------------------------------------------------------------
 
     @Upsert
@@ -120,13 +126,13 @@ interface ProgramDao {
     @Insert
     suspend fun insertExercises(exercises: List<ProgramExerciseEntity>)
 
-    @Query("UPDATE program_exercise SET exerciseId = :exerciseId, structure = :structure, targetSets = :targetSets, prescriptionJson = NULL WHERE id = :id")
+    @Query("UPDATE program_exercise SET exerciseId = :exerciseId, structure = :structure, targetSets = :targetSets, prescriptionJson = NULL, ruleJson = NULL WHERE id = :id")
     suspend fun replaceExercise(id: Long, exerciseId: String, structure: String, targetSets: Int)
 
     @Query("UPDATE program_exercise SET prescriptionJson = :json, targetSets = :sets WHERE id = :id")
     suspend fun setPrescription(id: Long, json: String, sets: Int)
 
-    @Query("UPDATE program_exercise SET structure = :structure WHERE id = :id")
+    @Query("UPDATE program_exercise SET structure = :structure, ruleJson = NULL WHERE id = :id")
     suspend fun setStructure(id: Long, structure: String)
 
     @Query("UPDATE program_exercise SET position = :position WHERE id = :id")

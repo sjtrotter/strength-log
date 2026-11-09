@@ -14,4 +14,10 @@ data class CardioSetResultEntity(
     val elapsedSeconds: Int,
     val metres: Int? = null,
     val distanceSource: String? = null,
+    val metresAtEnd: Int? = null,
+    val secondsAtEnd: Int? = null,
+    /** A sprint rep's time in hundredths, written once with [timingMethod] and [startProtocol] (PR 5). */
+    val centis: Int? = null,
+    val timingMethod: String? = null,
+    val startProtocol: String? = null,
 )

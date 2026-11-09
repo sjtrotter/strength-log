@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -135,7 +137,10 @@ class BackupRepositoryRunRestoreTest {
 
         backupRepository.importSnapshot(before, journal)
 
-        assertEquals(before.exercises, db.programDao().allExercises())
+        assertEquals(before.exercises.map {
+            it.copy(ruleJson = SlotRuleJson.encode(PlanConversion.rule(it,
+                if (it.id == slot) work() else null, ExerciseLibrary.get(it.exerciseId))))
+        }, db.programDao().allExercises())
         repo.setKeepToPlan(slot, false)
         assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
         assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)

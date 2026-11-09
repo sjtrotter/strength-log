@@ -1,6 +1,12 @@
 package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.mapping.toEntry
+import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.PlanDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
@@ -50,6 +56,8 @@ class PlanRepository(
     private val planDao: PlanDao = db.planDao(),
 ) {
     private val restoreMarkerDao = db.restoreMarkerDao()
+    private val customExerciseDao = db.customExerciseDao()
+    private var slotsRuled = false
     private val planSettingsMigrationMutex = Mutex()
     private var legacyCardioConverted = false
     private val planSelectionLock = Mutex()
@@ -344,6 +352,7 @@ class PlanRepository(
             position = (planDao.maxPosition() ?: -1) + 1,
             createdAt = clock.millis(),
             suggestedDayId = "A",
+            autoApply = true,
         ))
         programDao.upsertDay(ProgramDayEntity(id, "A", 0, dayTitle.trim(), "", null).freshRunId(mintRunId))
         id
@@ -429,7 +438,8 @@ class PlanRepository(
     }
 
     /** A half-done restore's settings are not this device's to copy; reconcile owns them.
-     *  Also converts legacy cardio to typed blocks. */
+     *  Also converts legacy cardio to typed blocks.
+     *  Last, it gives existing slots their rules ([convertPlans]). */
     internal suspend fun ensurePlanSettingsMigrated(migrateOnToday: Boolean = true) {
         planSettingsMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
@@ -460,19 +470,22 @@ class PlanRepository(
                 }
                 if (migrated) settings.setOnTodayFixupDone()
             }
-            if (legacyCardioConverted) return@withLock
-            val global = settings.globalLifterFlow.first()
-            legacyCardioConverted = db.withTransaction {
-                if (restoreMarkerDao.nonce() != null) return@withTransaction false
-                val plans = planDao.allPlans().associateBy { it.id }
-                for (day in programDao.daysWithLegacyCardio()) {
-                    val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(
-                        requireNotNull(day.cardioJson), answersForPlan(plans[day.planId], global),
-                    )?.let(CardioBlockJson::encode)
-                    programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
+            if (!legacyCardioConverted) {
+                val global = settings.globalLifterFlow.first()
+                legacyCardioConverted = db.withTransaction {
+                    if (restoreMarkerDao.nonce() != null) return@withTransaction false
+                    val plans = planDao.allPlans().associateBy { it.id }
+                    for (day in programDao.daysWithLegacyCardio()) {
+                        val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(
+                            requireNotNull(day.cardioJson), answersForPlan(plans[day.planId], global),
+                        )?.let(CardioBlockJson::encode)
+                        programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
+                    }
+                    true
                 }
-                true
+                if (!legacyCardioConverted) return@withLock
             }
+            if (!slotsRuled) slotsRuled = convertPlans()
         }
     }
 
@@ -501,8 +514,33 @@ class PlanRepository(
         emitAll(selectedPlanStateFlow.map { it?.suggestedDayId }.distinctUntilChanged())
     }
 
-    internal suspend fun invalidateLegacyCardioConversion() {
-        planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
+    /** Gives every slot that has stored working rows, or is kept to plan, the rule [PlanConversion] derives (design
+     *  §4.4), all in one transaction. Ruled slots are skipped, so running it again changes nothing. A slot with no
+     *  stored rows waits for 2a-ii, which seeds it. False while a restore is pending. */
+    internal suspend fun convertPlans(): Boolean = db.withTransaction {
+        if (restoreMarkerDao.nonce() != null) return@withTransaction false
+        val catalog = ExerciseCatalog(customExerciseDao.getAll().mapNotNull { runCatching { it.toEntry() }.getOrNull() })
+        for (slot in programDao.unruledExercises()) {
+            val stored = programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN)
+            val rows = when {
+                stored != null -> runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull()
+                slot.keepToPlan -> runCatching {
+                    slot.parkedLogsJson?.let(ParkedLogsJson::decode)?.firstOrNull {
+                        it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+                    }?.setsJson?.let(SetJson::decodeSets)
+                }.getOrNull()
+                else -> continue
+            }
+            programDao.setRule(slot.id, SlotRuleJson.encode(PlanConversion.rule(slot, rows, catalog.find(slot.exerciseId))))
+        }
+        true
+    }
+
+    internal suspend fun invalidatePlanFixups() {
+        planSettingsMigrationMutex.withLock {
+            legacyCardioConverted = false
+            slotsRuled = false
+        }
     }
 }
 

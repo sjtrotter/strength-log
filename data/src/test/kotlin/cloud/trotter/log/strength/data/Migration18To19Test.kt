@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_20_21
 import cloud.trotter.log.strength.data.db.MIGRATION_21_22
 import cloud.trotter.log.strength.data.db.MIGRATION_22_23
 import cloud.trotter.log.strength.data.db.MIGRATION_23_24
+import cloud.trotter.log.strength.data.db.MIGRATION_24_25
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import kotlinx.coroutines.test.runTest
@@ -35,7 +36,7 @@ class Migration18To19Test {
         createV18().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25).allowMainThreadQueries().build()
             try {
                 val sessions = db.sessionDao().allSessions().associateBy { it.id }
                 assertEquals(235.0, sessions.getValue(7).bodyweightLb ?: Double.NaN, 0.0)
@@ -59,7 +60,7 @@ class Migration18To19Test {
     @Test fun emptySessionTableKeepsItsIssuedSequence() = runTest {
         createV18(empty = true).close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25).allowMainThreadQueries().build()
         try {
             assertEquals(901L, db.sessionDao().insertSession(
                 WorkoutSessionEntity(0, "A", "Day A", null, 3000, 210.5),

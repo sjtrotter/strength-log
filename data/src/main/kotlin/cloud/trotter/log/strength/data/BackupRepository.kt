@@ -70,6 +70,7 @@ class BackupRepository(
         val supersetHelperSeen = settings.supersetHelperSeenFlow.first()
         val themePreference = settings.themePreferenceFlow.first()
         val distanceUnit = settings.storedDistanceUnitFlow.first()
+        val effortScale = settings.effortScaleFlow.first()
         return db.withTransaction {
             // Use this same plan list for the legacy settings projection, too.
             // Separate reads could otherwise straddle a restore's Room commit.
@@ -89,6 +90,7 @@ class BackupRepository(
                 supersetHelperSeen = supersetHelperSeen,
                 themePreference = themePreference,
                 distanceUnit = distanceUnit,
+                effortScale = effortScale,
                 plans = plans,
                 customExercises = customExerciseDao.allOrdered(),
                 days = programDao.allDays(),
@@ -243,12 +245,13 @@ class BackupRepository(
                     supersetHelperSeen = snapshot.supersetHelperSeen,
                     themePreference = snapshot.themePreference,
                     distanceUnit = snapshot.distanceUnit,
+                    effortScale = snapshot.effortScale,
                     onTodayFixupDone = true,
                 )
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)
             }
-            plans.invalidateLegacyCardioConversion()
+            plans.invalidatePlanFixups()
             clearRestoreBookkeeping(journal)
             try {
                 plans.ensurePlanSettingsMigrated()
@@ -301,7 +304,7 @@ class BackupRepository(
                 selected?.id
             }
         }
-        plans.invalidateLegacyCardioConversion()
+        plans.invalidatePlanFixups()
         if (committed != null) restoreMarkerDao.clear()
         plans.ensurePlanSettingsMigrated(migrateOnToday = false)
         return replayed

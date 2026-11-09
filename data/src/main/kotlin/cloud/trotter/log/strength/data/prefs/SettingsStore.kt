@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.standards.PhoneRest
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -119,6 +120,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val AUTO_BACKUP_PERMISSION_LOST = booleanPreferencesKey("auto_backup_permission_lost")
 
         val THEME = stringPreferencesKey("theme")
+        val EFFORT_SCALE = stringPreferencesKey("effort_scale")
     }
 
     /** Maps each overridable rest category to its DataStore key (SSOT for the
@@ -216,6 +218,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val legacySessionNotesFlow: Flow<Map<Long, String>> =
         dataStore.data.map { decodeSessionNotes(it[Keys.SESSION_NOTES]) }
+
+    val effortScaleFlow: Flow<EffortScale> =
+        dataStore.data.map { it.enum(Keys.EFFORT_SCALE, EffortScale.WORDS) }
 
     val themePreferenceFlow: Flow<ThemePreference> =
         dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
@@ -448,6 +453,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         distanceUnit: DistanceUnit? = null,
         onTodayFixupDone: Boolean = false,
         hasLifterAnswers: Boolean = true,
+        effortScale: EffortScale = EffortScale.WORDS,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -479,6 +485,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         autoFailed?.let { prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = it }
         autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
         prefs[Keys.THEME] = themePreference.name
+        prefs[Keys.EFFORT_SCALE] = effortScale.name
         if (distanceUnit != null) prefs[Keys.DISTANCE_UNIT] = distanceUnit.name
         if (onTodayFixupDone) prefs[Keys.ON_TODAY_FIXUP_DONE] = true
     }

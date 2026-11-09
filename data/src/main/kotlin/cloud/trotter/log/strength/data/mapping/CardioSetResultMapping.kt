@@ -12,6 +12,8 @@ fun CardioSetResultEntity.toDomain(): CardioSetResult = CardioSetResult(
     elapsedSeconds = elapsedSeconds,
     metres = metres,
     distanceSource = distanceSource?.let(DistanceSource::valueOf),
+    metresAtEnd = metresAtEnd,
+    secondsAtEnd = secondsAtEnd,
 )
 
 /** Invalid stored rows are omitted at the read boundary; backup validation stays strict. */
@@ -29,4 +31,6 @@ fun CardioSetResult.toEntity(sessionId: Long, position: Int): CardioSetResultEnt
     elapsedSeconds = elapsedSeconds,
     metres = metres,
     distanceSource = distanceSource?.name,
+    metresAtEnd = metresAtEnd,
+    secondsAtEnd = secondsAtEnd,
 )

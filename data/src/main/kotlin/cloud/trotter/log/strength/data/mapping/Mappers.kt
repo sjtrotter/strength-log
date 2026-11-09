@@ -6,6 +6,8 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -30,6 +32,7 @@ fun ProgramExerciseEntity.toDomain(): ProgramExercise =
         note = note,
         prescription = PrescriptionJson.decode(prescriptionJson),
         keepToPlan = keepToPlan,
+        rule = SlotRuleJson.decode(ruleJson),
     )
 
 fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): ProgramExerciseEntity =
@@ -45,6 +48,7 @@ fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): Progra
         note = note,
         prescriptionJson = prescription?.let(PrescriptionJson::encode),
         keepToPlan = keepToPlan,
+        ruleJson = rule?.let(SlotRuleJson::encode),
     )
 
 /** Assembles a domain [ProgramDay] from its day row and its ordered exercise rows. */
@@ -56,6 +60,7 @@ fun ProgramDayEntity.toDomain(exercises: List<ProgramExerciseEntity>): ProgramDa
         exercises = exercises.sortedBy { it.position }.map { it.toDomain() },
         kind = ProgramDayKind.entries.firstOrNull { it.name == kind } ?: ProgramDayKind.STRENGTH,
         cardioBlock = CardioBlockJson.decode(cardioBlockJson),
+        cardioRule = CardioRuleJson.decode(cardioRuleJson),
         cardioProgress = CardioProgress(
             keepToPlan = cardioKeepToPlan,
             measure = ProgressMeasure.entries.firstOrNull { it.name == cardioProgressBy },
@@ -78,6 +83,7 @@ fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
         cardioKeepToPlan = cardioProgress.keepToPlan,
         cardioProgressBy = cardioProgress.measure?.name,
         cardioIncreasePercent = cardioProgress.increasePercent,
+        cardioRuleJson = cardioRule?.let(CardioRuleJson::encode),
     )
 
 /** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4).

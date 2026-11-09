@@ -23,8 +23,10 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -153,7 +155,9 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(listOf("New program"), db.programDao().daysForPlan(created.id).map { it.title })
         assertEquals(listOf("bb_bench"), db.programDao().exercisesForPlan(created.id).map { it.exerciseId })
         assertEquals(archivedDays, db.programDao().daysForPlan(1))
-        assertEquals(archivedExercises, db.programDao().exercisesForPlan(1))
+        assertEquals(archivedExercises.map {
+            it.copy(ruleJson = SlotRuleJson.encode(PlanConversion.rule(it, sets(225.0), ExerciseLibrary.get(it.exerciseId))))
+        }, db.programDao().exercisesForPlan(1))
         assertEquals(archivedLogs, db.programDao().logsForDay(1, "A"))
     }
 
@@ -302,7 +306,10 @@ class TrackerRepositoryPlanScopeTest {
         repo.swapExerciseById("B", 11, "db_goblet_squat")
 
         assertEquals(listOf(storedLog), db.programDao().allLogs())
-        assertEquals(exercises, db.programDao().allExercises())
+        assertEquals(exercises.map {
+            if (it.id == 11L) it.copy(ruleJson = SlotRuleJson.encode(
+                PlanConversion.rule(it, sets(225.0), ExerciseLibrary.get(it.exerciseId)))) else it
+        }, db.programDao().allExercises())
     }
 
     @Test

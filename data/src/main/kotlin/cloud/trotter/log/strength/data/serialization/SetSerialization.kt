@@ -31,6 +31,7 @@ data class SetDto(
     val completedAtMillis: Long? = null,
     val plannedIndex: Int? = null,
     val watchEditedAt: Long? = null,
+    val rir: Int? = null,
 ) {
     fun toDomain(): LoggedSet =
         LoggedSet(
@@ -43,6 +44,7 @@ data class SetDto(
             completedAtMillis = completedAtMillis,
             plannedIndex = plannedIndex,
             watchEditedAt = watchEditedAt,
+            rir = rir,
         )
 
     companion object {
@@ -57,6 +59,7 @@ data class SetDto(
                 completedAtMillis = set.completedAtMillis,
                 plannedIndex = set.plannedIndex,
                 watchEditedAt = set.watchEditedAt,
+                rir = set.rir,
             )
     }
 }

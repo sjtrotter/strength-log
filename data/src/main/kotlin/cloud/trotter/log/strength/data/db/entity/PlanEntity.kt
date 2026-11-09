@@ -22,6 +22,13 @@ data class PlanEntity(
     @ColumnInfo(defaultValue = "0") val offerCardioIncreases: Boolean = false,
     /** The plan's optional cardio goal as PlanGoalJson. */
     val goalJson: String? = null,
+    /** PlanSettingsJson; null means the defaults (see [PlanSettings]). */
+    val settingsJson: String? = null,
+    /** Next time default: true is Automatic, false is Ask. Existing plans migrate to Ask. */
+    @ColumnInfo(defaultValue = "0") val autoApply: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val lightCycleRemaining: Int = 0,
+    val deloadEveryCycles: Int? = null,
+    @ColumnInfo(defaultValue = "0") val cyclesCompleted: Int = 0,
 ) {
     companion object {
         /** The plan a pre-plans program (Room v7, or a backup older than plans)

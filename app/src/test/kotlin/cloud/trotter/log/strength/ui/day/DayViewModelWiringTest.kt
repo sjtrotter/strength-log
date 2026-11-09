@@ -15,7 +15,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
@@ -3336,8 +3335,7 @@ class DayViewModelWiringTest {
         val catalog = repo.catalog.catalogFlow.first()
         val goal = GoalCalculator.targetFor(catalog.get("hack_squat"), cfg)
         assertEquals(HeaderTarget.Goal(GoalFormatter.label(goal, WeightUnit.LB)), card.headerTarget)
-        assertEquals(DaySeeds.swap(repo.plans.slotsFor(plan, "A").first().single(), Slot.MAIN,
-            "hack_squat", emptyMap(), cfg, catalog)!!,
+        assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) },
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })
         assertFalse(vm.uiState.value.canFinish)

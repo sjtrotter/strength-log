@@ -24,9 +24,11 @@ data class KnownLoads(
     companion object { val NONE = KnownLoads(emptyMap()) }
 }
 
-/** The one seeding function for a ruled slot with no stored rows. Loads: known.lastWorking for this exercise through
- *  Estimate (null rir reads as 2), else the equipment floor with calibrating on. Never a formula. Returns the rule
- *  too, because the calibrating flag lives only in the rule's state. */
+/** The one seeding function for a ruled slot with no stored rows. Loads, in order: [planLb], the weight the plan
+ *  carries on another slot, copied at equal reps or converted through Estimate and rounded down at different reps;
+ *  else known.lastWorking through Estimate (null rir reads as 2); else the equipment floor with calibrating on.
+ *  A loaded hold takes the plan's or last working load in place of its catalog load. Never a formula. Returns the
+ *  rule too, because the calibrating flag lives only in the rule's state. */
 object SlotSeeding {
     data class Seeded(val rows: List<LoggedSet>, val rule: SlotRule)
 
@@ -37,29 +39,43 @@ object SlotSeeding {
         steps: LoadSteps,
         unit: WeightUnit,
         entry: ExerciseEntry? = ExerciseLibrary.find(slot.exerciseId),
+        planLb: Double? = null,
+        planReps: Int = rule.target.reps,
+        planRir: Int = Effort.GOOD.rir,
     ): Seeded {
         val equipment = entry?.equipment.orEmpty()
         val reps = rule.target.reps
         slot.prescription?.let {
             return Seeded(SetSeeder.seedPrescribed(slot.targetSets, it, slot.structure, unit, equipment), rule)
         }
+        val planned = planLb?.takeIf { it > 0.0 }
+        val last = known.lastWorking[slot.exerciseId]?.takeIf { it.weightLb > 0 }
         when (entry?.tracking ?: TrackingType.WEIGHTED) {
             TrackingType.REPS -> return Seeded(List(slot.targetSets) { LoggedSet(0.0, reps, SetKind.WORK) }, rule)
             TrackingType.TIMED -> {
                 val time = entry?.goal as GoalSource.Time
+                val load = (planned ?: last?.weightLb)?.takeIf { time.addedWeightLb > 0.0 }
+                    ?: GeneratedLoad.snap(time.addedWeightLb, unit)
                 return Seeded(List(slot.targetSets) {
-                    LoggedSet(GeneratedLoad.snap(time.addedWeightLb, unit), 0, SetKind.WORK, seconds = time.targetSeconds)
+                    LoggedSet(load, 0, SetKind.WORK, seconds = time.targetSeconds)
                 }, rule)
             }
             TrackingType.WEIGHTED -> Unit
         }
-        val last = known.lastWorking[slot.exerciseId]?.takeIf { it.weightLb > 0 }
-        val estimate = last?.let { Estimate.e1rm(it.weightLb, it.reps, it.rir ?: Effort.GOOD.rir) }
-        val top = if (estimate != null) steps.nearest(Estimate.loadFor(estimate, reps, rule.rir), equipment, unit)
-            else last?.let { steps.nearest(it.weightLb, equipment, unit) } ?: floor(equipment, unit)
+        val plannedTop = planned?.let { weight ->
+            if (planReps == reps) weight else {
+                val estimate = Estimate.e1rm(weight, planReps, planRir)
+                steps.down(estimate?.let { Estimate.loadFor(it, reps, rule.rir) } ?: weight, equipment, unit)
+            }
+        }
+        val estimate = if (planned == null) last?.let { Estimate.e1rm(it.weightLb, it.reps, it.rir ?: Effort.GOOD.rir) } else null
+        val top = plannedTop
+            ?: estimate?.let { steps.nearest(Estimate.loadFor(it, reps, rule.rir), equipment, unit) }
+            ?: last?.let { steps.nearest(it.weightLb, equipment, unit) }
+            ?: floor(equipment, unit)
         return Seeded(
             SetSeeder.shape(slot.structure, top, reps, slot.targetSets, unit, equipment, rule.scheme),
-            rule.copy(state = rule.state.copy(calibrating = estimate == null)),
+            rule.copy(state = rule.state.copy(calibrating = planned == null && estimate == null)),
         )
     }
 

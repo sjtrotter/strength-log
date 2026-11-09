@@ -244,7 +244,7 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(partnerRows, requireNotNull(finished.tracks).single { it.slot == Slot.SS }.sets)
     }
 
-    @Test fun `a plan swap pads replacement rows at the history weight`() = runTest {
+    @Test fun `a plan swap pads replacement rows at the history estimate`() = runTest {
         val plan = generated()
         loggedWeight(plan, "bb_back_squat", 45.0, 1_000)
         val destination = db.programDao().exercisesForDay(plan, "B").single().id
@@ -262,15 +262,15 @@ class TrackerRepositoryRunEditsTest {
 
         val tracks = db.runDao().tracks(run.runId)
         val main = tracks.single { it.slot == Slot.MAIN && !it.retired }
-        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, SetJson.decodeSets(main.plannedJson))
-        assertEquals(List(6) { LoggedSet(45.0, 5, SetKind.WORK, plannedIndex = it.takeIf { it < 3 }) },
+        assertEquals(List(3) { LoggedSet(50.0, 5, SetKind.WORK) }, SetJson.decodeSets(main.plannedJson))
+        assertEquals(List(6) { LoggedSet(50.0, 5, SetKind.WORK, plannedIndex = it.takeIf { it < 3 }) },
             SetJson.decodeSets(main.setsJson))
         assertEquals(partner, tracks.single { it.slot == Slot.SS })
         repo.ensureSeeded(plan, "B")
         assertEquals(tracks, db.runDao().tracks(run.runId))
     }
 
-    @Test fun `a workout swap pads all six replacement rows at the nearby weight`() = runTest {
+    @Test fun `a workout swap pads all six replacement rows at the history estimate`() = runTest {
         val plan = generated()
         loggedWeight(plan, "bb_back_squat", 45.0, 1_000)
         val destination = db.programDao().exercisesForDay(plan, "B").single().id
@@ -288,8 +288,8 @@ class TrackerRepositoryRunEditsTest {
 
         val tracks = db.runDao().tracks(run.runId)
         val main = tracks.single { it.slot == Slot.MAIN && !it.retired }
-        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, SetJson.decodeSets(main.plannedJson))
-        assertEquals(List(6) { LoggedSet(45.0, 5, SetKind.WORK, plannedIndex = it.takeIf { it < 3 }) },
+        assertEquals(List(3) { LoggedSet(50.0, 5, SetKind.WORK) }, SetJson.decodeSets(main.plannedJson))
+        assertEquals(List(6) { LoggedSet(50.0, 5, SetKind.WORK, plannedIndex = it.takeIf { it < 3 }) },
             SetJson.decodeSets(main.setsJson))
         assertEquals(partner, tracks.single { it.slot == Slot.SS })
         assertEquals(original, db.programDao().exercise(destination))
@@ -356,7 +356,7 @@ class TrackerRepositoryRunEditsTest {
         repo.ensureSeeded(plan, "A")
         val rows = repo.dayTracksFlow(plan, "A").first().tracks.filter { it.programExerciseId == added }
         assertEquals(List(3) { 10.0 }, rows.single { it.slot == Slot.MAIN }.sets.map { it.weightLb })
-        assertEquals(List(3) { 15.0 }, rows.single { it.slot == Slot.SS }.sets.map { it.weightLb })
+        assertEquals(List(3) { 10.0 }, rows.single { it.slot == Slot.SS }.sets.map { it.weightLb })
         db.storeTestRows("A", added, Slot.MAIN, rows.single { it.slot == Slot.MAIN }.sets.map { it.copy(weightLb = 12.5) })
         repo.ensureSeeded(plan, "A")
         assertEquals(List(3) { 12.5 }, repo.dayTracksFlow(plan, "A").first().tracks
@@ -440,7 +440,7 @@ class TrackerRepositoryRunEditsTest {
         }
     }
 
-    @Test fun `history seeding survives adding and plan swapping during a run with unknown history unchanged`() = runTest {
+    @Test fun `history seeding survives adding and plan swapping during a run with unknown history at the floor`() = runTest {
         val plan = generated()
         loggedWeight(plan, "db_row", 10.0, 1_000)
         val runId = start(plan)
@@ -449,7 +449,7 @@ class TrackerRepositoryRunEditsTest {
         repo.setSupersetPartner("A", slot(plan), "rope_pushdown")
         repo.ensureSeeded(plan, "A")
         val partner = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS && !it.retired }
-        assertEquals(List(7) { 15.0 }, partner.sets.map { it.weightLb })
+        assertEquals(List(7) { 10.0 }, partner.sets.map { it.weightLb })
         repo.removeSupersetPartner("A", slot(plan))
         repo.addExercise("A", ProgramExercise("db_row"), plan)
         val added = db.programDao().exercisesForDay(plan, "A").last().id
@@ -464,7 +464,7 @@ class TrackerRepositoryRunEditsTest {
         }.sets.map { it.weightLb })
         assertEquals(ExerciseSwapResult.CHANGED,
             repo.applyExerciseSwap(plan, "A", slot(plan), "hack_squat", runId, allowChange = true))
-        assertEquals(List(3) { 180.0 }, repo.openRunFlow.first()!!.tracks.single {
+        assertEquals(List(3) { 20.0 }, repo.openRunFlow.first()!!.tracks.single {
             it.programExerciseId == slot(plan) && !it.retired
         }.sets.map { it.weightLb })
     }
@@ -1083,20 +1083,13 @@ class TrackerRepositoryRunEditsTest {
         return id
     }
 
-    private suspend fun substituteSeed(plan: Long, exerciseId: String): List<LoggedSet> {
-        val pe = repo.plans.slotsFor(plan, "A").first().first().exercise.copy(exerciseId = exerciseId, prescription = null)
-        val config = repo.plans.wizardAnswersFor(plan).first().config
-        val target = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get(exerciseId), config)
-        return SetSeeder.seed(pe, target, config)
-    }
-
     @Test fun `workout swap before any set retires the original and swap back restores its prescription rows`() = runTest {
         val plan = authored()
         val id = slot(plan)
         db.storeTestRows("A", id, Slot.MAIN, work())
         val runId = explicitStart(plan)
         val original = db.runDao().tracks(runId).single()
-        val seed = substituteSeed(plan, "hack_squat")
+        val seed = List(3) { LoggedSet(20.0, 10, SetKind.WORK) }
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val tracks = repo.openRunFlow.first()!!.tracks
         assertTrue(tracks.single { it.exerciseId == "bb_back_squat" }.retired)
@@ -1336,16 +1329,14 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(List(2) { LoggedSet(45.0, 10, SetKind.WORK) }, padded.takeLast(2))
     }
 
-    @Test fun `workout SS swap keeps MAIN values and uses the new partners goal at the live row count`() = runTest {
+    @Test fun `workout SS swap keeps MAIN values and uses the new partner's floor at the live row count`() = runTest {
         val plan = authored()
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan, work() + work().take(1))
         seed(runId)
         val main = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }
-        val config = repo.plans.wizardAnswersFor(plan).first().config
-        val goal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("rope_pushdown"), config)
-        val rows = SetSeeder.seedPartner(4, goal)
+        val rows = List(4) { LoggedSet(20.0, 10, SetKind.WORK) }
         assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown"))
         val tracks = repo.openRunFlow.first()!!.tracks
         assertEquals(main, tracks.single { it.slot == Slot.MAIN })

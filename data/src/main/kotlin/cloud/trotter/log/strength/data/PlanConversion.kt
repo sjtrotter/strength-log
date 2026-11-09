@@ -8,13 +8,14 @@ import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
 
 /** The rule conversion gives an existing slot (design §4.4): the plan goal's defaults, MAIN for a ramped slot or a
- *  main-capable entry, Fixed reps from the slot's first working row. [PlanRepository.ruleSlot] reads the rows. */
+ *  main-capable entry, Fixed reps from the slot's first working row. The repository reads the rows. */
 internal object PlanConversion {
     /** Fixed reps from the slot's first working row, else its prescription, else a bodyweight entry's rep target,
      *  else [goal]'s default. */
@@ -33,11 +34,18 @@ internal object PlanConversion {
             is PrescribedTarget.RepsInTime -> target.repAim
             is PrescribedTarget.Hold, null -> null
         }?.takeIf { it in 1..999 }
-        val libraryReps = (entry?.goal as? GoalSource.Reps)?.targetReps?.takeIf { it in 1..999 }
         // A deleted custom exercise uses the upper-body increment through this fallback pattern.
-        return SlotRule.defaults(role, goal, structure, rowReps ?: prescribedReps ?: libraryReps,
+        return SlotRule.defaults(role, goal, structure, rowReps ?: prescribedReps ?: libraryReps(entry),
             entry?.pattern ?: MovementPattern.CORE_FLEX)
     }
+
+    /** A superset partner's rule, never stored: ACCESSORY straight sets, a bodyweight entry's rep target, else
+     *  [goal]'s default. */
+    fun partnerRule(entry: ExerciseEntry, goal: LiftGoal): SlotRule =
+        SlotRule.defaults(SlotRole.ACCESSORY, goal, SetStructure.STRAIGHT, libraryReps(entry), entry.pattern)
+
+    private fun libraryReps(entry: ExerciseEntry?): Int? =
+        (entry?.goal as? GoalSource.Reps)?.targetReps?.takeIf { it in 1..999 }
 
     /** The TOP row's reps, else the first non-RAMP row's; null when that row has none (a timed hold). */
     fun firstWorkingReps(rows: List<LoggedSet>): Int? =

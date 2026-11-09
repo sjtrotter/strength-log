@@ -52,6 +52,10 @@ class CatalogRepository(private val customExerciseDao: CustomExerciseDao) {
 
     suspend fun removeCustomExercise(id: String) = customExerciseDao.delete(id)
 
-    internal suspend fun snapshot(): ExerciseCatalog =
-        ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
+    internal suspend fun snapshot(): ExerciseCatalog = readableCatalog(customExerciseDao.getAll())
 }
+
+/** The catalog a write path reads: a custom exercise row this build cannot read is left out, so the edit treats it as
+ *  an unknown exercise instead of failing. */
+internal fun readableCatalog(rows: List<CustomExerciseEntity>): ExerciseCatalog =
+    ExerciseCatalog(rows.mapNotNull { runCatching { it.toEntry() }.getOrNull() })

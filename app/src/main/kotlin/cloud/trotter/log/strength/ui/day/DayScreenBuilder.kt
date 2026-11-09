@@ -175,6 +175,7 @@ object DayScreenBuilder {
     ): NextTime? {
         if (!offersOn || keepToPlan || rows.any { it.done }) return null
         val local = history?.takeUnless { it.retired } ?: return null
+        if (local.offer == null && local.opened) return null
         val current = WorkingRows.workingWeight(rows) ?: return null
         fun display(lb: Double) = WeightStepper.toDisplayPrecision(unit.fromLb(lb))
         val offer = local.offer ?: return NextTime.Repeat.takeIf {

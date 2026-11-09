@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OfferDto
 import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
@@ -38,4 +39,16 @@ class SessionPlanOfferTest {
         val dto = PlannedTrackDto(0, "bb_bench", "main", sets = emptyList(), offer = offer)
         assertEquals(listOf(dto), SessionPlanJson.decode(SessionPlanJson.encode(listOf(dto))))
     }
+    @Test fun `an archived opening round trips and a bad one fails decode`() {
+        val track = PlannedTrackDto(0, "bb_bench", "main", sets = emptyList(), opening = OpeningDto("SCALED", 0.95))
+        assertEquals(listOf(track), SessionPlanJson.decode(SessionPlanJson.encode(listOf(track))))
+        val normal = track.copy(opening = null)
+        assertEquals("""[{"position":0,"exerciseId":"bb_bench","slot":"main","sets":[]}]""", SessionPlanJson.encode(listOf(normal)))
+        for (opening in listOf("""{"layoff":"SCALED","factor":1.5}""", """{"layoff":"HOLD","factor":0.9}""", """{"layoff":"LATER"}""")) {
+            assertFailsWith<IllegalArgumentException> {
+                SessionPlanJson.decode("""[{"position":0,"exerciseId":"bb_bench","slot":"main","sets":[],"opening":$opening}]""")
+            }
+        }
+    }
+
 }

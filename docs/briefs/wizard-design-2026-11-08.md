@@ -844,3 +844,11 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - A successful Finish also advances the success streak of every other non-Plan slot in the same plan for the same exercise and working-rep target, in the same transaction and undo record. It never writes another slot's load. A different rep target, a blocked session, a miss, or a newly adopted lower anchor earns no shared credit.
 - For part two's layoff check, converted and user-built plans use their finished sessions in the 28 days before the lift's last session, divided by 4, with a floor of 1 day per week. This part does not implement the layoff opening.
 - Offers contain immutable before/after rows and rule snapshots so a rep change, calibration or range reset can be accepted together with its load. No older archive is rewritten. Rep receipt lines have their own SavedStateHandle key; existing Parcelable layouts stay fixed.
+
+## 20. Revision 11 (PR 2b part two-a, openings and light cycles, 2026-11-09)
+
+- Part two splits: (a) openings and light cycles for MAIN tracks; (b) superset-partner rules and partner openings.
+- The opening lives on the run track (`run_track.openingJson`, Room 26) from Start to Finish and is copied to the archived track (`PlannedTrackDto.opening`, the `SessionPlanJson.layoff` of §4.1). Only an explicit Start opens through `atStart`; a run started by a tick, a skip or a drop opens as stored, and superset, Plan-mode and unruled slots open as stored.
+- Days a week for the layoff check: the plan's sessions on the 28 days ending on the exercise's last session, ÷ 4 rounded, at least 1. The 65+ row reads the lifter's age until PR 6's setup answer; New waits for PR 6.
+- A finished training day (strength or cardio) counts the light cycle down; a wrap is the finish of the rotation's last training day that advances it. The reactive stall trigger counts distinct exercises with a stall in this Finish's rotation window; the Rough day trigger lands with 2c's checkbox. Undo restores both light counters by compare-and-swap.
+- A track that opened with a layoff or the light view offers from the stored working load, so Hold, a scaled success and a light day record no offer.

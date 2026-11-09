@@ -554,6 +554,13 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
     }
 }
 
+/** v25 → v26: a run track records how it opened (design §3.2 atStart). */
+val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE run_track ADD COLUMN openingJson TEXT")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

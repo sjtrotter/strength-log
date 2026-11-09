@@ -90,6 +90,15 @@ data class PlanLastSessionRow(val planId: Long, val completedAt: Long)
 /** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
+    @Query("SELECT MAX(s.completedAt) FROM workout_session s JOIN session_set t ON t.sessionId = s.id WHERE s.planId = :planId AND t.exerciseId = :exerciseId AND t.done = 1")
+    suspend fun lastTrainedAt(planId: Long, exerciseId: String): Long?
+
+    @Query("SELECT COUNT(*) FROM workout_session WHERE planId = :planId AND completedAt >= :fromMillis AND completedAt < :untilMillis")
+    suspend fun sessionCount(planId: Long, fromMillis: Long, untilMillis: Long): Int
+
+    @Query("SELECT completedAt FROM workout_session WHERE planId = :planId ORDER BY completedAt DESC, id DESC LIMIT :limit")
+    suspend fun recentCompletedAt(planId: Long, limit: Int): List<Long>
+
     /** Finds a completed run so Finish can safely be replayed. */
     @Query("SELECT * FROM workout_session WHERE runId = :runId")
     suspend fun sessionByRunId(runId: String): WorkoutSessionEntity?

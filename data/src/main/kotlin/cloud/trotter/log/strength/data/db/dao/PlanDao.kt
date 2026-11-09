@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlanDao {
+    @Query("UPDATE plan SET lightCycleRemaining = :remaining, cyclesCompleted = :cycles WHERE id = :id")
+    suspend fun updateLightCycle(id: Long, remaining: Int, cycles: Int)
+
     @Query("SELECT * FROM plan ORDER BY position, id")
     fun observePlans(): Flow<List<PlanEntity>>
 

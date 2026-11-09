@@ -639,4 +639,12 @@ class DayScreenBuilderTest {
         assertTrue((DayScreenBuilder.nextTime(rows.map { it.copy(reps = 11) }, history, false, WeightUnit.LB, true) as NextTime.Offer).applied)
     }
 
+    @Test fun `a light session leaves no chip`() {
+        val rows = List(3) { work(275.0, 5) }
+        val history = SlotSession(rows, rows.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) },
+            retired = false, offer = null, opened = true)
+        assertNull(DayScreenBuilder.nextTime(rows, history, false, WeightUnit.LB, offersOn = true))
+        assertEquals(NextTime.Repeat, DayScreenBuilder.nextTime(rows, history.copy(opened = false), false, WeightUnit.LB, offersOn = true))
+    }
+
 }

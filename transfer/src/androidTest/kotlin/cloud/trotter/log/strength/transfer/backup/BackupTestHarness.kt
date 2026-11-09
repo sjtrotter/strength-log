@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import kotlinx.coroutines.flow.first
+import cloud.trotter.log.strength.domain.model.Program
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -100,5 +102,12 @@ abstract class BackupTestHarness {
         context.deleteDatabase(dbName)
         context.preferencesDataStoreFile(prefsName).delete()
         context.preferencesDataStoreFile(journalName).delete()
+    }
+
+    /** The program without slot rules. Conversion gives slots rules at launch and after a restore, at a time the
+     *  test doesn't control; rules are derived state, so state comparisons leave them out (BackupV27Test pins
+     *  their round trip). */
+    protected suspend fun programWithoutRules(): Program = repository.plans.programFlow.first().let { p ->
+        p.copy(days = p.days.map { d -> d.copy(exercises = d.exercises.map { it.copy(rule = null) }) })
     }
 }

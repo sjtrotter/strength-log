@@ -222,12 +222,9 @@ class BackupRoundTripTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.history.sessionsFlow.first()
         return State(
-            // A restore converts plans, giving slots rules the seeded state never had; rules are derived, so the
-            // comparison leaves them out (BackupV27Test pins that they round-trip).
+            // Rules are derived state (see BackupTestHarness.programWithoutRules).
             snapshot = backupRepository.exportSnapshot().let { s -> s.copy(exercises = s.exercises.map { it.copy(ruleJson = null) }) },
-            program = repository.plans.programFlow.first().let { p ->
-                p.copy(days = p.days.map { d -> d.copy(exercises = d.exercises.map { it.copy(rule = null) }) })
-            },
+            program = programWithoutRules(),
             logsA = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
             logsB = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },
             sessions = sessions,

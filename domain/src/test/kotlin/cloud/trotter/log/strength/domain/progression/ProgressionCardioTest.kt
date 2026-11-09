@@ -474,10 +474,25 @@ class ProgressionCardioTest {
     }
 
     @Test
-    fun `case 17 Finish repeats when grid rounding removes the whole increase`() {
+    fun `case 17 Finish keeps the increase when grid rounding would remove it`() {
         val opening = block(distance(400))
-        assertEquals(CardioOutcome(opening, null, CardioChange.Repeat),
+        assertEquals(CardioOutcome(block(distance(440)), null, CardioChange.Increase(ProgressMeasure.DISTANCE, true)),
             finish(opening, ProgressMeasure.DISTANCE, 25, runCap = true))
+        assertEquals(CardioOutcome(block(time(396)), null, CardioChange.Increase(ProgressMeasure.TIME, true)),
+            finish(block(time(360)), ProgressMeasure.TIME, 25, runCap = true))
     }
 
+    @Test
+    fun `case 17 at run open grid rounding never shrinks below the anchor`() {
+        val recent = CardioHistory(longest = RecentMaxima(450, null))
+        val ctx = Progression.CardioContext(1000, ProgressMeasure.DISTANCE, 25)
+        assertEquals(block(distance(495)), Progression.cardioAtStart(block(distance(600)), null, recent, null, ctx))
+    }
+
+    @Test
+    fun `case 17 at run open small time sessions keep their increase`() {
+        val recent = CardioHistory(longest = RecentMaxima(null, 360))
+        val ctx = Progression.CardioContext(1000, ProgressMeasure.TIME, 25)
+        assertEquals(block(time(396)), Progression.cardioAtStart(block(time(450)), null, recent, null, ctx))
+    }
 }

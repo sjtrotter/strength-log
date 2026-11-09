@@ -126,5 +126,4 @@ class TaperTest {
         assertEquals(block(distance(12600)),
             Progression.cardioAtStart(opening, null, history, half, ctx.copy(runCap = false)))
     }
-
 }

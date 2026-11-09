@@ -13,7 +13,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /** The log to next targets for a lift slot or a cardio day. Pure: callers pass the slot's stored rows and rule and write back
- *  [Outcome.rows] and [Outcome.rule] together. */
+ *  [Outcome.rows] and [Outcome.rule] together; cardio callers pass the day's block and rule and write back [CardioOutcome]. */
 object Progression {
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(

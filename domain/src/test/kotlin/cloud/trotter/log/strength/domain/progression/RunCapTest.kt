@@ -149,13 +149,13 @@ class RunCapTest {
     }
 
     @Test
-    fun `no work and a single work without a positive grid budget stay unchanged`() {
+    fun `no work and a single work without a positive budget stay unchanged`() {
         val noWork = block(time(600, role = CardioRole.RECOVERY))
         assertSame(noWork, RunCap.capped(noWork, RecentMaxima(null, 60), null))
         val noBudget = block(time(120), time(600, role = CardioRole.RECOVERY))
         assertSame(noBudget, RunCap.capped(noBudget, RecentMaxima(null, 60), null))
         val belowGrid = block(distance(100))
-        assertSame(belowGrid, RunCap.capped(belowGrid, RecentMaxima(50, null), null))
+        assertEquals(block(distance(55)), RunCap.capped(belowGrid, RecentMaxima(50, null), null))
     }
 
     @Test

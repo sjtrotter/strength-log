@@ -89,7 +89,11 @@ object RunCap {
             is Measure.Distance -> end.metres
         }
         val grid = if (set.end is Measure.Distance) METRES_GRID else SECONDS_GRID
-        val newEnd = floor(endValue * budget / workValue + 1e-9).toInt().let { it / grid * grid }
+        val floored = floor(endValue * budget / workValue + 1e-9).toInt()
+        val rounded = floored / grid * grid
+        val newEnd = if (rounded > 0 &&
+            total - workValue + requireNotNull(value(set.withEndValue(rounded))) > maximum
+        ) rounded else floored
         if (newEnd < 1) return block
         return block.copy(sets = block.sets.map { if (it.role == CardioRole.WORK) it.withEndValue(newEnd) else it })
     }

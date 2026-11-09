@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -14,8 +15,12 @@ import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
-/** What the log already says about loads. The planner adds cardio maxima in PR 1b. */
-data class KnownLoads(val lastWorking: Map<String, LoggedSet>) {
+/** What the log already says: each exercise's last working set, and per cardio family the 30-day maxima the
+ *  planner's first run cap reads. */
+data class KnownLoads(
+    val lastWorking: Map<String, LoggedSet>,
+    val longestRecent: Map<CardioFamily, RecentMaxima> = emptyMap(),
+) {
     companion object { val NONE = KnownLoads(emptyMap()) }
 }
 

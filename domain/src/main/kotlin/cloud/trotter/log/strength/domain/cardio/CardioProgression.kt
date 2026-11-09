@@ -4,10 +4,12 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
-import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
+import cloud.trotter.log.strength.domain.progression.Progression
+import cloud.trotter.log.strength.domain.progression.distanceMetres
+import cloud.trotter.log.strength.domain.progression.timeSeconds
 
 /** The size of an offered change, read from the first WORK set; the app formats it. */
 sealed interface CardioIncrease {
@@ -27,103 +29,22 @@ sealed interface CardioNextTime {
     ) : CardioNextTime
 }
 
+/** Superseded by [Progression.cardioAfterSession]; deleted when Finish switches over (PR 2b). */
 object CardioProgression {
-    const val MIN_PERCENT = 1
-    const val MAX_PERCENT = 25
+    const val MIN_PERCENT = CardioMeasures.MIN_PERCENT
+    const val MAX_PERCENT = CardioMeasures.MAX_PERCENT
 
-    /** Distance and time default to five percent; opt-in pace defaults to one percent. */
-    fun defaultPercent(measure: ProgressMeasure): Int = when (measure) {
-        ProgressMeasure.DISTANCE, ProgressMeasure.TIME -> 5
-        ProgressMeasure.PACE -> 1
-    }
+    fun defaultPercent(measure: ProgressMeasure): Int = CardioMeasures.defaultPercent(measure)
 
-    /** A measure is available only when every WORK set supports it. */
-    fun available(block: CardioBlock): Set<ProgressMeasure> {
-        val work = block.sets.filter { it.role == CardioRole.WORK }
-        if (work.isEmpty()) return emptySet()
-        return buildSet {
-            if (work.all { it.end is Measure.Distance || it.aim is Measure.Distance }) add(ProgressMeasure.DISTANCE)
-            if (work.all { it.end is Measure.Time }) add(ProgressMeasure.TIME)
-            if (work.all { it.aim != null }) add(ProgressMeasure.PACE)
-        }
-    }
+    fun available(block: CardioBlock): Set<ProgressMeasure> = CardioMeasures.available(block)
 
-    /** Prefer distance ends, then time, then distance aims; pace is never a default. */
-    fun defaultMeasure(block: CardioBlock): ProgressMeasure? {
-        val available = available(block)
-        return when {
-            ProgressMeasure.DISTANCE in available &&
-                block.sets.filter { it.role == CardioRole.WORK }.all { it.end is Measure.Distance } -> ProgressMeasure.DISTANCE
-            ProgressMeasure.TIME in available -> ProgressMeasure.TIME
-            ProgressMeasure.DISTANCE in available -> ProgressMeasure.DISTANCE
-            else -> null
-        }
-    }
+    fun defaultMeasure(block: CardioBlock): ProgressMeasure? = CardioMeasures.defaultMeasure(block)
 
-    /** Keep a supported stored choice, otherwise use the block's default. */
-    fun resolve(block: CardioBlock, stored: ProgressMeasure?): ProgressMeasure? =
-        stored?.takeIf { it in available(block) } ?: defaultMeasure(block)
+    fun resolve(block: CardioBlock, stored: ProgressMeasure?): ProgressMeasure? = CardioMeasures.resolve(block, stored)
 
-    /** Increase only WORK targets, preserving pace for distance or time; reject unsupported or out-of-range changes. */
-    fun increased(block: CardioBlock, measure: ProgressMeasure, percent: Int): CardioBlock {
-        if (measure !in available(block)) return block
-        val clamped = percent.coerceIn(MIN_PERCENT, MAX_PERCENT)
-        fun step(value: Int) = maxOf(1, Math.round(value * clamped / 100.0).toInt())
-        return try {
-            block.copy(sets = block.sets.map { set ->
-                if (set.role != CardioRole.WORK) return@map set
-                var time = ((set.end as? Measure.Time) ?: (set.aim as? Measure.Time))?.seconds
-                var distance = ((set.end as? Measure.Distance) ?: (set.aim as? Measure.Distance))?.metres
-                when (measure) {
-                    ProgressMeasure.DISTANCE -> {
-                        val opening = requireNotNull(distance)
-                        val increased = opening + step(opening)
-                        distance = increased
-                        time = time?.let { Math.round(it.toDouble() * increased / opening).toInt() }
-                    }
-                    ProgressMeasure.TIME -> {
-                        val opening = requireNotNull(time)
-                        val increased = opening + step(opening)
-                        time = increased
-                        distance = distance?.let { Math.round(it.toDouble() * increased / opening).toInt() }
-                    }
-                    ProgressMeasure.PACE -> when (set.end) {
-                        is Measure.Distance -> time = set.time() - step(set.time())
-                        is Measure.Time -> distance = set.distance() + step(set.distance())
-                    }
-                }
-                set.copy(
-                    end = when (set.end) {
-                        is Measure.Time -> Measure.Time(requireNotNull(time))
-                        is Measure.Distance -> Measure.Distance(requireNotNull(distance))
-                    },
-                    aim = when (set.aim) {
-                        is Measure.Time -> Measure.Time(requireNotNull(time))
-                        is Measure.Distance -> Measure.Distance(requireNotNull(distance))
-                        null -> null
-                    },
-                )
-            })
-        } catch (_: IllegalArgumentException) {
-            block
-        }
-    }
+    fun increased(block: CardioBlock, measure: ProgressMeasure, percent: Int): CardioBlock = CardioMeasures.increased(block, measure, percent)
 
-    /** Only an exact run of the block with every WORK end and aim met is a full success. */
-    fun fullSuccess(block: CardioBlock, results: List<CardioSetResult>): Boolean {
-        if (results.size != block.sets.size || results.indices.any { results[it].spec != block.sets[it] }) return false
-        val work = results.filter { it.spec.role == CardioRole.WORK }
-        return work.isNotEmpty() && work.all { result ->
-            val end = result.spec.end
-            result.status == CardioSetStatus.FINISHED &&
-                (!block.openEnded || end !is Measure.Time || result.elapsedSeconds >= end.seconds) &&
-                when (val aim = result.spec.aim) {
-                    is Measure.Distance -> result.metres?.let { it >= aim.metres } == true
-                    is Measure.Time -> result.elapsedSeconds <= aim.seconds
-                    null -> true
-                }
-        }
-    }
+    fun fullSuccess(block: CardioBlock, results: List<CardioSetResult>): Boolean = CardioMeasures.fullSuccess(block, results)
 
     /** Offer a changed block only after full success; misses never reduce targets. */
     fun offer(block: CardioBlock, results: List<CardioSetResult>, measure: ProgressMeasure, percent: Int): CardioBlock? =
@@ -154,19 +75,13 @@ object CardioProgression {
         val before = opening.sets[first]
         val after = offered.sets[first]
         val change = when (measure) {
-            ProgressMeasure.DISTANCE -> CardioIncrease.Distance(after.distance() - before.distance())
-            ProgressMeasure.TIME -> CardioIncrease.Time(after.time() - before.time())
+            ProgressMeasure.DISTANCE -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
+            ProgressMeasure.TIME -> CardioIncrease.Time(after.timeSeconds() - before.timeSeconds())
             ProgressMeasure.PACE -> when (before.end) {
-                is Measure.Distance -> CardioIncrease.Faster(before.time() - after.time())
-                is Measure.Time -> CardioIncrease.Distance(after.distance() - before.distance())
+                is Measure.Distance -> CardioIncrease.Faster(before.timeSeconds() - after.timeSeconds())
+                is Measure.Time -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
             }
         }
         return CardioNextTime.Offer(offered, opening, applied, change)
     }
-
-    private fun CardioSetSpec.distance(): Int =
-        requireNotNull((end as? Measure.Distance) ?: (aim as? Measure.Distance)).metres
-
-    private fun CardioSetSpec.time(): Int =
-        requireNotNull((end as? Measure.Time) ?: (aim as? Measure.Time)).seconds
 }

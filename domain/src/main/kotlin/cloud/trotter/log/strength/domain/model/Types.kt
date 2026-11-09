@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.model
 
 import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -97,6 +98,8 @@ data class ProgramDay(
     val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
     val cardioBlock: CardioBlock? = null,
     val cardioProgress: CardioProgress = CardioProgress(),
+    /** The day's cardio progression state; null on lift-only and converted days. */
+    val cardioRule: CardioRule? = null,
 ) {
     /** A working block with different activity or set roles cannot replace the plan's block. */
     val cardioToRun: CardioBlock?

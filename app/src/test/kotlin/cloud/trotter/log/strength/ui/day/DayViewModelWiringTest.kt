@@ -2258,7 +2258,7 @@ class DayViewModelWiringTest {
         val reset = repo.observeDay(planId, "A").first()
         assertTrue(reset.slots.all { it.slot.exercise.rule != null })
         assertEquals(original.program, reset.program.copy(days = reset.program.days.map { day ->
-            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+            day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
         }))
         assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
         assertEquals(original.slots.size, reset.slots.size)

@@ -213,7 +213,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             (value as? JsonArray)?.let { rows -> JsonArray(rows.map { if (it is JsonObject) transform(it) else it }) } ?: value
         fun stripDays(value: JsonElement?): JsonElement? = mapRows(value) { day ->
             JsonObject((day - "cardioRuleJson").toMutableMap().apply {
-                mapRows(get("exercises")) { JsonObject(it - "ruleJson") }?.let { put("exercises", it) }
+                mapRows(get("exercises")) { JsonObject(it - setOf("ruleJson", "partnerRuleJson")) }?.let { put("exercises", it) }
             })
         }
         return JsonObject(root.toMutableMap().apply {
@@ -568,6 +568,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             checkValue("cardioRuleJson of day '${day.dayId}'") { day.cardioRuleJson?.let(CardioRuleJson::validate) }
             for (slot in day.exercises) {
                 checkValue("ruleJson of slot ${slot.id}") { slot.ruleJson?.let(SlotRuleJson::validate) }
+                checkValue("partnerRuleJson of slot ${slot.id}") {
+                    slot.partnerRuleJson?.let { require(slot.supersetExerciseId != null); SlotRuleJson.validate(it) }
+                }
                 slot.parkedLogsJson?.let { parked ->
                     ParkedLogsJson.decode(parked).forEach { track ->
                         checkSets("parked setsJson of slot ${slot.id}", track.setsJson)

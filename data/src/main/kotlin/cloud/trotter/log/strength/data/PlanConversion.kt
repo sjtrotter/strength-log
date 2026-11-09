@@ -39,10 +39,13 @@ internal object PlanConversion {
             entry?.pattern ?: MovementPattern.CORE_FLEX)
     }
 
-    /** A superset partner's rule, never stored: ACCESSORY straight sets, a bodyweight entry's rep target, else
-     *  [goal]'s default. */
-    fun partnerRule(entry: ExerciseEntry, goal: LiftGoal): SlotRule =
-        SlotRule.defaults(SlotRole.ACCESSORY, goal, SetStructure.STRAIGHT, libraryReps(entry), entry.pattern)
+    /** A superset partner's rule (`partnerRuleJson`): ACCESSORY straight sets, Fixed reps from [rows]' first working
+     *  row, else a bodyweight entry's rep target, else [goal]'s default. An unknown entry uses the fallback pattern. */
+    fun partnerRule(entry: ExerciseEntry?, goal: LiftGoal, rows: List<LoggedSet>? = null): SlotRule =
+        // A deleted custom exercise uses the upper-body increment through this fallback pattern.
+        SlotRule.defaults(SlotRole.ACCESSORY, goal, SetStructure.STRAIGHT,
+            rows?.let(::firstWorkingReps)?.takeIf { it in 1..999 } ?: libraryReps(entry),
+            entry?.pattern ?: MovementPattern.CORE_FLEX)
 
     private fun libraryReps(entry: ExerciseEntry?): Int? =
         (entry?.goal as? GoalSource.Reps)?.targetReps?.takeIf { it in 1..999 }

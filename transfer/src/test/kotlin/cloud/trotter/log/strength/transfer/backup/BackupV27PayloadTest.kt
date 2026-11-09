@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -211,6 +216,23 @@ class BackupV27PayloadTest {
         assertEquals(opening, decoded.toSnapshot().runTracks.single().openingJson)
         val invalid = source.withRunTrack { it.copy(openingJson = """{"layoff":"SCALED"}""") }
         assertFailsWith<BackupError.Malformed> { codec.decode(codec.encode(invalid)) }
+    }
+
+    @Test fun `a v26 restore rules the partner from its stored rows and a v27 restore keeps its rule`() = runTest {
+        val rule = SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(12), 2, 0.0125, 1, 0.05, Scheme.STRENGTH)
+        val source = document().withSlot { it.copy(supersetExerciseId = "cable_row") }
+        val partner = LiveLogBackup(1, "A", 7, "ss",
+            SetJson.encodeSets(List(3) { LoggedSet(120.0, 12, SetKind.WORK) }), updatedAt = 1000)
+        val legacy = source.copy(schemaVersion = 26, liveLogs = source.liveLogs + partner)
+        service.import(codec.encode(legacy))
+        repository.plans.runPlanSettingsFixupIfNeeded()
+        assertEquals(rule, SlotRuleJson.decode(db.programDao().exercise(7)!!.partnerRuleJson))
+        assertEquals(partner.setsJson, db.programDao().logForSlot(1, "A", 7, "ss")!!.setsJson)
+        val kept = SlotRuleJson.encode(rule.copy(target = RepTarget.Fixed(8)))
+        val current = legacy.copy(schemaVersion = 27).withSlot { it.copy(partnerRuleJson = kept) }
+        service.import(codec.encode(current))
+        repository.plans.runPlanSettingsFixupIfNeeded()
+        assertEquals(kept, db.programDao().exercise(7)!!.partnerRuleJson)
     }
 
 }

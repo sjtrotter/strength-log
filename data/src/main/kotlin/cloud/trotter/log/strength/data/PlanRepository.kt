@@ -343,6 +343,8 @@ class PlanRepository(
                 val catalog = readableCatalog(customExerciseDao.getAll())
                 programDao.exercisesForPlan(planId).filter { it.ruleJson == null }
                     .forEach { ruleSlot(it, answers.config.weightUnit, catalog) }
+                programDao.exercisesForPlan(planId).filter { it.supersetExerciseId != null && it.partnerRuleJson == null }
+                    .forEach { rulePartner(it, null, answers.config.weightUnit, catalog) }
                 planId
             }
         }
@@ -550,7 +552,7 @@ class PlanRepository(
         val stored = programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN)
         val rows = when {
             stored != null -> runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull()
-            slot.keepToPlan -> parkedMainRows(slot)
+            slot.keepToPlan -> parkedRows(slot, Slot.MAIN, slot.exerciseId)
             else -> null
         }
         val rule = PlanConversion.rule(slot, rows, entry, planSettings.defaultsFor)
@@ -615,7 +617,7 @@ class PlanRepository(
             }
         }
         val entry = catalog.find(exerciseId)
-        if (slot == Slot.SS) return partnerRows(row, exerciseId, mainRows, unit, entry)
+        if (slot == Slot.SS) return entry?.let { partnerSeed(row, exerciseId, mainRows, unit, it) }?.rows
         val shaped = if (own) row else row.swappedTo(exerciseId)
         if (entry == null && shaped.toDomain().prescription == null) return null
         val rule = (if (own) SlotRuleJson.decode(row.ruleJson) else null)
@@ -623,20 +625,34 @@ class PlanRepository(
         return opening(row.planId, row.id, shaped.toDomain(), rule, unit, entry).rows
     }
 
-    /** Writes only [row]'s SS row in the caller's transaction. Kept-to-plan slots and unknown partners get none. */
-    internal suspend fun seedPartner(row: ProgramExerciseEntity, mainRows: Int, unit: WeightUnit, catalog: ExerciseCatalog) {
-        if (row.keepToPlan) return
+    /** Writes [row]'s partner rule in the caller's transaction (spec W2b-2b decision 2). With [mainRows], a slot that
+     *  is not kept to plan and whose partner the catalog knows also gets SS rows from [SlotSeeding] at that count,
+     *  and the rule SlotSeeding returns. Otherwise only the rule, its reps from the stored SS rows, else the parked
+     *  ones. A slot without a partner is left alone. */
+    internal suspend fun rulePartner(row: ProgramExerciseEntity, mainRows: Int?, unit: WeightUnit, catalog: ExerciseCatalog) {
         val partner = row.supersetExerciseId ?: return
-        val rows = partnerRows(row, partner, mainRows, unit, catalog.find(partner)) ?: return
-        programDao.upsertLog(ExerciseLogEntity(row.planId, row.dayId, row.id, Slot.SS, SetJson.encodeSets(rows), clock.millis()))
+        val entry = catalog.find(partner)
+        val seeded = if (mainRows != null && !row.keepToPlan && entry != null) {
+            partnerSeed(row, partner, mainRows, unit, entry)
+        } else null
+        if (seeded != null) {
+            programDao.upsertLog(ExerciseLogEntity(row.planId, row.dayId, row.id, Slot.SS,
+                SetJson.encodeSets(seeded.rows), clock.millis()))
+        }
+        programDao.setPartnerRule(row.id, SlotRuleJson.encode(seeded?.rule ?:
+            PlanConversion.partnerRule(entry, planSettings(row.planId).defaultsFor, storedPartnerRows(row))))
     }
 
+    private suspend fun storedPartnerRows(row: ProgramExerciseEntity): List<LoggedSet>? =
+        programDao.logForSlot(row.planId, row.dayId, row.id, Slot.SS)?.let {
+            runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
+        } ?: if (row.keepToPlan) parkedRows(row, Slot.SS, row.supersetExerciseId) else null
+
     /** [mainRows] straight sets of [exerciseId] under [PlanConversion.partnerRule], from [opening]. */
-    private suspend fun partnerRows(row: ProgramExerciseEntity, exerciseId: String, mainRows: Int, unit: WeightUnit,
-                                    entry: ExerciseEntry?): List<LoggedSet>? {
-        entry ?: return null
+    private suspend fun partnerSeed(row: ProgramExerciseEntity, exerciseId: String, mainRows: Int, unit: WeightUnit,
+                                    entry: ExerciseEntry): SlotSeeding.Seeded {
         val rule = PlanConversion.partnerRule(entry, planSettings(row.planId).defaultsFor)
-        return opening(row.planId, row.id, ProgramExercise(exerciseId, SetStructure.STRAIGHT, mainRows), rule, unit, entry).rows
+        return opening(row.planId, row.id, ProgramExercise(exerciseId, SetStructure.STRAIGHT, mainRows), rule, unit, entry)
     }
 
     /** The rule for [slot] with no rows to read: what a structure change or a prescription edit, which delete the
@@ -647,15 +663,15 @@ class PlanRepository(
     internal suspend fun planSettings(planId: Long): PlanSettings =
         planDao.plan(planId)?.planSettings ?: PlanSettings()
 
-    private fun parkedMainRows(slot: ProgramExerciseEntity): List<LoggedSet>? = runCatching {
+    private fun parkedRows(slot: ProgramExerciseEntity, name: String, exerciseId: String?): List<LoggedSet>? = runCatching {
         slot.parkedLogsJson?.let(ParkedLogsJson::decode)?.firstOrNull {
-            it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+            it.slot == name && it.exerciseId == exerciseId
         }?.setsJson?.let(SetJson::decodeSets)
     }.getOrNull()
 
-    /** Gives every unruled slot its rule, and a never-opened one its opening rows ([ruleSlot]), all in one
-     *  transaction. Ruled slots are skipped, so running it again changes nothing. False while a restore is
-     *  pending. */
+    /** Gives every unruled slot its rule and a never-opened one its opening rows ([ruleSlot]), and every unruled
+     *  partner its rule ([rulePartner]), all in one transaction. Ruled slots are skipped, so running it again changes
+     *  nothing. False while a restore is pending. */
     internal suspend fun convertPlans(): Boolean {
         // DataStore is read before the transaction: suspending on it inside one can deadlock.
         val unit = settings.unitFlow.first()
@@ -663,6 +679,7 @@ class PlanRepository(
             if (restoreMarkerDao.nonce() != null) return@withTransaction false
             val catalog = readableCatalog(customExerciseDao.getAll())
             for (slot in programDao.unruledExercises()) ruleSlot(slot, unit, catalog)
+            for (slot in programDao.unruledPartners()) rulePartner(slot, null, unit, catalog)
             true
         }
     }

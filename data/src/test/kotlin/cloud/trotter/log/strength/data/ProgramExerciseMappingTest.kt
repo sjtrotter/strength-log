@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
+import kotlin.test.assertNull
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -36,4 +42,15 @@ class ProgramExerciseMappingTest {
         val entity = slot.toEntity(1, "A", 0).copy(structure = "FUTURE_STRUCTURE")
         assertEquals(slot, entity.toDomain())
     }
+    @Test fun `a partner rule maps with its partner`() {
+        val rule = SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(10), 2, 0.0125, 1, 0.05, Scheme.STRENGTH)
+        val json = SlotRuleJson.encode(rule)
+        val entity = ProgramExercise("bb_bench").toEntity(1, "A", 0).copy(
+            supersetExerciseId = "cable_row", partnerRuleJson = json)
+        val domain = entity.toDomain()
+        assertEquals(SupersetPartner("cable_row", rule), domain.superset)
+        assertEquals(json, domain.toEntity(1, "A", 0).partnerRuleJson)
+        assertNull(entity.copy(supersetExerciseId = null).toDomain().superset)
+    }
+
 }

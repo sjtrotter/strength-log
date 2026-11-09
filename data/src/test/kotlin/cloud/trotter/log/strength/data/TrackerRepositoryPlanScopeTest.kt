@@ -485,7 +485,7 @@ class TrackerRepositoryPlanScopeTest {
         val createdProgram = repo.plans.programFlow.first()
         assertTrue(createdProgram.days.flatMap { it.exercises }.all { it.rule != null })
         assertEquals(program("New", "bb_bench"), createdProgram.copy(days = createdProgram.days.map { day ->
-            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+            day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
         }))
         assertEquals(before, db.planDao().plan(1))
         assertEquals(days, db.programDao().daysForPlan(1))

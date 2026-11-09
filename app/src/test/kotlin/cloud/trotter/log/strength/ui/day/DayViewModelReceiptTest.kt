@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -1325,6 +1326,37 @@ class DayViewModelReceiptTest {
         assertTrue(vm.finisher.dismissReceipt())
         advanceUntilIdle()
         assertEquals(NextTime.Offer("+5 lb", true, 220.0, 215.0), vm.uiState.value.exercises.single().nextTime)
+    }
+
+    @Test fun `a partner offer reaches the receipt and the partner chip`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(215.0, 5)),
+                superset = SupersetPartner("cable_row")),
+        )))))
+        db.convertTestPlans(settings)
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val id = slotId()
+        val rows = List(3) { LoggedSet(120.0, 10, SetKind.WORK) }
+        db.storeTestRows("A", id, Slot.SS, rows)
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        val tracks = repo.dayTracksFlow(plan, "A").first().tracks
+        for (track in tracks) {
+            track.sets.indices.forEach { vm.toggleDone(id, it, checked = true, slot = track.slot) }
+        }
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(
+            ReceiptNextTime(0, 0, 220.0, 215.0), ReceiptNextTime(0, 1, 130.0, 120.0),
+        )), vm.finisher.receiptNextTimes.value)
+        assertEquals(rows, SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.SS)!!.setsJson))
+        assertTrue(vm.finisher.dismissReceipt())
+        advanceUntilIdle()
+        assertEquals(NextTime.Offer("+10 lb", false, 130.0, 120.0), vm.uiState.value.exercises.single().partnerNextTime)
     }
 
 }

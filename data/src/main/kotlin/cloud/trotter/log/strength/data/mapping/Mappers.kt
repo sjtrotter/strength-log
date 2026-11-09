@@ -28,7 +28,7 @@ fun ProgramExerciseEntity.toDomain(): ProgramExercise =
         exerciseId = exerciseId,
         structure = SetStructure.entries.firstOrNull { it.name == structure } ?: SetStructure.STRAIGHT,
         targetSets = targetSets,
-        superset = supersetExerciseId?.let(::SupersetPartner),
+        superset = supersetExerciseId?.let { SupersetPartner(it, SlotRuleJson.decode(partnerRuleJson)) },
         note = note,
         prescription = PrescriptionJson.decode(prescriptionJson),
         keepToPlan = keepToPlan,
@@ -49,6 +49,7 @@ fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): Progra
         prescriptionJson = prescription?.let(PrescriptionJson::encode),
         keepToPlan = keepToPlan,
         ruleJson = rule?.let(SlotRuleJson::encode),
+        partnerRuleJson = superset?.rule?.let(SlotRuleJson::encode),
     )
 
 /** Assembles a domain [ProgramDay] from its day row and its ordered exercise rows. */

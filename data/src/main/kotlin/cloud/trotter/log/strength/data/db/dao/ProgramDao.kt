@@ -110,6 +110,12 @@ interface ProgramDao {
     @Query("SELECT * FROM program_exercise WHERE ruleJson IS NULL ORDER BY planId, dayId, position")
     suspend fun unruledExercises(): List<ProgramExerciseEntity>
 
+    @Query("UPDATE program_exercise SET partnerRuleJson = :json WHERE id = :id")
+    suspend fun setPartnerRule(id: Long, json: String)
+
+    @Query("SELECT * FROM program_exercise WHERE supersetExerciseId IS NOT NULL AND partnerRuleJson IS NULL ORDER BY planId, dayId, position")
+    suspend fun unruledPartners(): List<ProgramExerciseEntity>
+
     // --- writes --------------------------------------------------------------
 
     @Upsert
@@ -144,8 +150,8 @@ interface ProgramDao {
     @Query("UPDATE program_exercise SET note = :note, noteUpdatedAt = :updatedAt WHERE id = :id")
     suspend fun setExerciseNote(id: Long, note: String, updatedAt: Long)
 
-    /** Sets (or with a null [partnerId], clears) a slot's superset partner. */
-    @Query("UPDATE program_exercise SET supersetExerciseId = :partnerId WHERE id = :id")
+    /** Sets (or with a null [partnerId], clears) a slot's superset partner and clears the partner's rule. */
+    @Query("UPDATE program_exercise SET supersetExerciseId = :partnerId, partnerRuleJson = NULL WHERE id = :id")
     suspend fun setSupersetExerciseId(id: Long, partnerId: String?)
 
     @Query("DELETE FROM program_exercise WHERE id = :id")

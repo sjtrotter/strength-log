@@ -227,7 +227,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         assertEquals(RepTarget.Fixed(16), rule(pushup).target)
     }
 
-    @Test fun `plan mode, a partner, a today-only swap and a slot without a rule write what they did before`() = runTest {
+    @Test fun `plan mode, a today-only swap and a slot without a rule write what they did before and a partner calibrates`() = runTest {
         val plan = converted(day("bb_bench", "ez_curl", "hack_squat", "leg_press"))
         val b = id(plan, "bb_bench")
         val c = id(plan, "ez_curl")
@@ -252,7 +252,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         repo.finishRun(run)
         val ss = finished.single { it.programExerciseId == b && it.slot == Slot.SS && !it.retired }
         assertEquals(WorkingRows.carried(ss.planned, ss.sets), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", b, Slot.SS)!!.setsJson))
-        assertNull(repo.history.slotSessionsById(plan, "A").getValue(b to Slot.SS).offer)
+        assertEquals(NextOffer(120.0, 120.0, calibration = true), repo.history.slotSessionsById(plan, "A").getValue(b to Slot.SS).offer)
         assertNull(db.programDao().logForSlot(plan, "A", c, Slot.MAIN))
         assertEquals(before, log(plan, h))
         assertEquals(beforeRule, db.programDao().exercise(h)!!.ruleJson)

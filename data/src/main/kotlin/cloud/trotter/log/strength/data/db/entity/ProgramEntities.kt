@@ -82,6 +82,8 @@ data class ProgramExerciseEntity(
     @ColumnInfo(defaultValue = "NULL") val noteUpdatedAt: Long? = null,
     /** The slot's [SlotRule] as SlotRuleJson; null until conversion gives it one (design §4.4). */
     val ruleJson: String? = null,
+    /** The superset partner's [SlotRule] as SlotRuleJson; null without a partner or until one is written. */
+    val partnerRuleJson: String? = null,
 )
 
 /** The plan's working values for one slot track: next time's sets. Never holds results. */

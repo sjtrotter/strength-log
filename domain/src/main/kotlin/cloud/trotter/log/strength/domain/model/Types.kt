@@ -64,7 +64,9 @@ data class LoggedSet(
     val rir: Int? = null,
 )
 
-data class SupersetPartner(val exerciseId: String) // refers into ExerciseLibrary
+/** [rule] is the partner's own rule (`program_exercise.partnerRuleJson`); null until a partner path or conversion
+ *  writes one. */
+data class SupersetPartner(val exerciseId: String, val rule: SlotRule? = null) // refers into ExerciseLibrary
 
 /** One exercise slot inside a day of the user's (editable) program. */
 data class ProgramExercise(

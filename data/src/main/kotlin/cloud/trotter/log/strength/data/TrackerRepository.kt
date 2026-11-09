@@ -521,7 +521,6 @@ class TrackerRepository(
         val catalog = this.catalog.snapshot()
         val prescription = PrescriptionJson.decode(row.prescriptionJson)
         val tracks = ParkedLogsJson.decode(parked)
-        val unrestored = tracks.toMutableList()
         for (track in tracks) {
             if (track.exerciseId != row.exerciseIdFor(track.slot)) continue
             val sets = SetJson.decodeSets(track.setsJson)
@@ -531,11 +530,11 @@ class TrackerRepository(
             } else {
                 catalog.find(track.exerciseId)?.tracking
             }
+            // Unknown tracking means the catalog row is unreadable, so restore the stored shape as is.
             if (tracking != null && (first.seconds > 0) != (tracking == TrackingType.TIMED)) continue
             programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, track.slot, sets))
-            unrestored.remove(track)
         }
-        programDao.setParkedLogs(row.id, unrestored.takeIf { it.isNotEmpty() }?.let(ParkedLogsJson::encode))
+        programDao.setParkedLogs(row.id, null)
     }
 
     suspend fun resetSlotToPlan(programExerciseId: Long): Boolean = db.withTransaction {

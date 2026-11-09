@@ -1279,7 +1279,7 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.swapUndo)
     }
 
-    @Test fun `skipping squat and finishing preserves the cross day offer in the next preview and workout`() = test {
+    @Test fun `skipping squat and finishing leaves no offer from another day`() = test {
         val squat = ProgramExercise("bb_back_squat", targetSets = 1,
             prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
         prepare(listOf(squat, bench(sets = 1)), dayB = ProgramDay("B", "Squat", "", listOf(
@@ -1310,22 +1310,13 @@ class DayViewModelWorkoutTest {
         assertTrue(archived.actual.isEmpty())
 
         val next = readyVm(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "A")))
-        val offer = NextTime.Offer("+10 lb", false, 55.0, 45.0)
         assertFalse(next.uiState.value.runOpen)
-        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
+        assertNull(next.uiState.value.exercises.first().nextTime)
         assertEquals(listOf(45.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
         repo.startRun(plan, "A")
         runCurrent()
         assertTrue(next.uiState.value.runOpen)
-        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
-        next.setWorkingWeight(squatId, Slot.MAIN, 55.0)
-        runCurrent()
-        assertEquals(offer.copy(applied = true), next.uiState.value.exercises.first().nextTime)
-        assertEquals(listOf(55.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
-        next.setWorkingWeight(squatId, Slot.MAIN, 45.0)
-        runCurrent()
-        assertEquals(offer, next.uiState.value.exercises.first().nextTime)
-        assertEquals(listOf(45.0), next.uiState.value.exercises.first().rows.map { it.weightDisplay })
+        assertNull(next.uiState.value.exercises.first().nextTime)
     }
 
     @Test fun `skip Now set from lift sheet uses remove set and Undo restores it`() = test {

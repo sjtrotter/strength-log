@@ -48,7 +48,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -497,7 +497,7 @@ class DayViewModelWiringTest {
             it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired
         }
         assertEquals("hack_squat", substitute.exerciseId)
-        assertEquals(CarryForward.cleared(working), CarryForward.cleared(repo.dayTracksFlow(plan, "A").first().retired.single {
+        assertEquals(WorkingRows.cleared(working), WorkingRows.cleared(repo.dayTracksFlow(plan, "A").first().retired.single {
             it.programExerciseId == id && it.slot == Slot.MAIN && it.exerciseId == "bb_back_squat"
         }.sets))
 
@@ -1810,6 +1810,35 @@ class DayViewModelWiringTest {
         assertTrue(track(id, Slot.MAIN)!![0].done)
         assertEquals(1, vm.uiState.value.exercises.single().focusIndex)
         assertEquals(90, armed.single().totalSeconds)
+        val next = vm.uiState.value.exercises.single().rows[1]
+        assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
+        settings.setPhoneRest(null)
+        advanceUntilIdle()
+        collect.cancel()
+    }
+
+    @Test
+    fun `a converted straight squat arms the main rest`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
+            ProgramExercise("bb_back_squat", targetSets = 2),
+        )))))
+        settings.setPhoneRestTimerEnabled(true)
+        val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
+        val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
+            override val available = true
+            override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) { armed += rest }
+            override fun cancel() = Unit
+            override fun complete() = false
+        }
+        val vm = newViewModel(restRuntime = runtime)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        runCurrent()
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertEquals(1, vm.uiState.value.exercises.single().focusIndex)
+        assertEquals(180, armed.single().totalSeconds)
         val next = vm.uiState.value.exercises.single().rows[1]
         assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
         settings.setPhoneRest(null)

@@ -20,7 +20,8 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -146,7 +147,7 @@ object DayScreenBuilder {
     }
 
     fun workingHeading(rows: List<LoggedSet>, tracking: TrackingType, unit: WeightUnit): String? {
-        val working = CarryForward.workingIndices(rows).map(rows::get)
+        val working = WorkingRows.workingIndices(rows).map(rows::get)
         val first = working.firstOrNull() ?: return null
         val uniform = when (tracking) {
             TrackingType.WEIGHTED -> working.all { it.weightLb == first.weightLb && it.reps == first.reps }
@@ -167,31 +168,27 @@ object DayScreenBuilder {
         }
     }
 
+    /** The newest session of this day owns the offer; row edits can hide it without rewriting history. */
     fun nextTime(
-        rows: List<LoggedSet>,
-        history: SlotSession?,
-        keepToPlan: Boolean,
-        unit: WeightUnit,
-        progression: List<CarryForward.Session>? = null,
-        openingWeightLb: Double? = null,
-        offersOn: Boolean,
+        rows: List<LoggedSet>, history: SlotSession?, keepToPlan: Boolean, unit: WeightUnit,
+        offersOn: Boolean, rule: SlotRule? = null,
     ): NextTime? {
         if (!offersOn || keepToPlan || rows.any { it.done }) return null
-        val local = history?.takeUnless { it.retired }
-        val carried = local?.let { CarryForward.next(it.planned, it.actual) }
-            ?: rows.map { it.copy(weightLb = openingWeightLb ?: it.weightLb) }
-        val opening = CarryForward.workingWeight(carried) ?: return null
-        val current = CarryForward.workingWeight(rows) ?: return null
+        val local = history?.takeUnless { it.retired } ?: return null
+        val current = WorkingRows.workingWeight(rows) ?: return null
         fun display(lb: Double) = WeightStepper.toDisplayPrecision(unit.fromLb(lb))
-        val sessions = progression ?: local?.let { listOf(CarryForward.Session(it.planned, it.actual)) }.orEmpty()
-        val offer = CarryForward.offer(carried, unit, sessions)
-            ?: return NextTime.Repeat.takeIf { local != null && display(current) == display(opening) }
-        val applied = when (display(current)) {
-            display(opening) -> false
-            display(offer) -> true
+        val offer = local.offer ?: return NextTime.Repeat.takeIf {
+            WorkingRows.workingWeight(local.planned)?.let { display(it) == display(current) } == true
+        }
+        val currentReps = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it].reps }
+        val applied = when {
+            offer.calibration && offer.fromLb == offer.toLb && rule?.state?.calibrating == false -> true
+            display(current) == display(offer.fromLb) && (offer.fromReps == null || currentReps == offer.fromReps) -> false
+            display(current) == display(offer.toLb) && (offer.toReps == null || currentReps == offer.toReps) -> true
             else -> return null
         }
-        return NextTime.Offer(offerLabel(offer, opening, unit), applied, offer, opening)
+        return NextTime.Offer(if (offer.calibration) SetFormatter.weight(offer.toLb, unit) else offerLabel(offer.toLb, offer.fromLb, unit), applied, offer.toLb, offer.fromLb,
+            offer.toReps.takeIf { display(offer.fromLb) == display(offer.toLb) }, offer.calibration)
     }
 
     fun cardioNextTime(
@@ -211,8 +208,10 @@ object DayScreenBuilder {
     fun offerDelta(offerLb: Double, openingLb: Double, unit: WeightUnit): Double =
         WeightStepper.toDisplayPrecision(unit.fromLb(offerLb)) - WeightStepper.toDisplayPrecision(unit.fromLb(openingLb))
 
-    fun offerLabel(offerLb: Double, openingLb: Double, unit: WeightUnit): String =
-        "+${WeightStepper.format(offerDelta(offerLb, openingLb, unit))} ${unit.name.lowercase(Locale.ROOT)}"
+    fun offerLabel(offerLb: Double, openingLb: Double, unit: WeightUnit): String {
+        val delta = offerDelta(offerLb, openingLb, unit)
+        return "${if (delta < 0) "−" else "+"}${WeightStepper.format(kotlin.math.abs(delta))} ${unit.name.lowercase(Locale.ROOT)}"
+    }
 
     /**
      * Every working set from the last session, or the single [last] performance

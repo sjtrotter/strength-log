@@ -550,4 +550,34 @@ class TodaySnapshotSourceRestTest {
         assertEquals(2, widget.setsDone)
         assertEquals(snapshot.day.exercises.single().sets.size + 2, widget.totalSets)
     }
+    @Test fun `rest follows the slot role and the plan goal`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_back_squat", targetSets = 3), ProgramExercise("ez_curl", targetSets = 3),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        db.planDao().updateSuggestedDay(plan, "A")
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore,
+            settings = settings, plans = repo.plans, historyRepository = repo.history)
+        suspend fun snapshot() = source.snapshots.first { it != null }!!
+        fun check(snapshot: WatchSnapshot, squat: Int) {
+            assertTrue(snapshot.day.exercises[0].sets.all { it.restAfterSeconds == squat })
+            assertTrue(snapshot.day.exercises[1].sets.all { it.restAfterSeconds == 90 })
+        }
+        val first = snapshot()
+        val slots = db.programDao().exercisesForDay(plan, "A")
+        val squat = requireNotNull(cloud.trotter.log.strength.data.serialization.SlotRuleJson.decode(slots[0].ruleJson))
+        val curl = requireNotNull(cloud.trotter.log.strength.data.serialization.SlotRuleJson.decode(slots[1].ruleJson))
+        assertEquals(cloud.trotter.log.strength.domain.progression.SlotRole.MAIN, squat.role)
+        assertEquals(cloud.trotter.log.strength.domain.progression.SlotRole.ACCESSORY, curl.role)
+        check(first, 180)
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(settingsJson =
+            cloud.trotter.log.strength.data.serialization.PlanSettingsJson.encode(
+                cloud.trotter.log.strength.data.serialization.PlanSettings(cloud.trotter.log.strength.domain.progression.LiftGoal.MUSCLE))))
+        check(snapshot(), 120)
+        settings.setRestOverride(RestCategory.TOP, 100)
+        check(snapshot(), 100)
+        db.programDao().setRule(slots[0].id, cloud.trotter.log.strength.data.serialization.SlotRuleJson.encode(squat.copy(restSeconds = 150)))
+        check(snapshot(), 150)
+    }
+
 }

@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRule
+
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Composable
@@ -302,7 +305,7 @@ sealed interface HeaderTarget {
 @Immutable
 sealed interface NextTime {
     data object Repeat : NextTime
-    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double) : NextTime
+    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double, val reps: Int? = null, val calibration: Boolean = false) : NextTime
 }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
@@ -363,6 +366,8 @@ data class ExerciseCardState(
     val partnerWorkingHeading: String? = null,
     val nextTime: NextTime? = null,
     val partnerNextTime: NextTime? = null,
+    val rule: SlotRule? = null,
+    val liftGoal: LiftGoal = LiftGoal.STRENGTH,
 )
 
 /**
@@ -449,7 +454,7 @@ internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<Res
         else -> false
     }
     val thenRest = enabled && workout?.completedView == false && !workoutAllLogged && row != null &&
-        completesRound && RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides) > 0 &&
+        completesRound && RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides, card.rule, card.liftGoal) > 0 &&
         exercises.any { other -> other.rows.any {
             !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus.index)
         } }

@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.serialization.planSettings
+
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
@@ -98,6 +100,7 @@ class TodaySnapshotSource(
                             planName = plan.name,
                             runStartedAt = open?.takeIf { performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
                             processedEditStamps = ctx.processedEdits,
+                            liftGoal = plan.planSettings.defaultsFor,
                         )
                     }
                 }

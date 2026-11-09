@@ -175,7 +175,7 @@ class DayViewModelTimedRepExecutionTest {
         vm.toggleDone(id, 0, true, Slot.SS)
         runCurrent()
         assertTrue(vm.uiState.value.exercises.single().rows[0].complete)
-        assertEquals(60, rest.armed.single().totalSeconds)
+        assertEquals(90, rest.armed.single().totalSeconds)
     }
 
     @Test

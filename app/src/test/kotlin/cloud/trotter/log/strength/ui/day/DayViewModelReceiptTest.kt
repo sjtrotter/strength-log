@@ -43,6 +43,8 @@ import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -188,6 +190,12 @@ class DayViewModelReceiptTest {
         val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 220.0, 215.0))),
             vm.finisher.receiptNextTimes.value)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        assertEquals(List(3) { LoggedSet(215.0, 5, SetKind.WORK) }, SetJson.decodeSets(
+            db.programDao().logForSlot(plan, "A", slotId(), Slot.MAIN)!!.setsJson))
+        assertTrue(vm.finisher.dismissReceipt())
+        advanceUntilIdle()
+        assertEquals(NextTime.Offer("+5 lb", false, 220.0, 215.0), vm.uiState.value.exercises.single().nextTime)
     }
 
     @Test
@@ -1298,4 +1306,22 @@ class DayViewModelReceiptTest {
         vm.completeDay()
         advanceUntilIdle()
     }
+    @Test fun `an authored plan applies the increase and shows it applied`() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Mine", "Bench")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("bb_bench", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(215.0, 5))))
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 220.0, 215.0))),
+            vm.finisher.receiptNextTimes.value)
+        assertEquals(List(3) { LoggedSet(220.0, 5, SetKind.WORK) }, SetJson.decodeSets(
+            db.programDao().logForSlot(plan, "A", slotId(), Slot.MAIN)!!.setsJson))
+        assertTrue(vm.finisher.dismissReceipt())
+        advanceUntilIdle()
+        assertEquals(NextTime.Offer("+5 lb", true, 220.0, 215.0), vm.uiState.value.exercises.single().nextTime)
+    }
+
 }

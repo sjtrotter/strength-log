@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data.serialization
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import kotlinx.serialization.Serializable
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 
 /** A plan's own settings (`plan.settingsJson`, design §4.1). An absent column or field means the default: Strength,
  *  and the steps of the lifter's current unit ([LoadSteps.defaults]). Plan settings (PR 2c) and setup (PR 6) write
@@ -35,3 +36,6 @@ object PlanSettingsJson {
     fun validate(json: String) { read(json) }
     private fun read(json: String): PlanSettings = SetJson.decode(PlanSettingsDto.serializer(), json).toDomain()
 }
+
+/** The plan's settings, or defaults when the column is absent or unreadable. */
+val PlanEntity.planSettings: PlanSettings get() = PlanSettingsJson.decode(settingsJson) ?: PlanSettings()

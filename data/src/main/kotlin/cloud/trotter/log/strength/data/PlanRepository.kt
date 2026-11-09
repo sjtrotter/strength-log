@@ -27,7 +27,7 @@ import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
-import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -644,8 +644,8 @@ class PlanRepository(
     internal suspend fun defaultRule(slot: ProgramExerciseEntity, catalog: ExerciseCatalog): SlotRule =
         PlanConversion.rule(slot, null, catalog.find(slot.exerciseId), planSettings(slot.planId).defaultsFor)
 
-    private suspend fun planSettings(planId: Long): PlanSettings =
-        PlanSettingsJson.decode(planDao.plan(planId)?.settingsJson) ?: PlanSettings()
+    internal suspend fun planSettings(planId: Long): PlanSettings =
+        planDao.plan(planId)?.planSettings ?: PlanSettings()
 
     private fun parkedMainRows(slot: ProgramExerciseEntity): List<LoggedSet>? = runCatching {
         slot.parkedLogsJson?.let(ParkedLogsJson::decode)?.firstOrNull {

@@ -10,7 +10,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.seeding.CarryForward
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 
 data class LegacyLog(
     val planId: Long, val dayId: String, val programExerciseId: Long, val slot: String,
@@ -33,7 +33,7 @@ data class SplitResult(
 object LegacyLiveLogSplit {
     fun split(input: SplitInput): SplitResult {
         val normalized = input.logs.map { log ->
-            if (log.checkDate == input.today) log else log.copy(sets = CarryForward.cleared(log.sets))
+            if (log.checkDate == input.today) log else log.copy(sets = WorkingRows.cleared(log.sets))
         }
         val days = input.days.associateBy { it.planId to it.dayId }
         val slots = input.slots.associateBy { it.id }
@@ -75,7 +75,7 @@ object LegacyLiveLogSplit {
                     tracks.add(RunTrackEntity(
                         id = 0, runId = day.nextRunId, position = slot.position, programExerciseId = slot.id,
                         slot = log.slot, exerciseId = id,
-                        plannedJson = SetJson.encodeSets(CarryForward.cleared(log.sets)),
+                        plannedJson = SetJson.encodeSets(WorkingRows.cleared(log.sets)),
                         setsJson = SetJson.encodeSets(log.sets.mapIndexed { i, set -> set.copy(plannedIndex = i) }),
                         updatedAt = log.updatedAt,
                     ))
@@ -104,7 +104,7 @@ object LegacyLiveLogSplit {
         }
         val working = normalized.map { log ->
             ExerciseLogEntity(log.planId, log.dayId, log.programExerciseId, log.slot,
-                SetJson.encodeSets(CarryForward.cleared(log.sets)), log.updatedAt)
+                SetJson.encodeSets(WorkingRows.cleared(log.sets)), log.updatedAt)
         }
         return SplitResult(working, run, tracks, archived, closes)
     }

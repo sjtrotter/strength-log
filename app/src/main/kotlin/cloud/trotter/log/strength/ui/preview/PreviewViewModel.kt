@@ -50,8 +50,8 @@ class PreviewViewModel @Inject constructor(
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val history = dayHistoryKeys(repo.observeDay(planId, dayId), historyRepository.sessionSummariesFor(planId)).flatMapLatest { ids ->
         flow {
-            emit(Triple(historyRepository.lastPerformedForSlots(planId, dayId, ids),
-                historyRepository.slotSessions(planId, dayId), historyRepository.progressionSessions(planId, ids)))
+            emit(Pair(historyRepository.lastPerformedForSlots(planId, dayId, ids),
+                historyRepository.slotSessions(planId, dayId)))
         }
     }
 
@@ -62,7 +62,7 @@ class PreviewViewModel @Inject constructor(
     val uiState = combine(
         repo.observeDay(planId, dayId), settings.unitFlow, history, plans.plansFlow, cardioHistory,
     ) { performedDay, unit, history, plans, cardioHistory ->
-        val (last, slotSessions, progressionSessions) = history
+        val (last, slotSessions) = history
         val day = performedDay.day
         val plan = plans.firstOrNull { it.id == planId }
         val (cardioSessions, cardioSets) = cardioHistory
@@ -87,8 +87,7 @@ class PreviewViewModel @Inject constructor(
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
                 val nextTime = DayScreenBuilder.nextTime(slot.main.sets,
                     slotSessions[slot.main.performed.exerciseId to Slot.MAIN], slot.slot.exercise.keepToPlan, unit,
-                    progressionSessions[slot.main.performed.exerciseId].orEmpty(), openingWeightLb = slot.main.loadLb,
-                    offersOn = plan?.offerStrengthIncreases ?: true)
+                    offersOn = plan?.offerStrengthIncreases ?: true, rule = slot.slot.exercise.rule)
                 val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
                     val slotLast = last[track.performed.exerciseId to slotName]
                     val previous = slotLast?.last

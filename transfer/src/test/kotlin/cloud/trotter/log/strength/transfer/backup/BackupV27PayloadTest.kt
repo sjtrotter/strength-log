@@ -196,4 +196,11 @@ class BackupV27PayloadTest {
             assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(invalid)) }
         }
     }
+    @Test fun `v27 archived offer with a negative weight is InvalidPayload`() {
+        val source = document()
+        val invalid = source.copy(sessions = source.sessions.map { it.copy(plannedJson =
+            """[{"position":0,"exerciseId":"bb_back_squat","slot":"main","sets":[],"offer":{"fromLb":-5.0,"toLb":190.0}}]""") })
+        assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(invalid)) }
+    }
+
 }

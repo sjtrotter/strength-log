@@ -98,11 +98,14 @@ object Progression {
         val done = work.mapNotNull { i -> exposure.actual.firstOrNull { it.plannedIndex == i && it.done }?.let { i to it } }
         if (done.isEmpty()) return Outcome(WorkingRows.cleared(working), rule, Change.Hold, Reason.NoSets)
         val sameShape = exposure.planned.map { it.kind } == working.map { it.kind }
-        val base = if (exposure.layoff == LayoffKind.None && !ctx.light && sameShape) {
+        var base = if (exposure.layoff == LayoffKind.None && !ctx.light && sameShape) {
             WorkingRows.carried(exposure.planned, exposure.actual)
         } else WorkingRows.cleared(working)
         var current = rule.copy(state = rule.state.copy(exposures = rule.state.exposures + 1))
-        fun result(reason: Reason, change: Change = Change.Hold, rows: List<LoggedSet> = base) = Outcome(rows, current, change, reason)
+        fun result(reason: Reason, change: Change = Change.Hold, rows: List<LoggedSet> = base,
+                   held: List<LoggedSet> = if (change == Change.Hold &&
+                       WorkingRows.workingWeight(rows) == WorkingRows.workingWeight(working)) rows else WorkingRows.cleared(working)) =
+            Outcome(rows, current, change, reason, held)
         fun loaded(load: Double): List<LoggedSet> =
             WorkingRows.withWorkingWeight(base, load, ctx.unit, ctx.equipment, current.scheme)
 
@@ -128,17 +131,33 @@ object Progression {
         }
         val anchorIndices = WorkingRows.workingIndices(exposure.planned)
         val doneAnchors = done.filter { it.first in anchorIndices }.map { it.second }
-        val lowered = done.filter { (i, row) -> i in anchorIndices && row.weightLb < exposure.planned[i].weightLb }
-        if (lowered.isNotEmpty() && done.none { (i, row) -> row.weightLb > exposure.planned[i].weightLb }) {
-            val load = lowered.minOf { it.second.weightLb }
+        val priorAnchor = requireNotNull(WorkingRows.workingWeight(working))
+        val topIndex = exposure.planned.indexOfFirst { it.kind == SetKind.TOP }
+        val votes = exposure.planned.indices.filter { exposure.planned[it].kind == SetKind.WORK }
+        val carried = if (topIndex >= 0) done.firstOrNull { it.first == topIndex }?.second?.weightLb
+        else done.filter { it.first in votes }.groupingBy { it.second.weightLb }.eachCount()
+            .entries.singleOrNull { it.value > votes.size / 2 }?.key
+        val loadChanged = exposure.layoff == LayoffKind.None && !ctx.light &&
+            carried != null && carried != priorAnchor && priorAnchor > 0.0 &&
+            working.none { it.seconds > 0 }
+        if (topIndex >= 0 && exposure.layoff == LayoffKind.None) base = loaded(carried ?: priorAnchor)
+        val lowerBlocked = done.any { (i, row) ->
+            val planned = exposure.planned[i]
+            planned.weightLb > 0.0 && planned.seconds == 0 && row.weightLb < planned.weightLb &&
+                row.weightLb != carried && !(topIndex >= 0 && loadChanged && row.weightLb == base.getOrNull(i)?.weightLb)
+        }
+        if (loadChanged) {
+            base = loaded(requireNotNull(carried))
             current = current.copy(state = current.state.resetStreaks())
-            return result(Reason.Lowered, Change.KeptLowered(load), loaded(load))
+            if (requireNotNull(carried) < priorAnchor && !lowerBlocked) {
+                return result(Reason.Lowered, Change.KeptLowered(carried), base)
+            }
         }
         val workingSets = WorkingRows.workSetIndices(working).map { working[it] }
         if (workingSets.any { it.seconds > 0 }) return result(Reason.Timed)
         val judgment = when {
-            done.any { (i, row) -> row.reps < exposure.planned[i].reps } -> Judgment.REP_MISS
-            done.size < work.size -> Judgment.INCOMPLETE
+            lowerBlocked || done.any { (i, row) -> row.reps < exposure.planned[i].reps } -> Judgment.REP_MISS
+            done.size < work.size || carried == null -> Judgment.INCOMPLETE
             done.any { effectiveRir(it.second, rule) < rule.rir - 1 } -> Judgment.EFFORT_MISS
             else -> Judgment.SUCCESS
         }
@@ -153,7 +172,7 @@ object Progression {
             val load = requireNotNull(WorkingRows.workingWeight(exposure.planned))
             return result(Reason.Layoff, Change.Restart(layoff.factor), loaded(load))
         }
-        val anchor = requireNotNull(WorkingRows.workingWeight(working))
+        val anchor = if (loadChanged) requireNotNull(carried) else priorAnchor
         val step = ctx.steps.stepLb(ctx.equipment)
         val bodyweight = workingSets.all { it.weightLb == 0.0 && it.seconds == 0 }
         val coarse = anchor > 0.0 && step / anchor > 0.10
@@ -163,6 +182,7 @@ object Progression {
         }
         return when (judgment) {
             Judgment.SUCCESS -> success(current, base, done.map { it.second }, doneAnchors, anchor, step, bodyweight, coarse, ctx)
+                .let { if (it.asks || loadChanged) it.copy(held = WorkingRows.cleared(working)) else it }
             Judgment.REP_MISS -> {
                 val misses = current.state.repMissStreak + 1
                 current = current.copy(state = current.state.copy(successStreak = 0, repMissStreak = misses, effortMissStreak = 0))
@@ -185,7 +205,7 @@ object Progression {
                     }
                     else -> {
                         val load = ctx.steps.down(anchor * (1 - current.dropPct), ctx.equipment, ctx.unit)
-                        result(Reason.Stall, Change.Decrease(anchor, load), loaded(load))
+                        result(Reason.Stall, Change.Decrease(anchor, load), loaded(load), held = WorkingRows.cleared(working))
                     }
                 }
             }
@@ -315,7 +335,7 @@ object Progression {
                 }
             }
         }
-        return Outcome(rows, current, change, reason)
+        return Outcome(rows, current, change, reason, base)
     }
 
     private enum class Judgment { SUCCESS, REP_MISS, INCOMPLETE, EFFORT_MISS }

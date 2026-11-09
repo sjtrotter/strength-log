@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.model.Measure
 
 data class CardioRecordKey(val activity: CardioActivity, val end: Measure)
@@ -16,19 +17,20 @@ data class CardioRecord(
 )
 
 object CardioBests {
+    /** At-end readings exclude the overrun; older time rows must end at exactly the planned seconds. */
     fun counts(result: CardioSetResult): Boolean =
-        result.spec.role == CardioRole.WORK && result.status == CardioSetStatus.FINISHED &&
-            when (val end = result.spec.end) {
-                is Measure.Distance -> true
-                is Measure.Time -> result.metres != null && result.elapsedSeconds == end.seconds
-            }
+        result.spec.role == CardioRole.WORK && FinishedRule.reading(result) != null &&
+            (FinishedRule.finished(result) ?: (result.status == CardioSetStatus.FINISHED &&
+                (result.spec.end as? Measure.Time)?.let { result.elapsedSeconds == it.seconds } != false))
 
-    /** Positive means [a] is better; both results must have the same planned end measure. */
+    /** Positive means [a] is better; both must count and share the planned end. */
     fun compare(a: CardioSetResult, b: CardioSetResult): Int {
         require(a.spec.end == b.spec.end) { "Cannot compare different planned measures" }
+        val first = requireNotNull(FinishedRule.reading(a))
+        val second = requireNotNull(FinishedRule.reading(b))
         return when (a.spec.end) {
-            is Measure.Distance -> b.elapsedSeconds.compareTo(a.elapsedSeconds)
-            is Measure.Time -> requireNotNull(a.metres).compareTo(requireNotNull(b.metres))
+            is Measure.Distance -> second.compareTo(first)
+            is Measure.Time -> first.compareTo(second)
         }
     }
 

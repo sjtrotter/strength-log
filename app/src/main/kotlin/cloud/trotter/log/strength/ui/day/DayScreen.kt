@@ -52,6 +52,7 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
@@ -80,6 +81,7 @@ fun DayScreen(
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
     receiptNextTimes: ReceiptNextTimes? = null,
+    receiptRepNextTimes: ReceiptRepNextTimes? = null,
     pastCardio: CardioEntryDraft? = null,
     pastCardioSaveFailed: Boolean = false,
     pastCardioSaving: Boolean = false,
@@ -92,6 +94,7 @@ fun DayScreen(
             receipt = receipt,
             setCounts = receiptSetCounts,
             nextTimes = receiptNextTimes,
+            repNextTimes = receiptRepNextTimes,
             onShare = onShareSession,
             onFinishSession = onFinishSession,
             onSetNote = actions.onSetSessionNote,

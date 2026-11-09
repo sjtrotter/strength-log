@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRule
+
 import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
@@ -66,6 +69,7 @@ object WatchSnapshotBuilder {
         cardioAckedStamps: List<Long> = emptyList(),
         runStartedAt: Long? = null,
         processedEditStamps: List<Long>? = null,
+        liftGoal: LiftGoal = LiftGoal.STRENGTH,
     ): WatchSnapshot? {
         val dayId = day.dayId
         val programDay = day.day ?: return null
@@ -74,7 +78,7 @@ object WatchSnapshotBuilder {
         }
         if (watchDays.none { it.id == dayId }) return null
         val exercises = day.slots.map { slot ->
-            buildExercise(slot, day.config, day.catalog, unit, restSettings, day.equipment)
+            buildExercise(slot, day.config, day.catalog, unit, restSettings, day.equipment, liftGoal)
         }
 
         return WatchSnapshot(
@@ -134,6 +138,7 @@ object WatchSnapshotBuilder {
         unit: WeightUnit,
         restSettings: RestSettings,
         equipment: Set<Equipment>,
+        liftGoal: LiftGoal,
     ): WatchExercise {
         val id = slot.slot.programExerciseId
         val performed = slot.main.performed
@@ -176,7 +181,7 @@ object WatchSnapshotBuilder {
             supersetPartnerName = partnerEntry?.watchName,
             // Main track carries the round's rest; the partner rows carry 0 so the
             // wire holds exactly one rest per round (the watch never tie-breaks).
-            sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
+            sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings, pe.rule, liftGoal)) },
             ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
             alternates = (listOfNotNull(pe.exerciseId.takeIf { it != performed.exerciseId }?.let { plannedId ->
                 WatchAlternate(plannedId, catalog.find(plannedId)?.watchName ?: plannedId)
@@ -220,9 +225,9 @@ object WatchSnapshotBuilder {
 
     /** The gated rest for one main-track set: 0 when the master toggle is off,
      *  else the one [RestPolicy] resolver (no rest is computed anywhere else). */
-    private fun restAfterSecondsFor(set: LoggedSet, tracking: TrackingType, restSettings: RestSettings): Int =
+    private fun restAfterSecondsFor(set: LoggedSet, tracking: TrackingType, restSettings: RestSettings, rule: SlotRule?, goal: LiftGoal): Int =
         if (!restSettings.enabled) 0
-        else RestPolicy.effectiveRestSeconds(set.kind, tracking, restSettings.overrides)
+        else RestPolicy.effectiveRestSeconds(set.kind, tracking, restSettings.overrides, rule, goal)
 
     private fun LoggedSet.toWatchSet(restAfterSeconds: Int): WatchSet =
         WatchSet(weightLb = weightLb, reps = reps, kind = kind.name, done = done, seconds = seconds, restAfterSeconds = restAfterSeconds)

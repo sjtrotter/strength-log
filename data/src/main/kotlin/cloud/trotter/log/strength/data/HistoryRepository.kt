@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
@@ -32,7 +33,6 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.records.PersonalBests
-import cloud.trotter.log.strength.domain.seeding.CarryForward
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -298,24 +298,6 @@ class HistoryRepository(
         archivedTracks(session, sessionDao.setsForSession(session.id))
     }
 
-    /** Archived tracks in this plan, grouped by lift with newest evidence first. */
-    suspend fun progressionSessions(planId: Long, exerciseIds: List<String>): Map<String, List<CarryForward.Session>> {
-        if (exerciseIds.isEmpty()) return emptyMap()
-        return db.withTransaction {
-            val sessions = sessionDao.sessionsForPlan(planId)
-            if (sessions.isEmpty()) return@withTransaction emptyMap()
-            val sets = sessionDao.setsForPlan(planId, exerciseIds).groupBy { it.sessionId }
-            val result = mutableMapOf<String, MutableList<CarryForward.Session>>()
-            for (session in sessions) {
-                for ((key, track) in archivedTracks(session, sets[session.id].orEmpty())) {
-                    if (key.first !in exerciseIds || track.retired) continue
-                    result.getOrPut(key.first) { mutableListOf() }.add(CarryForward.Session(track.planned, track.actual))
-                }
-            }
-            result
-        }
-    }
-
     private fun archivedTracks(
         session: WorkoutSessionEntity,
         sets: List<SessionSetEntity>,
@@ -327,6 +309,13 @@ class HistoryRepository(
                 sets.filter { it.exerciseId == dto.exerciseId && it.slot == dto.slot && it.trackPosition == dto.position }
                     .sortedBy { it.setIndex }.map { it.toLoggedSet() },
                 dto.retired,
+                dto.offer?.let { offer ->
+                    val before = offer.beforeRuleJson?.let(SlotRuleJson::decode)?.target
+                    val after = offer.afterRuleJson?.let(SlotRuleJson::decode)?.target
+                    NextOffer(offer.fromLb, offer.toLb,
+                        before?.reps.takeIf { before != after }, after?.reps.takeIf { before != after },
+                        offer.beforeRuleJson?.let(SlotRuleJson::decode)?.state?.calibrating == true)
+                },
             )
         }
     }
@@ -434,4 +423,7 @@ fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
     CardioMode.entries.find { it.name == mode }
 
 /** One archived track of the newest session for a plan and day. */
-data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean)
+data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null)
+
+/** The next-time change recorded on an archived track. */
+data class NextOffer(val fromLb: Double, val toLb: Double, val fromReps: Int? = null, val toReps: Int? = null, val calibration: Boolean = false)

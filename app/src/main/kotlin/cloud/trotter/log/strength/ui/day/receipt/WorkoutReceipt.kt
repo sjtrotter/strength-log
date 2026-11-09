@@ -133,3 +133,7 @@ internal val WorkoutReceipt.hasPlannedSetCount: Boolean get() = cardio ||
 @Parcelize data class ReceiptNextTime(val groupIndex: Int, val rowIndex: Int, val offerLb: Double?, val openingLb: Double) : Parcelable
 
 @Parcelize data class ReceiptNextTimes(val sessionId: Long, val rows: List<ReceiptNextTime>) : Parcelable
+
+/** Rep offers use a separate saved-state key so older receipt parcels retain their layout. */
+@Parcelize data class ReceiptRepNextTimes(val sessionId: Long, val rows: List<ReceiptRepNextTime>) : Parcelable
+@Parcelize data class ReceiptRepNextTime(val groupIndex: Int, val rowIndex: Int, val reps: Int) : Parcelable

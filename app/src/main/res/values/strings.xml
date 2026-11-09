@@ -426,6 +426,9 @@
 <string name="receipt_title_done">%1$s, done.</string>
 <string name="receipt_meta_minutes">%1$s, %2$d min</string>
 <string name="receipt_next_time">Next time: %1$s</string>
+<string name="receipt_say_next_time_reps">Next time, %1$d reps.</string>
+<string name="next_time_reps">%1$d reps</string>
+<string name="receipt_say_next_time_lower">Next time, lower by %1$s.</string>
 <string name="receipt_say_next_time_add">Next time, add %1$s.</string>
 <string name="receipt_say_next_time_repeat">Next time, repeat.</string>
 <string name="receipt_top_set">Top set</string>

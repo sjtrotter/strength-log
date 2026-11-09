@@ -63,6 +63,7 @@ import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
@@ -84,9 +85,11 @@ internal fun SessionReceiptScreen(
     modifier: Modifier = Modifier,
     setCounts: ReceiptSetCounts? = null,
     nextTimes: ReceiptNextTimes? = null,
+    repNextTimes: ReceiptRepNextTimes? = null,
 ) {
     val counts = setCounts?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }
     val nextRows = nextTimes?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }?.rows.orEmpty()
+    val repNextRows = repNextTimes?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }?.rows.orEmpty()
     val partial = counts?.let { it.remaining > 0 } ?: receipt.isPartial
     var noteOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
     val noteDrafts = rememberSaveableStateHolder()
@@ -143,7 +146,8 @@ internal fun SessionReceiptScreen(
                             StrengthReceiptRow(if (receipt.recordsChecked) row else row.copy(record = null), receipt.unit, receipt.dayIndex,
                                 "${receipt.sessionId}:$groupIndex:$rowIndex", { roll.value },
                                 if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
-                                nextTime = nextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex })
+                                nextTime = nextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex },
+                                nextReps = repNextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex }?.reps)
                         }
                     }
                 }

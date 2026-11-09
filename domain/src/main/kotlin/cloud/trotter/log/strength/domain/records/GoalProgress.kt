@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.model.PlanGoal
 
 object GoalProgress {
@@ -14,16 +15,18 @@ object GoalProgress {
      * That set must be FINISHED with positive elapsed time and cover at least the goal distance,
      * using recorded metres first, then a planned Distance end. Longer attempts use their whole
      * time: reaching the goal distance was no slower than completing the longer attempt.
+     * A row with at-end readings uses them: the time at the planned end, never the overrun.
      */
     fun bestTimed(goal: PlanGoal.Timed, sessions: List<Pair<CardioActivity?, List<CardioSetResult>>>): Int? =
         sessions.mapNotNull { (activity, results) ->
             if (activity != goal.activity) return@mapNotNull null
             val work = results.filter { it.spec.role == CardioRole.WORK }.singleOrNull()
                 ?: return@mapNotNull null
-            val metres = work.metres ?: (work.spec.end as? Measure.Distance)?.metres ?: return@mapNotNull null
-            work.elapsedSeconds.takeIf {
-                work.status == CardioSetStatus.FINISHED && it > 0 && metres >= goal.metres
-            }
+            val atEnd = FinishedRule.finished(work)
+            val metres = (if (atEnd != null) work.metresAtEnd else work.metres)
+                ?: (work.spec.end as? Measure.Distance)?.metres ?: return@mapNotNull null
+            val seconds = (if (atEnd != null) work.secondsAtEnd else work.elapsedSeconds) ?: return@mapNotNull null
+            seconds.takeIf { (atEnd ?: (work.status == CardioSetStatus.FINISHED)) && it > 0 && metres >= goal.metres }
         }.minOrNull()
 
     fun met(goal: PlanGoal.Timed, best: Int?): Boolean = best != null && best < goal.underSeconds

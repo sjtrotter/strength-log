@@ -377,23 +377,24 @@ class ProgressionTest {
     }
 
     @Test
-    fun `Hold carries a manually edited ramp when TOP is unchanged`() {
+    fun `Hold regenerates a manually edited ramp from the completed TOP`() {
         val rows = ramp()
         val logged = actual(rows).mapIndexed { i, row -> if (i == 0) row.copy(weightLb = 140.0) else row }
         val out = finish(rRule(), rows, logged)
         assertEquals(Change.Hold, out.change)
-        assertEquals(140.0, out.rows[0].weightLb, 1e-9)
+        assertEquals(rows[0].weightLb, out.rows[0].weightLb, 1e-9)
         assertCleared(out.rows)
     }
 
     @Test
-    fun `Hold carries a logged backoff when TOP is unchanged`() {
+    fun `a lowered backoff blocks success and regenerates from TOP`() {
         val rows = ramp()
         val logged = actual(rows).mapIndexed { i, row -> if (i == 3) row.copy(weightLb = 140.0) else row }
         val out = finish(rRule(), rows, logged)
         assertEquals(Change.Hold, out.change)
-        assertEquals(Reason.Streak, out.reason)
-        assertEquals(140.0, out.rows[3].weightLb, 1e-9)
+        assertEquals(Reason.RepMiss, out.reason)
+        assertEquals(rows[3].weightLb, out.rows[3].weightLb, 1e-9)
+        assertEquals(1, out.rule.state.repMissStreak)
     }
 
     @Test
@@ -519,10 +520,10 @@ class ProgressionTest {
     }
 
     @Test
-    fun `a heavier work set prevents keeping a lowered anchor`() {
+    fun `a lower minority blocks success at the majority load`() {
         val logged = actual(work()).mapIndexed { i, row -> row.copy(weightLb = if (i == 0) 175.0 else 195.0) }
         val out = finish(actual = logged)
-        assertEquals(Change.Increase(185.0, 190.0), out.change)
-        assertEquals(Reason.AllMade, out.reason)
+        assertEquals(Change.Hold, out.change)
+        assertEquals(Reason.RepMiss, out.reason)
     }
 }

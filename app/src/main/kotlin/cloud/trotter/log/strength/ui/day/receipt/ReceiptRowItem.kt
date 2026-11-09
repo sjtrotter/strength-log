@@ -227,12 +227,13 @@ internal fun StrengthReceiptRow(
     roll: () -> Float,
     gutter: String? = null,
     nextTime: ReceiptNextTime? = null,
+    nextReps: Int? = null,
 ) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime), row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, nextReps), row.shape == ReceiptRow.Shape.STRAIGHT,
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -267,6 +268,7 @@ internal fun StrengthReceiptRow(
             }
             if (row.lighterSets > 0) ValueLabel(pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets))
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
+            if (nextReps != null) ValueLabel(stringResource(R.string.receipt_next_time, stringResource(R.string.next_time_reps, nextReps)))
             if (nextTime != null) ValueLabel(stringResource(R.string.receipt_next_time,
                 nextTime.offerLb?.let { DayScreenBuilder.offerLabel(it, nextTime.openingLb, unit) }
                     ?: stringResource(R.string.next_time_repeat)))

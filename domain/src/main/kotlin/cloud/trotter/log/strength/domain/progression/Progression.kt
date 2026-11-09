@@ -103,21 +103,25 @@ object Progression {
             WorkingRows.withWorkingWeight(base, load, ctx.unit, ctx.equipment, current.scheme)
 
         val loadCalibration = usesLoadCalibration(working)
-        if (exposure.layoff == LayoffKind.Recalibrate && loadCalibration) {
+        val recalibrationRows = if (exposure.layoff == LayoffKind.Recalibrate && loadCalibration) {
             current = current.copy(state = current.state.copy(calibrating = true))
-        }
-        if (exposure.roughDay) return result(Reason.RoughDay)
-        if (ctx.light) return result(Reason.LightCycle, Change.LightCycle, WorkingRows.cleared(working))
+            val anchor = requireNotNull(WorkingRows.workingWeight(working))
+            loaded(ctx.steps.nearest(anchor * 0.75, ctx.equipment, ctx.unit))
+        } else null
+        if (exposure.roughDay) return result(Reason.RoughDay, rows = recalibrationRows ?: base)
+        if (ctx.light) return result(Reason.LightCycle, Change.LightCycle, recalibrationRows ?: WorkingRows.cleared(working))
         if (current.state.calibrating && loadCalibration) {
             val anchors = done.map { it.second }.filter { it.kind == SetKind.TOP || it.kind == SetKind.WORK }
             val calibrated = calibration(rule, anchors, ctx)
             current = current.copy(state = current.state.resetStreaks().copy(calibrating = calibrated?.second != true))
-            if (calibrated == null) return result(Reason.Calibrating, rows = WorkingRows.cleared(working))
+            if (calibrated == null) return result(Reason.Calibrating, rows = recalibrationRows ?: WorkingRows.cleared(working))
             val (load, concluded) = calibrated
             return if (concluded) result(Reason.Calibrated, Change.Calibrated(load), loaded(load))
             else result(Reason.Calibrating, Change.Increase(anchors.last().weightLb, load), loaded(load))
         }
-        if (exposure.layoff == LayoffKind.Hold) return result(Reason.Layoff, rows = WorkingRows.cleared(working))
+        if (exposure.layoff == LayoffKind.Hold || (exposure.layoff == LayoffKind.Recalibrate && !loadCalibration)) {
+            return result(Reason.Layoff, rows = WorkingRows.cleared(working))
+        }
         val anchorIndices = WorkingRows.workingIndices(exposure.planned)
         val doneAnchors = done.filter { it.first in anchorIndices }.map { it.second }
         val lowered = done.filter { (i, row) -> i in anchorIndices && row.weightLb < exposure.planned[i].weightLb }

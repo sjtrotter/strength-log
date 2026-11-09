@@ -357,11 +357,13 @@ class SetEditApplierRunTest {
         val plan = authored()
         val id = squatId(plan)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
+        val beforeLogs = db.programDao().logsForPlan(plan)
         val beforeSlot = db.programDao().exercise(id)
         val swap = ExerciseSwapDelta(dayId = "A", programExerciseId = id, exerciseId = "hack_squat",
             exerciseName = "Hack Squat", editedAtMillis = 100, planId = plan, runId = runId)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap))
         assertEquals(beforeSlot, db.programDao().exercise(id))
+        assertEquals(beforeLogs, db.programDao().logsForPlan(plan))
         val open = repo.openRunFlow.first()!!
         assertEquals(runId, open.id)
         assertTrue(open.tracks.all { track -> track.sets.none { it.done } })
@@ -378,6 +380,7 @@ class SetEditApplierRunTest {
             it.programExerciseId == id && !it.retired
         })
         assertEquals(beforeSlot, db.programDao().exercise(id))
+        assertEquals(beforeLogs, db.programDao().logsForPlan(plan))
     }
 
     @Test fun `run identified swap refuses another open workout without changing anything`() = runTest {

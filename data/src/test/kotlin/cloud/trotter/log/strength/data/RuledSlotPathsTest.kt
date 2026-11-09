@@ -179,14 +179,14 @@ class RuledSlotPathsTest {
         assertEquals(logs, db.programDao().allLogs())
     }
 
-    @Test fun `an added lift with history keeps its history rows and takes its rule from them`() = runTest {
+    @Test fun `an added lift with untrusted history opens at its load calibrating`() = runTest {
         val plan = authored()
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Day B", null, 1000, 235.0))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "db_row", "Row", Slot.MAIN, 0,
             "WORK", 60.0, 10, true)))
         repo.addExercise("A", ProgramExercise("db_row"), plan)
         assertSlot(db.programDao().exercisesForPlan(plan).single().id,
-            rule(SlotRole.ACCESSORY, 10, 0.0125), work(60.0))
+            rule(SlotRole.ACCESSORY, 10, 0.0125, calibrating = true), work(60.0))
     }
 
     @Test fun `prescribed bodyweight and timed adds store the rows lazy seeding wrote`() = runTest {

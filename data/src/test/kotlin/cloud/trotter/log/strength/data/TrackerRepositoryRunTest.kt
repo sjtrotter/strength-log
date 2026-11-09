@@ -903,11 +903,15 @@ class TrackerRepositoryRunTest {
         val plan = authored()
         val slot = slot(plan)
         val next = day(plan).nextRunId
+        val beforeLogs = db.programDao().allLogs()
+        val beforeSlot = db.programDao().exercise(slot)
         assertNull(repo.openRunFlow.first())
 
         assertEquals(ExerciseSwapResult.CHANGED,
             repo.applyExerciseSwap(plan, "A", slot, "hack_squat", next, allowChange = true))
 
+        assertEquals(beforeLogs, db.programDao().allLogs())
+        assertEquals(beforeSlot, db.programDao().exercise(slot))
         val run = repo.openRunFlow.first()!!
         assertEquals(next, run.id)
         assertEquals("hack_squat", run.tracks.single { !it.retired }.exerciseId)

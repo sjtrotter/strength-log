@@ -846,7 +846,7 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
-    fun `superset assignment and swap accept prescribed slots and preserve MAIN working values`() = runTest {
+    fun `superset assignment and swap accept prescribed slots and preserve MAIN working values and seed only the partner track`() = runTest {
         val prescribed = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Reps(12)))
         val day = program("Authored", "plank").days.single().copy(exercises = listOf(prescribed))
         repo.replaceProgram(Program(listOf(day)))
@@ -857,12 +857,16 @@ class TrackerRepositoryPlanScopeTest {
         repo.setSupersetPartner("A", slot.id, "rope_pushdown")
 
         assertEquals(slot.copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slot.id))
-        assertEquals(mainOnly, db.programDao().allLogs())
+        assertEquals(mainOnly.single(), db.programDao().allLogs().single { it.slot == Slot.MAIN })
+        assertEquals(listOf(LoggedSet(20.0, 10, SetKind.WORK)),
+            SetJson.decodeSets(db.programDao().allLogs().single { it.slot == Slot.SS }.setsJson))
         db.programDao().setSupersetExerciseId(slot.id, "plank")
         db.programDao().upsertLog(log(slot.planId, slot.id, sets(25.0)).copy(slot = Slot.SS))
         repo.setSupersetPartner("A", slot.id, "rope_pushdown")
         assertEquals("rope_pushdown", db.programDao().exercise(slot.id)!!.supersetExerciseId)
-        assertEquals(mainOnly, db.programDao().allLogs())
+        assertEquals(mainOnly.single(), db.programDao().allLogs().single { it.slot == Slot.MAIN })
+        assertEquals(listOf(LoggedSet(20.0, 10, SetKind.WORK)),
+            SetJson.decodeSets(db.programDao().allLogs().single { it.slot == Slot.SS }.setsJson))
     }
 
     @Test
@@ -885,7 +889,9 @@ class TrackerRepositoryPlanScopeTest {
 
             assertEquals(slots[1].copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slots[1].id))
             assertEquals(slots[2], db.programDao().exercise(slots[2].id))
-            assertEquals(main, db.programDao().allLogs())
+            assertEquals(main, db.programDao().allLogs().filter { it.slot == Slot.MAIN })
+            assertEquals(listOf(LoggedSet(20.0, 10, SetKind.WORK)),
+                SetJson.decodeSets(db.programDao().allLogs().single { it.slot == Slot.SS }.setsJson))
             db.programDao().upsertLog(log(planId, slots[1].id, sets(45.0)).copy(slot = Slot.SS))
 
             repo.removeSupersetPartner("A", slots[1].id)

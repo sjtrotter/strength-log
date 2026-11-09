@@ -15,7 +15,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
@@ -2348,6 +2347,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
         assertEquals(listOf(50.0, 50.0), track(curlId, Slot.SS)!!.map { it.weightLb })
+        val mainBefore = track(curlId, Slot.MAIN)!!
 
         val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
         vm.editor.setDaySlotSuperset(position, "face_pull")
@@ -2357,8 +2357,8 @@ class DayViewModelWiringTest {
             "face_pull",
             vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.partnerExerciseId,
         )
-        // Reseeded from the new partner's own GOAL — none of rope_pushdown's 50s left.
-        assertEquals(listOf(40.0, 40.0), track(curlId, Slot.SS)!!.map { it.weightLb })
+        assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) }, track(curlId, Slot.SS))
+        assertEquals(mainBefore, track(curlId, Slot.MAIN))
         assertEquals(listOf(60.0, 60.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
         collect.cancel()
     }
@@ -3336,8 +3336,7 @@ class DayViewModelWiringTest {
         val catalog = repo.catalog.catalogFlow.first()
         val goal = GoalCalculator.targetFor(catalog.get("hack_squat"), cfg)
         assertEquals(HeaderTarget.Goal(GoalFormatter.label(goal, WeightUnit.LB)), card.headerTarget)
-        assertEquals(DaySeeds.swap(repo.plans.slotsFor(plan, "A").first().single(), Slot.MAIN,
-            "hack_squat", emptyMap(), cfg, catalog)!!,
+        assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) },
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })
         assertFalse(vm.uiState.value.canFinish)

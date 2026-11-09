@@ -2,20 +2,20 @@ package cloud.trotter.log.strength.domain.seeding
 
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Progression
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
-/** Working values retained after a run closes. */
+/** Working values retained after a run closes.
+ *  Superseded by [Progression]; deleted when Finish switches over (PR 2b). */
 object CarryForward {
     data class Session(val planned: List<LoggedSet>, val actual: List<LoggedSet>)
 
     /** Results removed: done, both timestamps, plannedIndex, watchEditedAt. Other values kept. */
-    fun cleared(sets: List<LoggedSet>): List<LoggedSet> = sets.map {
-        it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null, watchEditedAt = null)
-    }
+    fun cleared(sets: List<LoggedSet>): List<LoggedSet> = WorkingRows.cleared(sets)
 
     /** Next time's working values from a finished run's [planned] and [actual] rows. */
     @Suppress("UNUSED_PARAMETER") // Retain the unit-aware API; Finish no longer generates loads.
@@ -24,30 +24,13 @@ object CarryForward {
         actual: List<LoggedSet>,
         unit: WeightUnit = WeightUnit.LB,
         equipment: Collection<Equipment> = emptyList(),
-    ): List<LoggedSet> {
-        fun matched(index: Int) = actual.firstOrNull { it.plannedIndex == index }
-        val topIndex = planned.indexOfFirst { it.kind == SetKind.TOP }
-        if (topIndex >= 0 && matched(topIndex)?.let { it.weightLb != planned[topIndex].weightLb } == true) {
-            return cleared(planned)
-        }
-        return cleared(planned.mapIndexed { i, row ->
-            when (row.kind) {
-                SetKind.RAMP, SetKind.BACKOFF -> row.copy(weightLb = matched(i)?.weightLb ?: row.weightLb)
-                else -> row
-            }
-        })
-    }
+    ): List<LoggedSet> = WorkingRows.carried(planned, actual)
 
     /** The TOP row of a ramp lift, else every WORK and EXTRA row. */
-    fun workingIndices(rows: List<LoggedSet>): List<Int> {
-        val top = rows.indexOfFirst { it.kind == SetKind.TOP }
-        return if (top >= 0) listOf(top) else rows.indices.filter {
-            rows[it].kind == SetKind.WORK || rows[it].kind == SetKind.EXTRA
-        }
-    }
+    fun workingIndices(rows: List<LoggedSet>): List<Int> = WorkingRows.workingIndices(rows)
 
     /** The first working row's weight, or null without working rows. */
-    fun workingWeight(rows: List<LoggedSet>): Double? = workingIndices(rows).firstOrNull()?.let { rows[it].weightLb }
+    fun workingWeight(rows: List<LoggedSet>): Double? = WorkingRows.workingWeight(rows)
 
     /** The increase to offer after a run, in lb; null when there is none. */
     fun offer(
@@ -103,11 +86,5 @@ object CarryForward {
         weightLb: Double,
         unit: WeightUnit = WeightUnit.LB,
         equipment: Collection<Equipment> = emptyList(),
-    ): List<LoggedSet> {
-        val top = rows.indexOfFirst { it.kind == SetKind.TOP }
-        return if (top >= 0) SetEditor.editWeight(rows, top, weightLb, unit, equipment)
-        else rows.map {
-            if (it.kind == SetKind.WORK || it.kind == SetKind.EXTRA) it.copy(weightLb = weightLb) else it
-        }
-    }
+    ): List<LoggedSet> = WorkingRows.withWorkingWeight(rows, weightLb, unit, equipment)
 }

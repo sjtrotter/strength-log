@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.domain.standards
 
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -93,5 +95,37 @@ class RestPolicyTest {
     @Test
     fun `MAX_REST_SECONDS is 300`() {
         assertEquals(300, RestPolicy.MAX_REST_SECONDS)
+    }
+    @Test
+    fun `case 15 role and goal defaults and override precedence`() {
+        assertEquals(180, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, role = SlotRole.MAIN, goal = LiftGoal.STRENGTH))
+        assertEquals(120, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, role = SlotRole.MAIN, goal = LiftGoal.MUSCLE))
+        assertEquals(60, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, role = SlotRole.ISOLATION, goal = LiftGoal.STRENGTH))
+        assertEquals(150, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, mapOf(RestCategory.TOP to 150), SlotRole.MAIN, LiftGoal.STRENGTH))
+        assertEquals(150, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, mapOf(RestCategory.TOP to 100), SlotRole.MAIN, LiftGoal.MUSCLE, slotOverride = 150))
+    }
+
+    @Test
+    fun `ramps and backoffs keep their own buckets and ignore the slot override`() {
+        for (goal in LiftGoal.entries) {
+            assertEquals(90, RestPolicy.effectiveRestSeconds(SetKind.RAMP, TrackingType.WEIGHTED, role = SlotRole.MAIN, goal = goal, slotOverride = 150))
+            assertEquals(120, RestPolicy.effectiveRestSeconds(SetKind.BACKOFF, TrackingType.WEIGHTED, role = SlotRole.MAIN, goal = goal, slotOverride = 150))
+            assertEquals(75, RestPolicy.effectiveRestSeconds(SetKind.RAMP, TrackingType.WEIGHTED,
+                mapOf(RestCategory.RAMP to 75), SlotRole.MAIN, goal, slotOverride = 150))
+            assertEquals(100, RestPolicy.effectiveRestSeconds(SetKind.BACKOFF, TrackingType.WEIGHTED,
+                mapOf(RestCategory.BACKOFF to 100), SlotRole.MAIN, goal, slotOverride = 150))
+        }
+    }
+
+    @Test
+    fun `Strength role defaults equal today's buckets`() {
+        for (role in listOf(SlotRole.MAIN, SlotRole.SECONDARY, SlotRole.ACCESSORY, SlotRole.ISOLATION, SlotRole.CORE)) {
+            assertEquals(RestPolicy.defaultSeconds(RestPolicy.categoryFor(role)), RestPolicy.defaultSeconds(role, LiftGoal.STRENGTH))
+        }
+    }
+
+    @Test
+    fun `a silent role goal pair falls back to the bucket`() {
+        assertEquals(60, RestPolicy.effectiveRestSeconds(SetKind.WORK, TrackingType.WEIGHTED, role = SlotRole.CORE, goal = LiftGoal.GENERAL))
     }
 }

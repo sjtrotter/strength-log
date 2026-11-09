@@ -50,10 +50,6 @@ object StrengthStandards {
         GoalEmphasis.PHYSIQUE -> 8
     }
 
-    const val BACKOFF = 0.75 // back-off weight as fraction of top set
-    const val BACKOFF_REPS = 8
-    val RAMP_PCTS = listOf(0.55, 0.70, 0.80, 0.90) // last ramp done as a lighter triple
-
     // Age de-rating: ~5% per decade after 40 (research). Continuous form that
     // reproduces the prototype's 0.97 at age 40 exactly:
     fun ageDerate(age: Int): Double =

@@ -3,7 +3,7 @@ package cloud.trotter.log.strength.domain.seeding
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.standards.StrengthStandards
+import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
@@ -19,9 +19,10 @@ object SetEditor {
         edit: SetEdit,
         unit: WeightUnit = WeightUnit.LB,
         equipment: Collection<Equipment> = emptyList(),
+        scheme: Scheme = Scheme.PROTOTYPE,
     ): List<LoggedSet> {
         var updated = sets
-        edit.weightLb?.let { updated = editWeight(updated, index, it, unit, equipment) }
+        edit.weightLb?.let { updated = editWeight(updated, index, it, unit, equipment, scheme) }
         edit.reps?.let { updated = editReps(updated, index, it) }
         edit.seconds?.let { updated = editSeconds(updated, index, it) }
         return updated.mapIndexed { i, row ->
@@ -48,8 +49,7 @@ object SetEditor {
 
     /**
      * Edit one row's weight. Editing a TOP row re-derives every
-     * RAMP row (from [StrengthStandards.RAMP_PCTS], in order) and the BACKOFF
-     * row (× [StrengthStandards.BACKOFF]) off the new top weight, rounded for
+     * RAMP and BACKOFF row using the percentages from [scheme], rounded for
      * the unit and equipment.
      * Reps, WORK/EXTRA rows, and every non-TOP edit are left untouched.
      * Rows already done keep their weight.
@@ -60,6 +60,7 @@ object SetEditor {
         newWeightLb: Double,
         unit: WeightUnit = WeightUnit.LB,
         equipment: Collection<Equipment> = emptyList(),
+        scheme: Scheme = Scheme.PROTOTYPE,
     ): List<LoggedSet> {
         if (sets[index].kind != SetKind.TOP) {
             return sets.mapIndexed { i, s -> if (i == index) s.copy(weightLb = newWeightLb) else s }
@@ -68,11 +69,11 @@ object SetEditor {
         return sets.mapIndexed { i, s ->
             when (s.kind) {
                 SetKind.RAMP -> {
-                    val pct = StrengthStandards.RAMP_PCTS[rampSeen++]
-                    if (s.done) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * pct, unit, equipment))
+                    val pct = scheme.ramps.getOrNull(rampSeen++)?.pct
+                    if (s.done || pct == null) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * pct, unit, equipment))
                 }
                 SetKind.TOP -> if (s.done && i != index) s else s.copy(weightLb = newWeightLb)
-                SetKind.BACKOFF -> if (s.done) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * StrengthStandards.BACKOFF, unit, equipment))
+                SetKind.BACKOFF -> if (s.done) s else s.copy(weightLb = GeneratedLoad.ramp(newWeightLb * scheme.backoffPct, unit, equipment))
                 SetKind.WORK, SetKind.EXTRA -> s
             }
         }

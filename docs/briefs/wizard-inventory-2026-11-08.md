@@ -2,7 +2,7 @@
 
 Date: 2026-11-08. Base: main at `c30109f5` (plus the docs-only `9d4e7757`). Read-only pass; nothing was built or run.
 
-This maps what the setup wizard and plan generator do today, what reads their output, and where a replacement would sit. It is input for the Fable design pass. It is not a spec. `STRENGTH_TRACKER_SPEC.md` §6 and `docs/PLAN.md` A13–A18 stay authoritative until a design doc amends them. The evidence review is `docs/briefs/wizard-evidence-2026-11-08/report.md`. The tester findings are in `~/Projects/strength-log-playtest-kit/results/r4-synthesis.md`.
+This maps what the setup wizard and plan generator do today, what reads their output, and where a replacement would sit. It is input for the Fable design pass. It is not a spec. `STRENGTH_TRACKER_SPEC.md` §6 and `docs/PLAN.md` A13–A18 stay authoritative until a design doc amends them. The evidence review is `docs/briefs/wizard-evidence-2026-11-08/report.md`. The tester findings are in the playtest kit repository (`strength-log-playtest-kit`), `results/r4-synthesis.md`.
 
 **Reference format.** `domain:` is `domain/src/main/kotlin/cloud/trotter/log/strength/domain/`, `data:` is `data/src/main/kotlin/cloud/trotter/log/strength/data/`, `app:` is `app/src/main/kotlin/cloud/trotter/log/strength/`, `transfer:` is `transfer/src/main/kotlin/cloud/trotter/log/strength/transfer/`, and `domain-test:` is `domain/src/test/kotlin/cloud/trotter/log/strength/domain/`. `strings.xml` is `app/src/main/res/values/strings.xml`.
 

@@ -78,7 +78,8 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     )
 
     private suspend fun captureState(): State {
-        val sessions = repository.history.sessionsFlow.first()
+        // A Finish's undo record is never exported (Undo doesn't cross a restore; BackupV27Test pins it).
+        val sessions = repository.history.sessionsFlow.first().map { it.copy(progressionUndoJson = null) }
         return State(
             program = programWithoutRules(),
             sessions = sessions,

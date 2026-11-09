@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.model
 
 import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.Serializable
@@ -58,6 +59,8 @@ data class LoggedSet(
     val plannedIndex: Int? = null,
     /** The newest watch stamp applied to this row. */
     val watchEditedAt: Long? = null,
+    /** Reported reps in reserve; null = not reported, read as on target. */
+    val rir: Int? = null,
 )
 
 data class SupersetPartner(val exerciseId: String) // refers into ExerciseLibrary
@@ -71,6 +74,8 @@ data class ProgramExercise(
     val note: String = "",
     val prescription: Prescription? = null,
     val keepToPlan: Boolean = false,
+    /** Null until conversion writes one (PR 2a). */
+    val rule: SlotRule? = null,
 )
 
 /** Stored by name; new constants go at the end. */

@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
@@ -81,15 +82,19 @@ object SetSeeder {
         targetSets: Int,
         unit: WeightUnit = WeightUnit.LB,
         equipment: Collection<Equipment> = emptyList(),
+        scheme: Scheme = Scheme.PROTOTYPE,
     ): List<LoggedSet> =
         when (structure) {
             SetStructure.STRAIGHT -> List(targetSets) { LoggedSet(topLb, topReps, SetKind.WORK) }
-            SetStructure.RAMP_TOP_BACKOFF -> rampsAndTop(topLb, topReps, unit, equipment) + LoggedSet(
-                GeneratedLoad.ramp(topLb * StrengthStandards.BACKOFF, unit, equipment),
-                StrengthStandards.BACKOFF_REPS,
-                SetKind.BACKOFF,
-            )
-            SetStructure.RAMP_TOP -> rampsAndTop(topLb, topReps, unit, equipment)
+            SetStructure.RAMP_TOP_BACKOFF -> rampsAndTop(topLb, topReps, unit, equipment, scheme) +
+                List(scheme.backoffs) {
+                    LoggedSet(
+                        GeneratedLoad.ramp(topLb * scheme.backoffPct, unit, equipment),
+                        scheme.backoffReps,
+                        SetKind.BACKOFF,
+                    )
+                }
+            SetStructure.RAMP_TOP -> rampsAndTop(topLb, topReps, unit, equipment, scheme)
         }
 
     private fun rampsAndTop(
@@ -97,13 +102,10 @@ object SetSeeder {
         topReps: Int,
         unit: WeightUnit,
         equipment: Collection<Equipment>,
+        scheme: Scheme,
     ): List<LoggedSet> {
-        val ramps = StrengthStandards.RAMP_PCTS.mapIndexed { i, p ->
-            LoggedSet(
-                GeneratedLoad.ramp(topLb * p, unit, equipment),
-                if (i == StrengthStandards.RAMP_PCTS.lastIndex) 3 else 5,
-                SetKind.RAMP,
-            )
+        val ramps = scheme.ramps.map { ramp ->
+            LoggedSet(GeneratedLoad.ramp(topLb * ramp.pct, unit, equipment), ramp.reps, SetKind.RAMP)
         }
         return ramps + LoggedSet(topLb, topReps, SetKind.TOP)
     }

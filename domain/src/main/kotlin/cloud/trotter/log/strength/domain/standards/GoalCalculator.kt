@@ -20,8 +20,6 @@ sealed interface GoalTarget {
 }
 
 object GoalCalculator {
-    fun round5(w: Double) = maxOf(5.0, Math.round(w / 5.0) * 5.0)
-
     fun goalForMain(
         std: StandardLift,
         perHand: Boolean,

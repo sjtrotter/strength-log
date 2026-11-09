@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.domain.standards
 
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
 
 /**
  * The five rest buckets a set can fall into. LIGHT covers bodyweight/core/hold
@@ -52,11 +54,36 @@ object RestPolicy {
         }
     }
 
+    /** The role's bucket for the user's bucket overrides. */
+    fun categoryFor(role: SlotRole): RestCategory = when (role) {
+        SlotRole.MAIN -> RestCategory.TOP
+        SlotRole.SECONDARY -> RestCategory.BACKOFF
+        SlotRole.ACCESSORY, SlotRole.PLYO -> RestCategory.WORK
+        SlotRole.ISOLATION, SlotRole.CORE, SlotRole.BALANCE -> RestCategory.LIGHT
+    }
+
+    /** Design §3.1.1's rest by role and goal; null where the table is silent (the bucket default applies). */
+    fun defaultSeconds(role: SlotRole, goal: LiftGoal): Int? = when (goal) {
+        LiftGoal.STRENGTH, LiftGoal.MUSCLE -> when (role) {
+            SlotRole.MAIN -> if (goal == LiftGoal.STRENGTH) 180 else 120
+            SlotRole.SECONDARY -> 120
+            SlotRole.ACCESSORY -> 90
+            SlotRole.ISOLATION, SlotRole.CORE -> 60
+            SlotRole.BALANCE, SlotRole.PLYO -> null
+        }
+        LiftGoal.GENERAL -> when (role) {
+            SlotRole.MAIN, SlotRole.ACCESSORY -> 90
+            SlotRole.ISOLATION -> 60
+            else -> null
+        }
+    }
+
     /**
      * THE resolver — the only place effective rest is computed. An absent
      * [overrides] entry means "use the default", so shipping new defaults in an
      * update still reaches users who never edited that bucket. `0` (default or
      * override) means "no timer": the watch advances immediately, no countdown.
+     * Slot override, bucket override, role/goal default, then bucket default apply in order; RAMP and BACKOFF use only their buckets.
      * The result is clamped to `0..`[MAX_REST_SECONDS].
      *
      * The master on/off toggle is not the resolver's business — it gates
@@ -66,9 +93,19 @@ object RestPolicy {
         kind: SetKind,
         tracking: TrackingType,
         overrides: Map<RestCategory, Int> = emptyMap(),
+        role: SlotRole? = null,
+        goal: LiftGoal? = null,
+        slotOverride: Int? = null,
     ): Int {
-        val category = categoryFor(kind, tracking)
-        return (overrides[category] ?: defaultSeconds(category)).coerceIn(0, MAX_REST_SECONDS)
+        val seconds = if (kind == SetKind.RAMP || kind == SetKind.BACKOFF) {
+            val bucket = categoryFor(kind, tracking)
+            overrides[bucket] ?: defaultSeconds(bucket)
+        } else {
+            val bucket = role?.let { categoryFor(it) } ?: categoryFor(kind, tracking)
+            slotOverride ?: overrides[bucket] ?: (if (role != null && goal != null) defaultSeconds(role, goal) else null)
+                ?: defaultSeconds(bucket)
+        }
+        return seconds.coerceIn(0, MAX_REST_SECONDS)
     }
 }
 

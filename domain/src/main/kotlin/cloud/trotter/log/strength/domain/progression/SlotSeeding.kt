@@ -56,7 +56,7 @@ object SlotSeeding {
         val last = known.lastWorking[slot.exerciseId]?.takeIf { it.weightLb > 0 }
         val estimate = last?.let { Estimate.e1rm(it.weightLb, it.reps, it.rir ?: Effort.GOOD.rir) }
         val top = if (estimate != null) steps.nearest(Estimate.loadFor(estimate, reps, rule.rir), equipment, unit)
-            else last?.weightLb ?: floor(equipment, unit)
+            else last?.let { steps.nearest(it.weightLb, equipment, unit) } ?: floor(equipment, unit)
         return Seeded(
             SetSeeder.shape(slot.structure, top, reps, slot.targetSets, unit, equipment, rule.scheme),
             rule.copy(state = rule.state.copy(calibrating = estimate == null)),

@@ -901,10 +901,9 @@ class DayViewModelWiringTest {
         assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
         assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.slots.single().structure)
         assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
-        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
         assertNull(slot.exercise.prescription)
-        assertEquals(DaySeeds.previewMain(slot, repo.plans.configFlow.first(), repo.catalog.catalogFlow.first()),
-            track(slot.programExerciseId, Slot.MAIN))
+        assertTrue(requireNotNull(slot.exercise.rule).state.calibrating)
         collectEdit.cancel()
         collectUi.cancel()
     }
@@ -1725,7 +1724,7 @@ class DayViewModelWiringTest {
         val squat = track(squatId, Slot.MAIN)!!
         // §11 cascade held: the edit survived the re-seed pass untouched.
         assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), squat.map { it.weightLb })
-        assertEquals(listOf(40.0, 40.0, 40.0), track(slotId("face_pull"), Slot.MAIN)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0, 20.0), track(slotId("face_pull"), Slot.MAIN)!!.map { it.weightLb })
     }
 
     // --- mutation serialization (lost-update race) -----------------------------
@@ -2226,7 +2225,10 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
 
         val reset = repo.observeDay(planId, "A").first()
-        assertEquals(original.program, reset.program)
+        assertTrue(reset.slots.all { it.slot.exercise.rule != null })
+        assertEquals(original.program, reset.program.copy(days = reset.program.days.map { day ->
+            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+        }))
         assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
         assertEquals(original.slots.size, reset.slots.size)
         assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })

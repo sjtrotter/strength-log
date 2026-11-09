@@ -179,7 +179,11 @@ class TrackerRepositoryAuthoredPlanTest {
             val id = repo.plans.createGeneratedPlan("Training", WizardAnswers(), program)
 
             assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-            assertEquals(program, repo.plans.programFor(id).first())
+            val created = repo.plans.programFor(id).first()
+            assertTrue(created.days.flatMap { it.exercises }.all { it.rule != null })
+            assertEquals(program, created.copy(days = created.days.map { day ->
+                day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+            }))
         }
     }
 
@@ -327,8 +331,10 @@ class TrackerRepositoryAuthoredPlanTest {
 
             repo.resetDayToTemplate(dayId)
 
+            val resetDay = repo.plans.programFor(plan).first().days.single { it.id == dayId }
+            assertTrue(resetDay.exercises.all { it.rule != null })
             assertEquals(compact.days[index].copy(id = dayId),
-                repo.plans.programFor(plan).first().days.single { it.id == dayId })
+                resetDay.copy(exercises = resetDay.exercises.map { it.copy(rule = null) }))
             val stored = before.single { it.dayId == dayId }
             val reset = db.programDao().day(plan, dayId)!!
             assertEquals(stored.nextRunId, reset.nextRunId)

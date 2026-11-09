@@ -5,7 +5,19 @@ import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+
+/** A rule for slots a test inserts straight into Room. Conversion skips ruled slots, so such a slot keeps today's
+ *  lazy seeding: the state a structure change or a prescription edit leaves on this build. */
+val FIXTURE_RULE_JSON: String = SlotRuleJson.encode(
+    SlotRule.defaults(SlotRole.ACCESSORY, LiftGoal.STRENGTH, SetStructure.STRAIGHT, null, MovementPattern.CORE_FLEX),
+)
 
 /** Stores literal fixture rows without making them repository seed inputs. */
 suspend fun StrengthDatabase.storeTestRows(

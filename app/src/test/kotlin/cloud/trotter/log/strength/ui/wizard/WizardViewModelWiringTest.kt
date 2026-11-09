@@ -1284,7 +1284,11 @@ class WizardViewModelWiringTest {
         repeat(9) { vm.onNext() }
         advanceUntilIdle()
         assertTrue(vm.uiState.value.isComplete)
-        assertEquals(ProgramGenerator.generate(WizardAnswers()), repo.plans.programFlow.first())
+        val program = repo.plans.programFlow.first()
+        assertTrue(program.days.flatMap { it.exercises }.all { it.rule != null })
+        assertEquals(ProgramGenerator.generate(WizardAnswers()), program.copy(days = program.days.map { day ->
+            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+        }))
         assertFalse(db.planDao().allPlans().single().offerCardioIncreases)
     }
 

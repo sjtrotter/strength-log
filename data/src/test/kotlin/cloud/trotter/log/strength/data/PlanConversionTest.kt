@@ -36,6 +36,7 @@ import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotState
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -143,11 +144,13 @@ class PlanConversionTest {
         assertNull(db.programDao().logForSlot(1, "A", 9, Slot.MAIN))
         assertEquals(parked, db.programDao().exercise(9)!!.parkedLogsJson)
         assertTrue(db.programDao().exercise(9)!!.keepToPlan)
-        assertNull(db.programDao().exercise(8)!!.ruleJson)
-        assertNull(db.programDao().logForSlot(1, "A", 8, Slot.MAIN))
+        assertEquals(rule(SlotRole.ACCESSORY, 10, 0.025).copy(state = SlotState(calibrating = true)),
+            SlotRuleJson.decode(db.programDao().exercise(8)!!.ruleJson))
+        assertEquals(List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
+            SetJson.decodeSets(db.programDao().logForSlot(1, "A", 8, Slot.MAIN)!!.setsJson))
         val after = dump()
         for (table in V24Fixture.tables) {
-            assertEquals(before.getValue(table), after.getValue(table).map {
+            assertEquals(before.getValue(table), after.getValue(table).filterNot { table == "exercise_log" && it[2] == "8" }.map {
                 it.dropLast(V24Fixture.defaults[table].orEmpty().size)
             }, table)
         }
@@ -161,7 +164,9 @@ class PlanConversionTest {
     @Test fun `case 28 history is byte identical after upgrade and conversion`() = runTest {
         repo.plans.runPlanSettingsFixupIfNeeded()
         val tables = listOf("workout_session", "session_set", "cardio_session", "cardio_set_result", "exercise_log")
-        V24Fixture.assertAppendedDefaults(before.filterKeys { it in tables }, dump())
+        V24Fixture.assertAppendedDefaults(before.filterKeys { it in tables }, dump().mapValues { (table, rows) ->
+            rows.filterNot { table == "exercise_log" && it[2] == "8" }
+        })
     }
 
     @Test fun `conversion is idempotent`() = runTest {
@@ -257,18 +262,18 @@ class PlanConversionTest {
         assertRule(7, rule(SlotRole.MAIN, 5, 0.025, Scheme.PROTOTYPE))
     }
 
-    @Test fun `a swap or a structure change clears the rule and the next pass derives it again`() = runTest {
+    @Test fun `a swap or a structure change derives the rule in the same transaction`() = runTest {
         repo.plans.runPlanSettingsFixupIfNeeded()
         assertTrue(repo.swapExerciseById("A", 10, "incline_db"))
-        assertNull(db.programDao().exercise(10)!!.ruleJson)
-        repo.setStructure(7, SetStructure.STRAIGHT)
-        assertNull(db.programDao().exercise(7)!!.ruleJson)
-        repository().plans.runPlanSettingsFixupIfNeeded()
         val slot = db.programDao().exercise(10)!!
         val rows = SetJson.decodeSets(db.programDao().logForSlot(1, "A", 10, Slot.MAIN)!!.setsJson)
         assertEquals(rule(SlotRole.MAIN, PlanConversion.firstWorkingReps(rows)!!, 0.0125), SlotRuleJson.decode(slot.ruleJson))
-        assertNull(db.programDao().exercise(7)!!.ruleJson)
+        repo.setStructure(7, SetStructure.STRAIGHT)
+        assertEquals(rule(SlotRole.MAIN, 5, 0.025), SlotRuleJson.decode(db.programDao().exercise(7)!!.ruleJson))
         assertNull(db.programDao().logForSlot(1, "A", 7, Slot.MAIN))
+        val converted = dump()
+        repository().plans.runPlanSettingsFixupIfNeeded()
+        assertEquals(converted, dump())
     }
 
     @Test fun `a plan built by hand inserts Automatic and a generated plan Ask`() = runTest {

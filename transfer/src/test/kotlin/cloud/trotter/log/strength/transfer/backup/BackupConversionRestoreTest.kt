@@ -26,9 +26,9 @@ import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotState
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -100,7 +100,7 @@ class BackupConversionRestoreTest {
         )
     }
 
-    @Test fun `v25 and v26 backups restore with history unchanged and rules on their opened slots`() = runTest {
+    @Test fun `v25 and v26 backups restore with history unchanged, rules on every slot and rows on the never-opened one`() = runTest {
         for (version in listOf(25, 26)) {
             val source = document(version)
             val decoded = codec.decode(codec.encode(source))
@@ -110,13 +110,15 @@ class BackupConversionRestoreTest {
             assertEquals(expected.sessionSets, db.sessionDao().allSessionSets())
             assertEquals(expected.cardioSessions, db.cardioSessionDao().all())
             assertEquals(expected.cardioSetResults, db.cardioSetResultDao().all())
-            assertEquals(expected.logs, db.programDao().allLogs())
+            assertEquals(expected.logs, db.programDao().allLogs().filterNot { it.programExerciseId == 8L })
             assertEquals(SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.PROTOTYPE),
                 SlotRuleJson.decode(db.programDao().exercise(7)!!.ruleJson))
             assertEquals(SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(12), 2, 0.0125, 1, 0.05, Scheme.STRENGTH),
                 SlotRuleJson.decode(db.programDao().exercise(9)!!.ruleJson))
-            assertNull(db.programDao().exercise(8)!!.ruleJson)
-            assertNull(db.programDao().logForSlot(1, "A", 8, "main"))
+            assertEquals(SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(10), 2, 0.025, 1, 0.05, Scheme.STRENGTH,
+                state = SlotState(calibrating = true)), SlotRuleJson.decode(db.programDao().exercise(8)!!.ruleJson))
+            assertEquals(List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
+                SetJson.decodeSets(db.programDao().logForSlot(1, "A", 8, "main")!!.setsJson))
             assertEquals(source.plans.single().recipeJson, db.planDao().plan(1)!!.recipeJson)
             val exported = codec.decode(service.export())
             assertEquals(27, exported.schemaVersion)

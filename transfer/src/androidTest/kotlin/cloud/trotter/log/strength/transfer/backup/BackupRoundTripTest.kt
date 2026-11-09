@@ -123,6 +123,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             exercises = listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 4)),
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
+        repository.ensureSeeded(PlanEntity.LEGACY_ID, "B")
 
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id

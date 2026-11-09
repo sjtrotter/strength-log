@@ -313,7 +313,9 @@ class TypedCardioMigrationTest {
 
         repo.resetDayToTemplate("C1")
 
-        assertEquals(expected, repo.plans.programFor(planId).first().cardioDays.first())
+        val reset = repo.plans.programFor(planId).first().cardioDays.first()
+        assertTrue(reset.exercises.all { it.rule != null })
+        assertEquals(expected, reset.copy(exercises = reset.exercises.map { it.copy(rule = null) }))
         assertEquals("A", repo.plans.suggestedDayFlow.first())
     }
 }

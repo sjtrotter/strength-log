@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
@@ -327,8 +328,9 @@ class HistoryRepository(
                     val after = offer.afterRuleJson?.let(SlotRuleJson::decode)?.target
                     NextOffer(offer.fromLb, offer.toLb,
                         before?.reps.takeIf { before != after }, after?.reps.takeIf { before != after },
-                        beforeRule?.state?.calibrating == true)
+                        beforeRule?.state?.calibrating == true || dto.opening?.layoff == OpeningDto.RECALIBRATE)
                 },
+                dto.opening != null,
             )
         }
     }
@@ -436,7 +438,7 @@ fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
     CardioMode.entries.find { it.name == mode }
 
 /** One archived track of the newest session for a plan and day. */
-data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null)
+data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null, val opened: Boolean = false)
 
 /** The next-time change recorded on an archived track. */
 data class NextOffer(val fromLb: Double, val toLb: Double, val fromReps: Int? = null, val toReps: Int? = null, val calibration: Boolean = false)

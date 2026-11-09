@@ -1250,7 +1250,8 @@ class TrackerRepository(
                 runDao.updateTrack(track.copy(
                     setsJson = SetJson.encodeSets(next),
                     plannedJson = SetJson.encodeSets(WorkingRows.cleared(next)),
-                    openingJson = null,
+                    openingJson = if (accepted != null) null else OpeningJson.decode(track.openingJson)
+                        ?.takeIf { it.light }?.copy(layoff = OpeningDto.NONE, factor = null)?.let(OpeningJson::encode),
                     updatedAt = clock.millis(),
                 ))
                 if (owner != null) {
@@ -1490,11 +1491,11 @@ class TrackerRepository(
                                catalog: ExerciseCatalog, olderAdult: Boolean): List<RunTrackEntity> {
         val plan = planDao.plan(day.planId) ?: return tracks
         val program = assemble(programDao.daysForPlan(day.planId), programDao.exercisesForPlan(day.planId))
-        val training = program.rotationDays.filter { it.kind != ProgramDayKind.REST }
+        val training = program.rotationDays.filter { it.kind == ProgramDayKind.STRENGTH }
         val steps = plans.planSettings(day.planId).loadSteps ?: LoadSteps.defaults(unit)
         val today = localEpochDay(clock.millis())
         val light = plan.lightCycleRemaining > 0
-        fun startOfDay(day: Long) = LocalDate.ofEpochDay(day).atStartOfDay(clock.zone).toInstant().toEpochMilli()
+        fun startOfDay(epochDay: Long) = LocalDate.ofEpochDay(epochDay).atStartOfDay(clock.zone).toInstant().toEpochMilli()
         return tracks.map { track ->
             if (track.slot != Slot.MAIN) return@map track
             val row = track.programExerciseId?.let { programDao.exercise(it) } ?: return@map track
@@ -1773,19 +1774,19 @@ class TrackerRepository(
             val planned = SetJson.decodeSets(track.plannedJson)
             val stored = slot.ruleJson
             val rule = if (track.slot == Slot.MAIN) stored?.let(SlotRuleJson::decode) else null
-            if (rule == null) {
-                writeLog(slot, track.slot, WorkingRows.carried(planned, actual))
-                continue
-            }
             val working = programDao.logForSlot(day.planId, day.dayId, slot.id, track.slot)?.let {
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: WorkingRows.cleared(planned)
             val opening = OpeningJson.decode(track.openingJson)
+            if (rule == null) {
+                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                continue
+            }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
             val light = opening?.light == true
             val entry = catalog.find(track.exerciseId)
             val automatic = (rule.nextTime ?: if (plan?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
-            // A malformed row must never block Finish; the slot carries forward as before PR 2b.
+            // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, roughDay = false, layoff = layoff),
                     Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = light))
@@ -1794,7 +1795,7 @@ class TrackerRepository(
                 Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))
             } catch (_: RuntimeException) { null }
             if (prepared == null) {
-                writeLog(slot, track.slot, WorkingRows.carried(planned, actual))
+                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
                 continue
             }
             val (outcome, encodedRule, offer) = prepared
@@ -1850,11 +1851,11 @@ class TrackerRepository(
     }
 
     /** Distinct exercises among the plan's ruled, non-Plan slots with a stall dated within this Finish's rotation window:
-     *  this Finish and the plan's previous (training entries − 1) sessions. Call after this Finish's rule writes. */
+     *  this Finish and the plan's previous (strength entries − 1) sessions. Call after this Finish's rule writes. */
     private suspend fun stalledLifts(planId: Long, today: Long): Int {
         val slots = programDao.exercisesForPlan(planId)
         val program = assemble(programDao.daysForPlan(planId), slots)
-        val entries = maxOf(1, program.rotationDays.count { it.kind != ProgramDayKind.REST })
+        val entries = maxOf(1, program.rotationDays.count { it.kind == ProgramDayKind.STRENGTH })
         val windowStart = (sessionDao.recentCompletedAt(planId, entries - 1).map(::localEpochDay) + today).min()
         return slots.filter { !it.keepToPlan &&
             SlotRuleJson.decode(it.ruleJson)?.state?.resetEpochDays?.any { date -> date in windowStart..today } == true

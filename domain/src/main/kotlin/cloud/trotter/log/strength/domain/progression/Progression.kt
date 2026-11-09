@@ -38,7 +38,7 @@ object Progression {
         val baseCadence: Int = 1,
     )
 
-    /** ceil(7 × training entries ÷ (days a week × times the exercise appears per rotation)). */
+    /** ceil(7 × strength entries ÷ (strength days a week × strength entries with the exercise per rotation)). */
     fun expectedRecurrenceDays(trainingEntries: Int, daysPerWeek: Int, appearancesPerRotation: Int): Int =
         ceil(7.0 * trainingEntries / (daysPerWeek * appearancesPerRotation)).toInt()
 

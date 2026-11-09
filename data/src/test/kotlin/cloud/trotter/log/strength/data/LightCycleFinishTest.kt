@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -14,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.LightCycle
+import cloud.trotter.log.strength.domain.progression.SlotState
 import cloud.trotter.log.strength.domain.progression.WorkingRows
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -78,6 +81,24 @@ class LightCycleFinishTest : OpeningFixture() {
             asPlanned(track, plan, day)
             assertEquals(LightCycle(3 - index, if (day == "D") 7 else 6), counters(plan))
         }
+    }
+
+    @Test fun `setting a weight during an Automatic light cycle keeps the light view`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_back_squat")
+        lifter(plan, id, work(w = 275.0), squatRule())
+        history(plan, 14, sixteen)
+        db.planDao().updateLightCycle(plan, 2, 0)
+        val track = opened(plan)
+        assertEquals(OpeningDto(OpeningDto.SCALED, 0.95, light = true), OpeningJson.decode(track.openingJson))
+        val before = log(plan, id).setsJson
+        repo.setWorkingWeight(track.runId, plan, "A", id, Slot.MAIN, 275.0)
+        val edited = db.runDao().tracks(track.runId).single()
+        assertEquals(OpeningDto(light = true), OpeningJson.decode(edited.openingJson))
+        asPlanned(edited, plan)
+        assertEquals(before, log(plan, id).setsJson)
+        assertNull(offer(plan, "bb_back_squat"))
+        assertEquals(LightCycle(1, 1), counters(plan))
     }
 
     @Test fun `case 31 undo after a restart restores the light counters a Finish fired`() = runTest {
@@ -148,6 +169,20 @@ class LightCycleFinishTest : OpeningFixture() {
             assertEquals(0, counters(plan).remaining)
             advanceDays(1)
         }
+    }
+
+    @Test fun `cardio entries do not widen the strength stall window`() = runTest {
+        val plan = converted(day("bb_back_squat"), ProgramDay("B", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO),
+            day("bb_bench", id = "C"), ProgramDay("D", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO))
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = true))
+        val today = clock.instant().atZone(clock.zone).toLocalDate().toEpochDay()
+        lifter(plan, id(plan, "bb_back_squat"), rule = rule().copy(state = SlotState(resetEpochDays = listOf(today - 2))))
+        val bench = id(plan, "bb_bench", "C")
+        lifter(plan, bench, rule = rule().copy(state = SlotState(repMissStreak = 1)), day = "C")
+        history(plan, 1, listOf(0L, 1, 2), exercise = "bb_bench", day = "C")
+        finish(plan, bench, reps = listOf(5, 5, 4), day = "C")
+        assertEquals(listOf(today), rule(bench).state.resetEpochDays)
+        assertEquals(0, counters(plan).remaining)
     }
 
     @Test fun `a cardio day finish counts down and wraps`() = runTest {

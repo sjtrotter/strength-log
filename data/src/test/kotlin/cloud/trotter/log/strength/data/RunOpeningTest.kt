@@ -8,7 +8,10 @@ import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.Progression
@@ -19,8 +22,10 @@ import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Duration
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -97,6 +102,36 @@ class RunOpeningTest : OpeningFixture() {
         assertEquals("""{"layoff":"HOLD"}""", track.openingJson)
     }
 
+    @Test fun `a nine day layoff Hold archives an opened session without an offer`() = runTest {
+        val plan = rPlan()
+        history(plan, 9, sixteen)
+        val track = opened(plan)
+        assertEquals(275.0, top(track))
+        assertEquals(OpeningDto(OpeningDto.HOLD), OpeningJson.decode(track.openingJson))
+        asPlanned(track, plan)
+        val session = repo.history.slotSessionsById(plan, "A").getValue(id(plan, "bb_back_squat") to Slot.MAIN)
+        assertTrue(session.opened)
+        assertNull(session.offer)
+    }
+
+    @Test fun `a recalibration opening archives a calibration offer in Automatic and Ask`() = runTest {
+        for (automatic in listOf(true, false)) {
+            val plan = converted(day("bb_back_squat"))
+            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+            val id = id(plan, "bb_back_squat")
+            lifter(plan, id, squat(), squatRule())
+            val beforeRuleJson = db.programDao().exercise(id)!!.ruleJson
+            assertFalse(rule(id).state.calibrating)
+            history(plan, 60, sixteen)
+            val track = opened(plan)
+            assertEquals(OpeningDto(OpeningDto.RECALIBRATE), OpeningJson.decode(track.openingJson))
+            val session = asPlanned(track, plan)
+            assertTrue(assertNotNull(offer(plan, "bb_back_squat")).calibration)
+            val archived = SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single()
+            assertEquals(beforeRuleJson, assertNotNull(archived.offer).beforeRuleJson)
+        }
+    }
+
     @Test fun `sessions outside the 28 days before the last session do not count`() = runTest {
         val plan = rPlan()
         history(plan, 9, eight + (28L..35L))
@@ -107,6 +142,20 @@ class RunOpeningTest : OpeningFixture() {
         val plan = rPlan()
         history(plan, 16, listOf(0))
         assertNull(opened(plan).openingJson)
+    }
+
+    @Test fun `cardio entries do not lengthen strength recurrence`() = runTest {
+        val plan = converted(day("bb_back_squat"), ProgramDay("B", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO),
+            day("bb_bench", id = "C"), ProgramDay("D", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO))
+        lifter(plan, id(plan, "bb_back_squat"), squat(), squatRule())
+        history(plan, 10, eight)
+        assertEquals(7, Progression.expectedRecurrenceDays(2, 2, 1))
+        var track = opened(plan)
+        assertNull(track.openingJson)
+        assertEquals(275.0, top(track))
+        track = reopen(track, plan, 5)
+        assertEquals(OpeningDto(OpeningDto.SCALED, 0.95), OpeningJson.decode(track.openingJson))
+        assertEquals(260.0, top(track))
     }
 
     @Test fun `ten sessions round to three days a week`() = runTest {
@@ -165,6 +214,27 @@ class RunOpeningTest : OpeningFixture() {
         assertEquals(squat(), rows(plan, id(plan, "bb_back_squat")))
         assertEquals(SlotState(exposures = 4), rule(id(plan, "bb_back_squat")).state)
         assertEquals(NextOffer(275.0, 260.0), offer(plan, "bb_back_squat"))
+    }
+
+    @Test fun `an opened track with an unreadable rule keeps the stored load`() = runTest {
+        val (plan, track) = scaled(true)
+        val id = id(plan, "bb_back_squat")
+        db.programDao().setRule(id, "junk")
+        asPlanned(track, plan)
+        assertEquals(squat(), rows(plan, id))
+        assertEquals("junk", db.programDao().exercise(id)!!.ruleJson)
+        assertNull(offer(plan, "bb_back_squat"))
+    }
+
+    @Test fun `an opened track with an unencodable outcome keeps the stored load`() = runTest {
+        val (plan, track) = scaled(true)
+        val id = id(plan, "bb_back_squat")
+        val original = rule(id).copy(state = SlotState(exposures = 9999))
+        db.programDao().setRule(id, SlotRuleJson.encode(original))
+        asPlanned(track, plan)
+        assertEquals(squat(), rows(plan, id))
+        assertEquals(original, rule(id))
+        assertNull(offer(plan, "bb_back_squat"))
     }
 
     @Test fun `tick starts, supersets and Plan mode open as stored`() = runTest {

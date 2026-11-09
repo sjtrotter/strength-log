@@ -641,10 +641,10 @@ class DayScreenBuilderTest {
 
     @Test fun `a light session leaves no chip`() {
         val rows = List(3) { work(275.0, 5) }
-        val light = List(2) { work(250.0, 5) }
-        val history = SlotSession(light, light.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) },
-            retired = false, offer = null)
+        val history = SlotSession(rows, rows.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) },
+            retired = false, offer = null, opened = true)
         assertNull(DayScreenBuilder.nextTime(rows, history, false, WeightUnit.LB, offersOn = true))
+        assertEquals(NextTime.Repeat, DayScreenBuilder.nextTime(rows, history.copy(opened = false), false, WeightUnit.LB, offersOn = true))
     }
 
 }

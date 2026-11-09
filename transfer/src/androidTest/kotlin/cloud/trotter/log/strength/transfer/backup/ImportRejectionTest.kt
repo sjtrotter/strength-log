@@ -50,6 +50,8 @@ class ImportRejectionTest : BackupTestHarness() {
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
         ))
         repository.finishRun(repository.openRunFlow.first()!!.id)!!
+        // The app converts plans at launch; do it here so fingerprints never race a conversion.
+        repository.plans.runPlanSettingsFixupIfNeeded()
     }
 
     private suspend fun fingerprint() = Fingerprint(

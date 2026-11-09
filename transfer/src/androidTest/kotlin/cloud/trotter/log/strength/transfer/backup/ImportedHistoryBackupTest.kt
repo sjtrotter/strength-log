@@ -101,6 +101,8 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         assertNotNull(sessions.first { !it.dayId.startsWith("csv:") }.bodyweightLb)
         assertNull(sessions.first { it.dayId.startsWith("csv:") }.bodyweightLb)
 
+        // The app converts plans at launch; do the same so the restore, which also converts, has nothing new to add.
+        repository.plans.runPlanSettingsFixupIfNeeded()
         val before = captureState()
         val backup = service.export()
 

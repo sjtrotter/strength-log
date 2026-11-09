@@ -136,25 +136,28 @@ class LightCycleFinishTest : OpeningFixture() {
         return plan
     }
 
-    @Test fun `two stalled lifts within one rotation fire a light cycle on an Automatic plan only`() = runTest {
-        for (automatic in listOf(true, false)) {
-            val plan = stalls(automatic)
-            val a = id(plan, "bb_back_squat")
-            val b = id(plan, "bb_bench", "B")
-            finish(plan, a, reps = listOf(5, 5, 3))
-            assertEquals(0, counters(plan).remaining)
-            advanceDays(1)
-            finish(plan, b, reps = listOf(5, 5, 3), day = "B")
-            assertEquals(0, counters(plan).remaining)
-            advanceDays(1)
-            finish(plan, a, reps = listOf(5, 4, 4))
-            assertEquals(0, counters(plan).remaining)
-            advanceDays(1)
-            val last = finish(plan, b, reps = listOf(5, 4, 4), day = "B")
-            assertEquals(if (automatic) 2 else 0, counters(plan).remaining)
-            assertTrue(repo.undoProgression(last))
-            assertEquals(0, counters(plan).remaining)
-        }
+    // One plan per test: converted() reuses the selected plan, so an Ask pass after the Automatic one would keep autoApply.
+    @Test fun `two stalled lifts within one rotation fire a light cycle on an Automatic plan`() = runTest { twoStalls(true) }
+
+    @Test fun `two stalled lifts within one rotation do not fire a light cycle on an Ask plan`() = runTest { twoStalls(false) }
+
+    private suspend fun twoStalls(automatic: Boolean) {
+        val plan = stalls(automatic)
+        val a = id(plan, "bb_back_squat")
+        val b = id(plan, "bb_bench", "B")
+        finish(plan, a, reps = listOf(5, 5, 3))
+        assertEquals(0, counters(plan).remaining)
+        advanceDays(1)
+        finish(plan, b, reps = listOf(5, 5, 3), day = "B")
+        assertEquals(0, counters(plan).remaining)
+        advanceDays(1)
+        finish(plan, a, reps = listOf(5, 4, 4))
+        assertEquals(0, counters(plan).remaining)
+        advanceDays(1)
+        val last = finish(plan, b, reps = listOf(5, 4, 4), day = "B")
+        assertEquals(if (automatic) 2 else 0, counters(plan).remaining)
+        assertTrue(repo.undoProgression(last))
+        assertEquals(0, counters(plan).remaining)
     }
 
     @Test fun `a stall outside the rotation window does not fire`() = runTest {

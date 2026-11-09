@@ -114,22 +114,25 @@ class RunOpeningTest : OpeningFixture() {
         assertNull(session.offer)
     }
 
-    @Test fun `a recalibration opening archives a calibration offer in Automatic and Ask`() = runTest {
-        for (automatic in listOf(true, false)) {
-            val plan = converted(day("bb_back_squat"))
-            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
-            val id = id(plan, "bb_back_squat")
-            lifter(plan, id, squat(), squatRule())
-            val beforeRuleJson = db.programDao().exercise(id)!!.ruleJson
-            assertFalse(rule(id).state.calibrating)
-            history(plan, 60, sixteen)
-            val track = opened(plan)
-            assertEquals(OpeningDto(OpeningDto.RECALIBRATE), OpeningJson.decode(track.openingJson))
-            val session = asPlanned(track, plan)
-            assertTrue(assertNotNull(offer(plan, "bb_back_squat")).calibration)
-            val archived = SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single()
-            assertEquals(beforeRuleJson, assertNotNull(archived.offer).beforeRuleJson)
-        }
+    // One plan per test: converted() reuses the selected plan, so a second pass would see the first pass's session.
+    @Test fun `a recalibration opening archives a calibration offer in Automatic`() = runTest { recalibrationOffer(true) }
+
+    @Test fun `a recalibration opening archives a calibration offer in Ask`() = runTest { recalibrationOffer(false) }
+
+    private suspend fun recalibrationOffer(automatic: Boolean) {
+        val plan = converted(day("bb_back_squat"))
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+        val id = id(plan, "bb_back_squat")
+        lifter(plan, id, squat(), squatRule())
+        val beforeRuleJson = db.programDao().exercise(id)!!.ruleJson
+        assertFalse(rule(id).state.calibrating)
+        history(plan, 60, sixteen)
+        val track = opened(plan)
+        assertEquals(OpeningDto(OpeningDto.RECALIBRATE), OpeningJson.decode(track.openingJson))
+        val session = asPlanned(track, plan)
+        assertTrue(assertNotNull(offer(plan, "bb_back_squat")).calibration)
+        val archived = SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single()
+        assertEquals(beforeRuleJson, assertNotNull(archived.offer).beforeRuleJson)
     }
 
     @Test fun `sessions outside the 28 days before the last session do not count`() = runTest {

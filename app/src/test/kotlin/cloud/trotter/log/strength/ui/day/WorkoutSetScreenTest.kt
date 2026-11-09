@@ -286,6 +286,8 @@ class WorkoutSetScreenTest {
         rule.onNodeWithContentDescription("One fewer rep")
             .assertIsDisplayed().assertIsEnabled().assertHasClickAction()
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+        // The Log label crossfades; let it settle before reading it.
+        rule.mainClock.advanceTimeBy(1_000L)
         rule.onNodeWithText("Log 190 lb × 4").assertExists()
         rule.onNodeWithTag("workout-action-filled").performClick()
         rule.onNodeWithTag("workout-action-filled").performClick()

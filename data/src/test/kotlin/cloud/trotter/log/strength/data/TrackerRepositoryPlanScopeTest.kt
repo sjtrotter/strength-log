@@ -23,10 +23,8 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
-import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -155,9 +153,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(listOf("New program"), db.programDao().daysForPlan(created.id).map { it.title })
         assertEquals(listOf("bb_bench"), db.programDao().exercisesForPlan(created.id).map { it.exerciseId })
         assertEquals(archivedDays, db.programDao().daysForPlan(1))
-        assertEquals(archivedExercises.map {
-            it.copy(ruleJson = SlotRuleJson.encode(PlanConversion.rule(it, sets(225.0), ExerciseLibrary.get(it.exerciseId))))
-        }, db.programDao().exercisesForPlan(1))
+        assertEquals(archivedExercises, db.programDao().exercisesForPlan(1))
         assertEquals(archivedLogs, db.programDao().logsForDay(1, "A"))
     }
 
@@ -306,10 +302,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.swapExerciseById("B", 11, "db_goblet_squat")
 
         assertEquals(listOf(storedLog), db.programDao().allLogs())
-        assertEquals(exercises.map {
-            if (it.id == 11L) it.copy(ruleJson = SlotRuleJson.encode(
-                PlanConversion.rule(it, sets(225.0), ExerciseLibrary.get(it.exerciseId)))) else it
-        }, db.programDao().allExercises())
+        assertEquals(exercises, db.programDao().allExercises())
     }
 
     @Test
@@ -489,7 +482,11 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(created)!!.recipeJson)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
         assertEquals(210.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
-        assertEquals(program("New", "bb_bench"), repo.plans.programFlow.first())
+        val createdProgram = repo.plans.programFlow.first()
+        assertTrue(createdProgram.days.flatMap { it.exercises }.all { it.rule != null })
+        assertEquals(program("New", "bb_bench"), createdProgram.copy(days = createdProgram.days.map { day ->
+            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+        }))
         assertEquals(before, db.planDao().plan(1))
         assertEquals(days, db.programDao().daysForPlan(1))
         assertEquals(exercises, db.programDao().exercisesForPlan(1))
@@ -1022,7 +1019,8 @@ class TrackerRepositoryPlanScopeTest {
             ProgramDayEntity(planId, "A", 0, title, "", null, nextRunId = "run-$planId-A"),
         )
         return db.programDao().insertExercise(
-            ProgramExerciseEntity(id, planId, "A", 0, exerciseId, "RAMP_TOP_BACKOFF", 3, null, ""),
+            ProgramExerciseEntity(id, planId, "A", 0, exerciseId, "RAMP_TOP_BACKOFF", 3, null, "",
+                ruleJson = FIXTURE_RULE_JSON),
         )
     }
 

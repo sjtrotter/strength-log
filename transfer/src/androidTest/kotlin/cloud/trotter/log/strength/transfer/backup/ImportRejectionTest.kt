@@ -13,6 +13,11 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -42,9 +47,10 @@ class ImportRejectionTest : BackupTestHarness() {
             id = "A",
             title = "Day A",
             emphasisLine = "Lower",
-            exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3)),
+            exercises = emptyList(),
         )
         repository.replaceProgram(Program(listOf(day)))
+        repository.addExercise("A", ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
@@ -53,7 +59,7 @@ class ImportRejectionTest : BackupTestHarness() {
     }
 
     private suspend fun fingerprint() = Fingerprint(
-        program = programWithoutRules(),
+        program = repository.plans.programFlow.first(),
         sessions = repository.history.sessionsFlow.first(),
         catalog = repository.catalog.catalogFlow.first().entries,
         unit = settings.unitFlow.first(),
@@ -81,6 +87,8 @@ class ImportRejectionTest : BackupTestHarness() {
         val before = fingerprint()
         assertThrowsBackupError<E>(block)
         assertEquals(before, fingerprint())
+        assertEquals(SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.PROTOTYPE,
+            state = SlotState(calibrating = true)), repository.plans.programFlow.first().days.single().exercises.single().rule)
     }
 
     @Test
@@ -101,6 +109,8 @@ class ImportRejectionTest : BackupTestHarness() {
         val tinyCapService = BackupService(backupRepository, journal, BackupCodec(maxBytes = 32))
         assertThrowsBackupError<BackupError.TooLarge> { tinyCapService.import(valid) }
         assertEquals(before, fingerprint())
+        assertEquals(SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.PROTOTYPE,
+            state = SlotState(calibrating = true)), repository.plans.programFlow.first().days.single().exercises.single().rule)
     }
 
     @Test

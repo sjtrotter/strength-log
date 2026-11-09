@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -30,6 +31,10 @@ import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -165,7 +170,9 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, rows)
         assertTrue(rows.none { it.done })
         assertEquals(before.copy(exerciseId = "bb_back_squat", structure = SetStructure.STRAIGHT.name,
-            targetSets = 3, prescriptionJson = null), db.programDao().exercise(destination))
+            targetSets = 3, prescriptionJson = null, ruleJson = SlotRuleJson.encode(
+                SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.STRENGTH))),
+            db.programDao().exercise(destination))
     }
 
     @Test fun `a plan swap writes the straight shape at the nearby weight`() = runTest {
@@ -493,7 +500,8 @@ class TrackerRepositoryRunEditsTest {
         repo.swapExerciseById("A", slot, "hack_squat")
         assertEquals(before.copy(retired = true), db.runDao().tracks(runId).single())
         assertEquals("hack_squat", db.programDao().exercise(slot)!!.exerciseId)
-        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertEquals(List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
         val tracks = repo.dayTracksFlow(plan, "A").first()
         assertTrue(tracks.tracks.none { it.programExerciseId == slot && it.slot == Slot.MAIN })
         assertEquals(listOf("bb_back_squat"), tracks.retired.map { it.exerciseId })

@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
@@ -34,6 +35,11 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -210,18 +216,23 @@ class PersistenceProcessDeathTest {
         closeSession()
         openSession()
 
-        // Program: every field of every slot, not just the id ordering. Reopening converts plans and gives
-        // opened slots a rule; that is new state, not a lost mutation, so compare the slots without it.
-        val program = repository.plans.programFlow.first().let { p ->
-            p.copy(days = p.days.map { d -> d.copy(exercises = d.exercises.map { it.copy(rule = null) }) })
-        }
+        val program = repository.plans.programFlow.first()
         assertEquals(listOf("A", "B"), program.days.map { it.id })
         val reopenedA = program.days.first()
         assertEquals("Day A", reopenedA.title)
         assertEquals("Squat-focused lower", reopenedA.emphasisLine)
         assertEquals(dayA.cardioBlock, reopenedA.cardioBlock)
-        assertEquals(listOf(squat, row, bench.copy(exerciseId = "db_bench")), reopenedA.exercises)
-        assertEquals(dayB, program.days.last())
+        assertEquals(listOf(
+            squat.copy(rule = SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.PROTOTYPE)),
+            row.copy(rule = SlotRule(SlotRole.MAIN, RepTarget.Fixed(10), 2, 0.0125, 1, 0.05, Scheme.STRENGTH)),
+            bench.copy(exerciseId = "db_bench", rule = SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(10), 2,
+                0.0125, 1, 0.05, Scheme.STRENGTH, state = SlotState(calibrating = true))),
+        ), reopenedA.exercises)
+        assertEquals(dayB.copy(exercises = dayB.exercises.map { it.copy(rule = SlotRule(SlotRole.MAIN,
+            RepTarget.Fixed(5), 2, 0.0125, 1, 0.05, Scheme.PROTOTYPE, state = SlotState(calibrating = true))) }),
+            program.days.last())
+        assertEquals(List(3) { LoggedSet(WeightUnit.KG.toLb(5.0), 10, SetKind.WORK) },
+            SetJson.decodeSets(db.programDao().logForSlot(PlanEntity.LEGACY_ID, "A", benchRowId, Slot.MAIN)!!.setsJson))
 
         assertEquals(logsBeforeKill, repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId })
         assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP, plannedIndex = 0)), logsBeforeKill[0].sets)

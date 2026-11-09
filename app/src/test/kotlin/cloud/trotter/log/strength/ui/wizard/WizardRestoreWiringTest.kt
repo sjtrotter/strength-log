@@ -549,7 +549,10 @@ class WizardRestoreWiringTest {
         val program = repo.plans.programFlow.first()
         assertEquals(6, answers.daysPerWeek)
         assertEquals(6, program.days.size)
-        assertEquals(ProgramGenerator.generate(answers), program)
+        assertEquals(ProgramGenerator.generate(answers), program.copy(days = program.days.map { day ->
+            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+        }))
+        assertTrue(program.days.flatMap { it.exercises }.all { it.rule != null })
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())

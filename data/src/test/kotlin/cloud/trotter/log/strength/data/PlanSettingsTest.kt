@@ -608,7 +608,7 @@ class PlanSettingsTest {
         val program = Program(listOf("A", "B").map { ProgramDay(it, "Day $it", "", listOf(exercise)) })
         val planId = repo.plans.createGeneratedPlan("Goals", WizardAnswers(), program)
         repo.ensureSeeded(planId, "A")
-        val original = db.programDao().logsForPlan(planId).single()
+        val original = db.programDao().logsForPlan(planId).single { it.dayId == "A" }
         val working = original.copy(setsJson = SetJson.encodeSets(SetJson.decodeSets(original.setsJson).map {
             if (it.kind == SetKind.TOP) it.copy(weightLb = 245.0) else it
         }))
@@ -620,11 +620,11 @@ class PlanSettingsTest {
         repo.plans.setPlanGoal(planId, exercise.exerciseId, 200.0)
         repo.ensureSeeded(planId, "A")
 
-        assertEquals(listOf(working), db.programDao().logsForPlan(planId))
+        assertEquals(working, db.programDao().logsForPlan(planId).single { it.dayId == "A" })
         assertEquals(tracks, db.runDao().allTracks())
         repo.ensureSeeded(planId, "B")
         val later = db.programDao().logsForPlan(planId).single { it.dayId == "B" }
-        assertEquals(200.0, SetJson.decodeSets(later.setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertEquals(45.0, SetJson.decodeSets(later.setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
         assertEquals(working, db.programDao().logsForPlan(planId).single { it.dayId == "A" })
         assertEquals(tracks, db.runDao().allTracks())
     }

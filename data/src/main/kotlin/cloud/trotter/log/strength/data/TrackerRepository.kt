@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.seeding.RunReplan
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SlotSeeds
@@ -240,6 +241,7 @@ class TrackerRepository(
             programDao.setPrescription(row.id, json, count)
             replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
+            programDao.setRule(row.id, SlotRuleJson.encode(plans.defaultRule(updated, this.catalog.snapshot())))
         }
     }
 
@@ -254,6 +256,7 @@ class TrackerRepository(
             programDao.setStructure(row.id, structure.name)
             replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
+            programDao.setRule(row.id, SlotRuleJson.encode(plans.defaultRule(updated, this.catalog.snapshot())))
         }
     }
 
@@ -409,6 +412,7 @@ class TrackerRepository(
         programDao.deleteLogsForExercise(planId, dayId, programExerciseId)
         val replacement = programDao.exercise(programExerciseId) ?: return
         seedFromHistory(replacement, Slot.MAIN, config, catalog)
+        plans.ruleSlot(replacement, config.weightUnit, catalog)
     }
 
     /** The open run's active track for this slot: retired when it holds done work, deleted otherwise. */
@@ -452,6 +456,7 @@ class TrackerRepository(
             val row = programDao.exercise(id) ?: return@withTransaction
             val config = answersForPlan(planDao.plan(planId), global).config
             if (exercise.prescription == null) seedFromHistory(row, Slot.MAIN, config, catalog)
+            plans.ruleSlot(row, config.weightUnit, catalog)
             if (exercise.superset != null) seedFromHistory(row, Slot.SS, config, catalog)
         }
     }
@@ -596,6 +601,7 @@ class TrackerRepository(
         val planId = targetPlanId ?: plans.selectedPlanId() ?: return
         if (planDao.plan(planId)?.origin != PlanOrigin.GENERATED.name) return
         val answers = plans.wizardAnswersFor(planId).first()
+        val catalog = this.catalog.snapshot()
         db.withTransaction {
             val existing = programDao.day(planId, dayId) ?: return@withTransaction
             val newDay = ProgramGenerator.templateFor(answers, existing.toDomain(emptyList()))
@@ -611,7 +617,8 @@ class TrackerRepository(
                 nextRunId = existing.nextRunId, closedAt = existing.closedAt,
             ))
             newDay.exercises.forEachIndexed { pos, pe ->
-                programDao.insertExercise(pe.toEntity(planId, dayId, pos))
+                val entity = pe.toEntity(planId, dayId, pos)
+                plans.ruleSlot(entity.copy(id = programDao.insertExercise(entity)), answers.config.weightUnit, catalog)
             }
         }
     }
@@ -1466,8 +1473,7 @@ class TrackerRepository(
         val entry = catalog.find(exerciseId) ?: return null
         val timedLoad = (entry.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0
         if (entry.tracking != TrackingType.WEIGHTED && timedLoad <= 0.0) return null
-        val weight = planWorkingWeight(row, slot, exerciseId) ?: sessionDao.lastWorkingWeight(exerciseId,
-            SetKind.entries.filter { it != SetKind.RAMP }.map { it.name }) ?: return null
+        val weight = planWorkingWeight(row, slot, exerciseId) ?: sessionDao.lastWorkingSet(exerciseId)?.weightLb ?: return null
         val topIndex = seed.indexOfFirst { it.kind == SetKind.TOP }
         return if (topIndex < 0) seed.map { it.copy(weightLb = weight) }
         else SetEditor.editWeight(seed, topIndex, weight, config.weightUnit, entry.equipment)

@@ -901,10 +901,9 @@ class DayViewModelWiringTest {
         assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
         assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.slots.single().structure)
         assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
-        assertEquals(List(3) { LoggedSet(235.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
+        assertEquals(List(3) { LoggedSet(45.0, 5, SetKind.WORK) }, track(slot.programExerciseId, Slot.MAIN))
         assertNull(slot.exercise.prescription)
-        assertEquals(DaySeeds.previewMain(slot, repo.plans.configFlow.first(), repo.catalog.catalogFlow.first()),
-            track(slot.programExerciseId, Slot.MAIN))
+        assertTrue(requireNotNull(slot.exercise.rule).state.calibrating)
         collectEdit.cancel()
         collectUi.cancel()
     }
@@ -1725,7 +1724,7 @@ class DayViewModelWiringTest {
         val squat = track(squatId, Slot.MAIN)!!
         // §11 cascade held: the edit survived the re-seed pass untouched.
         assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), squat.map { it.weightLb })
-        assertEquals(listOf(40.0, 40.0, 40.0), track(slotId("face_pull"), Slot.MAIN)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0, 20.0), track(slotId("face_pull"), Slot.MAIN)!!.map { it.weightLb })
     }
 
     // --- mutation serialization (lost-update race) -----------------------------
@@ -2226,7 +2225,10 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
 
         val reset = repo.observeDay(planId, "A").first()
-        assertEquals(original.program, reset.program)
+        assertTrue(reset.slots.all { it.slot.exercise.rule != null })
+        assertEquals(original.program, reset.program.copy(days = reset.program.days.map { day ->
+            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+        }))
         assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
         assertEquals(original.slots.size, reset.slots.size)
         assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })
@@ -2261,10 +2263,10 @@ class DayViewModelWiringTest {
      * very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
      * [TrackerRepository.swapExerciseById]. The slot row survives the swap (same
      * programExerciseId, so history stays keyed to it), its live sets are
-     * discarded, and the seed pass refills from the new exercise's GOAL (§8.3).
+     * discarded, and the replacement seeds from the new lift's history or floor.
      */
     @Test
-    fun swappingFromACardKeepsTheSlotIdDropsItsLiveSetsAndReseedsFromTheNewGoal() = runVmTest {
+    fun swappingFromACardKeepsTheSlotIdDropsItsLiveSetsAndReseedsFromTheNewLiftsHistoryOrFloor() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
@@ -2300,9 +2302,11 @@ class DayViewModelWiringTest {
             vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.exerciseId,
         )
         assertEquals(
-            List(3) { LoggedSet(180.0, 10, SetKind.WORK) },
+            List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
             track(squatId, Slot.MAIN),
         )
+        val replacement = repo.plans.daySlotsFlow("A").first().single { it.programExerciseId == squatId }
+        assertTrue(requireNotNull(replacement.exercise.rule).state.calibrating)
         collectUi.cancel()
         collectEdit.cancel()
     }

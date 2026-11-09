@@ -194,16 +194,18 @@ interface SessionDao {
     )
     suspend fun lastPerformedSourceRows(exerciseIds: List<String>): List<LastPerformedSourceRow>
 
+    /** The heaviest done non-RAMP set of the latest session that has one: the "last working set" that opening
+     *  loads estimate from (design §3.1.1) and that remembered weights read. */
     @Query(
         """
-        SELECT ss.weightLb FROM session_set ss
+        SELECT ss.* FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
-        WHERE ss.exerciseId = :exerciseId AND ss.done = 1 AND ss.kind IN (:kinds)
+        WHERE ss.exerciseId = :exerciseId AND ss.done = 1 AND ss.kind != 'RAMP'
         ORDER BY ws.completedAt DESC, ws.id DESC, ss.weightLb DESC, ss.id DESC
         LIMIT 1
         """,
     )
-    suspend fun lastWorkingWeight(exerciseId: String, kinds: List<String>): Double?
+    suspend fun lastWorkingSet(exerciseId: String): SessionSetEntity?
 
     @Query("""
         SELECT ss.exerciseId AS exerciseId, MAX(ws.completedAt) AS completedAt

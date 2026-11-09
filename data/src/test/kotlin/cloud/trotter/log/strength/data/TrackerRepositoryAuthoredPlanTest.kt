@@ -10,7 +10,6 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -30,8 +29,6 @@ import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -179,7 +176,11 @@ class TrackerRepositoryAuthoredPlanTest {
             val id = repo.plans.createGeneratedPlan("Training", WizardAnswers(), program)
 
             assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-            assertEquals(program, repo.plans.programFor(id).first())
+            val created = repo.plans.programFor(id).first()
+            assertTrue(created.days.flatMap { it.exercises }.all { it.rule != null })
+            assertEquals(program, created.copy(days = created.days.map { day ->
+                day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+            }))
         }
     }
 
@@ -327,8 +328,10 @@ class TrackerRepositoryAuthoredPlanTest {
 
             repo.resetDayToTemplate(dayId)
 
+            val resetDay = repo.plans.programFor(plan).first().days.single { it.id == dayId }
+            assertTrue(resetDay.exercises.all { it.rule != null })
             assertEquals(compact.days[index].copy(id = dayId),
-                repo.plans.programFor(plan).first().days.single { it.id == dayId })
+                resetDay.copy(exercises = resetDay.exercises.map { it.copy(rule = null) }))
             val stored = before.single { it.dayId == dayId }
             val reset = db.programDao().day(plan, dayId)!!
             assertEquals(stored.nextRunId, reset.nextRunId)
@@ -417,7 +420,7 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `added authored slots keep supplied counts and seed from goal math without prescriptions`() = runTest {
+    fun `added authored slots keep supplied counts and seed from SlotSeeding without prescriptions`() = runTest {
         val id = repo.plans.createAuthoredPlan("Physio", "Day A")
         repo.plans.publishCreatedAuthoredPlan(id)
         val flat = repo.catalog.addCustomExercise("Flat", cloud.trotter.log.strength.domain.model.MovementPattern.H_PUSH, emptyList(), false, 17.5)
@@ -428,15 +431,18 @@ class TrackerRepositoryAuthoredPlanTest {
         }
         exercises.forEach { repo.addExercise("A", it) }
         val slots = repo.plans.daySlotsFlow("A").first()
-        assertEquals(exercises, slots.map { it.exercise })
+        assertEquals(exercises, slots.map { it.exercise.copy(rule = null) })
+        assertTrue(slots.all { it.exercise.rule != null })
         assertTrue(slots.all { it.exercise.prescription == null && !it.exercise.keepToPlan })
-        val config = repo.plans.configFlow.first()
-        val catalog = repo.catalog.catalogFlow.first()
+        val expectedRows = listOf(
+            listOf(LoggedSet(10.0, 10, SetKind.WORK)),
+            List(2) { LoggedSet(0.0, 14, SetKind.WORK) },
+            List(3) { LoggedSet(5.0, 0, SetKind.WORK, seconds = 45) },
+            List(4) { LoggedSet(45.0, 5, SetKind.WORK) },
+        )
+        assertEquals(listOf(true, false, false, true), slots.map { requireNotNull(it.exercise.rule).state.calibrating })
         repo.ensureSeeded(id, "A")
-        for (slot in slots) {
-            val entry = catalog.get(slot.exercise.exerciseId)
-            val expected = SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(entry, config), config,
-                mainLift = entry.goal is GoalSource.Std)
+        for ((slot, expected) in slots.zip(expectedRows)) {
             val actual = repo.dayTracksFlow(id, "A").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
             assertEquals(expected, actual)
             assertTrue(actual.first().weightLb > 0.0 || actual.first().reps > 0 || actual.first().seconds > 0)

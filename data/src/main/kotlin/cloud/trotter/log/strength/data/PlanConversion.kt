@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -12,10 +13,17 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
 
-/** The rule conversion gives an existing slot (design §4.4): Strength defaults, MAIN for a ramped slot or a
- *  main-capable entry, Fixed reps from the slot's first working row. [PlanRepository.convertPlans] reads the rows. */
+/** The rule conversion gives an existing slot (design §4.4): the plan goal's defaults, MAIN for a ramped slot or a
+ *  main-capable entry, Fixed reps from the slot's first working row. [PlanRepository.ruleSlot] reads the rows. */
 internal object PlanConversion {
-    fun rule(slot: ProgramExerciseEntity, mainRows: List<LoggedSet>?, entry: ExerciseEntry?): SlotRule {
+    /** Fixed reps from the slot's first working row, else its prescription, else a bodyweight entry's rep target,
+     *  else [goal]'s default. */
+    fun rule(
+        slot: ProgramExerciseEntity,
+        mainRows: List<LoggedSet>?,
+        entry: ExerciseEntry?,
+        goal: LiftGoal = LiftGoal.STRENGTH,
+    ): SlotRule {
         val structure = slot.toDomain().structure
         val role = if (structure.hasTopSet || entry?.mainCapable == true) SlotRole.MAIN else SlotRole.ACCESSORY
         val rowReps = mainRows?.let(::firstWorkingReps)?.takeIf { it in 1..999 }
@@ -25,8 +33,9 @@ internal object PlanConversion {
             is PrescribedTarget.RepsInTime -> target.repAim
             is PrescribedTarget.Hold, null -> null
         }?.takeIf { it in 1..999 }
+        val libraryReps = (entry?.goal as? GoalSource.Reps)?.targetReps?.takeIf { it in 1..999 }
         // A deleted custom exercise uses the upper-body increment through this fallback pattern.
-        return SlotRule.defaults(role, LiftGoal.STRENGTH, structure, rowReps ?: prescribedReps,
+        return SlotRule.defaults(role, goal, structure, rowReps ?: prescribedReps ?: libraryReps,
             entry?.pattern ?: MovementPattern.CORE_FLEX)
     }
 

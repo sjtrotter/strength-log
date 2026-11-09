@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -26,11 +27,20 @@ import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.KnownLoads
+import cloud.trotter.log.strength.domain.progression.LoadSteps
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotSeeding
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Clock
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -325,6 +335,9 @@ class PlanRepository(
                         programDao.insertExercise(exercise.toEntity(planId, day.id, position))
                     }
                 }
+                val catalog = conversionCatalog()
+                programDao.exercisesForPlan(planId).filter { it.ruleJson == null }
+                    .forEach { ruleSlot(it, answers.config.weightUnit, catalog) }
                 planId
             }
         }
@@ -522,26 +535,64 @@ class PlanRepository(
         emitAll(selectedPlanStateFlow.map { it?.suggestedDayId }.distinctUntilChanged())
     }
 
-    /** Gives every slot that has stored working rows, or is kept to plan, the rule [PlanConversion] derives (design
-     *  §4.4), all in one transaction. Ruled slots are skipped, so running it again changes nothing. A slot with no
-     *  stored rows waits for 2a-ii, which seeds it. False while a restore is pending. */
-    internal suspend fun convertPlans(): Boolean = db.withTransaction {
-        if (restoreMarkerDao.nonce() != null) return@withTransaction false
-        val catalog = ExerciseCatalog(customExerciseDao.getAll().mapNotNull { runCatching { it.toEntry() }.getOrNull() })
-        for (slot in programDao.unruledExercises()) {
-            val stored = programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN)
-            val rows = when {
-                stored != null -> runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull()
-                slot.keepToPlan -> runCatching {
-                    slot.parkedLogsJson?.let(ParkedLogsJson::decode)?.firstOrNull {
-                        it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
-                    }?.setsJson?.let(SetJson::decodeSets)
-                }.getOrNull()
-                else -> continue
-            }
-            programDao.setRule(slot.id, SlotRuleJson.encode(PlanConversion.rule(slot, rows, catalog.find(slot.exerciseId))))
+    /** Writes [slot]'s rule in the caller's transaction (design §4.4). A slot with a stored MAIN row takes its rule
+     *  from those rows and a kept-to-plan slot from its parked MAIN rows. Any other slot gets the defaults and,
+     *  written beside them, opening rows from [SlotSeeding] (the last working set through Estimate, else the
+     *  equipment floor with calibrating on), unless its exercise is unknown and it has no prescription. The caller
+     *  reads [unit] before opening its transaction. */
+    internal suspend fun ruleSlot(slot: ProgramExerciseEntity, unit: WeightUnit, catalog: ExerciseCatalog) {
+        val entry = catalog.find(slot.exerciseId)
+        val planSettings = planSettings(slot.planId)
+        val stored = programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN)
+        val rows = when {
+            stored != null -> runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull()
+            slot.keepToPlan -> parkedMainRows(slot)
+            else -> null
         }
-        true
+        val rule = PlanConversion.rule(slot, rows, entry, planSettings.defaultsFor)
+        val seeded = if (stored == null && !slot.keepToPlan && (entry != null || slot.toDomain().prescription != null)) {
+            val last = sessionDao.lastWorkingSet(slot.exerciseId)?.let {
+                slot.exerciseId to LoggedSet(it.weightLb, it.reps, SetKind.WORK, rir = it.rir)
+            }
+            SlotSeeding.rows(slot.toDomain(), rule, KnownLoads(listOfNotNull(last).toMap()),
+                planSettings.loadSteps ?: LoadSteps.defaults(unit), unit, entry)
+        } else null
+        programDao.setRule(slot.id, SlotRuleJson.encode(seeded?.rule ?: rule))
+        if (seeded != null) {
+            programDao.upsertLog(ExerciseLogEntity(slot.planId, slot.dayId, slot.id, Slot.MAIN,
+                SetJson.encodeSets(seeded.rows), clock.millis()))
+        }
+    }
+
+    /** The rule for [slot] with no rows to read: what a structure change or a prescription edit, which delete the
+     *  slot's working rows, leave it with. */
+    internal suspend fun defaultRule(slot: ProgramExerciseEntity, catalog: ExerciseCatalog): SlotRule =
+        PlanConversion.rule(slot, null, catalog.find(slot.exerciseId), planSettings(slot.planId).defaultsFor)
+
+    private suspend fun planSettings(planId: Long): PlanSettings =
+        PlanSettingsJson.decode(planDao.plan(planId)?.settingsJson) ?: PlanSettings()
+
+    private fun parkedMainRows(slot: ProgramExerciseEntity): List<LoggedSet>? = runCatching {
+        slot.parkedLogsJson?.let(ParkedLogsJson::decode)?.firstOrNull {
+            it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+        }?.setsJson?.let(SetJson::decodeSets)
+    }.getOrNull()
+
+    private suspend fun conversionCatalog(): ExerciseCatalog =
+        ExerciseCatalog(customExerciseDao.getAll().mapNotNull { runCatching { it.toEntry() }.getOrNull() })
+
+    /** Gives every unruled slot its rule, and a never-opened one its opening rows ([ruleSlot]), all in one
+     *  transaction. Ruled slots are skipped, so running it again changes nothing. False while a restore is
+     *  pending. */
+    internal suspend fun convertPlans(): Boolean {
+        // DataStore is read before the transaction: suspending on it inside one can deadlock.
+        val unit = settings.unitFlow.first()
+        return db.withTransaction {
+            if (restoreMarkerDao.nonce() != null) return@withTransaction false
+            val catalog = conversionCatalog()
+            for (slot in programDao.unruledExercises()) ruleSlot(slot, unit, catalog)
+            true
+        }
     }
 
     internal suspend fun invalidatePlanFixups() {

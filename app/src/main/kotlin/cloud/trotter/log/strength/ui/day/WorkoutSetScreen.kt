@@ -51,6 +51,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -74,6 +75,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -224,7 +226,9 @@ private fun WorkoutSetContent(
                                 run?.running == true && end is Measure.Distance -> WorkoutActionSpec(
                                     stringResource(R.string.cardio_reached, distanceUnitFor(cardio.block?.activity).format(end.metres)), false, true,
                                     { actions.onReachCardioTarget(run.action()) },
-                                    stringResource(R.string.day_cardio_stop_button) to { actions.onStopCardio(run.action()) }, guardKey)
+                                    WorkoutSecondaryAction.Text(stringResource(R.string.day_cardio_stop_button)) {
+                                        actions.onStopCardio(run.action())
+                                    }, guardKey)
                                 run?.running == true -> WorkoutActionSpec(
                                     stringResource(R.string.day_cardio_stop_button), true, true,
                                     { actions.onStopCardio(run.action()) }, guardKey = guardKey)
@@ -248,7 +252,10 @@ private fun WorkoutSetContent(
                         }
                         values != null && card != null -> WorkoutActionSpec(
                             stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
-                            actions.onLogFocusedSet)
+                            actions.onLogFocusedSet,
+                            secondary = if (card.tracking(slot) != TrackingType.TIMED) {
+                                WorkoutSecondaryAction.DecrementReps(values.reps > 1, actions.onDecrementFocusedReps)
+                            } else null)
                         else -> null
                     }
                     if (action != null) {
@@ -887,19 +894,24 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     }
 }
 
+private sealed interface WorkoutSecondaryAction {
+    data class Text(val label: String, val onClick: () -> Unit) : WorkoutSecondaryAction
+    data class DecrementReps(val enabled: Boolean, val onClick: () -> Unit) : WorkoutSecondaryAction
+}
+
 private data class WorkoutActionSpec(
     val label: String,
     val tonal: Boolean,
     val enabled: Boolean,
     val onClick: () -> Unit,
-    val secondary: Pair<String, () -> Unit>? = null,
+    val secondary: WorkoutSecondaryAction? = null,
     val guardKey: Any? = null,
 )
 
 @Composable
 private fun WorkoutAction(
     label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit,
-    secondary: Pair<String, () -> Unit>? = null, guardKey: Any? = null, tapAllowed: () -> Boolean = { true },
+    secondary: WorkoutSecondaryAction? = null, guardKey: Any? = null, tapAllowed: () -> Boolean = { true },
 ) {
     var guarded by remember { mutableStateOf(false) }
     var previousKey by remember { mutableStateOf(guardKey) }
@@ -938,10 +950,18 @@ private fun WorkoutAction(
         }
         if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
         else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
-        secondary?.let { (text, action) ->
-            OutlinedButton(onClick = { guardedTap(action) }, enabled = enabled, modifier = Modifier.heightIn(min = 64.dp)) {
-                Text(text, style = MaterialTheme.typography.titleLarge)
+        when (secondary) {
+            is WorkoutSecondaryAction.DecrementReps -> {
+                OutlinedIconButton(onClick = secondary.onClick, enabled = enabled && secondary.enabled, modifier = Modifier.size(64.dp)) {
+                    Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))
+                }
             }
+            is WorkoutSecondaryAction.Text -> {
+                OutlinedButton(onClick = { guardedTap(secondary.onClick) }, enabled = enabled, modifier = Modifier.heightIn(min = 64.dp)) {
+                    Text(secondary.label, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+            null -> Unit
         }
     }
 }

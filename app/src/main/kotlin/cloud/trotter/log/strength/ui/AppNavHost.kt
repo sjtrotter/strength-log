@@ -519,6 +519,7 @@ internal fun DayRoute(
         onAddSet = viewModel::addSet,
         onRemoveSet = viewModel::removeSet,
         onLogFocusedSet = viewModel::logFocusedSet,
+        onDecrementFocusedReps = viewModel::decrementFocusedReps,
         onUndoLastLog = viewModel::undoLastLog,
         onSelectWorkoutLift = viewModel::selectWorkoutLift,
         onNextWorkoutLift = viewModel::nextWorkoutLift,

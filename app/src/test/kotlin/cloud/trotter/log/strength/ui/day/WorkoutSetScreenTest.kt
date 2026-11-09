@@ -24,6 +24,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -266,6 +267,94 @@ class WorkoutSetScreenTest {
         assertFalse(layout.hasVisualOverflow)
         repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
         rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)
+    }
+
+    @Test fun repDecrementHasAccessibleTargetUpdatesLabelAndAllowsImmediateLog() {
+        var state by mutableStateOf(workoutSetSingleFixture())
+        var decrements = 0
+        var logs = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
+            onDecrementFocusedReps = {
+                decrements++
+                state = state.copy(exercises = state.exercises.map { card ->
+                    card.copy(rows = card.rows.map { row -> if (row.index == 2) row.copy(reps = row.reps - 1) else row })
+                })
+            },
+            onLogFocusedSet = { logs++ },
+        )) } }
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithContentDescription("One fewer rep")
+            .assertIsDisplayed().assertIsEnabled().assertHasClickAction()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+        // The Log label crossfades; let it settle before reading it.
+        rule.mainClock.advanceTimeBy(1_000L)
+        rule.onNodeWithText("Log 190 lb × 4").assertExists()
+        rule.onNodeWithTag("workout-action-filled").performClick()
+        rule.onNodeWithTag("workout-action-filled").performClick()
+        rule.runOnIdle {
+            assertEquals(1, decrements)
+            assertEquals(1, logs)
+        }
+    }
+
+    @Test fun repDecrementIsDisabledAtOneRepOrFewer() {
+        val base = workoutSetSingleFixture()
+        var state by mutableStateOf(base.copy(exercises = base.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(reps = 1) })
+        }))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithContentDescription("One fewer rep").assertIsNotEnabled()
+        rule.runOnIdle { state = state.copy(exercises = state.exercises.map { card ->
+            card.copy(rows = card.rows.map { it.copy(reps = 0) })
+        }) }
+        rule.onNodeWithContentDescription("One fewer rep").assertIsNotEnabled()
+    }
+
+    @Test fun repDecrementUsesPartnerTrackingAndPendingReps() {
+        val base = workoutSetSupersetFixture()
+        var state by mutableStateOf(base.copy(
+            workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1)),
+            exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
+                it.copy(partner = it.partner?.copy(reps = 1))
+            }) },
+        ))
+        var decrements = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
+            onDecrementFocusedReps = { decrements++ },
+        )) } }
+        rule.onNodeWithContentDescription("One fewer rep").assertIsDisplayed().assertIsNotEnabled()
+        rule.runOnIdle { state = state.copy(exercises = state.exercises.map { card ->
+            card.copy(partnerTracking = TrackingType.REPS, rows = card.rows.map {
+                it.copy(partner = it.partner?.copy(reps = 2))
+            })
+        }) }
+        rule.onNodeWithContentDescription("One fewer rep").assertIsEnabled().performClick()
+        rule.runOnIdle {
+            assertEquals(1, decrements)
+            state = state.copy(exercises = state.exercises.map { it.copy(partnerTracking = TrackingType.TIMED) })
+        }
+        rule.onNodeWithContentDescription("One fewer rep").assertDoesNotExist()
+    }
+
+    @Test fun repDecrementIsAbsentForHoldsTimersCardioAndCompletedViews() {
+        val base = workoutSetSingleFixture()
+        val hold = base.copy(exercises = base.exercises.map { card ->
+            card.copy(tracking = TrackingType.TIMED, rows = card.rows.map { it.copy(seconds = 45) })
+        })
+        val completed = base.exercises.single().copy(allDone = true, rows = base.exercises.single().rows.map { it.copy(done = true) })
+        val next = base.copy(exercises = listOf(completed, completed.copy(programExerciseId = 2L,
+            allDone = false, rows = completed.rows.map { it.copy(done = false) })),
+            workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true), focus = null, completedView = true))
+        var state by mutableStateOf(hold)
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        val excluded = listOf(hold, workoutSetTimedRepFixture(), workoutSetTimedRepRunningFixture(),
+            workoutSetTimedRepRunningFixture(awaiting = true), workoutSetCardioFixture(), workoutSetCardioRunningFixture(),
+            next, base.copy(exercises = listOf(completed),
+                workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, 0L)))
+        excluded.forEach { excludedState ->
+            rule.runOnIdle { state = excludedState }
+            rule.onNodeWithContentDescription("One fewer rep").assertDoesNotExist()
+        }
     }
 
     @Test fun singleLiftShowsSetAndPlatesAndGuardsDoubleTaps() {

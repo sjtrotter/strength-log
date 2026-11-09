@@ -952,7 +952,7 @@ private fun WorkoutAction(
         else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
         when (secondary) {
             is WorkoutSecondaryAction.DecrementReps -> {
-                OutlinedIconButton(onClick = secondary.onClick, enabled = enabled && secondary.enabled, modifier = Modifier.size(48.dp)) {
+                OutlinedIconButton(onClick = secondary.onClick, enabled = enabled && secondary.enabled, modifier = Modifier.size(64.dp)) {
                     Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))
                 }
             }

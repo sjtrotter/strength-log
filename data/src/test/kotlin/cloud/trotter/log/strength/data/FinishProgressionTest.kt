@@ -141,7 +141,7 @@ abstract class FinishProgressionFixture {
         return assertNotNull(repo.finishRun(run)).also { now = now.plusSeconds(1) }
     }
     protected suspend fun offer(plan: Long, exercise: String, day: String = "A") =
-        repo.history.slotSessions(plan, day).getValue(exercise to Slot.MAIN).offer
+        repo.history.slotSessionsById(plan, day).getValue(id(plan, exercise, day) to Slot.MAIN).offer
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -249,7 +249,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         repo.finishRun(run)
         val ss = finished.single { it.programExerciseId == b && it.slot == Slot.SS && !it.retired }
         assertEquals(WorkingRows.carried(ss.planned, ss.sets), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", b, Slot.SS)!!.setsJson))
-        assertNull(repo.history.slotSessions(plan, "A").getValue("cable_row" to Slot.SS).offer)
+        assertNull(repo.history.slotSessionsById(plan, "A").getValue(b to Slot.SS).offer)
         assertNull(db.programDao().logForSlot(plan, "A", c, Slot.MAIN))
         assertEquals(before, log(plan, h))
         assertEquals(beforeRule, db.programDao().exercise(h)!!.ruleJson)

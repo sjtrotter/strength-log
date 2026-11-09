@@ -552,7 +552,7 @@ class TrackerRepositoryRunEditsTest {
     }
 
     /** [F] */
-    @Test fun `swapping back retires a done alternate archives it and carries restored values forward`() = runTest {
+    @Test fun `swapping back retires a done alternate archives it and keeps the stored 45 lb rows`() = runTest {
         val plan = generated()
         val slot = slot(plan)
         val restoredRows = squat().mapIndexed { i, row ->

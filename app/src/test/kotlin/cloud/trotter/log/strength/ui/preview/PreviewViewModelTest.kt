@@ -228,7 +228,7 @@ class PreviewViewModelTest : OverviewFixture() {
         db.storeTestRows("B", b, Slot.MAIN,
             List(3) { LoggedSet(55.0, 5, SetKind.WORK, done = true, plannedIndex = it) }, success.runId)
         repo.finishRun(success.runId)
-        assertTrue(repo.history.slotSessions(plan, "A").isEmpty())
+        assertTrue(repo.history.slotSessionsById(plan, "A").isEmpty())
 
         val vm = preview(plan, "A")
         advanceUntilIdle()

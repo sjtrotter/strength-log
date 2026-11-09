@@ -293,15 +293,6 @@ class HistoryRepository(
     suspend fun lastSets(exerciseIds: List<String>): Map<String, List<LoggedSet>> =
         if (exerciseIds.isEmpty()) emptyMap() else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSetsByExercise()
 
-    /** Archived tracks of the newest session for this plan and day, keyed by exercise and slot.
-     *  For duplicate keys, the last archived track wins. */
-    suspend fun slotSessions(planId: Long, dayId: String): Map<Pair<String, String>, SlotSession> = db.withTransaction {
-        val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
-        archivedTracks(session, sessionDao.setsForSession(session.id)).entries.associate { (dto, track) ->
-            (dto.exerciseId to dto.slot) to track
-        }
-    }
-
     /** Offers belong to a program slot, including when an exercise appears twice on the same day. */
     suspend fun slotSessionsById(planId: Long, dayId: String): Map<Pair<Long, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()

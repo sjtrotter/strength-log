@@ -1274,7 +1274,7 @@ class TrackerRepositoryRunTest {
         assertEquals(track.planned, WorkingRows.cleared(track.sets))
         repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
         repo.finishRun(runId)
-        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        val archived = repo.history.slotSessionsById(plan, "A").getValue(slot to Slot.MAIN)
         assertEquals(listOf(0, 1), archived.actual.map { it.plannedIndex })
         assertEquals(NextOffer(55.0, 60.0), archived.offer)
     }
@@ -1299,7 +1299,7 @@ class TrackerRepositoryRunTest {
         assertEquals(track.planned, WorkingRows.cleared(track.sets))
         repo.applyToRun(runId, plan, "A", track.sets.indices.map { tick(slot, it) })
         repo.finishRun(runId)
-        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        val archived = repo.history.slotSessionsById(plan, "A").getValue(slot to Slot.MAIN)
         assertEquals(listOf(0, 1, 2, 3), archived.actual.map { it.plannedIndex })
         assertEquals(NextOffer(55.0, 60.0), archived.offer)
     }
@@ -1464,6 +1464,12 @@ class TrackerRepositoryRunTest {
         repo.finishRun(runId)
         assertEquals(emptyList<LoggedSet>(),
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+
+        val nextRunId = day(plan).nextRunId
+        assertEquals(RunStartResult.Started(nextRunId), repo.startRun(plan, "A"))
+        val next = repo.openRunFlow.first()!!.tracks.single()
+        assertEquals(SetJson.decodeSets(main.plannedJson), next.planned)
+        assertEquals(next.planned.mapIndexed { i, row -> row.copy(plannedIndex = i) }, next.sets)
     }
 
     @Test fun `swapping by id keeps the slots next time choice`() = runTest {

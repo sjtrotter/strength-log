@@ -1305,7 +1305,7 @@ class DayViewModelWorkoutTest {
         assertNotNull(repo.finishRun(requireNotNull(first.uiState.value.runId)))
         runCurrent()
         first.viewModelScope.cancel()
-        val archived = repo.history.slotSessions(plan, "A").getValue("bb_back_squat" to Slot.MAIN)
+        val archived = repo.history.slotSessionsById(plan, "A").getValue(squatId to Slot.MAIN)
         assertTrue(archived.retired)
         assertTrue(archived.actual.isEmpty())
 

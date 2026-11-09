@@ -862,7 +862,7 @@ class TrackerRepository(
         }
         val day = programDao.day(planId, dayId) ?: return RunStartResult.NoStrengthSlots
         if (programDao.exercisesForDay(planId, dayId).isEmpty()) return RunStartResult.NoStrengthSlots
-        startRun(day, initialRunTracks(day, seedPlan(day, null, config, catalog), config, catalog))
+        startRun(day, initialRunTracks(day, seedPlan(day, null, config, catalog)))
         return RunStartResult.Started(day.nextRunId)
     }
 
@@ -961,7 +961,7 @@ class TrackerRepository(
             if (open != null && (open.planId != planId || open.dayId != dayId)) return@withTransaction RunWriteResult.Rejected
             val runId = open?.id ?: day.nextRunId
             val tracks = if (open == null) {
-                initialRunTracks(day, seedPlan(day, null, config, catalog), config, catalog)
+                initialRunTracks(day, seedPlan(day, null, config, catalog))
             } else runDao.tracks(runId)
             val main = tracks.firstOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
                 ?: return@withTransaction RunWriteResult.Rejected
@@ -1194,7 +1194,7 @@ class TrackerRepository(
                 return@withTransaction RunWriteResult.WorkingValues
             }
             if (open != null) return@withTransaction RunWriteResult.Rejected
-            val initial = initialRunTracks(day, seeds, config, catalog)
+            val initial = initialRunTracks(day, seeds)
             val resolved = resolveRunEdits(runId, day, initial, edits, seeds)
             if (resolved.failure != null) return@withTransaction resolved.failure
             startRun(day, initial)
@@ -1461,20 +1461,12 @@ class TrackerRepository(
         SetJson.encodeSets(base), SetJson.encodeSets(base.mapIndexed { i, s -> s.copy(plannedIndex = i) }), clock.millis(),
     )
 
-    private suspend fun initialRunTracks(
-        day: ProgramDayEntity,
-        seeds: Map<Pair<Long, String>, List<LoggedSet>>,
-        config: LifterConfig,
-        catalog: ExerciseCatalog,
-    ): List<RunTrackEntity> {
+    private suspend fun initialRunTracks(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, List<LoggedSet>>): List<RunTrackEntity> {
         val tracks = mutableListOf<RunTrackEntity>()
         for (slot in programDao.exercisesForDay(day.planId, day.dayId)) {
             for (slotName in listOf(Slot.MAIN, Slot.SS)) {
                 val exerciseId = slot.exerciseIdFor(slotName) ?: continue
-                // Finish can carry an empty malformed plan; a new run still needs its slot's rows.
-                val base = workingBase(day, slot, slotName, seeds)?.takeIf { it.isNotEmpty() }
-                    ?: DaySeeds.plan(listOf(ProgramSlot(slot.id, slot.position, slot.toDomain())), emptyMap(), config, catalog)
-                        .get(slot.id to slotName) ?: continue
+                val base = workingBase(day, slot, slotName, seeds) ?: continue
                 tracks.add(runTrack(day.nextRunId, slot, slotName, exerciseId, base))
             }
         }

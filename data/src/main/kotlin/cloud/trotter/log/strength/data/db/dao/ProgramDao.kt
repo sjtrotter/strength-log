@@ -129,7 +129,7 @@ interface ProgramDao {
     @Query("UPDATE program_exercise SET exerciseId = :exerciseId, structure = :structure, targetSets = :targetSets, prescriptionJson = NULL, ruleJson = NULL WHERE id = :id")
     suspend fun replaceExercise(id: Long, exerciseId: String, structure: String, targetSets: Int)
 
-    @Query("UPDATE program_exercise SET prescriptionJson = :json, targetSets = :sets WHERE id = :id")
+    @Query("UPDATE program_exercise SET prescriptionJson = :json, targetSets = :sets, ruleJson = NULL WHERE id = :id")
     suspend fun setPrescription(id: Long, json: String, sets: Int)
 
     @Query("UPDATE program_exercise SET structure = :structure, ruleJson = NULL WHERE id = :id")

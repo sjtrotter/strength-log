@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import android.database.sqlite.SQLiteException
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -485,7 +486,14 @@ class PlanRepository(
                 }
                 if (!legacyCardioConverted) return@withLock
             }
-            if (!slotsRuled) slotsRuled = convertPlans()
+            if (!slotsRuled) {
+                slotsRuled = try {
+                    convertPlans()
+                } catch (_: SQLiteException) {
+                    // Keep plans readable after a rolled-back conversion; the next gate call retries.
+                    false
+                }
+            }
         }
     }
 

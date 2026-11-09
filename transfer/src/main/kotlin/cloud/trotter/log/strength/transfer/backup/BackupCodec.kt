@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.cardio.CardioProgression
@@ -544,6 +545,15 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 throw BackupError.Inconsistent("invalid $what")
             }
         }
+        fun checkRir(what: String, values: List<Int?>) {
+            checkValue("rir in $what") {
+                require(values.all { it == null || it in 0..EffortScale.MAX_REPS_LEFT })
+            }
+        }
+        fun checkSets(what: String, payload: String, malformed: Boolean = false) {
+            val sets = decodePayload(what, malformed = malformed) { SetJson.decodeSets(payload) }
+            checkRir(what, sets.map { it.rir })
+        }
         checkValue("effortScale in settings") { EffortScale.valueOf(doc.settings.effortScale) }
         for (plan in doc.plans) {
             checkValue("settingsJson of plan ${plan.id}") { plan.settingsJson?.let(PlanSettingsJson::validate) }
@@ -557,17 +567,33 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             checkValue("cardioRuleJson of day '${day.dayId}'") { day.cardioRuleJson?.let(CardioRuleJson::validate) }
             for (slot in day.exercises) {
                 checkValue("ruleJson of slot ${slot.id}") { slot.ruleJson?.let(SlotRuleJson::validate) }
+                slot.parkedLogsJson?.let { parked ->
+                    ParkedLogsJson.decode(parked).forEach { track ->
+                        checkSets("parked setsJson of slot ${slot.id}", track.setsJson)
+                    }
+                }
             }
         }
-        for (session in doc.sessions) for (set in session.sets) {
-            checkValue("rir of set ${set.id} in session ${session.id}") {
-                require(set.rir == null || set.rir in 0..EffortScale.MAX_REPS_LEFT)
+        for (log in doc.liveLogs) {
+            checkSets("setsJson of slot ${log.programExerciseId} in day '${log.dayId}'", log.setsJson)
+        }
+        for (run in doc.runs) for (track in run.tracks) {
+            checkSets("plannedJson of run track ${track.id}", track.plannedJson, malformed = true)
+            checkSets("setsJson of run track ${track.id}", track.setsJson, malformed = true)
+        }
+        for (session in doc.sessions) {
+            checkRir("session ${session.id}", session.sets.map { it.rir })
+            session.plannedJson?.let { planned ->
+                val tracks = decodePayload("plannedJson of session ${session.id}") { SessionPlanJson.decode(planned) }
+                checkRir("plannedJson of session ${session.id}", tracks.flatMap { it.sets }.map { it.rir })
             }
         }
         for (session in doc.cardioSessions) {
             checkValue("effort of cardio session ${session.id}") { session.effort?.let(CardioEffort::valueOf) }
             for (set in session.sets) {
                 checkValue("cardio set ${set.id} in session ${session.id}") {
+                    require(set.metresAtEnd == null || set.metresAtEnd >= 0)
+                    require(set.secondsAtEnd == null || set.secondsAtEnd >= 0)
                     val timing = listOf(set.centis, set.timingMethod, set.startProtocol)
                     require(timing.all { it == null } || timing.all { it != null })
                     set.centis?.let { require(it in 1..CardioTiming.MAX_CENTIS) }
@@ -820,8 +846,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (set.id <= 0 || !ids.add(set.id)) {
                     throw BackupError.Inconsistent("invalid or duplicate cardio set id ${set.id}")
                 }
-                decodePayload("cardio set ${set.id} in session ${session.id}",
-                    inconsistent = version >= 27 && (set.metresAtEnd != null || set.secondsAtEnd != null)) {
+                decodePayload("cardio set ${set.id} in session ${session.id}") {
                     CardioSetResult(
                         spec = CardioBlockJson.decodeSet(set.specJson),
                         status = CardioSetStatus.valueOf(set.status),
@@ -841,13 +866,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     private fun <T> decodePayload(
         what: String,
         malformed: Boolean = false,
-        inconsistent: Boolean = false,
         decode: () -> T,
     ): T =
         try {
             decode()
         } catch (e: Exception) {
-            if (inconsistent) throw BackupError.Inconsistent("$what: ${e.message}")
             if (malformed) throw BackupError.Malformed("$what: ${e.message}", e)
             throw BackupError.InvalidPayload("$what: ${e.message}", e)
         }

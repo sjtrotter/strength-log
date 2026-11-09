@@ -227,7 +227,7 @@ class PlanConversionTest {
         }
         val plans = PlanRepository(db, settings, programDao = dao)
         val original = dump()
-        assertFailsWith<SQLiteException> { plans.runPlanSettingsFixupIfNeeded() }
+        assertFailsWith<SQLiteException> { plans.convertPlans() }
         assertEquals(original, dump())
         plans.runPlanSettingsFixupIfNeeded()
         assertEquals(rule(SlotRole.MAIN, 5, 0.025, Scheme.PROTOTYPE),

@@ -101,7 +101,7 @@ class PlanConversionTest {
             listOf(21 to "pullup", 22 to "plank", 23 to "custom_hinge", 24 to "custom_gone", 25 to "bb_back_squat")
                 .forEach { (id, exercise) ->
                     sql.execSQL("INSERT INTO program_exercise VALUES (?,1,'A',? ,?,'STRAIGHT',3,NULL,'',NULL,0,NULL,NULL)",
-                        arrayOf(id, id - 16, exercise))
+                        arrayOf<Any>(id, id - 16, exercise))
                     val rows = when (id) {
                         21 -> List(3) { LoggedSet(0.0, 8, SetKind.WORK) }
                         22 -> List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 45) }
@@ -109,7 +109,7 @@ class PlanConversionTest {
                         else -> listOf(LoggedSet(50.0, 10, SetKind.WORK))
                     }
                     sql.execSQL("INSERT INTO exercise_log VALUES (1,'A',?,'main',?,3000)",
-                        arrayOf(id, if (id == 25) "junk" else SetJson.encodeSets(rows)))
+                        arrayOf<Any>(id, if (id == 25) "junk" else SetJson.encodeSets(rows)))
                 }
         }
         before = V24Fixture.dump(helper.writableDatabase)
@@ -240,7 +240,7 @@ class PlanConversionTest {
         sql.execSQL("INSERT INTO plan (id,name,origin,position,createdAt,archived) VALUES (1,'Cardio','GENERATED',0,1000,0)")
         for ((position, day) in listOf("C1", "C2").withIndex()) {
             sql.execSQL("INSERT INTO program_day (planId,dayId,position,title,emphasisLine,kind,nextRunId) VALUES (1,?,?,'Cardio','','CARDIO',?)",
-                arrayOf(day, position, day))
+                arrayOf<Any>(day, position, day))
         }
         val original = dump()
         repo.plans.runPlanSettingsFixupIfNeeded()

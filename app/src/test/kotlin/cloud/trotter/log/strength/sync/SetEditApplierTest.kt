@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
@@ -147,8 +148,10 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
-        assertEquals(List(2) { LoggedSet(180.0, 10, SetKind.WORK) }, track(id, Slot.MAIN))
-        assertNull(repo.plans.daySlotsFlow("A").first().single().exercise.prescription)
+        assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) }, track(id, Slot.MAIN))
+        val replacement = repo.plans.daySlotsFlow("A").first().single().exercise
+        assertNull(replacement.prescription)
+        assertTrue(requireNotNull(replacement.rule).state.calibrating)
     }
 
     /** Day A: a ramped squat (with a TOP row) and an arms superset. */
@@ -964,7 +967,7 @@ class SetEditApplierTest {
     }
 
     /** [F] */
-    @Test fun `old-watch swap retires done work and seeds the alternate into the run`() = runTest {
+    @Test fun `old-watch plan swap retires done work and seeds the replacement into the plan and run`() = runTest {
         seedOpenProgram()
         val id = squatId()
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
@@ -972,6 +975,9 @@ class SetEditApplierTest {
             done = true, editedAtMillis = 1L,
         )))
         val before = repo.openRunFlow.first()!!
+        val planId = before.planId!!
+        val originalLog = requireNotNull(db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
+        assertEquals(235.0, SetJson.decodeSets(originalLog.setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
         val old = before.tracks.single { it.programExerciseId == id }
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         assertEquals(SetEditApplier.Outcome.APPLIED,
@@ -984,9 +990,33 @@ class SetEditApplierTest {
         assertEquals(target.id, active.exerciseId)
         assertTrue(active.sets.isNotEmpty())
         assertTrue(active.sets.none { it.done })
-        val planId = before.planId!!
         assertEquals(1, repo.dayTracksFlow(planId, "A").first().retired.size)
-        assertEquals(null, db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
+        val replacementLog = requireNotNull(db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
+        assertEquals(List(3) { LoggedSet(20.0, 10, SetKind.WORK) }, SetJson.decodeSets(replacementLog.setsJson))
+        val replacement = repo.plans.daySlotsFlow("A").first().single { it.programExerciseId == id }.exercise
+        assertTrue(requireNotNull(replacement.rule).state.calibrating)
+    }
+
+    @Test fun `run-only watch swap preserves the original plan slot and working rows`() = runTest {
+        seedOpenProgram()
+        val id = squatId()
+        val before = repo.openRunFlow.first()!!
+        val planId = before.planId!!
+        val originalSlot = requireNotNull(db.programDao().exercise(id))
+        val originalLog = requireNotNull(db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = target.id,
+            exerciseName = target.name, editedAtMillis = 100L, planId = planId, runId = before.id,
+        )))
+
+        assertEquals(originalSlot, db.programDao().exercise(id))
+        assertEquals(originalLog, db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
+        val run = repo.openRunFlow.first()!!
+        assertEquals(before.id, run.id)
+        assertEquals(target.id, run.tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
+        assertEquals("bb_back_squat", run.tracks.single { it.programExerciseId == id && it.retired }.exerciseId)
     }
 
     @Test

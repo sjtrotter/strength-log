@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
@@ -41,6 +42,7 @@ import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -730,6 +732,8 @@ class WizardViewModelWiringTest {
         val days = db.programDao().daysForPlan(1)
         val exercises = db.programDao().exercisesForPlan(1)
         val logs = db.programDao().logsForPlan(1)
+        val runs = db.runDao().allRuns()
+        val tracks = db.runDao().allTracks()
         val vm = newViewModel()
         advanceUntilIdle()
 
@@ -743,8 +747,22 @@ class WizardViewModelWiringTest {
         assertTrue(vm.uiState.value.isComplete)
         assertEquals(original, db.planDao().plan(1))
         assertEquals(days, db.programDao().daysForPlan(1))
-        assertEquals(exercises, db.programDao().exercisesForPlan(1))
-        assertEquals(logs, db.programDao().logsForPlan(1))
+        val converted = db.programDao().exercisesForPlan(1)
+        assertEquals(exercises.map { it.copy(ruleJson = null) }, converted.map { it.copy(ruleJson = null) })
+        assertTrue(converted.all { it.ruleJson != null })
+        // The edited rows are in the run; conversion seeds the never-opened plan slot.
+        val convertedLogs = db.programDao().logsForPlan(1)
+        assertEquals(logs, convertedLogs.filterNot { it.programExerciseId == slot && it.slot == Slot.MAIN })
+        assertEquals(listOf(
+            LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 3, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.TOP),
+            LoggedSet(45.0, 8, SetKind.BACKOFF),
+        ), SetJson.decodeSets(convertedLogs.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.setsJson))
+        assertEquals(runs, db.runDao().allRuns())
+        assertEquals(tracks, db.runDao().allTracks())
     }
 
     @Test
@@ -1003,39 +1021,33 @@ class WizardViewModelWiringTest {
     }
 
     @Test
-    fun finishThenDayScreenSeedsThePinnedSquatSequence() = runVmTest {
-        // Closes the compositional gap between finish_persists_answers_and_
-        // replaces_the_program (real generator, but only a day count assert)
-        // and DayViewModelWiringTest (pinned §11 seed numbers, but against a
-        // hand-built program fixture): drive the REAL generator through
-        // finish(), then let a real DayViewModel seed day A of that program
-        // and pin the persisted squat log end to end.
+    fun finishThenDayScreenOpensTheSquatAtTheBarCalibrating() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
         vm.setBodyweight(235.0)
         vm.setAge(40)
         repeat(WizardStateBuilder.steps(WizardAnswers()).size - 1) { vm.onNext() }
-        vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
+        vm.onNext() // last step -> finish(): ProgramGenerator -> createGeneratedPlan
         advanceUntilIdle()
 
         DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings), SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history)
             .also { vms += it }
         advanceUntilIdle() // constructing the VM triggers the day-A seed pass
 
-        val squatSlotId = repo.plans.daySlotsFlow("A").first()
+        val squatSlot = repo.plans.daySlotsFlow("A").first()
             .first { it.exercise.exerciseId == "bb_back_squat" }
-            .programExerciseId
+        assertTrue(requireNotNull(squatSlot.exercise.rule).state.calibrating)
         val squat = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first()
-            .first { it.programExerciseId == squatSlotId && it.slot == Slot.MAIN }
+            .first { it.programExerciseId == squatSlot.programExerciseId && it.slot == Slot.MAIN }
             .sets
         assertEquals(
             listOf(
-                Triple(130.0, 5, SetKind.RAMP),
-                Triple(165.0, 5, SetKind.RAMP),
-                Triple(190.0, 5, SetKind.RAMP),
-                Triple(210.0, 3, SetKind.RAMP),
-                Triple(235.0, 5, SetKind.TOP),
-                Triple(175.0, 8, SetKind.BACKOFF),
+                Triple(45.0, 5, SetKind.RAMP),
+                Triple(45.0, 5, SetKind.RAMP),
+                Triple(45.0, 5, SetKind.RAMP),
+                Triple(45.0, 3, SetKind.RAMP),
+                Triple(45.0, 5, SetKind.TOP),
+                Triple(45.0, 8, SetKind.BACKOFF),
             ),
             squat.map { Triple(it.weightLb, it.reps, it.kind) },
         )

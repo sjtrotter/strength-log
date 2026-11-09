@@ -2263,10 +2263,10 @@ class DayViewModelWiringTest {
      * very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
      * [TrackerRepository.swapExerciseById]. The slot row survives the swap (same
      * programExerciseId, so history stays keyed to it), its live sets are
-     * discarded, and the seed pass refills from the new exercise's GOAL (§8.3).
+     * discarded, and the replacement seeds from the new lift's history or floor.
      */
     @Test
-    fun swappingFromACardKeepsTheSlotIdDropsItsLiveSetsAndReseedsFromTheNewGoal() = runVmTest {
+    fun swappingFromACardKeepsTheSlotIdDropsItsLiveSetsAndReseedsFromTheNewLiftsHistoryOrFloor() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
@@ -2302,9 +2302,11 @@ class DayViewModelWiringTest {
             vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.exerciseId,
         )
         assertEquals(
-            List(3) { LoggedSet(180.0, 10, SetKind.WORK) },
+            List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
             track(squatId, Slot.MAIN),
         )
+        val replacement = repo.plans.daySlotsFlow("A").first().single { it.programExerciseId == squatId }
+        assertTrue(requireNotNull(replacement.exercise.rule).state.calibrating)
         collectUi.cancel()
         collectEdit.cancel()
     }

@@ -13,8 +13,8 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
 
-/** The rule conversion gives an existing slot (design §4.4): Strength defaults, MAIN for a ramped slot or a
- *  main-capable entry, Fixed reps from the slot's first working row. [PlanRepository.convertPlans] reads the rows. */
+/** The rule conversion gives an existing slot (design §4.4): the plan goal's defaults, MAIN for a ramped slot or a
+ *  main-capable entry, Fixed reps from the slot's first working row. [PlanRepository.ruleSlot] reads the rows. */
 internal object PlanConversion {
     /** Fixed reps from the slot's first working row, else its prescription, else a bodyweight entry's rep target,
      *  else [goal]'s default. */

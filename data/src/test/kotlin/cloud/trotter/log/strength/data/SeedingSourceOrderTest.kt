@@ -272,6 +272,59 @@ class SeedingSourceOrderTest {
         assertEquals(stored, log(source))
     }
 
+    @Test fun `a ramp seeded from the latest ten rep plan row in an A to B to C chain calibrates`() = runTest {
+        assertEquals("C", repo.addDay(plan, "Day C"))
+        val a = add("A", ProgramExercise("db_row", SetStructure.RAMP_TOP, 5))
+        val source = listOf(LoggedSet(70.0, 5, SetKind.TOP))
+        val stored = lifter(a, source, rule(SlotRole.MAIN, 5, 0.0125, Scheme.PROTOTYPE), 1000)
+        val b = add("B", ProgramExercise("db_row"))
+        assertSlot(b, work(3, 60.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125))
+        val latest = assertNotNull(log(b))
+        assertTrue(latest.updatedAt > stored.updatedAt)
+
+        val c = add("C", ProgramExercise("db_row", SetStructure.RAMP_TOP, 5))
+
+        assertEquals(60.0, rows(c).single { it.kind == SetKind.TOP }.weightLb)
+        assertEquals(rule(SlotRole.MAIN, 5, 0.0125, Scheme.PROTOTYPE, calibrating = true),
+            SlotRuleJson.decode(db.programDao().exercise(c)!!.ruleJson))
+        assertEquals(stored, log(a))
+        assertEquals(latest, log(b))
+    }
+
+    @Test fun `turning keep to plan off restores an unreadable TIMED custom MAIN exactly`() = runTest {
+        restoreUnreadableTimedTrack(Slot.MAIN)
+    }
+
+    @Test fun `turning keep to plan off restores an unreadable TIMED custom SS exactly`() = runTest {
+        restoreUnreadableTimedTrack(Slot.SS)
+    }
+
+    private suspend fun restoreUnreadableTimedTrack(track: String) {
+        val custom = CustomExerciseEntity("custom_timed", "Loaded hold", "CORE_FLEX", "DUMBBELL", false,
+            35.0, tracking = "TIMED", targetSeconds = 45)
+        db.customExerciseDao().upsert(custom)
+        val id = add("A", ProgramExercise(if (track == Slot.MAIN) custom.id else "ez_curl", targetSets = 2,
+            superset = SupersetPartner(if (track == Slot.SS) custom.id else "rope_pushdown")))
+        val timed = listOf(
+            LoggedSet(35.0, 0, SetKind.WORK, seconds = 60),
+            LoggedSet(42.5, 0, SetKind.EXTRA, seconds = 75),
+        )
+        db.programDao().upsertLog(ExerciseLogEntity(plan, "A", id, track, SetJson.encodeSets(timed), 1000))
+        val before = db.programDao().allLogs().associate { it.slot to it.setsJson }
+        repo.setKeepToPlan(id, true)
+        assertTrue(db.programDao().allLogs().isEmpty())
+        assertNotNull(db.programDao().exercise(id)!!.parkedLogsJson)
+        db.customExerciseDao().upsert(custom.copy(pattern = "UNKNOWN"))
+        assertNull(repo.catalog.snapshot().find(custom.id))
+
+        repo.setKeepToPlan(id, false)
+
+        assertEquals(before, db.programDao().allLogs().associate { it.slot to it.setsJson })
+        assertEquals(timed, rows(id, track))
+        assertFalse(db.programDao().exercise(id)!!.keepToPlan)
+        assertNull(db.programDao().exercise(id)!!.parkedLogsJson)
+    }
+
     @Test fun `stored source ties keep plan order and unreadable rows never offer a prescription`() = runTest {
         val a = add("A", ProgramExercise("bb_bench"))
         val b = add("B", ProgramExercise("bb_bench"))

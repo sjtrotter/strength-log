@@ -62,10 +62,10 @@ object SlotSeeding {
             }
             TrackingType.WEIGHTED -> Unit
         }
+        val plannedEstimate = if (planned != null && planReps != reps) Estimate.e1rm(planned, planReps, planRir) else null
         val plannedTop = planned?.let { weight ->
             if (planReps == reps) weight else {
-                val estimate = Estimate.e1rm(weight, planReps, planRir)
-                steps.down(estimate?.let { Estimate.loadFor(it, reps, rule.rir) } ?: weight, equipment, unit)
+                steps.down(plannedEstimate?.let { Estimate.loadFor(it, reps, rule.rir) } ?: weight, equipment, unit)
             }
         }
         val estimate = if (planned == null) last?.let { Estimate.e1rm(it.weightLb, it.reps, it.rir ?: Effort.GOOD.rir) } else null
@@ -73,9 +73,10 @@ object SlotSeeding {
             ?: estimate?.let { steps.nearest(Estimate.loadFor(it, reps, rule.rir), equipment, unit) }
             ?: last?.let { steps.nearest(it.weightLb, equipment, unit) }
             ?: floor(equipment, unit)
+        val calibrating = if (planned != null) planReps != reps && plannedEstimate == null else estimate == null
         return Seeded(
             SetSeeder.shape(slot.structure, top, reps, slot.targetSets, unit, equipment, rule.scheme),
-            rule.copy(state = rule.state.copy(calibrating = planned == null && estimate == null)),
+            rule.copy(state = rule.state.copy(calibrating = calibrating)),
         )
     }
 

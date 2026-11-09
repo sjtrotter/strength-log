@@ -149,4 +149,20 @@ class RunOnlySwapWritesTest {
         assertEquals(work(3, 20.0, 10), active(e).planned)
         unchanged()
     }
+
+    @Test fun `a pre start today only swap rejects an unknown substitute with an undecodable MAIN log`() = runTest {
+        val corrupt = assertNotNull(db.programDao().logForSlot(plan, "A", h, Slot.MAIN)).copy(setsJson = "unreadable")
+        db.programDao().upsertLog(corrupt)
+        val slots = db.programDao().allExercises()
+        val logs = db.programDao().allLogs()
+        val day = assertNotNull(db.programDao().day(plan, "A"))
+
+        assertEquals(ExerciseSwapResult.REJECTED,
+            repo.applyExerciseSwap(plan, "A", h, "unknown", day.nextRunId, allowChange = true))
+
+        assertNull(db.runDao().openRun())
+        assertEquals(slots, db.programDao().allExercises())
+        assertEquals(logs, db.programDao().allLogs())
+        assertEquals(day, db.programDao().day(plan, "A"))
+    }
 }

@@ -1031,7 +1031,8 @@ class TrackerRepositoryRunTest {
 
         assertEquals(replacementLog, db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
-        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        assertEquals(listOf(ParkedTrackDto(Slot.MAIN, "bb_back_squat", SetJson.encodeSets(squat()))),
+            ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
     }
 
     @Test fun `restoring skips a parked track whose shape changed`() = runTest {
@@ -1049,10 +1050,11 @@ class TrackerRepositoryRunTest {
 
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.SS)!!.setsJson))
-        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        assertEquals(listOf(ParkedTrackDto(Slot.MAIN, "bb_back_squat", SetJson.encodeSets(squat()))),
+            ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
     }
 
-    @Test fun `restoring skips a removed partner and clears an empty parked track`() = runTest {
+    @Test fun `restoring retains a removed partner and an empty parked track`() = runTest {
         repo.replaceProgram(generated())
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
@@ -1067,12 +1069,14 @@ class TrackerRepositoryRunTest {
 
         assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
-        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        assertEquals(listOf(ParkedTrackDto(Slot.SS, "ez_curl", SetJson.encodeSets(work()))),
+            ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
         db.storeTestRows("A", slot, Slot.MAIN, emptyList())
         repo.setKeepToPlan(slot, true)
         repo.setKeepToPlan(slot, false)
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
-        assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
+        assertEquals(listOf(ParkedTrackDto(Slot.MAIN, "bb_back_squat", SetJson.encodeSets(emptyList()))),
+            ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
     }
 
     @Test fun `restoring timed tracks uses the main prescription and the partner catalog`() = runTest {

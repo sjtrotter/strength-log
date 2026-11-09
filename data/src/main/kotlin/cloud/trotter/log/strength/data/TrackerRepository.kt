@@ -520,7 +520,9 @@ class TrackerRepository(
         val parked = row.parkedLogsJson ?: return
         val catalog = this.catalog.snapshot()
         val prescription = PrescriptionJson.decode(row.prescriptionJson)
-        for (track in ParkedLogsJson.decode(parked)) {
+        val tracks = ParkedLogsJson.decode(parked)
+        val unrestored = tracks.toMutableList()
+        for (track in tracks) {
             if (track.exerciseId != row.exerciseIdFor(track.slot)) continue
             val sets = SetJson.decodeSets(track.setsJson)
             val first = sets.firstOrNull() ?: continue
@@ -529,10 +531,11 @@ class TrackerRepository(
             } else {
                 catalog.find(track.exerciseId)?.tracking
             }
-            if ((first.seconds > 0) != (tracking == TrackingType.TIMED)) continue
+            if (tracking != null && (first.seconds > 0) != (tracking == TrackingType.TIMED)) continue
             programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, track.slot, sets))
+            unrestored.remove(track)
         }
-        programDao.setParkedLogs(row.id, null)
+        programDao.setParkedLogs(row.id, unrestored.takeIf { it.isNotEmpty() }?.let(ParkedLogsJson::encode))
     }
 
     suspend fun resetSlotToPlan(programExerciseId: Long): Boolean = db.withTransaction {
@@ -1444,7 +1447,9 @@ class TrackerRepository(
         return run?.let { runDao.tracks(it.id) }?.firstOrNull {
             it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
         }?.let { SetJson.decodeSets(it.setsJson).size }
-            ?: programDao.logForSlot(row.planId, row.dayId, row.id, Slot.MAIN)?.let { SetJson.decodeSets(it.setsJson).size }
+            ?: programDao.logForSlot(row.planId, row.dayId, row.id, Slot.MAIN)?.let {
+                runCatching { SetJson.decodeSets(it.setsJson).size }.getOrNull()
+            }
     }
 
     /** Runs inside a transaction; reads only. */

@@ -570,7 +570,7 @@ class PlanRepository(
                                 unit: WeightUnit, entry: ExerciseEntry?): SlotSeeding.Seeded {
         val id = exercise.exerciseId
         val last = sessionDao.lastWorkingSet(id)?.let { id to LoggedSet(it.weightLb, it.reps, SetKind.WORK, rir = it.rir) }
-        val planned = planWorkingLb(planId, slotId, id)
+        val planned = planWorkingRow(planId, slotId, id)
         return SlotSeeding.rows(exercise, rule, KnownLoads(listOfNotNull(last).toMap()),
             planSettings(planId).loadSteps ?: LoadSteps.defaults(unit), unit, entry, planned?.weightLb,
             planned?.reps ?: rule.target.reps, planned?.rir ?: Effort.GOOD.rir)
@@ -579,7 +579,7 @@ class PlanRepository(
     /** The plan's MAIN working row on another slot, carrying its reps and source rule's RIR for conversion.
      *  Calibrating slots are skipped; the latest stored row wins, with prescription-only sources ranked last.
      *  A stored row that offers no working load never falls back to its prescription. */
-    private suspend fun planWorkingLb(planId: Long, exceptSlotId: Long, exerciseId: String): LoggedSet? =
+    private suspend fun planWorkingRow(planId: Long, exceptSlotId: Long, exerciseId: String): LoggedSet? =
         programDao.exercisesForPlan(planId).filter { it.id != exceptSlotId && it.exerciseId == exerciseId }
             .mapNotNull { source ->
                 val rule = SlotRuleJson.decode(source.ruleJson)
@@ -587,9 +587,8 @@ class PlanRepository(
                 val stored = programDao.logForSlot(planId, source.dayId, source.id, Slot.MAIN)
                 val working = if (stored != null) {
                     val rows = runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull() ?: return@mapNotNull null
-                    val weight = WorkingRows.workingWeight(rows) ?: return@mapNotNull null
-                    val index = WorkingRows.workingIndices(rows).first()
-                    rows[index].copy(weightLb = weight, rir = rule?.rir ?: Effort.GOOD.rir)
+                    val index = WorkingRows.workingIndices(rows).firstOrNull() ?: return@mapNotNull null
+                    rows[index].copy(rir = rule?.rir ?: Effort.GOOD.rir)
                 } else {
                     when (val target = source.toDomain().prescription?.target) {
                         is PrescribedTarget.LoadReps -> LoggedSet(target.lb, target.reps, SetKind.WORK,

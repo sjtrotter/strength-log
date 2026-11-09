@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class SlotSeedingPlanLoadTest {
     private val unit = WeightUnit.LB
@@ -89,5 +90,13 @@ class SlotSeedingPlanLoadTest {
             assertEquals(LoggedSet(expected, 10, SetKind.WORK), it.copy(weightLb = expected))
         }
         assertFalse(seeded.rule.state.calibrating)
+    }
+
+    @Test fun `a plan load Estimate cannot convert rounds down and calibrates`() {
+        val seeded = SlotSeeding.rows(ProgramExercise("db_row", SetStructure.RAMP_TOP, 5),
+            rule(structure = SetStructure.RAMP_TOP), KnownLoads.NONE, steps, unit,
+            planLb = 62.5, planReps = 10, planRir = 2)
+        assertEquals(60.0, seeded.rows.single { it.kind == SetKind.TOP }.weightLb)
+        assertTrue(seeded.rule.state.calibrating)
     }
 }

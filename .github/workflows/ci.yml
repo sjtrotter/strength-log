@@ -105,13 +105,6 @@ jobs:
           arch: x86_64
           script: ./gradlew :data:connectedDebugAndroidTest :transfer:connectedDebugAndroidTest
 
-      - name: Run large-history regression on SQLite with the 999-parameter limit
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 28
-          arch: x86_64
-          script: ./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=cloud.trotter.log.strength.data.HistoryRepositoryLargeHistoryTest
-
       # Last, so a stale listing image never hides the instrumented tests.
       - name: Check listing images match the app
         run: python scripts/check_listing_images.py app/build/outputs/listing play/listing/en-US/images

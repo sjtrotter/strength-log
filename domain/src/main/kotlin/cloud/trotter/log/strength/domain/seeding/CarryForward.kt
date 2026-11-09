@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.domain.seeding
 
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.units.GeneratedLoad

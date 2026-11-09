@@ -303,6 +303,26 @@ class ProgressionTest {
     }
 
     @Test
+    fun `cadence three steps back to two after exactly four consecutive successes`() {
+        val context = ctx().copy(baseCadence = 1)
+        var input = rule(cadence = 3)
+        var rows = work()
+        repeat(3) { index ->
+            val out = finish(input, rows, context = context)
+            assertEquals(3, out.rule.everyExposures)
+            assertStreaks(out, index + 1, 0, 0)
+            input = out.rule
+            rows = out.rows
+        }
+        val fourth = finish(input, rows, context = context)
+        assertEquals(2, fourth.rule.everyExposures)
+        assertStreaks(fourth, 0, 0, 0)
+        assertEquals(Change.Hold, fourth.change)
+        assertEquals(Reason.Streak, fourth.reason)
+        assertEquals(rows, fourth.rows)
+    }
+
+    @Test
     fun `cadence never passes three after a second effort miss`() {
         val out = finish(rule(cadence = 3, state = SlotState(effortMissStreak = 1)), actual = actual(work(), rir = 1))
         assertEquals(3, out.rule.everyExposures)
@@ -435,7 +455,7 @@ class ProgressionTest {
     fun `concluded calibration uses planned order and clears all streaks`() {
         val input = rule(rir = 2, state = SlotState(calibrating = true, successStreak = 2, repMissStreak = 1, effortMissStreak = 1))
         val rows = work(75.0)
-        val logged = actual(rows, rir = 2).mapIndexed { i, row -> if (i == 1) row.copy(weightLb = 100.0) else row }.reversed()
+        val logged = actual(rows, rir = 2).mapIndexed { i, row -> if (i == 2) row.copy(weightLb = 100.0) else row }.reversed()
         val out = finish(input, rows, logged)
         assertEquals(Change.Calibrated(75.0), out.change)
         assertFalse(out.rule.state.calibrating)

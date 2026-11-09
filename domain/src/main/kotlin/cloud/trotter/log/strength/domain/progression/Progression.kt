@@ -71,13 +71,15 @@ object Progression {
             rows = rows.filterIndexed { i, row -> row.kind == SetKind.RAMP || i in keep }
         }
         if (ctx.light) rows = LightWeek.rows(rows, ctx)
-        val ruleOverride = if (layoff == LayoffKind.Recalibrate) rule.copy(state = rule.state.copy(calibrating = true)) else null
+        val ruleOverride = if (layoff == LayoffKind.Recalibrate && usesLoadCalibration(working)) {
+            rule.copy(state = rule.state.copy(calibrating = true))
+        } else null
         return Opening(rows, layoff, ruleOverride)
     }
 
     /** While a slot is calibrating: the weight to pre-fill on the next pending set. */
     fun nextSet(rule: SlotRule, logged: List<LoggedSet>, pending: LoggedSet, ctx: Context): LoggedSet {
-        if (!rule.state.calibrating || pending.kind == SetKind.RAMP) return pending
+        if (!rule.state.calibrating || pending.kind == SetKind.RAMP || pending.weightLb == 0.0 || pending.seconds > 0) return pending
         val anchors = logged.filter { it.done && (it.kind == SetKind.TOP || it.kind == SetKind.WORK) }
         val load = calibration(rule, anchors, ctx)?.first ?: return pending
         val weight = if (pending.kind == SetKind.BACKOFF) {
@@ -100,9 +102,13 @@ object Progression {
         fun loaded(load: Double): List<LoggedSet> =
             WorkingRows.withWorkingWeight(base, load, ctx.unit, ctx.equipment, current.scheme)
 
+        val loadCalibration = usesLoadCalibration(working)
+        if (exposure.layoff == LayoffKind.Recalibrate && loadCalibration) {
+            current = current.copy(state = current.state.copy(calibrating = true))
+        }
         if (exposure.roughDay) return result(Reason.RoughDay)
         if (ctx.light) return result(Reason.LightCycle, Change.LightCycle, WorkingRows.cleared(working))
-        if (rule.state.calibrating || exposure.layoff == LayoffKind.Recalibrate) {
+        if (current.state.calibrating && loadCalibration) {
             val anchors = done.map { it.second }.filter { it.kind == SetKind.TOP || it.kind == SetKind.WORK }
             val calibrated = calibration(rule, anchors, ctx)
             current = current.copy(state = current.state.resetStreaks().copy(calibrating = calibrated?.second != true))
@@ -202,7 +208,11 @@ object Progression {
         ctx: Context,
     ): Outcome {
         var current = rule.copy(state = rule.state.resetStreaks().copy(successStreak = rule.state.successStreak + 1))
-        if (current.state.successStreak % current.everyExposures != 0) return Outcome(base, current, Change.Hold, Reason.Streak)
+        val increaseDue = current.state.successStreak % current.everyExposures == 0
+        if (current.everyExposures > ctx.baseCadence && current.state.successStreak >= 4) {
+            current = current.copy(everyExposures = current.everyExposures - 1, state = current.state.copy(successStreak = 0))
+        }
+        if (!increaseDue) return Outcome(base, current, Change.Hold, Reason.Streak)
         var rows = base
         var change: Change = Change.Hold
         var reason: Reason = Reason.AllMade
@@ -242,13 +252,15 @@ object Progression {
                 }
             }
         }
-        if (current.everyExposures > ctx.baseCadence && current.state.successStreak >= 4) {
-            current = current.copy(everyExposures = current.everyExposures - 1, state = current.state.copy(successStreak = 0))
-        }
         return Outcome(rows, current, change, reason)
     }
 
     private enum class Judgment { SUCCESS, REP_MISS, INCOMPLETE, EFFORT_MISS }
+
+    private fun usesLoadCalibration(rows: List<LoggedSet>): Boolean {
+        val work = WorkingRows.workSetIndices(rows).map { rows[it] }
+        return work.any { it.weightLb > 0.0 } && work.none { it.seconds > 0 }
+    }
 
     private fun effectiveRir(set: LoggedSet, rule: SlotRule): Int = set.rir ?: rule.rir
 

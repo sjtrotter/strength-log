@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.domain.progression
 
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -90,5 +92,27 @@ class SlotSeedingTest {
         assertEquals(List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) }, seeded.rows)
         assertEquals(rule, seeded.rule)
         assertTrue(seed("bb_bench", last = last(0.0, 5)).rule.state.calibrating)
+    }
+
+    @Test
+    fun `custom timed hold seeds forty five seconds from the resolved entry`() {
+        val entry = ExerciseLibrary.get("weighted_plank").copy(id = "custom_hold", goal = GoalSource.Time(45))
+        val input = rule()
+        val seeded = SlotSeeding.rows(ProgramExercise(entry.id, targetSets = 3), input, KnownLoads.NONE,
+            LoadSteps.defaults(WeightUnit.LB), WeightUnit.LB, entry = entry)
+        assertEquals(List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 45) }, seeded.rows)
+        assertEquals(input, seeded.rule)
+    }
+
+    @Test
+    fun `custom barbell lift uses the resolved equipment floor and step`() {
+        val entry = ExerciseLibrary.get("bb_back_squat").copy(id = "custom_barbell", equipment = listOf(Equipment.BARBELL))
+        val slot = ProgramExercise(entry.id, targetSets = 3)
+        val steps = LoadSteps(barLb = 10.0, dumbbellLb = 5.0, stackLb = 20.0)
+        val seeded = SlotSeeding.rows(slot, rule(), KnownLoads.NONE, steps, WeightUnit.LB, entry = entry)
+        assertWork(seeded, 45.0, 5, true)
+        val known = KnownLoads(mapOf(entry.id to last(186.0, 5)))
+        val fromHistory = SlotSeeding.rows(slot, rule(), known, steps, WeightUnit.LB, entry = entry)
+        assertWork(fromHistory, 190.0, 5, false)
     }
 }

@@ -138,6 +138,98 @@ class ProgressionLayoffTest {
     }
 
     @Test
+    fun `case 13 Rough day preserves recalibration after a fifty six day gap`() {
+        val input = rule(SlotState(successStreak = 2, repMissStreak = 1, effortMissStreak = 1, exposures = 4))
+        val opened = opening(1056, input)
+        assertEquals(LayoffKind.Recalibrate, opened.layoff)
+        assertEquals(205.0, top(opened.rows), 1e-9)
+        assertFalse(input.state.calibrating)
+        val logged = actual(opened.rows, done = false).map {
+            if (it.kind == SetKind.TOP) it.copy(done = true, rir = 2) else it
+        }
+        val out = Progression.afterSession(input, squat(),
+            Progression.Exposure(opened.rows, logged, 1056, true, opened.layoff), ctx(1056))
+        assertEquals(Reason.RoughDay, out.reason)
+        assertEquals(Change.Hold, out.change)
+        assertEquals(squat(), out.rows)
+        assertEquals(input.state.copy(calibrating = true, exposures = 5), out.rule.state)
+        val next = Progression.atStart(out.rule, out.rows, 1056, 4, ctx(1060))
+        assertEquals(LayoffKind.None, next.layoff)
+        assertTrue((next.ruleOverride ?: out.rule).state.calibrating)
+    }
+
+    @Test
+    fun `case 13 light cycle preserves recalibration after a fifty six day gap`() {
+        val input = rule(SlotState(successStreak = 2, repMissStreak = 1, effortMissStreak = 1, exposures = 4))
+        val context = ctx(1056).copy(light = true)
+        val opened = Progression.atStart(input, squat(), 1000, 4, context)
+        assertEquals(LayoffKind.Recalibrate, opened.layoff)
+        assertEquals(185.0, top(opened.rows), 1e-9)
+        assertFalse(input.state.calibrating)
+        val logged = actual(opened.rows, done = false).map {
+            if (it.kind == SetKind.TOP) it.copy(done = true, rir = 2) else it
+        }
+        val out = Progression.afterSession(input, squat(),
+            Progression.Exposure(opened.rows, logged, 1056, false, opened.layoff), context)
+        assertEquals(Reason.LightCycle, out.reason)
+        assertEquals(Change.LightCycle, out.change)
+        assertEquals(squat(), out.rows)
+        assertEquals(input.state.copy(calibrating = true, exposures = 5), out.rule.state)
+        val next = Progression.atStart(out.rule, out.rows, 1056, 4, ctx(1060))
+        assertEquals(LayoffKind.None, next.layoff)
+        assertTrue((next.ruleOverride ?: out.rule).state.calibrating)
+    }
+
+    @Test
+    fun `case 13 pullups after a sixty day gap keep rep progression without load calibration`() {
+        val rows = List(3) { LoggedSet(0.0, 8, SetKind.WORK) }
+        val context = ctx(1060).copy(equipment = emptySet())
+        for (calibrating in listOf(false, true)) {
+            val input = rule(SlotState(calibrating = calibrating)).copy(target = RepTarget.Fixed(8), everyExposures = 1)
+            val opened = Progression.atStart(input, rows, 1000, 4, context)
+            assertEquals(LayoffKind.Recalibrate, opened.layoff)
+            assertEquals(rows, opened.rows)
+            assertNull(opened.ruleOverride)
+            val running = opened.ruleOverride ?: input
+            val logged = actual(opened.rows).map { it.copy(rir = 2) }
+            assertEquals(rows[1], Progression.nextSet(running, logged.take(1), rows[1], context))
+            val out = Progression.afterSession(input, rows,
+                Progression.Exposure(opened.rows, logged, 1060, false, opened.layoff), context)
+            assertEquals(Change.RepsTo(9), out.change)
+            assertEquals(Reason.AllMade, out.reason)
+            assertEquals(RepTarget.Fixed(9), out.rule.target)
+            assertEquals(List(3) { LoggedSet(0.0, 9, SetKind.WORK) }, out.rows)
+            val next = Progression.atStart(out.rule, out.rows, 1060, 4, ctx(1064).copy(equipment = emptySet()))
+            assertEquals(out.rows, next.rows)
+            assertTrue(next.rows.all { it.weightLb == 0.0 })
+        }
+    }
+
+    @Test
+    fun `case 13 timed planks after a sixty day gap keep seconds without load calibration`() {
+        val rows = List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 30) }
+        val context = ctx(1060).copy(equipment = emptySet())
+        for (calibrating in listOf(false, true)) {
+            val input = rule(SlotState(calibrating = calibrating))
+            val opened = Progression.atStart(input, rows, 1000, 4, context)
+            assertEquals(LayoffKind.Recalibrate, opened.layoff)
+            assertEquals(rows, opened.rows)
+            assertNull(opened.ruleOverride)
+            val running = opened.ruleOverride ?: input
+            val logged = actual(opened.rows).map { it.copy(rir = 2) }
+            assertEquals(rows[1], Progression.nextSet(running, logged.take(1), rows[1], context))
+            val out = Progression.afterSession(input, rows,
+                Progression.Exposure(opened.rows, logged, 1060, false, opened.layoff), context)
+            assertEquals(Change.Hold, out.change)
+            assertEquals(Reason.Timed, out.reason)
+            assertEquals(rows, out.rows)
+            assertEquals(input.state.copy(exposures = 1), out.rule.state)
+            val next = Progression.atStart(out.rule, out.rows, 1060, 4, ctx(1064).copy(equipment = emptySet()))
+            assertEquals(rows, next.rows)
+        }
+    }
+
+    @Test
     fun `no last trained day opens without a layoff`() {
         val opened = Progression.atStart(rule(), squat(), null, 4, ctx(5000))
         assertEquals(LayoffKind.None, opened.layoff)

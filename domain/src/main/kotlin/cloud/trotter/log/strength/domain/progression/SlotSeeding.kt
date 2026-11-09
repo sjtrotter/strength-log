@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -24,8 +25,14 @@ data class KnownLoads(val lastWorking: Map<String, LoggedSet>) {
 object SlotSeeding {
     data class Seeded(val rows: List<LoggedSet>, val rule: SlotRule)
 
-    fun rows(slot: ProgramExercise, rule: SlotRule, known: KnownLoads, steps: LoadSteps, unit: WeightUnit): Seeded {
-        val entry = ExerciseLibrary.find(slot.exerciseId)
+    fun rows(
+        slot: ProgramExercise,
+        rule: SlotRule,
+        known: KnownLoads,
+        steps: LoadSteps,
+        unit: WeightUnit,
+        entry: ExerciseEntry? = ExerciseLibrary.find(slot.exerciseId),
+    ): Seeded {
         val equipment = entry?.equipment.orEmpty()
         val reps = rule.target.reps
         slot.prescription?.let {

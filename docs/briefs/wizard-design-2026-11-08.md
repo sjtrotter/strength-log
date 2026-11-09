@@ -503,7 +503,7 @@ GPS later: a future `cardio_track(cardioSessionId, …)` table keyed to `cardio_
 
 ### 4.2 DataStore
 
-`effort_scale` (WORDS, REPS_LEFT; default WORDS). The profile keys stay but `readGlobalLifter` returns `LifterProfile(bodyweightLb: Double?, age: Int?)`; `hasLifterAnswers` is replaced by null-ness. The `level` key stays until PR 6, which deletes `LifterConfig`, `GlobalLifter.level`, the You screen's Level section and the `PlansViewModel` and `BackupMapping` readers together. The You row reads "Not set" until the user enters a bodyweight (#527).
+`effort_scale` (WORDS, REPS_LEFT; default WORDS). The profile keys stay; in PR 6 `readGlobalLifter` starts returning `LifterProfile(bodyweightLb: Double?, age: Int?)`; `hasLifterAnswers` is replaced by null-ness. The `level` key stays until PR 6, which deletes `LifterConfig`, `GlobalLifter.level`, the You screen's Level section and the `PlansViewModel` and `BackupMapping` readers together. The You row reads "Not set" until the user enters a bodyweight (#527).
 
 ### 4.3 Backup v27
 

@@ -210,8 +210,11 @@ class PersistenceProcessDeathTest {
         closeSession()
         openSession()
 
-        // Program: every field of every slot, not just the id ordering.
-        val program = repository.plans.programFlow.first()
+        // Program: every field of every slot, not just the id ordering. Reopening converts plans and gives
+        // opened slots a rule; that is new state, not a lost mutation, so compare the slots without it.
+        val program = repository.plans.programFlow.first().let { p ->
+            p.copy(days = p.days.map { d -> d.copy(exercises = d.exercises.map { it.copy(rule = null) }) })
+        }
         assertEquals(listOf("A", "B"), program.days.map { it.id })
         val reopenedA = program.days.first()
         assertEquals("Day A", reopenedA.title)

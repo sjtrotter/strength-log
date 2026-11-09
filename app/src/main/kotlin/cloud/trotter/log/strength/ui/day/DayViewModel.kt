@@ -2173,7 +2173,7 @@ class DayViewModel @Inject constructor(
             partnerTitle = partnerEntry?.name ?: partner?.exerciseId,
             partnerExerciseId = partner?.exerciseId,
             equipment = entry?.equipment.orEmpty(),
-            note = pe.note,
+            note = if (performed.exerciseId != pe.exerciseId) slot.main.note else pe.note,
             isSuperset = pe.superset != null,
             headerTarget = headerTarget,
             workingHeading = if (performed.prescription?.target is PrescribedTarget.RepsInTime) headerTarget.display

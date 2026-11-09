@@ -33,4 +33,5 @@ data class RunTrackEntity(
     val setsJson: String,
     val updatedAt: Long,
     @ColumnInfo(defaultValue = "0") val dropped: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val note: String = "",
 )

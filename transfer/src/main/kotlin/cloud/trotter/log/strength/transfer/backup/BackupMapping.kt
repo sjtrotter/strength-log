@@ -126,6 +126,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 prescriptionJson = ex.prescriptionJson,
                                 keepToPlan = ex.keepToPlan,
                                 parkedLogsJson = ex.parkedLogsJson,
+                                noteUpdatedAt = ex.noteUpdatedAt,
                             )
                         },
                     )
@@ -136,7 +137,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             RunBackup(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt,
                 runTracks.filter { it.runId == run.id }.sortedWith(compareBy({ it.position }, { it.slot }, { it.id })).map {
                     RunTrackBackup(it.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
-                        it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped)
+                        it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped, it.note)
                 },
             )
         },
@@ -282,6 +283,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     prescriptionJson = if (schemaVersion >= 10) ex.prescriptionJson else null,
                     keepToPlan = ex.keepToPlan ?: (schemaVersion >= 10 && ex.prescriptionJson != null),
                     parkedLogsJson = if (schemaVersion >= 18) ex.parkedLogsJson else null,
+                    noteUpdatedAt = if (schemaVersion >= 26) ex.noteUpdatedAt else null,
                 )
             }
         }
@@ -392,7 +394,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         runTracks = if (schemaVersion >= 13) runs.flatMap { run ->
             run.tracks.map {
                 RunTrackEntity(it.id, run.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
-                    it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped)
+                    it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped,
+                    note = if (schemaVersion >= 26) it.note.trim().take(NOTE_MAX_LENGTH) else "")
             }
         } else emptyList(),
         days = dayEntities,

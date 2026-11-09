@@ -381,6 +381,7 @@ class LogViewModelTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slots = repo.plans.slotsFor(plan, "A").first()
         repo.startRun(plan, "A")
+        slots.forEach { repo.setExerciseNote(it.programExerciseId, it.exercise.note) }
         val runId = repo.openRunFlow.first()!!.id
         logFirstSet(runId, plan, slots.first().programExerciseId)
         val id = repo.finishRun(runId)!!
@@ -411,6 +412,7 @@ class LogViewModelTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slots = repo.plans.slotsFor(plan, "A").first()
         repo.startRun(plan, "A")
+        slots.forEach { repo.setExerciseNote(it.programExerciseId, it.exercise.note) }
         val runId = repo.openRunFlow.first()!!.id
         logFirstSet(runId, plan, slots.first().programExerciseId)
         val id = repo.finishRun(runId)!!
@@ -439,6 +441,7 @@ class LogViewModelTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slots = repo.plans.slotsFor(plan, "A").first()
         repo.startRun(plan, "A")
+        slots.forEach { repo.setExerciseNote(it.programExerciseId, it.exercise.note) }
         val runId = repo.openRunFlow.first()!!.id
         logFirstSet(runId, plan, slots.first().programExerciseId)
         repo.moveExercise(slots.last().programExerciseId, up = true)
@@ -471,6 +474,7 @@ class LogViewModelTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = repo.plans.slotsFor(plan, "A").first().first()
         repo.startRun(plan, "A")
+        repo.plans.slotsFor(plan, "A").first().forEach { repo.setExerciseNote(it.programExerciseId, it.exercise.note) }
         val runId = repo.openRunFlow.first()!!.id
         assertTrue(repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, "bb_bench"))
         assertTrue(repo.swapInRun(runId, slot.programExerciseId, Slot.SS, "bb_row"))

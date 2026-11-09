@@ -568,7 +568,7 @@ class TrackerRepositoryPlanScopeTest {
         val source = db.planDao().plan(1)!!
         val slot = db.programDao().exercisesForPlan(1).single()
         db.programDao().setSupersetExerciseId(slot.id, "bb_bench")
-        db.programDao().setExerciseNote(slot.id, "Keep the brace through both lifts")
+        db.programDao().setExerciseNote(slot.id, "Keep the brace through both lifts", clock.millis())
         val cardioDay = ProgramDay(
             id = "C",
             title = "Easy run",

@@ -40,7 +40,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         WorkoutRunEntity::class,
         RunTrackEntity::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -90,6 +90,7 @@ abstract class StrengthDatabase : RoomDatabase() {
                     MIGRATION_20_21,
                     MIGRATION_21_22,
                     MIGRATION_22_23,
+                    MIGRATION_23_24,
                 )
                 .build()
     }

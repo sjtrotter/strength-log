@@ -29,8 +29,9 @@ import kotlinx.serialization.Serializable
  * v23 carries lifter-answer presence and recipes may carry cardio-first answers.
  * v24 adds Rest entries (program day kind REST).
  * v25 carries each plan's optional cardio goal.
+ * v26 carries lift note timestamps and run track notes.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 25
+const val CURRENT_SCHEMA_VERSION: Int = 26
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -229,6 +230,7 @@ data class ProgramExerciseBackup(
     @OptIn(ExperimentalSerializationApi::class)
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val isMain: Boolean? = null,
+    val noteUpdatedAt: Long? = null,
 )
 
 /**
@@ -323,4 +325,5 @@ data class RunTrackBackup(
     val setsJson: String,
     val updatedAt: Long,
     val dropped: Boolean = false,
+    val note: String = "",
 )

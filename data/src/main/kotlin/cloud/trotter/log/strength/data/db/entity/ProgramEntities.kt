@@ -56,6 +56,8 @@ data class ProgramDayEntity(
     val cardioProgressBy: String? = null,
     /** Increase percentage, or null for the measure's default. */
     val cardioIncreasePercent: Int? = null,
+    /** The day's [CardioRule] as CardioRuleJson; null on lift-only and converted days. */
+    val cardioRuleJson: String? = null,
 )
 
 /** One exercise slot inside a plan day, ordered by [position] within its [dayId] (spec §7). */
@@ -78,6 +80,8 @@ data class ProgramExerciseEntity(
     /** The slot's Progress working values while Next time is Plan; null otherwise. Restored by `setKeepToPlan(false)`. */
     val parkedLogsJson: String? = null,
     @ColumnInfo(defaultValue = "NULL") val noteUpdatedAt: Long? = null,
+    /** The slot's [SlotRule] as SlotRuleJson; null until conversion gives it one (design §4.4). */
+    val ruleJson: String? = null,
 )
 
 /** The plan's working values for one slot track: next time's sets. Never holds results. */

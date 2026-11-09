@@ -53,7 +53,7 @@ class ImportRejectionTest : BackupTestHarness() {
     }
 
     private suspend fun fingerprint() = Fingerprint(
-        program = repository.plans.programFlow.first(),
+        program = programWithoutRules(),
         sessions = repository.history.sessionsFlow.first(),
         catalog = repository.catalog.catalogFlow.first().entries,
         unit = settings.unitFlow.first(),

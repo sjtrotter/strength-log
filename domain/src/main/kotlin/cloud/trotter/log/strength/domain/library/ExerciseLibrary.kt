@@ -56,7 +56,7 @@ object ExerciseLibrary {
         GoalSource.Time(targetSeconds, addedWeightLb)
 
     val entries: List<ExerciseEntry> = listOf(
-        ExerciseEntry("bb_back_squat", "Barbell Back Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, std(SQUAT), 1, shortName = "Squat"),
+        ExerciseEntry("bb_back_squat", "Barbell Back Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, std(SQUAT), 1, shortName = "Squat", mainCapable = true),
         ExerciseEntry("hack_squat", "Hack Squat", SQUAT_BILATERAL, listOf(MACHINE), false, flat(180.0), 2),
         ExerciseEntry("leg_press", "Leg Press", SQUAT_BILATERAL, listOf(MACHINE), false, frac(1.4, SQUAT), 3),
         ExerciseEntry("goblet_squat", "Goblet Squat", SQUAT_BILATERAL, listOf(DUMBBELL), false, flat(70.0), 4),
@@ -86,9 +86,9 @@ object ExerciseLibrary {
         ExerciseEntry("pistol_squat", "Pistol Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, reps(5), 13),
         ExerciseEntry("skater_squat", "Skater Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, reps(8), 14),
 
-        ExerciseEntry("trap_dl", "Trap-Bar Deadlift", HINGE, listOf(TRAP_BAR), false, std(DEADLIFT), 1, shortName = "Trap Bar DL"),
-        ExerciseEntry("conv_dl", "Conventional Deadlift", HINGE, listOf(BARBELL), false, std(DEADLIFT, tune = 1.0), 2, shortName = "Deadlift"),
-        ExerciseEntry("sumo_dl", "Sumo Deadlift", HINGE, listOf(BARBELL), false, std(DEADLIFT), 3),
+        ExerciseEntry("trap_dl", "Trap-Bar Deadlift", HINGE, listOf(TRAP_BAR), false, std(DEADLIFT), 1, shortName = "Trap Bar DL", mainCapable = true),
+        ExerciseEntry("conv_dl", "Conventional Deadlift", HINGE, listOf(BARBELL), false, std(DEADLIFT, tune = 1.0), 2, shortName = "Deadlift", mainCapable = true),
+        ExerciseEntry("sumo_dl", "Sumo Deadlift", HINGE, listOf(BARBELL), false, std(DEADLIFT), 3, mainCapable = true),
         ExerciseEntry("rdl", "Romanian Deadlift", HINGE, listOf(BARBELL), false, frac(0.72, SQUAT), 4, shortName = "RDL"),
         ExerciseEntry("stiff_dl", "Stiff-Leg Deadlift", HINGE, listOf(BARBELL), false, frac(0.65, SQUAT), 5, shortName = "Stiff-Leg DL"),
         ExerciseEntry("good_morning", "Good Morning", HINGE, listOf(BARBELL, RACK), false, frac(0.45, SQUAT), 6),
@@ -120,9 +120,9 @@ object ExerciseLibrary {
         ExerciseEntry("sissy_squat", "Sissy Squat", KNEE_EXTENSION, listOf(BODYWEIGHT), false, reps(10), 3),
         ExerciseEntry("reverse_nordic", "Reverse Nordic", KNEE_EXTENSION, listOf(BODYWEIGHT), false, reps(10), 4),
 
-        ExerciseEntry("bb_bench", "Barbell Bench Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, std(STD_BENCH), 1, shortName = "Bench Press"),
+        ExerciseEntry("bb_bench", "Barbell Bench Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, std(STD_BENCH), 1, shortName = "Bench Press", mainCapable = true),
         ExerciseEntry("db_bench", "DB Bench Press", H_PUSH, listOf(DUMBBELL, BENCH), true, frac(0.4, STD_BENCH), 2),
-        ExerciseEntry("incline_db", "Incline DB Press", H_PUSH, listOf(DUMBBELL, BENCH), true, std(INCLINE), 3, shortName = "Incline DB"),
+        ExerciseEntry("incline_db", "Incline DB Press", H_PUSH, listOf(DUMBBELL, BENCH), true, std(INCLINE), 3, shortName = "Incline DB", mainCapable = true),
         ExerciseEntry("incline_bb", "Incline Barbell Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, frac(0.8, STD_BENCH), 4, shortName = "Incline Bench"),
         ExerciseEntry("machine_chest", "Machine Chest Press", H_PUSH, listOf(MACHINE), false, flat(100.0), 5, shortName = "Chest Press"),
         ExerciseEntry("pec_deck", "Pec Deck", H_PUSH, listOf(MACHINE), false, flat(100.0), 6),
@@ -140,7 +140,7 @@ object ExerciseLibrary {
         ExerciseEntry("bw_dip", "Dip", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 18, weightedPairId = "dips"),
         ExerciseEntry("weighted_pushup", "Weighted Push-Up", H_PUSH, listOf(BODYWEIGHT), false, flat(25.0), 19),
 
-        ExerciseEntry("ohp", "Overhead Press (Barbell)", V_PUSH, listOf(BARBELL, RACK), false, std(OHP), 1, shortName = "OHP"),
+        ExerciseEntry("ohp", "Overhead Press (Barbell)", V_PUSH, listOf(BARBELL, RACK), false, std(OHP), 1, shortName = "OHP", mainCapable = true),
         ExerciseEntry("db_shoulder", "Seated DB Shoulder Press", V_PUSH, listOf(DUMBBELL, BENCH), true, flat(55.0), 2, shortName = "Seated DB OHP"),
         ExerciseEntry("machine_shoulder", "Machine Shoulder Press", V_PUSH, listOf(MACHINE), false, flat(90.0), 3, shortName = "Shoulder Press"),
         ExerciseEntry("landmine_press", "Landmine Press", V_PUSH, listOf(BARBELL), false, flat(60.0), 4),
@@ -154,7 +154,7 @@ object ExerciseLibrary {
         ExerciseEntry("pike_pushup", "Pike Push-Up", V_PUSH, listOf(BODYWEIGHT), false, reps(10), 12),
         ExerciseEntry("hspu", "Handstand Push-Up", V_PUSH, listOf(BODYWEIGHT), false, reps(5), 13, shortName = "HSPU"),
 
-        ExerciseEntry("bb_row", "Barbell Row", H_PULL, listOf(BARBELL), false, std(ROW), 1),
+        ExerciseEntry("bb_row", "Barbell Row", H_PULL, listOf(BARBELL), false, std(ROW), 1, mainCapable = true),
         ExerciseEntry("cs_row", "Chest-Supported Row", H_PULL, listOf(MACHINE), false, frac(0.8, STD_BENCH), 2, shortName = "Chest Row"),
         ExerciseEntry("cable_row", "Seated Cable Row", H_PULL, listOf(CABLE), false, flat(120.0), 3, shortName = "Cable Row"),
         ExerciseEntry("db_row", "One-Arm DB Row", H_PULL, listOf(DUMBBELL, BENCH), true, flat(60.0), 4, shortName = "DB Row"),

@@ -1617,6 +1617,7 @@ class TrackerRepository(
                     slot = track.slot, setIndex = index, kind = set.kind.name, weightLb = set.weightLb,
                     reps = set.reps, done = set.done, seconds = set.seconds, startedAtMillis = set.startedAtMillis,
                     completedAtMillis = set.completedAtMillis, trackPosition = track.position, plannedIndex = set.plannedIndex,
+                    rir = set.rir,
                 )
             }
         })

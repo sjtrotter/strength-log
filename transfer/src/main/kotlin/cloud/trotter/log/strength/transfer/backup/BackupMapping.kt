@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
@@ -74,6 +75,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             supersetHelperSeen = supersetHelperSeen,
             theme = themePreference.name,
             distanceUnit = distanceUnit?.name,
+            effortScale = effortScale.name,
         ),
         customExercises = customExercises.map {
             CustomExerciseBackup(
@@ -100,6 +102,11 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 offerCardioIncreases = plan.offerCardioIncreases,
                 recipeJson = plan.recipeJson,
                 goalJson = plan.goalJson,
+                settingsJson = plan.settingsJson,
+                autoApply = plan.autoApply,
+                lightCycleRemaining = plan.lightCycleRemaining,
+                deloadEveryCycles = plan.deloadEveryCycles,
+                cyclesCompleted = plan.cyclesCompleted,
                 suggestedDay = plan.suggestedDayId,
                 days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
                     ProgramDayBackup(
@@ -115,6 +122,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         cardioKeepToPlan = day.cardioKeepToPlan,
                         cardioProgressBy = day.cardioProgressBy,
                         cardioIncreasePercent = day.cardioIncreasePercent,
+                        cardioRuleJson = day.cardioRuleJson,
                         exercises = exercisesByDay[plan.id to day.dayId].orEmpty().sortedBy { it.position }.map { ex ->
                             ProgramExerciseBackup(
                                 id = ex.id,
@@ -127,6 +135,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 keepToPlan = ex.keepToPlan,
                                 parkedLogsJson = ex.parkedLogsJson,
                                 noteUpdatedAt = ex.noteUpdatedAt,
+                                ruleJson = ex.ruleJson,
                             )
                         },
                     )
@@ -163,6 +172,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 bodyweightLb = s.bodyweightLb?.let { Math.round(it).toInt() },
                 bodyweightLbPrecise = s.bodyweightLb,
                 note = s.note,
+                roughDay = s.roughDay,
                 sets = setsBySession[s.id].orEmpty().map { set ->
                     SessionSetBackup(
                         id = set.id,
@@ -179,6 +189,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         completedAtMillis = set.completedAtMillis,
                         trackPosition = set.trackPosition,
                         plannedIndex = set.plannedIndex,
+                        rir = set.rir,
                     )
                 },
                 planId = s.planId,
@@ -195,10 +206,16 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 planId = it.planId, planName = it.planName,
                 activity = it.activity,
                 note = it.note,
+                effort = it.effort,
                 sets = cardioSetsBySession[it.id].orEmpty().sortedWith(compareBy({ it.position }, { it.id })).map { set ->
                     CardioSetResultBackup(
                         id = set.id, specJson = set.specJson, status = set.status,
                         elapsedSeconds = set.elapsedSeconds, metres = set.metres, distanceSource = set.distanceSource,
+                        metresAtEnd = set.metresAtEnd,
+                        secondsAtEnd = set.secondsAtEnd,
+                        centis = set.centis,
+                        timingMethod = set.timingMethod,
+                        startProtocol = set.startProtocol,
                     )
                 },
             )
@@ -260,6 +277,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 cardioKeepToPlan = schemaVersion >= 20 && day.cardioKeepToPlan,
                 cardioProgressBy = if (schemaVersion >= 20) day.cardioProgressBy else null,
                 cardioIncreasePercent = if (schemaVersion >= 20) day.cardioIncreasePercent else null,
+                cardioRuleJson = if (schemaVersion >= 27) day.cardioRuleJson else null,
             )
         }
     }
@@ -284,6 +302,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     keepToPlan = ex.keepToPlan ?: (schemaVersion >= 10 && ex.prescriptionJson != null),
                     parkedLogsJson = if (schemaVersion >= 18) ex.parkedLogsJson else null,
                     noteUpdatedAt = if (schemaVersion >= 26) ex.noteUpdatedAt else null,
+                    ruleJson = if (schemaVersion >= 27) ex.ruleJson else null,
                 )
             }
         }
@@ -311,6 +330,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             planName = it.planName,
             runId = if (schemaVersion >= 13) it.runId else null,
             plannedJson = if (schemaVersion >= 13) it.plannedJson else null,
+            roughDay = schemaVersion >= 27 && it.roughDay,
         )
     }
     val sessionSetEntities = sessions.flatMap { s ->
@@ -331,6 +351,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 completedAtMillis = set.completedAtMillis,
                 trackPosition = if (schemaVersion >= 13) set.trackPosition else null,
                 plannedIndex = if (schemaVersion >= 13) set.plannedIndex else null,
+                rir = if (schemaVersion >= 27) set.rir else null,
             )
         }
     }
@@ -348,6 +369,11 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             offerCardioIncreases = schemaVersion >= 20 && plan.offerCardioIncreases,
             recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
             goalJson = if (schemaVersion >= 25) plan.goalJson else null,
+            settingsJson = if (schemaVersion >= 27) plan.settingsJson else null,
+            autoApply = if (schemaVersion >= 27) plan.autoApply else false,
+            lightCycleRemaining = if (schemaVersion >= 27) plan.lightCycleRemaining else 0,
+            deloadEveryCycles = if (schemaVersion >= 27) plan.deloadEveryCycles else null,
+            cyclesCompleted = if (schemaVersion >= 27) plan.cyclesCompleted else 0,
             suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
         )
     } else emptyList()
@@ -368,6 +394,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         topSetHelperSeen = settings.topSetHelperSeen,
         supersetHelperSeen = settings.supersetHelperSeen,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
+        effortScale = if (schemaVersion >= 27) enumOrDefault(settings.effortScale, EffortScale.WORDS) else EffortScale.WORDS,
         distanceUnit = if (schemaVersion >= 19) settings.distanceUnit?.let { name ->
             DistanceUnit.entries.firstOrNull { it.name == name }
         } else null,
@@ -416,6 +443,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 planId = it.planId, planName = it.planName,
                 activity = if (schemaVersion >= 12) it.activity else null,
                 note = if (schemaVersion >= 22) it.note else "",
+                effort = if (schemaVersion >= 27) it.effort else null,
             )
         },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->
@@ -424,6 +452,11 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     id = set.id, cardioSessionId = session.id, position = position,
                     specJson = set.specJson, status = set.status, elapsedSeconds = set.elapsedSeconds,
                     metres = set.metres, distanceSource = set.distanceSource,
+                    metresAtEnd = if (schemaVersion >= 27) set.metresAtEnd else null,
+                    secondsAtEnd = if (schemaVersion >= 27) set.secondsAtEnd else null,
+                    centis = if (schemaVersion >= 27) set.centis else null,
+                    timingMethod = if (schemaVersion >= 27) set.timingMethod else null,
+                    startProtocol = if (schemaVersion >= 27) set.startProtocol else null,
                 )
             }
         } else emptyList(),

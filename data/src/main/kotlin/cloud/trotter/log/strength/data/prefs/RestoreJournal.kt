@@ -73,6 +73,7 @@ class RestoreJournal(
             supersetHelperSeen = snapshot.supersetHelperSeen,
             themePreference = snapshot.themePreference,
             distanceUnit = snapshot.distanceUnit,
+            effortScale = snapshot.effortScale,
         )
         dataStore.edit {
             it[Keys.NONCE] = nonce
@@ -135,6 +136,7 @@ class RestoreJournal(
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
             distanceUnit = staged.storedDistanceUnitFlow.first(),
+            effortScale = staged.effortScaleFlow.first(),
             onTodayFixupDone = prefs[Keys.TODAY_MEMBERSHIP] == true,
         )
         clear()

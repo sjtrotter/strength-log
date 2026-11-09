@@ -30,8 +30,9 @@ import kotlinx.serialization.Serializable
  * v24 adds Rest entries (program day kind REST).
  * v25 carries each plan's optional cardio goal.
  * v26 carries lift note timestamps and run track notes.
+ * v27 carries slot and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, and the effort scale.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 26
+const val CURRENT_SCHEMA_VERSION: Int = 27
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -85,6 +86,7 @@ data class CardioSessionBackup(
     val activity: String? = null,
     val sets: List<CardioSetResultBackup> = emptyList(),
     val note: String = "",
+    val effort: String? = null,
 )
 
 /** Position is list order; ids and the stored spec survive a full restore verbatim. */
@@ -96,6 +98,11 @@ data class CardioSetResultBackup(
     val elapsedSeconds: Int,
     val metres: Int? = null,
     val distanceSource: String? = null,
+    val metresAtEnd: Int? = null,
+    val secondsAtEnd: Int? = null,
+    val centis: Int? = null,
+    val timingMethod: String? = null,
+    val startProtocol: String? = null,
 )
 
 /**
@@ -161,6 +168,7 @@ data class SettingsBackup(
     val bodyweightLbPrecise: Double? = null,
     /** Older backups always restored their lifter values as answers. */
     val hasLifterAnswers: Boolean = true,
+    val effortScale: String = "WORDS",
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking
@@ -196,6 +204,11 @@ data class PlanBackup(
     val offerStrengthIncreases: Boolean = true,
     val offerCardioIncreases: Boolean = false,
     val goalJson: String? = null,
+    val settingsJson: String? = null,
+    val autoApply: Boolean = false,
+    val lightCycleRemaining: Int = 0,
+    val deloadEveryCycles: Int? = null,
+    val cyclesCompleted: Int = 0,
 )
 
 /** One program day with its ordered exercise slots. */
@@ -214,6 +227,7 @@ data class ProgramDayBackup(
     val cardioKeepToPlan: Boolean = false,
     val cardioProgressBy: String? = null,
     val cardioIncreasePercent: Int? = null,
+    val cardioRuleJson: String? = null,
 )
 
 @Serializable
@@ -231,6 +245,7 @@ data class ProgramExerciseBackup(
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val isMain: Boolean? = null,
     val noteUpdatedAt: Long? = null,
+    val ruleJson: String? = null,
 )
 
 /**
@@ -275,6 +290,7 @@ data class SessionBackup(
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val note: String = "",
     val bodyweightLbPrecise: Double? = null,
+    val roughDay: Boolean = false,
 )
 
 @Serializable
@@ -298,6 +314,7 @@ data class SessionSetBackup(
     val completedAtMillis: Long? = null,
     val trackPosition: Int? = null,
     val plannedIndex: Int? = null,
+    val rir: Int? = null,
 )
 
 /** An open workout and its ordered captured tracks. */

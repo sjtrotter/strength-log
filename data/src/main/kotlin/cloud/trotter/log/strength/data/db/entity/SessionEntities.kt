@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -32,6 +33,9 @@ data class WorkoutSessionEntity(
     val runId: String? = null,
     val plannedJson: String? = null,
     val note: String = "",
+    @ColumnInfo(defaultValue = "0") val roughDay: Boolean = false,
+    /** Finish's prior rows and rules for Undo (PR 2b); never in a backup. */
+    val progressionUndoJson: String? = null,
 )
 
 /**
@@ -68,4 +72,6 @@ data class SessionSetEntity(
     val completedAtMillis: Long? = null,
     val trackPosition: Int? = null,
     val plannedIndex: Int? = null,
+    /** Reported reps in reserve; null = not reported. */
+    val rir: Int? = null,
 )

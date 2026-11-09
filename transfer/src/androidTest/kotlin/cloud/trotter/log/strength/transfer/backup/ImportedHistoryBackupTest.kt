@@ -80,7 +80,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.history.sessionsFlow.first()
         return State(
-            program = repository.plans.programFlow.first(),
+            program = programWithoutRules(),
             sessions = sessions,
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
         )

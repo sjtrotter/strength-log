@@ -7,11 +7,18 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
+import cloud.trotter.log.strength.data.serialization.CardioTiming
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.progression.CardioEffort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.cardio.CardioProgression
@@ -116,7 +123,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -189,7 +196,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if (settings == null) versioned else JsonObject(versioned + ("settings" to JsonObject(settings - "distanceUnit")))
         } else versioned
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(withVersionedCardioProgress(withDistanceUnit, version), version), version))
+            json.decodeFromJsonElement(BackupDocument.serializer(), withVersionedBodyweights(withVersionedSlotFields(withVersionedCardioProgress(withVersion27Fields(withDistanceUnit, version), version), version), version))
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -197,6 +204,37 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withVersion27Fields(root: JsonObject, version: Int): JsonObject {
+        if (version >= 27) return root
+        fun mapRows(value: JsonElement?, transform: (JsonObject) -> JsonObject): JsonElement? =
+            (value as? JsonArray)?.let { rows -> JsonArray(rows.map { if (it is JsonObject) transform(it) else it }) } ?: value
+        fun stripDays(value: JsonElement?): JsonElement? = mapRows(value) { day ->
+            JsonObject((day - "cardioRuleJson").toMutableMap().apply {
+                mapRows(get("exercises")) { JsonObject(it - "ruleJson") }?.let { put("exercises", it) }
+            })
+        }
+        return JsonObject(root.toMutableMap().apply {
+            (get("settings") as? JsonObject)?.let { put("settings", JsonObject(it - "effortScale")) }
+            stripDays(get("program"))?.let { put("program", it) }
+            mapRows(get("plans")) { plan ->
+                JsonObject((plan - setOf("settingsJson", "autoApply", "lightCycleRemaining", "deloadEveryCycles", "cyclesCompleted"))
+                    .toMutableMap().apply { stripDays(get("days"))?.let { put("days", it) } })
+            }?.let { put("plans", it) }
+            mapRows(get("sessions")) { session ->
+                JsonObject((session - "roughDay").toMutableMap().apply {
+                    mapRows(get("sets")) { JsonObject(it - "rir") }?.let { put("sets", it) }
+                })
+            }?.let { put("sessions", it) }
+            mapRows(get("cardioSessions")) { session ->
+                JsonObject((session - "effort").toMutableMap().apply {
+                    mapRows(get("sets")) {
+                        JsonObject(it - setOf("metresAtEnd", "secondsAtEnd", "centis", "timingMethod", "startProtocol"))
+                    }?.let { put("sets", it) }
+                })
+            }?.let { put("cardioSessions", it) }
+        })
     }
 
     private fun withVersionedCardioProgress(root: JsonObject, version: Int): JsonObject {
@@ -492,10 +530,78 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             validateSuggestedDay(doc.settings.suggestedDay, doc.program)
             validateLiveLogs(doc.liveLogs, slotsByDay)
         }
+        if (doc.schemaVersion >= 27) validateVersion27(doc)
         validateSessions(doc.sessions)
         validateCardioSessions(doc.cardioSessions)
-        if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions)
+        if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions, doc.schemaVersion)
         if (doc.schemaVersion >= 13) validateRuns(doc)
+    }
+
+    private fun validateVersion27(doc: BackupDocument) {
+        fun checkValue(what: String, check: () -> Unit) {
+            try {
+                check()
+            } catch (_: IllegalArgumentException) {
+                throw BackupError.Inconsistent("invalid $what")
+            }
+        }
+        fun checkRir(what: String, values: List<Int?>) {
+            checkValue("rir in $what") {
+                require(values.all { it == null || it in 0..EffortScale.MAX_REPS_LEFT })
+            }
+        }
+        fun checkSets(what: String, payload: String, malformed: Boolean = false) {
+            val sets = decodePayload(what, malformed = malformed) { SetJson.decodeSets(payload) }
+            checkRir(what, sets.map { it.rir })
+        }
+        checkValue("effortScale in settings") { EffortScale.valueOf(doc.settings.effortScale) }
+        for (plan in doc.plans) {
+            checkValue("settingsJson of plan ${plan.id}") { plan.settingsJson?.let(PlanSettingsJson::validate) }
+            checkValue("progression state of plan ${plan.id}") {
+                require(plan.lightCycleRemaining in 0..99)
+                require(plan.deloadEveryCycles == null || plan.deloadEveryCycles in 4..8)
+                require(plan.cyclesCompleted in 0..100_000)
+            }
+        }
+        for (day in doc.plans.flatMap { it.days } + doc.program) {
+            checkValue("cardioRuleJson of day '${day.dayId}'") { day.cardioRuleJson?.let(CardioRuleJson::validate) }
+            for (slot in day.exercises) {
+                checkValue("ruleJson of slot ${slot.id}") { slot.ruleJson?.let(SlotRuleJson::validate) }
+                slot.parkedLogsJson?.let { parked ->
+                    ParkedLogsJson.decode(parked).forEach { track ->
+                        checkSets("parked setsJson of slot ${slot.id}", track.setsJson)
+                    }
+                }
+            }
+        }
+        for (log in doc.liveLogs) {
+            checkSets("setsJson of slot ${log.programExerciseId} in day '${log.dayId}'", log.setsJson)
+        }
+        for (run in doc.runs) for (track in run.tracks) {
+            checkSets("plannedJson of run track ${track.id}", track.plannedJson, malformed = true)
+            checkSets("setsJson of run track ${track.id}", track.setsJson, malformed = true)
+        }
+        for (session in doc.sessions) {
+            checkRir("session ${session.id}", session.sets.map { it.rir })
+            session.plannedJson?.let { planned ->
+                val tracks = decodePayload("plannedJson of session ${session.id}") { SessionPlanJson.decode(planned) }
+                checkRir("plannedJson of session ${session.id}", tracks.flatMap { it.sets }.map { it.rir })
+            }
+        }
+        for (session in doc.cardioSessions) {
+            checkValue("effort of cardio session ${session.id}") { session.effort?.let(CardioEffort::valueOf) }
+            for (set in session.sets) {
+                checkValue("cardio set ${set.id} in session ${session.id}") {
+                    require(set.metresAtEnd == null || set.metresAtEnd >= 0)
+                    require(set.secondsAtEnd == null || set.secondsAtEnd >= 0)
+                    val timing = listOf(set.centis, set.timingMethod, set.startProtocol)
+                    require(timing.all { it == null } || timing.all { it != null })
+                    set.centis?.let { require(it in 1..CardioTiming.MAX_CENTIS) }
+                    set.timingMethod?.let { require(CardioTiming.isName(it)) }
+                    set.startProtocol?.let { require(CardioTiming.isName(it)) }
+                }
+            }
+        }
     }
 
     private fun validateRuns(doc: BackupDocument) {
@@ -724,7 +830,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
     }
 
-    private fun validateCardioSets(sessions: List<CardioSessionBackup>) {
+    private fun validateCardioSets(sessions: List<CardioSessionBackup>, version: Int) {
         val ids = HashSet<Long>()
         for (session in sessions) {
             // Room assigns a fresh id to 0 on insert while the set rows keep 0, so a
@@ -747,6 +853,8 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         elapsedSeconds = set.elapsedSeconds,
                         metres = set.metres,
                         distanceSource = set.distanceSource?.let(DistanceSource::valueOf),
+                        metresAtEnd = if (version >= 27) set.metresAtEnd else null,
+                        secondsAtEnd = if (version >= 27) set.secondsAtEnd else null,
                     )
                 }
             }
@@ -755,7 +863,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
 
     /** Runs one of `:data`'s own payload codecs (SSOT — the exact decoders the app
      *  uses at read time) and converts any failure to the typed error. */
-    private fun <T> decodePayload(what: String, malformed: Boolean = false, decode: () -> T): T =
+    private fun <T> decodePayload(
+        what: String,
+        malformed: Boolean = false,
+        decode: () -> T,
+    ): T =
         try {
             decode()
         } catch (e: Exception) {

@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -64,4 +65,5 @@ data class FullSnapshot(
     val runTracks: List<RunTrackEntity> = emptyList(),
     val legacyLogs: List<LegacyLog> = emptyList(),
     val hasLifterAnswers: Boolean = true,
+    val effortScale: EffortScale = EffortScale.WORDS,
 )

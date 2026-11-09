@@ -25,4 +25,6 @@ data class CardioSessionEntity(
     /** CardioActivity.name when recorded by a set-aware caller; unknown for legacy summaries. */
     val activity: String? = null,
     @ColumnInfo(defaultValue = "") val note: String = "",
+    /** [CardioEffort] name; null = not reported. */
+    val effort: String? = null,
 )

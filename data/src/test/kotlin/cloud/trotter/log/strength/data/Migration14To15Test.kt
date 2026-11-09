@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_20_21
 import cloud.trotter.log.strength.data.db.MIGRATION_21_22
 import cloud.trotter.log.strength.data.db.MIGRATION_22_23
 import cloud.trotter.log.strength.data.db.MIGRATION_23_24
+import cloud.trotter.log.strength.data.db.MIGRATION_24_25
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -51,7 +52,7 @@ class Migration14To15Test {
         createV14().also { it.writableDatabase.close(); it.close() }
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25).allowMainThreadQueries().build()
             try {
                 assertEquals(listOf(
                     ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, "ez_curl", "slot note",

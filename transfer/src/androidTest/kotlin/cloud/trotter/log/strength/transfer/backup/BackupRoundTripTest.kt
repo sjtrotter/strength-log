@@ -222,8 +222,9 @@ class BackupRoundTripTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.history.sessionsFlow.first()
         return State(
-            snapshot = backupRepository.exportSnapshot(),
-            program = repository.plans.programFlow.first(),
+            // Rules are derived state (see BackupTestHarness.programWithoutRules).
+            snapshot = backupRepository.exportSnapshot().let { s -> s.copy(exercises = s.exercises.map { it.copy(ruleJson = null) }) },
+            program = programWithoutRules(),
             logsA = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
             logsB = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },
             sessions = sessions,

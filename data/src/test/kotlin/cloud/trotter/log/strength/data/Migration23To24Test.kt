@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_23_24
+import cloud.trotter.log.strength.data.db.MIGRATION_24_25
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
@@ -33,7 +34,7 @@ class Migration23To24Test {
         createV23().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_23_24).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_23_24, MIGRATION_24_25).allowMainThreadQueries().build()
             try {
                 val slot = db.programDao().allExercises().single()
                 val track = db.runDao().allTracks().single()

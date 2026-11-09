@@ -73,6 +73,9 @@ data class ExerciseEntry(
      * words wide. The phone, history, exports and Health Connect all keep [name].
      */
     val shortName: String? = null,
+    /** May anchor a plan as a main lift: conversion makes a straight slot of this entry MAIN (design §4.4), and
+     *  setup's Your lifts lists these (PR 6). Custom exercises never are. */
+    val mainCapable: Boolean = false,
 )
 
 fun ExerciseEntry.availableWith(equipment: Set<Equipment>): Boolean =

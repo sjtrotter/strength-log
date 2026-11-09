@@ -28,7 +28,7 @@ class BackupV26Test {
         assertEquals("Seat 4", snapshot.runTracks.single().note)
 
         val exported = snapshot.toDocument()
-        assertEquals(26, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(1000L, exported.plans.single().days.single().exercises.single().noteUpdatedAt)
         assertEquals("Seat 4", exported.runs.single().tracks.single().note)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())

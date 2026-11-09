@@ -778,6 +778,7 @@
     <string name="day_finish_save_cardio_title">Finish and save %1$s?</string>
     <string name="workout_plates_with_unit">%1$s %2$s a side</string>
     <string name="workout_log_measurement">Log %1$s</string>
+    <string name="workout_one_fewer_rep">One fewer rep</string>
     <string name="workout_clock_remaining">Remaining</string>
     <string name="workout_clock_elapsed">Elapsed</string>
     <string name="workout_rest_duration">Rest %1$s</string>

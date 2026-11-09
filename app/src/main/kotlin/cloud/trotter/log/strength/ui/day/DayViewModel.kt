@@ -1228,14 +1228,20 @@ class DayViewModel @Inject constructor(
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
-            val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
-            repo.applyToRun(runId, planId, day, listOf(
-                TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
-                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(reps = newReps))
-                },
-            ))
-            if (tapped?.kind == SetKind.TOP && tapped.reps != newReps) settings.markTopSetHelperSeen()
+            changeRepsLocked(day, runId, planId, programExerciseId, slot, index, newReps)
         }
+    }
+
+    private suspend fun changeRepsLocked(
+        day: String, runId: String, planId: Long, programExerciseId: Long, slot: String, index: Int, newReps: Int,
+    ) {
+        val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
+        repo.applyToRun(runId, planId, day, listOf(
+            TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
+                if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(reps = newReps))
+            },
+        ))
+        if (tapped?.kind == SetKind.TOP && tapped.reps != newReps) settings.markTopSetHelperSeen()
     }
 
     fun changeSeconds(programExerciseId: Long, slot: String, index: Int, newSeconds: Int) {
@@ -1264,13 +1270,38 @@ class DayViewModel @Inject constructor(
         mutate {
             val tracks = repo.dayTracksFlow(planId, day).first()
             if (tracks.runId != runId || currentDay() != day) return@mutate
-            val projected = projectWorkout(uiState.value, tracks)
-            val record = settings.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
-            val selection = if (record != null) record.selectedKey else selectedPage.value
-            val shown = WorkoutSelection.shown(workoutGroups(projected), selection)
-            val focus = workoutFocus(projected, shown) ?: return@mutate
+            val focus = focusedWorkoutSet(tracks) ?: return@mutate
             tickSetLocked(day, runId, focus.programExerciseId, focus.index, true, focus.slot, actionLog = true)
         }
+    }
+
+    fun decrementFocusedReps() {
+        val state = dayState.value
+        val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
+        mutate {
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            if (tracks.runId != runId || currentDay() != day) return@mutate
+            val focus = focusedWorkoutSet(tracks) ?: return@mutate
+            val card = uiState.value.exercises.firstOrNull { it.programExerciseId == focus.programExerciseId } ?: return@mutate
+            if (card.tracking(focus.slot) == TrackingType.TIMED ||
+                (focus.slot == Slot.MAIN && (card.timedRepDurationSeconds ?: 0) > 0)
+            ) return@mutate
+            val set = tracks.tracks.firstOrNull {
+                it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
+            }?.sets?.getOrNull(focus.index) ?: return@mutate
+            if (set.done || set.reps <= 1) return@mutate
+            changeRepsLocked(day, runId, planId, focus.programExerciseId, focus.slot, focus.index, set.reps - 1)
+        }
+    }
+
+    private suspend fun focusedWorkoutSet(tracks: DayTracks): WorkoutFocus? {
+        val projected = projectWorkout(uiState.value, tracks)
+        val record = settings.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == tracks.runId }
+        val selection = if (record != null) record.selectedKey else selectedPage.value
+        val shown = WorkoutSelection.shown(workoutGroups(projected), selection)
+        return workoutFocus(projected, shown)
     }
 
     fun selectWorkoutLift(key: String) {

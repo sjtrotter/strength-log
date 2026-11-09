@@ -518,6 +518,102 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
+    fun `decrement focused reps changes only the pending set and Log stores the missed rep`() = test {
+        prepare(listOf(bench().copy(exerciseId = "bb_bench",
+            prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
+        val vm = readyVm()
+        repo.startRun(requireNotNull(vm.uiState.value.planId), "A")
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val before = track(vm, id)
+        vm.decrementFocusedReps()
+        runCurrent()
+        assertEquals(before[0].copy(reps = 4), track(vm, id)[0])
+        assertEquals(before.drop(1), track(vm, id).drop(1))
+        assertEquals(4, vm.uiState.value.exercises.single().rows[0].reps)
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+
+        vm.logFocusedSet()
+        runCurrent()
+        val logged = track(vm, id)[0]
+        assertEquals(225.0, logged.weightLb, 0.0)
+        assertEquals(4, logged.reps)
+        assertTrue(logged.done)
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+        assertEquals(5, vm.uiState.value.exercises.single().rows[1].reps)
+        assertEquals(before.drop(1), track(vm, id).drop(1))
+    }
+
+    @Test
+    fun `decrement focused reps at one rep does nothing`() = test {
+        prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 1)))))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val before = track(vm, id)
+        vm.decrementFocusedReps()
+        runCurrent()
+        assertEquals(before, track(vm, id))
+        assertEquals(1, vm.uiState.value.exercises.single().rows[0].reps)
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test
+    fun `decrement focused reps survives a new ViewModel with fresh saved state`() = test {
+        prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.decrementFocusedReps()
+        runCurrent()
+        vm.viewModelScope.cancel()
+
+        val restored = readyVm()
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), restored.uiState.value.workout?.focus)
+        val pending = restored.uiState.value.exercises.single().rows[0]
+        assertEquals(225.0, pending.weightDisplay, 0.0)
+        assertEquals(4, pending.reps)
+        assertFalse(pending.done)
+        assertEquals(4, track(restored, id)[0].reps)
+    }
+
+    @Test
+    fun `queued decrements and Log use the latest pending reps`() = test {
+        prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.decrementFocusedReps()
+        vm.decrementFocusedReps()
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(3, track(vm, id)[0].reps)
+        assertTrue(track(vm, id)[0].done)
+        assertEquals(5, track(vm, id)[1].reps)
+    }
+
+    @Test
+    fun `decrement focused partner reps changes only that partner set`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(WorkoutFocus(id, Slot.SS, 1), vm.uiState.value.workout?.focus)
+        val main = track(vm, id)
+        val partner = track(vm, id, Slot.SS)
+
+        vm.decrementFocusedReps()
+        runCurrent()
+        assertEquals(main, track(vm, id))
+        assertEquals(partner.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set },
+            track(vm, id, Slot.SS))
+        assertEquals(9, vm.uiState.value.exercises.single().rows[1].partner?.reps)
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(9, track(vm, id, Slot.SS)[1].reps)
+        assertTrue(track(vm, id, Slot.SS)[1].done)
+        assertEquals(10, track(vm, id, Slot.SS)[2].reps)
+    }
+
+    @Test
     fun `★ superset logs one half cancels mid-round rest and labels the next round`() = test {
         prepare(listOf(bench(superset = true)), restEnabled = true)
         val vm = readyVm()

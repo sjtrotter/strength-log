@@ -40,6 +40,7 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.seeding.RunReplan
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.progression.LayoffKind
 import cloud.trotter.log.strength.domain.progression.LightCycle
 import cloud.trotter.log.strength.domain.progression.LightWeek
@@ -1267,7 +1268,8 @@ class TrackerRepository(
             val inserted = runDao.tracks(runId)
             writeRunTracks(resolved.tracks.map { edited ->
                 // Phone edits can create tracks absent from the plan seed and initial insert.
-                edited.copy(id = inserted.firstOrNull { it.sameKey(edited) }?.id ?: runDao.insertTrack(edited),
+                val existing = inserted.firstOrNull { it.sameKey(edited) }
+                if (existing != null) edited.copy(id = existing.id) else edited.copy(id = runDao.insertTrack(edited),
                     setsJson = SetJson.encodeSets(SetJson.decodeSets(edited.setsJson).mapIndexed { i, set -> set.copy(plannedIndex = i) }))
             })
             RunWriteResult.InRun(runId, true)
@@ -1591,7 +1593,8 @@ class TrackerRepository(
             } ?: return@map track
             val dto = OpeningDto.of(opening.layoff, light) ?: return@map track
             track.copy(plannedJson = SetJson.encodeSets(opening.rows),
-                setsJson = SetJson.encodeSets(opening.rows.mapIndexed { i, s -> s.copy(plannedIndex = i) }),
+                setsJson = SetJson.encodeSets(SetEditor.keepingIndexStamps(SetJson.decodeSets(track.setsJson),
+                    opening.rows.mapIndexed { i, s -> s.copy(plannedIndex = i) })),
                 openingJson = OpeningJson.encode(dto))
         }
         val openedSlots = result.filter { it.openingJson != null }.mapNotNull { it.programExerciseId }.toSet()
@@ -1603,8 +1606,10 @@ class TrackerRepository(
             val rows = SetJson.decodeSets(track.plannedJson)
             if (count == 0 || rows.isEmpty() || rows.size == count) return@map track
             val fit = fitted(rows, count)
+            val before = tracks.first { it.sameKey(track) }
             track.copy(plannedJson = SetJson.encodeSets(fit),
-                setsJson = SetJson.encodeSets(fit.mapIndexed { i, s -> s.copy(plannedIndex = i) }),
+                setsJson = SetJson.encodeSets(SetEditor.keepingIndexStamps(SetJson.decodeSets(before.setsJson),
+                    fitted(SetJson.decodeSets(track.setsJson), count).mapIndexed { i, s -> s.copy(plannedIndex = i) })),
                 openingJson = track.openingJson ?: OpeningJson.encode(OpeningDto(OpeningDto.HOLD)))
         }
     }
@@ -1614,8 +1619,8 @@ class TrackerRepository(
         if (rows.isEmpty()) rows else rows.take(count) + List(maxOf(0, count - rows.size)) { rows.last() }
 
     private suspend fun startRun(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>, tracks: List<RunTrackEntity>) {
-        keepSeeds(day, seeds)
         sessionDao.clearProgressionUndoForDay(day.planId, day.dayId)
+        keepSeeds(day, seeds)
         runDao.insertRun(WorkoutRunEntity(
             day.nextRunId, day.planId, day.dayId, day.title, planDao.plan(day.planId)?.name, clock.millis(),
         ))

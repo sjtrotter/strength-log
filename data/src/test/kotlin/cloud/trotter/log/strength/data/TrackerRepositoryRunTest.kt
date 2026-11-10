@@ -970,6 +970,8 @@ class TrackerRepositoryRunTest {
         val id = day(plan).nextRunId
         repo.applyToRun(id, plan, "A", listOf(tick(slots.first().id)))
         assertTrue(db.runDao().tracks(id).any { it.programExerciseId == slots.last().id })
+        // Start writes this seed; leave it absent so this test detects an incorrect carry at Finish.
+        db.programDao().deleteLogForSlot(plan, "A", slots.last().id, Slot.MAIN)
         repo.swapExerciseById("A", slots.first().id, "bb_bench")
         val replacement = db.programDao().logForSlot(plan, "A", slots.first().id, Slot.MAIN)!!
         assertEquals(List(3) { LoggedSet(50.0, 5, SetKind.WORK) }, SetJson.decodeSets(replacement.setsJson))
@@ -1432,9 +1434,9 @@ class TrackerRepositoryRunTest {
         repo.setKeepToPlan(slot, true)
 
         assertEquals(captured, db.runDao().tracks(runId))
-        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        assertTrue(db.programDao().logsForDay(plan, "A").none { it.programExerciseId == slot })
         assertTrue(repo.discardRun(runId))
-        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        assertTrue(db.programDao().logsForDay(plan, "A").none { it.programExerciseId == slot })
         repo.ensureSeeded(plan, "A")
         assertEquals(listOf(
             LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
@@ -1479,6 +1481,8 @@ class TrackerRepositoryRunTest {
         val slot = slot(plan)
         repo.setKeepToPlan(slot, false)
         val runId = start(plan)
+        // Exercise the missing-working-row fallback, independently of Start's seed write.
+        db.programDao().deleteLogForSlot(plan, "A", slot, Slot.MAIN)
         val main = db.runDao().tracks(runId).single()
         db.runDao().updateTrack(main.copy(plannedJson = "[]"))
         repo.finishRun(runId)

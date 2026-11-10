@@ -20,7 +20,7 @@ data class PerformedTrack(
     val stored: List<LoggedSet>?,
     val seed: List<LoggedSet>?,
     val note: String = "",
-    /** The rows Start would open this track with, when it opens differently (spec W2b-3c decision 4); null in a run. */
+    /** The rows Start would open this track with, when it has an opening, a Hold with unchanged rows included (spec W2b-3c decision 4); null in a run. */
     val opening: List<LoggedSet>? = null,
 ) {
     val tracking: TrackingType get() = performed.tracking

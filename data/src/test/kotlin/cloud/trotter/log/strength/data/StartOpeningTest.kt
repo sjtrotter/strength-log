@@ -93,6 +93,63 @@ class StartOpeningTest : OpeningFixture() {
         assertNull(db.runDao().openRun())
     }
 
+    @Test fun `case 13 removing the first ramp before Start keeps identities through Finish`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+
+        assertEquals(RunWriteResult.InRun(next, true), repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { rows -> SetEditor.removeSet(rows, 0) },
+        )))
+
+        val track = db.runDao().tracks(next).single()
+        assertEquals(case13, planned(track))
+        val surviving = SetJson.decodeSets(track.setsJson)
+        assertEquals(listOf(1, 2, 3, 4), surviving.map { it.plannedIndex })
+        assertEquals(260.0, surviving.single { it.plannedIndex == 2 }.weightLb)
+        asPlanned(track, plan)
+
+        assertEquals(squat(), rows(plan, s))
+        assertEquals(SlotState(exposures = 1), rule(s).state)
+        assertNull(offer(plan, "bb_back_squat"))
+    }
+
+    @Test fun `a pre-start extra set has no planned identity`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val add = TrackEdit(s, Slot.MAIN) { rows -> SetEditor.addSet(rows) }
+
+        assertEquals(RunWriteResult.InRun(next, true), repo.applyToRun(next, plan, "A", listOf(add)))
+
+        val track = db.runDao().tracks(next).single()
+        assertEquals(case13, planned(track))
+        assertEquals(listOf(0, 1, 2, 3, 4, null), SetJson.decodeSets(track.setsJson).map { it.plannedIndex })
+        assertEquals(RunWriteResult.InRun(next, false), repo.applyToRun(next, plan, "A", listOf(add)))
+        assertEquals(listOf(0, 1, 2, 3, 4, null, null),
+            SetJson.decodeSets(db.runDao().tracks(next).single().setsJson).map { it.plannedIndex })
+    }
+
+    @Test fun `Start clears pending Finish Undo before writing a seed's calibrating flag`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val b = id(plan, "bb_bench")
+        lifter(plan, b, work(3, 120.0, 10), rule(SlotRole.MAIN, 10))
+        val session = finish(plan, b, 120.0, listOf(10, 10, 10))
+        val before = rule(b)
+        val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+        assertEquals(db.programDao().exercise(b)!!.ruleJson, undo.rules.single().afterJson)
+        assertFalse(before.state.calibrating)
+        db.programDao().deleteLogForSlot(plan, "A", b, Slot.MAIN)
+
+        start(plan)
+
+        assertEquals(work(3, 120.0, 10), rows(plan, b))
+        assertEquals(before.copy(state = before.state.copy(calibrating = true)), rule(b))
+        assertNull(db.sessionDao().sessionById(session)!!.progressionUndoJson)
+    }
+
     @Test fun `skipping a superset half before Start opens the kept half through the layoff`() = runTest {
         val plan = rPlan()
         val s = id(plan, "bb_back_squat")

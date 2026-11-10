@@ -1499,34 +1499,23 @@ class DayViewModel @Inject constructor(
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
-            val main = trackFor(day, programExerciseId, Slot.MAIN)
-            if (index !in main.indices) return@mutate
-            // SetEditor's floor: the last row never goes. Nothing was removed,
-            // so nothing is offered back.
-            if (main.size <= 1) return@mutate
-            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            var removedMain: LoggedSet? = null
+            var removedPartner: LoggedSet? = null
             cancelTimedRepForSetListChange(day, programExerciseId)
-            // Offered before the write lands: removing the last unfinished row
-            // finishes the card, and the screen has to know the offer is open
-            // before it decides whether to fold that card away.
-            pushUndo(
-                RemovedSet(
-                    programExerciseId = programExerciseId,
-                    index = index,
-                    dayId = day,
-                    runId = runId,
-                    main = main[index],
-                    partner = partner.getOrNull(index),
-                ),
-            )
-            repo.applyToRun(runId, planId, day, listOfNotNull(
+            val result = repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
-                    if (rows.size <= 1 || index !in rows.indices) null else SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
+                    if (rows.size <= 1 || index !in rows.indices) null else {
+                        removedMain = rows[index]
+                        SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
+                    }
                 },
-                if (partner.isNotEmpty()) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
+                if (isSuperset) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
+                    removedPartner = rows.getOrNull(index)?.takeIf { rows.size > 1 }
                     SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                 } else null,
             ))
+            if (result !is RunWriteResult.InRun && result != RunWriteResult.WorkingValues) return@mutate
+            pushUndo(RemovedSet(programExerciseId, index, day, runId, removedMain ?: return@mutate, removedPartner))
         }
     }
 
@@ -1543,14 +1532,14 @@ class DayViewModel @Inject constructor(
         mutate {
             if (day != removed.dayId || runId != removed.runId) return@mutate
             if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
-            val paired = removed.partner != null && trackFor(day, removed.programExerciseId, Slot.SS).isNotEmpty()
+            val paired = removed.partner != null
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
             repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(removed.programExerciseId, Slot.MAIN) { rows ->
-                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, removed.main))
+                    SetEditor.insertSet(rows, removed.index, removed.main)
                 },
                 if (paired) TrackEdit(removed.programExerciseId, Slot.SS) { rows ->
-                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner)))
+                    SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner))
                 } else null,
             ))
         }

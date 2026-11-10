@@ -212,7 +212,9 @@ class BackupRepository(
             customExerciseDao.upsertAll(snapshot.customExercises)
             programDao.upsertDays(days)
             programDao.insertExercises(snapshot.exercises)
-            programDao.insertLogs(snapshot.logs + split?.logs.orEmpty())
+            programDao.insertLogs(snapshot.logs)
+            // Converted legacy rows replace matching working values; run tracks stay attached untouched.
+            split?.logs?.forEach { programDao.upsertLog(it) }
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)

@@ -45,6 +45,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -159,6 +161,119 @@ class PreStartOpeningTest : OverviewFixture() {
         assertEquals(LoggedSet(165.0, 5, SetKind.RAMP, done = true, watchEditedAt = 500, plannedIndex = 0), sets[0])
         assertEquals(case13.drop(1), WorkingRows.cleared(sets.drop(1)))
         assertEquals(beforeLog, db.programDao().logForSlot(plan, "A", s, Slot.MAIN))
+    }
+
+    @Test fun `case 13 Remove and Undo restore the opened TOP with its identity and watch stamp`() = runTest(dispatcher) {
+        val plan = rPlan()
+        val s = db.programDao().exercisesForDay(plan, "A").single().id
+        val stored = assertNotNull(db.programDao().logForSlot(plan, "A", s, Slot.MAIN))
+        db.programDao().upsertLog(stored.copy(setsJson = SetJson.encodeSets(squat().mapIndexed { i, row ->
+            if (i == 2) row.copy(watchEditedAt = 700) else row
+        })))
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
+        advanceUntilIdle()
+        assertNull(db.runDao().openRun())
+        val expected = case13.mapIndexed { i, row -> row.copy(plannedIndex = i, watchEditedAt = if (i == 2) 700L else null) }
+
+        workout.removeSet(s, 2, isSuperset = false)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        val run = assertNotNull(db.runDao().openRun()).id
+        assertEquals(expected[2], workout.removedSets.value.single().main)
+        assertEquals(listOf(0, 1, 3, 4), SetJson.decodeSets(db.runDao().tracks(run).single().setsJson).map { it.plannedIndex })
+        workout.undoRemoveSet()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        val restored = SetJson.decodeSets(db.runDao().tracks(run).single().setsJson)
+        assertEquals(expected[2], restored[2])
+        assertEquals(260.0, restored[2].weightLb)
+        assertEquals(listOf(0, 1, 2, 3, 4), restored.map { it.plannedIndex })
+        assertTrue(workout.removedSets.value.isEmpty())
+    }
+
+    @Test fun `case 13 Remove and Undo restore a padded partner round aligned with MAIN`() = runTest(dispatcher) {
+        val plan = rPlan()
+        val s = db.programDao().exercisesForDay(plan, "A").single().id
+        repo.setSupersetPartner("A", s, "cable_row")
+        val partner = listOf(
+            LoggedSet(120.0, 10, SetKind.WORK, watchEditedAt = 100),
+            LoggedSet(120.0, 10, SetKind.WORK, watchEditedAt = 200),
+        )
+        db.programDao().upsertLog(ExerciseLogEntity(plan, "A", s, Slot.SS, SetJson.encodeSets(partner), 1000))
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
+        advanceUntilIdle()
+        assertNull(db.runDao().openRun())
+        val expectedMain = case13.mapIndexed { i, row -> row.copy(plannedIndex = i) }
+        val expectedPartner = List(5) { i -> partner[minOf(i, 1)].copy(plannedIndex = i) }
+
+        workout.removeSet(s, 4, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        val run = assertNotNull(db.runDao().openRun()).id
+        assertEquals(expectedMain[4], workout.removedSets.value.single().main)
+        assertEquals(expectedPartner[4], workout.removedSets.value.single().partner)
+        assertTrue(db.runDao().tracks(run).all { SetJson.decodeSets(it.setsJson).size == 4 })
+        workout.undoRemoveSet()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        val tracks = db.runDao().tracks(run)
+        assertEquals(expectedMain, SetJson.decodeSets(tracks.single { it.slot == Slot.MAIN }.setsJson))
+        assertEquals(expectedPartner, SetJson.decodeSets(tracks.single { it.slot == Slot.SS }.setsJson))
+        assertTrue(workout.removedSets.value.isEmpty())
+    }
+
+    @Test fun `a newer pre-start watch edit survives a light opening and rejects an older delta`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3))))))
+        db.convertTestPlans(settings)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val s = storeSquat(plan)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val newer = tick(plan, s, next).copy(done = null, weightLb = 170.0, reps = 7, editedAtMillis = 2_000)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(newer))
+        assertNull(db.runDao().openRun())
+        val stored = db.programDao().logForSlot(plan, "A", s, Slot.MAIN)
+        db.planDao().updateLightCycle(plan, 2, 0)
+
+        assertEquals(SetEditApplier.Outcome.STALE,
+            applier.apply(newer.copy(weightLb = 150.0, reps = 4, editedAtMillis = 1_000)))
+
+        assertNull(db.runDao().openRun())
+        assertEquals(stored, db.programDao().logForSlot(plan, "A", s, Slot.MAIN))
+        val shown = repo.observeDay(plan, "A").first().slots.single().main.sets.first()
+        assertEquals(170.0 to 7, shown.weightLb to shown.reps)
+        repo.startRun(plan, "A")
+        val opened = SetJson.decodeSets(db.runDao().tracks(next).single().setsJson).first()
+        assertEquals(2_000L, opened.watchEditedAt)
+        assertEquals(170.0 to 7, opened.weightLb to opened.reps)
+    }
+
+    @Test fun `light fitting keeps the higher stored index stamp when it pads a partner`() = runTest(dispatcher) {
+        val plan = rPlan()
+        val s = db.programDao().exercisesForDay(plan, "A").single().id
+        repo.setSupersetPartner("A", s, "cable_row")
+        val stamps = listOf(100L, 200L, 900L, 1_000L, 700L)
+        db.programDao().upsertLog(ExerciseLogEntity(plan, "A", s, Slot.SS,
+            SetJson.encodeSets(stamps.map { LoggedSet(120.0, 10, SetKind.WORK, watchEditedAt = it) }), 1000))
+        db.programDao().setPartnerRule(s, SlotRuleJson.encode(
+            SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(10), 2, 0.0125, 1, 0.05, Scheme.STRENGTH)))
+        db.planDao().updateLightCycle(plan, 2, 0)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val older = SetEditDelta(dayId = "A", programExerciseId = s, slot = Slot.SS, setIndex = 3,
+            weightLb = 80.0, reps = 8, editedAtMillis = 950,
+            planId = plan, runId = next, exerciseId = "cable_row")
+
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(older))
+
+        assertNull(db.runDao().openRun())
+        repo.startRun(plan, "A")
+        val partner = db.runDao().tracks(next).single { it.slot == Slot.SS }
+        val rows = SetJson.decodeSets(partner.setsJson)
+        assertEquals(listOf(100L, 200L, 900L, 1_000L), rows.map { it.watchEditedAt })
+        assertEquals(List(4) { 110.0 to 10 }, rows.map { it.weightLb to it.reps })
     }
 
     @Test fun `a light superset ticked from the watch opens both halves light and fitted`() = runTest(dispatcher) {

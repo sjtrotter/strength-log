@@ -276,6 +276,7 @@ class TrackerRepositoryRunEditsTest {
         val destination = db.programDao().exercisesForDay(plan, "B").single().id
         repo.setStructure(destination, SetStructure.RAMP_TOP_BACKOFF)
         repo.setSupersetPartner("B", destination, "ez_curl")
+        repo.ensureSeeded(plan, "B")
         val original = db.programDao().exercise(destination)
         val run = repo.startRun(plan, "B") as RunStartResult.Started
         repo.applyToRun(run.runId, plan, "B", listOf(TrackEdit(destination, Slot.SS) { rows ->

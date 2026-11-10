@@ -870,3 +870,8 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - A lift's goal is the plan's own goal for it (`goalsLb`) and nothing else; catalog rep and hold targets are no longer goals. A timed hold's load is its working row's; its load stepper follows the catalog or prescription.
 - The watch's last-resort rows are authored-count blanks; the Plan screen counts the rows a slot's rule opens with; a receipt's Planned line is the rows the session opened with.
 - The day's seeds re-read on any history write. Part 3b-ii moves the day editor and the prescription draft to the stored or seeded rows.
+
+## 24. Revision 15 (PR 2b part three-b-ii, the day editor, 2026-11-09)
+
+- The day editor reads each slot's next-time rows, stored or else seeded, and never a run's. Its summary counts those rows, and the Prescription page starts from the first working row; only an empty stored track falls back to the catalog's rep or hold target.
+- No app or data code seeds or targets a plan slot from the formula. The old wizard, the setup goal preview and the journal's goals keep it until PR 6.

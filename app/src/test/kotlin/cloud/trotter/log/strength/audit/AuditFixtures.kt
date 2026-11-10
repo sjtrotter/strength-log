@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -80,6 +81,7 @@ internal fun auditEditFixture(state: DayUiState) = DayEditUiState(
             partnerExerciseId = card.partnerExerciseId, partnerTitle = card.partnerTitle,
             targetSets = card.rows.size, canMoveUp = card.position > 0,
             canMoveDown = card.position < state.exercises.lastIndex,
+            rows = card.rows.map { LoggedSet(state.unit.toLb(it.weightDisplay), it.reps, it.kind, seconds = it.seconds) },
         )
     },
 )

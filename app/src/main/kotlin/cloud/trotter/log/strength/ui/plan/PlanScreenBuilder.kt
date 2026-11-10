@@ -5,13 +5,19 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.records.GoalProgress
-import cloud.trotter.log.strength.data.DaySeeds
-import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.KnownLoads
+import cloud.trotter.log.strength.domain.progression.SlotSeeding
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.LoadSteps
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -26,7 +32,7 @@ object PlanScreenBuilder {
         unit: WeightUnit,
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
     ): PlanUiState {
-        val days = days(program, plan?.suggestedDayId, answers.config, catalog)
+        val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
         return PlanUiState(
             goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
@@ -54,7 +60,7 @@ object PlanScreenBuilder {
     fun days(
         program: Program,
         nextDayId: String?,
-        config: LifterConfig,
+        unit: WeightUnit,
         catalog: ExerciseCatalog,
     ): List<PlanDay> =
         program.days.map { day ->
@@ -64,17 +70,20 @@ object PlanScreenBuilder {
                 dayIndex = Program.accentIndex(day.id),
                 title = day.title,
                 liftCount = trainingDay?.exercises?.size ?: 0,
-                setCount = trainingDay?.exercises.orEmpty().mapIndexed { position, exercise ->
-                    DaySeeds.previewMain(
-                        ProgramSlot(programExerciseId = position.toLong(), position = position, exercise = exercise),
-                        config,
-                        catalog,
-                    ).size
-                }.sum(),
+                setCount = trainingDay?.exercises.orEmpty().sumOf { openingRows(it, catalog.find(it.exerciseId), unit) },
                 isNext = day.id == nextDayId,
                 kind = day.kind,
                 cardioActivity = trainingDay?.cardioBlock?.activity,
                 cardioSetCount = trainingDay?.cardioBlock?.sets?.size ?: 0,
             )
         }
+
+    /** Rows [exercise] opens with when nothing is stored, from [SlotSeeding] with no loads known; the count never
+     *  depends on a load. An unruled slot (test fixtures only) counts under the defaults for its structure. */
+    private fun openingRows(exercise: ProgramExercise, entry: ExerciseEntry?, unit: WeightUnit): Int {
+        if (entry == null && exercise.prescription == null) return exercise.targetSets
+        val rule = exercise.rule ?: SlotRule.defaults(SlotRole.ACCESSORY, LiftGoal.STRENGTH, exercise.structure, null,
+            entry?.pattern ?: MovementPattern.CORE_FLEX)
+        return SlotSeeding.rows(exercise, rule, KnownLoads.NONE, LoadSteps.defaults(unit), unit, entry).rows.size
+    }
 }

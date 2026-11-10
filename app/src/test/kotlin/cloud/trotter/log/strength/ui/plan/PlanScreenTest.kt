@@ -28,7 +28,6 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
@@ -432,7 +431,7 @@ class PlanScreenTest {
             ProgramDay(id, "Day $id", "", emptyList(), kind = ProgramDayKind.CARDIO)
         }
         return planScreenFixture(menu = menu).copy(days = PlanScreenBuilder.days(
-            Program(strength + cardio), "A", LifterConfig(), ExerciseCatalog.CODE_ONLY,
+            Program(strength + cardio), "A", WeightUnit.LB, ExerciseCatalog.CODE_ONLY,
         ))
     }
 

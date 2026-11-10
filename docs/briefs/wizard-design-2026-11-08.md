@@ -864,3 +864,9 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - Part three splits: (a) the data layer's lazy seeds; (b) the display and editor targets (`PerformedExercise.goal`, watch blank rows and label, Plan screen, day editor, `PrescriptionDraft`, receipt targets) and `DaySeeds` deleted; (c) openings before Start and tick-started openings.
 - A track with no stored row seeds through `SlotSeeding` under its own rule (else the conversion rule), from `PlanRepository.seeds`; `observeDay` shows the seed without writing it. `ensureSeeded` and a pre-start edit write a seed's rows and its rule's calibrating flag together; a run start still writes none.
 - Partner tracks count as the plan's working weight for the same lift. A restored or reopened track re-plans from its stored rows.
+
+## 23. Revision 14 (PR 2b part three-b-i, display surfaces, 2026-11-09)
+
+- A lift's goal is the plan's own goal for it (`goalsLb`) and nothing else; catalog rep and hold targets are no longer goals. A timed hold's load is its working row's; its load stepper follows the catalog or prescription.
+- The watch's last-resort rows are authored-count blanks; the Plan screen counts the rows a slot's rule opens with; a receipt's Planned line is the rows the session opened with.
+- The day's seeds re-read on any history write. Part 3b-ii moves the day editor and the prescription draft to the stored or seeded rows.

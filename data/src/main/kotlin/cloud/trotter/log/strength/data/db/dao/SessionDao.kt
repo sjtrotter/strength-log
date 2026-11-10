@@ -90,6 +90,11 @@ data class PlanLastSessionRow(val planId: Long, val completedAt: Long)
 /** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
+    /** Emits on every write to `workout_session` or `session_set` (Room invalidates by table, even when the count
+     *  is unchanged), so a reader can re-derive what it reads from history. The value itself means nothing. */
+    @Query("SELECT COUNT(*) FROM session_set ss INNER JOIN workout_session ws ON ws.id = ss.sessionId")
+    fun observeHistoryChanges(): Flow<Int>
+
     @Query("SELECT MAX(s.completedAt) FROM workout_session s JOIN session_set t ON t.sessionId = s.id WHERE s.planId = :planId AND t.exerciseId = :exerciseId AND t.done = 1")
     suspend fun lastTrainedAt(planId: Long, exerciseId: String): Long?
 

@@ -24,6 +24,10 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetStructure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,7 +49,6 @@ class PlanScreenBuilderTest {
             WizardAnswers(), ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
     }
 
-    private val config = LifterConfig()
     private val catalog = ExerciseCatalog.CODE_ONLY
 
     @Test
@@ -58,7 +61,7 @@ class PlanScreenBuilderTest {
             ),
         )
 
-        val rows = PlanScreenBuilder.days(program, nextDayId = "B", config = config, catalog = catalog)
+        val rows = PlanScreenBuilder.days(program, nextDayId = "B", unit = WeightUnit.LB, catalog = catalog)
 
         assertEquals(listOf("A", "B", "C"), rows.map { it.dayId })
         assertEquals(listOf(0, 1, 2), rows.map { it.dayIndex })
@@ -75,7 +78,7 @@ class PlanScreenBuilderTest {
             },
         )
 
-        val rows = PlanScreenBuilder.days(program, nextDayId = "F", config = config, catalog = catalog)
+        val rows = PlanScreenBuilder.days(program, nextDayId = "F", unit = WeightUnit.LB, catalog = catalog)
 
         assertEquals((0..5).toList(), rows.map { it.dayIndex })
         assertEquals(6, rows.size)
@@ -103,12 +106,22 @@ class PlanScreenBuilderTest {
         val row = PlanScreenBuilder.days(
             program,
             nextDayId = "A",
-            config = config,
+            unit = WeightUnit.LB,
             catalog = catalog,
         ).single()
 
         assertEquals(10, row.setCount)
         assertTrue(row.setCount > program.strengthDays.single().exercises.sumOf { it.targetSets })
+    }
+
+    @Test fun `a ruled strength scheme ramp counts the rows it opens with`() {
+        val program = Program(listOf(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, 3,
+                rule = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH, SetStructure.STRAIGHT, 5, MovementPattern.H_PUSH)),
+            ProgramExercise("pushup", targetSets = 4),
+        ))))
+
+        assertEquals(9, PlanScreenBuilder.days(program, "A", WeightUnit.LB, catalog).single().setCount)
     }
 
     @Test
@@ -119,7 +132,7 @@ class PlanScreenBuilderTest {
             day("B", "Upper", 3),
             day("C2", "Cardio", 2).copy(kind = ProgramDayKind.CARDIO),
         ))
-        val rows = PlanScreenBuilder.days(program, "B", config, catalog)
+        val rows = PlanScreenBuilder.days(program, "B", WeightUnit.LB, catalog)
         assertEquals(listOf("A", "C1", "B", "C2"), rows.map { it.dayId })
         assertEquals(listOf(0, 2, 1, 2), rows.map { it.dayIndex })
         assertEquals(program.days.map { it.kind }, rows.map { it.kind })

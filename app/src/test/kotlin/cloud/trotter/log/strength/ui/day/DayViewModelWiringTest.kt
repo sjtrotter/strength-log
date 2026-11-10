@@ -29,8 +29,8 @@ import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -1042,7 +1042,7 @@ class DayViewModelWiringTest {
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
             assertEquals(
-                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "105"),
+                HeaderTarget.Goal("0"),
                 cards.first().headerTarget,
             )
             assertEquals(displays.mapIndexed { index, display ->
@@ -3344,9 +3344,34 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    @Test fun case38HandAddedLiftsShowPrescribedHeadersOnTheDayCardAndTheWatch() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("hammer_curl", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(30.0, 8))))
+        repo.addExercise("A", ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.exercises
+        assertEquals(listOf(HeaderTarget.Prescribed("3 × 8 · 30 lb"), HeaderTarget.Prescribed("3 × 5 · 185 lb")),
+            cards.map { it.headerTarget })
+        val exercises = WatchSnapshotBuilder.build(repo.observeDay(plan, "A").first(), WeightUnit.LB, revision = 1L)!!
+            .day.exercises
+        assertEquals(listOf("3 × 8 · 30 lb", "3 × 5 · 185 lb"), exercises.map { it.goalLabel })
+        assertEquals(listOf(30.0, 185.0), exercises.map { it.goal })
+        assertTrue(exercises.all { it.prescribed })
+        assertEquals(listOf(100.0, 130.0, 150.0, 165.0, 185.0, 140.0), exercises[1].sets.map { it.weightLb })
+        collect.cancel()
+    }
+
     @Test fun workoutSwapStartsBeforeTheFirstSetAndUsesTheSubstitutesGoalAndTracking() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
+        val answers = repo.plans.wizardAnswersFlow.first()
+        repo.plans.setWizardAnswers(answers.copy(config = answers.config.copy(goalsLb = mapOf("hack_squat" to 180.0))))
         repo.addExercise("A", ProgramExercise("bb_back_squat", targetSets = 2,
             prescription = Prescription(PrescribedTarget.RepsInTime(90, 30))))
         val vm = newViewModel()
@@ -3364,10 +3389,7 @@ class DayViewModelWiringTest {
         assertEquals(TrackingType.WEIGHTED, card.tracking)
         assertNull(card.timedRepDurationSeconds)
         assertTrue(card.headerTarget is HeaderTarget.Goal)
-        val cfg = repo.plans.wizardAnswersFor(plan).first().config
-        val catalog = repo.catalog.catalogFlow.first()
-        val goal = GoalCalculator.targetFor(catalog.get("hack_squat"), cfg)
-        assertEquals(HeaderTarget.Goal(GoalFormatter.label(goal, WeightUnit.LB)), card.headerTarget)
+        assertEquals(HeaderTarget.Goal("180"), card.headerTarget)
         assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) },
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -10,11 +11,12 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 
 data class PerformedTrack(
     val performed: PerformedExercise,
-    val goal: GoalTarget?,
+    val goal: GoalTarget.Weight?,
     val stored: List<LoggedSet>?,
     val seed: List<LoggedSet>?,
     val note: String = "",
@@ -26,13 +28,13 @@ data class PerformedTrack(
             is PrescribedTarget.LoadReps -> prescribedTarget.lb
             is PrescribedTarget.Hold -> prescribedTarget.addedLb
             is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> 0.0
-            null -> when (val target = goal) {
-                is GoalTarget.Weight -> target.lb
-                is GoalTarget.Time -> target.addedLb
-                is GoalTarget.Reps, null -> 0.0
-            }
+            null -> if (tracking == TrackingType.TIMED)
+                WorkingRows.workingIndices(sets).firstOrNull()?.let { sets[it].weightLb } ?: 0.0
+            else goal?.lb ?: 0.0
         }
-    val showsLoad: Boolean get() = tracking == TrackingType.TIMED && loadLb > 0.0
+    /** Whether this hold takes an added load: the prescription's, else the catalog's, never the current rows. */
+    val showsLoad: Boolean get() = tracking == TrackingType.TIMED && if (performed.prescription == null)
+        ((performed.entry?.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0) > 0.0 else loadLb > 0.0
 }
 
 data class PerformedSlot(val slot: ProgramSlot, val main: PerformedTrack, val partner: PerformedTrack?)

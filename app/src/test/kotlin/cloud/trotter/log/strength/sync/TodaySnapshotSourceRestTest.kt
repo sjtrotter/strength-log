@@ -12,6 +12,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -114,16 +115,17 @@ class TodaySnapshotSourceRestTest {
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val slot = repo.plans.daySlotsFlow("A").first().single().programExerciseId
-        db.storeTestRows("A", slot, Slot.MAIN, listOf(
+        val rows = listOf(
             LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
             LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
             LoggedSet(235.0, 5, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
-        ))
+        )
+        db.storeTestRows("A", slot, Slot.MAIN, rows)
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans, historyRepository = repo.history)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val before = source.snapshots.publishableSnapshots().first()
         val expected = WatchSnapshotBuilder.build(
-            repo.plans.programFor(plan).first(), "A", repo.plans.slotsFor(plan, "A").first(), emptyList(),
+            repo.plans.programFor(plan).first(), "A", repo.plans.slotsFor(plan, "A").first(), listOf(LoggedSlot(slot, Slot.MAIN, rows)),
             repo.plans.wizardAnswersFor(plan).first().config, repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
             revision = 0L, planId = plan, planName = before.planName, runId = before.runId,
             restSettings = settings.restSettingsFlow.first(), equipment = repo.plans.wizardAnswersFor(plan).first().equipment,

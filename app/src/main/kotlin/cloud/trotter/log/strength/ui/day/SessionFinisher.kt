@@ -16,7 +16,6 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.progression.WorkingRows
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
@@ -125,7 +124,6 @@ internal class SessionFinisher(
         // DataStore reads must finish before finishRun opens its Room transaction.
         val unit = settings.unitFlow.first()
         val program = plans.programFor(planId).first()
-        val config = plans.wizardAnswersFor(planId).first().config
         val ids = run.tracks.map { it.exerciseId }.distinct()
         var standing = baseline(ids, runId)
         val finished = repo.finishRunCapturing(runId) ?: run {
@@ -143,20 +141,7 @@ internal class SessionFinisher(
         if (standing != null && swappedIn.isNotEmpty()) {
             standing = baseline(swappedIn, runId)?.let { standing.orEmpty() + it }
         }
-        val targets = tracks.mapNotNull { track ->
-            val slot = slots.firstOrNull { it.programExerciseId == track.programExerciseId } ?: return@mapNotNull null
-            val exercise = slot.exercise
-            val rows = if (track.slot == Slot.SS) {
-                val mainCount = SlotSeeds.main(exercise, exercises.find(exercise.exerciseId), config)?.size
-                    ?: track.sets.size
-                SlotSeeds.partner(exercises.find(track.exerciseId), mainCount, config)
-            } else SlotSeeds.main(exercise.copy(
-                exerciseId = track.exerciseId,
-                prescription = exercise.prescription.takeIf { track.exerciseId == exercise.exerciseId },
-            ), exercises.find(track.exerciseId), config)
-            rows?.let { track.id to it }
-        }.toMap()
-        val groupsWithTracks = ReceiptBuilder.strengthWithTracks(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty(), targets)
+        val groupsWithTracks = ReceiptBuilder.strengthWithTracks(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty())
         val repNextTimes = mutableListOf<ReceiptRepNextTime>()
         val nextTimes = try {
             val offersOn = plans.plansFlow.first().firstOrNull { it.id == planId }?.offerStrengthIncreases ?: true

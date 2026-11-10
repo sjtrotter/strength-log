@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
-import cloud.trotter.log.strength.domain.standards.GoalTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -27,11 +26,11 @@ class PerformedExerciseTest {
         assertEquals("pushup", reps.exerciseId)
         assertEquals(catalog.get("pushup"), reps.entry)
         assertEquals(TrackingType.REPS, reps.tracking)
-        assertEquals(GoalTarget.Reps(15), reps.goal(LifterConfig()))
+        assertNull(reps.goal(LifterConfig()))
         val timed = performedExercise(slot, "plank", catalog)
         assertNull(timed.prescription)
         assertEquals(TrackingType.TIMED, timed.tracking)
-        assertEquals(GoalTarget.Time(45, 0.0), timed.goal(LifterConfig()))
+        assertNull(timed.goal(LifterConfig()))
     }
 
     @Test fun `partner resolution uses the performed partner without the MAIN prescription`() {

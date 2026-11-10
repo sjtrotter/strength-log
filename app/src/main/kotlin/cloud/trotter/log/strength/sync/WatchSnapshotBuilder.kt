@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.sync
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
 
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -11,12 +10,12 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.ui.day.activityLabel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -78,7 +77,7 @@ object WatchSnapshotBuilder {
         }
         if (watchDays.none { it.id == dayId }) return null
         val exercises = day.slots.map { slot ->
-            buildExercise(slot, day.config, day.catalog, unit, restSettings, day.equipment, liftGoal)
+            buildExercise(slot, day.catalog, unit, restSettings, day.equipment, liftGoal)
         }
 
         return WatchSnapshot(
@@ -133,7 +132,6 @@ object WatchSnapshotBuilder {
 
     private fun buildExercise(
         slot: PerformedSlot,
-        cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         restSettings: RestSettings,
@@ -152,7 +150,7 @@ object WatchSnapshotBuilder {
         val partner = slot.partner?.performed
         val partnerEntry = partner?.entry
         // The wire keeps authored-count blank rows for an unseedable slot.
-        val main = slot.main.stored ?: slot.main.seed ?: DaySeeds.previewMain(slot.slot, cfg, catalog)
+        val main = slot.main.stored ?: slot.main.seed ?: List(pe.targetSets) { LoggedSet(0.0, 0, SetKind.WORK) }
         val ss = slot.partner?.sets.orEmpty()
 
         return WatchExercise(

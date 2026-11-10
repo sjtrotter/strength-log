@@ -121,9 +121,8 @@ class ReceiptBuilderTest {
         val substitute = track(planned = planned, sets = List(3) { work(50.0, 4) })
         val slot = ProgramSlot(1, 0, ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, 6,
             prescription = Prescription(PrescribedTarget.LoadReps(95.0, 8))))
-        val targets = mapOf(substitute.id to squat().planned)
 
-        val groups = ReceiptBuilder.strength(listOf(substitute), listOf(slot), { it }, emptyMap(), targets)
+        val groups = ReceiptBuilder.strength(listOf(substitute), listOf(slot), { it }, emptyMap())
 
         val row = groups.single().rows.single()
         assertEquals(ReceiptRow.Shape.STRAIGHT, row.shape)
@@ -160,8 +159,9 @@ class ReceiptBuilderTest {
 
     @Test
     fun `ramp top without backoff stays closed`() {
-        val track = squat().copy(sets = squat().sets.dropLast(1))
-        val row = row(track, SetStructure.RAMP_TOP, targets = track.planned.dropLast(1).map { it.copy(reps = 8) })
+        val track = squat().copy(sets = squat().sets.dropLast(1),
+            planned = squat().planned.dropLast(1).map { it.copy(reps = 8) })
+        val row = row(track, SetStructure.RAMP_TOP)
         assertEquals(ReceiptRow.Shape.TOP_SET, row.shape)
         assertEquals(listOf(ValueLine(245.0, listOf(4))), row.lines)
         assertEquals(PlannedSets(5, 130.0, 8, 0), row.planned)
@@ -234,8 +234,7 @@ class ReceiptBuilderTest {
         val row = row(track(
             exerciseId = "plank", sets = listOf(work(seconds = 75), work(seconds = 70)),
             planned = List(2) { work(seconds = 60, done = false) },
-        ), SetStructure.RAMP_TOP_BACKOFF, baseline(0.0, 0, seconds = 70, exerciseId = "plank"),
-            targets = List(2) { work(seconds = 60, done = false) })
+        ), SetStructure.RAMP_TOP_BACKOFF, baseline(0.0, 0, seconds = 70, exerciseId = "plank"))
         assertEquals(ReceiptRow.Shape.STRAIGHT, row.shape)
         assertEquals(TrackingType.TIMED, row.tracking)
         assertEquals(listOf(ValueLine(null, listOf(0, 1))), row.lines)
@@ -362,7 +361,7 @@ class ReceiptBuilderTest {
         assertEquals(3, receipt.loggedSetCount)
         assertEquals(3, listOf(bench, partner).setCounts().total)
         assertEquals(0, listOf(bench, partner).setCounts().remaining)
-        assertNull(group.rows[1].planned)
+        assertEquals(PlannedSets(3, 155.0, 8, 0), group.rows[1].planned)
     }
 
     @Test
@@ -648,13 +647,19 @@ class ReceiptBuilderTest {
         assertFalse(allPlansDone(listOf(plan(1), plan(2).copy(archived = true)), listOf(session(1))))
     }
 
+    @Test fun `an own lift plans from the rows the session opened with`() {
+        val track = track(planned = List(3) { work(100.0, 5, done = false) },
+            sets = List(2) { work(100.0, 5) })
+        val row = ReceiptBuilder.strength(listOf(track), listOf(slot()), { it }, emptyMap()).single().rows.single()
+
+        assertEquals(PlannedSets(3, 100.0, 5, 0), row.planned)
+    }
+
     private fun row(
         track: RunTrack,
         structure: SetStructure = SetStructure.STRAIGHT,
         standing: Map<String, PersonalRecord> = emptyMap(),
-        targets: List<LoggedSet>? = null,
-    ): ReceiptRow = ReceiptBuilder.strength(listOf(track), listOf(slot(structure = structure)), { it }, standing,
-        targets?.let { mapOf(track.id to it) }.orEmpty())
+    ): ReceiptRow = ReceiptBuilder.strength(listOf(track), listOf(slot(structure = structure)), { it }, standing)
         .single().rows.single()
 
     private fun track(

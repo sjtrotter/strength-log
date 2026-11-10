@@ -682,11 +682,12 @@ class TrackerRepository(
 
     // --- live logs -----------------------------------------------------------
 
-    /** Pure read: seeding and writes remain the caller's responsibility.
-     * Seeds read other days' rows and history, which this flow does not observe, so a preview or watch can show a seed until this day's rows or tracks emit; 3b wires history. */
+    /** Pure read: seeding and writes remain the caller's responsibility. A seed also reads other days' rows,
+     *  which re-emit through this day's `exercise_log` query because Room invalidates by table, and history,
+     *  which [SessionDao.observeHistoryChanges] re-emits. */
     fun observeDay(planId: Long, dayId: String): Flow<PerformedDay> = combine(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
-        plans.wizardAnswersFor(planId), catalog.catalogFlow,
+        plans.wizardAnswersFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges()) { catalog, _ -> catalog },
     ) { program, slots, tracks, answers, catalog ->
         val seeds = plans.seeds(planId, slots.forRun(tracks.droppedPartners, tracks.skippedLifts),
             tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }, answers.config.weightUnit, catalog)

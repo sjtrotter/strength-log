@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -25,7 +26,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PerformedDayTest {
-    private val answers = WizardAnswers(equipment = setOf(Equipment.BODYWEIGHT))
+    private val answers = WizardAnswers(equipment = setOf(Equipment.BODYWEIGHT),
+        config = LifterConfig(goalsLb = mapOf("ez_curl" to 60.0)))
     private val catalog = ExerciseCatalog(listOf(
         ExerciseEntry("custom_loaded_hold", "Loaded hold", MovementPattern.CORE_ANTI_EXT,
             listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Time(45, 25.0),
@@ -118,7 +120,10 @@ class PerformedDayTest {
         )
 
         cases.forEach { (exercise, expected) ->
-            val track = day(listOf(ProgramSlot(1, 0, exercise))).slots.single().main
+            val seeds = if (exercise.exerciseId == "custom_loaded_hold") mapOf(
+                (1L to Slot.MAIN) to List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) },
+            ) else emptyMap()
+            val track = day(listOf(ProgramSlot(1, 0, exercise)), seeds = seeds).slots.single().main
             assertEquals(exercise.toString(), expected, track.loadLb, 0.0)
         }
     }
@@ -140,7 +145,8 @@ class PerformedDayTest {
         }
         val partner = requireNotNull(day(listOf(ProgramSlot(1, 0,
             ProgramExercise("ez_curl", superset = SupersetPartner("custom_loaded_hold")),
-        ))).slots.single().partner)
+        )), seeds = mapOf((1L to Slot.SS) to List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) }))
+            .slots.single().partner)
         assertTrue(partner.showsLoad)
         assertEquals(25.0, partner.loadLb, 0.0)
     }
@@ -171,6 +177,32 @@ class PerformedDayTest {
 
         assertNull(day.day)
         assertEquals(slots, day.slots.map { it.slot })
+    }
+
+    @Test fun `only a known weighted entry with a plan goal has a goal`() {
+        val slots = listOf("bb_bench", "hammer_curl", "pushup", "plank", "ez_curl", "unknown").mapIndexed { i, id ->
+            ProgramSlot(i + 1L, i, ProgramExercise(id))
+        }
+        val day = PerformedDay.of(7, "A", Program(listOf(ProgramDay("A", "Day A", "", slots.map { it.exercise }))),
+            slots, DayTracks(null, false, emptyList()), WizardAnswers(config = LifterConfig(goalsLb = mapOf(
+                "bb_bench" to 200.0, "hammer_curl" to 40.0, "pushup" to 30.0, "plank" to 60.0,
+            ))), catalog, seeds = emptyMap())
+
+        assertEquals(listOf(GoalTarget.Weight(200.0, false), GoalTarget.Weight(40.0, true), null, null, null, null),
+            day.slots.map { it.main.goal })
+        assertEquals(listOf(200.0, 40.0, 0.0, 0.0, 0.0, 0.0), day.slots.map { it.main.loadLb })
+    }
+
+    @Test fun `a loaded hold keeps its stepper when its rows carry no load`() {
+        val slots = listOf(ProgramSlot(1, 0, ProgramExercise("custom_loaded_hold")))
+        val rows = List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 45) }
+        val unloaded = day(slots, seeds = mapOf((1L to Slot.MAIN) to rows)).slots.single().main
+        assertTrue(unloaded.showsLoad)
+        assertEquals(0.0, unloaded.loadLb, 0.0)
+        val loaded = day(slots, seeds = mapOf((1L to Slot.MAIN) to rows.map { it.copy(weightLb = 30.0) }))
+            .slots.single().main
+        assertTrue(loaded.showsLoad)
+        assertEquals(30.0, loaded.loadLb, 0.0)
     }
 
     private fun day(

@@ -21,7 +21,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +44,50 @@ class LazySeedingTest : FinishProgressionFixture() {
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Day A", time, time, null, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "bb_bench", "bb_bench",
             Slot.MAIN, 0, "TOP", 185.0, 5, true)))
+    }
+
+    @Test fun `a watched day reseeds a lazy partner when history arrives`() = runTest {
+        val plan = converted(partneredBench())
+        val b = id(plan, "bb_bench")
+        lifter(plan, b, work(4, 185.0, 5), rule())
+        val emitted = Channel<List<LoggedSet>?>(Channel.UNLIMITED)
+        val collector = backgroundScope.launch {
+            repo.observeDay(plan, "A").map { it.slots.single().partner?.seed }.collect { emitted.send(it) }
+        }
+        assertEquals(work(4, 20.0, 10), emitted.receive())
+
+        val time = clock.millis() - Duration.ofDays(1).toMillis()
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Day A", time, time, null, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "cable_row", "cable_row",
+            Slot.SS, 0, "WORK", 120.0, 10, true)))
+
+        val expected = work(4, 120.0, 10)
+        var received = emitted.receive()
+        while (received != expected) received = emitted.receive()
+        assertEquals(expected, received)
+        collector.cancelAndJoin()
+    }
+
+    @Test fun `a watched day reseeds a lazy partner when another day's row changes`() = runTest {
+        val plan = converted(partneredBench(), day("cable_row", id = "B"))
+        val b = id(plan, "bb_bench")
+        val c = id(plan, "cable_row", "B")
+        lifter(plan, b, work(4, 185.0, 5), rule())
+        lifter(plan, c, work(3, 20.0, 10), rule(SlotRole.ACCESSORY, 10), "B")
+        val emitted = Channel<List<LoggedSet>?>(Channel.UNLIMITED)
+        val collector = backgroundScope.launch {
+            repo.observeDay(plan, "A").map { it.slots.single().partner?.seed }.collect { emitted.send(it) }
+        }
+        assertEquals(work(4, 20.0, 10), emitted.receive())
+
+        db.programDao().upsertLog(ExerciseLogEntity(plan, "B", c, Slot.MAIN,
+            SetJson.encodeSets(work(3, 120.0, 10)), 2000))
+
+        val expected = work(4, 120.0, 10)
+        var received = emitted.receive()
+        while (received != expected) received = emitted.receive()
+        assertEquals(expected, received)
+        collector.cancelAndJoin()
     }
 
     @Test fun `a never-opened partner shows its SlotSeeding rows and ensure seeded writes them with its rule`() = runTest {

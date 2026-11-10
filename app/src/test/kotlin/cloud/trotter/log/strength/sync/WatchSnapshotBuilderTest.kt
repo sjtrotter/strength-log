@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.domain.model.CardioProgress
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -33,8 +32,6 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -211,10 +208,11 @@ class WatchSnapshotBuilderTest {
         catalog: ExerciseCatalog = this.catalog,
         planId: Long = 1L,
         seeds: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
+        config: LifterConfig = cfg,
     ): PerformedDay = PerformedDay.of(
         planId, dayId, program, slots,
         DayTracks(null, false, logs, droppedPartners = dropped, skippedLifts = skipped),
-        WizardAnswers(config = cfg), catalog, seeds,
+        WizardAnswers(config = config), catalog, seeds,
     )
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
@@ -291,7 +289,8 @@ class WatchSnapshotBuilderTest {
         val exercise = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0)))
         val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
         val projected = WatchSnapshotBuilder.build(
-            performedDay(authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList()),
+            performedDay(authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList(),
+                seeds = mapOf((10L to Slot.MAIN) to List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) })),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
 
@@ -306,14 +305,11 @@ class WatchSnapshotBuilderTest {
     fun `an unseeded day previews the domain-seeded template with every set undone`() {
         val exercise = ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)
         val slots = listOf(ProgramSlot(10L, 0, exercise))
-        val expected = SetSeeder.seed(
-            exercise,
-            GoalCalculator.targetFor(catalog.get(exercise.exerciseId), cfg),
-            cfg,
-        )
+        val expected = SetSeeder.shape(SetStructure.RAMP_TOP_BACKOFF, 235.0, 5, 3,
+            WeightUnit.LB, listOf(Equipment.BARBELL, Equipment.RACK))
 
         val sets = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, emptyList()),
+            performedDay(program, "A", slots, emptyList(), seeds = mapOf((10L to Slot.MAIN) to expected)),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single().sets
 
@@ -331,15 +327,12 @@ class WatchSnapshotBuilderTest {
             listOf(ProgramDay("A", "Custom", "", listOf(exercise))),
         )
 
-        // Today counts this shared preview policy; the snapshot must carry it verbatim.
-        val todayCount = DaySeeds.previewMain(slot, cfg, catalog).size
         val sets = WatchSnapshotBuilder.build(
             performedDay(unresolvedProgram, "A", listOf(slot), emptyList()),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single().sets
 
-        assertEquals(3, todayCount)
-        assertEquals(todayCount, sets.size)
+        assertEquals(3, sets.size)
         assertEquals(true, sets.all { it.weightLb == 0.0 && it.reps == 0 && it.kind == "WORK" && !it.done })
     }
 
@@ -370,7 +363,7 @@ class WatchSnapshotBuilderTest {
         )
 
         val snapshot = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, logs),
+            performedDay(program, "A", slots, logs, config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 235.0))),
             unit = WeightUnit.KG, revision = 3L,
         )!!
 
@@ -381,7 +374,7 @@ class WatchSnapshotBuilderTest {
         assertEquals("quads", snapshot.day.emphasisLine) // carries the day's real focus, not filler text
         val ex = snapshot.day.exercises.single()
         assertEquals(10L, ex.programExerciseId)
-        assertEquals(235.0, ex.goal) // GOAL is phone-computed and matches spec §11
+        assertEquals(235.0, ex.goal) // the plan's goal
         assertEquals("106.59", ex.goalLabel) // additive label in the phone's unit (235 lb -> kg), the same number the watch derives
         assertEquals(235.0, ex.sets.single().weightLb) // canonical lb, not converted
         assertEquals(true, ex.sets.single().done)
@@ -395,11 +388,31 @@ class WatchSnapshotBuilderTest {
         ),
     )
 
+    @Test fun `an unprescribed lift carries only its user goal`() {
+        val slots = listOf(ProgramSlot(10L, 0,
+            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
+        val seeds = mapOf((10L to Slot.MAIN) to List(3) { LoggedSet(185.0, 5, SetKind.WORK) })
+        val blank = WatchSnapshotBuilder.build(
+            performedDay(program, "A", slots, emptyList(), seeds = seeds), WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals(0.0, blank.goal)
+        assertEquals("", blank.goalLabel)
+        assertFalse(blank.prescribed)
+
+        val goal = WatchSnapshotBuilder.build(
+            performedDay(program, "A", slots, emptyList(), seeds = seeds,
+                config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 225.0))), WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals(225.0, goal.goal)
+        assertEquals("225", goal.goalLabel)
+        assertFalse(goal.prescribed)
+    }
+
     @Test
     fun `weighted goalLabel equals the number the watch already shows today`() {
         val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val ex = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, emptyList()),
+            performedDay(program, "A", slots, emptyList(), config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 235.0))),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
         // Watch UI renders WeightStepper.format(unit.fromLb(goal)) == "235"; goalLabel must match.
@@ -427,17 +440,18 @@ class WatchSnapshotBuilderTest {
             ProgramSlot(2L, 1, ProgramExercise("custom_plank")),
         )
         val exercises = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, emptyList(), catalog = trackingCatalog),
+            performedDay(program, "A", slots, emptyList(), catalog = trackingCatalog,
+                seeds = mapOf((2L to Slot.MAIN) to List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) })),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises
 
         val reps = exercises.first { it.programExerciseId == 1L }
-        assertEquals("6 reps", reps.goalLabel)
+        assertEquals("", reps.goalLabel)
         assertEquals(0.0, reps.goal) // rep targets carry no weight — never "0 lb × 60"
         assertEquals("reps", reps.tracking) // enum name, lowercased — the watch picks a reps-only control
 
         val timed = exercises.first { it.programExerciseId == 2L }
-        assertEquals("45s +25", timed.goalLabel)
+        assertEquals("", timed.goalLabel)
         assertEquals(25.0, timed.goal) // the timed added-load rides the numeric goal
         assertEquals("timed", timed.tracking)
     }
@@ -473,7 +487,7 @@ class WatchSnapshotBuilderTest {
             unit = WeightUnit.LB, revision = 1L,
         )!!
         assertEquals(1, snapshot.day.accentIndex)
-        assertEquals(195.0, snapshot.day.exercises.single().goal) // bench GOAL 195 (§11)
+        assertEquals(0.0, snapshot.day.exercises.single().goal)
     }
 
     // --- the cycle the watch's outer ring draws (dial v3 §1) ---------------
@@ -754,8 +768,7 @@ class WatchSnapshotBuilderTest {
         assertFalse(exercise.prescribed)
         assertEquals(0, exercise.repWindowSeconds)
         assertNull(exercise.repAim)
-        assertEquals(GoalFormatter.label(
-            GoalCalculator.targetFor(entry, cfg), WeightUnit.LB), exercise.goalLabel)
+        assertEquals("", exercise.goalLabel)
         assertTrue(exercise.alternates.any { it.exerciseId == "bb_back_squat" })
         assertEquals(rows.size, exercise.sets.size)
     }

@@ -11,7 +11,6 @@ import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
-import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
@@ -196,15 +195,13 @@ class RuledSlotPathsTest {
             ProgramExercise("pullup") to work(0.0, 6),
             ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(135.0, 5))) to work(135.0, 5),
         )
-        val config = repo.plans.wizardAnswersFor(plan).first().config
-        val catalog = repo.catalog.snapshot()
         for ((exercise, rows) in expected) {
             repo.addExercise("A", exercise, plan)
             val slot = db.programDao().exercisesForPlan(plan).last()
             val rule = assertNotNull(SlotRuleJson.decode(slot.ruleJson))
             assertFalse(rule.state.calibrating)
             assertSlot(slot.id, rule, rows)
-            assertEquals(rows, DaySeeds.previewMain(ProgramSlot(slot.id, slot.position, slot.toDomain()), config, catalog))
+            assertEquals(rows, repo.observeDay(plan, "A").first().slots.single { it.slot.programExerciseId == slot.id }.main.sets)
         }
     }
 

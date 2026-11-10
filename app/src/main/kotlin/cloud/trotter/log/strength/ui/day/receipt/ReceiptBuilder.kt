@@ -29,15 +29,13 @@ object ReceiptBuilder {
         slots: List<ProgramSlot>,
         names: (String) -> String,
         standing: Map<String, PersonalRecord>,
-        targets: Map<Long, List<LoggedSet>> = emptyMap(),
-    ): List<ReceiptGroup> = strengthWithTracks(tracks, slots, names, standing, targets).map { it.first }
+    ): List<ReceiptGroup> = strengthWithTracks(tracks, slots, names, standing).map { it.first }
 
     internal fun strengthWithTracks(
         tracks: List<RunTrack>,
         slots: List<ProgramSlot>,
         names: (String) -> String,
         standing: Map<String, PersonalRecord>,
-        targets: Map<Long, List<LoggedSet>> = emptyMap(),
     ): List<Pair<ReceiptGroup, List<RunTrack>>> = buildList {
         for (slot in slots.sortedBy { it.position }) {
             val captured = tracks.filter { it.programExerciseId == slot.programExerciseId }.sortedBy { it.position }
@@ -57,19 +55,19 @@ object ReceiptBuilder {
             val singles = mains.filter { it != main && it.retired && (it.dropped || it.sets.any { set -> set.done }) } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
-                add(ReceiptGroup(null, listOf(row(track, track.structure(), names(track.exerciseId), standing, plan(track, slot, targets)))) to listOf(track))
+                add(ReceiptGroup(null, listOf(row(track, track.structure(), names(track.exerciseId), standing, plan(track, slot)))) to listOf(track))
             }
             if (main != null) {
                 val rowTracks = listOfNotNull(main, partner)
                 val rows = rowTracks.map {
-                    row(it, it.structure(), names(it.exerciseId), standing, plan(it, slot, targets))
+                    row(it, it.structure(), names(it.exerciseId), standing, plan(it, slot))
                 }
                 add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows) to rowTracks)
             }
         }
         val slotIds = slots.map { it.programExerciseId }.toSet()
         for (track in tracks.filter { it.programExerciseId !in slotIds }.sortedBy { it.position }) {
-            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing, plan(track, null, targets)))) to listOf(track))
+            add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing, plan(track, null)))) to listOf(track))
         }
     }
 
@@ -81,12 +79,10 @@ object ReceiptBuilder {
         else -> SetStructure.STRAIGHT
     }
 
-    private fun plan(track: RunTrack, slot: ProgramSlot?, targets: Map<Long, List<LoggedSet>>): PlannedSets? {
-        val plannedId = if (track.slot == Slot.SS) slot?.exercise?.superset?.exerciseId else slot?.exercise?.exerciseId
+    private fun plan(track: RunTrack, slot: ProgramSlot?): PlannedSets? {
         val exercise = slot?.exercise?.takeIf { track.slot == Slot.MAIN && it.exerciseId == track.exerciseId }
-        val rows = if (slot != null && track.exerciseId != plannedId) track.planned.ifEmpty { track.sets }
-            else exercise?.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it) }
-            ?: targets[track.id] ?: track.sets
+        val rows = exercise?.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it) }
+            ?: track.planned.ifEmpty { track.sets }
         return rows.firstOrNull()?.let { PlannedSets(rows.size, it.weightLb, it.reps, it.seconds) }
     }
 

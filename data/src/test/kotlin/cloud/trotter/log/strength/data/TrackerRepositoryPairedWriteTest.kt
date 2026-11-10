@@ -97,8 +97,8 @@ class TrackerRepositoryPairedWriteTest {
 
         val slots = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associateBy { it.slot }
         assertEquals(setOf(Slot.MAIN, Slot.SS), slots.keys)
-        assertEquals(main.mapIndexed { i, set -> set.copy(plannedIndex = i) }, slots.getValue(Slot.MAIN).sets)
-        assertEquals(partner.mapIndexed { i, set -> set.copy(plannedIndex = i) }, slots.getValue(Slot.SS).sets)
+        assertEquals(main, slots.getValue(Slot.MAIN).sets)
+        assertEquals(partner, slots.getValue(Slot.SS).sets)
         assertEquals(repo.openRunFlow.first()!!.id,
             repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").first().runId)
     }

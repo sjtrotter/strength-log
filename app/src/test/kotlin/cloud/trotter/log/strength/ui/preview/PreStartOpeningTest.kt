@@ -226,6 +226,48 @@ class PreStartOpeningTest : OverviewFixture() {
         assertTrue(workout.removedSets.value.isEmpty())
     }
 
+    @Test fun `Remove and Undo keep both tracks index stamp floors against a replayed watch edit`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3))))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val s = db.programDao().exercisesForDay(plan, "A").single().id
+        repo.setSupersetPartner("A", s, "cable_row")
+        for ((slot, weight) in listOf(Slot.MAIN to 100.0, Slot.SS to 40.0)) {
+            val rows = List(3) { i -> LoggedSet(weight + i * 10, 5 + i, SetKind.WORK) }
+            db.programDao().upsertLog(ExerciseLogEntity(plan, "A", s, slot, SetJson.encodeSets(rows), 1000))
+        }
+        repo.startRun(plan, "A")
+        val run = assertNotNull(db.runDao().openRun()).id
+        val before = db.runDao().tracks(run).associate { it.slot to SetJson.decodeSets(it.setsJson) }
+        assertEquals(setOf(Slot.MAIN, Slot.SS), before.keys)
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
+        advanceUntilIdle()
+
+        workout.removeSet(s, 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertTrue(db.runDao().tracks(run).all { SetJson.decodeSets(it.setsJson).map { row -> row.plannedIndex } == listOf(1, 2) })
+        val deltas = listOf(Slot.MAIN to "bb_back_squat", Slot.SS to "cable_row").map { (slot, exercise) ->
+            SetEditDelta(dayId = "A", programExerciseId = s, slot = slot, setIndex = 1,
+                reps = 9, editedAtMillis = 200, planId = plan, runId = run, exerciseId = exercise)
+        }
+        for (delta in deltas) assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(delta))
+
+        workout.undoRemoveSet()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        val restored = db.runDao().tracks(run).associate { it.slot to SetJson.decodeSets(it.setsJson) }
+        assertEquals(before.keys, restored.keys)
+        for ((slot, rows) in restored) {
+            val original = before.getValue(slot)
+            assertEquals(listOf(
+                original[0], original[1].copy(watchEditedAt = 200), original[2].copy(reps = 9, watchEditedAt = 200),
+            ), rows)
+        }
+        for (delta in deltas) assertEquals(SetEditApplier.Outcome.STALE, applier.apply(delta))
+        assertEquals(restored, db.runDao().tracks(run).associate { it.slot to SetJson.decodeSets(it.setsJson) })
+    }
+
     @Test fun `a newer pre-start watch edit survives a light opening and rejects an older delta`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3))))))
         db.convertTestPlans(settings)

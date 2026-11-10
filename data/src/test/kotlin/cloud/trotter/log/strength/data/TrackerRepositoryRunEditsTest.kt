@@ -775,8 +775,9 @@ class TrackerRepositoryRunEditsTest {
         db.storeTestRows("A", slot, Slot.MAIN, work())
         db.storeTestRows("A", slot, Slot.SS, partner)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
-        val completed = partner.mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) }
-        assertEquals(RunWriteResult.InRun(runId, true), repo.writeTestRows(runId, "A", slot, Slot.SS, completed))
+        assertEquals(RunWriteResult.InRun(runId, true), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot, Slot.SS) { rows -> rows.mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) } },
+        )))
         val before = db.runDao().tracks(runId).associateBy { it.slot }
         val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
 

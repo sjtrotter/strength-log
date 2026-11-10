@@ -3176,6 +3176,57 @@ class DayViewModelWiringTest {
     // `advanceUntilIdle` would run past the 5s window and close the offer.
 
     @Test
+    fun removeWithAnUnseedablePartnerShrinksMainAndOffersNoPartnerUndo() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("db_lateral")
+        val before = track(id, Slot.MAIN)!!
+        assertNull(track(id, Slot.SS))
+
+        vm.removeSet(id, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(before.drop(1), track(id, Slot.MAIN))
+        val offer = vm.removedSets.value.single()
+        assertEquals(before[0], offer.main)
+        assertNull(offer.partner)
+        assertNull(track(id, Slot.SS))
+    }
+
+    @Test
+    fun undoRestoresMainAfterThePartnerIsSkipped() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        advanceUntilIdle()
+        val before = track(id, Slot.MAIN)!!
+
+        vm.removeSet(id, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(before.drop(1), track(id, Slot.MAIN))
+        assertTrue(vm.removedSets.value.single().partner != null)
+
+        // A repository skip preserves the pending offer, as a remote skip would.
+        repo.skipLift(plan, "A", id, Slot.SS, "ez_curl", "rope_pushdown")
+        runCurrent()
+        assertNull(track(id, Slot.SS))
+        assertEquals(1, vm.removedSets.value.size)
+        vm.undoRemoveSet()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(before, track(id, Slot.MAIN))
+        assertNull(track(id, Slot.SS))
+        assertTrue(vm.removedSets.value.isEmpty())
+    }
+
+    @Test
     fun undoRestoresARowRemovedInPreviewBeforeTheFirstTick() = runVmTest {
         insertProgram()
         val vm = newViewModel()

@@ -1501,6 +1501,9 @@ class DayViewModel @Inject constructor(
         mutate {
             var removedMain: LoggedSet? = null
             var removedPartner: LoggedSet? = null
+            val paired = isSuperset && (trackFor(day, programExerciseId, Slot.SS).isNotEmpty() ||
+                repo.observeDay(planId, day).first().slots
+                    .firstOrNull { it.slot.programExerciseId == programExerciseId }?.partner?.seed?.isNotEmpty() == true)
             cancelTimedRepForSetListChange(day, programExerciseId)
             val result = repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
@@ -1509,7 +1512,7 @@ class DayViewModel @Inject constructor(
                         SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                     }
                 },
-                if (isSuperset) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
+                if (paired) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
                     removedPartner = rows.getOrNull(index)?.takeIf { rows.size > 1 }
                     SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                 } else null,
@@ -1532,14 +1535,14 @@ class DayViewModel @Inject constructor(
         mutate {
             if (day != removed.dayId || runId != removed.runId) return@mutate
             if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
-            val paired = removed.partner != null
+            val paired = removed.partner != null && trackFor(day, removed.programExerciseId, Slot.SS).isNotEmpty()
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
             repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(removed.programExerciseId, Slot.MAIN) { rows ->
-                    SetEditor.insertSet(rows, removed.index, removed.main)
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, removed.main))
                 },
                 if (paired) TrackEdit(removed.programExerciseId, Slot.SS) { rows ->
-                    SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner))
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner)))
                 } else null,
             ))
         }

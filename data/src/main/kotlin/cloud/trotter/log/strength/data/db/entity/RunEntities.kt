@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** An open workout, removed when finished or discarded. */
+/** An open workout, or today's draft before Start; removed when finished or discarded. */
 @Entity(tableName = "workout_run")
 data class WorkoutRunEntity(
     @PrimaryKey val id: String,
@@ -14,6 +14,8 @@ data class WorkoutRunEntity(
     val dayTitle: String,
     val planName: String?,
     val startedAt: Long,
+    /** Not started: today's copy of the plan before Start. Holds no done rows. */
+    @ColumnInfo(defaultValue = "0") val draft: Boolean = false,
 )
 
 /** Captured prescription and actual rows for an exercise in an open workout. */

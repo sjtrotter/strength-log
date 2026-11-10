@@ -115,23 +115,25 @@ class LazySeedingTest : FinishProgressionFixture() {
         assertEquals(before.ruleJson, db.programDao().exercise(b)!!.ruleJson)
     }
 
-    @Test fun `a pre-start edit on a lazy partner writes its rule with its rows`() = runTest {
+    @Test fun `a pre-start edit on a lazy partner goes to the draft`() = runTest {
         val plan = converted(partneredBench())
         val b = id(plan, "bb_bench")
         lifter(plan, b, work(4, 185.0, 5), rule())
         val day = assertNotNull(db.programDao().day(plan, "A"))
 
-        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(day.nextRunId, plan, "A", listOf(
+        val beforeRule = db.programDao().exercise(b)!!.partnerRuleJson
+        assertEquals(RunWriteResult.InRun(day.nextRunId, false), repo.applyToRun(day.nextRunId, plan, "A", listOf(
             TrackEdit(b, Slot.SS) { rows -> rows.mapIndexed { i, row ->
                 if (i == 0) row.copy(weightLb = 30.0) else row
             } },
         )))
 
-        assertEquals(listOf(LoggedSet(30.0, 10, SetKind.WORK)) + work(3, 20.0, 10), SetJson.decodeSets(
-            assertNotNull(db.programDao().logForSlot(plan, "A", b, Slot.SS)).setsJson))
-        assertEquals(rule(SlotRole.ACCESSORY, 10, calibrating = true),
-            SlotRuleJson.decode(db.programDao().exercise(b)!!.partnerRuleJson))
-        assertNull(repo.openRunFlow.first())
+        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.SS))
+        assertEquals(beforeRule, db.programDao().exercise(b)!!.partnerRuleJson)
+        val draft = assertNotNull(repo.openRunFlow.first())
+        assertEquals(true, draft.draft)
+        assertEquals((listOf(LoggedSet(30.0, 10, SetKind.WORK)) + work(3, 20.0, 10))
+            .mapIndexed { i, row -> row.copy(plannedIndex = i) }, draft.tracks.single { it.slot == Slot.SS }.sets)
     }
 
     @Test fun `a structure edit leaves a lazy main that seeds from the plan's weight on another day`() = runTest {

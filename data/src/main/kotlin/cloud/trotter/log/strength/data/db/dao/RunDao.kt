@@ -50,6 +50,10 @@ interface RunDao {
     @Query("UPDATE workout_run SET startedAt = :startedAt WHERE id = :id")
     suspend fun updateStartedAt(id: String, startedAt: Long)
 
+    /** Starts a draft: it becomes the open workout from [startedAt]. */
+    @Query("UPDATE workout_run SET draft = 0, startedAt = :startedAt WHERE id = :id")
+    suspend fun promote(id: String, startedAt: Long)
+
     /** Deletes an open run. */
     @Query("DELETE FROM workout_run WHERE id = :id")
     suspend fun deleteRun(id: String)

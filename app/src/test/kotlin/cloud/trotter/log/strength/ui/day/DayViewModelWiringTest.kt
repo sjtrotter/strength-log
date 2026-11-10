@@ -532,7 +532,8 @@ class DayViewModelWiringTest {
         repo.ensureSeeded(plan, "A")
         val seeded = track(id, Slot.MAIN)!!
         val working = SetEditor.editWeight(seeded, seeded.indexOfFirst { it.kind == SetKind.TOP }, 215.0)
-        repo.writeTestRows(repo.dayTracksFlow(plan, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, working)
+        repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(id)), "A")
+        db.storeTestRows("A", id, Slot.MAIN, working)
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
@@ -568,7 +569,8 @@ class DayViewModelWiringTest {
         repo.ensureSeeded(plan, "A")
         val seeded = track(id, Slot.MAIN)!!
         val working = SetEditor.editWeight(seeded, seeded.indexOfFirst { it.kind == SetKind.TOP }, 215.0)
-        repo.writeTestRows(repo.dayTracksFlow(plan, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, working)
+        repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(id)), "A")
+        db.storeTestRows("A", id, Slot.MAIN, working)
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
@@ -1661,7 +1663,7 @@ class DayViewModelWiringTest {
     // --- seeding trigger (M2 rule: VM seeds once, then the log persists) -------
 
     @Test
-    fun resetRememberedSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
+    fun resetRememberedSlotToPlanRefusesWhileADraftIsOpen() = runVmTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
@@ -1676,19 +1678,19 @@ class DayViewModelWiringTest {
         vm.changeWeight(id, Slot.MAIN, 0, newDisplayWeight = 150.0)
         advanceUntilIdle()
         assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
-        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
 
         vm.editor.resetDaySlotToPlan(id)
         advanceUntilIdle()
 
-        assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
+        assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
         assertFalse(db.programDao().exercise(id)!!.keepToPlan)
-        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
         collect.cancel()
     }
 
     @Test
-    fun switchingSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
+    fun switchingSlotToPlanKeepsTheOpenDraft() = runVmTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
@@ -1702,14 +1704,14 @@ class DayViewModelWiringTest {
         vm.changeWeight(id, Slot.MAIN, 0, newDisplayWeight = 150.0)
         advanceUntilIdle()
         assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
-        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
 
         vm.editor.setDaySlotKeepToPlan(id, true)
         advanceUntilIdle()
 
-        assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
+        assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
         assertTrue(db.programDao().exercise(id)!!.keepToPlan)
-        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
         collect.cancel()
     }
 
@@ -2646,7 +2648,7 @@ class DayViewModelWiringTest {
         vm.changeReps(squatId, Slot.MAIN, index = 4, newReps = 3)
         advanceUntilIdle()
 
-        assertNull("weight/rep edits are planning, not performing", repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
     }
 
     @Test
@@ -2860,14 +2862,8 @@ class DayViewModelWiringTest {
         val id = slotId("bb_back_squat")
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
-        mutationReadReady = CompletableDeferred()
-        val gate = CompletableDeferred<Unit>()
-        mutationReadGate = gate
         vm.removeSet(id, 1, false)
-        mutationReadReady!!.await()
         vm.discardWorkout()
-        mutationReadGate = null
-        gate.complete(Unit)
         advanceTimeBy(500)
         assertNull(repo.openRunFlow.first())
         assertTrue(vm.removedSets.value.isEmpty())
@@ -3176,6 +3172,57 @@ class DayViewModelWiringTest {
     // `advanceUntilIdle` would run past the 5s window and close the offer.
 
     @Test
+    fun removeWithAnUnseedablePartnerShrinksMainAndOffersNoPartnerUndo() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("db_lateral")
+        val before = track(id, Slot.MAIN)!!
+        assertNull(track(id, Slot.SS))
+
+        vm.removeSet(id, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(before.mapIndexed { i, row -> row.copy(plannedIndex = i) }.drop(1), track(id, Slot.MAIN))
+        val offer = vm.removedSets.value.single()
+        assertEquals(before[0].copy(plannedIndex = 0), offer.main)
+        assertNull(offer.partner)
+        assertNull(track(id, Slot.SS))
+    }
+
+    @Test
+    fun undoRestoresMainAfterThePartnerIsSkipped() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.startRun(plan, "A")
+        advanceUntilIdle()
+        val before = track(id, Slot.MAIN)!!
+
+        vm.removeSet(id, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(before.drop(1), track(id, Slot.MAIN))
+        assertTrue(vm.removedSets.value.single().partner != null)
+
+        // A repository skip preserves the pending offer, as a remote skip would.
+        repo.skipLift(plan, "A", id, Slot.SS, "ez_curl", "rope_pushdown")
+        runCurrent()
+        assertNull(track(id, Slot.SS))
+        assertEquals(1, vm.removedSets.value.size)
+        vm.undoRemoveSet()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(before, track(id, Slot.MAIN))
+        assertNull(track(id, Slot.SS))
+        assertTrue(vm.removedSets.value.isEmpty())
+    }
+
+    @Test
     fun undoRestoresARowRemovedInPreviewBeforeTheFirstTick() = runVmTest {
         insertProgram()
         val vm = newViewModel()
@@ -3194,11 +3241,12 @@ class DayViewModelWiringTest {
         vm.undoRemoveSet()
         advanceTimeBy(500)
 
-        assertEquals(before, track(squatId, Slot.MAIN))
+        assertEquals(before.mapIndexed { i, row -> row.copy(plannedIndex = i) }, track(squatId, Slot.MAIN))
         assertEquals(before.size, vm.uiState.value.exercises.first().rows.size)
         assertEquals(runId, vm.uiState.value.runId)
         assertTrue(vm.removedSets.value.isEmpty())
-        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.openRunFlow.first()!!.draft)
+        assertEquals(runId, repo.openRunFlow.first()!!.id)
         collect.cancel()
     }
 
@@ -3598,4 +3646,22 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+
+    @Test fun swapBeforeStartOpensADraftAndKeepsThePlan() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val slot = db.programDao().exercise(id)!!
+        val log = db.programDao().logForSlot(slot.planId, "A", id, Slot.MAIN)
+        vm.swapWorkoutSlot(slot.position, "hack_squat")
+        advanceTimeBy(500)
+        runCurrent()
+        val draft = repo.openRunFlow.first()!!
+        assertTrue(draft.draft)
+        assertEquals("hack_squat", draft.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired }.exerciseId)
+        assertEquals(slot, db.programDao().exercise(id))
+        assertEquals(log, db.programDao().logForSlot(slot.planId, "A", id, Slot.MAIN))
+        assertTrue(vm.uiState.value.swapUndo != null)
+    }
 }

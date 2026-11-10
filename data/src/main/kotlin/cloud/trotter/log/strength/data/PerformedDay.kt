@@ -20,9 +20,13 @@ data class PerformedTrack(
     val stored: List<LoggedSet>?,
     val seed: List<LoggedSet>?,
     val note: String = "",
+    /** The rows Start would open this track with, when it has an opening, a Hold with unchanged rows included (spec W2b-3c decision 4); null in a run. */
+    val opening: List<LoggedSet>? = null,
 ) {
     val tracking: TrackingType get() = performed.tracking
-    val sets: List<LoggedSet> get() = stored ?: seed.orEmpty()
+    /** The stored rows (the run's own during a run), else the seed: what a next-time offer describes. */
+    val baseRows: List<LoggedSet>? get() = stored ?: seed
+    val sets: List<LoggedSet> get() = opening ?: baseRows.orEmpty()
     val loadLb: Double
         get() = when (val prescribedTarget = performed.prescription?.target) {
             is PrescribedTarget.LoadReps -> prescribedTarget.lb
@@ -64,6 +68,7 @@ data class PerformedDay(
             answers: WizardAnswers,
             catalog: ExerciseCatalog,
             seeds: Map<Pair<Long, String>, List<LoggedSet>>,
+            openings: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
         ): PerformedDay {
             val workoutSlots = slots.forRun(tracks.droppedPartners, tracks.skippedLifts).sortedBy { it.position }
             val stored = tracks.tracks.associateBy { it.programExerciseId to it.slot }
@@ -71,7 +76,7 @@ data class PerformedDay(
                 val key = slot.programExerciseId to trackSlot
                 val performed = performedExercise(slot, stored[key]?.exerciseId, catalog, trackSlot)
                 return PerformedTrack(performed, performed.goal(answers.config), stored[key]?.sets, seeds[key],
-                    note = stored[key]?.note.orEmpty())
+                    note = stored[key]?.note.orEmpty(), opening = openings[key])
             }
             return PerformedDay(
                 planId, dayId, program, program.days.firstOrNull { it.id == dayId },

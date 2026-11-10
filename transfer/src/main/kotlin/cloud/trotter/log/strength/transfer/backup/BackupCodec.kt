@@ -219,6 +219,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         return JsonObject(root.toMutableMap().apply {
             (get("settings") as? JsonObject)?.let { put("settings", JsonObject(it - "effortScale")) }
             stripDays(get("program"))?.let { put("program", it) }
+            mapRows(get("runs")) { JsonObject(it - "draft") }?.let { put("runs", it) }
             mapRows(get("plans")) { plan ->
                 JsonObject((plan - setOf("settingsJson", "autoApply", "lightCycleRemaining", "deloadEveryCycles", "cyclesCompleted"))
                     .toMutableMap().apply { stripDays(get("days"))?.let { put("days", it) } })
@@ -637,6 +638,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 }
                 decodePayload("plannedJson of run track ${track.id}", malformed = true) { SetJson.decodeSets(track.plannedJson) }
                 decodePayload("setsJson of run track ${track.id}", malformed = true) { SetJson.decodeSets(track.setsJson) }
+            }
+            if (run.draft && run.tracks.any { SetJson.decodeSets(it.setsJson).any { row -> row.done } }) {
+                throw BackupError.Inconsistent("a draft run cannot hold done sets")
             }
         }
         val sessionRunIds = HashSet<String>()

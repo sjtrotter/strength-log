@@ -110,9 +110,10 @@ class RunOnlySwapWritesTest {
     private suspend fun active(id: Long, slot: String = Slot.MAIN) =
         assertNotNull(repo.openRunFlow.first()).tracks.single { it.programExerciseId == id && it.slot == slot && !it.retired }
 
-    @Test fun `a today only swap on an open run writes run tracks and nothing else`() = runTest {
-        val run = (repo.startRun(plan, "A") as RunStartResult.Started).runId
+    @Test fun `a today only swap on an open draft writes run tracks and nothing else`() = runTest {
+        val run = assertNotNull(db.programDao().day(plan, "A")).nextRunId
         assertTrue(repo.swapInRun(run, h, Slot.MAIN, "leg_press"))
+        assertTrue(repo.openRunFlow.first()!!.draft)
         assertEquals(work(3, 230.0, 10), active(h).planned)
         unchanged()
         assertTrue(repo.swapInRun(run, b, Slot.MAIN, "db_row"))
@@ -129,10 +130,11 @@ class RunOnlySwapWritesTest {
         unchanged()
     }
 
-    @Test fun `a today only swap that starts the next run writes run tracks and nothing else`() = runTest {
+    @Test fun `a today only swap that opens the next draft writes run tracks and nothing else`() = runTest {
         val next = assertNotNull(db.programDao().day(plan, "A")).nextRunId
         assertEquals(ExerciseSwapResult.CHANGED, repo.applyExerciseSwap(plan, "A", b, "db_row", next, allowChange = true))
         assertEquals(next, repo.openRunFlow.first()!!.id)
+        assertTrue(repo.openRunFlow.first()!!.draft)
         assertEquals("db_row", active(b).exerciseId)
         assertEquals(work(3, 55.0, 10), active(b).planned)
         assertTrue(db.runDao().tracks(next).single { it.programExerciseId == b && it.exerciseId == "bb_bench" }.retired)
@@ -144,7 +146,8 @@ class RunOnlySwapWritesTest {
 
     @Test fun `keeping the superset half writes run tracks and nothing else`() = runTest {
         val result = repo.dropSupersetHalf(plan, "A", e, Slot.SS, "ez_curl", "rope_pushdown")
-        assertTrue(result is RunWriteResult.InRun && result.started)
+        assertTrue(result is RunWriteResult.InRun && !result.started)
+        assertTrue(repo.openRunFlow.first()!!.draft)
         assertEquals("rope_pushdown", active(e).exerciseId)
         assertEquals(work(3, 20.0, 10), active(e).planned)
         unchanged()

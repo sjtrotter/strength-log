@@ -210,7 +210,7 @@ class PersistenceProcessDeathTest {
 
         val logsBeforeKill = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId }
         assertEquals(2, logsBeforeKill.size)
-        assertTrue(logsBeforeKill.flatMap { it.sets }.all { it.plannedIndex == 0 })
+        assertTrue(logsBeforeKill.flatMap { it.sets }.all { it.plannedIndex == null })
 
         // --- kill the process: close DB and DataStore, reopen over the files ---
         closeSession()
@@ -235,8 +235,8 @@ class PersistenceProcessDeathTest {
             SetJson.decodeSets(db.programDao().logForSlot(PlanEntity.LEGACY_ID, "A", benchRowId, Slot.MAIN)!!.setsJson))
 
         assertEquals(logsBeforeKill, repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId })
-        assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP, plannedIndex = 0)), logsBeforeKill[0].sets)
-        assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true, plannedIndex = 0)), logsBeforeKill[1].sets)
+        assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP)), logsBeforeKill[0].sets)
+        assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)), logsBeforeKill[1].sets)
 
         // Workout history: the session row and its denormalized set rows.
         val session = repository.history.sessionsFlow.first().single()

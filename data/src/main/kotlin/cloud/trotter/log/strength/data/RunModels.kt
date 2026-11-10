@@ -26,9 +26,9 @@ data class TrackEdit(
 
 /** Outcome of an atomic group of workout edits. */
 sealed interface RunWriteResult {
-    /** The edits committed to this run, optionally starting it. */
+    /** The edits committed to this run or draft; [started] when this call started the workout. */
     data class InRun(val runId: String, val started: Boolean) : RunWriteResult
-    /** The edits committed to the day's working values. */
+    /** An accepted offer written to the day's stored rows while no run or draft is open. */
     data object WorkingValues : RunWriteResult
     /** A transform declined the entire group of edits. */
     data object Unchanged : RunWriteResult
@@ -71,6 +71,7 @@ data class OpenRun(
     val planName: String?,
     val startedAt: Long,
     val tracks: List<RunTrack>,
+    val draft: Boolean = false,
 )
 
 /** Active rows and retired work for a day's open run or working values. */

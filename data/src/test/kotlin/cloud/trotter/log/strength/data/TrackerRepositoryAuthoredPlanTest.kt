@@ -278,8 +278,10 @@ class TrackerRepositoryAuthoredPlanTest {
         repo.plans.publishCreatedAuthoredPlan(id)
         repeat(2) { repo.addExercise("A", ProgramExercise("plank")) }
         val slots = repo.plans.daySlotsFlow("A").first()
-        for (slot in slots) repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slot.programExerciseId) ?: -1, "A").first().runId.orEmpty(), "A", slot.programExerciseId, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
-        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slots.first().programExerciseId) ?: -1, "A").first().runId.orEmpty(), "A", slots.first().programExerciseId, Slot.SS, emptyList())
+        repo.ensureSeeded(id, "A")
+        for (slot in slots) db.storeTestRows("A", slot.programExerciseId, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
+        repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(slots.first().programExerciseId)), "A")
+        db.storeTestRows("A", slots.first().programExerciseId, Slot.SS, emptyList())
         val other = repo.plans.createAuthoredPlan("Other", "Day A")
         repo.plans.publishCreatedAuthoredPlan(other)
         val prescription = Prescription(PrescribedTarget.RepsInTime(120, 40), true, "Red band")
@@ -406,7 +408,8 @@ class TrackerRepositoryAuthoredPlanTest {
         repeat(3) { repo.addExercise("A", ProgramExercise("plank")) }
         for (id in listOf(generated, authored)) {
             val slots = db.programDao().exercisesForDay(id, "A").map { it.id }
-            repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slots[1]) ?: -1, "A").first().runId.orEmpty(), "A", slots[1], Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
+            repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(slots[1])), "A")
+            db.storeTestRows("A", slots[1], Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
             val logs = db.programDao().allLogs()
             repo.moveExercise(slots.first(), up = true)
             repo.moveExercise(slots.last(), up = false)

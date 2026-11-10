@@ -97,7 +97,7 @@ class TodaySnapshotSource(
                             cardioAckStamp = ctx.cardioAck.highest,
                             cardioAckedStamps = ctx.cardioAck.recent,
                             planName = plan.name,
-                            runStartedAt = open?.takeIf { performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
+                            runStartedAt = open?.takeIf { !it.draft && performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
                             processedEditStamps = ctx.processedEdits,
                             liftGoal = plan.planSettings.defaultsFor,
                         )

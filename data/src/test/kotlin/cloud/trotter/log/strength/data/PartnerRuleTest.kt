@@ -256,6 +256,54 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(beforeRule, undo.rules.single { it.programExerciseId == s && it.slot == Slot.SS }.beforeJson)
     }
 
+    @Test fun `a never-stored calibrating partner fitted to its light main only counts exposure in Automatic`() = runTest {
+        fittedLazyCalibration(true)
+    }
+
+    @Test fun `a never-stored calibrating partner fitted to its light main only counts exposure in Ask`() = runTest {
+        fittedLazyCalibration(false)
+    }
+
+    private suspend fun fittedLazyCalibration(automatic: Boolean) {
+        val plan = converted(ProgramDay("A", "Day A", "", listOf(
+            ProgramExercise("bb_back_squat", targetSets = 3, superset = SupersetPartner("cable_row")),
+        )))
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+        val s = id(plan, "bb_back_squat")
+        val mainRule = squatRule()
+        lifter(plan, s, squat(), mainRule)
+        val storedRule = rule(SlotRole.ACCESSORY, 10).copy(
+            state = SlotState(successStreak = 1, exposures = 3, calibrating = true))
+        val beforeRule = SlotRuleJson.encode(storedRule)
+        db.programDao().setPartnerRule(s, beforeRule)
+        assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        db.planDao().updateLightCycle(plan, 2, 0)
+        val run = start(plan)
+        val tracks = db.runDao().tracks(run)
+        val main = tracks.single { it.slot == Slot.MAIN }
+        val ss = tracks.single { it.slot == Slot.SS }
+        assertEquals(4, planned(main).size)
+        assertEquals("""{"light":true}""", main.openingJson)
+        assertEquals(planned(main).size, planned(ss).size)
+        assertEquals("""{"layoff":"HOLD"}""", ss.openingJson)
+        // Pin the run's planned and actual loads without creating a stored SS row.
+        val partnerRows = work(planned(ss).size, 120.0, 10)
+        db.runDao().updateTrack(ss.copy(plannedJson = SetJson.encodeSets(partnerRows),
+            setsJson = SetJson.encodeSets(partnerRows.mapIndexed { i, row -> row.copy(plannedIndex = i) })))
+        val session = finishBoth(plan, s)
+        assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        assertEquals(storedRule.copy(state = storedRule.state.copy(exposures = storedRule.state.exposures + 1)), partnerRule(s))
+        assertNull(ssOffer(plan, s))
+        assertEquals(squat(), rows(plan, s))
+        assertEquals(mainRule.copy(state = mainRule.state.copy(exposures = mainRule.state.exposures + 1)), rule(s))
+        assertNull(offer(plan, "bb_back_squat"))
+        val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+        assertTrue(undo.logs.none { it.programExerciseId == s && it.slot == Slot.SS })
+        val undoRule = undo.rules.single { it.programExerciseId == s && it.slot == Slot.SS }
+        assertEquals(beforeRule, undoRule.beforeJson)
+        assertEquals(db.programDao().exercise(s)!!.partnerRuleJson, undoRule.afterJson)
+    }
+
     @Test fun `a partner fitted to its main's layoff keeps its stored row count`() = runTest {
         val plan = authored()
         val s = add(plan, "bb_back_squat")

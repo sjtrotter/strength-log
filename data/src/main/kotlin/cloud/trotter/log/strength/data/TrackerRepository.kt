@@ -1814,6 +1814,12 @@ class TrackerRepository(
                 if (!keepLazyPartner) writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
                 continue
             }
+            // A partner fitted while it has no stored row gives no evidence: its rule counts the exposure and nothing else changes (spec W2b-2b decision 9).
+            if (keepLazyPartner) {
+                writeRule(slot, track.slot, requireNotNull(stored),
+                    SlotRuleJson.encode(rule.copy(state = rule.state.copy(exposures = rule.state.exposures + 1))))
+                continue
+            }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
             val light = opening?.light == true
             val entry = catalog.find(track.exerciseId)
@@ -1827,11 +1833,11 @@ class TrackerRepository(
                 Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))
             } catch (_: RuntimeException) { null }
             if (prepared == null) {
-                if (!keepLazyPartner) writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
                 continue
             }
             val (outcome, encodedRule, offer) = prepared
-            if (!keepLazyPartner) writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
+            writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
             writeRule(slot, track.slot, requireNotNull(stored), encodedRule)
             if (outcome.reason == Reason.Stall) stalled = true
             offer?.let { offers[track.id] = it }

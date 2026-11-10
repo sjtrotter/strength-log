@@ -1150,6 +1150,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val timed = vm.uiState.value.exercises.first()
         val other = vm.uiState.value.exercises.last()
+        vm.startWorkout()
+        runCurrent()
         vm.startTimedRep(timed.programExerciseId, 0)
         runCurrent()
         val event = requireNotNull(vm.uiState.value.timedRep).event

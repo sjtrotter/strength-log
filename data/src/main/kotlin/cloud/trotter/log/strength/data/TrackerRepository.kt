@@ -682,7 +682,8 @@ class TrackerRepository(
 
     // --- live logs -----------------------------------------------------------
 
-    /** Pure read: seeding and writes remain the caller's responsibility. */
+    /** Pure read: seeding and writes remain the caller's responsibility.
+     * Seeds read other days' rows and history, which this flow does not observe, so a preview or watch can show a seed until this day's rows or tracks emit; 3b wires history. */
     fun observeDay(planId: Long, dayId: String): Flow<PerformedDay> = combine(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
         plans.wizardAnswersFor(planId), catalog.catalogFlow,
@@ -748,13 +749,15 @@ class TrackerRepository(
     /** Writes missing stored rows with their seed rule on ruled columns outside Plan mode (spec W2b-3a decision 3).
      *  Room only; runs in the caller's transaction. */
     private suspend fun keepSeeds(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>) {
+        val undoRules = ProgressionUndoJson.decode(sessionDao.lastSessionForDay(day.planId, day.dayId)?.progressionUndoJson)
+            ?.rules.orEmpty().map { it.programExerciseId to it.slot }.toSet()
         for ((key, seeded) in seeds) {
             val (id, name) = key
             if (programDao.logForSlot(day.planId, day.dayId, id, name) != null) continue
             val slot = programDao.exercise(id) ?: continue
             programDao.upsertLog(logEntity(day.planId, day.dayId, id, name, seeded.rows))
             val storedRule = slot.ruleJsonFor(name)
-            if (!slot.keepToPlan && storedRule != null) {
+            if (!slot.keepToPlan && storedRule != null && key !in undoRules) {
                 val encoded = SlotRuleJson.encode(seeded.rule)
                 if (encoded != storedRule) setRuleFor(id, name, encoded)
             }
@@ -1645,7 +1648,7 @@ class TrackerRepository(
         val runId = day.nextRunId
         val seeds = seedPlan(day, tracks, unit, catalog)
             .filterKeys { restoringLift == null || it.first == restoringLift }
-        keepSeeds(day, seeds)
+        if (restoringLift == null) keepSeeds(day, seeds)
         val existing = tracks.toMutableList()
         val seededSlots = mutableSetOf<Long>()
         for ((key, sets) in seeds) {

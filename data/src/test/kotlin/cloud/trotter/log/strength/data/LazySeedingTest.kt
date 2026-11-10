@@ -153,6 +153,26 @@ class LazySeedingTest : FinishProgressionFixture() {
         assertEquals(work(3, 190.0, 5).mapIndexed { i, row -> row.copy(plannedIndex = i) }, bench.sets)
     }
 
+    @Test fun `restoring a missing stored track builds from its seed without writing rows or rule`() = runTest {
+        val plan = converted(day("bb_bench", "ohp"))
+        val b = id(plan, "bb_bench")
+        val before = assertNotNull(db.programDao().exercise(b)).ruleJson
+        val run = start(plan)
+        assertIs<RunWriteResult.InRun>(repo.skipLift(plan, "A", b, Slot.MAIN, "bb_bench", null))
+        db.programDao().deleteLogForSlot(plan, "A", b, Slot.MAIN)
+        history(plan)
+
+        assertIs<RunWriteResult.InRun>(repo.restoreSkippedLift(run, b))
+
+        val bench = repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == b && it.slot == Slot.MAIN && !it.retired
+        }
+        assertEquals(work(3, 185.0, 5), bench.planned)
+        assertEquals(work(3, 185.0, 5).mapIndexed { i, row -> row.copy(plannedIndex = i) }, bench.sets)
+        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
+        assertEquals(before, db.programDao().exercise(b)!!.ruleJson)
+    }
+
     @Test fun `a partner's working rows seed the same lift added as a main on another day`() = runTest {
         val plan = converted(partneredBench(), day("ohp", id = "B"))
         val b = id(plan, "bb_bench")

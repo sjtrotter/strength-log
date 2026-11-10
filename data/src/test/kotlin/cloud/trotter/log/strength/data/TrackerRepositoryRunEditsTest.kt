@@ -1923,7 +1923,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(tracks.none { it.retired || it.dropped })
         assertEquals("bb_back_squat", tracks.single { it.slot == Slot.MAIN }.exerciseId)
         assertEquals("ez_curl", tracks.single { it.slot == Slot.SS }.exerciseId)
-        assertEquals(listOf(3, 3), tracks.map { it.sets.size })
+        assertEquals(listOf(4, 4), tracks.map { it.sets.size })
         assertTrue(tracks.flatMap { it.sets }.none { it.done })
         assertEquals(setOf(Slot.MAIN, Slot.SS), repo.dayTracksFlow(plan, "A").first().tracks.filter { it.programExerciseId == id }.map { it.slot }.toSet())
     }

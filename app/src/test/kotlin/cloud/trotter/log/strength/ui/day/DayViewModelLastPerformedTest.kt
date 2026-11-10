@@ -115,6 +115,11 @@ class DayViewModelLastPerformedTest {
                 ),
             ),
         )
+        db.storeTestRows("A", slotId("bb_back_squat"), Slot.MAIN, listOf(
+            LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
+            LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
+            LoggedSet(235.0, 5, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
+        ))
     }
 
     private suspend fun slotId(exerciseId: String): Long =

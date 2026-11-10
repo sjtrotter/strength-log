@@ -281,6 +281,7 @@ class DayViewModelReceiptTest {
         db.convertTestPlans(settings)
         val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
         val slots = repo.plans.slotsFor(planId, "A").first()
+        db.storeTestRows("A", slots[0].programExerciseId, Slot.SS, List(3) { LoggedSet(45.0, 10, SetKind.WORK) })
         val vm = newCollectingViewModel()
         advanceUntilIdle()
         val id = slots[0].programExerciseId
@@ -1243,6 +1244,11 @@ class DayViewModelReceiptTest {
                 ),
             ),
         )
+        db.storeTestRows("A", slotId(), Slot.MAIN, listOf(
+            LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
+            LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
+            LoggedSet(235.0, 5, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
+        ))
     }
 
     private suspend fun insertStraightProgram() {

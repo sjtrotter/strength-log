@@ -696,7 +696,7 @@ class PlanRepository(
             val main = slot.programExerciseId to Slot.MAIN
             val partner = slot.programExerciseId to Slot.SS
             val needsPartner = exercise.superset != null && partner !in existing
-            val mainSeed = if (main !in existing || needsPartner && existing[main] == null) {
+            val mainSeed = if (main !in existing) {
                 seed(planId, slot, Slot.MAIN, 0, unit, catalog) ?: continue
             } else null
             if (main !in existing && mainSeed != null) seeds[main] = mainSeed

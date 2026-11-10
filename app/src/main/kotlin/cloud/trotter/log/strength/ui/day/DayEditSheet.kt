@@ -77,10 +77,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
-import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -463,10 +461,7 @@ private fun daySlotSummary(slot: DayEditSlotState, state: DayEditUiState): Strin
     if (slot.isSuperset) return stringResource(R.string.sheet_superset_with, slot.partnerTitle.orEmpty())
     if (slot.targetSets == 0) return stringResource(R.string.sheet_no_sets)
     val entry = state.catalog.find(slot.exerciseId)
-    val exercise = ProgramExercise(slot.exerciseId, structure = slot.structure,
-        targetSets = slot.targetSets, prescription = slot.prescription)
-    // Use the workout's seed policy; the prescription editor's defaults are only input drafts.
-    val sets = SlotSeeds.main(exercise, entry, state.config)
+    val sets = slot.rows
         ?: return stringResource(when (slot.structure) {
             SetStructure.STRAIGHT -> R.string.day_edit_structure_straight
             SetStructure.RAMP_TOP -> R.string.day_edit_structure_ramp_top

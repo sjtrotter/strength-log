@@ -694,6 +694,24 @@ class TrackerRepository(
         PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog, seeds.mapValues { it.value.rows })
     }
 
+    /** Each of the day's slots' next-time MAIN rows: stored (`exercise_log`, whatever run is open), else its seed
+     *  ([PlanRepository.seed]). An unknown, unprescribed slot has no entry, as in [PlanRepository.seeds]. Pure read;
+     *  re-emits on the same writes as [observeDay]. */
+    fun observePlanRows(planId: Long, dayId: String): Flow<Map<Long, List<LoggedSet>>> = combine(
+        plans.slotsFor(planId, dayId), programDao.observeLogs(planId, dayId), plans.wizardAnswersFor(planId),
+        combine(catalog.catalogFlow, sessionDao.observeHistoryChanges()) { catalog, _ -> catalog },
+    ) { slots, logs, answers, catalog ->
+        val stored = logs.filter { it.slot == Slot.MAIN }
+            .associate { it.programExerciseId to SetJson.decodeSets(it.setsJson) }
+        slots.mapNotNull { slot ->
+            val exercise = slot.exercise
+            if (catalog.find(exercise.exerciseId) == null && exercise.prescription == null) return@mapNotNull null
+            val rows = stored[slot.programExerciseId]
+                ?: plans.seed(planId, slot, Slot.MAIN, 0, answers.config.weightUnit, catalog)?.rows
+            rows?.let { slot.programExerciseId to it }
+        }.toMap()
+    }
+
     fun dayTracksFlow(planId: Long, dayId: String): Flow<DayTracks> = combine(
         openRunFlow, programDao.observeDays(planId), programDao.observeLogs(planId, dayId),
         programDao.observeExercisesForDay(planId, dayId),

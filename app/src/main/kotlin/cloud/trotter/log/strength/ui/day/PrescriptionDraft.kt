@@ -2,15 +2,14 @@ package cloud.trotter.log.strength.ui.day
 
 import android.os.Parcelable
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.progression.WorkingRows
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalTarget
 import kotlinx.parcelize.Parcelize
 
 enum class PrescriptionKind { LOAD_REPS, REPS, HOLD, REPS_IN_TIME }
@@ -43,14 +42,14 @@ data class PrescriptionDraft(
     companion object {
         private const val STRAIGHT_SETS = 3
 
-        /** Straight sets from a ramped slot: three sets at its current working weight and reps (#500). */
+        /** Straight sets from a ramped slot: three sets at the live track's working weight and reps (#500), else the
+         *  slot's own through [from]. */
         fun straightFrom(
             slot: DayEditSlotState,
             working: List<LoggedSet>?,
             catalog: ExerciseCatalog,
-            config: LifterConfig,
         ): PrescriptionDraft {
-            val base = from(slot, catalog, config)
+            val base = from(slot, catalog)
             val set = working?.let { rows -> WorkingRows.workingIndices(rows).firstOrNull()?.let(rows::get) }
             return base.copy(
                 kind = PrescriptionKind.LOAD_REPS,
@@ -60,24 +59,17 @@ data class PrescriptionDraft(
             )
         }
 
-        fun from(slot: DayEditSlotState, catalog: ExerciseCatalog, config: LifterConfig): PrescriptionDraft {
+        /** The slot's prescription, else its first working row read by the catalog's tracking. */
+        fun from(slot: DayEditSlotState, catalog: ExerciseCatalog): PrescriptionDraft {
             val prescription = slot.prescription
-            val seeded = SlotSeeds.main(
-                ProgramExercise(slot.exerciseId, slot.structure, slot.targetSets), catalog.find(slot.exerciseId), config,
-            )
-            val working = seeded?.let { rows -> WorkingRows.workingIndices(rows).firstOrNull()?.let(rows::get) }
+            val working = slot.rows?.let { rows -> WorkingRows.workingIndices(rows).firstOrNull()?.let(rows::get) }
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
                 reps = working?.reps?.takeIf { it >= 1 } ?: 10,
                 eachSide = prescription?.eachSide ?: false, resistance = prescription?.resistance.orEmpty(),
             )
-            val target = prescription?.target ?: catalog.find(slot.exerciseId)?.let { entry ->
-                when (val goal = GoalCalculator.targetFor(entry, config)) {
-                    is GoalTarget.Weight -> PrescribedTarget.LoadReps(goal.lb, draft.reps)
-                    is GoalTarget.Reps -> PrescribedTarget.Reps(goal.reps)
-                    is GoalTarget.Time -> PrescribedTarget.Hold(goal.seconds, goal.addedLb)
-                }
-            }
+            val target = prescription?.target
+                ?: catalog.find(slot.exerciseId)?.let { unprescribedTarget(it, working, draft.reps) }
             return when (target) {
                 is PrescribedTarget.LoadReps -> draft.copy(loadLb = target.lb, reps = target.reps.coerceAtLeast(1))
                 is PrescribedTarget.Reps -> draft.copy(kind = PrescriptionKind.REPS, reps = target.reps.coerceAtLeast(1))
@@ -89,5 +81,16 @@ data class PrescriptionDraft(
                 null -> draft
             }
         }
+
+        /** Without a working row (an empty stored track), a REPS or TIMED entry takes its catalog target; a weighted
+         *  one keeps the class defaults, because a load needs the slot's rule. */
+        private fun unprescribedTarget(entry: ExerciseEntry, working: LoggedSet?, reps: Int): PrescribedTarget? =
+            when (entry.tracking) {
+                TrackingType.WEIGHTED -> working?.let { PrescribedTarget.LoadReps(it.weightLb, reps) }
+                TrackingType.TIMED -> working?.let { PrescribedTarget.Hold(it.seconds, it.weightLb) }
+                    ?: (entry.goal as GoalSource.Time).let { PrescribedTarget.Hold(it.targetSeconds, it.addedWeightLb) }
+                TrackingType.REPS -> PrescribedTarget.Reps(
+                    working?.reps?.takeIf { it >= 1 } ?: (entry.goal as GoalSource.Reps).targetReps)
+            }
     }
 }

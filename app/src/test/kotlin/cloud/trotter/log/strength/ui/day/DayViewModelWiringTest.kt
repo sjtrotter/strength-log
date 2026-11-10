@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -29,9 +30,8 @@ import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -402,14 +402,10 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun unprescribedSlotsOpenPrescriptionAtTheirTrackingTypesAndGoals() = runVmTest {
+    fun unprescribedSlotsOpenPrescriptionAtTheirTrackingTypesAndRows() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"), ProgramExercise("rdl"),
         )))))
-        repo.plans.updateLifter { it.copy(bodyweightLb = 185.0, age = 45) }
-        val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val config = repo.plans.wizardAnswersFor(plan).first().config
-        val catalog = repo.catalog.catalogFlow.first()
         val vm = newViewModel()
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
@@ -420,25 +416,112 @@ class DayViewModelWiringTest {
             vm.editor.openPrescription(slot.programExerciseId)
             advanceUntilIdle()
             val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
-            val expected = when (val goal = GoalCalculator.targetFor(catalog.get(slot.exerciseId), config)) {
-                is GoalTarget.Reps -> {
+            val expected = when (slot.exerciseId) {
+                "pushup" -> {
                     assertEquals(PrescriptionKind.REPS, draft.kind)
-                    PrescribedTarget.Reps(goal.reps)
+                    PrescribedTarget.Reps(15)
                 }
-                is GoalTarget.Time -> {
+                "plank" -> {
                     assertEquals(PrescriptionKind.HOLD, draft.kind)
-                    PrescribedTarget.Hold(goal.seconds, goal.addedLb)
+                    PrescribedTarget.Hold(45, 0.0)
                 }
-                is GoalTarget.Weight -> {
+                "bb_back_squat" -> {
                     assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
-                    assertTrue(draft.loadLb > 0.0)
-                    PrescribedTarget.LoadReps(goal.lb, if (slot.exerciseId == "bb_back_squat") 5 else 10)
+                    PrescribedTarget.LoadReps(45.0, 5)
                 }
+                "rdl" -> {
+                    assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
+                    PrescribedTarget.LoadReps(45.0, 10)
+                }
+                else -> error("Unexpected slot ${slot.exerciseId}")
             }
             assertEquals(expected, draft.prescription().target)
             assertEquals(slot.targetSets, draft.sets)
         }
         collect.cancel()
+    }
+
+    @Test
+    fun anUnprescribedBenchOpensItsPrescriptionAtItsStoredWorkingRow() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("bb_bench"))))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = slotId("bb_bench")
+        repo.ensureSeeded(plan, "A")
+        val rows = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
+        db.programDao().upsertLog(ExerciseLogEntity(plan, "A", id, Slot.MAIN, SetJson.encodeSets(rows), 2000))
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(rows, vm.dayEditState.value.slots.single().rows)
+        vm.editor.openPrescription(id)
+        advanceUntilIdle()
+
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        assertEquals(PrescriptionKind.LOAD_REPS, draft.kind)
+        assertEquals(PrescribedTarget.LoadReps(185.0, 5), draft.prescription().target)
+        assertEquals(3, draft.sets)
+        collect.cancel()
+    }
+
+    @Test
+    fun case38EditorRowsAndStraightSetsReadTheStoredRows() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("hammer_curl", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(30.0, 8))))
+        repo.addExercise("A", ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))))
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        val slots = vm.dayEditState.value.slots
+        assertEquals(listOf(List(3) { LoggedSet(30.0, 8, SetKind.WORK) }, listOf(
+            LoggedSet(100.0, 5, SetKind.RAMP), LoggedSet(130.0, 5, SetKind.RAMP),
+            LoggedSet(150.0, 5, SetKind.RAMP), LoggedSet(165.0, 3, SetKind.RAMP),
+            LoggedSet(185.0, 5, SetKind.TOP), LoggedSet(140.0, 8, SetKind.BACKOFF),
+        )), slots.map { it.rows })
+        vm.editor.openStraightSets(slots[1].programExerciseId)
+        advanceUntilIdle()
+
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        assertEquals(3, draft.sets)
+        assertEquals(5, draft.reps)
+        assertEquals(185.0, draft.loadLb, 0.0)
+        collect.cancel()
+    }
+
+    @Test
+    fun straightSetsMidRunTakeTheRunsWorkingRowWhileTheEditorKeepsTheStoredRows() = runVmTest {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val id = slotId("bb_back_squat")
+        repo.ensureSeeded(plan, "A")
+        val run = (repo.startRun(plan, "A") as RunStartResult.Started).runId
+        val opened = repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired
+        }.sets
+        assertTrue("Start must preserve the TOP row", opened.any { it.kind == SetKind.TOP })
+        repo.writeTestRows(run, "A", id, Slot.MAIN, opened.map {
+            if (it.kind == SetKind.TOP) it.copy(weightLb = 225.0, reps = 3) else it
+        })
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(45.0, vm.dayEditState.value.slots.first { it.programExerciseId == id }
+            .rows!!.single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        vm.editor.openStraightSets(id)
+        advanceUntilIdle()
+
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        assertEquals(3, draft.sets)
+        assertEquals(3, draft.reps)
+        assertEquals(225.0, draft.loadLb, 0.0)
+        collectEdit.cancel()
+        collectUi.cancel()
     }
 
     @Test
@@ -534,7 +617,8 @@ class DayViewModelWiringTest {
         val id = slotId("bb_back_squat")
         val state = vm.dayEditState.value
         val slot = state.slots.first { it.programExerciseId == id }
-        val expected = PrescriptionDraft.from(slot, state.catalog, state.config).copy(sets = 3)
+        val expected = PrescriptionDraft.from(slot, state.catalog).copy(sets = 3)
+        assertEquals(PrescribedTarget.LoadReps(45.0, 5), expected.prescription().target)
         vm.swapWorkoutSlot(0, "hack_squat")
         advanceUntilIdle()
         val run = repo.openRunFlow.first()!!

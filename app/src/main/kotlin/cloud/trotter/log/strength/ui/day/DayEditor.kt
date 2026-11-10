@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.cardio.CardioProgression
 import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -72,11 +73,12 @@ internal class DayEditor(
                 Pair(tracks.runOpen, tracks.tracks
                     .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap())
             }.distinctUntilChanged(),
-        ) { slots, answers, (runOpen, performed) ->
+            repo.observePlanRows(plan.id, dayId),
+        ) { slots, answers, (runOpen, performed), rows ->
             val day = ctx.program.days.firstOrNull { it.id == dayId }
             val block = day?.cardioBlock
-            buildEditState(slots, ctx.catalog, answers.equipment).copy(
-                planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
+            buildEditState(slots, ctx.catalog, answers.equipment, rows).copy(
+                planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
                 cardioMeasures = block?.let(CardioProgression::available).orEmpty(),
@@ -222,7 +224,7 @@ internal class DayEditor(
         val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
         prescriptionRequest = null
         savedState[KEY_PRESCRIPTION_STRUCTURE] = null
-        savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot, state.catalog, state.config)
+        savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot, state.catalog)
     }
 
     fun openStraightSets(slotId: Long) {
@@ -240,7 +242,7 @@ internal class DayEditor(
             }?.sets ?: tracks.retired.firstOrNull {
                 it.programExerciseId == slotId && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
             }?.sets
-            savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.straightFrom(slot, working, state.catalog, state.config)
+            savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.straightFrom(slot, working, state.catalog)
             savedState[KEY_PRESCRIPTION_STRUCTURE] = SetStructure.STRAIGHT.name
         }
     }
@@ -413,8 +415,9 @@ internal class DayEditor(
         slots: List<ProgramSlot>,
         catalog: ExerciseCatalog,
         equipment: Set<Equipment>,
+        rows: Map<Long, List<LoggedSet>>,
     ): DayEditUiState {
-        val rows = slots.mapIndexed { index, slot ->
+        val slotStates = slots.mapIndexed { index, slot ->
             val pe = slot.exercise
             val entry = catalog.find(pe.exerciseId)
             val partnerId = pe.superset?.exerciseId
@@ -435,11 +438,12 @@ internal class DayEditor(
                 targetSets = pe.targetSets,
                 canMoveUp = index > 0,
                 canMoveDown = index < slots.lastIndex,
+                rows = rows[slot.programExerciseId],
             )
         }
         return DayEditUiState(
-            slots = rows,
-            canRemove = DayEditRules.canRemove(rows.size),
+            slots = slotStates,
+            canRemove = DayEditRules.canRemove(slotStates.size),
             defaultEquipmentFilter = equipment,
             catalog = catalog,
         )

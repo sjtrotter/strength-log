@@ -1,8 +1,9 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.CardioProgress
@@ -25,7 +26,6 @@ data class DayEditUiState(
      *  wizard's equipment profile"); the user can still widen/narrow it live. */
     val defaultEquipmentFilter: Set<Equipment> = Equipment.entries.toSet(),
     val catalog: ExerciseCatalog = ExerciseCatalog.CODE_ONLY,
-    val config: LifterConfig = LifterConfig(),
     val canResetToTemplate: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
@@ -67,6 +67,9 @@ data class DayEditSlotState(
     val keepToPlan: Boolean = false,
     val structure: SetStructure = SetStructure.STRAIGHT,
     val weightedTarget: Boolean = false,
+    /** Next-time MAIN rows: stored, else the seed ([TrackerRepository.observePlanRows]); never a run's.
+     *  Null for an unknown, unprescribed slot. */
+    val rows: List<LoggedSet>? = null,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */

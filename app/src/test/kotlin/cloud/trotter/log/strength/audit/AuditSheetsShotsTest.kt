@@ -270,7 +270,7 @@ class AuditSheetsShotsTest : UiAuditTest() {
         val edit = auditEditFixture(state)
         val slot = edit.slots.single()
         rule.auditShot("sheets/25-day-edit-prescription") { AuditDay(state, edit = edit.copy(editorOpen = true,
-            prescriptionDraft = PrescriptionDraft.from(slot, edit.catalog, edit.config))) }
+            prescriptionDraft = PrescriptionDraft.from(slot, edit.catalog))) }
     }
 
     @Test fun shot26DayEditCardioSet() {

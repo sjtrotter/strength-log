@@ -21,9 +21,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -43,6 +45,17 @@ class DayEditSheetTest {
 
     private lateinit var backDispatcher: OnBackPressedDispatcher
     private lateinit var view: View
+
+    private val squatRamp = listOf(
+        LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
+        LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
+        LoggedSet(235.0, 5, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
+    )
+    private val benchRamp = listOf(
+        LoggedSet(100.0, 5, SetKind.RAMP), LoggedSet(130.0, 5, SetKind.RAMP),
+        LoggedSet(150.0, 5, SetKind.RAMP), LoggedSet(165.0, 3, SetKind.RAMP),
+        LoggedSet(185.0, 5, SetKind.TOP), LoggedSet(140.0, 8, SetKind.BACKOFF),
+    )
 
     private fun show(
         canResetToTemplate: Boolean = false,
@@ -70,6 +83,7 @@ class DayEditSheetTest {
         unit: WeightUnit = WeightUnit.LB,
         onResetToTemplate: () -> Unit = {},
         onDismiss: () -> Unit = {},
+        rows: List<LoggedSet>? = null,
     ) {
         val slot = DayEditSlotState(
             programExerciseId = 1L,
@@ -84,6 +98,7 @@ class DayEditSheetTest {
             weightedTarget = weightedTarget,
             structure = structure,
             targetSets = targetSets,
+            rows = rows,
         )
         val openedDraft = mutableStateOf(prescriptionDraft)
         composeTestRule.setContent {
@@ -103,9 +118,7 @@ class DayEditSheetTest {
                         onRemove = onRemove,
                         onOpenPrescription = { id ->
                             onOpenPrescription(id)
-                            openedDraft.value = PrescriptionDraft.from(slot,
-                                ExerciseCatalog.CODE_ONLY,
-                                cloud.trotter.log.strength.domain.model.LifterConfig())
+                            openedDraft.value = PrescriptionDraft.from(slot, ExerciseCatalog.CODE_ONLY)
                         },
                         onSetSuperset = { _, _ -> },
                         onRemoveSuperset = {},
@@ -480,14 +493,16 @@ class DayEditSheetTest {
 
     @Test
     fun generatedRampSummarizesItsSeededTopAndBackoffInsteadOfInventingStraightSets() {
-        show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6)
+        show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6,
+            rows = squatRamp)
         composeTestRule.onNodeWithText("Ramp to 235 lb, then 1 back-off").assertExists()
         composeTestRule.onNodeWithText("6 × 10 at 235 lb").assertDoesNotExist()
     }
 
     @Test
     fun generatedRampWithoutBackoffOnlyDescribesTheRamp() {
-        show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP, targetSets = 5)
+        show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP, targetSets = 5,
+            rows = squatRamp.dropLast(1))
         composeTestRule.onNodeWithText("Ramp to 235 lb").assertExists()
         composeTestRule.onNodeWithText("Ramp to 235 lb, then 1 back-off").assertDoesNotExist()
     }
@@ -495,7 +510,7 @@ class DayEditSheetTest {
     @Test
     fun explicitRampUsesTheAuthoredTopAndSeededStructureRegardlessOfTargetCount() {
         show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3,
-            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)))
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)), rows = benchRamp)
         composeTestRule.onNodeWithText("Ramp to 185 lb, then 1 back-off").assertExists()
         composeTestRule.onNodeWithText("3 × 5 at 185 lb").assertDoesNotExist()
         composeTestRule.onNodeWithText("Ramp to 235 lb, then 1 back-off").assertDoesNotExist()
@@ -504,33 +519,37 @@ class DayEditSheetTest {
     @Test
     fun explicitStraightSetsSummarizeTheAuthoredCountRepsAndLoad() {
         show(edit = false, exerciseId = "bb_back_squat", targetSets = 3,
-            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)))
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)),
+            rows = List(3) { LoggedSet(185.0, 5, SetKind.WORK) })
         composeTestRule.onNodeWithText("3 × 5 at 185 lb").assertExists()
     }
 
     @Test
     fun generatedStraightSetsSummarizeTheSeededValues() {
-        show(edit = false, exerciseId = "bb_back_squat", targetSets = 3)
+        show(edit = false, exerciseId = "bb_back_squat", targetSets = 3,
+            rows = List(3) { LoggedSet(235.0, 5, SetKind.WORK) })
         composeTestRule.onNodeWithText("3 × 5 at 235 lb").assertExists()
     }
 
     @Test
     fun holdsStayStraightEvenIfTheSlotHasARampStructure() {
         show(edit = false, structure = SetStructure.RAMP_TOP_BACKOFF,
-            prescription = Prescription(PrescribedTarget.Hold(45)))
+            prescription = Prescription(PrescribedTarget.Hold(45)),
+            rows = List(3) { LoggedSet(0.0, 0, SetKind.WORK, seconds = 45) })
         composeTestRule.onNodeWithText("3 × 45 s").assertExists()
     }
 
     @Test
     fun loadedHoldsIncludeTheirAddedLoad() {
-        show(edit = false, prescription = Prescription(PrescribedTarget.Hold(45, 25.0)))
+        show(edit = false, prescription = Prescription(PrescribedTarget.Hold(45, 25.0)),
+            rows = List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) })
         composeTestRule.onNodeWithText("3 × 45 s at 25 lb").assertExists()
     }
 
     @Test
     fun rampTopUsesTheSelectedWeightUnit() {
         show(edit = false, exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP, unit = WeightUnit.KG,
-            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)))
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)), rows = benchRamp.dropLast(1))
         composeTestRule.onNodeWithText("Ramp to 83.91 kg").assertExists()
     }
 
@@ -539,6 +558,26 @@ class DayEditSheetTest {
         show(edit = false, exerciseId = "missing-exercise", structure = SetStructure.RAMP_TOP_BACKOFF)
         composeTestRule.onNodeWithText("Ramp, top set, back-off").assertExists()
         composeTestRule.onNodeWithText("3 × 10 at 0 lb").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a prescribed slot counts its stored rows`() {
+        show(edit = false, exerciseId = "hammer_curl", prescription = Prescription(PrescribedTarget.LoadReps(30.0, 8)),
+            rows = List(4) { LoggedSet(30.0, 8, SetKind.WORK) })
+        composeTestRule.onNodeWithText("4 × 8 at 30 lb").assertExists()
+        composeTestRule.onNodeWithText("3 × 8 at 30 lb").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an unprescribed slot summarizes its own rows`() {
+        show(edit = false, exerciseId = "bb_bench", rows = List(4) { LoggedSet(185.0, 5, SetKind.WORK) })
+        composeTestRule.onNodeWithText("4 × 5 at 185 lb").assertExists()
+    }
+
+    @Test
+    fun `an empty stored track has no sets`() {
+        show(edit = false, exerciseId = "bb_bench", rows = emptyList())
+        composeTestRule.onNodeWithText("No sets yet").assertExists()
     }
 
 }

@@ -35,9 +35,6 @@ interface CardioSetResultDao {
     @Query("SELECT * FROM cardio_set_result ORDER BY cardioSessionId, position, id")
     suspend fun all(): List<CardioSetResultEntity>
 
-    @Query("UPDATE cardio_set_result SET metres = :metres, distanceSource = :source WHERE cardioSessionId = :sessionId AND position = :position")
-    suspend fun amendDistance(sessionId: Long, position: Int, metres: Int?, source: String?)
-
     @Query("SELECT * FROM cardio_set_result ORDER BY cardioSessionId, position, id")
     fun observeAll(): Flow<List<CardioSetResultEntity>>
 

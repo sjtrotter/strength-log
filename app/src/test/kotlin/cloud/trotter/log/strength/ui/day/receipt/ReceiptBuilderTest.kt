@@ -34,7 +34,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class ReceiptBuilderTest {
     @Test
     fun `ramped squat keeps every done set and marks the top weight record`() {
@@ -532,6 +537,18 @@ class ReceiptBuilderTest {
         assertNull(row.endMetres)
         assertEquals(listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 5210)), row.intervals)
         assertEquals(CardioRecordMark(PrKind.FARTHER, 0, null, 4980), row.record)
+    }
+
+    @Test
+    fun `a record names the previous best by its reading at the end`() {
+        val previous = CardioSetResult(
+            CardioSetSpec(CardioRole.WORK, Measure.Time(900)), CardioSetStatus.FINISHED,
+            904, 3485, DistanceSource.MANUAL, metresAtEnd = 3470, secondsAtEnd = 900,
+        )
+        val standing = CardioBests.bests(CardioActivity.ROAD_RUN, listOf(previous))
+        val today = cardioResult(CardioRole.WORK, Measure.Time(900), 900, 3480)
+        val row = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN, listOf(today), standing).single()
+        assertEquals(CardioRecordMark(PrKind.FARTHER, 0, null, 3470), row.record)
     }
 
     @Test

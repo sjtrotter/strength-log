@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.records.PersonalBests
@@ -120,10 +121,16 @@ class HistoryRepository(
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
         require(metres == null || metres > 0)
         db.withTransaction {
-            require(cardioSetResultDao.forSession(sessionId).any { it.position == position })
-            cardioSetResultDao.amendDistance(sessionId, position, metres, metres?.let { "MANUAL" })
+            val row = requireNotNull(cardioSetResultDao.forSession(sessionId).firstOrNull { it.position == position })
+            cardioSetResultDao.update(row.copy(
+                metres = metres, distanceSource = metres?.let { DistanceSource.MANUAL.name },
+            ).withReadingsAtEnd())
         }
     }
+
+    /** [this] row with its readings at the end recomputed from its totals; an unreadable row is kept as it is. */
+    private fun CardioSetResultEntity.withReadingsAtEnd(): CardioSetResultEntity =
+        toDomainOrNull()?.let(FinishedRule::atEnd)?.let { copy(metresAtEnd = it.metresAtEnd, secondsAtEnd = it.secondsAtEnd) } ?: this
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
 
@@ -151,7 +158,7 @@ class HistoryRepository(
                     } else result.specJson,
                     metres = metres,
                     distanceSource = metres?.let { DistanceSource.MANUAL.name },
-                ))
+                ).withReadingsAtEnd())
             }
             cardioSessionDao.update(session.copy(
                 activity = activity.name,

@@ -41,6 +41,7 @@ import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.seeding.RunReplan
 import cloud.trotter.log.strength.domain.seeding.SetEditor
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.progression.LayoffKind
 import cloud.trotter.log.strength.domain.progression.LightCycle
 import cloud.trotter.log.strength.domain.progression.LightWeek
@@ -822,6 +823,7 @@ class TrackerRepository(
      * preserved and its current name copied when the plan exists. Sessions
      * without a plan cannot advance a rotation.
      * A note is trimmed and capped at [NOTE_MAX_LENGTH].
+     * A set without readings at the end gets the ones its totals prove ([FinishedRule.atEnd]).
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -853,7 +855,7 @@ class TrackerRepository(
             }
             val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH)))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
-                set.toEntity(id, position)
+                (if (set.metresAtEnd == null && set.secondsAtEnd == null) FinishedRule.atEnd(set) else set).toEntity(id, position)
             })
             if (finishDay && plan != null && stamped.dayId != null) {
                 lightAfterDay(plan, stamped.dayId, reactive = false)

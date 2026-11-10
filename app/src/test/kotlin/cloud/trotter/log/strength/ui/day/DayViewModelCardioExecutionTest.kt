@@ -511,6 +511,66 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun aSteadyRunPastItsEndStoresItsTimeAtTheEnd() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(1_690_000)
+        vm.changeCardioRunDistance("5")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val row = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(1690, row.elapsedSeconds)
+        assertEquals(5000, row.metres)
+        assertEquals(1500, row.secondsAtEnd)
+        assertNull(row.metresAtEnd)
+    }
+
+    @Test
+    fun aSteadyRunStoppedOnItsEndKeepsItsDistanceAsTheReading() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(1_500_000)
+        vm.changeCardioRunDistance("5")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val row = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(5000, row.metresAtEnd)
+        assertEquals(1500, row.secondsAtEnd)
+    }
+
+    @Test
+    fun anIntervalTimeSetReadsItsEnteredDistanceAtItsEnd() = test {
+        for (saveAfterCommit in listOf(false, true)) {
+            prepareBlock(time(CardioRole.WORK, aim = 400), time(CardioRole.RECOVERY, 120))
+            val vm = readyVm()
+            vm.startCardio()
+            runCurrent()
+            tick(10_000)
+            vm.openCardioDistance()
+            runCurrent()
+            vm.changeCardioDistance("420")
+            if (saveAfterCommit) tick(120_000)
+            vm.saveCardioDistance(vm.distanceAction())
+            runCurrent()
+            if (!saveAfterCommit) tick(120_000)
+            val session = repo.history.cardioSessionsFlow.first().first()
+            val rows = repo.history.cardioSetsFor(session.id)
+            assertEquals(listOf(420 to 10, null to 120), rows.map { it.metresAtEnd to it.secondsAtEnd })
+            vm.setCardioScreenLive(false)
+            vm.viewModelScope.cancel()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun loneTimedRunStoppedBlankOpensTheDistanceSheetAndStaysFinished() = test {
         prepareAuthoredCardioDay(time(CardioRole.WORK, 1500), activity = CardioActivity.ROAD_RUN)
         val vm = readyVm()

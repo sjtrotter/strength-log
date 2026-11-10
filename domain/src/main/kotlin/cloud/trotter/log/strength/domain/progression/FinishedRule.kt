@@ -8,6 +8,24 @@ import cloud.trotter.log.strength.domain.model.Measure
  *  reached. An at-end field on the row marks a reached end (see [CardioSetResult.secondsAtEnd]); the totals keep the
  *  overrun. Records and comparisons read the reading at the end, never the totals, so there is no grace window. */
 object FinishedRule {
+    /** [result] with the readings at its planned end that its own totals prove, and no others (#526). No executor in
+     *  this build reads distance while a set runs, so a FINISHED distance end was reached at the tap (its elapsed
+     *  seconds and the planned metres); a FINISHED time end run exactly reads its seconds and [CardioSetResult.metres];
+     *  a FINISHED time end run past its seconds (the phone's steady run) reads its seconds and no distance, since
+     *  nothing read the distance then. A time end stopped short and every SHORTENED or SKIPPED set read nothing. */
+    fun atEnd(result: CardioSetResult): CardioSetResult {
+        val none = result.copy(metresAtEnd = null, secondsAtEnd = null)
+        if (result.status != CardioSetStatus.FINISHED) return none
+        return when (val end = result.spec.end) {
+            is Measure.Distance -> none.copy(metresAtEnd = end.metres, secondsAtEnd = result.elapsedSeconds)
+            is Measure.Time -> when {
+                result.elapsedSeconds == end.seconds -> none.copy(metresAtEnd = result.metres, secondsAtEnd = end.seconds)
+                result.elapsedSeconds > end.seconds -> none.copy(secondsAtEnd = end.seconds)
+                else -> none
+            }
+        }
+    }
+
     /** True when the row reached its planned end and finished; false when it carries an at-end field but did not
      *  finish; null for a row with no at-end field (before v25), whose reader keeps its own rule. */
     fun finished(result: CardioSetResult): Boolean? =

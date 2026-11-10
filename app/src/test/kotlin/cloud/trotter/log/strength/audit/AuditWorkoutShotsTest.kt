@@ -251,4 +251,11 @@ class AuditWorkoutShotsTest : UiAuditTest() {
         ) })
     }.withWorkoutSelection()
 
+    @Test fun `shot33WorkoutBeforeStart`() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("workout/33-workout-before-start") {
+            AuditDay(workoutSetSingleFixture().copy(beforeStart = true, planId = 1L))
+        }
+    }
+
 }

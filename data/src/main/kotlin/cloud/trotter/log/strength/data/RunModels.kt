@@ -32,6 +32,8 @@ sealed interface RunWriteResult {
     data object WorkingValues : RunWriteResult
     /** A transform declined the entire group of edits. */
     data object Unchanged : RunWriteResult
+    /** A done tick on a day that hasn't started, with `startOnTick = false`. Nothing was written. */
+    data object NeedsStart : RunWriteResult
     /** The identity or track does not match an editable workout. */
     data object Rejected : RunWriteResult
 }
@@ -83,6 +85,7 @@ data class DayTracks(
     val retired: List<RunTrack> = emptyList(),
     val droppedPartners: Set<Long> = emptySet(),
     val skippedLifts: Set<Long> = emptySet(),
+    val draft: Boolean = false,
 ) {
     /** Done rounds on retired MAIN tracks, excluding superset partner duplicates. */
     val retiredRoundsDone: Int

@@ -406,4 +406,45 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
     }
 
+    @Test fun `aDraftOffersStartAndStartPromotesIt`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().first().programExerciseId
+        repo.applyToRun(db.programDao().day(plan, "A")!!.nextRunId, plan, "A", listOf(
+            cloud.trotter.log.strength.data.TrackEdit(slot, cloud.trotter.log.strength.data.db.entity.Slot.MAIN) { rows ->
+                rows.mapIndexed { index, row -> if (index == 0) row.copy(reps = 3) else row }
+            },
+        ))
+        val vm = today()
+        advanceUntilIdle()
+        assertEquals(DaySelection(plan, "A"), vm.uiState.value.resume?.selection)
+        assertTrue(vm.uiState.value.resumeDraft)
+        vm.workoutStart.start(DaySelection(plan, "A"))
+        advanceUntilIdle()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertFalse(vm.uiState.value.resumeDraft)
+        assertEquals(DaySelection(plan, "A"), vm.workoutStart.navigation.first())
+    }
+
+    @Test fun `startingAnotherDayDropsADraftInOneStep`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "B").first().first().programExerciseId
+        repo.applyToRun(db.programDao().day(plan, "B")!!.nextRunId, plan, "B", listOf(
+            cloud.trotter.log.strength.data.TrackEdit(slot, cloud.trotter.log.strength.data.db.entity.Slot.MAIN) { rows ->
+                rows.mapIndexed { index, row -> if (index == 0) row.copy(reps = 3) else row }
+            },
+        ))
+        val vm = today()
+        advanceUntilIdle()
+        vm.workoutStart.start(DaySelection(plan, "A"))
+        advanceUntilIdle()
+        assertTrue(vm.workoutStart.conflict.value!!.run.draft)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+        assertEquals("A", repo.openRunFlow.first()!!.dayId)
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertEquals(DaySelection(plan, "A"), vm.workoutStart.navigation.first())
+    }
+
 }

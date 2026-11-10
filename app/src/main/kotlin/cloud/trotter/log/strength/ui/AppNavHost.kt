@@ -241,6 +241,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                 onFinishSession = { navController.finishWorkout() },
+                onEditPlan = { navController.navigate(Routes.day(it.dayId, it.planId, openEditor = true)) },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -261,6 +262,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                     onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                     onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                     onFinishSession = { navController.finishWorkout() },
+                    onEditPlan = { navController.navigate(Routes.day(it.dayId, it.planId, openEditor = true)) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -476,6 +478,7 @@ internal fun DayRoute(
     onFinishSession: () -> Unit,
     onBack: () -> Unit = onFinishSession,
     viewModel: DayViewModel = hiltViewModel(),
+    onEditPlan: (DaySelection) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
@@ -510,7 +513,18 @@ internal fun DayRoute(
             viewModel.finisher.shareHandled()
         }
     }
+    val start = viewModel.workoutStart
+    val conflict by start.conflict.collectAsStateWithLifecycle()
+    WorkoutConflictDialog(conflict, start::dismiss, start::resume, start::confirmDiscard, start::discardAndStart)
     val actions = DayActions(
+        onStart = viewModel::startWorkout,
+        onEditPlan = {
+            val planId = state.planId
+            val dayId = state.viewDayId
+            if (planId != null && dayId != null) onEditPlan(DaySelection(planId, dayId))
+        },
+        onConfirmStart = viewModel::confirmStart,
+        onDismissStart = viewModel::dismissStart,
         onWeightChange = viewModel::changeWeight,
         onNextTime = viewModel::setWorkingWeight,
         onApplyCardioNextTime = viewModel::applyCardioNextTime,

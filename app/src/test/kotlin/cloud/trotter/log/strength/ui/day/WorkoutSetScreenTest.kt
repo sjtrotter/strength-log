@@ -39,6 +39,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
@@ -1559,4 +1562,52 @@ class WorkoutSetScreenTest {
     }
 
     private fun undo() = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null)
+    @Test fun `beforeStartShowsStartTodayOnlyAndEditPlan`() {
+        var starts = 0
+        var edits = 0
+        var state by mutableStateOf(workoutSetSingleFixture().copy(beforeStart = true, planId = 1L))
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
+            onStart = { starts++ }, onEditPlan = { edits++ },
+        )) } }
+        rule.onNodeWithTag("workout-start").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Start").assertIsDisplayed()
+        rule.onNodeWithTag("workout-finish").assertDoesNotExist()
+        rule.onNodeWithText("Today only").assertIsDisplayed()
+        rule.onNodeWithText("Edit plan").assertIsDisplayed().performClick()
+        assertEquals(1, starts)
+        assertEquals(1, edits)
+        rule.runOnIdle { state = state.copy(planId = null) }
+        rule.onNodeWithText("Edit plan").assertDoesNotExist()
+    }
+
+    @Test fun `theReadySheetStartsOrDismisses`() {
+        var starts = 0
+        var dismisses = 0
+        var visible by mutableStateOf(true)
+        var generation by mutableStateOf(0)
+        val state = workoutSetSingleFixture().copy(beforeStart = true, startSheet = true)
+        rule.setContent { AppTheme {
+            androidx.compose.runtime.key(generation) {
+                WorkoutSetHost(state.copy(startSheet = visible), workoutActions().copy(
+                    onConfirmStart = { starts++; visible = false },
+                    onDismissStart = { dismisses++; visible = false },
+                ))
+            }
+        } }
+        rule.onNodeWithText("Start day A?").assertIsDisplayed()
+        rule.onNodeWithText("Logging a set starts the workout.").assertIsDisplayed()
+        rule.onNode(hasText("Start") and !hasTestTag("workout-start")).performClick()
+        assertEquals(1, starts)
+        assertEquals(0, dismisses)
+        rule.runOnIdle { generation++; visible = true }
+        rule.onNodeWithText("Not yet").performClick()
+        assertEquals(1, starts)
+        assertEquals(1, dismisses)
+        rule.runOnIdle { generation++; visible = true }
+        rule.onNodeWithText("Start day A?").performKeyInput { pressKey(Key.Back) }
+        rule.waitForIdle()
+        assertEquals(1, starts)
+        assertEquals(2, dismisses)
+    }
+
 }

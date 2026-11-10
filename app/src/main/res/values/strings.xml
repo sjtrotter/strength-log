@@ -568,6 +568,9 @@
     <string name="day_all_sets">All sets</string>
     <string name="day_finish_button">Finish day %1$s</string>
     <string name="day_menu_edit_day">Edit day</string>
+    <string name="day_menu_drop_changes">Drop today\'s changes</string>
+    <string name="day_today_only">Today only</string>
+    <string name="day_edit_plan">Edit plan</string>
     <string name="day_menu_clear_checks">Discard workout</string>
     <string name="day_menu_swap">Swap exercise</string>
     <string name="day_menu_note">Note</string>
@@ -711,6 +714,12 @@
     <string name="today_other_days">Other days</string>
     <string name="today_plan_day">%1$s · Day %2$s</string>
     <string name="workout_identity">%1$s · Day %2$s %3$s</string>
+    <string name="start_sheet_title">Start day %1$s?</string>
+    <string name="start_sheet_body">Logging a set starts the workout.</string>
+    <string name="start_sheet_not_yet">Not yet</string>
+    <string name="draft_drop_title">Drop today\'s changes to day %1$s?</string>
+    <string name="draft_drop_body">They\'re for today only. To keep them, edit the plan.</string>
+    <string name="draft_drop_confirm">Drop</string>
     <string name="workout_start">Start</string>
     <string name="workout_resume">Resume</string>
     <string name="workout_open">Workout open</string>

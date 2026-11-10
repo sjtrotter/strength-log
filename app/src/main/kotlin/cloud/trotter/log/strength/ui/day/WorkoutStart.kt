@@ -31,6 +31,7 @@ class WorkoutStart(
     private val pending = savedState.getStateFlow<DaySelection?>("start_target", null)
     private val conflictId = savedState.getStateFlow<String?>("start_conflict", null)
     private val confirming = savedState.getStateFlow("start_confirming", false)
+    private val dropOnly = savedState.getStateFlow("start_drop_only", false)
     private val destinations = Channel<DaySelection>(Channel.BUFFERED)
     val navigation = destinations.receiveAsFlow()
     val conflict = combine(repo.openRunFlow, pending, conflictId, confirming) { open, target, id, confirm ->
@@ -49,6 +50,13 @@ class WorkoutStart(
         }
     }
 
+    fun refuseEdit(target: DaySelection, runId: String) {
+        savedState["start_target"] = target
+        savedState["start_conflict"] = runId
+        savedState["start_confirming"] = false
+        savedState["start_drop_only"] = true
+    }
+
     fun start(target: DaySelection) {
         scope.launch { lock.withLock { startNow(target) } }
     }
@@ -63,6 +71,7 @@ class WorkoutStart(
 
     private suspend fun startNow(target: DaySelection) {
         val planId = target.planId ?: return
+        savedState["start_drop_only"] = false
         when (val result = repo.startRun(planId, target.dayId)) {
             is RunStartResult.OtherRunOpen -> {
                 savedState["start_target"] = target
@@ -92,6 +101,7 @@ class WorkoutStart(
     }
 
     fun dismiss() {
+        savedState["start_drop_only"] = false
         savedState["start_target"] = null
         savedState["start_conflict"] = null
         savedState["start_confirming"] = false
@@ -109,15 +119,16 @@ class WorkoutStart(
     }
 
     fun discardAndStart() {
-        if (!confirming.value) return
-        val target = pending.value ?: return
-        val runId = conflictId.value ?: return
         scope.launch { lock.withLock {
+            val target = pending.value ?: return@withLock
+            val runId = conflictId.value ?: return@withLock
+            val open = repo.openRunFlow.first()
+            if (!confirming.value && !(open?.id == runId && open.draft)) return@withLock
             // Never discard a replacement run if this dialog became stale.
-            if (repo.openRunFlow.first()?.id == runId && repo.discardRun(runId)) {
+            if (open?.id == runId && repo.discardRun(runId)) {
                 phoneRest.skip()
             }
-            startNow(target)
+            if (dropOnly.value) dismiss() else startNow(target)
         } }
     }
 }

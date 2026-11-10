@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.CardioCardState
 import cloud.trotter.log.strength.ui.day.DayEditActions
@@ -393,4 +394,27 @@ class DestructiveActionsTest {
         onOpenLicenses = {},
         onBack = {},
     )
+    @Test fun `aDraftOffersDropInOneConfirm`() {
+        var drops = 0
+        var state by mutableStateOf(workoutDaySheetFixture().copy(beforeStart = true))
+        composeTestRule.setContent { AppTheme {
+            DayScreen(state, noopActions({}, {}).copy(
+                onDiscardWorkout = { drops++ },
+                onOpenDaySheet = { state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)) },
+                onCloseAllSets = { state = state.copy(openSheet = null) },
+            ), dayEditState(), noopEditActions())
+        } }
+        openDayMenu()
+        composeTestRule.onNodeWithText("Discard workout").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Clear today's checks").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Drop today's changes").assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithText("Drop today's changes to day A?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cancel").performClick()
+        assertEquals(0, drops)
+        openDayMenu()
+        composeTestRule.onNodeWithText("Drop today's changes").performClick()
+        composeTestRule.onNodeWithText("Drop").performClick()
+        assertEquals(1, drops)
+    }
+
 }

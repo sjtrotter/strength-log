@@ -170,7 +170,12 @@ private fun WorkoutSetContent(
                                 R.string.workout_exercises, state.viewDayId.orEmpty(), state.doneSets, state.totalSets,
                             ))
                         }
-                        if (!allLogged) {
+                        if (state.beforeStart) {
+                            TextButton(onClick = actions.onStart, colors = neutralTextButtonColors(),
+                                modifier = Modifier.testTag("workout-start")) {
+                                Text(stringResource(R.string.workout_start))
+                            }
+                        } else if (!allLogged) {
                             TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors(),
                                 modifier = Modifier.testTag("workout-finish")) {
                                 Text(stringResource(R.string.day_finish_partial_confirm_button))
@@ -178,7 +183,16 @@ private fun WorkoutSetContent(
                         }
                     },
                 )
-                if (!allLogged && state.finishBlockedReason != null) {
+                if (state.beforeStart) {
+                    Row(Modifier.widthIn(max = ReadableWidth).fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.day_today_only), Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (state.planId != null) TextButton(onClick = actions.onEditPlan, colors = neutralTextButtonColors()) {
+                            Text(stringResource(R.string.day_edit_plan))
+                        }
+                    }
+                } else if (!allLogged && state.finishBlockedReason != null) {
                     Box(Modifier.widthIn(max = ReadableWidth).fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
                         WorkoutBlockedReasonText(state.finishBlockedReason)
                     }

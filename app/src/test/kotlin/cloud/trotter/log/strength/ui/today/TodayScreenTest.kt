@@ -198,4 +198,17 @@ class TodayScreenTest {
         assertEquals(rest.selection, taken)
     }
 
+    @Test fun `aDraftResumeSaysStartAndStarts`() {
+        val starts = mutableListOf<DaySelection>()
+        val resumes = mutableListOf<DaySelection>()
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, resume = second, resumeDraft = true, upNext = listOf(first)),
+            actions().copy(onStart = { starts += it }, onResume = { resumes += it }),
+        ) } }
+        rule.onNodeWithText("Resume day A").assertDoesNotExist()
+        rule.onNodeWithText("Start day A").assertIsDisplayed().performClick()
+        assertEquals(listOf(second.selection), starts)
+        assertTrue(resumes.isEmpty())
+    }
+
 }

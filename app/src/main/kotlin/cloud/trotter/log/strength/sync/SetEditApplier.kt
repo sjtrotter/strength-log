@@ -116,7 +116,7 @@ class SetEditApplier(
         }
         return when (result) {
             is RunWriteResult.InRun -> Outcome.APPLIED
-            RunWriteResult.Rejected -> Outcome.REJECTED
+            RunWriteResult.Rejected, RunWriteResult.NeedsStart -> Outcome.REJECTED
             RunWriteResult.Unchanged -> declined ?: Outcome.INVALID
             RunWriteResult.WorkingValues -> Outcome.APPLIED
         }

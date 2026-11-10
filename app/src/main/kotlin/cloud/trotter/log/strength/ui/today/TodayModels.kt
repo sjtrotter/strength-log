@@ -14,6 +14,7 @@ data class TodayUiState(
     val otherDaysExpanded: Boolean = false,
     val fact: String? = null,
     val plansPaused: Boolean = false,
+    val resumeDraft: Boolean = false,
 )
 
 data class TodayDay(

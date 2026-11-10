@@ -240,7 +240,7 @@ class RunOpeningTest : OpeningFixture() {
         assertNull(offer(plan, "bb_back_squat"))
     }
 
-    @Test fun `tick starts, supersets and Plan mode open as stored`() = runTest {
+    @Test fun `tick starts and Plan mode open as stored and each superset half opens by its own history`() = runTest {
         val plan = rPlan()
         val id = id(plan, "bb_back_squat")
         history(plan, 16, sixteen)
@@ -256,9 +256,17 @@ class RunOpeningTest : OpeningFixture() {
         val paired = opened(plan)
         val tracks = db.runDao().tracks(paired.runId)
         assertEquals(2, tracks.size)
-        assertEquals(WorkingRows.cleared(squat()), planned(tracks.first { it.slot == Slot.MAIN }))
+        val main = tracks.first { it.slot == Slot.MAIN }
+        val today = clock.instant().atZone(clock.zone).toLocalDate().toEpochDay()
+        val ctx = Progression.Context(WeightUnit.LB, repo.catalog.snapshot().find("bb_back_squat")!!.equipment.toSet(),
+            LoadSteps.defaults(WeightUnit.LB), today)
+        assertEquals(260.0, top(main))
+        assertEquals(Progression.atStart(squatRule(), WorkingRows.cleared(squat()), today - 16, 4, ctx).rows, planned(main))
+        assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(main.openingJson))
+        val partner = tracks.first { it.slot == Slot.SS }
+        assertEquals(work(5, 20.0, 10), planned(partner))
+        assertNull(partner.openingJson)
         for (track in tracks) {
-            assertNull(track.openingJson)
             assertEquals(planned(track), WorkingRows.cleared(SetJson.decodeSets(track.setsJson)))
         }
         repo.discardRun(paired.runId)

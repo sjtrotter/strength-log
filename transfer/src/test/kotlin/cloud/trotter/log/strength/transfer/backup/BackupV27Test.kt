@@ -84,7 +84,7 @@ class BackupV27Test {
     }
 
     private val fields = setOf("effortScale", "settingsJson", "autoApply", "lightCycleRemaining", "deloadEveryCycles",
-        "cyclesCompleted", "cardioRuleJson", "ruleJson", "roughDay", "rir", "effort", "metresAtEnd", "secondsAtEnd",
+        "cyclesCompleted", "cardioRuleJson", "ruleJson", "partnerRuleJson", "roughDay", "rir", "effort", "metresAtEnd", "secondsAtEnd",
         "centis", "timingMethod", "startProtocol")
 
     private fun alter(element: JsonElement, key: String?, poison: Boolean): JsonElement = when (element) {
@@ -236,4 +236,21 @@ class BackupV27Test {
         val doc = document()
         reject(doc.copy(settings = doc.settings.copy(effortScale = "NUMBERS")))
     }
+    @Test fun `partner rules round trip at v27 and versions before 27 drop them`() {
+        val source = document()
+        fun withPartner(partnerId: String?, json: String?) = source.copy(plans = source.plans.map { plan ->
+            plan.copy(days = plan.days.map { day -> day.copy(exercises = day.exercises.map {
+                it.copy(supersetExerciseId = partnerId, partnerRuleJson = json)
+            }) })
+        })
+        val json = SlotRuleJson.encode(rule)
+        val partner = withPartner("cable_row", json)
+        val snapshot = codec.decode(codec.encode(partner)).toSnapshot()
+        assertEquals(json, snapshot.exercises.single().partnerRuleJson)
+        assertEquals(json, snapshot.toDocument().plans.single().days.single().exercises.single().partnerRuleJson)
+        assertNull(codec.decode(codec.encode(partner.copy(schemaVersion = 26))).toSnapshot().exercises.single().partnerRuleJson)
+        reject(withPartner("cable_row", "junk"))
+        reject(withPartner(null, json))
+    }
+
 }

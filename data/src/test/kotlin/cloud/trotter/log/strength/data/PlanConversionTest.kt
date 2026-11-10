@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_24_25
 import cloud.trotter.log.strength.data.db.MIGRATION_25_26
+import cloud.trotter.log.strength.data.db.MIGRATION_26_27
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -117,7 +118,7 @@ class PlanConversionTest {
         before = V24Fixture.dump(helper.writableDatabase)
         helper.close()
         db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_24_25, MIGRATION_25_26).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("plan-conversion", ".preferences_pb")
@@ -283,4 +284,12 @@ class PlanConversionTest {
         assertTrue(db.planDao().plan(authored)!!.autoApply)
         assertFalse(db.planDao().plan(generated)!!.autoApply)
     }
+    @Test fun `conversion rules the superset partner from its stored rows`() = runTest {
+        val before = db.programDao().logForSlot(1, "A", 10, Slot.SS)
+        repo.plans.runPlanSettingsFixupIfNeeded()
+        assertEquals(rule(SlotRole.ACCESSORY, 10, 0.0125),
+            SlotRuleJson.decode(db.programDao().exercise(10)!!.partnerRuleJson))
+        assertEquals(before, db.programDao().logForSlot(1, "A", 10, Slot.SS))
+    }
+
 }

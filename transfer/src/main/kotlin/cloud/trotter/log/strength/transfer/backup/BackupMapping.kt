@@ -136,6 +136,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 parkedLogsJson = ex.parkedLogsJson,
                                 noteUpdatedAt = ex.noteUpdatedAt,
                                 ruleJson = ex.ruleJson,
+                                partnerRuleJson = ex.partnerRuleJson,
                             )
                         },
                     )
@@ -303,6 +304,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     parkedLogsJson = if (schemaVersion >= 18) ex.parkedLogsJson else null,
                     noteUpdatedAt = if (schemaVersion >= 26) ex.noteUpdatedAt else null,
                     ruleJson = if (schemaVersion >= 27) ex.ruleJson else null,
+                    partnerRuleJson = if (schemaVersion >= 27) ex.partnerRuleJson else null,
                 )
             }
         }

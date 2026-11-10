@@ -2218,7 +2218,7 @@ class DayViewModel @Inject constructor(
                 offersOn = offersOn, rule = pe.rule),
             partnerNextTime = slot.partner?.let { partnerTrack ->
                 DayScreenBuilder.nextTime(partnerTrack.sets, history.slotSessions[id to Slot.SS]?.takeIf { partnerTrack.performed.exerciseId == pe.superset?.exerciseId }, pe.keepToPlan, unit,
-                    offersOn = offersOn)
+                    offersOn = offersOn, rule = pe.superset?.rule)
             },
             perHand = entry?.perHand == true,
             tracking = tracking,

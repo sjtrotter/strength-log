@@ -561,6 +561,13 @@ val MIGRATION_25_26 = object : Migration(25, 26) {
     }
 }
 
+/** v26 → v27: a superset partner keeps its own rule (design §3.2). */
+val MIGRATION_26_27 = object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_exercise ADD COLUMN partnerRuleJson TEXT")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.serialization
 
+import cloud.trotter.log.strength.data.db.entity.Slot
 import kotlinx.serialization.Serializable
 
 /** What one Finish wrote. Never included in a backup. */
@@ -10,7 +11,9 @@ import kotlinx.serialization.Serializable
 @Serializable internal data class UndoLogDto(val programExerciseId: Long, val slot: String, val before: UndoRowDto? = null,
                                              val afterSetsJson: String? = null)
 @Serializable internal data class UndoRowDto(val setsJson: String, val updatedAt: Long)
-@Serializable internal data class UndoRuleDto(val programExerciseId: Long, val beforeJson: String, val afterJson: String)
+/** [slot] names the column: `ruleJson` for main, `partnerRuleJson` for ss. A record from before this field reads as main. */
+@Serializable internal data class UndoRuleDto(val programExerciseId: Long, val beforeJson: String, val afterJson: String,
+                                              val slot: String = Slot.MAIN)
 
 /** The plan's light counters before and after the Finish. */
 @Serializable internal data class UndoPlanDto(val beforeRemaining: Int, val beforeCycles: Int, val afterRemaining: Int, val afterCycles: Int)

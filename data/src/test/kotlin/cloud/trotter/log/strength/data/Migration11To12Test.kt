@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_22_23
 import cloud.trotter.log.strength.data.db.MIGRATION_23_24
 import cloud.trotter.log.strength.data.db.MIGRATION_24_25
 import cloud.trotter.log.strength.data.db.MIGRATION_25_26
+import cloud.trotter.log.strength.data.db.MIGRATION_26_27
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
@@ -88,7 +89,7 @@ class Migration11To12Test {
 
     private fun open(): StrengthDatabase = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
         .addMigrations(MIGRATION_11_12, MIGRATION_12_13)
-        .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26).allowMainThreadQueries()
+        .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27).allowMainThreadQueries()
         .build()
 
     private fun createV11(): SupportSQLiteOpenHelper {

@@ -471,9 +471,7 @@ class TrackerRepository(
             val row = programDao.exercise(id) ?: return@withTransaction
             val config = answersForPlan(planDao.plan(planId), global).config
             plans.ruleSlot(row, config.weightUnit, catalog)
-            if (exercise.superset != null) liveMainRows(row)?.let {
-                plans.seedPartner(row, it, config.weightUnit, catalog)
-            }
+            if (exercise.superset != null) plans.rulePartner(row, liveMainRows(row), config.weightUnit, catalog)
         }
     }
 
@@ -576,8 +574,8 @@ class TrackerRepository(
      * partner — the same call covers adding a partner to a plain slot and
      * swapping an existing one.
      *
-     * Only the SS track is cleared and seeded at the live MAIN count. MAIN working values and the slot's rule
-     * survive the edit.
+     * Only the SS track and the partner's rule are cleared and rewritten, the rows at the live MAIN count.
+     * MAIN working values and the slot's rule survive the edit.
      */
     suspend fun setSupersetPartner(dayId: String, programExerciseId: Long, partnerExerciseId: String) {
         val global = settings.globalLifterFlow.first()
@@ -591,13 +589,12 @@ class TrackerRepository(
             programDao.setSupersetExerciseId(row.id, partnerExerciseId)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
             val partnered = row.copy(supersetExerciseId = partnerExerciseId)
-            liveMainRows(partnered)?.let {
-                plans.seedPartner(partnered, it, answersForPlan(planDao.plan(planId), global).config.weightUnit, catalog)
-            }
+            plans.rulePartner(partnered, liveMainRows(partnered),
+                answersForPlan(planDao.plan(planId), global).config.weightUnit, catalog)
         }
     }
 
-    /** Drops the slot's superset partner and its SS track, leaving the MAIN
+    /** Drops the slot's superset partner, its SS track and the partner's rule, leaving the MAIN
      *  track alone for the same reason [setSupersetPartner] does. */
     suspend fun removeSupersetPartner(dayId: String, programExerciseId: Long) {
         db.withTransaction {
@@ -635,7 +632,9 @@ class TrackerRepository(
             ))
             newDay.exercises.forEachIndexed { pos, pe ->
                 val entity = pe.toEntity(planId, dayId, pos)
-                plans.ruleSlot(entity.copy(id = programDao.insertExercise(entity)), answers.config.weightUnit, catalog)
+                val inserted = entity.copy(id = programDao.insertExercise(entity))
+                plans.ruleSlot(inserted, answers.config.weightUnit, catalog)
+                plans.rulePartner(inserted, null, answers.config.weightUnit, catalog)
             }
         }
     }
@@ -1288,15 +1287,16 @@ class TrackerRepository(
     /** Reads only the newest archive; acceptance never rewrites its offer or an older session. */
     private suspend fun acceptedOfferRows(planId: Long, dayId: String, owner: ProgramExerciseEntity, name: String,
                                          rows: List<LoggedSet>, weightLb: Double): OfferAcceptance? {
-        if (owner.keepToPlan || name != Slot.MAIN) return null
+        if (owner.keepToPlan) return null
+        val exerciseId = owner.exerciseIdFor(name) ?: return null
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return null
         val offer = session.plannedJson?.let { SessionPlanJson.decode(it) }
-            ?.lastOrNull { it.programExerciseId == owner.id && it.exerciseId == owner.exerciseId && it.slot == name && !it.retired }?.offer ?: return null
+            ?.lastOrNull { it.programExerciseId == owner.id && it.exerciseId == exerciseId && it.slot == name && !it.retired }?.offer ?: return null
         val before = offer.beforeSets?.map(SetDto::toDomain) ?: return null
         val after = offer.afterSets?.map(SetDto::toDomain) ?: return null
         val beforeRule = offer.beforeRuleJson?.let(SlotRuleJson::decode) ?: return null
         val afterRule = offer.afterRuleJson?.let(SlotRuleJson::decode) ?: return null
-        val current = SlotRuleJson.decode(owner.ruleJson) ?: return null
+        val current = SlotRuleJson.decode(owner.ruleJsonFor(name)) ?: return null
         fun sameValues(other: List<LoggedSet>) = rows.size == other.size && rows.zip(other).all { (a, b) ->
             a.kind == b.kind && a.weightLb == b.weightLb && a.reps == b.reps && a.seconds == b.seconds
         }
@@ -1316,7 +1316,7 @@ class TrackerRepository(
                 OfferAcceptance.Stale
             } else null
         }
-        programDao.setRule(owner.id, SlotRuleJson.encode(current.copy(target = targetRule.target,
+        setRuleFor(owner.id, name, SlotRuleJson.encode(current.copy(target = targetRule.target,
             state = current.state.copy(calibrating = targetRule.state.calibrating))))
         return OfferAcceptance.Applied(target)
     }
@@ -1448,6 +1448,19 @@ class TrackerRepository(
         else -> null
     }
 
+    private fun ProgramExerciseEntity.ruleJsonFor(slot: String): String? = when (slot) {
+        Slot.MAIN -> ruleJson
+        Slot.SS -> partnerRuleJson
+        else -> null
+    }
+
+    private suspend fun setRuleFor(programExerciseId: Long, slot: String, json: String) {
+        when (slot) {
+            Slot.MAIN -> programDao.setRule(programExerciseId, json)
+            Slot.SS -> programDao.setPartnerRule(programExerciseId, json)
+        }
+    }
+
     private suspend fun workingBase(
         day: ProgramDayEntity,
         slot: ProgramExerciseEntity,
@@ -1485,7 +1498,7 @@ class TrackerRepository(
         return tracks
     }
 
-    /** [tracks] with each eligible MAIN track opened through [Progression.atStart] (design §3.2; spec W2b-2a decision 4).
+    /** [tracks] with each eligible MAIN and SS track opened through [Progression.atStart] (spec W2b-2a decision 4, W2b-2b decision 8).
      *  Runs inside the start transaction and reads only Room. */
     private suspend fun opened(day: ProgramDayEntity, tracks: List<RunTrackEntity>, unit: WeightUnit,
                                catalog: ExerciseCatalog, olderAdult: Boolean): List<RunTrackEntity> {
@@ -1496,12 +1509,12 @@ class TrackerRepository(
         val today = localEpochDay(clock.millis())
         val light = plan.lightCycleRemaining > 0
         fun startOfDay(epochDay: Long) = LocalDate.ofEpochDay(epochDay).atStartOfDay(clock.zone).toInstant().toEpochMilli()
-        return tracks.map { track ->
-            if (track.slot != Slot.MAIN) return@map track
+        val result = tracks.map { track ->
+            if (track.slot != Slot.MAIN && track.slot != Slot.SS) return@map track
             val row = track.programExerciseId?.let { programDao.exercise(it) } ?: return@map track
-            if (row.keepToPlan || row.supersetExerciseId != null || row.exerciseId != track.exerciseId) return@map track
-            val rule = SlotRuleJson.decode(row.ruleJson) ?: return@map track
-            val stored = programDao.logForSlot(day.planId, day.dayId, row.id, Slot.MAIN)?.let {
+            if (row.keepToPlan || row.exerciseIdFor(track.slot) != track.exerciseId) return@map track
+            val rule = SlotRuleJson.decode(row.ruleJsonFor(track.slot)) ?: return@map track
+            val stored = programDao.logForSlot(day.planId, day.dayId, row.id, track.slot)?.let {
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: return@map track
             val last = sessionDao.lastTrainedAt(day.planId, track.exerciseId)?.let(::localEpochDay)
@@ -1523,7 +1536,24 @@ class TrackerRepository(
                 setsJson = SetJson.encodeSets(opening.rows.mapIndexed { i, s -> s.copy(plannedIndex = i) }),
                 openingJson = OpeningJson.encode(dto))
         }
+        val openedSlots = result.filter { it.openingJson != null }.mapNotNull { it.programExerciseId }.toSet()
+        return result.map { track ->
+            if (track.slot != Slot.SS || track.programExerciseId !in openedSlots) return@map track
+            val main = result.firstOrNull { it.programExerciseId == track.programExerciseId && it.slot == Slot.MAIN }
+                ?: return@map track
+            val count = SetJson.decodeSets(main.plannedJson).size
+            val rows = SetJson.decodeSets(track.plannedJson)
+            if (count == 0 || rows.isEmpty() || rows.size == count) return@map track
+            val fit = fitted(rows, count)
+            track.copy(plannedJson = SetJson.encodeSets(fit),
+                setsJson = SetJson.encodeSets(fit.mapIndexed { i, s -> s.copy(plannedIndex = i) }),
+                openingJson = track.openingJson ?: OpeningJson.encode(OpeningDto(OpeningDto.HOLD)))
+        }
     }
+
+    /** [rows] trimmed from the end, or padded with copies of its last row, to [count]; empty rows stay empty. */
+    private fun fitted(rows: List<LoggedSet>, count: Int): List<LoggedSet> =
+        if (rows.isEmpty()) rows else rows.take(count) + List(maxOf(0, count - rows.size)) { rows.last() }
 
     private suspend fun startRun(day: ProgramDayEntity, tracks: List<RunTrackEntity>) {
         sessionDao.clearProgressionUndoForDay(day.planId, day.dayId)
@@ -1734,11 +1764,11 @@ class TrackerRepository(
             val record = UndoLogDto(slot.id, name, prior, rows?.let(SetJson::encodeSets))
             if (index >= 0) logs[index] = record else logs.add(record)
         }
-        suspend fun writeRule(slot: ProgramExerciseEntity, stored: String, after: String) {
+        suspend fun writeRule(slot: ProgramExerciseEntity, name: String, stored: String, after: String) {
             if (after == stored) return
-            programDao.setRule(slot.id, after)
-            val index = rules.indexOfFirst { it.programExerciseId == slot.id }
-            val record = UndoRuleDto(slot.id, if (index >= 0) rules[index].beforeJson else stored, after)
+            setRuleFor(slot.id, name, after)
+            val index = rules.indexOfFirst { it.programExerciseId == slot.id && it.slot == name }
+            val record = UndoRuleDto(slot.id, if (index >= 0) rules[index].beforeJson else stored, after, name)
             if (index >= 0) rules[index] = record else rules.add(record)
         }
         val slots = programDao.exercisesForDay(day.planId, day.dayId).associateBy { it.id }
@@ -1772,14 +1802,22 @@ class TrackerRepository(
                 continue
             }
             val planned = SetJson.decodeSets(track.plannedJson)
-            val stored = slot.ruleJson
-            val rule = if (track.slot == Slot.MAIN) stored?.let(SlotRuleJson::decode) else null
-            val working = programDao.logForSlot(day.planId, day.dayId, slot.id, track.slot)?.let {
+            val stored = slot.ruleJsonFor(track.slot)
+            val rule = stored?.let(SlotRuleJson::decode)
+            val log = programDao.logForSlot(day.planId, day.dayId, slot.id, track.slot)
+            val working = log?.let {
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: WorkingRows.cleared(planned)
             val opening = OpeningJson.decode(track.openingJson)
+            val keepLazyPartner = track.slot == Slot.SS && log == null && opening?.layoff == OpeningDto.HOLD
             if (rule == null) {
-                writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                if (!keepLazyPartner) writeLog(slot, track.slot, if (opening != null) WorkingRows.cleared(working) else WorkingRows.carried(planned, actual))
+                continue
+            }
+            // A partner fitted while it has no stored row gives no evidence: its rule counts the exposure and nothing else changes (spec W2b-2b decision 9).
+            if (keepLazyPartner) {
+                writeRule(slot, track.slot, requireNotNull(stored),
+                    SlotRuleJson.encode(rule.copy(state = rule.state.copy(exposures = rule.state.exposures + 1))))
                 continue
             }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
@@ -1800,7 +1838,7 @@ class TrackerRepository(
             }
             val (outcome, encodedRule, offer) = prepared
             writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
-            writeRule(slot, requireNotNull(stored), encodedRule)
+            writeRule(slot, track.slot, requireNotNull(stored), encodedRule)
             if (outcome.reason == Reason.Stall) stalled = true
             offer?.let { offers[track.id] = it }
             // MaxSet blocks an increase and therefore gives no shared credit.
@@ -1809,20 +1847,23 @@ class TrackerRepository(
             }
         }
         // Cross-day credit participates in the same compare-and-swap undo record.
-        val credited = mutableSetOf<Long>()
+        val credited = mutableSetOf<Pair<Long, String>>()
         for ((sourceId, exerciseId, reps) in credits) {
             for (other in programDao.exercisesForPlan(day.planId)) {
-                if (other.id == sourceId || other.dayId == day.dayId || other.keepToPlan || other.exerciseId != exerciseId) continue
-                val stored = other.ruleJson ?: continue
-                val rule = SlotRuleJson.decode(stored) ?: continue
-                if (rule.target.reps != reps || other.id in credited) continue
-                val streak = rule.state.successStreak + 1
-                val creditedRule = rule.copy(state = rule.state.copy(successStreak = streak,
-                    pendingIncrease = rule.state.pendingIncrease ||
-                        streak / rule.everyExposures > rule.state.successStreak / rule.everyExposures))
-                val encoded = try { SlotRuleJson.encode(creditedRule) } catch (_: RuntimeException) { continue }
-                writeRule(other, stored, encoded)
-                credited.add(other.id)
+                if (other.id == sourceId || other.dayId == day.dayId || other.keepToPlan) continue
+                for (name in listOf(Slot.MAIN, Slot.SS)) {
+                    if (other.exerciseIdFor(name) != exerciseId || (other.id to name) in credited) continue
+                    val stored = other.ruleJsonFor(name) ?: continue
+                    val rule = SlotRuleJson.decode(stored) ?: continue
+                    if (rule.target.reps != reps) continue
+                    val streak = rule.state.successStreak + 1
+                    val creditedRule = rule.copy(state = rule.state.copy(successStreak = streak,
+                        pendingIncrease = rule.state.pendingIncrease ||
+                            streak / rule.everyExposures > rule.state.successStreak / rule.everyExposures))
+                    val encoded = try { SlotRuleJson.encode(creditedRule) } catch (_: RuntimeException) { continue }
+                    writeRule(other, name, stored, encoded)
+                    credited.add(other.id to name)
+                }
             }
         }
         val reactive = plan != null && plan.autoApply && plan.lightCycleRemaining == 0 && stalled &&
@@ -1850,16 +1891,20 @@ class TrackerRepository(
         return UndoPlanDto(before.remaining, before.cyclesCompleted, after.remaining, after.cyclesCompleted)
     }
 
-    /** Distinct exercises among the plan's ruled, non-Plan slots with a stall dated within this Finish's rotation window:
+    /** Distinct exercises among the plan's ruled, non-Plan main and partner tracks with a stall in this Finish's rotation window:
      *  this Finish and the plan's previous (strength entries − 1) sessions. Call after this Finish's rule writes. */
     private suspend fun stalledLifts(planId: Long, today: Long): Int {
         val slots = programDao.exercisesForPlan(planId)
         val program = assemble(programDao.daysForPlan(planId), slots)
         val entries = maxOf(1, program.rotationDays.count { it.kind == ProgramDayKind.STRENGTH })
         val windowStart = (sessionDao.recentCompletedAt(planId, entries - 1).map(::localEpochDay) + today).min()
-        return slots.filter { !it.keepToPlan &&
-            SlotRuleJson.decode(it.ruleJson)?.state?.resetEpochDays?.any { date -> date in windowStart..today } == true
-        }.map { it.exerciseId }.distinct().size
+        return slots.filter { !it.keepToPlan }.flatMap { slot ->
+            listOf(Slot.MAIN, Slot.SS).mapNotNull { name ->
+                slot.exerciseIdFor(name)?.takeIf {
+                    SlotRuleJson.decode(slot.ruleJsonFor(name))?.state?.resetEpochDays?.any { date -> date in windowStart..today } == true
+                }
+            }
+        }.distinct().size
     }
 
     private fun offerOf(outcome: Outcome, planned: List<LoggedSet>, working: List<LoggedSet>, rule: SlotRule): OfferDto? {
@@ -1890,8 +1935,8 @@ class TrackerRepository(
             else programDao.deleteLogForSlot(planId, session.dayId, log.programExerciseId, log.slot)
         }
         for (rule in undo.rules) {
-            if (programDao.exercise(rule.programExerciseId)?.ruleJson == rule.afterJson) {
-                programDao.setRule(rule.programExerciseId, rule.beforeJson)
+            if (programDao.exercise(rule.programExerciseId)?.ruleJsonFor(rule.slot) == rule.afterJson) {
+                setRuleFor(rule.programExerciseId, rule.slot, rule.beforeJson)
             }
         }
         undo.plan?.let { counters ->

@@ -30,7 +30,7 @@ import kotlinx.serialization.Serializable
  * v24 adds Rest entries (program day kind REST).
  * v25 carries each plan's optional cardio goal.
  * v26 carries lift note timestamps and run track notes.
- * v27 carries slot and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, and the effort scale.
+ * v27 carries slot, partner and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, and the effort scale.
  */
 const val CURRENT_SCHEMA_VERSION: Int = 27
 
@@ -246,6 +246,7 @@ data class ProgramExerciseBackup(
     val isMain: Boolean? = null,
     val noteUpdatedAt: Long? = null,
     val ruleJson: String? = null,
+    val partnerRuleJson: String? = null,
 )
 
 /**

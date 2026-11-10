@@ -179,7 +179,7 @@ class TrackerRepositoryAuthoredPlanTest {
             val created = repo.plans.programFor(id).first()
             assertTrue(created.days.flatMap { it.exercises }.all { it.rule != null })
             assertEquals(program, created.copy(days = created.days.map { day ->
-                day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+                day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
             }))
         }
     }
@@ -331,7 +331,7 @@ class TrackerRepositoryAuthoredPlanTest {
             val resetDay = repo.plans.programFor(plan).first().days.single { it.id == dayId }
             assertTrue(resetDay.exercises.all { it.rule != null })
             assertEquals(compact.days[index].copy(id = dayId),
-                resetDay.copy(exercises = resetDay.exercises.map { it.copy(rule = null) }))
+                resetDay.copy(exercises = resetDay.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) }))
             val stored = before.single { it.dayId == dayId }
             val reset = db.programDao().day(plan, dayId)!!
             assertEquals(stored.nextRunId, reset.nextRunId)
@@ -431,7 +431,7 @@ class TrackerRepositoryAuthoredPlanTest {
         }
         exercises.forEach { repo.addExercise("A", it) }
         val slots = repo.plans.daySlotsFlow("A").first()
-        assertEquals(exercises, slots.map { it.exercise.copy(rule = null) })
+        assertEquals(exercises, slots.map { it.exercise.copy(rule = null, superset = it.exercise.superset?.copy(rule = null)) })
         assertTrue(slots.all { it.exercise.rule != null })
         assertTrue(slots.all { it.exercise.prescription == null && !it.exercise.keepToPlan })
         val expectedRows = listOf(

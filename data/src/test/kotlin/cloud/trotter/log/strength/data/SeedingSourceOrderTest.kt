@@ -183,22 +183,22 @@ class SeedingSourceOrderTest {
     @Test fun `a partner add writes only the SS track at the live MAIN row count`() = runTest {
         val e = add("A", ProgramExercise("ez_curl", targetSets = 2))
         history("rope_pushdown", 50.0, 8)
-        suspend fun partner(id: String, expected: List<LoggedSet>) {
+        suspend fun partner(id: String, expected: List<LoggedSet>, expectedRule: SlotRule) {
             val main = log(e)
             val slot = assertNotNull(db.programDao().exercise(e))
             repo.setSupersetPartner("A", e, id)
             assertEquals(main, log(e))
-            assertEquals(slot.copy(supersetExerciseId = id), db.programDao().exercise(e))
+            assertEquals(slot.copy(supersetExerciseId = id, partnerRuleJson = SlotRuleJson.encode(expectedRule)), db.programDao().exercise(e))
             assertEquals(expected, rows(e, Slot.SS))
         }
-        partner("rope_pushdown", work(2, 50.0, 10))
+        partner("rope_pushdown", work(2, 50.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125))
         val face = add("B", ProgramExercise("face_pull"))
         lifter(face, work(3, 40.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125), 1000)
-        partner("face_pull", work(2, 40.0, 10))
-        partner("cable_curl", work(2, 20.0, 10))
+        partner("face_pull", work(2, 40.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125))
+        partner("cable_curl", work(2, 20.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125, calibrating = true))
         val run = repo.startRun(plan, "A") as RunStartResult.Started
         repo.applyToRun(run.runId, plan, "A", listOf(TrackEdit(e, Slot.MAIN) { SetEditor.addSet(it) }))
-        partner("rope_pushdown", work(3, 50.0, 10))
+        partner("rope_pushdown", work(3, 50.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125))
         val paired = add("A", ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("face_pull")))
         assertSlot(paired, work(2, 20.0, 10), rule(SlotRole.ACCESSORY, 10, 0.0125, calibrating = true))
         assertEquals(rows(e), rows(paired))

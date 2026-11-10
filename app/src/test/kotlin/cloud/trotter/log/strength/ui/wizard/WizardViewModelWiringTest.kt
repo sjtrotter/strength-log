@@ -1299,7 +1299,7 @@ class WizardViewModelWiringTest {
         val program = repo.plans.programFlow.first()
         assertTrue(program.days.flatMap { it.exercises }.all { it.rule != null })
         assertEquals(ProgramGenerator.generate(WizardAnswers()), program.copy(days = program.days.map { day ->
-            day.copy(exercises = day.exercises.map { it.copy(rule = null) })
+            day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
         }))
         assertFalse(db.planDao().allPlans().single().offerCardioIncreases)
     }

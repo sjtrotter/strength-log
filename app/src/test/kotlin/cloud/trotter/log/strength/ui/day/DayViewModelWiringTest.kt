@@ -2476,7 +2476,9 @@ class DayViewModelWiringTest {
         )
         assertEquals(
             List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
-            track(squatId, Slot.MAIN),
+            SetJson.decodeSets(requireNotNull(db.programDao().logForSlot(
+                repo.plans.selectedPlanIdFlow.first()!!, "A", squatId, Slot.MAIN,
+            )).setsJson),
         )
         val replacement = repo.plans.daySlotsFlow("A").first().single { it.programExerciseId == squatId }
         assertTrue(requireNotNull(replacement.exercise.rule).state.calibrating)
@@ -3706,6 +3708,7 @@ class DayViewModelWiringTest {
     @Test fun swapBeforeStartOpensADraftAndKeepsThePlan() = runVmTest {
         insertProgram()
         val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
         val slot = db.programDao().exercise(id)!!
@@ -3719,5 +3722,20 @@ class DayViewModelWiringTest {
         assertEquals(slot, db.programDao().exercise(id))
         assertEquals(log, db.programDao().logForSlot(slot.planId, "A", id, Slot.MAIN))
         assertTrue(vm.uiState.value.swapUndo != null)
+        val previous = draft.tracks.single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId && it.retired
+        }
+        vm.undoWorkoutSwap()
+        advanceUntilIdle()
+        val restored = repo.openRunFlow.first()!!
+        assertEquals(draft.id, restored.id)
+        assertTrue(restored.draft)
+        assertEquals(previous.copy(retired = false), restored.tracks.single {
+            it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired
+        })
+        assertEquals(slot, db.programDao().exercise(id))
+        assertEquals(log, db.programDao().logForSlot(slot.planId, "A", id, Slot.MAIN))
+        assertNull(vm.uiState.value.swapUndo)
+        collect.cancel()
     }
 }

@@ -217,7 +217,9 @@ class SetEditApplierRunTest {
         val runId = db.programDao().day(planId, "A")!!.nextRunId
         val edit = delta(planId, runId).copy(done = null, weightLb = 125.0)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
-        assertEquals(125.0, repo.dayTracksFlow(planId, "A").first().tracks.single().sets.first().weightLb, 0.0)
+        assertEquals(125.0, repo.dayTracksFlow(planId, "A").first().tracks.single {
+            it.programExerciseId == edit.programExerciseId && it.slot == edit.slot
+        }.sets.first().weightLb, 0.0)
         assertTrue(repo.openRunFlow.first()!!.draft)
     }
 
@@ -294,8 +296,11 @@ class SetEditApplierRunTest {
         val before = repo.dayTracksFlow(planId, "A").first()
         assertEquals(SetEditApplier.Outcome.STALE, applier.apply(newer.copy(editedAtMillis = 100, weightLb = 110.0)))
         assertEquals(before, repo.dayTracksFlow(planId, "A").first())
-        assertEquals(125.0, before.tracks.single().sets.first().weightLb, 0.0)
-        assertEquals(200L, before.tracks.single().sets.first().watchEditedAt)
+        val edited = before.tracks.single {
+            it.programExerciseId == newer.programExerciseId && it.slot == newer.slot
+        }.sets.first()
+        assertEquals(125.0, edited.weightLb, 0.0)
+        assertEquals(200L, edited.watchEditedAt)
         assertTrue(repo.openRunFlow.first()!!.draft)
     }
 

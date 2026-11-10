@@ -3370,6 +3370,8 @@ class DayViewModelWiringTest {
     @Test fun workoutSwapStartsBeforeTheFirstSetAndUsesTheSubstitutesGoalAndTracking() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
+        val answers = repo.plans.wizardAnswersFlow.first()
+        repo.plans.setWizardAnswers(answers.copy(config = answers.config.copy(goalsLb = mapOf("hack_squat" to 180.0))))
         repo.addExercise("A", ProgramExercise("bb_back_squat", targetSets = 2,
             prescription = Prescription(PrescribedTarget.RepsInTime(90, 30))))
         val vm = newViewModel()
@@ -3387,7 +3389,7 @@ class DayViewModelWiringTest {
         assertEquals(TrackingType.WEIGHTED, card.tracking)
         assertNull(card.timedRepDurationSeconds)
         assertTrue(card.headerTarget is HeaderTarget.Goal)
-        assertEquals(HeaderTarget.Goal("0"), card.headerTarget)
+        assertEquals(HeaderTarget.Goal("180"), card.headerTarget)
         assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) },
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })

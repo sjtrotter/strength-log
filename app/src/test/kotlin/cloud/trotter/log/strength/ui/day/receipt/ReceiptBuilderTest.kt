@@ -361,7 +361,7 @@ class ReceiptBuilderTest {
         assertEquals(3, receipt.loggedSetCount)
         assertEquals(3, listOf(bench, partner).setCounts().total)
         assertEquals(0, listOf(bench, partner).setCounts().remaining)
-        assertNull(group.rows[1].planned)
+        assertEquals(PlannedSets(3, 155.0, 8, 0), group.rows[1].planned)
     }
 
     @Test

@@ -568,6 +568,13 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
     }
 }
 
+/** v27 → v28: a run row can be today's draft before Start. */
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE workout_run ADD COLUMN draft INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

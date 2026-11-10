@@ -142,7 +142,8 @@ class SetEditApplierTest {
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
-        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
+        repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(id)), "A")
+        db.storeTestRows("A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
         val target = ExerciseCatalog.CODE_ONLY.get("hack_squat")
 
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))

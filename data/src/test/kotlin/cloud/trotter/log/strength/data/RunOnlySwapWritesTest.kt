@@ -103,7 +103,8 @@ class RunOnlySwapWritesTest {
     private suspend fun unchanged() {
         assertEquals(beforeSlots, db.programDao().allExercises())
         assertEquals(beforeLogs, db.programDao().allLogs())
-        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
+        assertEquals(beforeLogs.singleOrNull { it.planId == plan && it.dayId == "A" && it.programExerciseId == b && it.slot == Slot.MAIN },
+            db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
         assertEquals(beforeSessions, db.sessionDao().allSessions())
         assertEquals(beforeSets, db.sessionDao().allSessionSets())
     }
@@ -111,6 +112,9 @@ class RunOnlySwapWritesTest {
         assertNotNull(repo.openRunFlow.first()).tracks.single { it.programExerciseId == id && it.slot == slot && !it.retired }
 
     @Test fun `a today only swap on an open run writes run tracks and nothing else`() = runTest {
+        repo.ensureSeeded(plan, "A")
+        beforeSlots = db.programDao().allExercises()
+        beforeLogs = db.programDao().allLogs()
         val run = (repo.startRun(plan, "A") as RunStartResult.Started).runId
         assertTrue(repo.swapInRun(run, h, Slot.MAIN, "leg_press"))
         assertEquals(work(3, 230.0, 10), active(h).planned)
@@ -129,10 +133,31 @@ class RunOnlySwapWritesTest {
         unchanged()
     }
 
-    @Test fun `a today only swap that starts the next run writes run tracks and nothing else`() = runTest {
+    @Test fun `a today only swap on an open draft writes run tracks and nothing else`() = runTest {
+        val run = assertNotNull(db.programDao().day(plan, "A")).nextRunId
+        assertTrue(repo.swapInRun(run, h, Slot.MAIN, "leg_press"))
+        assertTrue(repo.openRunFlow.first()!!.draft)
+        assertEquals(work(3, 230.0, 10), active(h).planned)
+        unchanged()
+        assertTrue(repo.swapInRun(run, b, Slot.MAIN, "db_row"))
+        assertEquals(work(3, 55.0, 10), active(b).planned)
+        unchanged()
+        assertTrue(repo.swapInRun(run, e, Slot.SS, "face_pull"))
+        assertEquals(work(3, 20.0, 10), active(e, Slot.SS).planned)
+        unchanged()
+        val retired = db.runDao().tracks(run).single { it.programExerciseId == h && it.exerciseId == "hack_squat" }
+        assertTrue(retired.retired)
+        db.runDao().deleteTrack(retired.id)
+        assertTrue(repo.swapInRun(run, h, Slot.MAIN, "hack_squat"))
+        assertEquals(work(3, 140.0, 10), active(h).planned)
+        unchanged()
+    }
+
+    @Test fun `a today only swap that opens the next draft writes run tracks and nothing else`() = runTest {
         val next = assertNotNull(db.programDao().day(plan, "A")).nextRunId
         assertEquals(ExerciseSwapResult.CHANGED, repo.applyExerciseSwap(plan, "A", b, "db_row", next, allowChange = true))
         assertEquals(next, repo.openRunFlow.first()!!.id)
+        assertTrue(repo.openRunFlow.first()!!.draft)
         assertEquals("db_row", active(b).exerciseId)
         assertEquals(work(3, 55.0, 10), active(b).planned)
         assertTrue(db.runDao().tracks(next).single { it.programExerciseId == b && it.exerciseId == "bb_bench" }.retired)
@@ -144,7 +169,8 @@ class RunOnlySwapWritesTest {
 
     @Test fun `keeping the superset half writes run tracks and nothing else`() = runTest {
         val result = repo.dropSupersetHalf(plan, "A", e, Slot.SS, "ez_curl", "rope_pushdown")
-        assertTrue(result is RunWriteResult.InRun && result.started)
+        assertTrue(result is RunWriteResult.InRun && !result.started)
+        assertTrue(repo.openRunFlow.first()!!.draft)
         assertEquals("rope_pushdown", active(e).exerciseId)
         assertEquals(work(3, 20.0, 10), active(e).planned)
         unchanged()

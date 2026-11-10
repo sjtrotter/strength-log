@@ -150,7 +150,7 @@ object WatchSnapshotBuilder {
         val partner = slot.partner?.performed
         val partnerEntry = partner?.entry
         // The wire keeps authored-count blank rows for an unseedable slot.
-        val main = slot.main.stored ?: slot.main.seed ?: List(pe.targetSets) { LoggedSet(0.0, 0, SetKind.WORK) }
+        val main = slot.main.opening ?: slot.main.baseRows ?: List(pe.targetSets) { LoggedSet(0.0, 0, SetKind.WORK) }
         val ss = slot.partner?.sets.orEmpty()
 
         return WatchExercise(

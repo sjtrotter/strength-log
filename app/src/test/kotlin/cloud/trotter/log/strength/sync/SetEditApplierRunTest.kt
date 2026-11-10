@@ -212,13 +212,15 @@ class SetEditApplierRunTest {
 
     /** [F] */
     @Test
-    fun `a preview weight edit changes working values without starting a run`() = runTest {
+    fun `a preview weight edit opens a draft without starting a run`() = runTest {
         val planId = authored()
         val runId = db.programDao().day(planId, "A")!!.nextRunId
         val edit = delta(planId, runId).copy(done = null, weightLb = 125.0)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
-        assertEquals(125.0, repo.dayTracksFlow(planId, "A").first().tracks.single().sets.first().weightLb, 0.0)
-        assertNull(repo.openRunFlow.first())
+        assertEquals(125.0, repo.dayTracksFlow(planId, "A").first().tracks.single {
+            it.programExerciseId == edit.programExerciseId && it.slot == edit.slot
+        }.sets.first().weightLb, 0.0)
+        assertTrue(repo.openRunFlow.first()!!.draft)
     }
 
     /** [F] */
@@ -294,9 +296,12 @@ class SetEditApplierRunTest {
         val before = repo.dayTracksFlow(planId, "A").first()
         assertEquals(SetEditApplier.Outcome.STALE, applier.apply(newer.copy(editedAtMillis = 100, weightLb = 110.0)))
         assertEquals(before, repo.dayTracksFlow(planId, "A").first())
-        assertEquals(125.0, before.tracks.single().sets.first().weightLb, 0.0)
-        assertEquals(200L, before.tracks.single().sets.first().watchEditedAt)
-        assertNull(repo.openRunFlow.first())
+        val edited = before.tracks.single {
+            it.programExerciseId == newer.programExerciseId && it.slot == newer.slot
+        }.sets.first()
+        assertEquals(125.0, edited.weightLb, 0.0)
+        assertEquals(200L, edited.watchEditedAt)
+        assertTrue(repo.openRunFlow.first()!!.draft)
     }
 
     /** [F] */
@@ -316,7 +321,7 @@ class SetEditApplierRunTest {
 
     /** [F] */
     @Test
-    fun `Discard clears preview stamps before the next run's working edits`() = runTest {
+    fun `Discard drops a draft with its stamps and the next run id accepts an older stamp`() = runTest {
         val planId = authored()
         val runId = db.programDao().day(planId, "A")!!.nextRunId
         val preview = delta(planId, runId, stamp = 200).copy(done = null, weightLb = 125.0)
@@ -325,10 +330,12 @@ class SetEditApplierRunTest {
         assertTrue(repo.discardRun(runId))
         val next = db.programDao().day(planId, "A")!!.nextRunId
         assertNotEquals(runId, next)
-        assertNull(repo.dayTracksFlow(planId, "A").first().tracks.single().sets.first().watchEditedAt)
+        assertNull(repo.dayTracksFlow(planId, "A").first().tracks.first { it.programExerciseId == squatId(planId) && it.slot == Slot.MAIN }.sets.first().watchEditedAt)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(preview.copy(runId = next, editedAtMillis = 100, weightLb = 110.0)))
-        assertEquals(110.0, repo.dayTracksFlow(planId, "A").first().tracks.single().sets.first().weightLb, 0.0)
-        assertNull(repo.openRunFlow.first())
+        assertEquals(110.0, repo.dayTracksFlow(planId, "A").first().tracks.first { it.programExerciseId == squatId(planId) && it.slot == Slot.MAIN }.sets.first().weightLb, 0.0)
+        val draft = repo.openRunFlow.first()!!
+        assertEquals(next, draft.id)
+        assertTrue(draft.draft)
     }
 
     /** [F] */

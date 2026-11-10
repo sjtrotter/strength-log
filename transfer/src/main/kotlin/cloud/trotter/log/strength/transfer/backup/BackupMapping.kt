@@ -149,6 +149,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                     RunTrackBackup(it.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
                         it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped, it.note, it.openingJson)
                 },
+                draft = run.draft,
             )
         },
         program = emptyList(),
@@ -418,7 +419,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             restoredPlans.map { it.copy(onToday = it.id == preferredId) }
         },
         runs = if (schemaVersion >= 13) runs.map {
-            WorkoutRunEntity(it.id, it.planId, it.dayId, it.dayTitle, it.planName, it.startedAt)
+            WorkoutRunEntity(it.id, it.planId, it.dayId, it.dayTitle, it.planName, it.startedAt, draft = it.draft)
         } else emptyList(),
         runTracks = if (schemaVersion >= 13) runs.flatMap { run ->
             run.tracks.map {

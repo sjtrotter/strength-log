@@ -276,6 +276,7 @@ class TrackerRepositoryRunEditsTest {
         val destination = db.programDao().exercisesForDay(plan, "B").single().id
         repo.setStructure(destination, SetStructure.RAMP_TOP_BACKOFF)
         repo.setSupersetPartner("B", destination, "ez_curl")
+        repo.ensureSeeded(plan, "B")
         val original = db.programDao().exercise(destination)
         val run = repo.startRun(plan, "B") as RunStartResult.Started
         repo.applyToRun(run.runId, plan, "B", listOf(TrackEdit(destination, Slot.SS) { rows ->
@@ -774,8 +775,9 @@ class TrackerRepositoryRunEditsTest {
         db.storeTestRows("A", slot, Slot.MAIN, work())
         db.storeTestRows("A", slot, Slot.SS, partner)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
-        val completed = partner.mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) }
-        assertEquals(RunWriteResult.InRun(runId, true), repo.writeTestRows(runId, "A", slot, Slot.SS, completed))
+        assertEquals(RunWriteResult.InRun(runId, true), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot, Slot.SS) { rows -> rows.mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) } },
+        )))
         val before = db.runDao().tracks(runId).associateBy { it.slot }
         val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
 
@@ -1463,7 +1465,8 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val result = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl")
-        assertTrue(result is RunWriteResult.InRun && result.started)
+        assertTrue(result is RunWriteResult.InRun && !result.started)
+        assertTrue(repo.openRunFlow.first()!!.draft)
         val partner = db.runDao().tracks((result as RunWriteResult.InRun).runId).single { it.slot == Slot.SS }
         assertTrue(partner.retired && partner.dropped)
         assertTrue(SetJson.decodeSets(partner.setsJson).none { it.done })
@@ -2066,13 +2069,17 @@ class TrackerRepositoryRunEditsTest {
         val unknown = db.programDao().exercisesForDay(plan, "A").last().id
         val next = db.programDao().day(plan, "A")!!.nextRunId
         val row = LoggedSet(0.0, 0, SetKind.EXTRA)
-        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(next, plan, "A", listOf(
+        assertEquals(RunWriteResult.InRun(next, false), repo.applyToRun(next, plan, "A", listOf(
             TrackEdit(unknown, Slot.MAIN, createsMissing = true) { it + row },
         )))
-        assertNull(db.runDao().openRun())
-        assertEquals(listOf(row), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", unknown, Slot.MAIN)!!.setsJson))
+        assertTrue(db.runDao().openRun()!!.draft)
+        assertNull(db.programDao().logForSlot(plan, "A", unknown, Slot.MAIN))
+        val draft = db.runDao().tracks(next).single { it.programExerciseId == unknown }
+        assertEquals(listOf(row), SetJson.decodeSets(draft.plannedJson))
+        assertEquals(listOf(row.copy(plannedIndex = 0)), SetJson.decodeSets(draft.setsJson))
         assertEquals(RunStartResult.Started(next), repo.startRun(plan, "A"))
         val created = db.runDao().tracks(next).single { it.programExerciseId == unknown }
+        assertEquals(draft, created)
         assertEquals(listOf(row), SetJson.decodeSets(created.plannedJson))
         assertEquals(listOf(row.copy(plannedIndex = 0)), SetJson.decodeSets(created.setsJson))
     }

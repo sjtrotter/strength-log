@@ -875,3 +875,11 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 
 - The day editor reads each slot's next-time rows, stored or else seeded, and never a run's. Its summary counts those rows, and the Prescription page starts from the first working row; only an empty stored track falls back to the catalog's rep or hold target.
 - No app or data code seeds or targets a plan slot from the formula. The old wizard, the setup goal preview and the journal's goals keep it until PR 6.
+
+## 25. Revision 16 (PR 2b part three-c-i, today's draft, 2026-11-10)
+
+- Before Start, Today's edits (values, sets, swaps, skips, on the phone or the watch) open a draft: the day's run row, not started, built like Start builds it. The saved plan changes only from the plan editor, Reset, the next-time chip and Finish.
+- Start, or a done tick, starts the workout from the draft. Starting clears the day's Finish Undo and writes the day's missing seeds. The draft's opening is the one it was created with.
+- Before any draft, the Day screen, the preview and the watch show the rows Start would open with, written nowhere.
+- One draft or workout at a time. Discard drops a draft. The last Finish's Undo is refused while a draft of the same day is open.
+- A fitted partner only counts the exposure (owner, 2026-11-09).

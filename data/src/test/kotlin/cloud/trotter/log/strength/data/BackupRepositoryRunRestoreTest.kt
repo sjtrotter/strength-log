@@ -97,9 +97,10 @@ class BackupRepositoryRunRestoreTest {
         val plan = authored()
         val runId = start(plan)
         val snapshot = backupRepository.exportSnapshot()
+        assertEquals(listOf(work()), snapshot.logs.map { SetJson.decodeSets(it.setsJson) })
         val legacy = listOf("A", "B").map { day ->
             cloud.trotter.log.strength.data.run.LegacyLog(plan, day, slot(plan, day), Slot.MAIN,
-                work().map { it.copy(done = true) }, "2026-10-19", 6_000)
+                work().map { it.copy(weightLb = 60.0, done = true) }, "2026-10-19", 6_000)
         }
         backupRepository.importSnapshot(snapshot.copy(legacyLogs = legacy), journal)
         assertEquals(snapshot.runs, db.runDao().allRuns())
@@ -108,6 +109,13 @@ class BackupRepositoryRunRestoreTest {
         assertNull(day(plan).closedAt)
         assertEquals(listOf("B"), db.sessionDao().allSessions().map { it.dayId })
         assertTrue(db.programDao().allLogs().flatMap { SetJson.decodeSets(it.setsJson) }.none { it.done })
+        for (day in listOf("A", "B")) {
+            val restored = db.programDao().logForSlot(plan, day, slot(plan, day), Slot.MAIN)!!
+            assertEquals(work().map { it.copy(weightLb = 60.0) }, SetJson.decodeSets(restored.setsJson))
+            assertEquals(6_000L, restored.updatedAt)
+        }
+        assertEquals(work().map { it.copy(weightLb = 60.0, done = true) },
+            db.sessionDao().allSessionSets().map { LoggedSet(it.weightLb, it.reps, SetKind.valueOf(it.kind), done = it.done) })
     }
 
     /** [F] */

@@ -499,7 +499,8 @@ class TodaySnapshotSourceRestTest {
         )
         db.planDao().updateSuggestedDay(repo.plans.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.plans.daySlotsFlow("A").first().single().programExerciseId
-        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
+        repo.ensureSeeded(requireNotNull(repo.plans.planIdOfSlot(slotId)), "A")
+        db.storeTestRows("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans, historyRepository = repo.history)
 

@@ -752,7 +752,7 @@ class WizardViewModelWiringTest {
         assertTrue(converted.all { it.ruleJson != null })
         // The edited rows are in the run; conversion seeds the never-opened plan slot.
         val convertedLogs = db.programDao().logsForPlan(1)
-        assertEquals(logs, convertedLogs.filterNot { it.programExerciseId == slot && it.slot == Slot.MAIN })
+        assertEquals(logs.filterNot { it.programExerciseId == slot && it.slot == Slot.MAIN }, convertedLogs.filterNot { it.programExerciseId == slot && it.slot == Slot.MAIN })
         assertEquals(listOf(
             LoggedSet(45.0, 5, SetKind.RAMP),
             LoggedSet(45.0, 5, SetKind.RAMP),

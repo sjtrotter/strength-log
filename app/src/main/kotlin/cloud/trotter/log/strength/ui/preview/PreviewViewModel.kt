@@ -85,7 +85,7 @@ class PreviewViewModel @Inject constructor(
                         }
                     } else DayScreenBuilder.workingHeading(track.sets, track.tracking, unit)
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                val nextTime = DayScreenBuilder.nextTime(slot.main.sets,
+                val nextTime = DayScreenBuilder.nextTime(slot.main.baseRows.orEmpty(),
                     slotSessions[slot.slot.programExerciseId to Slot.MAIN]?.takeIf {
                         slot.main.performed.exerciseId == slot.slot.exercise.exerciseId
                     }, slot.slot.exercise.keepToPlan, unit,

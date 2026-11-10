@@ -82,7 +82,7 @@ class Migration16To17Test {
             }
             tables.forEach { table ->
                 val after = rows(db.openHelper.writableDatabase, table)
-                assertEquals(before.getValue(table), if (table == "run_track") after.map { it.dropLast(3) } else after)
+                assertEquals(before.getValue(table), after.map { it.dropLast(if (table == "run_track") 3 else 1) })
             }
         } finally { db.close() }
     }

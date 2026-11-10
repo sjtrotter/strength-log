@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunStartResult
@@ -1661,6 +1662,61 @@ class DayViewModelWiringTest {
         repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().firstOrNull { it.programExerciseId == id && it.slot == slot }?.sets
 
     // --- seeding trigger (M2 rule: VM seeds once, then the log persists) -------
+
+    @Test
+    fun resetRememberedSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
+        val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
+        ))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val plannedRows = vm.uiState.value.exercises.single().rows
+        assertEquals(List(3) { 100.0 to 5 }, plannedRows.map { it.weightDisplay to it.reps })
+        assertFalse(db.programDao().exercise(id)!!.keepToPlan)
+        val stored = track(id, Slot.MAIN)!!
+        db.storeTestRows("A", id, Slot.MAIN, SetEditor.editWeight(stored, 0, 150.0))
+        advanceUntilIdle()
+        assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
+        assertNull(repo.openRunFlow.first())
+
+        vm.editor.resetDaySlotToPlan(id)
+        advanceUntilIdle()
+
+        assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
+        assertFalse(db.programDao().exercise(id)!!.keepToPlan)
+        assertNull(repo.openRunFlow.first())
+        collect.cancel()
+    }
+
+    @Test
+    fun switchingSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
+        val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
+        ))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val plannedRows = vm.uiState.value.exercises.single().rows
+        assertEquals(List(3) { 100.0 to 5 }, plannedRows.map { it.weightDisplay to it.reps })
+        val stored = track(id, Slot.MAIN)!!
+        db.storeTestRows("A", id, Slot.MAIN, SetEditor.editWeight(stored, 0, 150.0))
+        advanceUntilIdle()
+        assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
+        assertNull(repo.openRunFlow.first())
+
+        vm.editor.setDaySlotKeepToPlan(id, true)
+        advanceUntilIdle()
+
+        assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
+        assertTrue(db.programDao().exercise(id)!!.keepToPlan)
+        assertNull(repo.openRunFlow.first())
+        collect.cancel()
+    }
 
     @Test
     fun resetRememberedSlotToPlanRefusesWhileADraftIsOpen() = runVmTest {

@@ -1283,16 +1283,31 @@ class DayViewModel @Inject constructor(
         mutate {
             val tracks = repo.dayTracksFlow(planId, day).first()
             if (tracks.runId != runId || currentDay() != day) return@mutate
-            val focus = focusedWorkoutSet(tracks) ?: return@mutate
+            val focus = (if (tracks.runOpen) focusedWorkoutSet(tracks) else uiState.value.workout?.focus)
+                ?: return@mutate
             val card = uiState.value.exercises.firstOrNull { it.programExerciseId == focus.programExerciseId } ?: return@mutate
             if (card.tracking(focus.slot) == TrackingType.TIMED ||
                 (focus.slot == Slot.MAIN && (card.timedRepDurationSeconds ?: 0) > 0)
             ) return@mutate
-            val set = tracks.tracks.firstOrNull {
-                it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
-            }?.sets?.getOrNull(focus.index) ?: return@mutate
-            if (set.done || set.reps <= 1) return@mutate
-            changeRepsLocked(day, runId, planId, focus.programExerciseId, focus.slot, focus.index, set.reps - 1)
+            val reps = if (tracks.runOpen) {
+                val set = tracks.tracks.firstOrNull {
+                    it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
+                }?.sets?.getOrNull(focus.index) ?: return@mutate
+                if (set.done) return@mutate
+                set.reps
+            } else {
+                val row = card.rows.getOrNull(focus.index) ?: return@mutate
+                if (focus.slot == Slot.SS) {
+                    val partner = row.partner ?: return@mutate
+                    if (partner.done) return@mutate
+                    partner.reps
+                } else {
+                    if (row.done) return@mutate
+                    row.reps
+                }
+            }
+            if (reps <= 1) return@mutate
+            changeRepsLocked(day, runId, planId, focus.programExerciseId, focus.slot, focus.index, reps - 1)
         }
     }
 

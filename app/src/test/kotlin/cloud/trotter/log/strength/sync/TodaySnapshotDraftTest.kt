@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -21,6 +22,7 @@ import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -84,7 +86,9 @@ class TodaySnapshotDraftTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val b = db.programDao().exercisesForDay(plan, "A").single().id
         val next = db.programDao().day(plan, "A")!!.nextRunId
-        repo.applyToRun(next, plan, "A", listOf(TrackEdit(b, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(reps = 4)) }))
+        assertEquals(RunWriteResult.InRun(next, false),
+            repo.applyToRun(next, plan, "A", listOf(TrackEdit(b, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(reps = 4)) })))
+        assertTrue(assertNotNull(db.runDao().openRun()).draft)
         val source = TodaySnapshotSource(repo, flowOf(LocalDate.now(clock)), syncStore, syncStore, settings, repo.plans, repo.history)
         assertNull(assertNotNull(source.snapshots.first()).runStartedAt)
         assertEquals(RunStartResult.Started(next), repo.startRun(plan, "A"))

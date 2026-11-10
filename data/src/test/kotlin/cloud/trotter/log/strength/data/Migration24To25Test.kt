@@ -98,7 +98,7 @@ class Migration24To25Test {
 internal object V24Fixture {
     val defaults = mapOf(
         "program_exercise" to listOf<String?>(null, null), "program_day" to listOf(null), "run_track" to listOf(null),
-        "session_set" to listOf(null), "cardio_session" to listOf(null),
+        "workout_run" to listOf("0"), "session_set" to listOf(null), "cardio_session" to listOf(null),
         "cardio_set_result" to List<String?>(5) { null },
         "plan" to listOf(null, "0", "0", null, "0"), "workout_session" to listOf("0", null),
     )

@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.sync.AppliedEditMarkers
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.sync.WearSyncStore
+import cloud.trotter.log.strength.ui.day.WorkoutFocus
 import cloud.trotter.log.strength.ui.day.DaySelection
 import java.io.File
 import java.time.Clock
@@ -144,6 +145,40 @@ class PreStartOpeningTest : OverviewFixture() {
         assertNull(db.runDao().openRun())
         assertEquals(beforeLog, db.programDao().logForSlot(plan, "A", s, Slot.MAIN))
         assertEquals(beforeSlot, db.programDao().exercise(s))
+    }
+
+    @Test fun `case 13 decrement before Start uses the focused TOP on the opening`() = runTest(dispatcher) {
+        val plan = rPlan()
+        val s = db.programDao().exercisesForDay(plan, "A").single().id
+        // Omit ramps to focus TOP without starting; the opening clears legacy completion flags.
+        db.storeTestRows("A", s, Slot.MAIN, squat().filter { it.kind != SetKind.RAMP }.map {
+            it.copy(done = it.kind == SetKind.TOP)
+        })
+        val beforeLog = db.programDao().logForSlot(plan, "A", s, Slot.MAIN)
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
+        advanceUntilIdle()
+        val top = workout.uiState.value.exercises.single().rows.first()
+        assertEquals(WorkoutFocus(s, Slot.MAIN, 0), workout.uiState.value.workout?.focus)
+        assertEquals(SetKind.TOP, top.kind)
+        assertEquals(260.0, top.weightDisplay)
+        assertEquals(case13.single { it.kind == SetKind.TOP }.reps, top.reps)
+        assertTrue(!top.done)
+        assertNull(db.runDao().openRun())
+
+        workout.decrementFocusedReps()
+        advanceUntilIdle()
+
+        val draft = assertNotNull(db.runDao().openRun())
+        assertTrue(draft.draft)
+        val track = db.runDao().tracks(draft.id).single()
+        assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(track.openingJson))
+        val rows = SetJson.decodeSets(track.setsJson)
+        assertEquals(SetKind.TOP, rows.first().kind)
+        assertEquals(top.reps - 1, rows.first().reps)
+        assertEquals(4, workout.uiState.value.exercises.single().rows.first().reps)
+        assertEquals(case13.filter { it.kind == SetKind.BACKOFF }.mapIndexed { i, row -> row.copy(plannedIndex = i + 1) },
+            rows.drop(1))
+        assertEquals(beforeLog, db.programDao().logForSlot(plan, "A", s, Slot.MAIN))
     }
 
     @Test fun `a watch tick before Start starts the run at the opening and keeps the wrist's values`() = runTest(dispatcher) {

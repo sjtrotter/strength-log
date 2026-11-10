@@ -924,7 +924,7 @@ class TrackerRepository(
             }
             if (!open.draft) return RunStartResult.AlreadyOpen(open.id)
             val day = programDao.day(planId, dayId) ?: return RunStartResult.NoStrengthSlots
-            promote(day, unit, catalog)
+            promote(open.id, day, unit, catalog)
             return RunStartResult.Started(open.id)
         }
         val day = programDao.day(planId, dayId) ?: return RunStartResult.NoStrengthSlots
@@ -1241,7 +1241,7 @@ class TrackerRepository(
                     seedPlan(day, tracks, config.weightUnit, catalog), reopenRetired = true)
                 if (resolved.failure != null) return@withTransaction resolved.failure
                 val starts = open.draft && resolved.ticked
-                if (starts) promote(day, config.weightUnit, catalog)
+                if (starts) promote(open.id, day, config.weightUnit, catalog)
                 writeRunTracks(resolved.tracks)
                 return@withTransaction RunWriteResult.InRun(runId, starts)
             }
@@ -1625,9 +1625,9 @@ class TrackerRepository(
         runDao.insertTracks(tracks)
     }
 
-    private suspend fun promote(day: ProgramDayEntity, unit: WeightUnit, catalog: ExerciseCatalog) {
+    private suspend fun promote(runId: String, day: ProgramDayEntity, unit: WeightUnit, catalog: ExerciseCatalog) {
         beginWorkout(day, seedPlan(day, null, unit, catalog))
-        runDao.promote(day.nextRunId, clock.millis())
+        runDao.promote(runId, clock.millis())
     }
 
     /** What Start writes besides the run: the day's Undo is cleared first, so keepSeeds' undo guard

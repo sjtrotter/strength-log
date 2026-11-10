@@ -555,7 +555,7 @@ class PlanRepository(
             slot.keepToPlan -> parkedRows(slot, Slot.MAIN, slot.exerciseId)
             else -> null
         }
-        val rule = PlanConversion.rule(slot, rows, entry, planSettings.defaultsFor)
+        val rule = PlanConversion.rule(slot.toDomain(), rows, entry, planSettings.defaultsFor)
         val seeded = if (stored == null && !slot.keepToPlan && (entry != null || slot.toDomain().prescription != null)) {
             opening(slot.planId, slot.id, slot.toDomain(), rule, unit, entry)
         } else null
@@ -578,20 +578,23 @@ class PlanRepository(
             planned?.reps ?: rule.target.reps, planned?.rir ?: Effort.GOOD.rir)
     }
 
-    /** The plan's MAIN working row on another slot, carrying its reps and source rule's RIR for conversion.
-     *  Calibrating slots are skipped; the latest stored row wins, with prescription-only sources ranked last.
+    /** The plan's main or partner working row on another slot, carrying its reps and source rule's RIR for conversion.
+     *  Calibrating tracks are skipped; the latest stored row wins, with prescription-only mains ranked last.
      *  A stored row that offers no working load never falls back to its prescription. */
     private suspend fun planWorkingRow(planId: Long, exceptSlotId: Long, exerciseId: String): LoggedSet? =
-        programDao.exercisesForPlan(planId).filter { it.id != exceptSlotId && it.exerciseId == exerciseId }
-            .mapNotNull { source ->
-                val rule = SlotRuleJson.decode(source.ruleJson)
+        programDao.exercisesForPlan(planId).filter { it.id != exceptSlotId }.flatMap { source ->
+            listOf(Slot.MAIN, Slot.SS).mapNotNull { name ->
+                val matches = if (name == Slot.MAIN) source.exerciseId == exerciseId else source.supersetExerciseId == exerciseId
+                if (!matches) return@mapNotNull null
+                val rule = SlotRuleJson.decode(if (name == Slot.MAIN) source.ruleJson else source.partnerRuleJson)
                 if (rule?.state?.calibrating == true) return@mapNotNull null
-                val stored = programDao.logForSlot(planId, source.dayId, source.id, Slot.MAIN)
+                val stored = programDao.logForSlot(planId, source.dayId, source.id, name)
                 val working = if (stored != null) {
                     val rows = runCatching { SetJson.decodeSets(stored.setsJson) }.getOrNull() ?: return@mapNotNull null
                     val index = WorkingRows.workingIndices(rows).firstOrNull() ?: return@mapNotNull null
                     rows[index].copy(rir = rule?.rir ?: Effort.GOOD.rir)
                 } else {
+                    if (name != Slot.MAIN) return@mapNotNull null
                     when (val target = source.toDomain().prescription?.target) {
                         is PrescribedTarget.LoadReps -> LoggedSet(target.lb, target.reps, SetKind.WORK,
                             rir = rule?.rir ?: Effort.GOOD.rir)
@@ -600,7 +603,8 @@ class PlanRepository(
                     }
                 }
                 working.takeIf { it.weightLb > 0.0 }?.let { it to (stored?.updatedAt ?: Long.MIN_VALUE) }
-            }.maxByOrNull { it.second }?.first
+            }
+        }.maxByOrNull { it.second }?.first
 
     /** Rows a today-only swap opens with; reads only, in the caller's transaction. A track's own exercise first
      *  takes its stored rows. A MAIN substitute uses [swappedTo]'s shape; an SS substitute uses a partner rule. */
@@ -617,11 +621,15 @@ class PlanRepository(
             }
         }
         val entry = catalog.find(exerciseId)
-        if (slot == Slot.SS) return entry?.let { partnerSeed(row, exerciseId, mainRows, unit, it) }?.rows
+        if (slot == Slot.SS) return entry?.let {
+            val rule = SlotRuleJson.decode(row.partnerRuleJson).takeIf { own }
+                ?: PlanConversion.partnerRule(it, planSettings(row.planId).defaultsFor)
+            partnerSeed(row.planId, row.id, exerciseId, mainRows, rule, unit, it)
+        }?.rows
         val shaped = if (own) row else row.swappedTo(exerciseId)
         if (entry == null && shaped.toDomain().prescription == null) return null
         val rule = (if (own) SlotRuleJson.decode(row.ruleJson) else null)
-            ?: PlanConversion.rule(shaped, null, entry, planSettings(row.planId).defaultsFor)
+            ?: PlanConversion.rule(shaped.toDomain(), null, entry, planSettings(row.planId).defaultsFor)
         return opening(row.planId, row.id, shaped.toDomain(), rule, unit, entry).rows
     }
 
@@ -633,7 +641,8 @@ class PlanRepository(
         val partner = row.supersetExerciseId ?: return
         val entry = catalog.find(partner)
         val seeded = if (mainRows != null && !row.keepToPlan && entry != null) {
-            partnerSeed(row, partner, mainRows, unit, entry)
+            partnerSeed(row.planId, row.id, partner, mainRows,
+                PlanConversion.partnerRule(entry, planSettings(row.planId).defaultsFor), unit, entry)
         } else null
         if (seeded != null) {
             programDao.upsertLog(ExerciseLogEntity(row.planId, row.dayId, row.id, Slot.SS,
@@ -648,17 +657,61 @@ class PlanRepository(
             runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
         } ?: if (row.keepToPlan) parkedRows(row, Slot.SS, row.supersetExerciseId) else null
 
-    /** [mainRows] straight sets of [exerciseId] under [PlanConversion.partnerRule], from [opening]. */
-    private suspend fun partnerSeed(row: ProgramExerciseEntity, exerciseId: String, mainRows: Int, unit: WeightUnit,
-                                    entry: ExerciseEntry): SlotSeeding.Seeded {
-        val rule = PlanConversion.partnerRule(entry, planSettings(row.planId).defaultsFor)
-        return opening(row.planId, row.id, ProgramExercise(exerciseId, SetStructure.STRAIGHT, mainRows), rule, unit, entry)
+    /** [mainRows] straight sets of [exerciseId] under [rule], from [opening]. */
+    private suspend fun partnerSeed(planId: Long, slotId: Long, exerciseId: String, mainRows: Int, rule: SlotRule,
+                                    unit: WeightUnit, entry: ExerciseEntry): SlotSeeding.Seeded =
+        opening(planId, slotId, ProgramExercise(exerciseId, SetStructure.STRAIGHT, mainRows), rule, unit, entry)
+
+    /** Opening rows and rule for [slot]'s [track] when it has no stored row (design §3.1; spec W2b-3a decision 1).
+     *  Uses the track's stored rule, else the conversion rule; partners have [mainRows] rows. Reads only Room. */
+    internal suspend fun seed(planId: Long, slot: ProgramSlot, track: String, mainRows: Int, unit: WeightUnit,
+                              catalog: ExerciseCatalog): SlotSeeding.Seeded? {
+        val exercise = slot.exercise
+        val goal = planSettings(planId).defaultsFor
+        return when (track) {
+            Slot.MAIN -> {
+                val entry = catalog.find(exercise.exerciseId)
+                if (entry == null && exercise.prescription == null) return null
+                opening(planId, slot.programExerciseId, exercise,
+                    exercise.rule ?: PlanConversion.rule(exercise, null, entry, goal), unit, entry)
+            }
+            Slot.SS -> {
+                val partner = exercise.superset ?: return null
+                val entry = catalog.find(partner.exerciseId) ?: return null
+                partnerSeed(planId, slot.programExerciseId, partner.exerciseId, mainRows,
+                    partner.rule ?: PlanConversion.partnerRule(entry, goal), unit, entry)
+            }
+            else -> null
+        }
+    }
+
+    /** [seed] for missing tracks; an unknown, unprescribed main seeds neither track. Partners use the live main
+     *  count, else the main seed's count. A fully stored day needs no Room queries on each display emission. */
+    internal suspend fun seeds(planId: Long, slots: List<ProgramSlot>, existing: Map<Pair<Long, String>, Int>,
+                               unit: WeightUnit, catalog: ExerciseCatalog): Map<Pair<Long, String>, SlotSeeding.Seeded> {
+        val seeds = linkedMapOf<Pair<Long, String>, SlotSeeding.Seeded>()
+        for (slot in slots) {
+            val exercise = slot.exercise
+            if (catalog.find(exercise.exerciseId) == null && exercise.prescription == null) continue
+            val main = slot.programExerciseId to Slot.MAIN
+            val partner = slot.programExerciseId to Slot.SS
+            val needsPartner = exercise.superset != null && partner !in existing
+            val mainSeed = if (main !in existing || needsPartner && existing[main] == null) {
+                seed(planId, slot, Slot.MAIN, 0, unit, catalog) ?: continue
+            } else null
+            if (main !in existing && mainSeed != null) seeds[main] = mainSeed
+            if (needsPartner) {
+                val count = existing[main] ?: mainSeed?.rows?.size ?: continue
+                seed(planId, slot, Slot.SS, count, unit, catalog)?.let { seeds[partner] = it }
+            }
+        }
+        return seeds
     }
 
     /** The rule for [slot] with no rows to read: what a structure change or a prescription edit, which delete the
      *  slot's working rows, leave it with. */
     internal suspend fun defaultRule(slot: ProgramExerciseEntity, catalog: ExerciseCatalog): SlotRule =
-        PlanConversion.rule(slot, null, catalog.find(slot.exerciseId), planSettings(slot.planId).defaultsFor)
+        PlanConversion.rule(slot.toDomain(), null, catalog.find(slot.exerciseId), planSettings(slot.planId).defaultsFor)
 
     internal suspend fun planSettings(planId: Long): PlanSettings =
         planDao.plan(planId)?.planSettings ?: PlanSettings()

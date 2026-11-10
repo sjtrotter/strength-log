@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.mapping.toDomain
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -138,7 +139,7 @@ class BackupRepositoryRunRestoreTest {
         backupRepository.importSnapshot(before, journal)
 
         assertEquals(before.exercises.map {
-            it.copy(ruleJson = SlotRuleJson.encode(PlanConversion.rule(it,
+            it.copy(ruleJson = SlotRuleJson.encode(PlanConversion.rule(it.toDomain(),
                 if (it.id == slot) work() else null, ExerciseLibrary.get(it.exerciseId))))
         }, db.programDao().allExercises())
         repo.setKeepToPlan(slot, false)

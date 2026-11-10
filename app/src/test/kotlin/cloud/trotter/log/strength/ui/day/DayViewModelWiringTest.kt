@@ -1689,9 +1689,9 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
 
         val squat = track(slotId("bb_back_squat"), Slot.MAIN)!!
-        assertEquals(listOf(130.0, 165.0, 190.0, 210.0, 235.0, 175.0), squat.map { it.weightLb })
-        assertEquals(listOf(60.0, 60.0), track(slotId("ez_curl"), Slot.MAIN)!!.map { it.weightLb })
-        assertEquals(listOf(50.0, 50.0), track(slotId("ez_curl"), Slot.SS)!!.map { it.weightLb })
+        assertEquals(List(6) { 45.0 }, squat.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0), track(slotId("ez_curl"), Slot.MAIN)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0), track(slotId("ez_curl"), Slot.SS)!!.map { it.weightLb })
         // Unknown ids can't resolve a GOAL — no log rows for them.
         assertNull(track(slotId("ghost_unknown"), Slot.MAIN))
         assertNull(track(slotId("db_lateral"), Slot.SS))
@@ -2378,7 +2378,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
-        assertEquals(listOf(50.0, 50.0), track(curlId, Slot.SS)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0), track(curlId, Slot.SS)!!.map { it.weightLb })
         val mainBefore = track(curlId, Slot.MAIN)!!
 
         val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
@@ -2391,7 +2391,7 @@ class DayViewModelWiringTest {
         )
         assertEquals(List(2) { LoggedSet(20.0, 10, SetKind.WORK) }, track(curlId, Slot.SS))
         assertEquals(mainBefore, track(curlId, Slot.MAIN))
-        assertEquals(listOf(60.0, 60.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
         collect.cancel()
     }
 
@@ -2411,7 +2411,7 @@ class DayViewModelWiringTest {
         assertFalse(slot.isSuperset)
         assertNull(slot.partnerExerciseId)
         assertNull(track(curlId, Slot.SS))
-        assertEquals(listOf(60.0, 60.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
+        assertEquals(listOf(20.0, 20.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
         collect.cancel()
     }
 

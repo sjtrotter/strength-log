@@ -111,7 +111,7 @@ class TodayWidgetContentTest {
         for (day in program.rotationDays) {
             val performed = PerformedDay.of(
                 1L, day.id, program, emptyList(), DayTracks(null, false, emptyList()),
-                answers, ExerciseCatalog.CODE_ONLY,
+                answers, ExerciseCatalog.CODE_ONLY, seeds = emptyMap(),
             )
             val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 0L)
             val content = todayWidgetContent(snapshot)

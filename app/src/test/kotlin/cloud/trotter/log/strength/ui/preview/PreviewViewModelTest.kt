@@ -307,7 +307,7 @@ class PreviewViewModelTest : OverviewFixture() {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("TOP × 5 · 235 lb", vm.uiState.value.lifts.single().working)
+        assertEquals("TOP × 5 · 45 lb", vm.uiState.value.lifts.single().working)
         assertEquals("Barbell Back Squat", vm.uiState.value.lifts.single().name)
         assertNull(vm.uiState.value.lifts.single().previous.single().last)
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.isEmpty())

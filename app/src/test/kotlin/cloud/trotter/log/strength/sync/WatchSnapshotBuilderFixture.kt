@@ -33,7 +33,7 @@ internal fun WatchSnapshotBuilder.build(
     val day = PerformedDay.of(
         planId, suggestedDayId ?: return null, program, slots,
         DayTracks(runId, false, logs),
-        WizardAnswers(config = cfg, equipment = equipment), catalog,
+        WizardAnswers(config = cfg, equipment = equipment), catalog, seeds = emptyMap(),
     )
     return build(
         day = day,

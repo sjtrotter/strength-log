@@ -40,7 +40,6 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.seeding.RunReplan
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.progression.LayoffKind
 import cloud.trotter.log.strength.domain.progression.LightCycle
 import cloud.trotter.log.strength.domain.progression.LightWeek
@@ -51,6 +50,7 @@ import cloud.trotter.log.strength.domain.progression.Outcome
 import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.Reason
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -64,7 +64,6 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
@@ -255,9 +254,12 @@ class TrackerRepository(
             }
             val updated = row.copy(prescriptionJson = json, targetSets = count, structure = structure?.name ?: row.structure)
             programDao.setPrescription(row.id, json, count)
-            replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
+            val catalog = this.catalog.snapshot()
+            val rule = plans.defaultRule(updated, catalog)
+            replanSlot(updated.copy(ruleJson = SlotRuleJson.encode(rule)),
+                answersForPlan(planDao.plan(row.planId), global).config.weightUnit, catalog)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
-            programDao.setRule(row.id, SlotRuleJson.encode(plans.defaultRule(updated, this.catalog.snapshot())))
+            programDao.setRule(row.id, SlotRuleJson.encode(rule))
         }
     }
 
@@ -270,21 +272,24 @@ class TrackerRepository(
             if (row.structure == structure.name) return@withTransaction
             val updated = row.copy(structure = structure.name)
             programDao.setStructure(row.id, structure.name)
-            replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
+            val catalog = this.catalog.snapshot()
+            val rule = plans.defaultRule(updated, catalog)
+            replanSlot(updated.copy(ruleJson = SlotRuleJson.encode(rule)),
+                answersForPlan(planDao.plan(row.planId), global).config.weightUnit, catalog)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
-            programDao.setRule(row.id, SlotRuleJson.encode(plans.defaultRule(updated, this.catalog.snapshot())))
+            programDao.setRule(row.id, SlotRuleJson.encode(rule))
         }
     }
 
-    private suspend fun replanSlot(row: ProgramExerciseEntity, config: LifterConfig) {
+    private suspend fun replanSlot(row: ProgramExerciseEntity, unit: WeightUnit, catalog: ExerciseCatalog) {
         val run = runDao.openRun() ?: return
         if (run.planId != row.planId || run.dayId != row.dayId) return
         val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id }
-        val catalog = this.catalog.snapshot()
-        val exercise = row.toDomain()
+        val slot = ProgramSlot(row.id, row.position, row.toDomain())
+        val exercise = slot.exercise
         val entry = catalog.find(row.exerciseId)
         val isTimed = (exercise.prescription?.tracking ?: entry?.tracking) == TrackingType.TIMED
-        val seeded = SlotSeeds.main(exercise, entry, config) ?: return
+        val seeded = plans.seed(row.planId, slot, Slot.MAIN, 0, unit, catalog)?.rows ?: return
         val activeMain = tracks.firstOrNull { !it.retired && it.slot == Slot.MAIN }
         val partnerMain = if (activeMain == null) {
             tracks.firstOrNull { it.retired && it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
@@ -297,7 +302,7 @@ class TrackerRepository(
         for (track in tracks.filter { it.retired && it.exerciseId == row.exerciseIdFor(it.slot) }) {
             val trackSeed = when (track.slot) {
                 Slot.MAIN -> seeded
-                Slot.SS -> SlotSeeds.partner(catalog.find(track.exerciseId), partnerMainSeed?.size ?: continue, config)
+                Slot.SS -> plans.seed(row.planId, slot, Slot.SS, partnerMainSeed?.size ?: continue, unit, catalog)?.rows
                     ?: continue
                 else -> continue
             }
@@ -318,7 +323,7 @@ class TrackerRepository(
         ) {
             val partnerRows = SetJson.decodeSets(partner.setsJson)
             val partnerSeed = if (partnerRows.isEmpty()) {
-                SlotSeeds.partner(catalog.find(partner.exerciseId), maxOf(current.size, seeded.size), config) ?: return
+                plans.runSwapRows(row, Slot.SS, partner.exerciseId, maxOf(current.size, seeded.size), unit, catalog) ?: return
             } else emptyList()
             val alignedSeed = RunReplan.alignPaired(
                 seeded, partnerRows, seeded, partnerSeed,
@@ -334,7 +339,7 @@ class TrackerRepository(
         } else {
             val partnerEntry = catalog.find(partner.exerciseId)
             if (partnerEntry == null) RunReplan.represcribe(current, seeded) else {
-                val partnerSeed = requireNotNull(SlotSeeds.partner(partnerEntry, seeded.size, config))
+                val partnerSeed = requireNotNull(plans.seed(row.planId, slot, Slot.SS, seeded.size, unit, catalog)).rows
                 val paired = RunReplan.represcribePaired(
                     current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
                 )
@@ -404,7 +409,7 @@ class TrackerRepository(
                 val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == dayId }
                     ?: return@withTransaction true
                 val config = answersForPlan(planDao.plan(row.planId), global).config
-                return@withTransaction swapInRun(run.id, row.id, Slot.MAIN, newExerciseId, config, catalog)
+                return@withTransaction swapInRun(run.id, row.id, Slot.MAIN, newExerciseId, config.weightUnit, catalog)
             }
             val config = answersForPlan(planDao.plan(row.planId), global).config
             swapInPlan(row.planId, row.dayId, row.id, newExerciseId, config.weightUnit, catalog)
@@ -682,7 +687,9 @@ class TrackerRepository(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
         plans.wizardAnswersFor(planId), catalog.catalogFlow,
     ) { program, slots, tracks, answers, catalog ->
-        PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog)
+        val seeds = plans.seeds(planId, slots.forRun(tracks.droppedPartners, tracks.skippedLifts),
+            tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }, answers.config.weightUnit, catalog)
+        PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog, seeds.mapValues { it.value.rows })
     }
 
     fun dayTracksFlow(planId: Long, dayId: String): Flow<DayTracks> = combine(
@@ -731,11 +738,25 @@ class TrackerRepository(
             val catalog = this.catalog.snapshot()
             val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId == dayId }
             if (run == null) {
-                seedPlan(day, null, config, catalog).forEach { (key, sets) ->
-                    programDao.upsertLog(logEntity(planId, dayId, key.first, key.second, sets))
-                }
+                keepSeeds(day, seedPlan(day, null, config.weightUnit, catalog))
             } else {
-                seedRunTracks(day, runDao.tracks(run.id), config, catalog)
+                seedRunTracks(day, runDao.tracks(run.id), config.weightUnit, catalog)
+            }
+        }
+    }
+
+    /** Writes missing stored rows with their seed rule on ruled columns outside Plan mode (spec W2b-3a decision 3).
+     *  Room only; runs in the caller's transaction. */
+    private suspend fun keepSeeds(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>) {
+        for ((key, seeded) in seeds) {
+            val (id, name) = key
+            if (programDao.logForSlot(day.planId, day.dayId, id, name) != null) continue
+            val slot = programDao.exercise(id) ?: continue
+            programDao.upsertLog(logEntity(day.planId, day.dayId, id, name, seeded.rows))
+            val storedRule = slot.ruleJsonFor(name)
+            if (!slot.keepToPlan && storedRule != null) {
+                val encoded = SlotRuleJson.encode(seeded.rule)
+                if (encoded != storedRule) setRuleFor(id, name, encoded)
             }
         }
     }
@@ -853,13 +874,13 @@ class TrackerRepository(
         return db.withTransaction {
             val config = answersForPlan(planDao.plan(planId), global).config
             val catalog = this.catalog.snapshot()
-            startRun(planId, dayId, config, catalog, global.age >= Progression.OLDER_ADULT_AGE)
+            startRun(planId, dayId, config.weightUnit, catalog, global.age >= Progression.OLDER_ADULT_AGE)
         }
     }
 
-    /** Runs inside a transaction and takes config and catalog from the caller. */
+    /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun startRun(
-        planId: Long, dayId: String, config: LifterConfig, catalog: ExerciseCatalog, olderAdult: Boolean,
+        planId: Long, dayId: String, unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean,
     ): RunStartResult {
         val open = runDao.openRun()
         if (open != null) {
@@ -869,19 +890,19 @@ class TrackerRepository(
         }
         val day = programDao.day(planId, dayId) ?: return RunStartResult.NoStrengthSlots
         if (programDao.exercisesForDay(planId, dayId).isEmpty()) return RunStartResult.NoStrengthSlots
-        startRun(day, opened(day, initialRunTracks(day, seedPlan(day, null, config, catalog)),
-            config.weightUnit, catalog, olderAdult))
+        startRun(day, opened(day, initialRunTracks(day, seedPlan(day, null, unit, catalog)),
+            unit, catalog, olderAdult))
         return RunStartResult.Started(day.nextRunId)
     }
 
-    /** Runs inside a transaction and takes config and catalog from the caller. */
+    /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun startRunIfNext(
-        runId: String, planId: Long, dayId: String, config: LifterConfig, catalog: ExerciseCatalog, olderAdult: Boolean,
+        runId: String, planId: Long, dayId: String, unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean,
     ): RunStartResult? {
         val day = programDao.day(planId, dayId) ?: return null
         // Watch swaps must not start a new identity if Finish wins during validation.
         if (day.nextRunId != runId) return null
-        return startRun(planId, dayId, config, catalog, olderAdult)
+        return startRun(planId, dayId, unit, catalog, olderAdult)
     }
 
     /** Identity and no-op checks share the mutation transaction, including preview swaps. */
@@ -923,11 +944,11 @@ class TrackerRepository(
                     if (swapSeed(row, Slot.MAIN, newExerciseId, emptyList(), config.weightUnit, catalog) == null) {
                         return@withTransaction ExerciseSwapResult.REJECTED
                     }
-                    if (startRunIfNext(targetRunId, planId, dayId, config, catalog, global.age >= Progression.OLDER_ADULT_AGE) !is RunStartResult.Started) {
+                    if (startRunIfNext(targetRunId, planId, dayId, config.weightUnit, catalog, global.age >= Progression.OLDER_ADULT_AGE) !is RunStartResult.Started) {
                         return@withTransaction ExerciseSwapResult.REJECTED
                     }
                 }
-                swapInRun(targetRunId, programExerciseId, Slot.MAIN, newExerciseId, config, catalog)
+                swapInRun(targetRunId, programExerciseId, Slot.MAIN, newExerciseId, config.weightUnit, catalog)
             }
             if (applied) ExerciseSwapResult.CHANGED else ExerciseSwapResult.REJECTED
         }
@@ -969,7 +990,7 @@ class TrackerRepository(
             if (open != null && (open.planId != planId || open.dayId != dayId)) return@withTransaction RunWriteResult.Rejected
             val runId = open?.id ?: day.nextRunId
             val tracks = if (open == null) {
-                initialRunTracks(day, seedPlan(day, null, config, catalog))
+                initialRunTracks(day, seedPlan(day, null, config.weightUnit, catalog))
             } else runDao.tracks(runId)
             val main = tracks.firstOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
                 ?: return@withTransaction RunWriteResult.Rejected
@@ -995,7 +1016,7 @@ class TrackerRepository(
             runDao.updateTrack(capturedPartner.copy(retired = true, dropped = true, updatedAt = clock.millis()))
             if (keep == Slot.SS) {
                 val capturedMain = runDao.tracks(runId).single { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
-                check(swapInRun(runId, row.id, Slot.MAIN, partner.exerciseId, config, catalog,
+                check(swapInRun(runId, row.id, Slot.MAIN, partner.exerciseId, config.weightUnit, catalog,
                     expectedExerciseId = main.exerciseId))
                 // The track key cannot hold a second MAIN with the same exercise.
                 if (main.exerciseId != partner.exerciseId) {
@@ -1019,7 +1040,7 @@ class TrackerRepository(
             val config = answersForPlan(planDao.plan(row.planId), global).config
             val catalog = this.catalog.snapshot()
             clearSlotSkipState(row.planId, row.dayId, row.id)
-            seedRunTracks(day, runDao.tracks(runId), config, catalog, restoringLift = row.id)
+            seedRunTracks(day, runDao.tracks(runId), config.weightUnit, catalog, restoringLift = row.id)
             RunWriteResult.InRun(runId, started = false)
         }
     }
@@ -1051,7 +1072,7 @@ class TrackerRepository(
                 main
             }
             val config = answersForPlan(planDao.plan(row.planId), global).config
-            val aligned = alignRunTracks(row, restoredMain, partner, config, catalog.snapshot())
+            val aligned = alignRunTracks(row, restoredMain, partner, config.weightUnit, catalog.snapshot())
                 ?: return@withTransaction RunWriteResult.Rejected
             if (main.id != restoredMain.id) {
                 runDao.updateTrack(main.copy(retired = true, dropped = false, updatedAt = clock.millis()))
@@ -1077,17 +1098,17 @@ class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
             val config = answersForPlan(planDao.plan(row.planId), global).config
             val catalog = this.catalog.snapshot()
-            swapInRun(runId, programExerciseId, slot, newExerciseId, config, catalog, expectedExerciseId)
+            swapInRun(runId, programExerciseId, slot, newExerciseId, config.weightUnit, catalog, expectedExerciseId)
         }
     }
 
-    /** Runs inside a transaction and takes config and catalog from the caller. */
+    /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun swapInRun(
         runId: String,
         programExerciseId: Long,
         slot: String,
         newExerciseId: String,
-        config: LifterConfig,
+        unit: WeightUnit,
         catalog: ExerciseCatalog,
         expectedExerciseId: String? = null,
     ): Boolean {
@@ -1107,7 +1128,7 @@ class TrackerRepository(
                 it.programExerciseId == programExerciseId && it.slot == slot && it.exerciseId == newExerciseId && it.retired
             }
             var replacement = retired?.copy(retired = false, dropped = false, updatedAt = clock.millis()) ?: run {
-                val base = swapSeed(row, slot, newExerciseId, tracks, config.weightUnit, catalog) ?: return@withTransaction false
+                val base = swapSeed(row, slot, newExerciseId, tracks, unit, catalog) ?: return@withTransaction false
                 runTrack(runId, row, slot, newExerciseId, WorkingRows.cleared(base))
             }
             val otherSlot = if (slot == Slot.MAIN) Slot.SS else Slot.MAIN
@@ -1117,7 +1138,7 @@ class TrackerRepository(
             var alignedPartner = partner
             if (partner != null) {
                 val otherRows = SetJson.decodeSets(partner.setsJson)
-                val aligned = alignRunTracks(row, replacement, partner, config, catalog)
+                val aligned = alignRunTracks(row, replacement, partner, unit, catalog)
                     ?: return@withTransaction false
                 replacement = replacement.copy(setsJson = SetJson.encodeSets(aligned.first))
                 if (aligned.second != otherRows) {
@@ -1130,21 +1151,19 @@ class TrackerRepository(
         }
     }
 
-    private fun alignRunTracks(
+    private suspend fun alignRunTracks(
         row: ProgramExerciseEntity,
         first: RunTrackEntity,
         second: RunTrackEntity,
-        config: LifterConfig,
+        unit: WeightUnit,
         catalog: ExerciseCatalog,
     ): Pair<List<LoggedSet>, List<LoggedSet>>? {
         val firstRows = SetJson.decodeSets(first.setsJson)
         val secondRows = SetJson.decodeSets(second.setsJson)
         val count = maxOf(firstRows.size, secondRows.size)
-        val slot = ProgramSlot(row.id, row.position, row.toDomain())
-        fun seed(track: RunTrackEntity, rows: List<LoggedSet>): List<LoggedSet> =
-            if (rows.isNotEmpty() || count == 0) emptyList() else DaySeeds.swap(
-                slot, track.slot, track.exerciseId, mapOf((row.id to Slot.MAIN) to count), config, catalog,
-            ).orEmpty()
+        suspend fun seed(track: RunTrackEntity, rows: List<LoggedSet>): List<LoggedSet> =
+            if (rows.isNotEmpty() || count == 0) emptyList() else
+                plans.runSwapRows(row, track.slot, track.exerciseId, count, unit, catalog).orEmpty()
         val firstSeed = seed(first, firstRows)
         val secondSeed = seed(second, secondRows)
         if (count > 0 && ((firstRows.isEmpty() && firstSeed.isEmpty()) ||
@@ -1171,7 +1190,7 @@ class TrackerRepository(
             val catalog = this.catalog.snapshot()
             val open = runDao.openRun()
             val tracks = open?.takeIf { it.planId == planId && it.dayId == dayId }?.let { runDao.tracks(it.id) }
-            val seeds = seedPlan(day, tracks, config, catalog)
+            val seeds = seedPlan(day, tracks, config.weightUnit, catalog)
             if (open?.id == runId) {
                 if (open.planId != planId || open.dayId != dayId) return@withTransaction RunWriteResult.Rejected
                 val resolved = resolveRunEdits(runId, day, runDao.tracks(runId), edits, seeds, reopenRetired = true)
@@ -1196,6 +1215,7 @@ class TrackerRepository(
                 working[key] = result
             }
             if (!doneTick) {
+                keepSeeds(day, seeds.filterKeys { it in working.keys })
                 working.forEach { (key, result) ->
                     programDao.upsertLog(logEntity(planId, dayId, key.first, key.second, result))
                 }
@@ -1357,7 +1377,7 @@ class TrackerRepository(
         day: ProgramDayEntity,
         tracks: List<RunTrackEntity>,
         edits: List<TrackEdit>,
-        seeds: Map<Pair<Long, String>, List<LoggedSet>>,
+        seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>,
         reopenRetired: Boolean = false,
     ): ResolvedRunEdits {
         val resolved = tracks.toMutableList()
@@ -1377,13 +1397,13 @@ class TrackerRepository(
                 val slot = programDao.exercise(edit.programExerciseId)
                     ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
                 val exerciseId = slot?.exerciseIdFor(edit.slot)
-                if (exerciseId != null && (edit.exerciseId == null || edit.exerciseId == exerciseId)) {
+                if (slot != null && exerciseId != null && (edit.exerciseId == null || edit.exerciseId == exerciseId)) {
                     val retiredIndex = resolved.indexOfFirst {
                         it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
                             it.exerciseId == exerciseId && it.retired
                     }
                     if (retiredIndex >= 0) {
-                        resolved[retiredIndex] = reopenTrack(resolved[retiredIndex], seeds)
+                        resolved[retiredIndex] = reopenTrack(resolved[retiredIndex], workingBase(day, slot, edit.slot, seeds))
                         index = retiredIndex
                     }
                 }
@@ -1427,11 +1447,11 @@ class TrackerRepository(
 
     private fun reopenTrack(
         track: RunTrackEntity,
-        seeds: Map<Pair<Long, String>, List<LoggedSet>>,
+        base: List<LoggedSet>?,
     ): RunTrackEntity = track.copy(
         retired = false,
         setsJson = (if (track.openingJson != null) SetJson.decodeSets(track.plannedJson)
-            else track.programExerciseId?.let { seeds[it to track.slot] })
+            else base)
             ?.takeIf { track.canReplan((it.firstOrNull()?.seconds ?: 0) > 0) }?.let {
                 SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), it))
             } ?: track.setsJson,
@@ -1465,11 +1485,11 @@ class TrackerRepository(
         day: ProgramDayEntity,
         slot: ProgramExerciseEntity,
         slotName: String,
-        seeds: Map<Pair<Long, String>, List<LoggedSet>>,
+        seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>,
     ): List<LoggedSet>? {
         val stored = programDao.logForSlot(day.planId, day.dayId, slot.id, slotName)
         val sets = stored?.let { SetJson.decodeSets(it.setsJson) }
-            ?: seeds[slot.id to slotName]
+            ?: seeds[slot.id to slotName]?.rows
         return sets?.map {
             it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null)
         }
@@ -1486,7 +1506,7 @@ class TrackerRepository(
         SetJson.encodeSets(base), SetJson.encodeSets(base.mapIndexed { i, s -> s.copy(plannedIndex = i) }), clock.millis(),
     )
 
-    private suspend fun initialRunTracks(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, List<LoggedSet>>): List<RunTrackEntity> {
+    private suspend fun initialRunTracks(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>): List<RunTrackEntity> {
         val tracks = mutableListOf<RunTrackEntity>()
         for (slot in programDao.exercisesForDay(day.planId, day.dayId)) {
             for (slotName in listOf(Slot.MAIN, Slot.SS)) {
@@ -1563,13 +1583,13 @@ class TrackerRepository(
         runDao.insertTracks(tracks)
     }
 
-    /** Runs inside a transaction and takes config and catalog from the caller. */
+    /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun seedPlan(
         day: ProgramDayEntity,
         runTracks: List<RunTrackEntity>?,
-        config: LifterConfig,
+        unit: WeightUnit,
         catalog: ExerciseCatalog,
-    ): Map<Pair<Long, String>, List<LoggedSet>> {
+    ): Map<Pair<Long, String>, SlotSeeding.Seeded> {
         val rows = programDao.exercisesForDay(day.planId, day.dayId)
         val tracks = runTracks.orEmpty()
         val dropped = rows.filter { row ->
@@ -1590,7 +1610,7 @@ class TrackerRepository(
                 }
             }.toMap()
         }
-        return DaySeeds.plan(slots, existing, config, catalog)
+        return plans.seeds(day.planId, slots, existing, unit, catalog)
     }
 
     /** The slot's live MAIN row count: its open-run track's, else its stored MAIN row's; null with neither. */
@@ -1614,27 +1634,28 @@ class TrackerRepository(
         return plans.runSwapRows(row, slot, newExerciseId, mainRows, unit, catalog)
     }
 
-    /** Runs inside a transaction and takes config and catalog from the caller. */
+    /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun seedRunTracks(
         day: ProgramDayEntity,
         tracks: List<RunTrackEntity>,
-        config: LifterConfig,
+        unit: WeightUnit,
         catalog: ExerciseCatalog,
         restoringLift: Long? = null,
     ) {
         val runId = day.nextRunId
-        val seeds = seedPlan(day, tracks, config, catalog)
+        val seeds = seedPlan(day, tracks, unit, catalog)
             .filterKeys { restoringLift == null || it.first == restoringLift }
+        keepSeeds(day, seeds)
         val existing = tracks.toMutableList()
         val seededSlots = mutableSetOf<Long>()
         for ((key, sets) in seeds) {
             val slot = programDao.exercise(key.first) ?: continue
             val exerciseId = slot.exerciseIdFor(key.second) ?: continue
-            val base = if (restoringLift == null) workingBase(day, slot, key.second, seeds) ?: sets else sets
+            val base = workingBase(day, slot, key.second, seeds) ?: sets.rows
             val track = runTrack(runId, slot, key.second, exerciseId, WorkingRows.cleared(base))
             val retiredIndex = existing.indexOfFirst { it.retired && it.sameKey(track) }
             if (retiredIndex >= 0) {
-                val reopened = reopenTrack(existing[retiredIndex], seeds)
+                val reopened = reopenTrack(existing[retiredIndex], workingBase(day, slot, key.second, seeds))
                 runDao.updateTrack(reopened)
                 existing[retiredIndex] = reopened
             } else {
@@ -1649,7 +1670,7 @@ class TrackerRepository(
             val partnerRows = SetJson.decodeSets(partner.setsJson)
             if (mainRows.size == partnerRows.size) continue
             val row = programDao.exercise(id) ?: continue
-            val aligned = alignRunTracks(row, main, partner, config, catalog) ?: continue
+            val aligned = alignRunTracks(row, main, partner, unit, catalog) ?: continue
             writeRunTracks(listOf(
                 main.copy(setsJson = SetJson.encodeSets(aligned.first), updatedAt = clock.millis()),
                 partner.copy(setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis()),

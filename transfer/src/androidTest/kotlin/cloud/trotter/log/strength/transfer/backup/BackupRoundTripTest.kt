@@ -136,9 +136,10 @@ class BackupRoundTripTest : BackupTestHarness() {
         val sessionId = repository.finishRun(repository.openRunFlow.first()!!.id)!!
         repository.history.setSessionNote(sessionId, "Felt smooth")
         repository.setKeepToPlan(rowId, true)
-        // A fresh post-advance edit, so the exported live logs carry current work.
-        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
-            TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(250.0, 5, SetKind.TOP)) },
+        // Fresh saved working values after the advance, so the exported live logs carry current work.
+        // An edit before Start now changes a draft, not the saved plan, so the row is stored directly.
+        db.programDao().upsertLog(ExerciseLogEntity(
+            PlanEntity.LEGACY_ID, "A", squatId, Slot.MAIN, SetJson.encodeSets(listOf(LoggedSet(250.0, 5, SetKind.TOP))), 3_000,
         ))
 
         val secondAnswers = wizardAnswers.copy(

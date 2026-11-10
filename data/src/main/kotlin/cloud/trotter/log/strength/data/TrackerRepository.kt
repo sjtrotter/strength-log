@@ -749,15 +749,15 @@ class TrackerRepository(
     /** Writes missing stored rows with their seed rule on ruled columns outside Plan mode (spec W2b-3a decision 3).
      *  Room only; runs in the caller's transaction. */
     private suspend fun keepSeeds(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>) {
-        val undoRules = ProgressionUndoJson.decode(sessionDao.lastSessionForDay(day.planId, day.dayId)?.progressionUndoJson)
-            ?.rules.orEmpty().map { it.programExerciseId to it.slot }.toSet()
+        val undoAfter = ProgressionUndoJson.decode(sessionDao.lastSessionForDay(day.planId, day.dayId)?.progressionUndoJson)
+            ?.rules.orEmpty().associate { (it.programExerciseId to it.slot) to it.afterJson }
         for ((key, seeded) in seeds) {
             val (id, name) = key
             if (programDao.logForSlot(day.planId, day.dayId, id, name) != null) continue
             val slot = programDao.exercise(id) ?: continue
             programDao.upsertLog(logEntity(day.planId, day.dayId, id, name, seeded.rows))
             val storedRule = slot.ruleJsonFor(name)
-            if (!slot.keepToPlan && storedRule != null && key !in undoRules) {
+            if (!slot.keepToPlan && storedRule != null && storedRule != undoAfter[key]) {
                 val encoded = SlotRuleJson.encode(seeded.rule)
                 if (encoded != storedRule) setRuleFor(id, name, encoded)
             }

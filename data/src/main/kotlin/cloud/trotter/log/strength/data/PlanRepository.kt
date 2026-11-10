@@ -699,7 +699,7 @@ class PlanRepository(
             val mainSeed = if (main !in existing) {
                 seed(planId, slot, Slot.MAIN, 0, unit, catalog) ?: continue
             } else null
-            if (main !in existing && mainSeed != null) seeds[main] = mainSeed
+            mainSeed?.let { seeds[main] = it }
             if (needsPartner) {
                 val count = existing[main] ?: mainSeed?.rows?.size ?: continue
                 seed(planId, slot, Slot.SS, count, unit, catalog)?.let { seeds[partner] = it }

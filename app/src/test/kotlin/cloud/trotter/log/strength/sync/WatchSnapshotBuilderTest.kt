@@ -210,10 +210,11 @@ class WatchSnapshotBuilderTest {
         skipped: Set<Long> = emptySet(),
         catalog: ExerciseCatalog = this.catalog,
         planId: Long = 1L,
+        seeds: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
     ): PerformedDay = PerformedDay.of(
         planId, dayId, program, slots,
         DayTracks(null, false, logs, droppedPartners = dropped, skippedLifts = skipped),
-        WizardAnswers(config = cfg), catalog,
+        WizardAnswers(config = cfg), catalog, seeds,
     )
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
@@ -513,7 +514,8 @@ class WatchSnapshotBuilderTest {
         val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
 
         val ex = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, logs),
+            performedDay(program, "A", slots, logs,
+                seeds = mapOf((30L to Slot.SS) to logs.single { it.slot == Slot.SS }.sets)),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
 
@@ -649,7 +651,8 @@ class WatchSnapshotBuilderTest {
         )
         val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
         val ex = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, logs),
+            performedDay(program, "A", slots, logs,
+                seeds = mapOf((30L to Slot.SS) to logs.single { it.slot == Slot.SS }.sets)),
             unit = WeightUnit.LB, revision = 1L, restSettings = RestSettings(enabled = true),
         )!!.day.exercises.single()
         assertEquals(90, ex.sets.single().restAfterSeconds) // weighted WORK on the main track
@@ -715,7 +718,8 @@ class WatchSnapshotBuilderTest {
         val slots = listOf(ProgramSlot(30L, 0, pe))
 
         val exercise = WatchSnapshotBuilder.build(
-            performedDay(armsProgram, "A", slots, emptyList()),
+            performedDay(armsProgram, "A", slots, emptyList(),
+                seeds = mapOf((30L to Slot.SS) to List(3) { LoggedSet(50.0, 10, SetKind.WORK) })),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
 

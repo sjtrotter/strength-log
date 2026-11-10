@@ -61,10 +61,10 @@ data class PerformedDay(
             tracks: DayTracks,
             answers: WizardAnswers,
             catalog: ExerciseCatalog,
+            seeds: Map<Pair<Long, String>, List<LoggedSet>>,
         ): PerformedDay {
             val workoutSlots = slots.forRun(tracks.droppedPartners, tracks.skippedLifts).sortedBy { it.position }
             val stored = tracks.tracks.associateBy { it.programExerciseId to it.slot }
-            val seeds = DaySeeds.plan(workoutSlots, stored.mapValues { it.value.sets.size }, answers.config, catalog)
             fun track(slot: ProgramSlot, trackSlot: String): PerformedTrack {
                 val key = slot.programExerciseId to trackSlot
                 val performed = performedExercise(slot, stored[key]?.exerciseId, catalog, trackSlot)

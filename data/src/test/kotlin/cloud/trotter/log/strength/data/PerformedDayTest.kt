@@ -67,7 +67,8 @@ class PerformedDayTest {
         val slot = ProgramSlot(9, 0, ProgramExercise("ez_curl", targetSets = 2,
             superset = SupersetPartner("rope_pushdown")))
         val rows = List(4) { LoggedSet(70.0, 8, SetKind.EXTRA) }
-        val performed = day(listOf(slot), DayTracks("run", true, listOf(LoggedSlot(9, Slot.MAIN, rows)))).slots.single()
+        val performed = day(listOf(slot), DayTracks("run", true, listOf(LoggedSlot(9, Slot.MAIN, rows))),
+            seeds = mapOf((9L to Slot.SS) to List(4) { LoggedSet(50.0, 10, SetKind.WORK) })).slots.single()
 
         assertSame(rows, performed.main.sets)
         val partner = requireNotNull(performed.partner)
@@ -166,13 +167,17 @@ class PerformedDayTest {
     @Test fun `unknown day keeps available slots with no program day`() {
         val slots = listOf(ProgramSlot(1, 0, ProgramExercise("ez_curl")))
         val day = PerformedDay.of(7, "missing", Program(emptyList()), slots,
-            DayTracks(null, false, emptyList()), answers, catalog)
+            DayTracks(null, false, emptyList()), answers, catalog, seeds = emptyMap())
 
         assertNull(day.day)
         assertEquals(slots, day.slots.map { it.slot })
     }
 
-    private fun day(slots: List<ProgramSlot>, tracks: DayTracks = DayTracks(null, false, emptyList())): PerformedDay =
+    private fun day(
+        slots: List<ProgramSlot>,
+        tracks: DayTracks = DayTracks(null, false, emptyList()),
+        seeds: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
+    ): PerformedDay =
         PerformedDay.of(7, "A", Program(listOf(ProgramDay("A", "Arms", "", slots.map { it.exercise }))),
-            slots, tracks, answers, catalog)
+            slots, tracks, answers, catalog, seeds)
 }

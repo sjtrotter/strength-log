@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.convertTestPlans
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -112,6 +113,12 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
+        val slot = repo.plans.daySlotsFlow("A").first().single().programExerciseId
+        db.storeTestRows("A", slot, Slot.MAIN, listOf(
+            LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
+            LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
+            LoggedSet(235.0, 5, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
+        ))
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans, historyRepository = repo.history)
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val before = source.snapshots.publishableSnapshots().first()

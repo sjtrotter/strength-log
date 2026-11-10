@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.storeTestRows
@@ -112,10 +111,11 @@ class SetEditApplierRunTest {
     private suspend fun squatId(planId: Long): Long = repo.plans.slotsFor(planId, "A").first()
         .first { it.exercise.exerciseId == "bb_back_squat" }.programExerciseId
 
-    private suspend fun seeds(planId: Long): Map<Pair<Long, String>, List<LoggedSet>> = DaySeeds.plan(
-        repo.plans.slotsFor(planId, "A").first(), emptyMap(),
-        repo.plans.wizardAnswersFor(planId).first().config, repo.catalog.catalogFlow.first(),
-    )
+    private suspend fun seeds(planId: Long): Map<Pair<Long, String>, List<LoggedSet>> =
+        repo.observeDay(planId, "A").first().slots.flatMap { slot ->
+            listOfNotNull((slot.slot.programExerciseId to Slot.MAIN) to slot.main.sets,
+                slot.partner?.let { (slot.slot.programExerciseId to Slot.SS) to it.sets })
+        }.toMap()
 
     private suspend fun phoneStart(planId: Long): String {
         val seeds = seeds(planId)

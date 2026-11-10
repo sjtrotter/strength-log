@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.SlotRole
@@ -302,6 +303,88 @@ class PartnerRuleTest : OpeningFixture() {
         val undoRule = undo.rules.single { it.programExerciseId == s && it.slot == Slot.SS }
         assertEquals(beforeRule, undoRule.beforeJson)
         assertEquals(db.programDao().exercise(s)!!.partnerRuleJson, undoRule.afterJson)
+    }
+
+    @Test fun `reseed after Finish preserves fitted lazy partner and main rules for Undo`() = runTest {
+        for (automatic in listOf(false, true)) {
+            val plan = converted(ProgramDay("A", "Day A", "", listOf(
+                ProgramExercise("bb_back_squat", targetSets = 3, superset = SupersetPartner("cable_row")),
+            )))
+            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+            val s = id(plan, "bb_back_squat")
+            lifter(plan, s, squat(), squatRule())
+            val storedRule = rule(SlotRole.ACCESSORY, 8).copy(
+                state = SlotState(successStreak = 1, exposures = 3, calibrating = true))
+            db.programDao().setPartnerRule(s, SlotRuleJson.encode(storedRule))
+            val before = assertNotNull(db.programDao().exercise(s))
+            assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+            db.planDao().updateLightCycle(plan, 2, 0)
+            val run = start(plan)
+            val tracks = db.runDao().tracks(run)
+            val main = tracks.single { it.slot == Slot.MAIN }
+            val ss = tracks.single { it.slot == Slot.SS }
+            assertEquals(4, planned(main).size)
+            assertEquals("""{"light":true}""", main.openingJson)
+            assertEquals(planned(main).size, planned(ss).size)
+            assertEquals("""{"layoff":"HOLD"}""", ss.openingJson)
+            val partnerRows = work(planned(ss).size, 120.0, 8)
+            db.runDao().updateTrack(ss.copy(plannedJson = SetJson.encodeSets(partnerRows),
+                setsJson = SetJson.encodeSets(partnerRows.mapIndexed { i, row -> row.copy(plannedIndex = i) })))
+
+            val session = finishBoth(plan, s)
+            assertNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+            assertEquals(storedRule.copy(state = storedRule.state.copy(exposures = 4)), partnerRule(s))
+            val after = assertNotNull(db.programDao().exercise(s))
+            val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+            assertTrue(undo.logs.none { it.programExerciseId == s && it.slot == Slot.SS })
+
+            repo.ensureSeeded(plan, "A")
+
+            val seeded = assertNotNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+            assertEquals(work(squat().size, 120.0, 8), SetJson.decodeSets(seeded.setsJson))
+            assertEquals(after.partnerRuleJson, db.programDao().exercise(s)!!.partnerRuleJson)
+            assertEquals(after.ruleJson, db.programDao().exercise(s)!!.ruleJson)
+            assertTrue(repo.undoProgression(session))
+            assertEquals(before.partnerRuleJson, db.programDao().exercise(s)!!.partnerRuleJson)
+            assertEquals(before.ruleJson, db.programDao().exercise(s)!!.ruleJson)
+            assertEquals(seeded, db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        }
+    }
+
+    @Test fun `reseed after a structure edit replaces the default rule despite pending Finish Undo`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val b = id(plan, "bb_bench")
+        lifter(plan, b, work(3, 120.0, 10), rule(SlotRole.MAIN, 10))
+        val run = start(plan)
+        repo.applyToRun(run, plan, "A", listOf(TrackEdit(b, Slot.MAIN) { rows ->
+            rows.map { it.copy(done = true, rir = 2) }
+        }))
+        val session = assertNotNull(repo.finishRun(run))
+        val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+        val undoRule = undo.rules.single { it.programExerciseId == b && it.slot == Slot.MAIN }
+        assertEquals(undoRule.afterJson, db.programDao().exercise(b)!!.ruleJson)
+
+        repo.setStructure(b, SetStructure.RAMP_TOP)
+
+        val editedRule = rule(b)
+        assertFalse(editedRule.state.calibrating)
+        assertTrue(db.programDao().exercise(b)!!.ruleJson != undoRule.afterJson)
+        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
+
+        repo.ensureSeeded(plan, "A")
+
+        assertTrue(rule(b).state.calibrating)
+        assertEquals(editedRule.copy(state = editedRule.state.copy(calibrating = true)), rule(b))
+        assertEquals(listOf(
+            LoggedSet(65.0, 5, SetKind.RAMP), LoggedSet(85.0, 5, SetKind.RAMP),
+            LoggedSet(95.0, 5, SetKind.RAMP), LoggedSet(110.0, 3, SetKind.RAMP),
+            LoggedSet(120.0, 5, SetKind.TOP),
+        ), rows(plan, b))
+        val seededRule = db.programDao().exercise(b)!!.ruleJson
+        val seeded = log(plan, b)
+        assertTrue(repo.undoProgression(session))
+        assertEquals(seededRule, db.programDao().exercise(b)!!.ruleJson)
+        assertEquals(seeded, log(plan, b))
     }
 
     @Test fun `a partner fitted to its main's layoff keeps its stored row count`() = runTest {

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -33,14 +34,14 @@ class PlanConversionRuleTest {
         assertNull(PlanConversion.firstWorkingReps(emptyList()))
     }
     @Test fun `a missing entry uses ACCESSORY and the upper-body increment`() {
-        val rule = PlanConversion.rule(slot, null, null)
+        val rule = PlanConversion.rule(slot.toDomain(), null, null)
         assertEquals(SlotRole.ACCESSORY, rule.role)
         assertEquals(0.0125, rule.incrementPct)
     }
     @Test fun `an unknown structure reads STRAIGHT`() {
-        assertEquals(Scheme.STRENGTH, PlanConversion.rule(slot.copy(structure = "UNKNOWN"), null, null).scheme)
+        assertEquals(Scheme.STRENGTH, PlanConversion.rule(slot.copy(structure = "UNKNOWN").toDomain(), null, null).scheme)
     }
     @Test fun `reps above 999 count as none`() {
-        assertEquals(RepTarget.Fixed(10), PlanConversion.rule(slot, listOf(LoggedSet(50.0, 1000, SetKind.WORK)), null).target)
+        assertEquals(RepTarget.Fixed(10), PlanConversion.rule(slot.toDomain(), listOf(LoggedSet(50.0, 1000, SetKind.WORK)), null).target)
     }
 }

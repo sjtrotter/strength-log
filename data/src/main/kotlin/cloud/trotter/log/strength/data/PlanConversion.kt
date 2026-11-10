@@ -1,10 +1,8 @@
 package cloud.trotter.log.strength.data
 
-import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
-import cloud.trotter.log.strength.data.mapping.toDomain
-import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -20,15 +18,15 @@ internal object PlanConversion {
     /** Fixed reps from the slot's first working row, else its prescription, else a bodyweight entry's rep target,
      *  else [goal]'s default. */
     fun rule(
-        slot: ProgramExerciseEntity,
+        exercise: ProgramExercise,
         mainRows: List<LoggedSet>?,
         entry: ExerciseEntry?,
         goal: LiftGoal = LiftGoal.STRENGTH,
     ): SlotRule {
-        val structure = slot.toDomain().structure
+        val structure = exercise.structure
         val role = if (structure.hasTopSet || entry?.mainCapable == true) SlotRole.MAIN else SlotRole.ACCESSORY
         val rowReps = mainRows?.let(::firstWorkingReps)?.takeIf { it in 1..999 }
-        val prescribedReps = when (val target = PrescriptionJson.decode(slot.prescriptionJson)?.target) {
+        val prescribedReps = when (val target = exercise.prescription?.target) {
             is PrescribedTarget.LoadReps -> target.reps
             is PrescribedTarget.Reps -> target.reps
             is PrescribedTarget.RepsInTime -> target.repAim

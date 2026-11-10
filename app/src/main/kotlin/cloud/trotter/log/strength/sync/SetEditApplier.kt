@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.sync
 
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.ExerciseSwapResult
@@ -98,14 +97,14 @@ class SetEditApplier(
         }
         edits.add(edit(delta.slot, true))
         if (delta.done != null) {
-            val seeds = if (delta.runId == null) emptyMap() else {
-                val existing = tracks
-                    .associate { (it.programExerciseId to it.slot) to it.sets.size }
-                DaySeeds.plan(slots, existing, cfg, catalog)
-            }
             val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN
+            val otherSeed = if (delta.runId == null) null else {
+                val performed = repo.observeDay(planId, delta.dayId).first().slots
+                    .firstOrNull { it.slot.programExerciseId == delta.programExerciseId }
+                if (otherSlot == Slot.SS) performed?.partner?.seed else performed?.main?.seed
+            }
             if (tracks.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() } ||
-                seeds[delta.programExerciseId to otherSlot]?.isNotEmpty() == true) {
+                otherSeed?.isNotEmpty() == true) {
                 edits.add(edit(otherSlot, false))
             }
         }

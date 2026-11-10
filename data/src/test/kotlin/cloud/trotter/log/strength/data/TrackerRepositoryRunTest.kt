@@ -885,7 +885,7 @@ class TrackerRepositoryRunTest {
         repo.ensureSeeded(plan, "A")
 
         val main = db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!
-        assertEquals(listOf(130.0, 165.0, 190.0, 210.0, 235.0, 175.0),
+        assertEquals(List(6) { 45.0 },
             SetJson.decodeSets(main.setsJson).map { it.weightLb })
         val seeded = db.programDao().logsForDay(plan, "A").map { it.copy(updatedAt = 123L) }
         seeded.forEach { db.programDao().upsertLog(it) }
@@ -999,13 +999,21 @@ class TrackerRepositoryRunTest {
             ParkedTrackDto(Slot.SS, "ez_curl", logs[1].setsJson),
         ), ParkedLogsJson.decode(parked))
         repo.ensureSeeded(plan, "A")
-        assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertEquals(listOf(
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.TOP), LoggedSet(45.0, 8, SetKind.BACKOFF),
+        ), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
         repo.finishRun(start(plan))
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
         assertEquals(parked, db.programDao().exercise(slot)!!.parkedLogsJson)
         repo.ensureSeeded(plan, "A")
-        assertEquals(squat(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+        assertEquals(listOf(
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.TOP), LoggedSet(45.0, 8, SetKind.BACKOFF),
+        ), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
 
         repo.setKeepToPlan(slot, false)
 
@@ -1167,7 +1175,11 @@ class TrackerRepositoryRunTest {
 
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         repo.ensureSeeded(plan, "A")
-        assertEquals(seed, repo.dayTracksFlow(plan, "A").first().tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.sets)
+        assertEquals(listOf(
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.TOP), LoggedSet(45.0, 8, SetKind.BACKOFF),
+        ), repo.dayTracksFlow(plan, "A").first().tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.sets)
     }
 
     @Test fun `finish holds the opening weight after a miss`() = runTest {
@@ -1420,7 +1432,11 @@ class TrackerRepositoryRunTest {
         assertTrue(repo.discardRun(runId))
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
         repo.ensureSeeded(plan, "A")
-        assertEquals(squat(), repo.dayTracksFlow(plan, "A").first().tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.sets)
+        assertEquals(listOf(
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
+            LoggedSet(45.0, 5, SetKind.TOP), LoggedSet(45.0, 8, SetKind.BACKOFF),
+        ), repo.dayTracksFlow(plan, "A").first().tracks.single { it.programExerciseId == slot && it.slot == Slot.MAIN }.sets)
     }
 
     @Test fun `reset to plan clears both tracks and refuses kept slots and the open day`() = runTest {

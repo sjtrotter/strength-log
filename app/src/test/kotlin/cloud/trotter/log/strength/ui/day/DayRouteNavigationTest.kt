@@ -274,6 +274,10 @@ class DayRouteNavigationTest {
                 else state.cardio?.block != null
             }
         }
+        if (timedReps) {
+            rule.runOnIdle { viewModel.startWorkout() }
+            rule.waitUntil(5_000) { rule.runOnIdle { viewModel.uiState.value.runOpen } }
+        }
         rule.runOnIdle {
             if (timedReps) {
                 val card = viewModel.uiState.value.exercises.single()

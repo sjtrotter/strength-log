@@ -130,6 +130,8 @@ class DayViewModelCascadeTest {
 
     /** One full session at the current prescription, from a seeded program. */
     private suspend fun TestScope.completeOneSession(vm: DayViewModel) {
+        vm.startWorkout()
+        advanceUntilIdle()
         tickWholeTrack(vm)
         advanceUntilIdle()
         vm.completeDay()
@@ -269,6 +271,8 @@ class DayViewModelCascadeTest {
         val id = slotId()
         val top = topIndex()
         val rows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
+        vm.startWorkout()
+        advanceUntilIdle()
         repeat(rows) { index -> if (index != top) vm.toggleDone(id, index, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         vm.completeDay()

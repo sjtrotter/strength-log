@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.TodayTarget
@@ -133,6 +134,8 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
+    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
+    private val pendingStart = savedState.getStateFlow<PendingStartTick?>(KEY_PENDING_START, null)
 
     val distanceUnit: StateFlow<DistanceUnit> = settings.distanceUnitFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, DistanceUnit.MI)
@@ -239,8 +242,9 @@ class DayViewModel @Inject constructor(
                 }.flatMapLatest { history ->
                 combine(repo.observeDay(planId, dayId), repo.openRunFlow) { day, open ->
                     val tracks = day.tracks
-                    val state = buildState(ctx, day, history)
-                        .copy(runId = tracks.runId, runOpen = tracks.runOpen,
+                    val built = buildState(ctx, day, history)
+                    val state = built.copy(runId = tracks.runId, runOpen = tracks.runOpen,
+                            beforeStart = (!tracks.runOpen || tracks.draft) && built.exercises.isNotEmpty(),
                             runSetCounts = open?.takeIf { it.id == tracks.runId }?.tracks?.setCounts(),
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
                             skippedLifts = slots.filter { it.programExerciseId in tracks.skippedLifts }.map { slot ->
@@ -419,10 +423,11 @@ class DayViewModel @Inject constructor(
     val uiState: StateFlow<DayUiState> = combine(
         sheetUiState,
         watchContinuity.continuityFlow,
-        watchContinuity.remoteTickFlow,
-    ) { state, continuity, remoteTick ->
+        watchContinuity.remoteTickFlow, pendingStart,
+    ) { state, continuity, remoteTick, pending ->
         DayScreenBuilder.markRemoteTick(
             state.copy(
+                startSheet = pending != null && pending.dayId == state.viewDayId && state.beforeStart,
                 watchStatus = DayScreenBuilder.watchStatusLine(
                     continuity.lastContactMillis, continuity.syncingChanges,
                     queuedChanges = 0, watchConnected = continuity.lastContactMillis > 0L,
@@ -483,6 +488,32 @@ class DayViewModel @Inject constructor(
     internal val finisher: SessionFinisher
 
     init {
+        viewModelScope.launch {
+            workoutStart.navigation.collect { target ->
+                if (target.planId != dayState.value.planId || target.dayId != currentDay()) selectDay(target)
+            }
+        }
+        viewModelScope.launch {
+            combine(dayState, pendingStart) { state, pending ->
+                pending?.takeIf { !state.loading && state.viewDayId != null &&
+                    (state.viewDayId != it.dayId || !state.beforeStart) }
+            }.collect { stale ->
+                if (stale != null) mutationLock.withLock {
+                    if (pendingStart.value != stale) return@withLock
+                    val state = dayState.value
+                    if (state.loading || state.viewDayId == null ||
+                        (state.viewDayId == stale.dayId && state.beforeStart)) return@withLock
+                    // A process can die between starting the run and saving its timer reservation.
+                    val timer = savedState.get<TimedRepEvent>(KEY_PENDING_START_TIMER)
+                    if (stale.startTimer && timer != null && timedRepEvent.value == null &&
+                        timer.dayId == stale.dayId && timer.programExerciseId == stale.programExerciseId &&
+                        timer.setIndex == stale.index && timedRepMatches(state, timer)) {
+                        savedState[KEY_TIMED_REP_EVENT] = timer
+                    }
+                    dismissStart()
+                }
+            }
+        }
         viewModelScope.launch {
             swapUndo.flatMapLatest { offer ->
                 if (offer == null) flowOf(null) else repo.openRunFlow.map { run ->
@@ -1135,18 +1166,82 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    fun startWorkout() {
+        val state = dayState.value
+        val planId = state.planId ?: return
+        val day = state.viewDayId ?: return
+        workoutStart.start(DaySelection(planId, day))
+    }
+
+    fun dismissStart() {
+        savedState[KEY_PENDING_START] = null
+        savedState[KEY_PENDING_START_TIMER] = null
+    }
+
+    fun confirmStart() {
+        mutate {
+            val pending = pendingStart.value ?: return@mutate
+            val state = dayState.value
+            if (state.viewDayId != pending.dayId) return@mutate
+            val runId = state.runId ?: return@mutate
+            if (pending.startTimer) {
+                val planId = state.planId ?: return@mutate
+                val event = timedRepToStart(pending.programExerciseId, pending.index) ?: return@mutate
+                val tracks = repo.dayTracksFlow(planId, pending.dayId).first()
+                if (tracks.runId != runId || tracks.tracks.firstOrNull {
+                        it.programExerciseId == pending.programExerciseId && it.slot == pending.slot && it.exerciseId == event.exerciseId
+                    }?.sets?.getOrNull(pending.index)?.done != false) return@mutate
+                savedState[KEY_PENDING_START_TIMER] = event
+                when (repo.startRun(planId, pending.dayId)) {
+                    is RunStartResult.Started, is RunStartResult.AlreadyOpen -> {
+                        savedState[KEY_TIMED_REP_EVENT] = event
+                        dismissStart()
+                    }
+                    is RunStartResult.OtherRunOpen -> reportOtherDay(RunWriteResult.Rejected, planId, pending.dayId)
+                    RunStartResult.NoStrengthSlots -> Unit
+                }
+                return@mutate
+            }
+            val countEvent = if (pending.timedRep) timedRepEvent.value ?: return@mutate else null
+            if (tickSetLocked(pending.dayId, runId, pending.programExerciseId, pending.index,
+                    checked = true, slot = pending.slot, countEvent = countEvent, actionLog = pending.actionLog, startOnTick = true)) {
+                dismissStart()
+            }
+        }
+    }
+
     fun startTimedRep(programExerciseId: Long, setIndex: Int) {
-        if (cardioRun.value != null || timedRepEvent.value != null) return
+        val event = timedRepToStart(programExerciseId, setIndex) ?: return
+        val state = dayState.value
+        val planId = state.planId ?: return
+        if (!state.beforeStart && state.openRunElsewhere == null) {
+            // Reserve synchronously, so a queued cardio Start cannot replace the alarm.
+            savedState[KEY_TIMED_REP_EVENT] = event
+            return
+        }
+        mutate {
+            val current = timedRepToStart(programExerciseId, setIndex)?.takeIf { it.dayId == event.dayId } ?: return@mutate
+            val open = repo.openRunFlow.first()
+            if (open != null && (open.planId != planId || open.dayId != current.dayId)) {
+                reportOtherDay(RunWriteResult.Rejected, planId, current.dayId)
+            } else if (open == null || open.draft) {
+                if (pendingStart.value != null) return@mutate
+                closeSheet()
+                savedState[KEY_PENDING_START] = PendingStartTick(current.dayId, programExerciseId, Slot.MAIN, setIndex,
+                    actionLog = false, timedRep = false, startTimer = true)
+            } else savedState[KEY_TIMED_REP_EVENT] = current
+        }
+    }
+
+    private fun timedRepToStart(programExerciseId: Long, setIndex: Int): TimedRepEvent? {
+        if (cardioRun.value != null || timedRepEvent.value != null) return null
         val state = uiState.value
-        val day = currentDay() ?: return
-        val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
-        val duration = card.timedRepDurationSeconds?.takeIf { it > 0 } ?: return
-        if (state.viewDayId != day || card.focusIndex != setIndex || card.rows.getOrNull(setIndex)?.done != false) return
-        // Reserve synchronously, so a cardio Start or a second tap cannot replace the alarm.
-        savedState[KEY_TIMED_REP_EVENT] = TimedRepEvent(
-            day, programExerciseId, card.exerciseId, setIndex, duration,
-            cardioClock.wallMillis(), cardioClock.elapsedRealtimeMillis(), cardioClock.bootCount(),
-        )
+        val day = currentDay() ?: return null
+        val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return null
+        val duration = card.timedRepDurationSeconds?.takeIf { it > 0 } ?: return null
+        if (state.viewDayId != day || card.focusIndex != setIndex || card.rows.getOrNull(setIndex)?.done != false) return null
+        return TimedRepEvent(day, programExerciseId, card.exerciseId, setIndex, duration,
+            cardioClock.wallMillis(), cardioClock.elapsedRealtimeMillis(), cardioClock.bootCount())
     }
 
     fun stopTimedRep() {
@@ -1213,11 +1308,12 @@ class DayViewModel @Inject constructor(
             }
             val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first(), slot)
             val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
-            repo.applyToRun(runId, planId, day, listOf(
+            val result = repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                     if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(weightLb = lb), unit, performed.entry?.equipment.orEmpty())
                 },
             ))
+            reportOtherDay(result, planId, day)
             if (tapped?.kind == SetKind.TOP && tapped.weightLb != lb) settings.markTopSetHelperSeen()
         }
     }
@@ -1236,11 +1332,12 @@ class DayViewModel @Inject constructor(
         day: String, runId: String, planId: Long, programExerciseId: Long, slot: String, index: Int, newReps: Int,
     ) {
         val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
-        repo.applyToRun(runId, planId, day, listOf(
+        val result = repo.applyToRun(runId, planId, day, listOf(
             TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                 if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(reps = newReps))
             },
         ))
+        reportOtherDay(result, planId, day)
         if (tapped?.kind == SetKind.TOP && tapped.reps != newReps) settings.markTopSetHelperSeen()
     }
 
@@ -1250,11 +1347,12 @@ class DayViewModel @Inject constructor(
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
-            repo.applyToRun(runId, planId, day, listOf(
+            val result = repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                     if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(seconds = newSeconds))
                 },
             ))
+            reportOtherDay(result, planId, day)
         }
     }
 
@@ -1395,40 +1493,48 @@ class DayViewModel @Inject constructor(
         slot: String,
         countEvent: TimedRepEvent? = null,
         actionLog: Boolean = false,
-    ) {
+        startOnTick: Boolean = false,
+    ): Boolean {
         if (countEvent != null) {
             if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
                 !timedRepMatches(dayState.value, countEvent)
-            ) return
-            val planId = plans.planIdOfSlot(programExerciseId) ?: return
+            ) return false
+            val planId = plans.planIdOfSlot(programExerciseId) ?: return false
             val programSlot = plans.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
-                ?: return
+                ?: return false
             val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
             }
             val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first())
             val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
-            if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return
+            if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return false
         }
-        if (slot != Slot.MAIN && slot != Slot.SS) return
-        val planId = plans.planIdOfSlot(programExerciseId) ?: return
+        if (slot != Slot.MAIN && slot != Slot.SS) return false
+        val planId = plans.planIdOfSlot(programExerciseId) ?: return false
         val loggedAt = clock.millis()
         var writtenBefore: LoggedSet? = null
         var writtenAfter: LoggedSet? = null
         val result = repo.applyToRun(runId, planId, day, listOf(
             TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                 val current = rows.getOrNull(index)
-                if (current == null || ((countEvent != null || actionLog) && current.done)) null else {
+                if (current == null || ((countEvent != null || actionLog || startOnTick) && current.done)) null else {
                     val updated = SetEditor.edit(rows, index, phoneTickEdit(current, checked, loggedAt, countEvent?.count))
                     writtenBefore = current
                     writtenAfter = updated[index]
                     updated
                 }
             },
-        ))
-        if (result !is RunWriteResult.InRun) return
-        val row = writtenBefore ?: return
-        val logged = writtenAfter ?: return
+        ), startOnTick = startOnTick)
+        reportOtherDay(result, planId, day)
+        if (result == RunWriteResult.NeedsStart) {
+            if (pendingStart.value != null) return false
+            closeSheet()
+            savedState[KEY_PENDING_START] = PendingStartTick(day, programExerciseId, slot, index, actionLog, countEvent != null)
+            return false
+        }
+        if (result !is RunWriteResult.InRun) return result == RunWriteResult.Unchanged
+        val row = writtenBefore ?: return true
+        val logged = writtenAfter ?: return true
         if (countEvent != null) clearTimedRep()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
         val planSlots = plans.slotsFor(planId, day).first()
@@ -1442,7 +1548,7 @@ class DayViewModel @Inject constructor(
         val roundComplete = main.getOrNull(index)?.done == true &&
             partner?.getOrNull(index)?.done != false
         val latest = repo.dayTracksFlow(planId, day).first()
-        if (!latest.runOpen || latest.runId != runId) return
+        if (!latest.runOpen || latest.runId != runId) return true
         val projected = projectWorkout(uiState.value, latest)
         val groups = workoutGroups(projected)
         val loggedKey = "exercise:$programExerciseId"
@@ -1477,6 +1583,7 @@ class DayViewModel @Inject constructor(
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection))
             }
         }
+        return true
     }
 
     fun adjustRest(seconds: Int) = viewModelScope.launch {
@@ -1500,7 +1607,8 @@ class DayViewModel @Inject constructor(
                     rows.takeIf { it.isNotEmpty() }?.let(SetEditor::addSet)
                 } else null,
             )
-            repo.applyToRun(runId, planId, day, edits)
+            val result = repo.applyToRun(runId, planId, day, edits)
+            reportOtherDay(result, planId, day)
         }
     }
 
@@ -1529,6 +1637,7 @@ class DayViewModel @Inject constructor(
                     SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                 } else null,
             ))
+            reportOtherDay(result, planId, day)
             if (result !is RunWriteResult.InRun) return@mutate
             pushUndo(RemovedSet(programExerciseId, index, day, runId, removedMain ?: return@mutate, removedPartner))
         }
@@ -1673,14 +1782,18 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    fun discardWorkout() {
+    fun discardWorkout() = discardWorkout(draftOnly = false)
+
+    fun dropDraftWorkout() = discardWorkout(draftOnly = true)
+
+    private fun discardWorkout(draftOnly: Boolean) {
         val day = currentDay() ?: return
         val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
             closeUndoWindow()
-            if (repo.discardRun(runId)) {
+            if (repo.discardRun(runId, draftOnly = draftOnly)) {
                 phoneRest.skip()
                 clearTimedRep()
                 seedWorkingValues(planId, day)
@@ -1713,11 +1826,8 @@ class DayViewModel @Inject constructor(
         val skippedId = if (half == Slot.SS) card.partnerExerciseId ?: return else card.exerciseId
         mutate {
             val result = repo.skipLift(planId, day, programExerciseId, half, card.exerciseId, card.partnerExerciseId)
-            if (result !is RunWriteResult.InRun) {
-                val open = repo.openRunFlow.first()
-                if (open != null && (open.planId != planId || open.dayId != day)) otherWorkoutOpenMessage.value = true
-                return@mutate
-            }
+            reportOtherDay(result, planId, day)
+            if (result !is RunWriteResult.InRun) return@mutate
             closeSheet()
             clearLogUndo()
             closeUndoWindow()
@@ -1783,10 +1893,16 @@ class DayViewModel @Inject constructor(
                     day, runId, slot.programExerciseId, half, previousId, newExerciseId,
                     catalog.find(newExerciseId)?.name ?: newExerciseId,
                 )
-            } else if (repo.openRunFlow.first()?.let { it.planId != planId || it.dayId != day } == true) {
-                otherWorkoutOpenMessage.value = true
-            }
+            } else reportOtherDay(RunWriteResult.Rejected, planId, day)
         }
+    }
+
+    private suspend fun reportOtherDay(result: RunWriteResult, planId: Long, day: String) {
+        if (result != RunWriteResult.Rejected) return
+        val open = repo.openRunFlow.first() ?: return
+        if (open.planId == planId && open.dayId == day) return
+        if (open.draft) workoutStart.refuseEdit(DaySelection(planId, day), open.id)
+        else otherWorkoutOpenMessage.value = true
     }
 
     // --- seeding & bootstrap -------------------------------------------------
@@ -2274,6 +2390,8 @@ class DayViewModel @Inject constructor(
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_VIEW_SELECTION = "day_view_selection"
         const val KEY_SWAP_UNDO = "day_swap_undo"
+        const val KEY_PENDING_START = "day_pending_start_tick"
+        const val KEY_PENDING_START_TIMER = "day_pending_start_timer"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"

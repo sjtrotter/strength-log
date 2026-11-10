@@ -136,7 +136,7 @@ fun DayScreen(
     // Only the newest removal can be undone against the current row indices.
     val openOffer = removedSets.lastOrNull()
     val openSheet = state.openSheet
-    val countHostFree = pastCardio == null && !showEditSheet && openSheet == null &&
+    val countHostFree = !state.startSheet && pastCardio == null && !showEditSheet && openSheet == null &&
         noteCardId == null &&
         !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
@@ -151,7 +151,7 @@ fun DayScreen(
         enabled = onBack != null && pastCardio == null &&
             !showEditSheet && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
-            !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null,
+            !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null && !state.startSheet,
         onBack = { onBack?.invoke() },
     )
     val view = LocalView.current
@@ -414,7 +414,10 @@ fun DayScreen(
     }
 
     if (confirmingClearChecks && state.runOpen) {
-        ClearChecksConfirmDialog(
+        if (state.beforeStart) DraftDropDialog(state.viewDayId.orEmpty(),
+            onDrop = { confirmingClearChecks = false; (actions.onDropDraftWorkout ?: actions.onDiscardWorkout)() },
+            onDismiss = { confirmingClearChecks = false })
+        else ClearChecksConfirmDialog(
             cardioSaved = state.cardio?.loggedSeconds != null,
             onConfirm = {
                 confirmingClearChecks = false
@@ -423,6 +426,8 @@ fun DayScreen(
             onDismiss = { confirmingClearChecks = false },
         )
     }
+
+    if (state.startSheet) StartWorkoutSheet(state.viewDayId.orEmpty(), state.dayIndex, actions.onConfirmStart, actions.onDismissStart)
 
     noteCardId?.let { id ->
         val card = state.exercises.firstOrNull { it.programExerciseId == id }
@@ -557,6 +562,11 @@ data class DayActions(
     val onClearTodayChecks: () -> Unit = {},
     val onConfirmPlanSwap: () -> Unit = {},
     val onDismissPlanSwap: () -> Unit = {},
+    val onStart: () -> Unit = {},
+    val onEditPlan: () -> Unit = {},
+    val onConfirmStart: () -> Unit = {},
+    val onDismissStart: () -> Unit = {},
+    val onDropDraftWorkout: (() -> Unit)? = null,
 )
 
 @Composable

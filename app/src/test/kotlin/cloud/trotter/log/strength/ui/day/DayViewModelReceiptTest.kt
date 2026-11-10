@@ -206,6 +206,8 @@ class DayViewModelReceiptTest {
         insertStraightProgram()
         val vm = newCollectingViewModel()
         advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId(), 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         vm.changeReps(slotId(), Slot.MAIN, 2, 4)
@@ -236,6 +238,8 @@ class DayViewModelReceiptTest {
         val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
         repo.plans.setOfferStrengthIncreases(planId, false)
         val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        vm.startWorkout()
         advanceUntilIdle()
         vm.toggleDone(slotId(), 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
@@ -285,6 +289,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         advanceUntilIdle()
         val id = slots[0].programExerciseId
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val tracks = repo.dayTracksFlow(planId, "A").first().tracks
@@ -336,6 +342,8 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         val slot = repo.plans.slotsFor(plan, "C").first().single()
         val sets = repo.dayTracksFlow(plan, "C").first().tracks.single().sets
+        vm.startWorkout()
+        advanceUntilIdle()
         sets.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         vm.completeDay()
@@ -358,6 +366,8 @@ class DayViewModelReceiptTest {
         vm.selectDay("C")
         advanceUntilIdle()
         val slot = repo.plans.slotsFor(plan, "C").first().single()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slot.programExerciseId, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.doneSets > 0)
@@ -381,6 +391,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         advanceUntilIdle()
         val slot = repo.plans.slotsFor(owner, "A").first().first()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slot.programExerciseId, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         repo.plans.useOnly(other)
@@ -408,6 +420,8 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         val slot = repo.plans.daySlotsFlow("C").first().single()
         val rows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets
+        vm.startWorkout()
+        advanceUntilIdle()
         rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         val completedSetCount = vm.uiState.value.doneSets
@@ -497,6 +511,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         vm.selectDay("A")
         advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         assertEquals(6, vm.uiState.value.totalSets)
@@ -534,6 +550,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         vm.selectDay("A")
         advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val captured = repo.openRunFlow.first()!!.tracks.single().planned
@@ -568,6 +586,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         advanceUntilIdle()
         val id = slotId()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         vm.toggleDone(id, 0, checked = true, slot = Slot.SS)
         advanceUntilIdle()
@@ -599,6 +619,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         advanceUntilIdle()
         val id = slotId()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         vm.toggleDone(id, 0, checked = true, slot = Slot.SS)
         advanceUntilIdle()
@@ -628,6 +650,8 @@ class DayViewModelReceiptTest {
         val vm = newCollectingViewModel()
         vm.selectDay("A")
         advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         beforeFinishBaseline = {
@@ -652,6 +676,8 @@ class DayViewModelReceiptTest {
         repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 6)
         val vm = newCollectingViewModel()
         vm.selectDay("A")
+        advanceUntilIdle()
+        vm.startWorkout()
         advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
@@ -713,6 +739,8 @@ class DayViewModelReceiptTest {
             advanceUntilIdle()
             val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
             val id = repo.plans.slotsFor(planId, "A").first().single().programExerciseId
+            vm.startWorkout()
+            advanceUntilIdle()
             if (mainDone) vm.toggleDone(id, 0, true, Slot.MAIN)
             if (partnerDone) vm.toggleDone(id, 0, true, Slot.SS)
             advanceUntilIdle()
@@ -1288,7 +1316,11 @@ class DayViewModelReceiptTest {
 
     private suspend fun mainTrackRowCount(): Int = mainTrack().size
 
-    private suspend fun tickWholeTrack(vm: DayViewModel) {
+    private suspend fun TestScope.tickWholeTrack(vm: DayViewModel) {
+        if (repo.openRunFlow.first()?.draft != false) {
+            vm.startWorkout()
+            advanceUntilIdle()
+        }
         val id = slotId()
         val hasPartner = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
         repeat(mainTrackRowCount()) { index ->
@@ -1345,6 +1377,8 @@ class DayViewModelReceiptTest {
         val rows = List(3) { LoggedSet(120.0, 10, SetKind.WORK) }
         db.storeTestRows("A", id, Slot.SS, rows)
         val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        vm.startWorkout()
         advanceUntilIdle()
         vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()

@@ -130,6 +130,8 @@ class InteractionSettleTest {
                 }
             }
             await("All sets")
+            compose.runOnIdle { vm.startWorkout() }
+            compose.waitUntil(5_000) { compose.runOnIdle { vm.uiState.value.runOpen } }
             compose.runOnUiThread { vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN) }
             await("Next: DB Bench Press")
             val before = time.clock.instant()

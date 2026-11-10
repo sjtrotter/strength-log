@@ -61,9 +61,10 @@ internal fun DaySheet(
                             DropdownMenuItem(text = { Text(stringResource(R.string.day_menu_edit_day)) },
                                 onClick = { menuOpen = false; onDismiss(); onEditDay() })
                             if (state.runOpen) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.day_sheet_clear_checks)) },
+                                if (!state.beforeStart) DropdownMenuItem(text = { Text(stringResource(R.string.day_sheet_clear_checks)) },
                                     onClick = { menuOpen = false; onDismiss(); onClearChecks() })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.day_menu_clear_checks)) },
+                                DropdownMenuItem(text = { Text(stringResource(
+                                    if (state.beforeStart) R.string.day_menu_drop_changes else R.string.day_menu_clear_checks)) },
                                     onClick = { menuOpen = false; onDismiss(); onDiscardWorkout() })
                             }
                         }

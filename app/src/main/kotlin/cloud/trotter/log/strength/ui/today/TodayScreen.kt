@@ -58,14 +58,14 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                         ScreenStateAction(
                             label = stringResource(
                                 when {
-                                    state.resume != null -> R.string.screen_resume_day
+                                    state.resume != null && !state.resumeDraft -> R.string.screen_resume_day
                                     primaryDay.rest -> R.string.today_rest_taken
                                     else -> R.string.screen_start_day
                                 },
                                 primaryDay.dayId,
                             ),
                             onClick = {
-                                if (state.resume != null) actions.onResume(primaryDay.selection)
+                                if (state.resume != null && !state.resumeDraft) actions.onResume(primaryDay.selection)
                                 else if (primaryDay.rest) actions.onRestTaken(primaryDay.selection)
                                 else actions.onStart(primaryDay.selection)
                             },

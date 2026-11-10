@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -51,6 +52,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -184,6 +186,8 @@ class DayViewModelWiringTest {
         val collectFirst = launch { first.uiState.collect {} }
         advanceUntilIdle()
         val id = first.uiState.value.exercises.single().programExerciseId
+        first.startWorkout()
+        advanceUntilIdle()
         repeat(3) { index -> first.toggleDone(id, index, true, Slot.MAIN) }
         advanceUntilIdle()
         first.completeDay()
@@ -213,6 +217,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals(offer, restored.uiState.value.exercises.single().nextTime)
         assertEquals(listOf(70.0, 70.0, 70.0), restored.uiState.value.exercises.single().rows.map { it.weightDisplay })
+        restored.startWorkout()
+        advanceUntilIdle()
         restored.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         assertNull(restored.uiState.value.exercises.single().nextTime)
@@ -1058,6 +1064,8 @@ class DayViewModelWiringTest {
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val done = track(id, Slot.MAIN)!!.first()
@@ -1379,6 +1387,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, slot = Slot.MAIN)
         vm.openSetEditor(id, 0)
         advanceUntilIdle()
@@ -1406,6 +1416,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, slot = Slot.MAIN)
         advanceUntilIdle()
 
@@ -1426,6 +1438,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, slot = Slot.MAIN)
         vm.openSetEditor(id, 0)
         advanceUntilIdle()
@@ -1778,6 +1792,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, slot = Slot.MAIN)
         advanceUntilIdle()
         val run = repo.openRunFlow.first()!!
@@ -1879,6 +1895,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
         vm.toggleDone(squatId, index = 1, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
@@ -1907,6 +1925,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         assertTrue(track(id, Slot.MAIN)!![0].done)
@@ -1949,6 +1969,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         assertTrue(track(id, Slot.MAIN)!![0].done)
@@ -1979,6 +2001,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         assertTrue(track(id, Slot.MAIN)!![0].done)
@@ -2007,6 +2031,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel(restRuntime = runtime)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("pushup"), 0, true, Slot.MAIN)
         runCurrent()
         val card = vm.uiState.value.exercises.single()
@@ -2034,6 +2060,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
         val top = track(id, Slot.MAIN)!!.indexOfFirst { it.kind == SetKind.TOP }
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, top, true, Slot.SS)
         advanceUntilIdle()
         assertTrue(settings.supersetHelperSeenFlow.first())
@@ -2057,6 +2085,8 @@ class DayViewModelWiringTest {
             val collect = launch { vm.uiState.collect {} }
             advanceUntilIdle()
             val id = slotId("ez_curl")
+            vm.startWorkout()
+            advanceUntilIdle()
             vm.toggleDone(id, 0, true, Slot.SS)
             advanceUntilIdle()
             assertFalse(track(id, Slot.MAIN)!![0].done)
@@ -2089,6 +2119,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(curlId, index = 1, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
 
@@ -2160,6 +2192,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val lateralId = slotId("db_lateral")
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(lateralId, index = 0, checked = true, slot = Slot.MAIN)
         runCurrent()
 
@@ -2184,6 +2218,8 @@ class DayViewModelWiringTest {
         val id = slotId("ez_curl")
         val runId = requireNotNull(vm.uiState.value.runId)
         repo.writeTestRows(runId, "A", id, Slot.SS, track(id, Slot.SS)!!.take(1))
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
@@ -2414,6 +2450,8 @@ class DayViewModelWiringTest {
         assertTrue(seeded.size > 1)
         assertTrue(seeded.none { it.done })
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.logFocusedSet()
         advanceUntilIdle()
 
@@ -2630,6 +2668,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         vm.completeDay()
@@ -2644,14 +2684,19 @@ class DayViewModelWiringTest {
     // --- run start and Finish -----------------------------------------------
 
     @Test
-    fun firstDoneTickStartsRun_secondTickDoesNotRestamp() = runVmTest {
+    fun `firstDoneTickAsksThenStartsRun_secondTickDoesNotRestamp`() = runVmTest {
         insertProgram()
         val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
         assertNull(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first())
 
         vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        vm.confirmStart()
         advanceUntilIdle()
         val stampedAt = repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first()
         assertTrue("the first tick must open a run", stampedAt != null)
@@ -2659,6 +2704,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(squatId, index = 1, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         assertEquals("a later tick must not move the run start", stampedAt, repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first())
+        collect.cancel()
     }
 
     @Test
@@ -2688,6 +2734,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
 
@@ -2710,16 +2758,22 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun supersetMainTickStartsRun() = runVmTest {
+    fun `supersetMainTickAsksThenStartsRun`() = runVmTest {
         insertProgram()
         val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
 
         vm.toggleDone(curlId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        vm.confirmStart()
+        advanceUntilIdle()
 
         assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
+        collect.cancel()
     }
 
     @Test
@@ -2728,6 +2782,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
@@ -2746,6 +2802,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
 
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val stampedAt = repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first()
@@ -2770,6 +2828,12 @@ class DayViewModelWiringTest {
         assertFalse(vm.uiState.value.runOpen)
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.startSheet)
+        assertTrue(track(id, Slot.MAIN)!![0].done)
         assertTrue(vm.uiState.value.runOpen)
         assertEquals(repo.openRunFlow.first()!!.id, vm.uiState.value.runId)
         vm.changeWeight(id, Slot.MAIN, 4, 999.0)
@@ -2790,6 +2854,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val title = vm.uiState.value.dayTitle
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val before = repo.openRunFlow.first()
@@ -2866,6 +2932,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val old = repo.openRunFlow.first()!!
@@ -2892,6 +2960,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val old = repo.openRunFlow.first()!!
@@ -2918,6 +2988,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         vm.removeSet(id, 1, false)
@@ -2937,6 +3009,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val old = repo.openRunFlow.first()!!
@@ -2959,6 +3033,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -2979,6 +3055,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val originalPlan = vm.uiState.value.planId!!
         val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val other = repo.plans.duplicatePlan(originalPlan, "Other")
@@ -3006,6 +3084,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val openPlan = vm.uiState.value.planId!!
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val answers = repo.plans.wizardAnswersFlow.first()
@@ -3032,6 +3112,8 @@ class DayViewModelWiringTest {
         val first = newViewModel()
         advanceUntilIdle()
         val openPlan = repo.plans.selectedPlanIdFlow.first()!!
+        first.startWorkout()
+        advanceUntilIdle()
         first.toggleDone(slotId("ez_curl"), 0, true, Slot.MAIN)
         advanceUntilIdle()
         val selectedPlan = repo.plans.duplicatePlan(openPlan, "Other")
@@ -3050,6 +3132,8 @@ class DayViewModelWiringTest {
     fun legacySavedDayFallsBackToTheSelectedPlanWhenTheDisplayedPlanLacksIt() = runVmTest {
         insertProgram()
         val first = newViewModel()
+        advanceUntilIdle()
+        first.startWorkout()
         advanceUntilIdle()
         first.toggleDone(slotId("bb_back_squat"), 0, true, Slot.MAIN)
         advanceUntilIdle()
@@ -3110,6 +3194,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val plan = vm.uiState.value.planId!!
         val id = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val beforeRun = repo.openRunFlow.first()
@@ -3139,6 +3225,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_bench")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
@@ -3163,6 +3251,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_bench")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
@@ -3194,6 +3284,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 0, true, Slot.SS)
         advanceUntilIdle()
@@ -3316,6 +3408,8 @@ class DayViewModelWiringTest {
         val squatId = slotId("bb_back_squat")
         // Give the row something of its own to lose: edited reps and a tick.
         vm.changeReps(squatId, Slot.MAIN, index = 1, newReps = 9)
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(squatId, index = 1, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val before = track(squatId, Slot.MAIN)!!
@@ -3342,6 +3436,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val id = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 1, true, Slot.SS)
         advanceUntilIdle()
         val mainBefore = track(id, Slot.MAIN)!!
@@ -3375,6 +3471,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, true, Slot.MAIN)
         advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, false, Slot.MAIN)
@@ -3403,6 +3501,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, true, Slot.MAIN)
         advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, false, Slot.MAIN)
@@ -3456,6 +3556,8 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, true, Slot.MAIN)
         advanceUntilIdle()
         vm.toggleDone(slotId("bb_back_squat"), 0, false, Slot.MAIN)
@@ -3522,6 +3624,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val id = vm.uiState.value.exercises.single().programExerciseId
         assertEquals("cable_row", vm.uiState.value.exercises.single().partnerExerciseId)
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val run = repo.openRunFlow.first()!!
@@ -3599,6 +3703,8 @@ class DayViewModelWiringTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.startWorkout()
         advanceUntilIdle()
         vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
@@ -3738,4 +3844,526 @@ class DayViewModelWiringTest {
         assertNull(vm.uiState.value.swapUndo)
         collect.cancel()
     }
+    @Test fun `a tick before Start asks and writes nothing`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squat = slotId("bb_back_squat")
+        val before = track(squat, Slot.MAIN)
+        vm.openLiftSheet(squat, Slot.MAIN)
+        vm.toggleDone(squat, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.openSheet)
+        assertNull(repo.openRunFlow.first())
+        assertEquals(before, track(squat, Slot.MAIN))
+        collect.cancel()
+    }
+
+    @Test fun `Start on the sheet starts the workout and logs the tick`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squat = slotId("bb_back_squat")
+        vm.toggleDone(squat, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertTrue(track(squat, Slot.MAIN)!![0].done)
+        assertFalse(vm.uiState.value.startSheet)
+        assertFalse(vm.uiState.value.beforeStart)
+        collect.cancel()
+    }
+
+    @Test fun `Not yet leaves no row`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squat = slotId("bb_back_squat")
+        val before = track(squat, Slot.MAIN)
+        vm.toggleDone(squat, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        vm.dismissStart()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        assertEquals(before, track(squat, Slot.MAIN))
+        collect.cancel()
+    }
+
+    @Test fun `a tick on a draft asks and Start keeps the draft's edits`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squat = slotId("bb_back_squat")
+        vm.changeReps(squat, Slot.MAIN, 4, 3)
+        advanceUntilIdle()
+        vm.toggleDone(squat, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertTrue(repo.openRunFlow.first()!!.draft)
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertEquals(3, track(squat, Slot.MAIN)!![4].reps)
+        assertTrue(track(squat, Slot.MAIN)!![0].done)
+        collect.cancel()
+    }
+
+    @Test fun `the sheet survives process death`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val focus = vm.uiState.value.workout!!.focus!!
+        vm.logFocusedSet()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        val restored = newViewModel(SavedStateHandle(h.keys().associateWith { h.get<Any?>(it) }))
+        val restoredCollect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.uiState.value.startSheet)
+        restored.confirmStart()
+        advanceUntilIdle()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertTrue(track(focus.programExerciseId, focus.slot)!![focus.index].done)
+        assertTrue(settings.workoutRecordFlow.first()!!.undo != null)
+        restoredCollect.cancel()
+    }
+
+    @Test fun `a watch start clears the waiting tick`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.toggleDone(slotId("bb_back_squat"), 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        repo.startRun(vm.uiState.value.planId!!, "A")
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        vm.discardWorkout()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.startSheet)
+        collect.cancel()
+    }
+
+    @Test fun `Start shows before Start and Finish after`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.beforeStart)
+        vm.changeWeight(slotId("bb_back_squat"), Slot.MAIN, 0, 999.0)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.beforeStart)
+        vm.startWorkout()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.beforeStart)
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        collect.cancel()
+    }
+
+    @Test fun `Start on a day while another day's draft is open drops the draft in one step`() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val conflicts = launch { vm.workoutStart.conflict.collect {} }
+        advanceUntilIdle()
+        vm.changeReps(slotId("ez_curl"), Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        val draft = repo.openRunFlow.first()!!
+        vm.selectDay("B")
+        advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
+        assertTrue(vm.workoutStart.conflict.value!!.run.draft)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+        assertEquals("B", repo.openRunFlow.first()!!.dayId)
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertTrue(db.runDao().allRuns().none { it.id == draft.id })
+        conflicts.cancel()
+        collect.cancel()
+    }
+
+    @Test fun `an edit on another day while a draft is open asks to drop it and starts nothing`() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val conflicts = launch { vm.workoutStart.conflict.collect {} }
+        advanceUntilIdle()
+        vm.changeReps(slotId("ez_curl"), Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        vm.selectDay("B")
+        advanceUntilIdle()
+        val card = vm.uiState.value.exercises.single()
+        val before = card.rows
+        vm.changeWeight(card.programExerciseId, Slot.MAIN, 0, 999.0)
+        advanceUntilIdle()
+        assertTrue(vm.workoutStart.conflict.value!!.run.draft)
+        assertEquals(before, vm.uiState.value.exercises.single().rows)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+        assertNull(repo.openRunFlow.first())
+        assertNull(vm.workoutStart.conflict.value)
+        assertEquals(before, vm.uiState.value.exercises.single().rows)
+        conflicts.cancel()
+        collect.cancel()
+    }
+
+    @Test fun `an edit on another day while a workout is open says so`() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val edits = launch { vm.dayEditState.collect {} }
+        val conflicts = launch { vm.workoutStart.conflict.collect {} }
+        advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
+        vm.selectDay("B")
+        advanceUntilIdle()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val before = vm.uiState.value.exercises.single().rows
+        for (action in listOf<() -> Unit>(
+            { vm.changeWeight(id, Slot.MAIN, 0, 999.0) },
+            { vm.addSet(id, false) },
+            { vm.removeSet(id, 0, false) },
+            { vm.toggleDone(id, 0, true, Slot.MAIN) },
+        )) {
+            action()
+            advanceUntilIdle()
+            assertTrue(vm.dayEditState.value.otherWorkoutOpenMessage)
+            assertNull(vm.workoutStart.conflict.value)
+            assertEquals(before, vm.uiState.value.exercises.single().rows)
+            vm.dismissSwapMessage()
+            advanceUntilIdle()
+        }
+        conflicts.cancel()
+        edits.cancel()
+        collect.cancel()
+    }
+
+    @Test fun `a timed-rep count before Start asks, and Start logs the count`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val id = slotId("pushup")
+        val h = SavedStateHandle(mapOf("day_timed_rep_event" to TimedRepEvent(
+            "A", id, "pushup", 0, 120, 1_000, 1_000, 1, awaitingCount = true, draft = "38",
+        )))
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.openTimedRepCount()
+        vm.logTimedRepCount()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        assertFalse(track(id, Slot.MAIN)!![0].done)
+        vm.dismissStart()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.timedRep!!.event.awaitingCount)
+        vm.requestTimedRepCount()
+        vm.openTimedRepCount()
+        advanceUntilIdle()
+        assertEquals(OpenSheet.Kind.TIMED_REP_COUNT, vm.uiState.value.openSheet?.kind)
+        vm.logTimedRepCount()
+        advanceUntilIdle()
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertEquals(38, track(id, Slot.MAIN)!![0].reps)
+        assertNull(vm.uiState.value.timedRep)
+        collect.cancel()
+    }
+
+    @Test fun `a timed set timer before Start asks and only starts after confirmation`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("pushup")
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        assertNull(vm.uiState.value.timedRep)
+        vm.dismissStart()
+        advanceUntilIdle()
+        assertNull(repo.openRunFlow.first())
+        assertNull(vm.uiState.value.timedRep)
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        val restored = newViewModel(SavedStateHandle(h.keys().associateWith { h.get<Any?>(it) }))
+        val restoredCollect = launch { restored.uiState.collect {} }
+        runCurrent()
+        assertTrue(restored.uiState.value.startSheet)
+        restored.confirmStart()
+        runCurrent()
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertTrue(restored.uiState.value.timedRepRunning)
+        assertTrue(track(id, Slot.MAIN)!!.none { it.done })
+        restoredCollect.cancel()
+    }
+
+    @Test fun `a committed confirmation clears a restored pending tick without applying it twice`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        val snapshot = h.keys().associateWith { h.get<Any?>(it) }
+        val state = vm.uiState.value
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        val runId = requireNotNull(state.runId)
+        assertEquals(RunWriteResult.InRun(runId, true),
+            repo.applyToRun(runId, state.planId!!, "A", listOf(
+                TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                    SetEdit(done = true, completedAtMillis = 1234L)) },
+            )))
+        val committed = track(id, Slot.MAIN)!!
+        val restoredHandle = SavedStateHandle(snapshot)
+        val restored = newViewModel(restoredHandle)
+        val restoredCollect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertNull(restoredHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(restored.uiState.value.startSheet)
+        restored.confirmStart()
+        advanceUntilIdle()
+        assertEquals(committed, track(id, Slot.MAIN))
+        assertEquals(1, track(id, Slot.MAIN)!!.count { it.done })
+        restoredCollect.cancel()
+    }
+
+    @Test fun `two ticks before Start keep the first tick and show the sheet once`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val sheets = mutableListOf<Boolean>()
+        val collect = launch { vm.uiState.collect { state ->
+            if (sheets.lastOrNull() != state.startSheet) sheets += state.startSheet
+        } }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        vm.toggleDone(id, 1, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertEquals(0, h.get<PendingStartTick>("day_pending_start_tick")!!.index)
+        assertEquals(1, sheets.count { it })
+        vm.confirmStart()
+        advanceUntilIdle()
+
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertFalse(track(id, Slot.MAIN)!![1].done)
+        assertEquals(1, track(id, Slot.MAIN)!!.count { it.done })
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertEquals(1, sheets.count { it })
+        collect.cancel()
+    }
+
+    @Test fun `a timer request before Start keeps the pending tick`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("pushup")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        val pending = h.get<PendingStartTick>("day_pending_start_tick")!!
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+
+        assertEquals(pending, h.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(pending.startTimer)
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertNull(vm.uiState.value.timedRep)
+        collect.cancel()
+    }
+
+    @Test fun `a committed timer confirmation recovers a missing reservation and preserves an existing one`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("pushup")
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        // Confirmation has saved its reservation, but has not returned from the repository yet.
+        val reserved = TimedRepEvent("A", id, "pushup", 0, 120, -1_000, -1_000, 0)
+        val snapshot = h.keys().associateWith { h.get<Any?>(it) } + ("day_pending_start_timer" to reserved)
+        val planId = vm.uiState.value.planId!!
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        repo.startRun(planId, "A")
+        val restoredHandle = SavedStateHandle(snapshot)
+        val restored = newViewModel(restoredHandle)
+        val restoredCollect = launch { restored.uiState.collect {} }
+        runCurrent()
+
+        assertNull(restoredHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(restored.uiState.value.startSheet)
+        assertTrue(restored.uiState.value.timedRepRunning)
+        assertEquals(reserved, restoredHandle.get<TimedRepEvent>("day_timed_rep_event"))
+        assertNull(restoredHandle.get<TimedRepEvent>("day_pending_start_timer"))
+        restoredCollect.cancel()
+        restored.viewModelScope.cancel()
+        val reservedHandle = SavedStateHandle(snapshot + ("day_timed_rep_event" to reserved))
+        val reservedVm = newViewModel(reservedHandle)
+        val reservedCollect = launch { reservedVm.uiState.collect {} }
+        runCurrent()
+        reservedVm.confirmStart()
+        runCurrent()
+
+        assertNull(reservedHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertEquals(reserved, reservedHandle.get<TimedRepEvent>("day_timed_rep_event"))
+        assertTrue(reservedVm.uiState.value.timedRepRunning)
+        assertTrue(track(id, Slot.MAIN)!!.none { it.done })
+        reservedCollect.cancel()
+    }
+
+    @Test fun `the Day menu Drop preserves a draft promoted by a watch tick`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.changeReps(id, Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        val draft = repo.openRunFlow.first()!!
+        repo.applyToRun(draft.id, draft.planId!!, "A", listOf(
+            TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                SetEdit(done = true)) },
+        ))
+        advanceUntilIdle()
+        val started = repo.openRunFlow.first()!!
+        vm.dropDraftWorkout()
+        advanceUntilIdle()
+
+        assertEquals(started, repo.openRunFlow.first())
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        collect.cancel()
+    }
+
+    @Test fun `an edit conflict promoted by a watch tick requires confirmation and then starts the target`() = runVmTest {
+        insertSelectionProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        val conflicts = launch { vm.workoutStart.conflict.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.changeReps(id, Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        val draft = repo.openRunFlow.first()!!
+        vm.selectDay("B")
+        advanceUntilIdle()
+        vm.changeWeight(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 999.0)
+        advanceUntilIdle()
+        assertTrue(h.get<Boolean>("start_drop_only")!!)
+        repo.applyToRun(draft.id, draft.planId!!, "A", listOf(
+            TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                SetEdit(done = true)) },
+        ))
+        advanceUntilIdle()
+        val started = repo.openRunFlow.first()!!
+        assertFalse(vm.workoutStart.conflict.value!!.run.draft)
+        assertFalse(h.get<Boolean>("start_drop_only")!!)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+        assertEquals(started, repo.openRunFlow.first())
+        assertTrue(started.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired }.sets[0].done)
+        assertFalse(vm.workoutStart.conflict.value!!.confirming)
+        vm.workoutStart.confirmDiscard()
+        advanceUntilIdle()
+        assertTrue(vm.workoutStart.conflict.value!!.confirming)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+
+        assertEquals("B", repo.openRunFlow.first()!!.dayId)
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertNull(vm.workoutStart.conflict.value)
+        conflicts.cancel()
+        collect.cancel()
+    }
+
+    @Test fun `an interrupted timer confirmation with no commit shows the sheet again`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val id = slotId("pushup")
+        val pending = PendingStartTick("A", id, Slot.MAIN, 0, actionLog = false, timedRep = false, startTimer = true)
+        val h = SavedStateHandle(mapOf(
+            "day_pending_start_tick" to pending,
+            "day_pending_start_timer" to TimedRepEvent("A", id, "pushup", 0, 120, -1_000, -1_000, 0),
+        ))
+        val restored = newViewModel(h)
+        val collect = launch { restored.uiState.collect {} }
+        runCurrent()
+
+        assertTrue(restored.uiState.value.startSheet)
+        assertEquals(pending, h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(restored.uiState.value.timedRep)
+        assertNull(repo.openRunFlow.first())
+        restored.confirmStart()
+        runCurrent()
+        assertTrue(restored.uiState.value.timedRepRunning)
+        assertEquals(0L, h.get<TimedRepEvent>("day_timed_rep_event")!!.wallStart)
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(h.get<TimedRepEvent>("day_pending_start_timer"))
+        collect.cancel()
+    }
+
+    @Test fun `a watch start dismisses an unconfirmed timer request without reserving it`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        runCurrent()
+        val id = slotId("pushup")
+        vm.startTimedRep(id, 0)
+        runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        repo.startRun(vm.uiState.value.planId!!, "A")
+        runCurrent()
+
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.timedRep)
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(h.get<TimedRepEvent>("day_pending_start_timer"))
+        collect.cancel()
+    }
+
 }

@@ -315,6 +315,8 @@ class PhoneRestRuntimeTest {
         // Log with rest disabled, then arm it without collecting the foreground ticker.
         settings.setPhoneRestTimerEnabled(false)
         val slot = repo.plans.daySlotsFlow("A").first().first()
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(slot.programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.runOpen)

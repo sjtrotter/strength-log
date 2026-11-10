@@ -736,7 +736,7 @@ class TrackerRepository(
                     open.isPartnerDropped(id)
                 }, skippedLifts = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
                     open.isLiftSkipped(id)
-                })
+                }, draft = open.draft)
         } else {
             DayTracks(days.firstOrNull { it.dayId == dayId }?.nextRunId?.takeIf(String::isNotBlank),
                 false, logs.map { log -> log.toLoggedSlot().copy(
@@ -1218,12 +1218,13 @@ class TrackerRepository(
     }
 
     /** Atomically edits the addressed run or draft, opening today's draft on the day's next run
-     *  (owner decision 1). A done tick starts the workout. */
+     *  (owner decision 1). A done tick starts the workout unless `startOnTick` is false. */
     suspend fun applyToRun(
         runId: String,
         planId: Long,
         dayId: String,
         edits: List<TrackEdit>,
+        startOnTick: Boolean = true,
     ): RunWriteResult {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
@@ -1240,6 +1241,7 @@ class TrackerRepository(
                 val resolved = resolveRunEdits(runId, day, tracks, edits,
                     seedPlan(day, tracks, config.weightUnit, catalog), reopenRetired = true)
                 if (resolved.failure != null) return@withTransaction resolved.failure
+                if (open.draft && resolved.ticked && !startOnTick) return@withTransaction RunWriteResult.NeedsStart
                 val starts = open.draft && resolved.ticked
                 if (starts) promote(open.id, day, config.weightUnit, catalog)
                 writeRunTracks(resolved.tracks)
@@ -1253,6 +1255,7 @@ class TrackerRepository(
             if (resolved.tracks.all { edited -> initial.any { it.sameKey(edited) && it.setsJson == edited.setsJson } }) {
                 return@withTransaction RunWriteResult.Unchanged
             }
+            if (resolved.ticked && !startOnTick) return@withTransaction RunWriteResult.NeedsStart
             if (resolved.ticked) insertStarted(day, seeds, initial) else insertDraft(day, initial)
             val inserted = runDao.tracks(runId)
             writeRunTracks(resolved.tracks.map { edited ->
@@ -2043,9 +2046,11 @@ class TrackerRepository(
         true
     }
 
-    /** Drops a draft or a run's actuals, preserving working values and plan edits, and closes the day's identity. */
-    suspend fun discardRun(runId: String): Boolean = db.withTransaction {
+    /** Drops a draft or a run's actuals, preserving working values and plan edits, and closes the day's identity.
+     * With [draftOnly], returns false without writing if the run has started or is no longer open. */
+    suspend fun discardRun(runId: String, draftOnly: Boolean = false): Boolean = db.withTransaction {
         val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
+        if (draftOnly && !run.draft) return@withTransaction false
         val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
         if (day != null && day.nextRunId == run.id) {
             for (log in programDao.logsForDay(day.planId, day.dayId)) {

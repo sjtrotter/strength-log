@@ -83,6 +83,7 @@ class TodayViewModel @Inject constructor(
                 nothingOnToday = plans.isEmpty() && target != null && target != TodayTarget.NoPlans,
                 plansPaused = plans.isEmpty() && allPlansPaused,
                 resume = openDay,
+                resumeDraft = run?.draft == true,
                 upNext = days.filter { it.second }.map { it.first },
                 otherDays = days.filterNot { it.second || it.first.rest }.map { it.first },
                 fact = TodayScreenBuilder.coachLine(last?.let(java.time.Instant::ofEpochMilli), now.zone),

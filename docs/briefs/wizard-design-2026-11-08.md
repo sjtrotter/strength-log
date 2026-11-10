@@ -883,3 +883,11 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - Before any draft, the Day screen, the preview and the watch show the rows Start would open with, written nowhere.
 - One draft or workout at a time. Discard drops a draft. The last Finish's Undo is refused while a draft of the same day is open.
 - A fitted partner only counts the exposure (owner, 2026-11-09).
+
+## 26. Revision 17 (PR 2b part three-c-ii, the draft UI, 2026-11-10)
+
+- Before Start, the Day screen's top bar offers Start instead of Finish, and a "Today only" line links to the day's plan editor.
+- A phone tick before Start opens a sheet asking to start. Start begins the workout and logs the set; Not yet writes nothing. A watch tick still starts the workout.
+- Starting or editing another day while a draft is open asks to drop the draft, in one step. A started workout keeps the two-step Discard and start, and an edit on another day shows "Another workout is open".
+- Today offers "Start day A" for a draft instead of "Resume day A".
+- A set timer started before Start opens the same ready-to-start sheet; Start begins the workout and then the timer.

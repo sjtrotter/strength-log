@@ -582,6 +582,8 @@ class DayViewModelWorkoutTest {
         val id = vm.uiState.value.exercises.single().programExerciseId
         vm.decrementFocusedReps()
         vm.decrementFocusedReps()
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals(3, track(vm, id)[0].reps)
@@ -641,6 +643,8 @@ class DayViewModelWorkoutTest {
         prepare()
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals(100_000L, track(vm, id)[0].completedAtMillis)
@@ -673,6 +677,8 @@ class DayViewModelWorkoutTest {
         repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
             track(vm, id).mapIndexed { index, set -> if (index == 0) set.copy(reps = 7, seconds = 9) else set })
         runCurrent()
+        vm.startWorkout()
+        runCurrent()
         vm.startTimedRep(id, 0)
         runCurrent()
         at(220_000)
@@ -699,6 +705,8 @@ class DayViewModelWorkoutTest {
     fun `★ live rest extends undo and skipping retires it at later times`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals(190_000L, settings.phoneRestFlow.first()!!.deadlineEpochMillis)
@@ -723,6 +731,8 @@ class DayViewModelWorkoutTest {
     fun `★ without rest undo expires at exactly ten seconds`() = test {
         prepare()
         val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val reads = clock.reads
@@ -745,6 +755,8 @@ class DayViewModelWorkoutTest {
         prepare()
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         assertTrue(vm.uiState.value.runOpen)
@@ -768,6 +780,8 @@ class DayViewModelWorkoutTest {
             runCurrent()
             val cancellations = runtime.cancellations
             val arms = runtime.armed.size
+            vm.startWorkout()
+            runCurrent()
             vm.logFocusedSet()
             runCurrent()
             assertNull(settings.phoneRestFlow.first())
@@ -788,6 +802,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val state = vm.uiState.value
         val id = state.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
@@ -828,6 +844,11 @@ class DayViewModelWorkoutTest {
         assertEquals(shown, restored.uiState.value.workout!!.shown)
         restored.logFocusedSet()
         runCurrent()
+        assertTrue(restored.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        restored.confirmStart()
+        runCurrent()
+        assertFalse(restored.uiState.value.startSheet)
         val run = requireNotNull(repo.openRunFlow.first())
         assertTrue(restored.uiState.value.runOpen)
         assertTrue(track(restored, selectedId)[0].done)
@@ -851,6 +872,11 @@ class DayViewModelWorkoutTest {
         assertNull(settings.workoutRecordFlow.first())
         vm.toggleDone(firstId, 0, true, Slot.MAIN)
         runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        vm.confirmStart()
+        runCurrent()
+        assertFalse(vm.uiState.value.startSheet)
         assertTrue(vm.uiState.value.runOpen)
         assertTrue(track(vm, firstId)[0].done)
         assertEquals(selectedKey, settings.workoutRecordFlow.first()!!.selectedKey)
@@ -885,6 +911,8 @@ class DayViewModelWorkoutTest {
     fun `★ record survives a fresh route handle and a foreign run record is ignored`() = test {
         prepare(listOf(bench(), ProgramExercise("plank")))
         val first = readyVm()
+        first.startWorkout()
+        runCurrent()
         first.logFocusedSet()
         runCurrent()
         val plankKey = "exercise:${first.uiState.value.exercises[1].programExerciseId}"
@@ -910,6 +938,8 @@ class DayViewModelWorkoutTest {
         val id = vm.uiState.value.exercises[0].programExerciseId
         // The first tick starts the run, which links row 0 to planned row 0; Undo keeps that link.
         val before = track(vm, id)[0].copy(plannedIndex = 0)
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals("exercise:${vm.uiState.value.exercises[1].programExerciseId}",
@@ -933,6 +963,8 @@ class DayViewModelWorkoutTest {
         val state = vm.uiState.value
         val id = state.exercises.single().programExerciseId
         val before = track(vm, id)[0].copy(plannedIndex = 0)
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)
@@ -958,6 +990,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val state = vm.uiState.value
         val id = state.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
@@ -982,6 +1016,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val state = vm.uiState.value
         val id = state.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val record = settings.workoutRecordFlow.first()
@@ -1012,6 +1048,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val id = vm.uiState.value.exercises[0].programExerciseId
         val selectedId = vm.uiState.value.exercises[1].programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val undo = settings.workoutRecordFlow.first()!!.undo
@@ -1042,6 +1080,8 @@ class DayViewModelWorkoutTest {
         prepare()
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)
@@ -1058,6 +1098,8 @@ class DayViewModelWorkoutTest {
     fun `★ workout record round trips through settings and malformed JSON reads as empty`() = test {
         prepare()
         val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         val record = requireNotNull(settings.workoutRecordFlow.first())
@@ -1081,6 +1123,8 @@ class DayViewModelWorkoutTest {
             dayB = ProgramDay("B", "Next workout", "", listOf(bench())))
         val vm = readyVm()
         val plan = requireNotNull(vm.uiState.value.planId)
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
@@ -1106,6 +1150,8 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val timed = vm.uiState.value.exercises.first()
         val other = vm.uiState.value.exercises.last()
+        vm.startWorkout()
+        runCurrent()
         vm.startTimedRep(timed.programExerciseId, 0)
         runCurrent()
         val event = requireNotNull(vm.uiState.value.timedRep).event
@@ -1129,6 +1175,8 @@ class DayViewModelWorkoutTest {
             dayB = ProgramDay("B", "Next workout", "", listOf(bench())))
         val vm = readyVm()
         val plan = requireNotNull(vm.uiState.value.planId)
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
@@ -1196,6 +1244,8 @@ class DayViewModelWorkoutTest {
         backgroundScope.launch { vm.dayEditState.collect {} }
         runCurrent()
         assertTrue(vm.dayEditState.value.slots.single().isSuperset)
+        vm.startWorkout()
+        runCurrent()
         vm.logFocusedSet()
         runCurrent()
         assertEquals(1, runtime.armed.size)
@@ -1300,6 +1350,8 @@ class DayViewModelWorkoutTest {
         first.skipLift(squatId, Slot.MAIN)
         runCurrent()
         assertEquals(squatId, first.uiState.value.skippedLifts.single().programExerciseId)
+        first.startWorkout()
+        runCurrent()
         first.toggleDone(benchId, 0, true, Slot.MAIN)
         runCurrent()
         assertNotNull(repo.finishRun(requireNotNull(first.uiState.value.runId)))
@@ -1445,6 +1497,8 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench(superset = true), ProgramExercise("bb_back_squat", targetSets = 3)))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.startWorkout()
+        runCurrent()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         vm.toggleDone(id, 0, true, Slot.SS)

@@ -173,6 +173,8 @@ class ScrollPathStabilityTest {
 
         val squatId = slotId("bb_back_squat")
         val before = vm.uiState.value.exercises.associateBy { it.programExerciseId }
+        vm.startWorkout()
+        advanceUntilIdle()
         vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val after = vm.uiState.value.exercises.associateBy { it.programExerciseId }

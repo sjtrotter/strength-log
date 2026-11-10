@@ -378,4 +378,35 @@ class AuditSheetsShotsTest : UiAuditTest() {
         val state = workoutDaySheetFixture()
         rule.auditShot("sheets/36-day-edit-font2", fontScale = 2f) { AuditDay(state, edit = auditEditFixture(state).copy(editorOpen = true)) }
     }
+    @Test fun `shot37SheetReadyToStart`() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("sheets/37-sheet-ready-to-start") {
+            AuditDay(workoutSetSingleFixture().copy(beforeStart = true, startSheet = true))
+        }
+    }
+
+    @Test fun `shot38DraftConflict`() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("sheets/38-draft-conflict") {
+            AuditDestination(TopLevelDestination.TODAY) { TodayScreen(auditTodayFixture(), TodayActions({}, {}, {})) }
+            WorkoutConflictDialog(WorkoutConflict(OpenRun("audit-draft", 2, "B", "Upper", "Prep", 1_000,
+                emptyList(), draft = true), false), {}, {}, {}, {})
+        }
+    }
+
+    @Test fun `shot39DraftDropConfirm`() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = mutableStateOf(workoutLiftSheetFixture().copy(beforeStart = true,
+            openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)))
+        rule.auditShot("sheets/39-draft-drop-confirm", beforeCapture = {
+            rule.onNodeWithContentDescription("More").performClick()
+            rule.onNodeWithText("Drop today's changes").performClick()
+            rule.mainClock.advanceTimeBy(300)
+        }) {
+            AuditDay(state.value, actions = workoutActions().copy(onCloseAllSets = {
+                state.value = state.value.copy(openSheet = null)
+            }))
+        }
+    }
+
 }

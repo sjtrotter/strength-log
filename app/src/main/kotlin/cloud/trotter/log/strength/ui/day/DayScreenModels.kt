@@ -30,6 +30,14 @@ data class DaySelection(val planId: Long?, val dayId: String) : Parcelable
 @Immutable
 data class RetiredTrackLine(val name: String, val doneCount: Int)
 
+/** A phone tick held while the ready-to-start sheet asks; replayed by index on Start. */
+@Parcelize
+data class PendingStartTick(
+    val dayId: String, val programExerciseId: Long, val slot: String, val index: Int,
+    val actionLog: Boolean, val timedRep: Boolean,
+    val startTimer: Boolean = false,
+) : Parcelable
+
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
  *
@@ -85,6 +93,9 @@ data class DayUiState(
     val workout: WorkoutState? = null,
     /** Derived presentation hint; never controls logging or starts a timer. */
     val workoutThenRest: Boolean = false,
+    /** True while the viewed day has lifts and no started workout: no row, or this day's draft. */
+    val beforeStart: Boolean = false,
+    val startSheet: Boolean = false,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning

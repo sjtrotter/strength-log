@@ -409,4 +409,119 @@ class DraftRunTest : OpeningFixture() {
         assertFalse(repo.swapInRun(n2, s, Slot.MAIN, "hack_squat", expectedExerciseId = "nope"))
         assertNull(db.runDao().openRun())
     }
+    @Test fun `a tick that must ask before Start writes nothing`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val beforeLog = log(plan, s)
+        val beforeRule = rule(s)
+        assertEquals(RunWriteResult.NeedsStart, repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        ), startOnTick = false))
+        assertNull(db.runDao().openRun())
+        assertEquals(beforeLog, log(plan, s))
+        assertEquals(beforeRule, rule(s))
+        assertEquals(16, db.sessionDao().allSessions().size)
+    }
+
+    @Test fun `a tick on a draft that must ask leaves the draft as it was`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = editDraft(plan, s)
+        val before = assertNotNull(db.runDao().openRun())
+        val tracks = db.runDao().tracks(next)
+        assertEquals(RunWriteResult.NeedsStart, repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        ), startOnTick = false))
+        assertEquals(before, db.runDao().openRun())
+        assertTrue(before.draft)
+        assertEquals(before.startedAt, db.runDao().openRun()!!.startedAt)
+        assertEquals(tracks, db.runDao().tracks(next))
+    }
+
+    @Test fun `a batch with a value edit and a tick that must ask writes neither`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val beforeLog = log(plan, s)
+        val beforeRule = rule(s)
+        assertEquals(RunWriteResult.NeedsStart, repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 4, SetEdit(reps = 4)) },
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        ), startOnTick = false))
+        assertNull(db.runDao().openRun())
+        assertEquals(beforeLog, log(plan, s))
+        assertEquals(beforeRule, rule(s))
+    }
+
+    @Test fun `a value edit that must ask still opens a draft`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        assertEquals(RunWriteResult.InRun(next, false), repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 4, SetEdit(reps = 4)) },
+        ), startOnTick = false))
+        assertTrue(assertNotNull(db.runDao().openRun()).draft)
+    }
+
+    @Test fun `another day's tick that must ask is still Rejected`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        editDraft(plan, s)
+        val b = id(plan, "bb_bench", "B")
+        val next = db.programDao().day(plan, "B")!!.nextRunId
+        assertEquals(RunWriteResult.Rejected, repo.applyToRun(next, plan, "B", listOf(
+            TrackEdit(b, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        ), startOnTick = false))
+    }
+
+    @Test fun `dayTracksFlow marks only this day's draft`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        editDraft(plan, s)
+        assertTrue(repo.dayTracksFlow(plan, "A").first().draft)
+        assertFalse(repo.dayTracksFlow(plan, "B").first().draft)
+        repo.startRun(plan, "A")
+        assertFalse(repo.dayTracksFlow(plan, "A").first().draft)
+    }
+
+    @Test fun `draft-only discard drops a draft`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        val next = editDraft(plan, s)
+
+        assertTrue(repo.discardRun(next, draftOnly = true))
+
+        assertNull(db.runDao().openRun())
+        assertTrue(db.runDao().tracks(next).isEmpty())
+    }
+
+    @Test fun `draft-only discard refuses a draft promoted by a watch tick and preserves its sets`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        val next = editDraft(plan, s)
+        assertEquals(RunWriteResult.InRun(next, true), repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        )))
+        val run = assertNotNull(db.runDao().openRun())
+        val tracks = db.runDao().tracks(next)
+        val day = db.programDao().day(plan, "A")
+        val logs = db.programDao().logsForDay(plan, "A")
+
+        assertFalse(repo.discardRun(next, draftOnly = true))
+
+        assertFalse(run.draft)
+        assertEquals(run, db.runDao().openRun())
+        assertEquals(tracks, db.runDao().tracks(next))
+        assertEquals(day, db.programDao().day(plan, "A"))
+        assertEquals(logs, db.programDao().logsForDay(plan, "A"))
+        assertTrue(SetJson.decodeSets(tracks.single { it.programExerciseId == s && it.slot == Slot.MAIN }.setsJson)[0].done)
+    }
+
 }

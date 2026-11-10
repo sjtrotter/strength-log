@@ -875,3 +875,10 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 
 - The day editor reads each slot's next-time rows, stored or else seeded, and never a run's. Its summary counts those rows, and the Prescription page starts from the first working row; only an empty stored track falls back to the catalog's rep or hold target.
 - No app or data code seeds or targets a plan slot from the formula. The old wizard, the setup goal preview and the journal's goals keep it until PR 6.
+
+## 25. Revision 16 (PR 2b part three-c, openings before Start, 2026-11-10)
+
+- Every run start (Start, a preview or watch swap, a phone or watch tick, a skip, a drop) first writes the day's missing seeds with their rules, then opens every eligible main and partner track through `atStart`. Seeded tracks and tick-started runs no longer open as stored.
+- Before Start, the Day screen, the preview and the watch show the rows Start would open with, computed without writing. The next-time chip still reads the stored rows.
+- A tick or value edit before Start on a track with an opening starts the run on the opened row it names; the watch's own weight and reps win for that row.
+- A fitted partner only counts the exposure, calibrating or not, stored or not (owner, 2026-11-09).

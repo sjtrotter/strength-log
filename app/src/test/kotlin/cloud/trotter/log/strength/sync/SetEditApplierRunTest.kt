@@ -355,6 +355,7 @@ class SetEditApplierRunTest {
 
     @Test fun `run identified swap opens the next run without changing the plan and swapping back restores its rows`() = runTest {
         val plan = authored()
+        repo.ensureSeeded(plan, "A")
         val id = squatId(plan)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
         val beforeLogs = db.programDao().logsForPlan(plan)

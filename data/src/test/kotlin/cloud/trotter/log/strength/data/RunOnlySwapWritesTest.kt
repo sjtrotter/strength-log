@@ -100,10 +100,14 @@ class RunOnlySwapWritesTest {
         db.programDao().setRule(id, SlotRuleJson.encode(
             SlotRule(SlotRole.ACCESSORY, RepTarget.Fixed(10), 2, 0.025, 1, scheme = Scheme.STRENGTH)))
     }
+    private suspend fun seedDay() {
+        repo.ensureSeeded(plan, "A")
+        beforeSlots = db.programDao().allExercises()
+        beforeLogs = db.programDao().allLogs()
+    }
     private suspend fun unchanged() {
         assertEquals(beforeSlots, db.programDao().allExercises())
         assertEquals(beforeLogs, db.programDao().allLogs())
-        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
         assertEquals(beforeSessions, db.sessionDao().allSessions())
         assertEquals(beforeSets, db.sessionDao().allSessionSets())
     }
@@ -111,6 +115,7 @@ class RunOnlySwapWritesTest {
         assertNotNull(repo.openRunFlow.first()).tracks.single { it.programExerciseId == id && it.slot == slot && !it.retired }
 
     @Test fun `a today only swap on an open run writes run tracks and nothing else`() = runTest {
+        seedDay()
         val run = (repo.startRun(plan, "A") as RunStartResult.Started).runId
         assertTrue(repo.swapInRun(run, h, Slot.MAIN, "leg_press"))
         assertEquals(work(3, 230.0, 10), active(h).planned)
@@ -130,6 +135,7 @@ class RunOnlySwapWritesTest {
     }
 
     @Test fun `a today only swap that starts the next run writes run tracks and nothing else`() = runTest {
+        seedDay()
         val next = assertNotNull(db.programDao().day(plan, "A")).nextRunId
         assertEquals(ExerciseSwapResult.CHANGED, repo.applyExerciseSwap(plan, "A", b, "db_row", next, allowChange = true))
         assertEquals(next, repo.openRunFlow.first()!!.id)
@@ -143,6 +149,7 @@ class RunOnlySwapWritesTest {
     }
 
     @Test fun `keeping the superset half writes run tracks and nothing else`() = runTest {
+        seedDay()
         val result = repo.dropSupersetHalf(plan, "A", e, Slot.SS, "ez_curl", "rope_pushdown")
         assertTrue(result is RunWriteResult.InRun && result.started)
         assertEquals("rope_pushdown", active(e).exerciseId)

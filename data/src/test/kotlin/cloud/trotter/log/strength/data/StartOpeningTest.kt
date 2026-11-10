@@ -1,0 +1,195 @@
+package cloud.trotter.log.strength.data
+
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.OpeningDto
+import cloud.trotter.log.strength.data.serialization.OpeningJson
+import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
+import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SlotState
+import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.seeding.SetEdit
+import cloud.trotter.log.strength.domain.seeding.SetEditor
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class StartOpeningTest : OpeningFixture() {
+    private val case13 = listOf(
+        LoggedSet(155.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
+        LoggedSet(260.0, 5, SetKind.TOP), LoggedSet(235.0, 5, SetKind.BACKOFF),
+        LoggedSet(235.0, 5, SetKind.BACKOFF),
+    )
+    private val floorRamp = listOf(
+        LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
+        LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
+        LoggedSet(45.0, 5, SetKind.TOP),
+    )
+
+    @Test fun `case 13 shows the opening before Start and writes nothing`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val beforeLog = log(plan, s)
+        val beforeSlot = db.programDao().exercise(s)
+
+        val main = repo.observeDay(plan, "A").first().slots.single().main
+
+        assertEquals(case13, main.sets)
+        assertEquals(case13, main.opening)
+        assertEquals(squat(), main.baseRows)
+        assertEquals(beforeLog, log(plan, s))
+        assertEquals(beforeSlot, db.programDao().exercise(s))
+        assertNull(db.runDao().openRun())
+    }
+
+    @Test fun `a pre-start value edit on an opened track starts the run on the opened rows`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+
+        assertEquals(RunWriteResult.InRun(next, true), repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { rows -> SetEditor.edit(rows, 4, SetEdit(reps = 4)) },
+        )))
+
+        val track = db.runDao().tracks(next).single()
+        assertEquals(case13, planned(track))
+        assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(track.openingJson))
+        val actual = SetJson.decodeSets(track.setsJson)
+        assertEquals(case13.mapIndexed { i, row -> if (i == 4) row.copy(reps = 4) else row }, WorkingRows.cleared(actual))
+        assertTrue(actual.none { it.done })
+        assertEquals(squat(), rows(plan, s))
+    }
+
+    @Test fun `a pre-start edit on a track without an opening writes working values`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        history(plan, 4, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+
+        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { rows -> SetEditor.edit(rows, 4, SetEdit(reps = 4)) },
+        )))
+
+        assertEquals(squat().mapIndexed { i, row -> if (i == 4) row.copy(reps = 4) else row }, rows(plan, s))
+        assertNull(db.runDao().openRun())
+    }
+
+    @Test fun `skipping a superset half before Start opens the kept half through the layoff`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        repo.setSupersetPartner("A", s, "cable_row")
+        history(plan, 16, sixteen)
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+
+        assertEquals(RunWriteResult.InRun(next, true),
+            repo.skipLift(plan, "A", s, Slot.SS, "bb_back_squat", "cable_row"))
+
+        val tracks = db.runDao().tracks(next)
+        val main = tracks.single { it.slot == Slot.MAIN }
+        assertEquals(case13, planned(main))
+        assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(main.openingJson))
+        val partner = tracks.single { it.slot == Slot.SS }
+        assertTrue(partner.retired)
+        assertTrue(partner.dropped)
+        assertEquals(work(5, 20.0, 10), planned(partner))
+        assertNull(partner.openingJson)
+    }
+
+    @Test fun `a never-opened floor seed is written with its calibrating rule at Start and calibrates at Finish`() = runTest {
+        val plan = converted(day("bb_bench"))
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = true))
+        val b = id(plan, "bb_bench")
+        repo.setStructure(b, SetStructure.RAMP_TOP)
+        assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
+        val expected = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH, SetStructure.RAMP_TOP, 5, MovementPattern.H_PUSH)
+        assertEquals(expected, rule(b))
+
+        val run = start(plan)
+
+        assertEquals(floorRamp, rows(plan, b))
+        assertEquals(expected.copy(state = SlotState(calibrating = true)), rule(b))
+        val track = db.runDao().tracks(run).single()
+        assertEquals(floorRamp, planned(track))
+        assertNull(track.openingJson)
+        repo.applyToRun(run, plan, "A", listOf(TrackEdit(b, Slot.MAIN) { rows ->
+            rows.map { if (it.kind == SetKind.TOP) it.copy(weightLb = 135.0, done = true, rir = 2) else it.copy(done = true) }
+        }))
+        assertNotNull(repo.finishRun(run))
+
+        assertEquals(listOf(
+            LoggedSet(75.0, 5, SetKind.RAMP), LoggedSet(95.0, 5, SetKind.RAMP),
+            LoggedSet(110.0, 5, SetKind.RAMP), LoggedSet(120.0, 3, SetKind.RAMP),
+            LoggedSet(135.0, 5, SetKind.TOP),
+        ), rows(plan, b))
+        assertEquals(SlotState(exposures = 1), rule(b).state)
+        assertTrue(assertNotNull(offer(plan, "bb_bench")).calibration)
+    }
+
+    @Test fun `a calibrating fitted partner with a stored row only counts the exposure in Ask`() = runTest {
+        heldPartner(false)
+    }
+
+    @Test fun `a calibrating fitted partner with a stored row only counts the exposure in Automatic`() = runTest {
+        heldPartner(true)
+    }
+
+    @Test fun `a fitted partner with no done set keeps its rule`() = runTest {
+        heldPartner(false, partnerDone = false)
+    }
+
+    private suspend fun heldPartner(automatic: Boolean, partnerDone: Boolean = true) {
+        val plan = converted(day("bb_back_squat"))
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
+        val s = id(plan, "bb_back_squat")
+        lifter(plan, s, squat(), squatRule())
+        repo.setSupersetPartner("A", s, "cable_row")
+        val beforeLog = assertNotNull(db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        assertEquals(work(5, 20.0, 10), SetJson.decodeSets(beforeLog.setsJson))
+        val beforeRule = db.programDao().exercise(s)!!.partnerRuleJson
+        assertEquals(rule(SlotRole.ACCESSORY, 10, calibrating = true), SlotRuleJson.decode(beforeRule))
+        history(plan, 30, eight)
+        val run = start(plan)
+        val tracks = db.runDao().tracks(run)
+        val main = tracks.single { it.slot == Slot.MAIN }
+        assertEquals("""{"layoff":"SCALED","factor":0.85}""", main.openingJson)
+        assertEquals(4, planned(main).size)
+        val partner = tracks.single { it.slot == Slot.SS }
+        assertEquals("""{"layoff":"HOLD"}""", partner.openingJson)
+        assertEquals(work(4, 20.0, 10), planned(partner))
+        repo.applyToRun(run, plan, "A", tracks.filter { it.slot == Slot.MAIN || partnerDone }.map { track ->
+            TrackEdit(s, track.slot) { rows -> rows.map { it.copy(done = true) } }
+        })
+        val session = assertNotNull(repo.finishRun(run))
+
+        assertEquals(beforeLog, db.programDao().logForSlot(plan, "A", s, Slot.SS))
+        assertEquals(squat(), rows(plan, s))
+        assertNull(repo.history.slotSessionsById(plan, "A").getValue(s to Slot.SS).offer)
+        if (partnerDone) {
+            assertEquals(rule(SlotRole.ACCESSORY, 10).copy(state = SlotState(calibrating = true, exposures = 1)),
+                SlotRuleJson.decode(db.programDao().exercise(s)!!.partnerRuleJson))
+        } else {
+            assertEquals(beforeRule, db.programDao().exercise(s)!!.partnerRuleJson)
+            val undo = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(session)!!.progressionUndoJson))
+            assertFalse(undo.rules.any { it.programExerciseId == s && it.slot == Slot.SS })
+        }
+    }
+}

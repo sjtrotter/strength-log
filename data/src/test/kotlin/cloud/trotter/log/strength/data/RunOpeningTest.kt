@@ -240,26 +240,27 @@ class RunOpeningTest : OpeningFixture() {
         assertNull(offer(plan, "bb_back_squat"))
     }
 
-    @Test fun `tick starts and Plan mode open as stored and each superset half opens by its own history`() = runTest {
+    @Test fun `a tick start opens by the layoff, Plan mode opens as stored, and each superset half opens by its own history`() = runTest {
         val plan = rPlan()
         val id = id(plan, "bb_back_squat")
         history(plan, 16, sixteen)
+        val today = clock.instant().atZone(clock.zone).toLocalDate().toEpochDay()
+        val ctx = Progression.Context(WeightUnit.LB, repo.catalog.snapshot().find("bb_back_squat")!!.equipment.toSet(),
+            LoadSteps.defaults(WeightUnit.LB), today)
         val next = db.programDao().day(plan, "A")!!.nextRunId
         repo.applyToRun(next, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->
             rows.mapIndexed { i, row -> row.copy(done = i == 0) }
         }))
         val tick = db.runDao().tracks(next).single()
-        assertEquals(WorkingRows.cleared(squat()), planned(tick))
-        assertNull(tick.openingJson)
+        assertEquals(Progression.atStart(squatRule(), WorkingRows.cleared(squat()), today - 16, 4, ctx).rows, planned(tick))
+        assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(tick.openingJson))
+        assertEquals(listOf(true, false, false, false, false), SetJson.decodeSets(tick.setsJson).map { it.done })
         repo.discardRun(next)
         repo.setSupersetPartner("A", id, "cable_row")
         val paired = opened(plan)
         val tracks = db.runDao().tracks(paired.runId)
         assertEquals(2, tracks.size)
         val main = tracks.first { it.slot == Slot.MAIN }
-        val today = clock.instant().atZone(clock.zone).toLocalDate().toEpochDay()
-        val ctx = Progression.Context(WeightUnit.LB, repo.catalog.snapshot().find("bb_back_squat")!!.equipment.toSet(),
-            LoadSteps.defaults(WeightUnit.LB), today)
         assertEquals(260.0, top(main))
         assertEquals(Progression.atStart(squatRule(), WorkingRows.cleared(squat()), today - 16, 4, ctx).rows, planned(main))
         assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(main.openingJson))

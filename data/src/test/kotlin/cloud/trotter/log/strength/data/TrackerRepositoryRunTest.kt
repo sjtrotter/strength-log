@@ -910,7 +910,11 @@ class TrackerRepositoryRunTest {
         assertEquals(ExerciseSwapResult.CHANGED,
             repo.applyExerciseSwap(plan, "A", slot, "hack_squat", next, allowChange = true))
 
-        assertEquals(beforeLogs, db.programDao().allLogs())
+        val logs = db.programDao().allLogs()
+        assertEquals(beforeLogs, logs.filterNot { it.planId == plan && it.dayId == "A" && it.programExerciseId == slot && it.slot == Slot.MAIN })
+        assertEquals(beforeLogs.size + 1, logs.size)
+        assertEquals(List(3) { LoggedSet(50.0, 10, SetKind.WORK) }, SetJson.decodeSets(
+            logs.single { it.planId == plan && it.dayId == "A" && it.programExerciseId == slot && it.slot == Slot.MAIN }.setsJson))
         assertEquals(beforeSlot, db.programDao().exercise(slot))
         val run = repo.openRunFlow.first()!!
         assertEquals(next, run.id)

@@ -552,6 +552,7 @@ internal fun DayRoute(
         onDismissPlanSwap = viewModel.editor::dismissPlanSwap,
         onCloseAllSets = viewModel::closeSheet,
         onDiscardWorkout = viewModel::discardWorkout,
+        onDropDraftWorkout = viewModel::dropDraftWorkout,
         onClearTodayChecks = viewModel::clearTodayChecks,
         onDone = viewModel::completeDay,
         onStartCardio = viewModel::startCardio,

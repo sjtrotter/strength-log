@@ -415,7 +415,7 @@ fun DayScreen(
 
     if (confirmingClearChecks && state.runOpen) {
         if (state.beforeStart) DraftDropDialog(state.viewDayId.orEmpty(),
-            onDrop = { confirmingClearChecks = false; actions.onDiscardWorkout() },
+            onDrop = { confirmingClearChecks = false; (actions.onDropDraftWorkout ?: actions.onDiscardWorkout)() },
             onDismiss = { confirmingClearChecks = false })
         else ClearChecksConfirmDialog(
             cardioSaved = state.cardio?.loggedSeconds != null,
@@ -566,6 +566,7 @@ data class DayActions(
     val onEditPlan: () -> Unit = {},
     val onConfirmStart: () -> Unit = {},
     val onDismissStart: () -> Unit = {},
+    val onDropDraftWorkout: (() -> Unit)? = null,
 )
 
 @Composable

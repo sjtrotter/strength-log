@@ -491,4 +491,37 @@ class DraftRunTest : OpeningFixture() {
         assertFalse(repo.dayTracksFlow(plan, "A").first().draft)
     }
 
+    @Test fun `draft-only discard drops a draft`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        val next = editDraft(plan, s)
+
+        assertTrue(repo.discardRun(next, draftOnly = true))
+
+        assertNull(db.runDao().openRun())
+        assertTrue(db.runDao().tracks(next).isEmpty())
+    }
+
+    @Test fun `draft-only discard refuses a draft promoted by a watch tick and preserves its sets`() = runTest {
+        val plan = rPlan()
+        val s = id(plan, "bb_back_squat")
+        val next = editDraft(plan, s)
+        assertEquals(RunWriteResult.InRun(next, true), repo.applyToRun(next, plan, "A", listOf(
+            TrackEdit(s, Slot.MAIN) { SetEditor.edit(it, 0, SetEdit(done = true)) },
+        )))
+        val run = assertNotNull(db.runDao().openRun())
+        val tracks = db.runDao().tracks(next)
+        val day = db.programDao().day(plan, "A")
+        val logs = db.programDao().logsForDay(plan, "A")
+
+        assertFalse(repo.discardRun(next, draftOnly = true))
+
+        assertFalse(run.draft)
+        assertEquals(run, db.runDao().openRun())
+        assertEquals(tracks, db.runDao().tracks(next))
+        assertEquals(day, db.programDao().day(plan, "A"))
+        assertEquals(logs, db.programDao().logsForDay(plan, "A"))
+        assertTrue(SetJson.decodeSets(tracks.single { it.programExerciseId == s && it.slot == Slot.MAIN }.setsJson)[0].done)
+    }
+
 }

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -51,6 +52,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -2824,10 +2826,14 @@ class DayViewModelWiringTest {
         val id = slotId("bb_back_squat")
         val before = track(id, Slot.MAIN)!!
         assertFalse(vm.uiState.value.runOpen)
-        vm.startWorkout()
-        advanceUntilIdle()
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.startSheet)
+        assertTrue(track(id, Slot.MAIN)!![0].done)
         assertTrue(vm.uiState.value.runOpen)
         assertEquals(repo.openRunFlow.first()!!.id, vm.uiState.value.runId)
         vm.changeWeight(id, Slot.MAIN, 4, 999.0)
@@ -4114,6 +4120,250 @@ class DayViewModelWiringTest {
         assertTrue(restored.uiState.value.timedRepRunning)
         assertTrue(track(id, Slot.MAIN)!!.none { it.done })
         restoredCollect.cancel()
+    }
+
+    @Test fun `a committed confirmation clears a restored pending tick without applying it twice`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        val snapshot = h.keys().associateWith { h.get<Any?>(it) }
+        val state = vm.uiState.value
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        val runId = requireNotNull(state.runId)
+        assertEquals(RunWriteResult.InRun(runId, true),
+            repo.applyToRun(runId, state.planId!!, "A", listOf(
+                TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                    SetEdit(done = true, completedAtMillis = 1234L)) },
+            )))
+        val committed = track(id, Slot.MAIN)!!
+        val restoredHandle = SavedStateHandle(snapshot)
+        val restored = newViewModel(restoredHandle)
+        val restoredCollect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertNull(restoredHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(restored.uiState.value.startSheet)
+        restored.confirmStart()
+        advanceUntilIdle()
+        assertEquals(committed, track(id, Slot.MAIN))
+        assertEquals(1, track(id, Slot.MAIN)!!.count { it.done })
+        restoredCollect.cancel()
+    }
+
+    @Test fun `two ticks before Start keep the first tick and show the sheet once`() = runVmTest {
+        insertProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val sheets = mutableListOf<Boolean>()
+        val collect = launch { vm.uiState.collect { state ->
+            if (sheets.lastOrNull() != state.startSheet) sheets += state.startSheet
+        } }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        vm.toggleDone(id, 1, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertEquals(0, h.get<PendingStartTick>("day_pending_start_tick")!!.index)
+        assertEquals(1, sheets.count { it })
+        vm.confirmStart()
+        advanceUntilIdle()
+
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertFalse(track(id, Slot.MAIN)!![1].done)
+        assertEquals(1, track(id, Slot.MAIN)!!.count { it.done })
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertEquals(1, sheets.count { it })
+        collect.cancel()
+    }
+
+    @Test fun `a timer request before Start keeps the pending tick`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("pushup")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        val pending = h.get<PendingStartTick>("day_pending_start_tick")!!
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+
+        assertEquals(pending, h.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(pending.startTimer)
+        vm.confirmStart()
+        advanceUntilIdle()
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        assertNull(vm.uiState.value.timedRep)
+        collect.cancel()
+    }
+
+    @Test fun `a committed timer confirmation recovers a missing reservation and preserves an existing one`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("pushup")
+        vm.startTimedRep(id, 0)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.startSheet)
+        // Confirmation has saved its reservation, but has not returned from the repository yet.
+        val reserved = TimedRepEvent("A", id, "pushup", 0, 120, -1_000, -1_000, 0)
+        val snapshot = h.keys().associateWith { h.get<Any?>(it) } + ("day_pending_start_timer" to reserved)
+        val planId = vm.uiState.value.planId!!
+        collect.cancel()
+        vm.viewModelScope.cancel()
+        repo.startRun(planId, "A")
+        val restoredHandle = SavedStateHandle(snapshot)
+        val restored = newViewModel(restoredHandle)
+        val restoredCollect = launch { restored.uiState.collect {} }
+        runCurrent()
+
+        assertNull(restoredHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertFalse(restored.uiState.value.startSheet)
+        assertTrue(restored.uiState.value.timedRepRunning)
+        assertEquals(reserved, restoredHandle.get<TimedRepEvent>("day_timed_rep_event"))
+        assertNull(restoredHandle.get<TimedRepEvent>("day_pending_start_timer"))
+        restoredCollect.cancel()
+        restored.viewModelScope.cancel()
+        val reservedHandle = SavedStateHandle(snapshot + ("day_timed_rep_event" to reserved))
+        val reservedVm = newViewModel(reservedHandle)
+        val reservedCollect = launch { reservedVm.uiState.collect {} }
+        runCurrent()
+        reservedVm.confirmStart()
+        runCurrent()
+
+        assertNull(reservedHandle.get<PendingStartTick>("day_pending_start_tick"))
+        assertEquals(reserved, reservedHandle.get<TimedRepEvent>("day_timed_rep_event"))
+        assertTrue(reservedVm.uiState.value.timedRepRunning)
+        assertTrue(track(id, Slot.MAIN)!!.none { it.done })
+        reservedCollect.cancel()
+    }
+
+    @Test fun `the Day menu Drop preserves a draft promoted by a watch tick`() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.changeReps(id, Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        val draft = repo.openRunFlow.first()!!
+        repo.applyToRun(draft.id, draft.planId!!, "A", listOf(
+            TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                SetEdit(done = true)) },
+        ))
+        advanceUntilIdle()
+        val started = repo.openRunFlow.first()!!
+        vm.dropDraftWorkout()
+        advanceUntilIdle()
+
+        assertEquals(started, repo.openRunFlow.first())
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+        collect.cancel()
+    }
+
+    @Test fun `an edit conflict promoted by a watch tick requires confirmation and then starts the target`() = runVmTest {
+        insertSelectionProgram()
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        val conflicts = launch { vm.workoutStart.conflict.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.changeReps(id, Slot.MAIN, 0, 3)
+        advanceUntilIdle()
+        val draft = repo.openRunFlow.first()!!
+        vm.selectDay("B")
+        advanceUntilIdle()
+        vm.changeWeight(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 999.0)
+        advanceUntilIdle()
+        assertTrue(h.get<Boolean>("start_drop_only")!!)
+        repo.applyToRun(draft.id, draft.planId!!, "A", listOf(
+            TrackEdit(id, Slot.MAIN) { SetEditor.edit(it, 0,
+                SetEdit(done = true)) },
+        ))
+        advanceUntilIdle()
+        val started = repo.openRunFlow.first()!!
+        assertFalse(vm.workoutStart.conflict.value!!.run.draft)
+        assertFalse(h.get<Boolean>("start_drop_only")!!)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+        assertEquals(started, repo.openRunFlow.first())
+        assertTrue(started.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired }.sets[0].done)
+        assertFalse(vm.workoutStart.conflict.value!!.confirming)
+        vm.workoutStart.confirmDiscard()
+        advanceUntilIdle()
+        assertTrue(vm.workoutStart.conflict.value!!.confirming)
+        vm.workoutStart.discardAndStart()
+        advanceUntilIdle()
+
+        assertEquals("B", repo.openRunFlow.first()!!.dayId)
+        assertFalse(repo.openRunFlow.first()!!.draft)
+        assertNull(vm.workoutStart.conflict.value)
+        conflicts.cancel()
+        collect.cancel()
+    }
+
+    @Test fun `an interrupted timer confirmation with no commit shows the sheet again`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val id = slotId("pushup")
+        val pending = PendingStartTick("A", id, Slot.MAIN, 0, actionLog = false, timedRep = false, startTimer = true)
+        val h = SavedStateHandle(mapOf(
+            "day_pending_start_tick" to pending,
+            "day_pending_start_timer" to TimedRepEvent("A", id, "pushup", 0, 120, -1_000, -1_000, 0),
+        ))
+        val restored = newViewModel(h)
+        val collect = launch { restored.uiState.collect {} }
+        runCurrent()
+
+        assertTrue(restored.uiState.value.startSheet)
+        assertEquals(pending, h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(restored.uiState.value.timedRep)
+        assertNull(repo.openRunFlow.first())
+        restored.confirmStart()
+        runCurrent()
+        assertTrue(restored.uiState.value.timedRepRunning)
+        assertEquals(0L, h.get<TimedRepEvent>("day_timed_rep_event")!!.wallStart)
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(h.get<TimedRepEvent>("day_pending_start_timer"))
+        collect.cancel()
+    }
+
+    @Test fun `a watch start dismisses an unconfirmed timer request without reserving it`() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Timed reps", "", listOf(
+            ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40))),
+        )))))
+        val h = SavedStateHandle()
+        val vm = newViewModel(h)
+        val collect = launch { vm.uiState.collect {} }
+        runCurrent()
+        val id = slotId("pushup")
+        vm.startTimedRep(id, 0)
+        runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        repo.startRun(vm.uiState.value.planId!!, "A")
+        runCurrent()
+
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.timedRep)
+        assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
+        assertNull(h.get<TimedRepEvent>("day_pending_start_timer"))
+        collect.cancel()
     }
 
 }

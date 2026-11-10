@@ -2046,9 +2046,11 @@ class TrackerRepository(
         true
     }
 
-    /** Drops a draft or a run's actuals, preserving working values and plan edits, and closes the day's identity. */
-    suspend fun discardRun(runId: String): Boolean = db.withTransaction {
+    /** Drops a draft or a run's actuals, preserving working values and plan edits, and closes the day's identity.
+     * With [draftOnly], returns false without writing if the run has started or is no longer open. */
+    suspend fun discardRun(runId: String, draftOnly: Boolean = false): Boolean = db.withTransaction {
         val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
+        if (draftOnly && !run.draft) return@withTransaction false
         val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
         if (day != null && day.nextRunId == run.id) {
             for (log in programDao.logsForDay(day.planId, day.dayId)) {

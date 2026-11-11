@@ -2770,6 +2770,37 @@ class DayViewModelCardioExecutionTest {
         assertEquals(CardioRecordMark(PrKind.FASTER, 0, 950, null), receipt.cardioRows.single().record)
     }
 
+    @Test fun aSuppliedTimeEqualToElapsedSurvivesAHistoryDurationEdit() = test {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.TRACK_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(100_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        vm.changeCardioDistance("401")
+        vm.changeCardioReading("1:40")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+
+        val id = requireNotNull(vm.finisher.receipt.value).sessionId
+        val supplied = repo.history.cardioSetsFor(id).single()
+        assertEquals(CardioSetStatus.FINISHED, supplied.status)
+        assertEquals(100, supplied.elapsedSeconds)
+        assertEquals(401, supplied.metres)
+        assertEquals(400 to 100, supplied.metresAtEnd to supplied.secondsAtEnd)
+
+        repo.history.updateCardioSession(id, CardioActivity.TRACK_RUN, 110, 401, "")
+        runCurrent()
+
+        val edited = repo.history.cardioSetsFor(id).single()
+        assertEquals(supplied.copy(elapsedSeconds = 110), edited)
+        assertEquals(400 to 100, edited.metresAtEnd to edited.secondsAtEnd)
+    }
+
     @Test fun aBlankReadingKeepsTheTotalsAndEarnsNothing() = test {
         settings.setDistanceUnit(DistanceUnit.MI)
         val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(2414), Measure.Time(960), hard = true)

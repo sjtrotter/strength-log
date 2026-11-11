@@ -8,7 +8,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.records.CardioBests
+import cloud.trotter.log.strength.domain.records.GoalProgress
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -72,5 +74,50 @@ class FinishedRuleSuppliedReadingTest {
         assertNotNull(FinishedRule.withReading(row, 1000))
         assertNull(FinishedRule.withReading(row, 1001))
         assertNull(FinishedRule.withReading(row, 0))
+    }
+
+    @Test
+    fun `a distance end passed by its total derives no time and earns no record`() {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105))
+        val row = FinishedRule.atEnd(result(spec, elapsed = 100, metres = 401))
+        assertEquals(400 to null, row.metresAtEnd to row.secondsAtEnd)
+        assertEquals(401, row.metres)
+        assertEquals(100, row.elapsedSeconds)
+        assertEquals(true, FinishedRule.finished(row))
+        assertNull(FinishedRule.reading(row))
+        assertTrue(FinishedRule.awaitsReading(row))
+        assertFalse(CardioBests.counts(row))
+        val standing = CardioBests.bests(CardioActivity.ROAD_RUN, listOf(
+            FinishedRule.atEnd(result(spec, elapsed = 105, metres = 400)),
+        ))
+        assertTrue(CardioBests.records(CardioActivity.ROAD_RUN, listOf(row), standing).isEmpty())
+        assertFalse(CardioMeasures.fullSuccess(block(spec), listOf(row)))
+        assertNull(GoalProgress.bestTimed(PlanGoal.Timed(CardioActivity.ROAD_RUN, 400, 105),
+            listOf(CardioActivity.ROAD_RUN to listOf(row))))
+    }
+
+    @Test
+    fun `a supplied time equal to the total survives an elapsed time edit`() {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400))
+        val stopped = result(spec, CardioSetStatus.SHORTENED, elapsed = 100, metres = 401)
+        val supplied = assertNotNull(FinishedRule.withReading(stopped, 100))
+        val edited = FinishedRule.afterEdit(supplied, supplied.copy(elapsedSeconds = 110))
+        assertEquals(supplied.copy(elapsedSeconds = 110), edited)
+        assertEquals(400 to 100, edited.metresAtEnd to edited.secondsAtEnd)
+        assertEquals(100, FinishedRule.reading(edited))
+        assertTrue(CardioBests.counts(edited))
+        assertFalse(FinishedRule.awaitsReading(edited))
+    }
+
+    @Test
+    fun `a distance end reached exactly still derives its elapsed time`() {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400))
+        val row = FinishedRule.atEnd(result(spec, elapsed = 100, metres = 400))
+        assertEquals(400 to 100, row.metresAtEnd to row.secondsAtEnd)
+        assertEquals(100, FinishedRule.reading(row))
+        assertTrue(CardioBests.counts(row))
+        assertFalse(FinishedRule.awaitsReading(row))
+        assertEquals(row.copy(elapsedSeconds = 110, secondsAtEnd = 110),
+            FinishedRule.afterEdit(row, row.copy(elapsedSeconds = 110)))
     }
 }

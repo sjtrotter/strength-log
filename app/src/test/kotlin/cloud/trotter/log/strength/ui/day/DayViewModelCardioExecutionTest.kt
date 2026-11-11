@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -107,6 +106,41 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(5, vm.dayEditState.value.cardioProgress.increasePercent)
         assertEquals("DISTANCE", db.programDao().day(plan, "A")?.cardioProgressBy)
+    }
+
+    @Test fun savingTheCardioEditorAfterUndoDoesNotReapplyAnEarnedIncrease() = test {
+        val spec = time(CardioRole.WORK, 900, aim = 3000)
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val id = repo.logCardioSession(CardioSessionEntity(
+            planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+            startedAt = clock.wall - 100_000_000, completedAt = clock.wall - 99_100_000,
+            seconds = 900, stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name,
+        ), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900, 3100, DistanceSource.MANUAL)))
+        assertEquals(opening.copy(sets = listOf(time(CardioRole.WORK, 945, aim = 3150))),
+            CardioBlockJson.decode(db.programDao().day(plan, "A")!!.cardioWorkingJson))
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertTrue(offer.applied)
+        vm.applyCardioNextTime(offer.opening)
+        runCurrent()
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        vm.editor.setDayEditorOpen(true)
+        vm.editor.openCardioBlock()
+        runCurrent()
+        assertEquals(opening, vm.dayEditState.value.cardioDraft!!.block())
+
+        vm.editor.saveCardioBlock()
+        runCurrent()
+        repo.amendCardioSetDistance(id, 0, 3200)
+
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertEquals(opening, CardioBlockJson.decode(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
     }
 
     @Test fun cardioOfferAppliesBeforeStartAndTheRunFreezesItsWorkingBlock() = test {
@@ -2636,4 +2670,24 @@ class DayViewModelCardioExecutionTest {
         }
         override fun cancel() { deadline = null; identity = null; callback = null }
     }
+    @Test fun aSteadyRunWithADistanceAimProgressesWhenItsDistanceIsEntered() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500, aim = 5000), activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(1_500_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        vm.openCardioDistance()
+        runCurrent()
+        vm.changeCardioDistance("5.1")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 1575, aim = 5250))),
+            repo.plans.programFor(plan).first().days.first { it.id == "A" }.cardioToRun)
+    }
+
 }

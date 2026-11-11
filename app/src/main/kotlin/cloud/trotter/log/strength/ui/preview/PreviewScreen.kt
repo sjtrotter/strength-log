@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.ui.preview
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.CardioNextTimeChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

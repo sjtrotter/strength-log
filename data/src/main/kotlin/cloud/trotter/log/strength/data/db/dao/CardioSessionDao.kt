@@ -30,6 +30,12 @@ interface CardioSessionDao {
     @Query("SELECT * FROM cardio_session ORDER BY id")
     suspend fun all(): List<CardioSessionEntity>
 
+    @Query("SELECT * FROM cardio_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
+    suspend fun newestForDay(planId: Long, dayId: String): CardioSessionEntity?
+
+    @Query("SELECT * FROM cardio_session WHERE activity IN (:activities) ORDER BY completedAt, id")
+    suspend fun forActivities(activities: List<String>): List<CardioSessionEntity>
+
     @Query("DELETE FROM cardio_session WHERE id = :id")
     suspend fun deleteById(id: Long)
 

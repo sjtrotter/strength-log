@@ -21,10 +21,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -58,10 +61,13 @@ class BackupV27Test {
     )
 
     @Test fun `v27 round trip preserves every new field`() {
-        val source = document()
+        val source = document().let { doc ->
+            doc.copy(cardioSessions = doc.cardioSessions.map { it.copy(increaseApplied = true) })
+        }
         val decoded = codec.decode(codec.encode(source))
         assertEquals(source, decoded)
         val snapshot = decoded.toSnapshot()
+        assertTrue(snapshot.cardioSessions.single().increaseApplied)
         assertEquals(EffortScale.REPS_LEFT, snapshot.effortScale)
         assertEquals(rule, SlotRuleJson.decode(snapshot.exercises.single().ruleJson))
         val exported = snapshot.toDocument()
@@ -69,8 +75,24 @@ class BackupV27Test {
         assertEquals(source.plans, exported.plans)
         assertEquals(source.sessions, exported.sessions)
         assertEquals(source.cardioSessions, exported.cardioSessions)
+        assertTrue(exported.cardioSessions.single().increaseApplied)
         assertEquals(source.settings.effortScale, exported.settings.effortScale)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
+    }
+
+    @Test fun `a released v27 document without increaseApplied decodes as false`() {
+        val root = Json.parseToJsonElement(codec.encode(document())).jsonObject
+        val sessions = root.getValue("cardioSessions").jsonArray
+        val legacy = JsonObject(root + ("cardioSessions" to JsonArray(sessions.map {
+            JsonObject(it.jsonObject - "increaseApplied")
+        }))).toString()
+        assertFalse("increaseApplied" in legacy)
+
+        val decoded = codec.decode(legacy)
+
+        assertEquals(27, decoded.schemaVersion)
+        assertFalse(decoded.cardioSessions.single().increaseApplied)
+        assertFalse(decoded.toSnapshot().cardioSessions.single().increaseApplied)
     }
 
     @Test fun `Undo is never exported`() {
@@ -84,7 +106,7 @@ class BackupV27Test {
     }
 
     private val fields = setOf("effortScale", "settingsJson", "autoApply", "lightCycleRemaining", "deloadEveryCycles",
-        "cyclesCompleted", "cardioRuleJson", "ruleJson", "partnerRuleJson", "roughDay", "rir", "effort", "metresAtEnd", "secondsAtEnd",
+        "cyclesCompleted", "cardioRuleJson", "ruleJson", "partnerRuleJson", "roughDay", "rir", "effort", "increaseApplied", "metresAtEnd", "secondsAtEnd",
         "centis", "timingMethod", "startProtocol")
 
     private fun alter(element: JsonElement, key: String?, poison: Boolean): JsonElement = when (element) {
@@ -113,6 +135,7 @@ class BackupV27Test {
         assertFalse(snapshot.sessions.single().roughDay)
         assertNull(snapshot.sessionSets.single().rir)
         assertNull(snapshot.cardioSessions.single().effort)
+        assertFalse(snapshot.cardioSessions.single().increaseApplied)
         val set = snapshot.cardioSetResults.single()
         assertEquals(listOf(null, null, null, null, null),
             listOf(set.metresAtEnd, set.secondsAtEnd, set.centis, set.timingMethod, set.startProtocol))

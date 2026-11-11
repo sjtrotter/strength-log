@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.ui.preview
 
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
+import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.NextTime
 

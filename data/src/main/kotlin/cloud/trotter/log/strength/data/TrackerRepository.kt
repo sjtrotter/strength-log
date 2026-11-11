@@ -1,16 +1,6 @@
 package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
-import cloud.trotter.log.strength.data.serialization.OpeningDto
-import cloud.trotter.log.strength.data.serialization.OpeningJson
-import cloud.trotter.log.strength.data.serialization.UndoPlanDto
-import cloud.trotter.log.strength.data.serialization.OfferDto
-import cloud.trotter.log.strength.data.serialization.ProgressionUndoDto
-import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
-import cloud.trotter.log.strength.data.serialization.UndoLogDto
-import cloud.trotter.log.strength.data.serialization.UndoRowDto
-import cloud.trotter.log.strength.data.serialization.UndoRuleDto
-import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
@@ -22,30 +12,60 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.OfferDto
+import cloud.trotter.log.strength.data.serialization.OpeningDto
+import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
-import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.data.serialization.ProgressionUndoDto
+import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.seeding.RunReplan
-import cloud.trotter.log.strength.domain.seeding.SetEditor
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.data.serialization.UndoLogDto
+import cloud.trotter.log.strength.data.serialization.UndoPlanDto
+import cloud.trotter.log.strength.data.serialization.UndoRowDto
+import cloud.trotter.log.strength.data.serialization.UndoRuleDto
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
+import cloud.trotter.log.strength.domain.progression.CardioOutcome
+import cloud.trotter.log.strength.domain.progression.Change
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.progression.LayoffKind
 import cloud.trotter.log.strength.domain.progression.LightCycle
 import cloud.trotter.log.strength.domain.progression.LightWeek
-import cloud.trotter.log.strength.domain.progression.Change
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.Outcome
@@ -54,25 +74,9 @@ import cloud.trotter.log.strength.domain.progression.Reason
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.progression.WorkingRows
-import cloud.trotter.log.strength.domain.generator.Rotation
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
-import cloud.trotter.log.strength.domain.model.ProgressMeasure
-import cloud.trotter.log.strength.domain.model.CardioBlock
-import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.CardioSetResult
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.seeding.RunReplan
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.model.SetStructure
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -82,8 +86,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -223,7 +227,7 @@ class TrackerRepository(
 
     suspend fun setCardioProgression(planId: Long, dayId: String, measure: ProgressMeasure, percent: Int) {
         programDao.setCardioProgression(planId, dayId, measure.name,
-            percent.coerceIn(CardioProgression.MIN_PERCENT, CardioProgression.MAX_PERCENT))
+            percent.coerceIn(CardioMeasures.MIN_PERCENT, CardioMeasures.MAX_PERCENT))
     }
 
     suspend fun setCardioWorking(planId: Long, dayId: String, block: CardioBlock): Boolean = db.withTransaction {
@@ -824,6 +828,7 @@ class TrackerRepository(
      * without a plan cannot advance a rotation.
      * A note is trimmed and capped at [NOTE_MAX_LENGTH].
      * A set without readings at the end gets the ones its totals prove ([FinishedRule.atEnd]).
+     * A session that counts is judged in the same transaction ([CardioJudge]); an Automatic plan takes its next block.
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -857,11 +862,56 @@ class TrackerRepository(
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 (if (set.metresAtEnd == null && set.secondsAtEnd == null) FinishedRule.atEnd(set) else set).toEntity(id, position)
             })
+            if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
                 lightAfterDay(plan, stamped.dayId, reactive = false)
                 advanceRotation(plan, stamped.dayId)
             }
             id
+        }
+    }
+
+    private class CardioJudgment(val sessionId: Long, val planId: Long, val dayId: String, val automatic: Boolean,
+                                 val stored: CardioBlock, val outcome: CardioOutcome)
+
+    /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise. */
+    private suspend fun cardioJudgment(sessionId: Long): CardioJudgment? {
+        val session = cardioSessionDao.byId(sessionId) ?: return null
+        val planId = session.planId ?: return null
+        val dayId = session.dayId ?: return null
+        val plan = planDao.plan(planId) ?: return null
+        val entity = programDao.day(planId, dayId) ?: return null
+        if (session.increaseApplied) return null
+        if (cardioSessionDao.newestForDay(planId, dayId)?.id != sessionId) return null
+        val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
+        val names = CardioFamily.of(activity).activities.map { it.name }
+        val sessions = cardioSessionDao.forActivities(names)
+        val sets = cardioSetResultDao.forActivities(names).groupBy { it.cardioSessionId }
+            .mapValues { (_, rows) -> rows.mapNotNull { it.toDomainOrNull() } }
+        val day = entity.toDomain(emptyList())
+        val stored = day.cardioToRun ?: return null
+        val judged = CardioJudge.judge(day, session, sessions, sets) ?: return null
+        if (judged.opening != stored) return null
+        return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome)
+    }
+
+    /** An Automatic plan's write; Ask writes nothing (decision 6). */
+    private suspend fun applyCardio(judgment: CardioJudgment) {
+        if (judgment.automatic && judgment.outcome.change is CardioChange.Increase &&
+            judgment.outcome.block != judgment.stored &&
+            setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)
+        ) {
+            val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
+            cardioSessionDao.update(session.copy(increaseApplied = true))
+        }
+    }
+
+    /** Amends a set's typed distance and judges the session again: an Automatic judgment writes at most once per
+     *  session, while the day still holds its opening. Working-value undo keeps the session's increaseApplied flag. */
+    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+        db.withTransaction {
+            history.amendCardioSetDistance(sessionId, position, metres)
+            cardioJudgment(sessionId)?.let { applyCardio(it) }
         }
     }
 

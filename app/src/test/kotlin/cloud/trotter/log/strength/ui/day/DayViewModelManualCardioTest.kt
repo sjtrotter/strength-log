@@ -12,7 +12,6 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -211,7 +210,8 @@ class DayViewModelManualCardioTest {
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals("Easy", session.note)
         assertNull(vm.uiState.value.cardio?.loggedSessionId)
-        assertEquals(block, vm.uiState.value.cardio?.block)
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(2835)))),
+            vm.uiState.value.cardio?.block)
         val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
         assertEquals(block, offer.opening)
         assertEquals(Measure.Time(2835), offer.offered.sets.single().end)

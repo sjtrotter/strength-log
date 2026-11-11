@@ -52,7 +52,10 @@ internal data class CardioSetSpecDto(
 }
 
 @Serializable
-internal data class CardioBlockDto(val activity: String, val sets: List<CardioSetSpecDto>) {
+internal data class CardioBlockDto(
+    val activity: String,
+    val sets: List<CardioSetSpecDto>,
+) {
     fun toDomain(): CardioBlock = CardioBlock(CardioActivity.valueOf(activity), sets.map { it.toDomain() })
 }
 
@@ -60,6 +63,7 @@ internal data class CardioBlockDto(val activity: String, val sets: List<CardioSe
 object CardioBlockJson {
     fun encode(block: CardioBlock): String {
         val dto = CardioBlockDto(block.activity.name, block.sets.map(CardioSetSpecDto::of))
+        // Validate domain constraints before persisting the DTO.
         dto.toDomain()
         return SetJson.encode(CardioBlockDto.serializer(), dto)
     }

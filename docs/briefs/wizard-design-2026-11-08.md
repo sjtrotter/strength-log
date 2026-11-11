@@ -897,3 +897,11 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - PR 2b part four ships as three parts in the 2a/2b release: (a) readings at the end; (b) Finish judges cardio and `CardioProgression` goes; (c) openings through `cardioAtStart`.
 - No executor reads distance while a set runs, so a set's readings at the end are the ones its totals prove (`FinishedRule.atEnd`), written by `logCardioSession`, a distance amendment and a one-set History edit. The wire gains no field: the watch never runs past an end, so the phone derives a wrist set's readings, old watches included. The fields come back with the distance tracker.
 - A phone steady run stopped past its planned time reads its time at the end and no distance, so it is not a record, meets no distance aim and proves no timed goal. The totals keep the overrun.
+
+## 28. Revision 19 (PR 2b part four-b-i, Finish judges cardio, 2026-11-10)
+
+- Part four-b ships as two parts: (i) the cardio commit judges and `CardioProgression` goes; (ii) the after-run entry takes the distance at the target, written to `metresAtEnd`.
+- `logCardioSession` judges a session only when it is its day's newest and ran exactly the day's stored block, on a day that is not kept to plan or on the ladder. An Automatic plan writes the next block to `cardioWorkingJson` whatever "Offer cardio increases" says; an Ask plan writes nothing and offers it when that switch is on. A capped block that drops rounds repeats. A capped or tapered session never changes the stored block.
+- A phone steady run with a time end and no distance aim, stopped past its planned end, proves the planned seconds through `secondsAtEnd` and earns the increase: Automatic writes it and Ask offers it. The overrun still earns no record and meets no distance aim. When `secondsAtEnd` has no paired `metresAtEnd`, history pace uses elapsed seconds and total metres.
+- The run cap reads the family's sessions completed in the 30 × 24 h before the judged one, and the pace of the newest one with a distance.
+- Caller answer (2026-11-10): "Offer cardio increases" off hides the chip in both Automatic and Ask modes, matching strength. Automatic still progresses; receipt Undo arrives in 2c. The Day screen still hides the chip after today's session.

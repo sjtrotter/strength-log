@@ -69,7 +69,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -408,7 +408,7 @@ private fun DaySlotList(
 internal fun CardioNextTimePage(state: DayEditUiState, actions: DayEditActions, onBack: () -> Unit) {
     val block = state.cardioBlock ?: return
     val progress = state.cardioProgress
-    val measure = CardioProgression.resolve(block, progress.measure)
+    val measure = CardioMeasures.resolve(block, progress.measure)
     Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
         .padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PickerHeader(stringResource(R.string.day_edit_next_time), onBack)
@@ -440,8 +440,8 @@ internal fun CardioNextTimePage(state: DayEditUiState, actions: DayEditActions, 
                 }
             }
             PrescriptionNumber(stringResource(R.string.cardio_increase_by),
-                progress.increasePercent ?: CardioProgression.defaultPercent(measure),
-                CardioProgression.MIN_PERCENT, CardioProgression.MAX_PERCENT,
+                progress.increasePercent ?: CardioMeasures.defaultPercent(measure),
+                CardioMeasures.MIN_PERCENT, CardioMeasures.MAX_PERCENT,
                 onChange = actions.onCardioIncreaseChange)
         }
     }

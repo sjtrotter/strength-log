@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -81,7 +81,7 @@ internal class DayEditor(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
-                cardioMeasures = block?.let(CardioProgression::available).orEmpty(),
+                cardioMeasures = block?.let(CardioMeasures::available).orEmpty(),
                 performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
@@ -155,7 +155,7 @@ internal class DayEditor(
         val planId = state.planId ?: return
         val dayId = state.dayId ?: return
         if (measure !in state.cardioMeasures) return
-        mutate { repo.setCardioProgression(planId, dayId, measure, CardioProgression.defaultPercent(measure)) }
+        mutate { repo.setCardioProgression(planId, dayId, measure, CardioMeasures.defaultPercent(measure)) }
     }
 
     fun setCardioIncrease(percent: Int) {
@@ -163,7 +163,7 @@ internal class DayEditor(
         val planId = state.planId ?: return
         val dayId = state.dayId ?: return
         val block = state.cardioBlock ?: return
-        val measure = CardioProgression.resolve(block, state.cardioProgress.measure) ?: return
+        val measure = CardioMeasures.resolve(block, state.cardioProgress.measure) ?: return
         mutate { repo.setCardioProgression(planId, dayId, measure, percent) }
     }
 

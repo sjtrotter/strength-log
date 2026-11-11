@@ -1084,7 +1084,7 @@ class DayViewModel @Inject constructor(
                     val id = requireNotNull(pending.sessionId)
                     standingBestsFor(pending)
                     pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
-                        historyRepository.amendCardioSetDistance(id, draft.position, pending.results[draft.position].metres)
+                        repo.amendCardioSetDistance(id, draft.position, pending.results[draft.position].metres)
                         val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
                         saveDistanceRun(latest.copy(drafts = latest.drafts.map {
                             if (it.position == draft.position && it.saved && it.text == draft.text) it.copy(amended = true) else it
@@ -2207,10 +2207,8 @@ class DayViewModel @Inject constructor(
         }
         val day = context?.program?.days?.firstOrNull { it.id == state.viewDayId }
         val plan = context?.plan
-        val last = history.filter { it.planId == state.planId && it.dayId == state.viewDayId }
-            .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
         val nextTime = if (savedRun == null && frozen == null && logged == null && day != null && plan != null) {
-            DayScreenBuilder.cardioNextTime(day, plan, last, last?.let { sets[it.id] })
+            DayScreenBuilder.cardioNextTime(day, plan, history, sets)
         } else null
         val base = sourceCard?.let { source ->
             val loggedActivity = logged?.activity?.let { name -> CardioActivity.entries.firstOrNull { it.name == name } }

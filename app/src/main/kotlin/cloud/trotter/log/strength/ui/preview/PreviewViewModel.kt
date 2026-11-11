@@ -43,6 +43,7 @@ class PreviewViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val plans: PlanRepository,
     private val historyRepository: HistoryRepository,
+    private val clock: java.time.Clock = java.time.Clock.systemDefaultZone(),
 ) : ViewModel() {
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val dayId = checkNotNull(savedState.get<String>(Routes.DAY_ID_ARG))
@@ -68,6 +69,9 @@ class PreviewViewModel @Inject constructor(
         val (cardioSessions, cardioSets) = cardioHistory
         val cardioNextTime = if (day != null && plan != null) {
             DayScreenBuilder.cardioNextTime(day, plan, cardioSessions, cardioSets)
+        } else null
+        val opening = if (day != null && plan != null) {
+            DayScreenBuilder.cardioOpening(day, plan, cardioSessions, cardioSets, clock.millis())
         } else null
         PreviewUiState(
             loading = false, selection = selection, runId = performedDay.tracks.runId,
@@ -110,7 +114,7 @@ class PreviewViewModel @Inject constructor(
                     working, previousResults, nextTime, note = slot.slot.exercise.note,
                     programExerciseId = slot.slot.programExerciseId)
             },
-            cardio = day?.cardioToRun?.let { block ->
+            cardio = opening?.let { block ->
                 PreviewCardio(activityLabel(block.activity), block.plannedTimeDetail(), block.activity, cardioNextTime)
             },
         )

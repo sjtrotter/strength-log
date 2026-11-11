@@ -34,6 +34,7 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.widget.TodayWidgetState
 import cloud.trotter.log.strength.widget.WidgetStatLine
@@ -60,6 +61,17 @@ class WatchSnapshotBuilderTest {
             performedDay(Program(listOf(day)), "A", emptyList(), emptyList()), WeightUnit.LB, revision = 1)!!
         assertEquals(working, snapshot(day).cardioBlock?.toDomain())
         assertEquals(opening, snapshot(day.copy(cardioProgress = day.cardioProgress.copy(keepToPlan = true))).cardioBlock?.toDomain())
+    }
+
+    @Test fun theCardioOpeningRidesTheWireInPlaceOfTheStoredBlock() {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(3600))))
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(3180))))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = stored)
+        val performed = performedDay(Program(listOf(day)), "A", emptyList(), emptyList())
+        val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1, cardioOpening = opening)!!
+        assertEquals(opening.toWatch(), snapshot.cardioBlock)
+        assertEquals(opening.sets.any { it.hard }, snapshot.cardio?.hard)
+        assertEquals(stored.toWatch(), WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1)!!.cardioBlock)
     }
 
     private val catalog = ExerciseCatalog.CODE_ONLY

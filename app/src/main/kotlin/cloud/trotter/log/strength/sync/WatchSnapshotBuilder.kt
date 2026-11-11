@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.sync.toWatch
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.ui.day.activityLabel
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -56,6 +57,7 @@ object WatchSnapshotBuilder {
      * null only when the suggested day is missing; the publisher then sends nothing.
      * [PerformedDay.equipment] is the lifter's gear, so the wrist is never offered a machine
      * they don't own — the same filter the phone's swap sheet applies.
+     * [cardioOpening] is the block the day opens with ([DayScreenBuilder.cardioOpening]); it defaults to the stored block.
      */
     fun build(
         day: PerformedDay,
@@ -69,6 +71,7 @@ object WatchSnapshotBuilder {
         runStartedAt: Long? = null,
         processedEditStamps: List<Long>? = null,
         liftGoal: LiftGoal = LiftGoal.STRENGTH,
+        cardioOpening: CardioBlock? = day.day?.cardioToRun,
     ): WatchSnapshot? {
         val dayId = day.dayId
         val programDay = day.day ?: return null
@@ -92,7 +95,7 @@ object WatchSnapshotBuilder {
             ),
             unit = unit.name.lowercase(),
             cycle = watchDays.map { it.toCycleDay(day.catalog) },
-            cardioBlock = programDay.cardioToRun?.toWatch(),
+            cardioBlock = cardioOpening?.toWatch(),
             cardioAckStamp = cardioAckStamp,
             cardioAckedStamps = cardioAckedStamps,
             planId = day.planId,
@@ -101,7 +104,7 @@ object WatchSnapshotBuilder {
             runStartedAt = runStartedAt,
             retiredRoundsDone = day.tracks.retiredRoundsDone.takeIf { it > 0 },
             processedEditStamps = processedEditStamps,
-            cardio = programDay.cardioToRun?.let { block ->
+            cardio = cardioOpening?.let { block ->
                 CardioSuggestion(
                     label = activityLabel(block.activity),
                     detail = "",

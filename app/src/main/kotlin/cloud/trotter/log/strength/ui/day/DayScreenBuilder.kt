@@ -34,6 +34,8 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 
 /**
@@ -196,6 +198,12 @@ object DayScreenBuilder {
         return NextTime.Offer(if (offer.calibration) SetFormatter.weight(offer.toLb, unit) else offerLabel(offer.toLb, offer.fromLb, unit), applied, offer.toLb, offer.fromLb,
             offer.toReps.takeIf { display(offer.fromLb) == display(offer.toLb) }, offer.calibration)
     }
+
+    /** [CardioJudge.opening] at [nowMillis], on the civil day [loggedToday] reads. Read-only: a run freezes it. */
+    fun cardioOpening(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
+                      sets: Map<Long, List<CardioSetResult>>, nowMillis: Long): CardioBlock? =
+        CardioJudge.opening(day, plan, sessions, sets, nowMillis,
+            Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay())
 
     /** The cardio chip: [CardioJudge]'s outcome for the day's newest session in [sessions], selected while the day
      *  holds it, unselected while the day holds the session's opening. The plan's offers switch controls visibility

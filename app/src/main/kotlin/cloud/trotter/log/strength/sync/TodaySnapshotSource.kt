@@ -11,6 +11,8 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -47,6 +49,7 @@ class TodaySnapshotSource(
     private val settings: SettingsStore,
     private val plans: PlanRepository,
     private val historyRepository: HistoryRepository,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) {
 
     val snapshots: Flow<WatchSnapshot?> = flow {
@@ -82,9 +85,13 @@ class TodaySnapshotSource(
                 plans.programFor(plan.id).map { it.dayToShow(dayId)?.id }.distinctUntilChanged().flatMapLatest resolved@ { resolvedId ->
                     if (resolvedId == null) return@resolved flowOf(null)
                     combine(
-                        repo.observeDay(plan.id, resolvedId), repo.openRunFlow, context, historyRepository.cardioSessionsFlow, today,
+                        repo.observeDay(plan.id, resolvedId), repo.openRunFlow, context,
+                        combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
+                            sessions to sets
+                        }, today,
                     ) { performedDay, open, ctx, cardioHistory, civilDate ->
-                        val loggedCardio = cardioHistory.firstOrNull { session ->
+                        val (sessions, sets) = cardioHistory
+                        val loggedCardio = sessions.firstOrNull { session ->
                             session.planId == plan.id && session.dayId == resolvedId &&
                                 Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
                         }
@@ -100,6 +107,9 @@ class TodaySnapshotSource(
                             runStartedAt = open?.takeIf { !it.draft && performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
                             processedEditStamps = ctx.processedEdits,
                             liftGoal = plan.planSettings.defaultsFor,
+                            cardioOpening = performedDay.day?.let {
+                                DayScreenBuilder.cardioOpening(it, plan, sessions, sets, clock.millis())
+                            },
                         )
                     }
                 }

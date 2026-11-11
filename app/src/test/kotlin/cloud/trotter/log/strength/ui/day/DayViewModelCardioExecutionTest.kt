@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -44,6 +45,8 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -167,6 +170,104 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(offer.offered, vm.uiState.value.cardio?.run?.block)
     }
+    @Test fun aCappedOpeningShowsBeforeStartWritesNothingAndFreezesAtStart() = test {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3600)))
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3180)))
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 3600), activity = CardioActivity.ROAD_RUN)
+        seedCardioBest(time(CardioRole.WORK, 2900), 2900, activity = CardioActivity.ROAD_RUN)
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        assertEquals(opening, vm.uiState.value.cardio?.block)
+        assertEquals("53:00", vm.uiState.value.cardio?.detail)
+        assertEquals(stored, repo.plans.programFor(planId).first().days.first { it.id == "A" }.cardioToRun)
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+
+        vm.startCardio()
+        runCurrent()
+        val run = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(opening, run.block)
+        assertEquals(stored, CardioBlockJson.decode(run.sourceBlockJson))
+        tick(3_180_000)
+        vm.endCardioBlock()
+        runCurrent()
+
+        val sessions = repo.history.cardioSessionsFlow.first()
+        val session = sessions.single { it.planId == planId }
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(time(CardioRole.WORK, 3180), result.spec)
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(3180, result.elapsedSeconds)
+        val day = repo.plans.programFor(planId).first().days.first { it.id == "A" }
+        assertEquals(stored, day.cardioToRun)
+        assertFalse(session.increaseApplied)
+        val plan = requireNotNull(db.planDao().plan(planId))
+        assertTrue(plan.autoApply)
+        val sets = sessions.associate { it.id to repo.history.cardioSetsFor(it.id) }
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3480))),
+            DayScreenBuilder.cardioOpening(day, plan, sessions, sets, clock.wall))
+    }
+
+    @Test fun aTaperedOpeningShowsBeforeStart() = test {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3600)))
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 3600), activity = CardioActivity.ROAD_RUN)
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val today = Instant.ofEpochMilli(clock.wall).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+        repo.plans.setGoal(plan, PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, 7200, byEpochDay = today + 12))
+        val vm = readyVm()
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 2520))), vm.uiState.value.cardio?.block)
+        assertEquals("42:00", vm.uiState.value.cardio?.detail)
+        assertEquals(stored, repo.plans.programFor(plan).first().days.first { it.id == "A" }.cardioToRun)
+    }
+
+    @Test fun anAddedSetBeforeStartKeepsTheFrozenOpening() = test {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3600)))
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 3600), activity = CardioActivity.ROAD_RUN)
+        seedCardioBest(time(CardioRole.WORK, 2900), 2900, activity = CardioActivity.ROAD_RUN)
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.addCardioSet()
+        runCurrent()
+        val frozen = CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3180),
+            time(CardioRole.WORK, 3180), CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120))))
+        val run = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
+        assertNull(run.startedAt)
+        assertFalse(run.running)
+        assertEquals(frozen, run.block)
+        assertEquals(frozen, vm.uiState.value.cardio?.block)
+        assertEquals(stored, CardioBlockJson.decode(run.sourceBlockJson))
+        assertEquals(stored, repo.plans.programFor(planId).first().days.first { it.id == "A" }.cardioToRun)
+
+        seedCardioBest(time(CardioRole.WORK, 3500), 3500, activity = CardioActivity.ROAD_RUN)
+        runCurrent()
+        val day = repo.plans.programFor(planId).first().days.first { it.id == "A" }
+        val sessions = repo.history.cardioSessionsFlow.first()
+        val sets = sessions.associate { it.id to repo.history.cardioSetsFor(it.id) }
+        assertEquals(stored, DayScreenBuilder.cardioOpening(day, requireNotNull(db.planDao().plan(planId)), sessions, sets, clock.wall))
+        assertEquals(frozen, handle.get<CardioRun>("day_cardio_run")?.block)
+        assertEquals(frozen, vm.uiState.value.cardio?.block)
+        vm.startCardio()
+        runCurrent()
+        assertEquals(frozen, handle.get<CardioRun>("day_cardio_run")?.block)
+    }
+
+    @Test fun aPlanEditBeforeStartClearsTheUnstartedOpening() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 3600), activity = CardioActivity.ROAD_RUN)
+        seedCardioBest(time(CardioRole.WORK, 2900), 2900, activity = CardioActivity.ROAD_RUN)
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.addCardioSet()
+        runCurrent()
+        assertNotNull(handle.get<CardioRun>("day_cardio_run"))
+
+        repo.setCardioWorking(plan, "A", CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3300))))
+        runCurrent()
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3180))), vm.uiState.value.cardio?.block)
+    }
+
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore

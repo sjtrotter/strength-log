@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.sync.WatchContinuitySource
+import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -94,7 +95,8 @@ object WearSyncModule {
         settings: SettingsStore,
         plans: PlanRepository,
         history: HistoryRepository,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans, historyRepository = history)
+        clock: Clock,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans, historyRepository = history, clock = clock)
 
     @Provides
     @Singleton

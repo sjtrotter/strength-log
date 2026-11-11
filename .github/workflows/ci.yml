@@ -32,7 +32,7 @@ jobs:
           key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
 
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew build --continue
         # Backstop for a hang the test task's own timeout can't interrupt (#310).
         timeout-minutes: 30
 

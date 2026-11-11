@@ -1118,10 +1118,11 @@ class DayViewModelCardioExecutionTest {
         seconds: Int,
         metres: Int? = null,
         activity: CardioActivity = CardioActivity.TRACK_RUN,
+        completedAt: Long = clock.wall - 1000,
     ): Long {
         val id = db.cardioSessionDao().insert(CardioSessionEntity(
             dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Run",
-            startedAt = clock.wall - seconds * 1000L - 1000, completedAt = clock.wall - 1000,
+            startedAt = completedAt - seconds * 1000L, completedAt = completedAt,
             seconds = seconds, stepsCompleted = 1, activity = activity.name,
         ))
         val result = CardioSetResult(spec, CardioSetStatus.FINISHED, seconds,
@@ -1430,7 +1431,7 @@ class DayViewModelCardioExecutionTest {
         prepareAuthoredCardioDay(
             time(CardioRole.WARMUP, 10), work, work, time(CardioRole.COOLDOWN, 10),
         )
-        seedCardioBest(work, 102)
+        seedCardioBest(work, 102, completedAt = clock.wall - 31 * 24 * 60 * 60 * 1000L)
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
         vm.startCardio()

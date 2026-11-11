@@ -32,6 +32,8 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.progression.RecentMaxima
+import cloud.trotter.log.strength.domain.progression.RunCap
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.toWatch
@@ -70,8 +72,22 @@ class WatchSnapshotBuilderTest {
         val performed = performedDay(Program(listOf(day)), "A", emptyList(), emptyList())
         val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1, cardioOpening = opening)!!
         assertEquals(opening.toWatch(), snapshot.cardioBlock)
-        assertEquals(opening.sets.any { it.hard }, snapshot.cardio?.hard)
         assertEquals(stored.toWatch(), WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1)!!.cardioBlock)
+    }
+
+    @Test fun aCappedOpeningDropsTheStoredBlocksOnlyHardSet() {
+        val easy = CardioSetSpec(CardioRole.WORK, Measure.Time(1200))
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(easy, easy.copy(hard = true)))
+        val opening = RunCap.capped(stored, RecentMaxima(null, 1200), null)
+        assertEquals(stored.copy(sets = listOf(easy)), opening)
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = stored)
+        val performed = performedDay(Program(listOf(day)), "A", emptyList(), emptyList())
+
+        val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1, cardioOpening = opening)!!
+
+        assertEquals(opening.toWatch(), snapshot.cardioBlock)
+        assertEquals(false, snapshot.cardio?.hard)
+        assertEquals(true, WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1)!!.cardio?.hard)
     }
 
     private val catalog = ExerciseCatalog.CODE_ONLY

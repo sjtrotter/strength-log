@@ -176,7 +176,7 @@ class PreStartOpeningTest : OverviewFixture() {
             settings = settings, plans = repo.plans, historyRepository = repo.history, clock = clock)
             .snapshots.filterNotNull().first()
 
-        assertEquals("42:00", preview.uiState.value.cardio?.detail)
+        assertEquals("42:00", preview.uiState.value.cardio?.time)
         assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(2520)))).toWatch(),
             snapshot.cardioBlock)
     }

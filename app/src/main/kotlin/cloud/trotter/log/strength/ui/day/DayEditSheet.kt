@@ -764,7 +764,6 @@ internal fun CardioBlockPage(
         CardioTemplate.entries.forEach { template ->
             TextButton(onClick = { onChange(draft.startFrom(template)) }) {
                 Text(cardioTemplateLabel(template))
-            }))
             }
         }
         draft.sets.forEachIndexed { index, set ->

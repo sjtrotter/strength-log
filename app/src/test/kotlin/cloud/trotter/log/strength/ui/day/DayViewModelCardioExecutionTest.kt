@@ -42,10 +42,14 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.CardioInterval
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
+import cloud.trotter.log.strength.sync.TodaySnapshotSource
+import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +57,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -292,6 +297,38 @@ class DayViewModelCardioExecutionTest {
         assertNull(day.cardioWorkingJson)
         assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
         assertNull(alarm.deadline)
+    }
+
+    @Test fun phoneSwapKeepsTheWatchOnThePlanAndRunsTheSwappedActivityOnThePhone() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        val planned = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        val swapped = planned.copy(activity = CardioActivity.ELLIPTICAL)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        val syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("cardio-swap-sync", ".preferences_pb")
+        })
+        val snapshotClock = Clock.fixed(Instant.ofEpochMilli(clock.wall), ZoneId.systemDefault())
+        val source = TodaySnapshotSource(repo, flowOf(LocalDate.now(snapshotClock)), syncStore, syncStore,
+            settings, repo.plans, repo.history, snapshotClock)
+
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+
+        val snapshot = requireNotNull(source.snapshots.first { it != null })
+        assertEquals("A", snapshot.day.dayId)
+        assertEquals(planned, snapshot.cardioBlock?.toDomain())
+        assertEquals(activityLabel(CardioActivity.ROAD_RUN), snapshot.cardio?.label)
+        assertEquals(swapped, vm.uiState.value.cardio?.run?.block)
+        assertNull(vm.uiState.value.cardio?.run?.startedAt)
+
+        vm.startCardio()
+        runCurrent()
+
+        val run = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(run.running)
+        assertEquals(swapped, run.block)
+        assertEquals(activityLabel(CardioActivity.ELLIPTICAL), vm.uiState.value.cardio?.label)
     }
 
     @Test fun aTemplateReplacesTodaysSetsInTheChosenActivity() = test {

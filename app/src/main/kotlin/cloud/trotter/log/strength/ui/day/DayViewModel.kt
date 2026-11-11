@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.DayTracks
-import cloud.trotter.log.strength.sync.CardioDraftSource
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PerformedDay
@@ -134,7 +133,6 @@ class DayViewModel @Inject constructor(
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
     private val historyRepository: HistoryRepository,
-    cardioDraft: CardioDraftSource = CardioDraftSource(),
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
@@ -165,7 +163,7 @@ class DayViewModel @Inject constructor(
     private val _pastCardioSaving = MutableStateFlow(false)
     val pastCardioSaving: StateFlow<Boolean> = _pastCardioSaving.asStateFlow()
     private val pastCardioReceiptId = savedState.getStateFlow<Long?>(KEY_PAST_CARDIO_RECEIPT_ID, null)
-    private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null).also(cardioDraft::bind)
+    private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val runDistance = savedState.getStateFlow<CardioRunDistance?>(KEY_CARDIO_RUN_DISTANCE, null)
     private val readingInputs = savedState.getStateFlow<ArrayList<CardioReadingInput>>(KEY_CARDIO_READING_INPUTS, arrayListOf())
     private val distanceInputs = savedState.getStateFlow<ArrayList<CardioDistanceInput>>(KEY_CARDIO_DISTANCE_INPUTS, arrayListOf())

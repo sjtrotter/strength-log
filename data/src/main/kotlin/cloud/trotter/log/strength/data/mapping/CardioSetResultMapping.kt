@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
 
 fun CardioSetResultEntity.toDomain(): CardioSetResult = CardioSetResult(
     spec = CardioBlockJson.decodeSet(specJson),
@@ -14,6 +15,7 @@ fun CardioSetResultEntity.toDomain(): CardioSetResult = CardioSetResult(
     distanceSource = distanceSource?.let(DistanceSource::valueOf),
     metresAtEnd = metresAtEnd,
     secondsAtEnd = secondsAtEnd,
+    readingSource = readingSource?.let(ReadingSource::valueOf),
 )
 
 /** Invalid stored rows are omitted at the read boundary; backup validation stays strict. */
@@ -33,4 +35,5 @@ fun CardioSetResult.toEntity(sessionId: Long, position: Int): CardioSetResultEnt
     distanceSource = distanceSource?.name,
     metresAtEnd = metresAtEnd,
     secondsAtEnd = secondsAtEnd,
+    readingSource = readingSource?.name,
 )

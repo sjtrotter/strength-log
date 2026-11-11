@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -181,5 +182,74 @@ class SuppliedReadingTest {
         val id = log(T + day, listOf(result(time(1200), 1200)), increaseApplied = true)
         assertEquals(block(time(1260)), working())
         assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+    }
+
+    @Test fun `a typed time survives correcting 401 metres to 400 then editing duration`() = runTest {
+        val spec = distance(400)
+        val id = log(T, listOf(result(spec, 100, status = CardioSetStatus.SHORTENED)), owner = null)
+        repo.amendCardioSetDistance(id, 0, 401, readingAtEnd = 100)
+        assertEquals("TYPED", db.cardioSetResultDao().forSession(id).single().readingSource)
+
+        repo.amendCardioSetDistance(id, 0, 400)
+        val corrected = history.cardioSetsFor(id).single()
+        assertEquals(400 to 100, corrected.metresAtEnd to corrected.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, corrected.readingSource)
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 110, 400, "Corrected duration")
+        val edited = history.cardioSetsFor(id).single()
+        assertEquals(110, edited.elapsedSeconds)
+        assertEquals(400, edited.metres)
+        assertEquals(400 to 100, edited.metresAtEnd to edited.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, edited.readingSource)
+        assertEquals(1, history.cardioSession(id)!!.stepsCompleted)
+    }
+
+    @Test fun `a typed distance survives a distance amendment and duration edit`() = runTest {
+        val id = log(T, listOf(result(time(1500), 1690)), owner = null)
+        repo.amendCardioSetDistance(id, 0, 5600, readingAtEnd = 5050)
+        repo.amendCardioSetDistance(id, 0, 5700)
+        assertEquals(5050 to 1500, history.cardioSetsFor(id).single().let { it.metresAtEnd to it.secondsAtEnd })
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1700, 5700, "Corrected duration")
+        val edited = history.cardioSetsFor(id).single()
+        assertEquals(1700, edited.elapsedSeconds)
+        assertEquals(5700, edited.metres)
+        assertEquals(Measure.Time(1500), edited.spec.end)
+        assertEquals(5050 to 1500, edited.metresAtEnd to edited.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, edited.readingSource)
+    }
+
+    @Test fun `a derived time recomputes through distance and duration edits`() = runTest {
+        val id = log(T, listOf(result(distance(400), 100, 400)), owner = null)
+        assertEquals(400 to 100, history.cardioSetsFor(id).single().let { it.metresAtEnd to it.secondsAtEnd })
+        repo.amendCardioSetDistance(id, 0, 401)
+        val pastEnd = history.cardioSetsFor(id).single()
+        assertEquals(400 to null, pastEnd.metresAtEnd to pastEnd.secondsAtEnd)
+        assertNull(pastEnd.readingSource)
+
+        repo.amendCardioSetDistance(id, 0, 400)
+        assertEquals(400 to 100, history.cardioSetsFor(id).single().let { it.metresAtEnd to it.secondsAtEnd })
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 110, 400, "Corrected duration")
+        val edited = history.cardioSetsFor(id).single()
+        assertEquals(400 to 110, edited.metresAtEnd to edited.secondsAtEnd)
+        assertNull(edited.readingSource)
+    }
+
+    @Test fun `logging preserves a typed reading even when it equals the derived reading`() = runTest {
+        val stopped = result(distance(400), 100, 401, CardioSetStatus.SHORTENED)
+        val supplied = requireNotNull(FinishedRule.withReading(stopped, 100)).copy(metres = 400)
+        val id = log(T, listOf(supplied), owner = null)
+        assertEquals(supplied, history.cardioSetsFor(id).single())
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 110, 400, "Corrected duration")
+        assertEquals(supplied.copy(elapsedSeconds = 110), history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `logging recomputes readings without a source even when readings arrive populated`() = runTest {
+        val stale = result(time(900), 900, 3000).copy(metres = 3100)
+        val id = log(T, listOf(stale), owner = null)
+        val logged = history.cardioSetsFor(id).single()
+        assertEquals(3100 to 900, logged.metresAtEnd to logged.secondsAtEnd)
+        assertNull(logged.readingSource)
     }
 }

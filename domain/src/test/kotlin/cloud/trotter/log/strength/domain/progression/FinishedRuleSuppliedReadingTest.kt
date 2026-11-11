@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.GoalProgress
 import kotlin.test.Test
@@ -48,7 +49,7 @@ class FinishedRuleSuppliedReadingTest {
     fun `a distance at a time end fills metresAtEnd`() {
         val row = result(timeEnd, metres = 5600)
         val supplied = assertNotNull(FinishedRule.withReading(row, 5050))
-        assertEquals(row.copy(metresAtEnd = 5050, secondsAtEnd = 1500), supplied)
+        assertEquals(row.copy(metresAtEnd = 5050, secondsAtEnd = 1500, readingSource = ReadingSource.TYPED), supplied)
         assertEquals(1690, supplied.elapsedSeconds)
         assertEquals(5600, supplied.metres)
         assertEquals(5050, FinishedRule.reading(supplied))
@@ -64,7 +65,7 @@ class FinishedRuleSuppliedReadingTest {
     fun `a time at a distance end finishes the set`() {
         val row = result(distanceEnd, CardioSetStatus.SHORTENED, 1000, 2736)
         val supplied = assertNotNull(FinishedRule.withReading(row, 900))
-        assertEquals(row.copy(status = CardioSetStatus.FINISHED, metresAtEnd = 2414, secondsAtEnd = 900), supplied)
+        assertEquals(row.copy(status = CardioSetStatus.FINISHED, metresAtEnd = 2414, secondsAtEnd = 900, readingSource = ReadingSource.TYPED), supplied)
         assertEquals(1000, supplied.elapsedSeconds)
         assertEquals(2736, supplied.metres)
         assertEquals(900, FinishedRule.reading(supplied))
@@ -107,6 +108,31 @@ class FinishedRuleSuppliedReadingTest {
         assertEquals(100, FinishedRule.reading(edited))
         assertTrue(CardioBests.counts(edited))
         assertFalse(FinishedRule.awaitsReading(edited))
+    }
+
+    @Test
+    fun `a typed time survives a distance correction that makes it equal to a derived reading`() {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400))
+        val stopped = result(spec, CardioSetStatus.SHORTENED, elapsed = 100, metres = 401)
+        val supplied = assertNotNull(FinishedRule.withReading(stopped, 100))
+        val distanceEdited = FinishedRule.afterEdit(supplied, supplied.copy(metres = 400))
+        assertEquals(400 to 100, distanceEdited.metresAtEnd to distanceEdited.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, distanceEdited.readingSource)
+
+        val durationEdited = FinishedRule.afterEdit(distanceEdited, distanceEdited.copy(elapsedSeconds = 110))
+        assertEquals(400, durationEdited.metres)
+        assertEquals(110, durationEdited.elapsedSeconds)
+        assertEquals(400 to 100, durationEdited.metresAtEnd to durationEdited.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, durationEdited.readingSource)
+    }
+
+    @Test
+    fun `a null source recomputes even when the old readings differ from the totals`() {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400))
+        val derived = result(spec, elapsed = 100, metres = 400, metresAtEnd = 400, secondsAtEnd = 90)
+        val edited = FinishedRule.afterEdit(derived, derived.copy(elapsedSeconds = 110))
+        assertEquals(400 to 110, edited.metresAtEnd to edited.secondsAtEnd)
+        assertNull(edited.readingSource)
     }
 
     @Test

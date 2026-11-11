@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -16,6 +17,7 @@ data class CardioSetResultEntity(
     val distanceSource: String? = null,
     val metresAtEnd: Int? = null,
     val secondsAtEnd: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val readingSource: String? = null,
     /** A sprint rep's time in hundredths, written once with [timingMethod] and [startProtocol] (PR 5). */
     val centis: Int? = null,
     val timingMethod: String? = null,

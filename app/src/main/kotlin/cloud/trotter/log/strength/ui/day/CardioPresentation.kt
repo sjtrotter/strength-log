@@ -29,7 +29,6 @@ import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.math.floor
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
 internal fun activityLabel(activity: CardioActivity): String =
@@ -176,7 +175,8 @@ internal fun CardioDistanceSheet(
             if (awaiting != null) {
                 val end = awaiting.spec.end
                 val distance = end is Measure.Time
-                val step = if (distance && unit != DistanceUnit.M) 0.05 else 1.0
+                val stepHundredths = if (distance && unit != DistanceUnit.M) 5 else 100
+                val step = stepHundredths / 100.0
                 val label = stringResource(
                     if (distance) R.string.cardio_reading_distance_at else R.string.cardio_reading_time_at,
                     measureText(end, run.block.activity),
@@ -189,7 +189,8 @@ internal fun CardioDistanceSheet(
                     partnerName = null,
                     modifier = Modifier.fillMaxWidth(),
                     minimum = 0.0,
-                    maximum = if (distance) floor(unit.fromMetres(requireNotNull(awaiting.metres)) / step) * step
+                    maximum = if (distance) unit.wholeHundredthsFromMetres(requireNotNull(awaiting.metres)) /
+                        stepHundredths * stepHundredths / 100.0
                         else awaiting.elapsedSeconds.toDouble(),
                     decimal = distance && unit != DistanceUnit.M,
                     duration = !distance,

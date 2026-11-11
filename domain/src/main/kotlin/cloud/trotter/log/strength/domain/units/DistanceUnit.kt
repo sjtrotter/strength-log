@@ -9,10 +9,16 @@ import kotlin.math.roundToInt
 
 /** Display unit for a cardio distance; storage is always whole metres.
  *  The setting is [MI] or [KM]; [M] is display-only for track and rower segments. */
-enum class DistanceUnit(private val metresPerUnit: Double, val symbol: String) {
-    MI(1_609.344, "mi"), KM(1_000.0, "km"), M(1.0, "m");
+enum class DistanceUnit(private val millimetresPerUnit: Int, val symbol: String) {
+    MI(1_609_344, "mi"), KM(1_000_000, "km"), M(1_000, "m");
+
+    private val metresPerUnit: Double = millimetresPerUnit / 1000.0
 
     fun fromMetres(metres: Int): Double = metres / metresPerUnit
+
+    /** Whole hundredths for stepper bounds, using the units' exact millimetre conversion. */
+    fun wholeHundredthsFromMetres(metres: Int): Long =
+        metres.toLong() * 100_000 / millimetresPerUnit
 
     /** Typed value in this unit to whole metres, or null outside the [Measure.Distance] range. */
     fun toMetres(value: Double): Int? {

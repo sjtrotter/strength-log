@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.progression
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.ReadingSource
 
 /** The one "counts as finished" rule for records and progression (#526): a set is finished when its planned end was
  *  reached. An at-end field on the row marks a reached end (see [CardioSetResult.secondsAtEnd]); the totals keep the
@@ -15,7 +16,7 @@ object FinishedRule {
      *  a FINISHED time end run past its seconds (the phone's steady run) reads its seconds and no distance, since
      *  nothing read the distance then. A time end stopped short and every SHORTENED or SKIPPED set read nothing. */
     fun atEnd(result: CardioSetResult): CardioSetResult {
-        val none = result.copy(metresAtEnd = null, secondsAtEnd = null)
+        val none = result.copy(metresAtEnd = null, secondsAtEnd = null, readingSource = null)
         if (result.status != CardioSetStatus.FINISHED) return none
         return when (val end = result.spec.end) {
             is Measure.Distance -> none.copy(metresAtEnd = end.metres,
@@ -28,10 +29,11 @@ object FinishedRule {
         }
     }
 
-    /** Readings matching [atEnd] of [previous] are derived; supplied readings survive edits to the totals. */
+    /** Readings with a source survive edits to the totals; derived readings are recomputed. */
     fun afterEdit(previous: CardioSetResult, edited: CardioSetResult): CardioSetResult =
-        if (previous == atEnd(previous)) atEnd(edited)
-        else edited.copy(metresAtEnd = previous.metresAtEnd, secondsAtEnd = previous.secondsAtEnd)
+        if (previous.readingSource != null) edited.copy(metresAtEnd = previous.metresAtEnd,
+            secondsAtEnd = previous.secondsAtEnd, readingSource = previous.readingSource)
+        else atEnd(edited)
 
     /** True when [result] passed its planned end and has no reading there: a FINISHED time end stopped after its
      *  seconds with no [CardioSetResult.metresAtEnd], or a distance end whose total passed its metres with no
@@ -48,10 +50,10 @@ object FinishedRule {
     fun withReading(result: CardioSetResult, reading: Int): CardioSetResult? {
         if (!awaitsReading(result) || reading < 1) return null
         return when (val end = result.spec.end) {
-            is Measure.Time -> result.copy(metresAtEnd = reading, secondsAtEnd = end.seconds)
+            is Measure.Time -> result.copy(metresAtEnd = reading, secondsAtEnd = end.seconds, readingSource = ReadingSource.TYPED)
                 .takeIf { reading <= (result.metres ?: 0) }
             is Measure.Distance -> result.copy(status = CardioSetStatus.FINISHED, metresAtEnd = end.metres,
-                secondsAtEnd = reading).takeIf { reading <= result.elapsedSeconds }
+                secondsAtEnd = reading, readingSource = ReadingSource.TYPED).takeIf { reading <= result.elapsedSeconds }
         }
     }
 

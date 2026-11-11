@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.GoalProgress
@@ -103,9 +104,11 @@ class FinishedRuleAtEndTest {
         assertEquals(900, edited.secondsAtEnd)
 
         val supplied = result(time(900), elapsed = 904, metres = 3485, metresAtEnd = 3470, secondsAtEnd = 900)
+            .copy(readingSource = ReadingSource.TYPED)
         assertEquals(supplied.copy(metres = 3500), FinishedRule.afterEdit(supplied, supplied.copy(metres = 3500)))
 
         val distanceReading = result(distance(2414), elapsed = 761, metres = 2414, metresAtEnd = 2414, secondsAtEnd = 750)
+            .copy(readingSource = ReadingSource.TYPED)
         assertEquals(distanceReading.copy(metres = 2500),
             FinishedRule.afterEdit(distanceReading, distanceReading.copy(metres = 2500)))
     }

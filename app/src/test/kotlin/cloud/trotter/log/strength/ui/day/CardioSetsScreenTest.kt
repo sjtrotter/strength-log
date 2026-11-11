@@ -154,14 +154,15 @@ class CardioSetsScreenTest {
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(
             CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         ))
-        val run = run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
+        var run by mutableStateOf(run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
             results = listOf(SavedCardioResult("FINISHED", 1690)),
-            drafts = listOf(CardioDistanceDraft(0, false, "5000")))
+            drafts = listOf(CardioDistanceDraft(0, false, "5000"))))
+        var unit by mutableStateOf(DistanceUnit.MI)
         var reading by mutableStateOf<CardioReadingInput?>(null)
         val actions = workoutActions().copy(onCardioReadingChange = { text ->
-            reading = CardioReadingInput(run.runId, 0, text, DistanceUnit.MI)
+            reading = CardioReadingInput(run.runId, 0, text, unit)
         })
-        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.MI, reading = reading) } }
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, unit, reading = reading) } }
         rule.onNodeWithText("Distance at 25:00").performTextReplacement("3.1")
         repeat(2) { rule.onNodeWithContentDescription("Increase distance at 25:00").performClick() }
         rule.onNodeWithText("Distance at 25:00").assertTextContains("3.1")
@@ -170,6 +171,19 @@ class CardioSetsScreenTest {
         rule.runOnIdle {
             assertEquals("3.1", reading?.text)
             assertEquals(4989, DistanceUnit.MI.toMetres(requireNotNull(reading).text.toDouble()))
+        }
+        rule.runOnIdle {
+            unit = DistanceUnit.KM
+            run = run.copy(drafts = listOf(CardioDistanceDraft(0, false, "4800")))
+        }
+        rule.onNodeWithText("Distance at 25:00").performTextReplacement("4.75")
+        repeat(2) { rule.onNodeWithContentDescription("Increase distance at 25:00").performClick() }
+        rule.onNodeWithText("Distance at 25:00").assertTextContains("4.8")
+        rule.onNodeWithText("No more than your total distance").assertDoesNotExist()
+        rule.onNodeWithText("Save distance").assertIsEnabled()
+        rule.runOnIdle {
+            assertEquals("4.8", reading?.text)
+            assertEquals(4800, DistanceUnit.KM.toMetres(requireNotNull(reading).text.toDouble()))
         }
     }
 

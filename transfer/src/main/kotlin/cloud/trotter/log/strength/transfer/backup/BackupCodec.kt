@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -232,7 +233,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             mapRows(get("cardioSessions")) { session ->
                 JsonObject((session - setOf("effort", "increaseApplied")).toMutableMap().apply {
                     mapRows(get("sets")) {
-                        JsonObject(it - setOf("metresAtEnd", "secondsAtEnd", "centis", "timingMethod", "startProtocol"))
+                        JsonObject(it - setOf("metresAtEnd", "secondsAtEnd", "readingSource", "centis", "timingMethod", "startProtocol"))
                     }?.let { put("sets", it) }
                 })
             }?.let { put("cardioSessions", it) }
@@ -600,6 +601,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 checkValue("cardio set ${set.id} in session ${session.id}") {
                     require(set.metresAtEnd == null || set.metresAtEnd >= 0)
                     require(set.secondsAtEnd == null || set.secondsAtEnd >= 0)
+                    set.readingSource?.let(ReadingSource::valueOf)
                     val timing = listOf(set.centis, set.timingMethod, set.startProtocol)
                     require(timing.all { it == null } || timing.all { it != null })
                     set.centis?.let { require(it in 1..CardioTiming.MAX_CENTIS) }
@@ -864,6 +866,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         distanceSource = set.distanceSource?.let(DistanceSource::valueOf),
                         metresAtEnd = if (version >= 27) set.metresAtEnd else null,
                         secondsAtEnd = if (version >= 27) set.secondsAtEnd else null,
+                        readingSource = if (version >= 27) set.readingSource?.let(ReadingSource::valueOf) else null,
                     )
                 }
             }

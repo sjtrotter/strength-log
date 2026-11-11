@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_25_26
 import cloud.trotter.log.strength.data.db.MIGRATION_26_27
 import cloud.trotter.log.strength.data.db.MIGRATION_27_28
 import cloud.trotter.log.strength.data.db.MIGRATION_28_29
+import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -62,7 +63,7 @@ class Migration17To18Test {
         helper.close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 assertEquals(before, rows(sql, "SELECT $retainedColumns FROM program_exercise ORDER BY id"))

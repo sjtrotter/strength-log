@@ -40,6 +40,9 @@ enum class CardioSetStatus { FINISHED, SHORTENED, SKIPPED }
 
 enum class DistanceSource { MANUAL, GPS, HEALTH_CONNECT }
 
+/** A supplied reading's source. A null source means derived from the totals or no reading. */
+enum class ReadingSource { TYPED }
+
 data class CardioSetResult(
     val spec: CardioSetSpec,
     val status: CardioSetStatus,
@@ -52,6 +55,7 @@ data class CardioSetResult(
      *  overrun is the difference. */
     val metresAtEnd: Int? = null,
     val secondsAtEnd: Int? = null,
+    val readingSource: ReadingSource? = null,
 ) {
     init {
         require(elapsedSeconds >= 0) { "elapsedSeconds must not be negative" }

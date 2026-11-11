@@ -401,6 +401,7 @@ data class SetRowState(
     val kind: SetKind = SetKind.WORK,
     /** One-based among RAMP sets; zero for every other kind. */
     val rampIndex: Int = 0,
+    val rir: Int? = null,
 ) {
     val complete: Boolean get() = done && partner?.done != false
     val nextSlot: String get() = if (done && partner?.done == false) Slot.SS else Slot.MAIN
@@ -434,6 +435,7 @@ data class PartnerRowState(
     val done: Boolean = false,
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
+    val rir: Int? = null,
 )
 
 /**

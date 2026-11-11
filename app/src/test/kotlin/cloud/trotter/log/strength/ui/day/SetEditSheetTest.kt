@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -21,6 +22,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -35,6 +37,30 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class SetEditSheetTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun effortRatesOnlyDoneWorkingRowsAndUsesTheSlotIdentity() {
+        val base = workoutDayFixture().exercises[1]
+        var card by mutableStateOf(base)
+        val working = base.rows[1].copy(done = true, kind = SetKind.WORK)
+        var row by mutableStateOf(working)
+        var picked: List<Any?>? = null
+        rule.setContent { AppTheme {
+            SetEditSheet(card, row, WeightUnit.LB, 0, workoutActions().copy(
+                onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
+            ), {})
+        } }
+        for (effort in Effort.entries) rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-${effort.name}").assertExists()
+        rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-MAX").performClick()
+        rule.runOnIdle { assertEquals(listOf(base.programExerciseId, Slot.MAIN, working.index, Effort.MAX), picked) }
+        for ((candidate, tracking) in listOf(
+            working.copy(done = false) to TrackingType.WEIGHTED,
+            working.copy(kind = SetKind.RAMP) to TrackingType.WEIGHTED,
+            working to TrackingType.TIMED,
+        )) {
+            rule.runOnIdle { row = candidate; card = base.copy(tracking = tracking) }
+            for (effort in Effort.entries) rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-${effort.name}").assertDoesNotExist()
+        }
+    }
 
     @Test fun topSetWithBackoffExplainsBothFollowingWeights() {
         val card = workoutLiftSheetFixture().exercises.first().copy(equipment = emptyList())

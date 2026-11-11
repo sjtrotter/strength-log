@@ -50,6 +50,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.records.CardioBests
@@ -1424,6 +1425,19 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    fun setEffort(programExerciseId: Long, slot: String, index: Int, effort: Effort?) {
+        val state = dayState.value
+        val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
+        mutate {
+            val result = repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, slot) { rows -> SetEditor.effort(rows, index, effort) },
+            ))
+            reportOtherDay(result, planId, day)
+        }
+    }
+
     fun decrementFocusedReps() {
         val state = dayState.value
         val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
@@ -1998,9 +2012,9 @@ class DayViewModel @Inject constructor(
                 SetRowState(
                     index = index, kindLabel = "", isTop = set.kind == SetKind.TOP,
                     weightDisplay = state.unit.fromLb(set.weightLb), reps = set.reps, done = set.done,
-                    seconds = set.seconds, kind = set.kind,
+                    seconds = set.seconds, kind = set.kind, rir = set.rir,
                     partner = partner?.getOrNull(index)?.let {
-                        PartnerRowState(state.unit.fromLb(it.weightLb), it.reps, it.done, it.seconds)
+                        PartnerRowState(state.unit.fromLb(it.weightLb), it.reps, it.done, it.seconds, rir = it.rir)
                     },
                 )
             }
@@ -2364,8 +2378,9 @@ class DayViewModel @Inject constructor(
                 reps = s.reps,
                 seconds = s.seconds,
                 done = s.done,
+                rir = s.rir,
                 partner = partnerSets?.getOrNull(i)?.let {
-                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, done = it.done, seconds = it.seconds)
+                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, done = it.done, seconds = it.seconds, rir = it.rir)
                 },
             )
         }

@@ -39,6 +39,22 @@ import org.robolectric.annotation.Config
 class LiftSheetTest {
     @get:Rule val rule = createComposeRule()
 
+    @Test fun onlyDoneRatedRowsShowTheirEffortWord() {
+        val base = workoutLiftSheetFixture().exercises.single()
+        val card = base.copy(rows = listOf(
+            SetRowState(0, "1", false, 185.0, 5, done = true, rir = 1),
+            SetRowState(1, "2", false, 185.0, 5, done = false, rir = 4),
+            SetRowState(2, "3", false, 185.0, 5, done = true),
+        ))
+        rule.setContent { AppTheme {
+            LiftSheet(card, Slot.MAIN, WorkoutFocus(card.programExerciseId, Slot.MAIN, 1),
+                workoutActions(), false, null, {}, {}, {})
+        } }
+        rule.onNodeWithText("Hard").assertIsDisplayed()
+        rule.onNodeWithText("Now").assertIsDisplayed()
+        for (word in listOf("Easy", "Good", "Max")) rule.onNodeWithText(word).assertDoesNotExist()
+    }
+
     @Test fun prescribedHeadersShowEveryTargetInBothUnitsAndReadTheVisibleLabel() {
         val cases = listOf(
             Triple(PrescribedTarget.LoadReps(95.0, 10), "Target 3 × 10 · 95 lb", "Target 3 × 10 · 43.09 kg"),

@@ -54,6 +54,9 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -97,6 +100,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -885,6 +889,11 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
                         color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
+            if (undo != null && undo.set.done && undo.set.kind != SetKind.RAMP && undo.tracking != TrackingType.TIMED) {
+                EffortRow(Effort.of(undo.set.rir), {
+                    actions.onSetEffort(undo.programExerciseId, undo.slot, undo.index, it)
+                }, "workout-effort")
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (undo != null) {
                     val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true)
@@ -996,8 +1005,40 @@ private fun workoutValue(
     if (tracking == TrackingType.TIMED && !includeTimedWeight) 0.0 else unit.toLb(values.weightDisplay),
     values.reps, values.seconds, unit)
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.effort), style = MaterialTheme.typography.labelLarge)
+        SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+            Effort.entries.forEachIndexed { index, effort ->
+                SegmentedButton(
+                    selected = effort == selected,
+                    onClick = { onPick(if (effort == selected) null else effort) },
+                    shape = SegmentedButtonDefaults.itemShape(index, 4),
+                    label = { EffortText(effort) },
+                    modifier = Modifier.testTag("$tagPrefix-${effort.name}"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun EffortText(effort: Effort) {
+    Text(stringResource(effortResource(effort)))
+}
+
+private fun effortResource(effort: Effort): Int = when (effort) {
+    Effort.EASY -> R.string.effort_easy
+    Effort.GOOD -> R.string.effort_good
+    Effort.HARD -> R.string.effort_hard
+    Effort.MAX -> R.string.effort_max
+}
+
 internal fun SetRowState.values(slot: String): PartnerRowState? =
-    if (slot == Slot.SS) partner else PartnerRowState(weightDisplay, reps, done, seconds)
+    if (slot == Slot.SS) partner else PartnerRowState(weightDisplay, reps, done, seconds, rir = rir)
 
 internal fun ExerciseCardState.tracking(slot: String): TrackingType =
     if (slot == Slot.SS) partnerTracking ?: TrackingType.WEIGHTED else tracking

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.seeding
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -31,6 +32,7 @@ object SetEditor {
                 val filling = edit.done == true && row.done
                 row.copy(
                     done = edit.done ?: row.done,
+                    rir = if (edit.done != null && edit.done != row.done) null else row.rir,
                     startedAtMillis = when {
                         unticking -> null
                         filling -> row.startedAtMillis ?: edit.startedAtMillis
@@ -45,6 +47,13 @@ object SetEditor {
                 )
             }
         }
+    }
+
+    /** One row's effort; null when the row can't be rated or already holds it. */
+    fun effort(sets: List<LoggedSet>, index: Int, effort: Effort?): List<LoggedSet>? {
+        val row = sets.getOrNull(index) ?: return null
+        if (!row.done || row.kind == SetKind.RAMP || row.seconds > 0 || row.rir == effort?.rir) return null
+        return sets.mapIndexed { i, set -> if (i == index) set.copy(rir = effort?.rir) else set }
     }
 
     /**

@@ -226,6 +226,17 @@ class WorkoutSetScreenPreviewShotsTest {
 
     @Test fun timedRepLargeFont() = render("29-timed-rep-large-font.png", workoutSetTimedRepFixture(), fontScale = 2f)
 
+    @Test fun restEffort() {
+        val state = workoutSetSingleFixture()
+        render("30-rest-effort.png", state.copy(
+            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
+            workout = state.workout?.copy(undo = UndoOffer(
+                1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 2),
+                TrackingType.WEIGHTED, WeightUnit.LB, null,
+            )),
+        ))
+    }
+
     private fun render(
         name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,
         dayEditState: DayEditUiState = DayEditUiState(),

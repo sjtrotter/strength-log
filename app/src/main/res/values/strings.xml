@@ -1049,4 +1049,9 @@
     <string name="today_skip_rest">Skip rest and train</string>
     <string name="plan_add_rest">Add rest</string>
     <string name="wizard_cardio_rest_days">Rest days</string>
+    <string name="effort">Effort</string>
+    <string name="effort_easy">Easy</string>
+    <string name="effort_good">Good</string>
+    <string name="effort_hard">Hard</string>
+    <string name="effort_max">Max</string>
 </resources>

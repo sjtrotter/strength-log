@@ -4,11 +4,20 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,6 +58,40 @@ internal fun cardioActivityNameRes(activity: CardioActivity): Int = when (activi
     CardioActivity.STATIONARY_BIKE -> R.string.cardio_stationary_bike
     CardioActivity.ELLIPTICAL -> R.string.cardio_elliptical
     CardioActivity.ROWER -> R.string.cardio_rower
+}
+
+@Composable
+internal fun cardioTemplateLabel(template: CardioTemplate): String = stringResource(when (template) {
+    CardioTemplate.EASY -> R.string.cardio_edit_easy
+    CardioTemplate.TEMPO -> R.string.cardio_edit_tempo
+    CardioTemplate.INTERVALS -> R.string.cardio_edit_intervals
+})
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CardioActivityField(
+    activity: CardioActivity,
+    onPick: (CardioActivity) -> Unit,
+    enabled: Boolean = true,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded && enabled, onExpandedChange = { if (enabled) expanded = it }) {
+        OutlinedTextField(
+            value = cardioActivityName(activity), onValueChange = {}, readOnly = true,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.cardio_edit_activity)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled),
+        )
+        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
+            CardioActivity.entries.forEach { choice ->
+                DropdownMenuItem(text = { Text(cardioActivityName(choice)) }, onClick = {
+                    onPick(choice)
+                    expanded = false
+                })
+            }
+        }
+    }
 }
 
 @Composable

@@ -798,6 +798,17 @@ class DayViewModel @Inject constructor(
         maybeLogCardio()
     }
 
+    fun swapCardio(activity: CardioActivity, template: CardioTemplate?) {
+        val dayId = currentDay() ?: return
+        mutate {
+            if (currentDay() != dayId || uiState.value.cardio?.canSwap != true) return@mutate
+            val run = reconcileCardio() ?: newCardioRun() ?: return@mutate
+            if (run.dayId != dayId || run.startedAt != null || run.results.isNotEmpty()) return@mutate
+            val block = template?.block(activity) ?: run.block.copy(activity = activity)
+            if (block != run.block) saveCardioRun(run.copy(blockJson = CardioBlockJson.encode(block)))
+        }
+    }
+
     fun addCardioSet() {
         val dayId = currentDay() ?: return
         mutate {
@@ -2264,6 +2275,11 @@ class DayViewModel @Inject constructor(
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 distanceInputs = distanceInputs.value,
                 readingInputs = readingInputs.value,
+                canSwap = state.cardio != null && logged == null &&
+                    timedRepEvent.value?.awaitingCount != false &&
+                    (cardioRun.value == null || cardioRun.value?.let {
+                        it.planId == state.planId && it.dayId == state.viewDayId && it.startedAt == null && it.results.isEmpty()
+                    } == true),
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
                     cardioRun.value?.canAddSet != false &&
                     timedRepEvent.value?.awaitingCount != false,
@@ -2293,6 +2309,7 @@ class DayViewModel @Inject constructor(
         val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
         val elapsed = cardioElapsedSeconds(run)
         return base.copy(block = run.block, run = run,
+            label = activityLabel(run.block.activity), hard = run.block.sets.any { it.hard },
             phase = if (run.running) CardioPhase.EXECUTING else CardioPhase.SUGGESTION,
             elapsedSeconds = elapsed,
             runDistanceText = distanceInputText(run, run.position, runDistanceFor(run)?.text.orEmpty()),

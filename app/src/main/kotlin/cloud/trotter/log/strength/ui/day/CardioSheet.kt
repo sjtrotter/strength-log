@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,17 @@ internal fun WorkoutCardioSheet(
     val activity = if (run == null && results.isNotEmpty()) cardio.loggedActivity else block.activity
     val onDismiss = actions.onCloseAllSets
     var menuOpen by remember { mutableStateOf(false) }
+    var swapping by rememberSaveable { mutableStateOf(false) }
+    if (swapping) {
+        CardioSwapSheet(block.activity,
+            onSwap = { activity, template ->
+                swapping = false
+                actions.onSwapCardio(activity, template)
+            },
+            onBack = { swapping = false },
+        )
+        return
+    }
     AppModalBottomSheet(onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = {
@@ -62,6 +74,12 @@ internal fun WorkoutCardioSheet(
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
                         DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
+                            if (cardio.canSwap && startEnabled) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.day_swap_apply)) }, onClick = {
+                                    menuOpen = false
+                                    swapping = true
+                                })
+                            }
                             if (!cardio.completed && run?.startedAt == null && !executionBusy && startEnabled) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.cardio_log_past)) }, onClick = {
                                     menuOpen = false

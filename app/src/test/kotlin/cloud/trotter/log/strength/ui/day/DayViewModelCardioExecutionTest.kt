@@ -42,10 +42,14 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.CardioInterval
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
+import cloud.trotter.log.strength.sync.TodaySnapshotSource
+import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +57,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -266,6 +271,192 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3180))), vm.uiState.value.cardio?.block)
+    }
+
+    @Test fun swappingTheActivityChangesTodaysRunOnly() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        val road = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        assertTrue(vm.uiState.value.cardio!!.canSwap)
+
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+
+        val run = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(road.copy(activity = CardioActivity.ELLIPTICAL), run.block)
+        assertEquals(road, CardioBlockJson.decode(run.sourceBlockJson))
+        assertNull(run.startedAt)
+        assertTrue(run.results.isEmpty())
+        assertEquals(activityLabel(CardioActivity.ELLIPTICAL), vm.uiState.value.cardio?.label)
+        assertTrue(vm.uiState.value.cardio!!.canSwap)
+        val day = db.programDao().day(plan, "A")!!
+        assertEquals(road, CardioBlockJson.decode(day.cardioBlockJson))
+        assertNull(day.cardioWorkingJson)
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
+        assertNull(alarm.deadline)
+    }
+
+    @Test fun phoneSwapKeepsTheWatchOnThePlanAndRunsTheSwappedActivityOnThePhone() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        val planned = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        val swapped = planned.copy(activity = CardioActivity.ELLIPTICAL)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        val syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("cardio-swap-sync", ".preferences_pb")
+        })
+        val snapshotClock = Clock.fixed(Instant.ofEpochMilli(clock.wall), ZoneId.systemDefault())
+        val source = TodaySnapshotSource(repo, flowOf(LocalDate.now(snapshotClock)), syncStore, syncStore,
+            settings, repo.plans, repo.history, snapshotClock)
+
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+
+        val snapshot = requireNotNull(source.snapshots.first { it != null })
+        assertEquals("A", snapshot.day.dayId)
+        assertEquals(planned, snapshot.cardioBlock?.toDomain())
+        assertEquals(activityLabel(CardioActivity.ROAD_RUN), snapshot.cardio?.label)
+        assertEquals(swapped, vm.uiState.value.cardio?.run?.block)
+        assertNull(vm.uiState.value.cardio?.run?.startedAt)
+
+        vm.startCardio()
+        runCurrent()
+
+        val run = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(run.running)
+        assertEquals(swapped, run.block)
+        assertEquals(activityLabel(CardioActivity.ELLIPTICAL), vm.uiState.value.cardio?.label)
+    }
+
+    @Test fun aTemplateReplacesTodaysSetsInTheChosenActivity() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        val road = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+
+        vm.swapCardio(CardioActivity.ROAD_RUN, CardioTemplate.TEMPO)
+        runCurrent()
+        val tempo = CardioBlocks.fromLegacy(CardioSuggestion("", "", hard = true), false, CardioActivity.ROAD_RUN)
+        assertEquals(tempo, vm.uiState.value.cardio?.block)
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+
+        vm.swapCardio(CardioActivity.ROWER, CardioTemplate.INTERVALS)
+        runCurrent()
+        val intervals = CardioBlocks.fromLegacy(CardioSuggestion("", "", hard = true), true, CardioActivity.ROWER)
+        assertEquals(intervals, handle.get<CardioRun>("day_cardio_run")?.block)
+        assertEquals(road, CardioBlockJson.decode(handle.get<CardioRun>("day_cardio_run")?.sourceBlockJson))
+
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+        assertEquals(intervals.copy(activity = CardioActivity.ELLIPTICAL), handle.get<CardioRun>("day_cardio_run")?.block)
+        assertEquals(road, CardioBlockJson.decode(handle.get<CardioRun>("day_cardio_run")?.sourceBlockJson))
+    }
+
+    @Test fun anActivitySwapKeepsAnAddedSet() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.addCardioSet()
+        runCurrent()
+        val sets = listOf(spec, spec, CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120)))
+        assertEquals(sets, vm.uiState.value.cardio?.run?.block?.sets)
+
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+
+        assertEquals(CardioBlock(CardioActivity.ELLIPTICAL, sets), vm.uiState.value.cardio?.run?.block)
+    }
+
+    @Test fun theSwapIsHiddenAndRefusedOnceASetStarts() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        assertFalse(vm.uiState.value.cardio!!.canSwap)
+        vm.swapCardio(CardioActivity.ROWER, null)
+        runCurrent()
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(spec)), vm.uiState.value.cardio?.run?.block)
+        vm.viewModelScope.cancel()
+
+        val recovery = time(CardioRole.RECOVERY, 60)
+        prepareAuthoredCardioDay(spec, recovery, activity = CardioActivity.ROAD_RUN)
+        val skipped = readyVm()
+        skipped.skipCardioSet(CardioSetAction("A", null, 0))
+        runCurrent()
+        assertFalse(skipped.uiState.value.cardio!!.canSwap)
+        skipped.swapCardio(CardioActivity.ROWER, null)
+        runCurrent()
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(spec, recovery)), skipped.uiState.value.cardio?.run?.block)
+    }
+
+    @Test fun aSwappedRunLogsUnderTheSwappedActivityAndEarnsNothing() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val vm = readyVm()
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(1_200_000)
+        vm.endCardioBlock()
+        runCurrent()
+
+        val sessions = repo.history.cardioSessionsFlow.first()
+        val session = sessions.single()
+        assertEquals("ELLIPTICAL", session.activity)
+        val result = repo.history.cardioSetsFor(session.id).single()
+        assertEquals(spec, result.spec)
+        assertEquals(CardioSetStatus.FINISHED, result.status)
+        assertEquals(1200, result.elapsedSeconds)
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertFalse(session.increaseApplied)
+        assertNull(vm.uiState.value.cardio?.nextTime)
+        // Logging advances the screen to day B; the logged day A no longer offers a swap.
+        vm.selectDay("A")
+        runCurrent()
+        assertFalse(vm.uiState.value.cardio!!.canSwap)
+        val day = repo.plans.programFor(plan).first().days.first { it.id == "A" }
+        assertNull(DayScreenBuilder.cardioNextTime(day, db.planDao().plan(plan)!!, sessions,
+            mapOf(session.id to listOf(result))))
+    }
+
+    @Test fun theSwapSurvivesProcessDeath() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+        vm.viewModelScope.cancel()
+
+        val restored = readyVm(parcelHandle(handle))
+
+        assertEquals(CardioBlock(CardioActivity.ELLIPTICAL, listOf(spec)), restored.uiState.value.cardio?.run?.block)
+        assertTrue(restored.uiState.value.cardio!!.canSwap)
+    }
+
+    @Test fun aPlanEditBeforeStartClearsTheSwap() = test {
+        val spec = time(CardioRole.WORK, 1200)
+        prepareAuthoredCardioDay(spec, activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.swapCardio(CardioActivity.ELLIPTICAL, null)
+        runCurrent()
+        assertNotNull(handle.get<CardioRun>("day_cardio_run"))
+
+        repo.setCardioWorking(plan, "A", CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 1500))))
+        runCurrent()
+
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+        assertEquals(CardioActivity.ROAD_RUN, vm.uiState.value.cardio?.block?.activity)
     }
 
     private val dispatcher = StandardTestDispatcher()

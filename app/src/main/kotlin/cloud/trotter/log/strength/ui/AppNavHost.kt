@@ -561,6 +561,7 @@ internal fun DayRoute(
         onSkipCardioSet = viewModel::skipCardioSet,
         onEndCardioBlock = viewModel::endCardioBlock,
         onAddCardioSet = viewModel::addCardioSet,
+        onSwapCardio = viewModel::swapCardio,
         onOpenPastCardio = viewModel::openPastCardio,
         onPastCardioChange = viewModel::changePastCardio,
         onSavePastCardio = viewModel::savePastCardio,

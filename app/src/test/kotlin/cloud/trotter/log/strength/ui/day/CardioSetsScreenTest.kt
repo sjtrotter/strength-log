@@ -10,11 +10,15 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -51,6 +55,96 @@ class CardioSetsScreenTest {
         val json = CardioBlockJson.encode(prescription)
         return CardioRun(1L, "Plan", "D", 0, json, json, false, null,
             startedAt = 1_000, wallStart = 1_000, elapsedStart = 1_000, bootCount = 1)
+    }
+
+    @Test fun swapCommitsTheChosenActivityAndTemplate() {
+        val cardio = CardioCardState("Road run", "", false,
+            block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200)))),
+            canSwap = true)
+        val calls = mutableListOf<Pair<CardioActivity, CardioTemplate?>>()
+        rule.setContent { AppTheme {
+            WorkoutCardioSheet(cardio, "A", workoutActions().copy(onSwapCardio = { a, t -> calls += a to t }), {})
+        } }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap").performClick()
+        rule.onNodeWithText("Swap Road run").assertExists()
+        rule.onNodeWithText("Today only").assertExists()
+        rule.onNodeWithText("Swap").assertIsNotEnabled()
+        rule.onNodeWithText("Road run").performClick()
+        rule.onNodeWithText("Elliptical").performScrollTo().performClick()
+        rule.onNodeWithText("Tempo 20:00").performScrollTo().performClick()
+        rule.onNodeWithText("Swap").performClick()
+        rule.runOnIdle { assertEquals(listOf(CardioActivity.ELLIPTICAL to CardioTemplate.TEMPO), calls) }
+        rule.onNodeWithContentDescription("More").assertExists()
+    }
+
+    @Test fun cancelWritesNothing() {
+        val cardio = CardioCardState("Road run", "", false,
+            block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200)))),
+            canSwap = true)
+        val calls = mutableListOf<Pair<CardioActivity, CardioTemplate?>>()
+        rule.setContent { AppTheme {
+            WorkoutCardioSheet(cardio, "A", workoutActions().copy(onSwapCardio = { a, t -> calls += a to t }), {})
+        } }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap").performClick()
+        rule.onNodeWithText("Road run").performClick()
+        rule.onNodeWithText("Elliptical").performScrollTo().performClick()
+        rule.onNodeWithText("Cancel").performClick()
+        rule.runOnIdle { assertTrue(calls.isEmpty()) }
+        rule.onNodeWithText("Swap Road run").assertDoesNotExist()
+        rule.onNodeWithText("Road run").assertExists()
+    }
+
+    @Test fun swapIsHiddenWhenNotOffered() {
+        var cardio by mutableStateOf(CardioCardState("Road run", "", false,
+            block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))))
+        var startEnabled by mutableStateOf(true)
+        rule.setContent { AppTheme { WorkoutCardioSheet(cardio, "A", workoutActions(), {}, startEnabled) } }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap").assertDoesNotExist()
+        rule.onNodeWithText("Add set").performClick()
+        rule.runOnIdle {
+            cardio = cardio.copy(canSwap = true)
+            startEnabled = false
+        }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap").assertDoesNotExist()
+    }
+
+    @Test fun swapPickerKeepsPendingChoicesAfterRestoration() {
+        val cardio = CardioCardState("Road run", "", false,
+            block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200)))),
+            canSwap = true)
+        val calls = mutableListOf<Pair<CardioActivity, CardioTemplate?>>()
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { AppTheme {
+            WorkoutCardioSheet(cardio, "A", workoutActions().copy(onSwapCardio = { a, t -> calls += a to t }), {})
+        } }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("Swap").performClick()
+        rule.onNodeWithText("Road run").performClick()
+        rule.onNodeWithText("Elliptical").performScrollTo().performClick()
+        rule.onNodeWithText("Tempo 20:00").performScrollTo().performClick()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("Swap Road run").assertExists()
+        rule.onNodeWithText("Elliptical").assertExists()
+        rule.onNodeWithText("Tempo 20:00").assertIsSelected()
+        rule.onNodeWithText("Swap").performClick()
+        rule.runOnIdle { assertEquals(listOf(CardioActivity.ELLIPTICAL to CardioTemplate.TEMPO), calls) }
+    }
+
+    @Test fun aTemplateCanBeReplacedAndClearedBeforeSwapping() {
+        rule.setContent { AppTheme { CardioSwapSheet(CardioActivity.ROAD_RUN, { _, _ -> }, {}) } }
+        rule.onNodeWithText("Swap").assertIsNotEnabled()
+        rule.onNodeWithText("Tempo 20:00").performScrollTo().performClick().assertIsSelected()
+        rule.onNodeWithText("Swap").assertIsEnabled()
+        rule.onNodeWithText("Intervals 5 × 2:00").performScrollTo().performClick().assertIsSelected()
+        rule.onNodeWithText("Tempo 20:00").assertIsNotSelected()
+        rule.onNodeWithText("Intervals 5 × 2:00").performClick().assertIsNotSelected()
+        rule.onNodeWithText("Swap").assertIsNotEnabled()
     }
 
     @Test fun entryIsBlankWithoutKeyboardFocusAndOnlyPositiveMetresOrBlankEnableDone() {

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -569,6 +570,7 @@ data class DayActions(
     val onConfirmStart: () -> Unit = {},
     val onDismissStart: () -> Unit = {},
     val onDropDraftWorkout: (() -> Unit)? = null,
+    val onSwapCardio: (CardioActivity, CardioTemplate?) -> Unit = { _, _ -> },
 )
 
 @Composable

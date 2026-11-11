@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -13,6 +14,14 @@ import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -23,10 +32,12 @@ import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.AppliedEditMarkers
 import cloud.trotter.log.strength.sync.SetEditApplier
+import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.ui.day.WorkoutFocus
@@ -35,6 +46,7 @@ import java.io.File
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -44,6 +56,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -69,6 +83,7 @@ class PreStartOpeningTest : OverviewFixture() {
     )
     private lateinit var syncScope: CoroutineScope
     private lateinit var applier: SetEditApplier
+    private lateinit var syncStore: WearSyncStore
 
     private class RecordingMarkers : AppliedEditMarkers {
         private val stamps = mutableMapOf<String, Long>()
@@ -80,7 +95,7 @@ class PreStartOpeningTest : OverviewFixture() {
     @Before fun openingSetUp() {
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, clock)
         syncScope = CoroutineScope(dispatcher + Job())
-        val syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = syncScope) {
+        syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = syncScope) {
             File.createTempFile("pre-start-opening-acks", ".preferences_pb")
         })
         applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog)
@@ -126,6 +141,45 @@ class PreStartOpeningTest : OverviewFixture() {
         weightLb = 165.0, reps = 5, done = true, editedAtMillis = 500,
         planId = plan, runId = next, exerciseId = "bb_back_squat",
     )
+
+    @Test fun `case 17 shows the capped run on the preview and the watch before Start and writes nothing`() = runTest(dispatcher) {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(3600))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = stored))))
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val completedAt = clock.millis() - 86_400_000
+        repo.logCardioSession(CardioSessionEntity(planId = null, dayId = null,
+            mode = "OUTDOOR_RUN", hard = false, label = "Run", startedAt = completedAt - 2_900_000,
+            completedAt = completedAt, seconds = 2900, stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name),
+            listOf(CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(2900)), CardioSetStatus.FINISHED, 2900)))
+        val preview = preview(plan, "A", clock)
+        advanceUntilIdle()
+        val snapshot = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore,
+            settings = settings, plans = repo.plans, historyRepository = repo.history, clock = clock)
+            .snapshots.filterNotNull().first()
+
+        assertEquals(PreviewCardio("Road run", "53:00", CardioActivity.ROAD_RUN, null), preview.uiState.value.cardio)
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(3180)))).toWatch(),
+            snapshot.cardioBlock)
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertNull(db.runDao().openRun())
+    }
+
+    @Test fun `case 19 shows the tapered run on the preview and the watch`() = runTest(dispatcher) {
+        val stored = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(3600))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = stored))))
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        repo.plans.setGoal(plan, PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, 7200,
+            byEpochDay = LocalDate.of(2026, 11, 21).toEpochDay()))
+        val preview = preview(plan, "A", clock)
+        advanceUntilIdle()
+        val snapshot = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore,
+            settings = settings, plans = repo.plans, historyRepository = repo.history, clock = clock)
+            .snapshots.filterNotNull().first()
+
+        assertEquals("42:00", preview.uiState.value.cardio?.time)
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(2520)))).toWatch(),
+            snapshot.cardioBlock)
+    }
 
     @Test fun `case 13 shows 260 on the Day screen, the preview and the watch before Start and writes nothing`() = runTest(dispatcher) {
         val plan = rPlan()

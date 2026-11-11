@@ -914,3 +914,9 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - A supplied reading is never overwritten. A time at a distance end makes the set FINISHED, since its end was reached. Either reading is judged again like a typed distance.
 - A steady run stopped past its time opens the entry even when its distance was typed during the run.
 - The cardio receipt reads the stored rows, so it shows the same records as History.
+
+## 30. Revision 21 (PR 2b part four-c, cardio openings, 2026-11-11)
+
+- A cardio day opens through `cardioAtStart`: the taper from the plan's goal date, then the run cap against the family's sessions in the 30 × 24 h before now. A day kept to plan opens as written; a ladder day opens as written.
+- Before Start the Day screen, the preview and the watch show the opening and write nothing. The phone run freezes it when the run is created, so an edit before Start lands in that run; a plan edit still clears an unstarted run. The wire is unchanged.
+- A capped or tapered session never changes the stored block, so a capped day climbs back to its stored block as the history grows.

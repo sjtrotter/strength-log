@@ -30,6 +30,7 @@ import cloud.trotter.log.strength.ui.day.WorkoutStart
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.ui.today.TodayViewModel
 import java.io.File
+import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
@@ -115,8 +116,8 @@ open class OverviewFixture {
         return vm
     }
 
-    protected fun preview(planId: Long, dayId: String): PreviewViewModel {
-        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, historyRepository = repo.history)
+    protected fun preview(planId: Long, dayId: String, clock: Clock = Clock.systemDefaultZone()): PreviewViewModel {
+        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, historyRepository = repo.history, clock = clock)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)

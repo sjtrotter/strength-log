@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
@@ -14,9 +16,25 @@ import cloud.trotter.log.strength.domain.progression.CardioOutcome
 import cloud.trotter.log.strength.domain.progression.LoggedCardio
 import cloud.trotter.log.strength.domain.progression.Progression
 
-/** What a logged cardio session earns its day (decisions 3 to 5). The cardio commit, a later distance and the next-time
- *  chip all read it, so they agree. Pure: callers pass rows they already hold. */
+/** What a logged cardio session earns its day, and the block a day opens with. The cardio commit, a later distance,
+ *  the chip and every opening read it, so they agree. Pure: callers pass rows they already hold. */
 object CardioJudge {
+    /** The block [day] opens with at [nowMillis] (design §3.2 Phase and taper, Run cap): the taper from [plan]'s goal
+     *  date, then the run cap against the family's sessions completed by then. A day kept to plan opens as stored.
+     *  Null when [day] has no block. */
+    fun opening(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
+                sets: Map<Long, List<CardioSetResult>>, nowMillis: Long, todayEpochDay: Long): CardioBlock? {
+        val stored = day.cardioToRun ?: return null
+        if (day.cardioProgress.keepToPlan) return stored
+        val family = CardioFamily.of(stored.activity).activities.map { it.name }
+        val prior = sessions.filter { it.activity in family && it.completedAt <= nowMillis }
+            .sortedWith(compareBy({ it.completedAt }, { it.id }))
+        val recent = CardioHistory.of(prior.map { LoggedCardio(it.completedAt, sets[it.id].orEmpty()) }, nowMillis)
+        // cardioAtStart reads only the day and the run cap.
+        val ctx = Progression.CardioContext(todayEpochDay, measure = null, percent = 0)
+        return Progression.cardioAtStart(stored, day.cardioRule, recent, PlanGoalJson.decode(plan.goalJson), ctx)
+    }
+
     /** The block [session] ran ([opening]) and next time's [outcome]. */
     data class Judged(val opening: CardioBlock, val outcome: CardioOutcome)
 

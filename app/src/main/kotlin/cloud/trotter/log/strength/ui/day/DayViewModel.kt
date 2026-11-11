@@ -678,11 +678,13 @@ class DayViewModel @Inject constructor(
         val program = plans.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.cardioToRun ?: return null
+        val (sessions, sets) = cardioHistory.first()
+        val opening = DayScreenBuilder.cardioOpening(day, plan, sessions, sets, cardioClock.wallMillis()) ?: return null
         val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
-        val json = CardioBlockJson.encode(block)
-        return CardioRun(plan.id, plan.name, dayId, Program.accentIndex(dayId), json, json,
+        return CardioRun(plan.id, plan.name, dayId, Program.accentIndex(dayId),
+            CardioBlockJson.encode(block), CardioBlockJson.encode(opening),
             day.exercises.isEmpty(), next?.let { GlanceLines.dayLine(it.id, it.title) })
     }
 
@@ -2238,13 +2240,18 @@ class DayViewModel @Inject constructor(
         val frozen = activeRun ?: pendingCardioDistances.value.firstOrNull {
             it.planId == state.planId && it.dayId == state.viewDayId && it.drafts.isNotEmpty()
         }
+        val day = context?.program?.days?.firstOrNull { it.id == state.viewDayId }
+        val plan = context?.plan
+        val opening = if (day != null && plan != null) {
+            DayScreenBuilder.cardioOpening(day, plan, history, sets, cardioClock.wallMillis())
+        } else null
         // Removing the source block must leave the frozen run and pending distances accessible.
-        val sourceCard = state.cardio ?: frozen?.let {
+        val sourceCard = state.cardio?.let { card ->
+            opening?.let { card.copy(block = it, detail = it.plannedTimeDetail(), hard = it.sets.any { set -> set.hard }) } ?: card
+        } ?: frozen?.let {
             CardioCardState(activityLabel(it.block.activity), "", it.block.sets.any { spec -> spec.hard },
                 block = it.block, finishesDay = it.finishesDay)
         }
-        val day = context?.program?.days?.firstOrNull { it.id == state.viewDayId }
-        val plan = context?.plan
         val nextTime = if (savedRun == null && frozen == null && logged == null && day != null && plan != null) {
             DayScreenBuilder.cardioNextTime(day, plan, history, sets)
         } else null

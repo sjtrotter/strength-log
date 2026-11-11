@@ -659,6 +659,10 @@
 <string name="cardio_decrease_distance">Decrease distance</string>
 <string name="cardio_increase_distance">Increase distance</string>
 <string name="cardio_distance_invalid">Enter a distance greater than 0</string>
+<string name="cardio_reading_distance_at">Distance at %1$s</string>
+<string name="cardio_reading_time_at">Time at %1$s</string>
+<string name="cardio_reading_over_distance">No more than your total distance</string>
+<string name="cardio_reading_over_time">No more than your total time</string>
 <string name="cardio_end_title">End cardio?</string>
 <string name="cardio_end_message">Log completed work and skip remaining sets?</string>
 <string name="cardio_keep_going">Keep going</string>

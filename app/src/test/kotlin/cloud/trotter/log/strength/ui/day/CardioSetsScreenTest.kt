@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
@@ -116,6 +118,60 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Save distance").assertIsEnabled().performClick()
         rule.onNodeWithText("Enter a distance greater than 0").assertDoesNotExist()
         rule.runOnIdle { assertEquals(run.action(0), saved) }
+    }
+
+    @Test fun aRunPastItsTimeEndOffersTheDistanceAtItsEnd() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(
+            CardioSetSpec(CardioRole.WORK, Measure.Time(1500), Measure.Distance(5000)),
+        ))
+        var run by mutableStateOf(run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
+            results = listOf(SavedCardioResult("FINISHED", 1690)),
+            drafts = listOf(CardioDistanceDraft(0, false, "5600"))))
+        var reading by mutableStateOf<CardioReadingInput?>(null)
+        val actions = workoutActions().copy(onCardioReadingChange = { text ->
+            reading = CardioReadingInput(run.runId, 0, text, DistanceUnit.KM)
+        })
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.KM, reading = reading) } }
+        rule.onNodeWithText("Distance at 25:00").assertExists().performTextReplacement("5.7")
+        rule.onNodeWithText("No more than your total distance").assertExists()
+        rule.onNodeWithText("Save distance").assertIsNotEnabled()
+        rule.onNodeWithText("Distance at 25:00").performTextReplacement("0")
+        rule.onAllNodesWithText("Enter a distance greater than 0").assertCountEquals(1)
+        rule.onNodeWithText("Save distance").assertIsNotEnabled()
+        rule.onNodeWithText("Distance at 25:00").performTextReplacement("5.05")
+        rule.onNodeWithText("Save distance").assertIsEnabled()
+        rule.onNodeWithContentDescription("Increase distance at 25:00").assertExists()
+        rule.runOnIdle { run = run.copy(drafts = listOf(CardioDistanceDraft(0, false, ""))) }
+        rule.onNodeWithText("Distance at 25:00").assertDoesNotExist()
+        rule.runOnIdle {
+            run = run.copy(results = listOf(SavedCardioResult("FINISHED", 1500)),
+                drafts = listOf(CardioDistanceDraft(0, false, "5600")))
+        }
+        rule.onNodeWithText("Distance at 25:00").assertDoesNotExist()
+    }
+
+    @Test fun aStoppedSetPastItsDistanceEndOffersTheTimeAtItsEnd() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(2414), Measure.Time(960)),
+        ))
+        var run by mutableStateOf(run(block).copy(wallStart = null, elapsedStart = null, bootCount = null,
+            results = listOf(SavedCardioResult("SHORTENED", 1000)),
+            drafts = listOf(CardioDistanceDraft(0, stopped = true, text = "2736"))))
+        var reading by mutableStateOf<CardioReadingInput?>(null)
+        val actions = workoutActions().copy(onCardioReadingChange = { text ->
+            reading = CardioReadingInput(run.runId, 0, text, DistanceUnit.MI)
+        })
+        rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions, DistanceUnit.MI, reading = reading) } }
+        rule.onNodeWithText("Time at 1.5 mi").assertExists().performTextReplacement("16:41")
+        rule.onNodeWithText("No more than your total time").assertExists()
+        rule.onNodeWithText("Save distance").assertIsNotEnabled()
+        rule.onNodeWithText("Time at 1.5 mi").performTextReplacement("0:00")
+        rule.onNodeWithText("Save distance").assertIsNotEnabled()
+        rule.onNodeWithText("No more than", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Time at 1.5 mi").performTextReplacement("15:00")
+        rule.onNodeWithText("Save distance").assertIsEnabled()
+        rule.runOnIdle { run = run.copy(drafts = listOf(CardioDistanceDraft(0, true, "2414"))) }
+        rule.onNodeWithText("Time at 1.5 mi").assertDoesNotExist()
     }
 
     @Test fun cardioSheetReportsStatusesAndThePrescribedAim() {

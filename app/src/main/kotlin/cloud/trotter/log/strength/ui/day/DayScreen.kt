@@ -301,7 +301,8 @@ fun DayScreen(
         if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.let { cardio ->
             cardio.distanceRuns.firstOrNull { it.runId == sheet.cardioRunId }?.let {
                 CardioDistanceSheet(it, sheet.setIndex, actions, cardio.distanceUnit,
-                    cardio.distanceInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex })
+                    cardio.distanceInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex },
+                    reading = cardio.readingInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex })
             }
         }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
@@ -529,6 +530,7 @@ data class DayActions(
     val onOpenCardioDistance: () -> Unit = {},
     val onRequestCardioDistance: (CardioSetAction) -> Unit = {},
     val onCardioDistanceChange: (String) -> Unit = {},
+    val onCardioReadingChange: (String) -> Unit = {},
     val onCardioRunDistanceChange: (String) -> Unit = {},
     val onSaveCardioDistance: (CardioSetAction) -> Unit = {},
     val onRetryCardioSave: () -> Unit = {},

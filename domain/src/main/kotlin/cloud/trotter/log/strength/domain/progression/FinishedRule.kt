@@ -31,6 +31,28 @@ object FinishedRule {
         if (previous == atEnd(previous)) atEnd(edited)
         else edited.copy(metresAtEnd = previous.metresAtEnd, secondsAtEnd = previous.secondsAtEnd)
 
+    /** True when [result] passed its planned end and has no reading there: a FINISHED time end stopped after its
+     *  seconds with no [CardioSetResult.metresAtEnd], or a distance end whose total passed its metres with no
+     *  [CardioSetResult.secondsAtEnd]. No phone executor reads that moment, so only the user can supply it. */
+    fun awaitsReading(result: CardioSetResult): Boolean = when (val end = result.spec.end) {
+        is Measure.Time -> result.status == CardioSetStatus.FINISHED && result.elapsedSeconds > end.seconds &&
+            result.metresAtEnd == null
+        is Measure.Distance -> (result.metres ?: 0) > end.metres && result.secondsAtEnd == null
+    }
+
+    /** [result] with the reading the user supplied at its planned end (metres for a time end, seconds for a distance
+     *  end, as [reading] reads them), or null when it awaits none or [reading] is not within 1 and its total. A
+     *  distance end passed is FINISHED: its end was reached. The totals keep the overrun. */
+    fun withReading(result: CardioSetResult, reading: Int): CardioSetResult? {
+        if (!awaitsReading(result) || reading < 1) return null
+        return when (val end = result.spec.end) {
+            is Measure.Time -> result.copy(metresAtEnd = reading, secondsAtEnd = end.seconds)
+                .takeIf { reading <= (result.metres ?: 0) }
+            is Measure.Distance -> result.copy(status = CardioSetStatus.FINISHED, metresAtEnd = end.metres,
+                secondsAtEnd = reading).takeIf { reading <= result.elapsedSeconds }
+        }
+    }
+
     /** True when the row reached its planned end and finished; false when it carries an at-end field but did not
      *  finish; null for a row with no at-end field (before v25), whose reader keeps its own rule. */
     fun finished(result: CardioSetResult): Boolean? =

@@ -49,6 +49,11 @@ data class CardioDistanceInput(
     val unit: DistanceUnit,
 ) : Parcelable
 
+/** The reading at a set's planned end as typed in the after-run entry, under its own saved key: a distance in
+ *  [unit] for a time end, `m:ss` for a distance end. */
+@Parcelize
+data class CardioReadingInput(val runId: String, val position: Int, val text: String, val unit: DistanceUnit) : Parcelable
+
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize
 data class CardioRun(

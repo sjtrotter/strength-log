@@ -244,6 +244,7 @@ internal fun NumericSetField(
     textOverride: String? = null,
     onTextChange: ((String) -> Unit)? = null,
     enabled: Boolean = true,
+    suffix: String? = null,
 ) {
     val format: (Double) -> String = if (duration) { { ClockText.minutesSeconds(it.toInt()) } } else WeightStepper::format
     var text by rememberSaveable(identity) { mutableStateOf(format(value)) }
@@ -267,6 +268,7 @@ internal fun NumericSetField(
                 }
             },
             label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+            suffix = suffix?.let { { Text(it) } },
             textStyle = DisplayXl,
             singleLine = true,
             enabled = enabled,

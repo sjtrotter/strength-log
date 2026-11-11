@@ -39,6 +39,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -49,6 +50,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.seeding.SetEdit
@@ -163,6 +165,7 @@ class DayViewModel @Inject constructor(
     private val pastCardioReceiptId = savedState.getStateFlow<Long?>(KEY_PAST_CARDIO_RECEIPT_ID, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val runDistance = savedState.getStateFlow<CardioRunDistance?>(KEY_CARDIO_RUN_DISTANCE, null)
+    private val readingInputs = savedState.getStateFlow<ArrayList<CardioReadingInput>>(KEY_CARDIO_READING_INPUTS, arrayListOf())
     private val distanceInputs = savedState.getStateFlow<ArrayList<CardioDistanceInput>>(KEY_CARDIO_DISTANCE_INPUTS, arrayListOf())
     private val pendingCardioDistances = savedState.getStateFlow<ArrayList<CardioRun>>(KEY_CARDIO_DISTANCES, arrayListOf())
     private val deferredCardioReceipt = savedState.getStateFlow<CardioRun?>(KEY_DEFERRED_CARDIO_RECEIPT, null)
@@ -329,6 +332,7 @@ class DayViewModel @Inject constructor(
     ) { run, _, _, reps -> run to reps }.combine(pendingCardioDistances) { execution, _ -> execution }
         .combine(runDistance) { execution, _ -> execution }
         .combine(distanceInputs) { execution, _ -> execution }
+        .combine(readingInputs) { execution, _ -> execution }
         .combine(distanceUnit) { execution, _ -> execution }
 
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
@@ -711,6 +715,7 @@ class DayViewModel @Inject constructor(
     }
 
     private fun clearDistanceInputs(runId: String) {
+        savedState[KEY_CARDIO_READING_INPUTS] = ArrayList(readingInputs.value.filterNot { it.runId == runId })
         savedState[KEY_CARDIO_DISTANCE_INPUTS] = ArrayList(distanceInputs.value.filterNot { it.runId == runId })
     }
 
@@ -733,8 +738,12 @@ class DayViewModel @Inject constructor(
         cardioAlertAnchor = null
         val finished = if (run.block.openEnded) {
             val metres = runDistanceFor(run)?.metres()
-            run.finish(CardioSetStatus.FINISHED, cardioElapsedSeconds(run), cardioClock,
-                metres = metres, requestDistance = metres == null)
+            val elapsed = cardioElapsedSeconds(run)
+            val passedEnd = FinishedRule.awaitsReading(CardioSetResult(run.block.sets[run.position], CardioSetStatus.FINISHED, elapsed))
+            run.finish(CardioSetStatus.FINISHED, elapsed, cardioClock, metres = metres, requestDistance = metres == null || passedEnd)
+                .let { done -> if (metres == null) done else done.copy(drafts = done.drafts.map {
+                    if (it.position == run.position) it.copy(text = metres.toString()) else it
+                }) }
         } else run.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(run), cardioClock)
         if (run.block.openEnded) clearDistanceInputs(run.runId)
         savedState[KEY_CARDIO_RUN_DISTANCE] = null
@@ -863,12 +872,36 @@ class DayViewModel @Inject constructor(
         saveDistanceRun(run.copy(drafts = run.drafts.map { if (it.position == action.setIndex) it.copy(text = meters) else it }))
     }
 
+    fun changeCardioReading(text: String) {
+        val action = distanceSheetAction() ?: return
+        val run = distanceRun(action) ?: return
+        val unit = distanceUnitFor(run)
+        val accepted = when (run.block.sets[action.setIndex].end) {
+            is Measure.Time -> acceptsDistanceText(text, unit)
+            is Measure.Distance -> text.matches(Regex("[0-9]{0,3}(:[0-9]{0,2})?"))
+        }
+        if (!accepted) return
+        savedState[KEY_CARDIO_READING_INPUTS] = ArrayList(readingInputs.value.filterNot {
+            it.runId == run.runId && it.position == action.setIndex
+        } + CardioReadingInput(run.runId, action.setIndex, text, unit))
+    }
+
     fun saveCardioDistance(action: CardioSetAction) {
         mutate {
             if (distanceSheetAction() != action) return@mutate
             val run = distanceRun(action) ?: return@mutate
             val position = action.setIndex
             val draft = run.drafts.firstOrNull { it.position == position && it.valid() && !it.saved } ?: return@mutate
+            val awaiting = CardioReadingEntry.awaiting(run, position, draft.metres())
+            val input = readingInputs.value.firstOrNull { it.runId == run.runId && it.position == position }
+                ?.takeIf { awaiting?.spec?.end !is Measure.Time || it.unit == distanceUnitFor(run) }
+            if (awaiting != null && input != null && input.text.isNotBlank()) {
+                if (CardioReadingEntry.check(awaiting, input.text, input.unit) != CardioReadingEntry.Check.VALID) return@mutate
+            } else {
+                savedState[KEY_CARDIO_READING_INPUTS] = ArrayList(readingInputs.value.filterNot {
+                    it.runId == run.runId && it.position == position
+                })
+            }
             val next = run.enterDistance(position, draft.metres()).copy(
                 drafts = run.drafts.map { if (it.position == position) it.copy(saved = true, amended = false) else it },
                 saveFailed = false,
@@ -1072,6 +1105,10 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    private fun readingAtEnd(run: CardioRun, position: Int): Int? = readingInputs.value.firstOrNull {
+        it.runId == run.runId && it.position == position
+    }?.let { CardioReadingEntry.value(run.block.sets[position].end, it.text, it.unit) }
+
     private fun maybeAmendCardioDistances() {
         if (cardioDraftSaveInFlight) return
         val pending = pendingCardioDistances.value.firstOrNull { run ->
@@ -1084,7 +1121,8 @@ class DayViewModel @Inject constructor(
                     val id = requireNotNull(pending.sessionId)
                     standingBestsFor(pending)
                     pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
-                        repo.amendCardioSetDistance(id, draft.position, pending.results[draft.position].metres)
+                        repo.amendCardioSetDistance(id, draft.position, pending.results[draft.position].metres,
+                            readingAtEnd(pending, draft.position))
                         val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
                         saveDistanceRun(latest.copy(drafts = latest.drafts.map {
                             if (it.position == draft.position && it.saved && it.text == draft.text) it.copy(amended = true) else it
@@ -2218,6 +2256,7 @@ class DayViewModel @Inject constructor(
                 loggedActivity = loggedActivity,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 distanceInputs = distanceInputs.value,
+                readingInputs = readingInputs.value,
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
                     cardioRun.value?.canAddSet != false &&
                     timedRepEvent.value?.awaitingCount != false,
@@ -2398,6 +2437,7 @@ class DayViewModel @Inject constructor(
         const val KEY_PAST_CARDIO_RECEIPT_ID = "day_past_cardio_receipt_id"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_RUN_DISTANCE = "day_cardio_run_distance"
+        const val KEY_CARDIO_READING_INPUTS = "day_cardio_reading_inputs"
         const val KEY_CARDIO_DISTANCE_INPUTS = "day_cardio_distance_inputs"
         const val KEY_CARDIO_DISTANCES = "day_cardio_distances"
         const val KEY_DEFERRED_CARDIO_RECEIPT = "day_deferred_cardio_receipt"

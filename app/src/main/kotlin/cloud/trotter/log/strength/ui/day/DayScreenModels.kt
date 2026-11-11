@@ -292,6 +292,7 @@ data class CardioCardState(
     val distanceUnit: DistanceUnit = DistanceUnit.MI,
     val loggedActivity: cloud.trotter.log.strength.domain.model.CardioActivity? = null,
     val distanceInputs: List<CardioDistanceInput> = emptyList(),
+    val readingInputs: List<CardioReadingInput> = emptyList(),
     val nextTime: CardioNextTime? = null,
 )
 

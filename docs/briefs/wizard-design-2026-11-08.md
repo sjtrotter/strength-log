@@ -905,3 +905,12 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - A phone steady run with a time end and no distance aim, stopped past its planned end, proves the planned seconds through `secondsAtEnd` and earns the increase: Automatic writes it and Ask offers it. The overrun still earns no record and meets no distance aim. When `secondsAtEnd` has no paired `metresAtEnd`, history pace uses elapsed seconds and total metres.
 - The run cap reads the family's sessions completed in the 30 × 24 h before the judged one, and the pace of the newest one with a distance.
 - Caller answer (2026-11-10): "Offer cardio increases" off hides the chip in both Automatic and Ask modes, matching strength. Automatic still progresses; receipt Undo arrives in 2c. The Day screen still hides the chip after today's session.
+
+- A distance typed after the commit judges the session again in the same transaction. `cardio_session.increaseApplied` limits each session to one Automatic write, so an amendment after the chip undo never writes the increase back.
+
+## 29. Revision 20 (PR 2b part four-b-ii, the reading at the target, 2026-11-11)
+
+- The after-run entry takes an optional reading at a planned end the set passed: "Distance at 25:00" for a steady run stopped past its time, "Time at 1.5 mi" for a stopped distance set whose typed total passed its distance. It fills `metresAtEnd` or `secondsAtEnd`, the slot the GPS tracker will fill. Left blank, the set keeps its totals and is not a record.
+- A supplied reading is never overwritten. A time at a distance end makes the set FINISHED, since its end was reached. Either reading is judged again like a typed distance.
+- A steady run stopped past its time opens the entry even when its distance was typed during the run.
+- The cardio receipt reads the stored rows, so it shows the same records as History.

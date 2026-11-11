@@ -118,13 +118,23 @@ class HistoryRepository(
             ).maxOrNull()
         }.distinctUntilChanged()
 
-    internal suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+    /** [readingAtEnd] is the user's reading at a planned end the set passed ([FinishedRule.withReading]); it is
+     *  ignored when the row awaits none, so it never overwrites one. */
+    internal suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?, readingAtEnd: Int? = null) {
         require(metres == null || metres > 0)
         db.withTransaction {
             val row = requireNotNull(cardioSetResultDao.forSession(sessionId).firstOrNull { it.position == position })
-            cardioSetResultDao.update(row.copy(
+            val amended = row.copy(
                 metres = metres, distanceSource = metres?.let { DistanceSource.MANUAL.name },
-            ).withReadingsAtEnd(row))
+            ).withReadingsAtEnd(row)
+            val supplied = readingAtEnd?.let { reading -> amended.toDomainOrNull()?.let { FinishedRule.withReading(it, reading) } }
+            cardioSetResultDao.update(supplied?.let {
+                amended.copy(status = it.status.name, metresAtEnd = it.metresAtEnd, secondsAtEnd = it.secondsAtEnd,
+                    readingSource = it.readingSource?.name)
+            } ?: amended)
+            if (supplied != null && supplied.status.name != row.status) {
+                cardioSessionDao.byId(sessionId)?.let { cardioSessionDao.update(it.copy(stepsCompleted = it.stepsCompleted + 1)) }
+            }
         }
     }
 
@@ -133,7 +143,8 @@ class HistoryRepository(
         val before = previous.toDomainOrNull() ?: return this
         val edited = toDomainOrNull() ?: return this
         val readings = FinishedRule.afterEdit(before, edited)
-        return copy(metresAtEnd = readings.metresAtEnd, secondsAtEnd = readings.secondsAtEnd)
+        return copy(metresAtEnd = readings.metresAtEnd, secondsAtEnd = readings.secondsAtEnd,
+            readingSource = readings.readingSource?.name)
     }
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)

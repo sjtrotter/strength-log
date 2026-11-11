@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.records.GoalProgress
 import java.io.File
@@ -97,7 +98,7 @@ class CardioReadingsAtEndTest {
     }
 
     @Test fun `a row that already has readings keeps them`() = runTest {
-        val row = result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900)
+        val row = result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900, readingSource = ReadingSource.TYPED)
         val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(row))
         assertEquals(row, history.cardioSetsFor(id).single())
         assertEquals(3470, FinishedRule.reading(history.cardioBestsFor(CardioActivity.ROAD_RUN).values.single()))
@@ -125,7 +126,7 @@ class CardioReadingsAtEndTest {
 
     @Test fun `a note-only edit keeps a supplied distance-end time`() = runTest {
         val supplied = result(CardioSetSpec(CardioRole.WORK, Measure.Distance(2414)), 761, 2414)
-            .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750)
+            .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750, readingSource = ReadingSource.TYPED)
         val id = repo.logCardioSession(session, listOf(supplied))
         val before = db.cardioSetResultDao().forSession(id).single()
 
@@ -153,7 +154,7 @@ class CardioReadingsAtEndTest {
     }
 
     @Test fun `a distance edit keeps a supplied reading and the planned end`() = runTest {
-        val supplied = result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900)
+        val supplied = result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900, readingSource = ReadingSource.TYPED)
         val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(supplied))
 
         history.updateCardioSession(id, CardioActivity.ROAD_RUN, 904, 3500, "Corrected total")
@@ -176,9 +177,9 @@ class CardioReadingsAtEndTest {
 
     @Test fun `distance amendments keep supplied readings`() = runTest {
         val supplied = listOf(
-            result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900),
+            result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900, readingSource = ReadingSource.TYPED),
             result(CardioSetSpec(CardioRole.WORK, Measure.Distance(2414)), 761, 2414)
-                .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750),
+                .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750, readingSource = ReadingSource.TYPED),
         )
         val id = repo.logCardioSession(session, supplied)
 

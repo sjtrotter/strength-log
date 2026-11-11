@@ -279,7 +279,7 @@ internal class SessionFinisher(
         val completedAt = session?.completedAt ?: clock.millis()
         val receipt = cardioReceipt(
             requireNotNull(run.sessionId), run.dayId, run.dayIndex, title, run.planName,
-            completedAt, session?.seconds, run.block.activity, run.resultSets, standing,
+            completedAt, session?.seconds, run.block.activity, historyRepository.cardioSetsFor(requireNotNull(run.sessionId)), standing,
         )
         showCardioReceipt(receipt)
     }

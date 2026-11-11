@@ -827,7 +827,8 @@ class TrackerRepository(
      * preserved and its current name copied when the plan exists. Sessions
      * without a plan cannot advance a rotation.
      * A note is trimmed and capped at [NOTE_MAX_LENGTH].
-     * A set without readings at the end gets the ones its totals prove ([FinishedRule.atEnd]).
+     * A new session never starts with [CardioSessionEntity.increaseApplied].
+     * A set without a reading source gets the readings its totals prove ([FinishedRule.atEnd]).
      * A session that counts is judged in the same transaction ([CardioJudge]); an Automatic plan takes its next block.
      */
     suspend fun logCardioSession(
@@ -858,9 +859,9 @@ class TrackerRepository(
             if (sets.isNotEmpty()) {
                 cardioSessionDao.forRun(stamped.dayId, stamped.startedAt)?.let { return@withTransaction it.id }
             }
-            val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH)))
+            val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH), increaseApplied = false))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
-                (if (set.metresAtEnd == null && set.secondsAtEnd == null) FinishedRule.atEnd(set) else set).toEntity(id, position)
+                (if (set.readingSource != null) set else FinishedRule.atEnd(set)).toEntity(id, position)
             })
             if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
@@ -907,10 +908,11 @@ class TrackerRepository(
     }
 
     /** Amends a set's typed distance and judges the session again: an Automatic judgment writes at most once per
-     *  session, while the day still holds its opening. Working-value undo keeps the session's increaseApplied flag. */
-    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+     *  session, while the day still holds its opening. Working-value undo keeps the session's increaseApplied flag.
+     *  A reading at the end is written with the total and judged with it. */
+    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?, readingAtEnd: Int? = null) {
         db.withTransaction {
-            history.amendCardioSetDistance(sessionId, position, metres)
+            history.amendCardioSetDistance(sessionId, position, metres, readingAtEnd)
             cardioJudgment(sessionId)?.let { applyCardio(it) }
         }
     }

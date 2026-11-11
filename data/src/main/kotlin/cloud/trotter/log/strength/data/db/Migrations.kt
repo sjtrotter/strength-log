@@ -582,6 +582,13 @@ val MIGRATION_28_29 = object : Migration(28, 29) {
     }
 }
 
+/** v29 → v30: supplied readings carry their source through edits to the totals. */
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cardio_set_result ADD COLUMN readingSource TEXT DEFAULT NULL")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

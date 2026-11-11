@@ -101,6 +101,7 @@ data class CardioSetResultBackup(
     val distanceSource: String? = null,
     val metresAtEnd: Int? = null,
     val secondsAtEnd: Int? = null,
+    val readingSource: String? = null,
     val centis: Int? = null,
     val timingMethod: String? = null,
     val startProtocol: String? = null,

@@ -126,12 +126,16 @@ internal fun CardioDistanceSheet(
     actions: DayActions,
     distanceUnit: DistanceUnit,
     input: CardioDistanceInput? = null,
+    reading: CardioReadingInput? = null,
 ) {
     val draft = run.drafts.firstOrNull { it.position == position } ?: return
     val unit = DistanceUnit.forActivity(distanceUnit, run.block.activity)
     val text = input?.takeIf { it.unit == unit }?.text
         ?: draft.metres()?.let(unit::inputText) ?: draft.text
     val valid = draft.valid()
+    val awaiting = CardioReadingEntry.awaiting(run, position, draft.metres())
+    val readingText = reading?.takeIf { awaiting?.spec?.end !is Measure.Time || it.unit == unit }?.text.orEmpty()
+    val check = if (awaiting == null || readingText.isBlank()) null else CardioReadingEntry.check(awaiting, readingText, unit)
     AppModalBottomSheet(
         onDismissRequest = actions.onCloseSetEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -139,7 +143,7 @@ internal fun CardioDistanceSheet(
             SheetCommitButton(
                 label = stringResource(if (draft.text.isBlank()) R.string.sheet_without_distance else R.string.sheet_save_distance),
                 onClick = { actions.onSaveCardioDistance(run.action(position)) },
-                enabled = valid,
+                enabled = valid && (check == null || check == CardioReadingEntry.Check.VALID),
             )
         },
         title = {
@@ -168,6 +172,47 @@ internal fun CardioDistanceSheet(
                 isError = !valid,
             )
             if (!valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
+            if (awaiting != null) {
+                val end = awaiting.spec.end
+                val distance = end is Measure.Time
+                val stepHundredths = if (distance && unit != DistanceUnit.M) 5 else 100
+                val step = stepHundredths / 100.0
+                val label = stringResource(
+                    if (distance) R.string.cardio_reading_distance_at else R.string.cardio_reading_time_at,
+                    measureText(end, run.block.activity),
+                )
+                NumericSetField(
+                    identity = "reading:${run.action(position)}",
+                    value = if (distance) readingText.toDoubleOrNull() ?: 0.0 else parseSheetDuration(readingText) ?: 0.0,
+                    label = label,
+                    field = label,
+                    partnerName = null,
+                    modifier = Modifier.fillMaxWidth(),
+                    minimum = 0.0,
+                    maximum = if (distance) unit.wholeHundredthsFromMetres(requireNotNull(awaiting.metres)) /
+                        stepHundredths * stepHundredths / 100.0
+                        else awaiting.elapsedSeconds.toDouble(),
+                    decimal = distance && unit != DistanceUnit.M,
+                    duration = !distance,
+                    step = { step },
+                    round = { if (distance) WeightStepper.format(it).toDouble() else Math.round(it).toDouble() },
+                    onChange = {
+                        actions.onCardioReadingChange(if (distance) {
+                            it.takeIf { value -> value > 0 }?.let(WeightStepper::format).orEmpty()
+                        } else it.toInt().takeIf { seconds -> seconds > 0 }?.let(::formatCardioTime).orEmpty())
+                    },
+                    textOverride = readingText,
+                    onTextChange = actions.onCardioReadingChange,
+                    isError = check != null && check != CardioReadingEntry.Check.VALID,
+                    suffix = unit.symbol.takeIf { distance },
+                )
+                val error = when (check) {
+                    CardioReadingEntry.Check.OVER_TOTAL -> if (distance) R.string.cardio_reading_over_distance else R.string.cardio_reading_over_time
+                    CardioReadingEntry.Check.NOT_POSITIVE -> R.string.cardio_distance_invalid.takeIf { distance }
+                    CardioReadingEntry.Check.VALID, null -> null
+                }
+                if (error != null) Text(stringResource(error), color = MaterialTheme.colorScheme.error)
+            }
         },
     )
 }

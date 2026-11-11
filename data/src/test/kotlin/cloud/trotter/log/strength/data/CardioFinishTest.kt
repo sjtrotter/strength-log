@@ -111,7 +111,7 @@ class CardioFinishTest {
         assertNull(row.metresAtEnd)
         // 1200 planned seconds earned 5% = 60; the cap from 1200 is 1320.
         assertEquals(block(time(1260)), working())
-        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
     }
 
     @Test fun `an ask time overrun earns the chip judgment without writing`() = runTest {
@@ -125,7 +125,7 @@ class CardioFinishTest {
         assertTrue(judged.outcome.change is CardioChange.Increase)
         assertEquals(block(time(1260)), judged.outcome.block)
         assertNull(working())
-        assertNull(CardioBlockJson.appliedBySessionId(storedDay.cardioBlockJson))
+        assertFalse(session.increaseApplied)
     }
 
     @Test fun `an ask plan writes nothing`() = runTest {
@@ -202,10 +202,11 @@ class CardioFinishTest {
         prepare(opening)
         val id = log(t, listOf(result(opening.sets.single(), 900)))
         assertNull(working())
+        assertFalse(db.cardioSessionDao().byId(id)!!.increaseApplied)
         repo.amendCardioSetDistance(id, 0, 3100)
         assertEquals(block(time(945, aim = 3150)), working())
-        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
-        // The chip restores its opening through this setter; the marker stays on the plan block.
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+        // The chip restores its opening through this setter; the session keeps the write flag.
         repo.setCardioWorking(plan, "A", opening)
         assertNull(working())
         repo.amendCardioSetDistance(id, 0, 3200)
@@ -216,8 +217,9 @@ class CardioFinishTest {
         assertNull(working())
         val storedDay = db.programDao().day(plan, "A")!!
         assertEquals(opening, storedDay.toDomain(emptyList()).cardioToRun)
-        assertEquals(id, CardioBlockJson.appliedBySessionId(storedDay.cardioBlockJson))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
     }
+
     @Test fun `an increase earned at commit stays undone after lowering and raising the distance`() = runTest {
         val opening = block(time(900, aim = 3000))
         prepare(opening)
@@ -228,7 +230,7 @@ class CardioFinishTest {
         assertNull(working())
         repo.amendCardioSetDistance(id, 0, 3100)
         assertNull(working())
-        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
     }
 
     @Test fun `a newer session can earn after an undone increase`() = runTest {
@@ -239,10 +241,46 @@ class CardioFinishTest {
         repo.setCardioWorking(plan, "A", opening)
         val newest = log(t + day, listOf(result(time(900), 900)))
         assertEquals(block(time(945)), working())
-        assertEquals(newest, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        assertTrue(db.cardioSessionDao().byId(first)!!.increaseApplied)
+        assertTrue(db.cardioSessionDao().byId(newest)!!.increaseApplied)
         repo.setCardioWorking(plan, "A", opening)
         repo.amendCardioSetDistance(first, 0, 3100)
         repo.amendCardioSetDistance(newest, 0, 3100)
+        assertNull(working())
+    }
+
+    @Test fun `a History edit preserves an applied increase after undo`() = runTest {
+        val opening = block(time(900, aim = 3000))
+        prepare(opening)
+        val id = log(t, listOf(result(opening.sets.single(), 900, 3100)))
+        assertEquals(block(time(945, aim = 3150)), working())
+        repo.setCardioWorking(plan, "A", opening)
+
+        repo.history.updateCardioSession(id, CardioActivity.ROAD_RUN, 900, 3100, "Edited")
+
+        assertEquals("Edited", db.cardioSessionDao().byId(id)!!.note)
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+        repo.amendCardioSetDistance(id, 0, 3200)
+        assertNull(working())
+    }
+
+    @Test fun `delete undo preserves an applied increase after chip undo`() = runTest {
+        val opening = block(time(900, aim = 3000))
+        prepare(opening)
+        val id = log(t, listOf(result(opening.sets.single(), 900, 3100)))
+        assertEquals(block(time(945, aim = 3150)), working())
+        repo.setCardioWorking(plan, "A", opening)
+        val session = db.cardioSessionDao().byId(id)!!
+        val sets = db.cardioSetResultDao().forSession(id)
+
+        val deleted = repo.history.deleteCardioSession(id)!!
+        assertNull(db.cardioSessionDao().byId(id))
+        repo.history.restoreCardioSession(deleted)
+
+        assertEquals(session, db.cardioSessionDao().byId(id))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+        assertEquals(sets, db.cardioSetResultDao().forSession(id))
+        repo.amendCardioSetDistance(id, 0, 3200)
         assertNull(working())
     }
 
@@ -252,6 +290,7 @@ class CardioFinishTest {
         val id = log(t, listOf(result(opening.sets.single(), 900)))
         repo.amendCardioSetDistance(id, 0, 3100)
         assertNull(working())
+        assertFalse(db.cardioSessionDao().byId(id)!!.increaseApplied)
     }
 
     @Test fun `lowering a distance never takes an increase back`() = runTest {

@@ -881,7 +881,7 @@ class TrackerRepository(
         val dayId = session.dayId ?: return null
         val plan = planDao.plan(planId) ?: return null
         val entity = programDao.day(planId, dayId) ?: return null
-        if (CardioBlockJson.appliedBySessionId(entity.cardioBlockJson) == sessionId) return null
+        if (session.increaseApplied) return null
         if (cardioSessionDao.newestForDay(planId, dayId)?.id != sessionId) return null
         val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
         val names = CardioFamily.of(activity).activities.map { it.name }
@@ -901,15 +901,13 @@ class TrackerRepository(
             judgment.outcome.block != judgment.stored &&
             setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)
         ) {
-            val day = requireNotNull(programDao.day(judgment.planId, judgment.dayId))
-            programDao.upsertDay(day.copy(cardioBlockJson = CardioBlockJson.withAppliedBySessionId(
-                requireNotNull(day.cardioBlockJson), judgment.sessionId,
-            )))
+            val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
+            cardioSessionDao.update(session.copy(increaseApplied = true))
         }
     }
 
     /** Amends a set's typed distance and judges the session again: an Automatic judgment writes at most once per
-     *  session, while the day still holds its opening. Working-value undo keeps the applied session marker. */
+     *  session, while the day still holds its opening. Working-value undo keeps the session's increaseApplied flag. */
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
         db.withTransaction {
             history.amendCardioSetDistance(sessionId, position, metres)

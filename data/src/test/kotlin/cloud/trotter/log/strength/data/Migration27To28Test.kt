@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_27_28
+import cloud.trotter.log.strength.data.db.MIGRATION_28_29
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -34,7 +35,7 @@ class Migration27To28Test {
         createV27().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_27_28).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_27_28, MIGRATION_28_29).allowMainThreadQueries().build()
             try {
                 val run = db.runDao().allRuns().single()
                 assertEquals(WorkoutRunEntity("open-run", 1, "A", "Day A", "Plan", 1000), run)

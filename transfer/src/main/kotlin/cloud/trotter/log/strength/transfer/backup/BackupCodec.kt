@@ -230,7 +230,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 })
             }?.let { put("sessions", it) }
             mapRows(get("cardioSessions")) { session ->
-                JsonObject((session - "effort").toMutableMap().apply {
+                JsonObject((session - setOf("effort", "increaseApplied")).toMutableMap().apply {
                     mapRows(get("sets")) {
                         JsonObject(it - setOf("metresAtEnd", "secondsAtEnd", "centis", "timingMethod", "startProtocol"))
                     }?.let { put("sets", it) }

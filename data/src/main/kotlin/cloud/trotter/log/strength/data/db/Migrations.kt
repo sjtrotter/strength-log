@@ -575,6 +575,13 @@ val MIGRATION_27_28 = object : Migration(27, 28) {
     }
 }
 
+/** v28 → v29: a session keeps whether its judgment wrote a cardio increase. */
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cardio_session ADD COLUMN increaseApplied INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

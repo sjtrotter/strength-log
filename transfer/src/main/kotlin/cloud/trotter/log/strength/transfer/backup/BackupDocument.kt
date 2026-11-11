@@ -87,6 +87,7 @@ data class CardioSessionBackup(
     val sets: List<CardioSetResultBackup> = emptyList(),
     val note: String = "",
     val effort: String? = null,
+    val increaseApplied: Boolean = false,
 )
 
 /** Position is list order; ids and the stored spec survive a full restore verbatim. */

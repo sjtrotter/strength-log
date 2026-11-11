@@ -48,7 +48,6 @@ class CardioHistoryOfTest {
         // The cap keeps the proved 1200 s; pace pairs 5000 total metres with 1300 total seconds.
         assertEquals(RecentMaxima(5000, 1200), history.longest)
         assertEquals(1300.0 / 5000, history.secondsPerMetre)
-        assertEquals(0.26, history.secondsPerMetre)
     }
 
     @Test fun `pace keeps paired readings at the end when the totals overrun`() {

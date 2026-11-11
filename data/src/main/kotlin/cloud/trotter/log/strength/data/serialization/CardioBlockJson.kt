@@ -55,7 +55,6 @@ internal data class CardioSetSpecDto(
 internal data class CardioBlockDto(
     val activity: String,
     val sets: List<CardioSetSpecDto>,
-    val appliedBySessionId: Long? = null,
 ) {
     fun toDomain(): CardioBlock = CardioBlock(CardioActivity.valueOf(activity), sets.map { it.toDomain() })
 }
@@ -64,19 +63,9 @@ internal data class CardioBlockDto(
 object CardioBlockJson {
     fun encode(block: CardioBlock): String {
         val dto = CardioBlockDto(block.activity.name, block.sets.map(CardioSetSpecDto::of))
+        // Validate domain constraints before persisting the DTO.
         dto.toDomain()
         return SetJson.encode(CardioBlockDto.serializer(), dto)
-    }
-
-    /** The last Automatic judgment that wrote this day; kept on the plan block so working-value undo preserves it. */
-    fun appliedBySessionId(json: String?): Long? = json?.let {
-        runCatching { SetJson.decode(CardioBlockDto.serializer(), it).appliedBySessionId }.getOrNull()
-    }
-
-    fun withAppliedBySessionId(json: String, sessionId: Long): String {
-        val dto = SetJson.decode(CardioBlockDto.serializer(), json)
-        dto.toDomain()
-        return SetJson.encode(CardioBlockDto.serializer(), dto.copy(appliedBySessionId = sessionId))
     }
 
     /** Uses the same set shape as the sets nested inside a block. */

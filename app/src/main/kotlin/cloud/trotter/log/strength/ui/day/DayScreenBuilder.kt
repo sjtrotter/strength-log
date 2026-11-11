@@ -219,11 +219,11 @@ object DayScreenBuilder {
         return CardioNextTime.Offer(offered, opening, applied, cardioIncrease(opening, offered, change.measure))
     }
 
-    private fun cardioIncrease(opening: CardioBlock, offered: CardioBlock, measure: ProgressMeasure): CardioIncrease = run {
+    private fun cardioIncrease(opening: CardioBlock, offered: CardioBlock, measure: ProgressMeasure): CardioIncrease {
         val first = opening.sets.indexOfFirst { it.role == CardioRole.WORK }
         val before = opening.sets[first]
         val after = offered.sets[first]
-        when (measure) {
+        return when (measure) {
             ProgressMeasure.DISTANCE -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
             ProgressMeasure.TIME -> CardioIncrease.Time(after.timeSeconds() - before.timeSeconds())
             ProgressMeasure.PACE -> when (before.end) {

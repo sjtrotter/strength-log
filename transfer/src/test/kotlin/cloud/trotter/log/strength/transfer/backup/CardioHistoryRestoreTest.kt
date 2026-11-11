@@ -11,11 +11,15 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
@@ -29,6 +33,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -81,6 +86,56 @@ class CardioHistoryRestoreTest {
         service.import(service.export())
 
         assertEquals(listOf(imported), db.cardioSessionDao().all())
+    }
+
+    @Test fun `a new session with a deleted session id judges after a fresh restore`() = runTest {
+        val plan = repository.plans.createAuthoredPlan("Running", "Run")
+        repository.plans.publishCreatedAuthoredPlan(plan)
+        fun block(seconds: Int) = CardioBlock(CardioActivity.ROAD_RUN,
+            listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds))))
+        val opening = block(1200)
+        repository.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening))))
+        val source = session.copy(
+            planId = plan, mode = "OUTDOOR_RUN", label = "Run", activity = "ROAD_RUN",
+            completedAt = session.startedAt + 1_200_000, seconds = 1200,
+        )
+        val id = repository.logCardioSession(source, listOf(
+            CardioSetResult(opening.sets.single(), CardioSetStatus.FINISHED, 1200),
+        ))
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+        assertEquals(block(1260), CardioBlockJson.decode(db.programDao().day(plan, "A")!!.cardioWorkingJson))
+        // Exercise the service's export and import mappings with an applied session still present.
+        service.import(service.export())
+        assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+        repository.history.deleteCardioSession(id)
+        assertTrue(db.cardioSessionDao().all().isEmpty())
+        val backup = service.export()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val fresh = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
+        try {
+            val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
+                File.createTempFile("cardio-fresh-restore", ".preferences_pb")
+            })
+            val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
+                File.createTempFile("cardio-fresh-journal", ".preferences_pb")
+            }, settings)
+            val repo = TrackerRepository(fresh, fresh.programDao(), fresh.sessionDao(), fresh.customExerciseDao(), settings)
+            val freshService = BackupService(BackupRepository(fresh, settings, repo.plans, repo.history), journal)
+            freshService.import(backup)
+            assertTrue(fresh.cardioSessionDao().all().isEmpty())
+            assertEquals(block(1260), CardioBlockJson.decode(fresh.programDao().day(plan, "A")!!.cardioWorkingJson))
+            val next = source.copy(startedAt = 86_400_000, completedAt = 87_660_000, seconds = 1260)
+            assertFalse(next.increaseApplied)
+
+            val reused = repo.logCardioSession(next, listOf(
+                CardioSetResult(block(1260).sets.single(), CardioSetStatus.FINISHED, 1260),
+            ))
+
+            assertEquals(id, reused)
+            assertTrue(fresh.cardioSessionDao().byId(reused)!!.increaseApplied)
+            assertEquals(block(1323), CardioBlockJson.decode(fresh.programDao().day(plan, "A")!!.cardioWorkingJson))
+        } finally { fresh.close() }
     }
 
     @Test fun `v12 service round trip restores exact rows replacing later results`() = runTest {

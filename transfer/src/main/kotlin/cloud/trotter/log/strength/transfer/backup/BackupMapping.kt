@@ -209,6 +209,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 activity = it.activity,
                 note = it.note,
                 effort = it.effort,
+                increaseApplied = it.increaseApplied,
                 sets = cardioSetsBySession[it.id].orEmpty().sortedWith(compareBy({ it.position }, { it.id })).map { set ->
                     CardioSetResultBackup(
                         id = set.id, specJson = set.specJson, status = set.status,
@@ -448,6 +449,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 activity = if (schemaVersion >= 12) it.activity else null,
                 note = if (schemaVersion >= 22) it.note else "",
                 effort = if (schemaVersion >= 27) it.effort else null,
+                increaseApplied = if (schemaVersion >= 27) it.increaseApplied else false,
             )
         },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->

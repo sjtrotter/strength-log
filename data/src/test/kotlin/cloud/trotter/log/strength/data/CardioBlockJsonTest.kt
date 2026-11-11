@@ -44,21 +44,6 @@ class CardioBlockJsonTest {
     }
 
     @Test
-    fun `old blocks default to no applied session and a marker preserves the block`() {
-        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(900))))
-        val old = CardioBlockJson.encode(block)
-        assertNull(CardioBlockJson.appliedBySessionId(old))
-        assertNull(CardioBlockJson.appliedBySessionId(null))
-        val marked = CardioBlockJson.withAppliedBySessionId(old, 42L)
-        CardioBlockJson.validate(marked)
-        assertEquals(block, CardioBlockJson.decode(marked))
-        assertEquals(42L, CardioBlockJson.appliedBySessionId(marked))
-        val updated = CardioBlockJson.withAppliedBySessionId(marked, 43L)
-        assertEquals(block, CardioBlockJson.decode(updated))
-        assertEquals(43L, CardioBlockJson.appliedBySessionId(updated))
-    }
-
-    @Test
     fun `standalone specs use exactly the block set encoding`() {
         val sets = listOf(
             CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),

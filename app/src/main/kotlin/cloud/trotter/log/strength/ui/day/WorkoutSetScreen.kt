@@ -352,7 +352,9 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
         val editLabel = stringResource(R.string.workout_edit_set, index + 1)
         TextButton(onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
-            colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp)) {
+            colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp),
+            // The default pill shape clips the corners of numerals this tall.
+            shape = RectangleShape) {
             WorkoutHeroText(formatCardioTime(seconds))
         }
     } else {

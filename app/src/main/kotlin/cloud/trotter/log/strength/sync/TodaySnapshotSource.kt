@@ -5,19 +5,25 @@ import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.CardioRun
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
@@ -50,6 +56,7 @@ class TodaySnapshotSource(
     private val plans: PlanRepository,
     private val historyRepository: HistoryRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
+    private val cardioDraft: CardioDraftSource = CardioDraftSource(),
 ) {
 
     val snapshots: Flow<WatchSnapshot?> = flow {
@@ -86,11 +93,11 @@ class TodaySnapshotSource(
                     if (resolvedId == null) return@resolved flowOf(null)
                     combine(
                         repo.observeDay(plan.id, resolvedId), repo.openRunFlow, context,
-                        combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
-                            sessions to sets
+                        combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow, cardioDraft.runs) { sessions, sets, run ->
+                            Triple(sessions, sets, run)
                         }, today,
                     ) { performedDay, open, ctx, cardioHistory, civilDate ->
-                        val (sessions, sets) = cardioHistory
+                        val (sessions, sets, draft) = cardioHistory
                         val loggedCardio = sessions.firstOrNull { session ->
                             session.planId == plan.id && session.dayId == resolvedId &&
                                 Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
@@ -107,8 +114,12 @@ class TodaySnapshotSource(
                             runStartedAt = open?.takeIf { !it.draft && performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
                             processedEditStamps = ctx.processedEdits,
                             liftGoal = plan.planSettings.defaultsFor,
-                            cardioOpening = performedDay.day?.let {
-                                DayScreenBuilder.cardioOpening(it, plan, sessions, sets, clock.millis())
+                            cardioOpening = performedDay.day?.let { programDay ->
+                                draft?.takeIf {
+                                    loggedCardio == null && it.planId == plan.id && it.dayId == resolvedId &&
+                                        it.startedAt == null && it.results.isEmpty() &&
+                                        programDay.cardioToRun?.let(CardioBlockJson::encode) == it.sourceBlockJson
+                                }?.block ?: DayScreenBuilder.cardioOpening(programDay, plan, sessions, sets, clock.millis())
                             },
                         )
                     }
@@ -123,4 +134,16 @@ class TodaySnapshotSource(
         val cardioAck: CardioAcks,
         val processedEdits: List<Long>,
     )
+}
+
+/** Shares the SavedStateHandle's run flow with glance surfaces, without another copy of the draft. */
+@OptIn(ExperimentalCoroutinesApi::class)
+@Singleton
+class CardioDraftSource @Inject constructor() {
+    private val savedRun = MutableStateFlow<StateFlow<CardioRun?>?>(null)
+    val runs: Flow<CardioRun?> = savedRun.flatMapLatest { it ?: flowOf(null) }
+
+    fun bind(run: StateFlow<CardioRun?>) {
+        savedRun.value = run
+    }
 }

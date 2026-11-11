@@ -294,6 +294,7 @@ data class CardioCardState(
     val distanceInputs: List<CardioDistanceInput> = emptyList(),
     val readingInputs: List<CardioReadingInput> = emptyList(),
     val nextTime: CardioNextTime? = null,
+    val canSwap: Boolean = false,
 )
 
 enum class CardioPhase { SUGGESTION, EXECUTING }

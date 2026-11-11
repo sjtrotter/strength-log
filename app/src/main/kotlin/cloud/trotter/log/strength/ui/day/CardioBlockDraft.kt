@@ -10,7 +10,14 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.parcelize.Parcelize
 
-enum class CardioTemplate { EASY, TEMPO, INTERVALS }
+enum class CardioTemplate {
+    EASY, TEMPO, INTERVALS;
+
+    /** The "Start from" block for [activity]; the day editor and today's swap share it. */
+    fun block(activity: CardioActivity): CardioBlock = CardioBlocks.fromLegacy(
+        CardioSuggestion("", "", hard = this != EASY), this == INTERVALS, activity,
+    )
+}
 
 /** Canonical seconds/metres and the open set page survive process death together. */
 @Parcelize
@@ -52,12 +59,7 @@ data class CardioBlockDraft(
 ) : Parcelable {
     fun block(): CardioBlock = CardioBlock(activity, sets.map(CardioSetDraft::spec))
 
-    fun startFrom(template: CardioTemplate): CardioBlockDraft = from(
-        planId, dayId, CardioBlocks.fromLegacy(
-            CardioSuggestion("", "", hard = template != CardioTemplate.EASY),
-            template == CardioTemplate.INTERVALS, activity,
-        ),
-    )
+    fun startFrom(template: CardioTemplate): CardioBlockDraft = from(planId, dayId, template.block(activity))
 
     /** Duplicate the last work/recovery pair ahead of any cool-down. */
     fun addSet(): CardioBlockDraft {

@@ -135,6 +135,16 @@ class CardioFinishTest {
         assertNull(working())
     }
 
+    @Test fun `a session on another activity that ran the stored sets earns nothing`() = runTest {
+        prepare(block(time(1200)))
+        val id = log(t, listOf(result(time(1200), 1200)), CardioActivity.ELLIPTICAL)
+        assertNull(working())
+        assertFalse(db.cardioSessionDao().byId(id)!!.increaseApplied)
+
+        log(t + day, listOf(result(time(1200), 1200)))
+        assertEquals(block(time(1260)), working())
+    }
+
     @Test fun `only the newest session that ran the stored block counts`() = runTest {
         prepare(block(time(1200)))
         log(t, listOf(result(time(1200), 1200), result(time(120).copy(role = CardioRole.RECOVERY), 120),

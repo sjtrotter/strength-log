@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,7 +32,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -66,7 +61,6 @@ internal fun CardioEntrySheet(
     completedAt: Long = draft.completedAt,
 ) {
     val currentSaving by rememberUpdatedState(saving)
-    var expanded by remember { mutableStateOf(false) }
     var dateOpen by rememberSaveable { mutableStateOf(false) }
     var timeOpen by rememberSaveable { mutableStateOf(false) }
     var durationText by rememberSaveable { mutableStateOf(formatCardioTime(draft.seconds)) }
@@ -102,23 +96,7 @@ internal fun CardioEntrySheet(
                 cancelLabel = if (saving) null else stringResource(R.string.day_cancel_button), onCancel = onDismiss)
         },
         body = {
-            ExposedDropdownMenuBox(expanded = expanded && !saving, onExpandedChange = { if (!saving) expanded = it }) {
-                OutlinedTextField(
-                    value = cardioActivityName(draft.activity), onValueChange = {}, readOnly = true,
-                    enabled = !saving,
-                    label = { Text(stringResource(R.string.cardio_edit_activity)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = !saving),
-                )
-                ExposedDropdownMenu(expanded = expanded && !saving, onDismissRequest = { expanded = false }) {
-                    CardioActivity.entries.forEach { activity ->
-                        DropdownMenuItem(text = { Text(cardioActivityName(activity)) }, onClick = {
-                            onChange(draft.copy(activity = activity))
-                            expanded = false
-                        })
-                    }
-                }
-            }
+            CardioActivityField(draft.activity, { onChange(draft.copy(activity = it)) }, enabled = !saving)
             if (startEditable) {
                 OutlinedTextField(
                     value = start.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US)),

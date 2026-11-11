@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.sync.SetEditApplier
+import cloud.trotter.log.strength.sync.CardioDraftSource
 import cloud.trotter.log.strength.sync.CardioDeltaApplier
 import cloud.trotter.log.strength.sync.CardioAckLog
 import cloud.trotter.log.strength.sync.EditAckLog
@@ -96,7 +97,11 @@ object WearSyncModule {
         plans: PlanRepository,
         history: HistoryRepository,
         clock: Clock,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans, historyRepository = history, clock = clock)
+        cardioDraft: CardioDraftSource,
+    ): TodaySnapshotSource = TodaySnapshotSource(
+        repo, today, ackLog, editAckLog, settings, plans = plans, historyRepository = history,
+        clock = clock, cardioDraft = cardioDraft,
+    )
 
     @Provides
     @Singleton

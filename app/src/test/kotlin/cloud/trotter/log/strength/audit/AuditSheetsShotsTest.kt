@@ -14,6 +14,8 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.ui.day.CardioSwapSheet
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioDistanceDraft
 import cloud.trotter.log.strength.ui.day.DayScreen
@@ -406,6 +408,18 @@ class AuditSheetsShotsTest : UiAuditTest() {
             AuditDay(state.value, actions = workoutActions().copy(onCloseAllSets = {
                 state.value = state.value.copy(openSheet = null)
             }))
+        }
+    }
+
+    @Test fun shot40CardioSwap() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("sheets/40-cardio-swap", beforeCapture = {
+            rule.onNodeWithText("Road run").performClick()
+            rule.onNodeWithText("Elliptical").performScrollTo().performClick()
+            rule.onNodeWithText("Tempo 20:00").performScrollTo().performClick()
+            rule.mainClock.advanceTimeBy(300)
+        }) {
+            CardioSwapSheet(CardioActivity.ROAD_RUN, { _, _ -> }, {})
         }
     }
 

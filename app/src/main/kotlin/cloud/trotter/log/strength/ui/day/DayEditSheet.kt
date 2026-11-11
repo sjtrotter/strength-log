@@ -71,7 +71,6 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.Measure
@@ -753,7 +752,6 @@ internal fun CardioBlockPage(
     onSave: () -> Unit,
     onBack: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     AppSheetLayout(
         title = { PickerHeader(stringResource(R.string.day_edit_edit_cardio), onBack) },
         footer = {
@@ -761,30 +759,12 @@ internal fun CardioBlockPage(
                 cancelLabel = stringResource(R.string.day_edit_cancel_button), onCancel = onBack)
         },
     ) {
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-            OutlinedTextField(
-                value = cardioActivityName(draft.activity), onValueChange = {}, readOnly = true,
-                label = { Text(stringResource(R.string.cardio_edit_activity)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-            )
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                CardioActivity.entries.forEach { activity ->
-                    DropdownMenuItem(text = { Text(cardioActivityName(activity)) }, onClick = {
-                        onChange(draft.copy(activity = activity))
-                        expanded = false
-                    })
-                }
-            }
-        }
+        CardioActivityField(draft.activity, { onChange(draft.copy(activity = it)) })
         Text(stringResource(R.string.cardio_edit_start_from), style = MaterialTheme.typography.titleSmall)
         CardioTemplate.entries.forEach { template ->
             TextButton(onClick = { onChange(draft.startFrom(template)) }) {
-                Text(stringResource(when (template) {
-                    CardioTemplate.EASY -> R.string.cardio_edit_easy
-                    CardioTemplate.TEMPO -> R.string.cardio_edit_tempo
-                    CardioTemplate.INTERVALS -> R.string.cardio_edit_intervals
-                }))
+                Text(cardioTemplateLabel(template))
+            }))
             }
         }
         draft.sets.forEachIndexed { index, set ->
@@ -1094,7 +1074,7 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
 }
 
 @Composable
-private fun PickerHeader(title: String, onBack: () -> Unit) {
+internal fun PickerHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_edit_back_action))

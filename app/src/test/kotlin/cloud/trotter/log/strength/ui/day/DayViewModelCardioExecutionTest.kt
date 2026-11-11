@@ -418,6 +418,9 @@ class DayViewModelCardioExecutionTest {
         assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
         assertFalse(session.increaseApplied)
         assertNull(vm.uiState.value.cardio?.nextTime)
+        // Logging advances the screen to day B; the logged day A no longer offers a swap.
+        vm.selectDay("A")
+        runCurrent()
         assertFalse(vm.uiState.value.cardio!!.canSwap)
         val day = repo.plans.programFor(plan).first().days.first { it.id == "A" }
         assertNull(DayScreenBuilder.cardioNextTime(day, db.planDao().plan(plan)!!, sessions,

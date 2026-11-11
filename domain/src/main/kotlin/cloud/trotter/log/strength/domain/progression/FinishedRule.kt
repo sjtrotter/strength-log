@@ -26,6 +26,11 @@ object FinishedRule {
         }
     }
 
+    /** Readings matching [atEnd] of [previous] are derived; supplied readings survive edits to the totals. */
+    fun afterEdit(previous: CardioSetResult, edited: CardioSetResult): CardioSetResult =
+        if (previous == atEnd(previous)) atEnd(edited)
+        else edited.copy(metresAtEnd = previous.metresAtEnd, secondsAtEnd = previous.secondsAtEnd)
+
     /** True when the row reached its planned end and finished; false when it carries an at-end field but did not
      *  finish; null for a row with no at-end field (before v25), whose reader keeps its own rule. */
     fun finished(result: CardioSetResult): Boolean? =

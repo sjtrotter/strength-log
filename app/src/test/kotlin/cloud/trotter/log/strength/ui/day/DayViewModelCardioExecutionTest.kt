@@ -548,7 +548,7 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun anIntervalTimeSetReadsItsEnteredDistanceAtItsEnd() = test {
-        for (saveAfterCommit in listOf(false, true)) {
+        for ((iteration, saveAfterCommit) in listOf(false, true).withIndex()) {
             prepareBlock(time(CardioRole.WORK, aim = 400), time(CardioRole.RECOVERY, 120))
             val vm = readyVm()
             vm.startCardio()
@@ -561,7 +561,9 @@ class DayViewModelCardioExecutionTest {
             vm.saveCardioDistance(vm.distanceAction())
             runCurrent()
             if (!saveAfterCommit) tick(120_000)
-            val session = repo.history.cardioSessionsFlow.first().first()
+            val sessions = repo.history.cardioSessionsFlow.first()
+            assertEquals(iteration + 1, sessions.size)
+            val session = sessions.first()
             val rows = repo.history.cardioSetsFor(session.id)
             assertEquals(listOf(420 to 10, null to 120), rows.map { it.metresAtEnd to it.secondsAtEnd })
             vm.setCardioScreenLive(false)

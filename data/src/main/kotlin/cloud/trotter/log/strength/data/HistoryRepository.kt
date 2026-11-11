@@ -124,13 +124,17 @@ class HistoryRepository(
             val row = requireNotNull(cardioSetResultDao.forSession(sessionId).firstOrNull { it.position == position })
             cardioSetResultDao.update(row.copy(
                 metres = metres, distanceSource = metres?.let { DistanceSource.MANUAL.name },
-            ).withReadingsAtEnd())
+            ).withReadingsAtEnd(row))
         }
     }
 
-    /** [this] row with its readings at the end recomputed from its totals; an unreadable row is kept as it is. */
-    private fun CardioSetResultEntity.withReadingsAtEnd(): CardioSetResultEntity =
-        toDomainOrNull()?.let(FinishedRule::atEnd)?.let { copy(metresAtEnd = it.metresAtEnd, secondsAtEnd = it.secondsAtEnd) } ?: this
+    /** Supplied readings and unreadable rows keep their readings when totals change. */
+    private fun CardioSetResultEntity.withReadingsAtEnd(previous: CardioSetResultEntity): CardioSetResultEntity {
+        val before = previous.toDomainOrNull() ?: return this
+        val edited = toDomainOrNull() ?: return this
+        val readings = FinishedRule.afterEdit(before, edited)
+        return copy(metresAtEnd = readings.metresAtEnd, secondsAtEnd = readings.secondsAtEnd)
+    }
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
 
@@ -150,15 +154,17 @@ class HistoryRepository(
                 require(editedSeconds in 1..ManualCardio.MAX_SECONDS)
                 require(metres == null || metres in 1..ManualCardio.MAX_METRES)
                 val result = results.single()
-                val spec = CardioBlockJson.decodeSet(result.specJson)
-                cardioSetResultDao.update(result.copy(
-                    elapsedSeconds = editedSeconds,
-                    specJson = if (spec.end is Measure.Time) {
-                        CardioBlockJson.encodeSet(spec.copy(end = Measure.Time(editedSeconds)))
-                    } else result.specJson,
-                    metres = metres,
-                    distanceSource = metres?.let { DistanceSource.MANUAL.name },
-                ).withReadingsAtEnd())
+                if (editedSeconds != result.elapsedSeconds || metres != result.metres) {
+                    val spec = CardioBlockJson.decodeSet(result.specJson)
+                    cardioSetResultDao.update(result.copy(
+                        elapsedSeconds = editedSeconds,
+                        specJson = if ((spec.end as? Measure.Time)?.seconds == result.elapsedSeconds) {
+                            CardioBlockJson.encodeSet(spec.copy(end = Measure.Time(editedSeconds)))
+                        } else result.specJson,
+                        metres = metres,
+                        distanceSource = metres?.let { DistanceSource.MANUAL.name },
+                    ).withReadingsAtEnd(result))
+                }
             }
             cardioSessionDao.update(session.copy(
                 activity = activity.name,

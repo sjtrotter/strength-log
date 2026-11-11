@@ -96,10 +96,17 @@ class FinishedRuleAtEndTest {
     }
 
     @Test
-    fun `readings are recomputed, not kept`() {
-        val row = result(time(900), elapsed = 904, metres = 3485, metresAtEnd = 3470, secondsAtEnd = 900)
-        val atEnd = FinishedRule.atEnd(row)
-        assertNull(atEnd.metresAtEnd)
-        assertEquals(900, atEnd.secondsAtEnd)
+    fun `derived readings recompute and supplied readings are kept`() {
+        val derived = FinishedRule.atEnd(result(time(900), metres = 3470))
+        val edited = FinishedRule.afterEdit(derived, derived.copy(metres = 3500))
+        assertEquals(3500, edited.metresAtEnd)
+        assertEquals(900, edited.secondsAtEnd)
+
+        val supplied = result(time(900), elapsed = 904, metres = 3485, metresAtEnd = 3470, secondsAtEnd = 900)
+        assertEquals(supplied.copy(metres = 3500), FinishedRule.afterEdit(supplied, supplied.copy(metres = 3500)))
+
+        val distanceReading = result(distance(2414), elapsed = 761, metres = 2414, metresAtEnd = 2414, secondsAtEnd = 750)
+        assertEquals(distanceReading.copy(metres = 2500),
+            FinishedRule.afterEdit(distanceReading, distanceReading.copy(metres = 2500)))
     }
 }

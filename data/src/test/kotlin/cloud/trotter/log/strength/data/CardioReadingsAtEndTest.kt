@@ -16,7 +16,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.records.GoalProgress
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +101,94 @@ class CardioReadingsAtEndTest {
         val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(row))
         assertEquals(row, history.cardioSetsFor(id).single())
         assertEquals(3470, FinishedRule.reading(history.cardioBestsFor(CardioActivity.ROAD_RUN).values.single()))
+    }
+
+    @Test fun `a note-only edit keeps a phone overrun row without record or goal credit`() = runTest {
+        val id = repo.logCardioSession(session.copy(
+            activity = "ROAD_RUN", seconds = 1690, completedAt = session.startedAt + 1_690_000,
+        ), listOf(result(time(1500), 1690, 5000)))
+        val before = db.cardioSetResultDao().forSession(id).single()
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1690, 5000, "  Easy  ")
+
+        assertEquals(before, db.cardioSetResultDao().forSession(id).single())
+        assertEquals("Easy", history.cardioSession(id)?.note)
+        val row = history.cardioSetsFor(id).single()
+        assertEquals(Measure.Time(1500), row.spec.end)
+        assertEquals(1690, row.elapsedSeconds)
+        assertEquals(5000, row.metres)
+        assertEquals(null to 1500, row.metresAtEnd to row.secondsAtEnd)
+        assertTrue(history.cardioBestsFor(CardioActivity.ROAD_RUN).isEmpty())
+        assertNull(GoalProgress.bestTimed(PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, 1800),
+            listOf(CardioActivity.ROAD_RUN to listOf(row))))
+    }
+
+    @Test fun `a note-only edit keeps a supplied distance-end time`() = runTest {
+        val supplied = result(CardioSetSpec(CardioRole.WORK, Measure.Distance(2414)), 761, 2414)
+            .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750)
+        val id = repo.logCardioSession(session, listOf(supplied))
+        val before = db.cardioSetResultDao().forSession(id).single()
+
+        history.updateCardioSession(id, CardioActivity.TRACK_RUN, 761, 2414, "At the track")
+
+        assertEquals(before, db.cardioSetResultDao().forSession(id).single())
+        assertEquals(supplied, history.cardioSetsFor(id).single())
+        assertEquals("At the track", history.cardioSession(id)?.note)
+    }
+
+    @Test fun `a hand-logged distance edit recomputes its readings and its spec follows duration edits`() = runTest {
+        val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(ManualCardio.result(900, 3000)))
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 900, 3100, "Corrected distance")
+
+        val distanceEdited = history.cardioSetsFor(id).single()
+        assertEquals(Measure.Time(900), distanceEdited.spec.end)
+        assertEquals(3100 to 900, distanceEdited.metresAtEnd to distanceEdited.secondsAtEnd)
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 910, 3200, "Corrected duration")
+
+        val durationEdited = history.cardioSetsFor(id).single()
+        assertEquals(Measure.Time(910), durationEdited.spec.end)
+        assertEquals(3200 to 910, durationEdited.metresAtEnd to durationEdited.secondsAtEnd)
+    }
+
+    @Test fun `a distance edit keeps a supplied reading and the planned end`() = runTest {
+        val supplied = result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900)
+        val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(supplied))
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 904, 3500, "Corrected total")
+
+        assertEquals(supplied.copy(metres = 3500), history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `a measure edit keeps the planned end of a phone overrun`() = runTest {
+        val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(result(time(1500), 1690, 5000)))
+
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1700, 5100, "Corrected totals")
+
+        val edited = history.cardioSetsFor(id).single()
+        assertEquals(Measure.Time(1500), edited.spec.end)
+        assertEquals(1700, edited.elapsedSeconds)
+        assertEquals(5100, edited.metres)
+        assertEquals(null to 1500, edited.metresAtEnd to edited.secondsAtEnd)
+        assertTrue(history.cardioBestsFor(CardioActivity.ROAD_RUN).isEmpty())
+    }
+
+    @Test fun `distance amendments keep supplied readings`() = runTest {
+        val supplied = listOf(
+            result(time(900), 904, 3485).copy(metresAtEnd = 3470, secondsAtEnd = 900),
+            result(CardioSetSpec(CardioRole.WORK, Measure.Distance(2414)), 761, 2414)
+                .copy(distanceSource = DistanceSource.GPS, metresAtEnd = 2414, secondsAtEnd = 750),
+        )
+        val id = repo.logCardioSession(session, supplied)
+
+        supplied.forEachIndexed { position, row ->
+            history.amendCardioSetDistance(id, position, 3500)
+            assertEquals(row.copy(metres = 3500, distanceSource = DistanceSource.MANUAL), history.cardioSetsFor(id)[position])
+
+            history.amendCardioSetDistance(id, position, null)
+            assertEquals(row.copy(metres = null, distanceSource = null), history.cardioSetsFor(id)[position])
+        }
     }
 
     @Test fun `a distance entered after logging becomes the reading`() = runTest {

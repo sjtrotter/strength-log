@@ -158,7 +158,7 @@ class HistoryRepositoryCardioEditTest {
         history.updateCardioSession(id, CardioActivity.TRACK_RUN, 1489, null, "  Track  ")
 
         val after = db.cardioSetResultDao().forSession(id).single()
-        assertEquals(before.copy(elapsedSeconds = 1489, metres = null, distanceSource = null, metresAtEnd = 5000, secondsAtEnd = 1489), after)
+        assertEquals(before.copy(elapsedSeconds = 1489, metres = null, distanceSource = null), after)
         assertEquals("Track", history.cardioSession(id)!!.note)
     }
 

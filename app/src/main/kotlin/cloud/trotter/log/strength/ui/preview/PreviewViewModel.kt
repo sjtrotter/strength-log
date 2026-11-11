@@ -66,10 +66,8 @@ class PreviewViewModel @Inject constructor(
         val day = performedDay.day
         val plan = plans.firstOrNull { it.id == planId }
         val (cardioSessions, cardioSets) = cardioHistory
-        val lastCardio = cardioSessions.filter { it.planId == planId && it.dayId == dayId }
-            .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
         val cardioNextTime = if (day != null && plan != null) {
-            DayScreenBuilder.cardioNextTime(day, plan, lastCardio, lastCardio?.let { cardioSets[it.id] })
+            DayScreenBuilder.cardioNextTime(day, plan, cardioSessions, cardioSets)
         } else null
         PreviewUiState(
             loading = false, selection = selection, runId = performedDay.tracks.runId,

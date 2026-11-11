@@ -118,7 +118,7 @@ class HistoryRepository(
             ).maxOrNull()
         }.distinctUntilChanged()
 
-    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+    internal suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
         require(metres == null || metres > 0)
         db.withTransaction {
             val row = requireNotNull(cardioSetResultDao.forSession(sessionId).firstOrNull { it.position == position })

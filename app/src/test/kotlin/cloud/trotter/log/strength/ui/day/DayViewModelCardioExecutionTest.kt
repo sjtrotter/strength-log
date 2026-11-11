@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -2636,4 +2635,24 @@ class DayViewModelCardioExecutionTest {
         }
         override fun cancel() { deadline = null; identity = null; callback = null }
     }
+    @Test fun aSteadyRunWithADistanceAimProgressesWhenItsDistanceIsEntered() = test {
+        settings.setDistanceUnit(DistanceUnit.KM)
+        prepareAuthoredCardioDay(time(CardioRole.WORK, 1500, aim = 5000), activity = CardioActivity.ROAD_RUN)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(1_500_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        vm.openCardioDistance()
+        runCurrent()
+        vm.changeCardioDistance("5.1")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 1575, aim = 5250))),
+            repo.plans.programFor(plan).first().days.first { it.id == "A" }.cardioToRun)
+    }
+
 }

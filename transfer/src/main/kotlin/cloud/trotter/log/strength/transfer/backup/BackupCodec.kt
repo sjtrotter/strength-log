@@ -22,7 +22,7 @@ import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -483,7 +483,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                                 throw BackupError.Inconsistent("unknown cardio progress measure '${day.cardioProgressBy}'")
                             }
                             if (day.cardioIncreasePercent != null &&
-                                day.cardioIncreasePercent !in CardioProgression.MIN_PERCENT..CardioProgression.MAX_PERCENT
+                                day.cardioIncreasePercent !in CardioMeasures.MIN_PERCENT..CardioMeasures.MAX_PERCENT
                             ) throw BackupError.Inconsistent("cardio increase must be 1..25 on day '${day.dayId}'")
                         }
                     }

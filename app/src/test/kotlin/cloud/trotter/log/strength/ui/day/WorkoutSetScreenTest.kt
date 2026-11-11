@@ -1,7 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
-import cloud.trotter.log.strength.domain.cardio.CardioIncrease
 import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context

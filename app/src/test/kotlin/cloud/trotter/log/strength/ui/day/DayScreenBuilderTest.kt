@@ -1,7 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
-import cloud.trotter.log.strength.domain.cardio.CardioIncrease
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -33,6 +31,9 @@ import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -57,17 +58,17 @@ class DayScreenBuilderTest {
         val last = CardioSessionEntity(id = 1, planId = 1, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
             label = "Run", startedAt = 1000, completedAt = 2000, seconds = 1200, stepsCompleted = 1, activity = block.activity.name)
         val results = listOf(CardioSetResult(block.sets.single(), CardioSetStatus.FINISHED, 1200))
-        assertNull(DayScreenBuilder.cardioNextTime(day, plan, last, results))
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, listOf(last), mapOf(last.id to results)))
         val enabled = plan.copy(offerCardioIncreases = true)
-        assertNull(DayScreenBuilder.cardioNextTime(day.copy(cardioProgress = CardioProgress(keepToPlan = true)), enabled, last, results))
-        val offer = DayScreenBuilder.cardioNextTime(day, enabled, last, results) as CardioNextTime.Offer
+        assertNull(DayScreenBuilder.cardioNextTime(day.copy(cardioProgress = CardioProgress(keepToPlan = true)), enabled, listOf(last), mapOf(last.id to results)))
+        val offer = DayScreenBuilder.cardioNextTime(day, enabled, listOf(last), mapOf(last.id to results)) as CardioNextTime.Offer
         assertFalse(offer.applied)
         assertEquals(CardioIncrease.Time(60), offer.change)
         assertEquals(offer.copy(applied = true), DayScreenBuilder.cardioNextTime(
-            day.copy(cardioProgress = CardioProgress(working = offer.offered)), enabled, last, results))
-        assertEquals(CardioNextTime.Repeat, DayScreenBuilder.cardioNextTime(day, enabled, last,
-            results.map { it.copy(elapsedSeconds = 1100) }))
-        assertNull(DayScreenBuilder.cardioNextTime(day, enabled, last.copy(activity = "UNKNOWN"), results))
+            day.copy(cardioProgress = CardioProgress(working = offer.offered)), enabled, listOf(last), mapOf(last.id to results)))
+        assertEquals(CardioNextTime.Repeat, DayScreenBuilder.cardioNextTime(day, enabled, listOf(last),
+            mapOf(last.id to results.map { it.copy(elapsedSeconds = 1100) })))
+        assertNull(DayScreenBuilder.cardioNextTime(day, enabled, listOf(last.copy(activity = "UNKNOWN")), mapOf(last.id to results)))
     }
 
     @Test
@@ -645,6 +646,87 @@ class DayScreenBuilderTest {
             retired = false, offer = null, opened = true)
         assertNull(DayScreenBuilder.nextTime(rows, history, false, WeightUnit.LB, offersOn = true))
         assertEquals(NextTime.Repeat, DayScreenBuilder.nextTime(rows, history.copy(opened = false), false, WeightUnit.LB, offersOn = true))
+    }
+
+    private fun cardioBlock(end: Measure) = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, end)))
+    private fun cardioSession(block: CardioBlock, id: Long = 1, completedAt: Long = 2000) = CardioSessionEntity(
+        id = id, planId = 1, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+        startedAt = completedAt - 1000, completedAt = completedAt, seconds = 1200, stepsCompleted = block.sets.size,
+        activity = block.activity.name,
+    )
+    private fun cardioResult(spec: CardioSetSpec, elapsed: Int, metres: Int? = null) = FinishedRule.atEnd(
+        CardioSetResult(spec, CardioSetStatus.FINISHED, elapsed, metres, metres?.let { DistanceSource.MANUAL }),
+    )
+
+    @Test fun `an automatic plan shows its cardio chip only with the offers switch on`() {
+        val opening = cardioBlock(Measure.Time(1200))
+        val offered = cardioBlock(Measure.Time(1260))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening,
+            cardioProgress = CardioProgress(working = offered))
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000)
+        val auto = plan.copy(autoApply = true)
+        val last = cardioSession(opening)
+        val sessions = listOf(last)
+        val sets = mapOf(last.id to listOf(cardioResult(opening.sets.single(), 1200)))
+        assertNull(DayScreenBuilder.cardioNextTime(day, auto, sessions, sets))
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, sessions, sets))
+        val enabled = auto.copy(offerCardioIncreases = true)
+        val offer = CardioNextTime.Offer(offered, opening, true, CardioIncrease.Time(60))
+        assertEquals(offer, DayScreenBuilder.cardioNextTime(day, enabled, sessions, sets))
+        assertEquals(offer.copy(applied = false), DayScreenBuilder.cardioNextTime(
+            day.copy(cardioProgress = CardioProgress()), enabled, sessions, sets))
+    }
+
+    @Test fun `the chip recognizes the opening and the applied offer from the same results`() {
+        val opening = cardioBlock(Measure.Distance(4828))
+        val offered = cardioBlock(Measure.Distance(5069))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening)
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000, offerCardioIncreases = true)
+        val last = cardioSession(opening)
+        val sets = mapOf(last.id to listOf(cardioResult(opening.sets.single(), 1200, 4828)))
+        val offer = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Distance(241))
+        assertEquals(offer, DayScreenBuilder.cardioNextTime(day, plan, listOf(last), sets))
+        assertEquals(offer.copy(applied = true), DayScreenBuilder.cardioNextTime(
+            day.copy(cardioProgress = CardioProgress(working = offered)), plan, listOf(last), sets))
+    }
+
+    @Test fun `the chip hides after an edit or an activity change`() {
+        val opening = cardioBlock(Measure.Distance(4828))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening)
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000, offerCardioIncreases = true)
+        val last = cardioSession(opening)
+        val sets = mapOf(last.id to listOf(cardioResult(opening.sets.single(), 1200, 4828)))
+        assertNull(DayScreenBuilder.cardioNextTime(day.copy(cardioBlock = cardioBlock(Measure.Distance(5000))),
+            plan, listOf(last), sets))
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, listOf(last.copy(activity = "TRAIL_RUN")), sets))
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, listOf(last.copy(activity = null)), sets))
+    }
+
+    @Test fun `the chip reads the capped step`() {
+        val opening = cardioBlock(Measure.Distance(8000))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening,
+            cardioProgress = CardioProgress(measure = ProgressMeasure.DISTANCE, increasePercent = 25))
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000, offerCardioIncreases = true)
+        val priorBlock = cardioBlock(Measure.Distance(8050)).copy(activity = CardioActivity.TRAIL_RUN)
+        val prior = cardioSession(priorBlock, id = 1, completedAt = 1000).copy(planId = null)
+        val last = cardioSession(opening, id = 2)
+        val sets = mapOf(prior.id to listOf(cardioResult(priorBlock.sets.single(), 2900, 8050)),
+            last.id to listOf(cardioResult(opening.sets.single(), 2880, 8000)))
+        assertEquals(CardioNextTime.Offer(cardioBlock(Measure.Distance(8800)), opening, false, CardioIncrease.Distance(800)),
+            DayScreenBuilder.cardioNextTime(day, plan, listOf(prior, last), sets))
+    }
+
+    @Test fun `the chip repeats when the cap would drop rounds`() {
+        val work = CardioSetSpec(CardioRole.WORK, Measure.Distance(1000))
+        val recovery = CardioSetSpec(CardioRole.RECOVERY, Measure.Distance(200))
+        val opening = CardioBlock(CardioActivity.TRACK_RUN, listOf(work, recovery, work, recovery, work))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening,
+            cardioProgress = CardioProgress(measure = ProgressMeasure.DISTANCE, increasePercent = 25))
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000, offerCardioIncreases = true)
+        val last = cardioSession(opening)
+        val rows = opening.sets.map { cardioResult(it, if (it.role == CardioRole.WORK) 240 else 90,
+            (it.end as Measure.Distance).metres) }
+        assertEquals(CardioNextTime.Repeat, DayScreenBuilder.cardioNextTime(day, plan, listOf(last), mapOf(last.id to rows)))
     }
 
 }

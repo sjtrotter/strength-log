@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.ui.preview
 
 import cloud.trotter.log.strength.data.convertTestPlans
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
-import cloud.trotter.log.strength.domain.cardio.CardioIncrease
+import cloud.trotter.log.strength.ui.day.CardioNextTime
+import cloud.trotter.log.strength.ui.day.CardioIncrease
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -542,4 +542,33 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertFalse(restored.dayEditState.value.editorOpen)
     }
+    @Test fun `an automatic plan shows its applied cardio increase and a tap restores the opening`() = runTest(dispatcher) {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(1200))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = block))))
+        assertFalse(db.planDao().plan(plan)!!.offerCardioIncreases)
+        val session = CardioSessionEntity(planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1000, completedAt = 2000, seconds = 1200, stepsCompleted = 1, activity = block.activity.name)
+        repo.logCardioSession(session, listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 1200)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        val offered = block.copy(sets = listOf(spec.copy(end = Measure.Time(1260))))
+        assertEquals(offered, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        assertNull(vm.uiState.value.cardio?.nextTime)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        advanceUntilIdle()
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertTrue(offer.applied)
+        assertEquals(CardioIncrease.Time(60), offer.change)
+        vm.applyCardioNextTime(offer.opening)
+        advanceUntilIdle()
+        assertFalse((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        assertEquals(block, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        vm.applyCardioNextTime(offer.offered)
+        advanceUntilIdle()
+        assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+    }
+
 }

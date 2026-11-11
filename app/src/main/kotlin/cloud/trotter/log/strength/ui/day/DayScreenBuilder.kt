@@ -1,9 +1,14 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.cardio.CardioNextTime
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.distanceMetres
+import cloud.trotter.log.strength.domain.progression.timeSeconds
+import cloud.trotter.log.strength.data.CardioJudge
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -192,18 +197,41 @@ object DayScreenBuilder {
             offer.toReps.takeIf { display(offer.fromLb) == display(offer.toLb) }, offer.calibration)
     }
 
-    fun cardioNextTime(
-        day: ProgramDay,
-        plan: PlanEntity,
-        last: CardioSessionEntity?,
-        lastSets: List<CardioSetResult>?,
-    ): CardioNextTime? {
-        if (!plan.offerCardioIncreases || day.cardioProgress.keepToPlan) return null
-        val block = day.cardioToRun ?: return null
-        val measure = CardioProgression.resolve(block, day.cardioProgress.measure) ?: return null
-        val percent = day.cardioProgress.increasePercent ?: CardioProgression.defaultPercent(measure)
-        val lastActivity = CardioActivity.entries.firstOrNull { it.name == last?.activity }
-        return CardioProgression.nextTime(block, lastActivity, lastSets, measure, percent)
+    /** The cardio chip: [CardioJudge]'s outcome for the day's newest session in [sessions], selected while the day
+     *  holds it, unselected while the day holds the session's opening. The plan's offers switch controls visibility
+     *  in both Automatic and Ask modes. */
+    fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
+                       sets: Map<Long, List<CardioSetResult>>): CardioNextTime? {
+        if (!plan.offerCardioIncreases) return null
+        val stored = day.cardioToRun ?: return null
+        val last = sessions.filter { it.planId == plan.id && it.dayId == day.id }
+            .maxWithOrNull(compareBy({ it.completedAt }, { it.id })) ?: return null
+        val judged = CardioJudge.judge(day, last, sessions, sets) ?: return null
+        val opening = judged.opening
+        val change = judged.outcome.change as? CardioChange.Increase
+            ?: return CardioNextTime.Repeat.takeIf { stored == opening }
+        val offered = judged.outcome.block
+        val applied = when (stored) {
+            opening -> false
+            offered -> true
+            else -> return null
+        }
+        return CardioNextTime.Offer(offered, opening, applied, cardioIncrease(opening, offered, change.measure))
+    }
+
+    private fun cardioIncrease(opening: CardioBlock, offered: CardioBlock, measure: ProgressMeasure): CardioIncrease {
+        val first = opening.sets.indexOfFirst { it.role == CardioRole.WORK }
+        val before = opening.sets[first]
+        val after = offered.sets[first]
+        val change = when (measure) {
+            ProgressMeasure.DISTANCE -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
+            ProgressMeasure.TIME -> CardioIncrease.Time(after.timeSeconds() - before.timeSeconds())
+            ProgressMeasure.PACE -> when (before.end) {
+                is Measure.Distance -> CardioIncrease.Faster(before.timeSeconds() - after.timeSeconds())
+                is Measure.Time -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
+            }
+        }
+        return change
     }
 
     fun offerDelta(offerLb: Double, openingLb: Double, unit: WeightUnit): Double =

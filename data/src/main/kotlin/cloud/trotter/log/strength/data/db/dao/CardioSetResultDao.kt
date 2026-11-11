@@ -38,6 +38,14 @@ interface CardioSetResultDao {
     @Query("SELECT * FROM cardio_set_result ORDER BY cardioSessionId, position, id")
     fun observeAll(): Flow<List<CardioSetResultEntity>>
 
+    @Query("""
+        SELECT r.* FROM cardio_set_result r
+        JOIN cardio_session s ON s.id = r.cardioSessionId
+        WHERE s.activity IN (:activities)
+        ORDER BY r.cardioSessionId, r.position, r.id
+    """)
+    suspend fun forActivities(activities: List<String>): List<CardioSetResultEntity>
+
     @Query("DELETE FROM cardio_set_result WHERE cardioSessionId = :sessionId")
     suspend fun deleteForSession(sessionId: Long)
 

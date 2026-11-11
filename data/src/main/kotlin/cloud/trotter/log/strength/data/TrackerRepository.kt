@@ -28,6 +28,10 @@ import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.data.mapping.toDomainOrNull
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.progression.CardioOutcome
+import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -60,7 +64,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -223,7 +227,7 @@ class TrackerRepository(
 
     suspend fun setCardioProgression(planId: Long, dayId: String, measure: ProgressMeasure, percent: Int) {
         programDao.setCardioProgression(planId, dayId, measure.name,
-            percent.coerceIn(CardioProgression.MIN_PERCENT, CardioProgression.MAX_PERCENT))
+            percent.coerceIn(CardioMeasures.MIN_PERCENT, CardioMeasures.MAX_PERCENT))
     }
 
     suspend fun setCardioWorking(planId: Long, dayId: String, block: CardioBlock): Boolean = db.withTransaction {
@@ -824,6 +828,7 @@ class TrackerRepository(
      * without a plan cannot advance a rotation.
      * A note is trimmed and capped at [NOTE_MAX_LENGTH].
      * A set without readings at the end gets the ones its totals prove ([FinishedRule.atEnd]).
+     * A session that counts is judged in the same transaction ([CardioJudge]); an Automatic plan takes its next block.
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -857,11 +862,52 @@ class TrackerRepository(
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 (if (set.metresAtEnd == null && set.secondsAtEnd == null) FinishedRule.atEnd(set) else set).toEntity(id, position)
             })
+            if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
                 lightAfterDay(plan, stamped.dayId, reactive = false)
                 advanceRotation(plan, stamped.dayId)
             }
             id
+        }
+    }
+
+    private class CardioJudgment(val planId: Long, val dayId: String, val automatic: Boolean, val stored: CardioBlock,
+                                val outcome: CardioOutcome)
+
+    /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise. */
+    private suspend fun cardioJudgment(sessionId: Long): CardioJudgment? {
+        val session = cardioSessionDao.byId(sessionId) ?: return null
+        val planId = session.planId ?: return null
+        val dayId = session.dayId ?: return null
+        val plan = planDao.plan(planId) ?: return null
+        val entity = programDao.day(planId, dayId) ?: return null
+        if (cardioSessionDao.newestForDay(planId, dayId)?.id != sessionId) return null
+        val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
+        val names = CardioFamily.of(activity).activities.map { it.name }
+        val sessions = cardioSessionDao.forActivities(names)
+        val sets = cardioSetResultDao.forActivities(names).groupBy { it.cardioSessionId }
+            .mapValues { (_, rows) -> rows.mapNotNull { it.toDomainOrNull() } }
+        val day = entity.toDomain(emptyList())
+        val stored = day.cardioToRun ?: return null
+        val judged = CardioJudge.judge(day, session, sessions, sets) ?: return null
+        if (judged.opening != stored) return null
+        return CardioJudgment(plan.id, dayId, plan.autoApply, stored, judged.outcome)
+    }
+
+    /** An Automatic plan's write; Ask writes nothing (decision 6). */
+    private suspend fun applyCardio(judgment: CardioJudgment) {
+        if (judgment.automatic && judgment.outcome.block != judgment.stored) {
+            setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)
+        }
+    }
+
+    /** Amends a set's typed distance and judges the session again (decision 8): the increase is written only when the
+     *  amended rows earn it and the rows before did not, and the day still holds the session's opening. */
+    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+        db.withTransaction {
+            val earned = cardioJudgment(sessionId)?.outcome?.change is CardioChange.Increase
+            history.amendCardioSetDistance(sessionId, position, metres)
+            cardioJudgment(sessionId)?.takeIf { !earned && it.outcome.change is CardioChange.Increase }?.let { applyCardio(it) }
         }
     }
 

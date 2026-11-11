@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
-import cloud.trotter.log.strength.domain.cardio.CardioProgression
+import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -30,7 +30,7 @@ class CardioEditPageTest {
 
     @Test fun cardioNextTimeWritesChoicesAndIncreaseWithoutADraft() {
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
-        val state = mutableStateOf(DayEditUiState(cardioBlock = block, cardioMeasures = CardioProgression.available(block)))
+        val state = mutableStateOf(DayEditUiState(cardioBlock = block, cardioMeasures = CardioMeasures.available(block)))
         var percent: Int? = null
         rule.setContent { AppTheme {
             CardioNextTimePage(state.value, DayEditActions({ _, _ -> }, {}, {}, { _, _ -> }, {}, {},

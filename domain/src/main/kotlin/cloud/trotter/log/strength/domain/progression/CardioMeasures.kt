@@ -8,8 +8,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 
-/** Cardio measure math (A16): which measures a block supports, the increase, and full success. Moved from
- *  CardioProgression, which delegates here until PR 2b deletes it. */
+/** Cardio measure math (A16): which measures a block supports, the increase, and full success. */
 object CardioMeasures {
     const val MIN_PERCENT = 1
     const val MAX_PERCENT = 25
@@ -109,8 +108,8 @@ object CardioMeasures {
     }
 }
 
-internal fun CardioSetSpec.distanceMetres(): Int =
+fun CardioSetSpec.distanceMetres(): Int =
     requireNotNull((end as? Measure.Distance) ?: (aim as? Measure.Distance)).metres
 
-internal fun CardioSetSpec.timeSeconds(): Int =
+fun CardioSetSpec.timeSeconds(): Int =
     requireNotNull((end as? Measure.Time) ?: (aim as? Measure.Time)).seconds

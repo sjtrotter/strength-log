@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppHaptics
 import cloud.trotter.log.strength.ui.components.DialogAction
@@ -552,6 +553,7 @@ data class DayActions(
     val onLogFocusedSet: () -> Unit = {},
     val onDecrementFocusedReps: () -> Unit = {},
     val onUndoLastLog: () -> Unit = {},
+    val onSetEffort: (Long, String, Int, Effort?) -> Unit = { _, _, _, _ -> },
     val onSelectWorkoutLift: (String) -> Unit = {},
     val onNextWorkoutLift: () -> Unit = {},
     val onOpenLiftSheet: (Long, String) -> Unit = { _, _ -> },

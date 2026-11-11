@@ -920,3 +920,9 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - A cardio day opens through `cardioAtStart`: the taper from the plan's goal date, then the run cap against the family's sessions in the 30 × 24 h before now. A day kept to plan opens as written; a ladder day opens as written.
 - Before Start the Day screen, the preview and the watch show the opening and write nothing. The phone run freezes it when the run is created, so an edit before Start lands in that run; a plan edit still clears an unstarted run. The wire is unchanged.
 - A capped or tapered session never changes the stored block, so a capped day climbs back to its stored block as the history grows.
+
+## 31. Revision 22 (the per-set effort row, 2026-11-11)
+
+- After a set is logged on the phone, the rest panel shows Easy, Good, Hard and Max beside Undo for as long as Undo shows. One tap stores the word on that set; tapping it again clears it. Nothing is preselected, and an unrated set counts as on target. The row has the label Effort to its left.
+- The Lift sheet shows a rated set's word, and the set editor offers the same row for any logged set.
+- Logging a set short does not store an effort. The watch does not offer effort.

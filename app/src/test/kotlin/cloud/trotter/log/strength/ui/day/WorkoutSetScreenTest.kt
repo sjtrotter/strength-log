@@ -60,6 +60,7 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -79,6 +80,52 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
+
+    @Test fun loggedWorkingSetOffersFourUnselectedEffortWords() {
+        val base = workoutSetSingleFixture()
+        val undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
+            LoggedSet(185.0, 5, SetKind.WORK, done = true), TrackingType.WEIGHTED, WeightUnit.LB, null)
+        var picked: List<Any?>? = null
+        show(base.copy(workout = base.workout?.copy(undo = undo)), workoutActions().copy(
+            onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
+        ))
+        rule.onNodeWithText("Effort").assertIsDisplayed()
+        for ((effort, word) in Effort.entries.zip(listOf("Easy", "Good", "Hard", "Max"))) {
+            rule.onNodeWithTag("workout-effort-${effort.name}").assert(hasText(word)).assertIsNotSelected()
+        }
+        rule.onNodeWithTag("workout-effort-EASY").performClick()
+        rule.runOnIdle { assertEquals(listOf(1L, Slot.MAIN, 1, Effort.EASY), picked) }
+    }
+
+    @Test fun selectedEffortCanBeCleared() {
+        val base = workoutSetSingleFixture()
+        val undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
+            LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 4), TrackingType.WEIGHTED, WeightUnit.LB, null)
+        var picked: List<Any?>? = null
+        show(base.copy(workout = base.workout?.copy(undo = undo)), workoutActions().copy(
+            onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
+        ))
+        rule.onNodeWithTag("workout-effort-EASY").assertIsSelected().performClick()
+        rule.runOnIdle { assertEquals(listOf(1L, Slot.MAIN, 1, null), picked) }
+    }
+
+    @Test fun effortIsAbsentForRampUndoneAndTimedUndoOffers() {
+        val base = workoutSetSingleFixture()
+        val eligible = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
+            LoggedSet(185.0, 5, SetKind.WORK, done = true), TrackingType.WEIGHTED, WeightUnit.LB, null)
+        val offers = listOf(
+            eligible.copy(set = eligible.set.copy(kind = SetKind.RAMP)),
+            eligible.copy(set = eligible.set.copy(done = false)),
+            eligible.copy(tracking = TrackingType.TIMED),
+            null,
+        )
+        var undo by mutableStateOf(offers.first())
+        rule.setContent { AppTheme { WorkoutSetHost(base.copy(workout = base.workout?.copy(undo = undo))) } }
+        for (offer in offers) {
+            rule.runOnIdle { undo = offer }
+            for (effort in Effort.entries) rule.onNodeWithTag("workout-effort-${effort.name}").assertDoesNotExist()
+        }
+    }
 
     @Test fun cardioRepeatHasNoChipAndStartedRunsHideOffers() {
         val base = workoutSetCardioFixture()

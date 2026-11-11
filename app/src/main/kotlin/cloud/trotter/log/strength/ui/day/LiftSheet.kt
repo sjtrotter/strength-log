@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,11 +132,16 @@ internal fun LiftSheet(
                         if (partner) card.partnerTimedShowsWeight else card.timedShowsWeight)
                     val notation = if (partner) card.partnerSetLabels.getOrNull(row.index) ?: "${row.index + 1}" else row.kindLabel
                     val description = stringResource(R.string.set_done_description, title, notation, value)
+                    val effort = Effort.of(values.rir).takeIf { values.done }
                     val current = focus == WorkoutFocus(card.programExerciseId, slot, row.index)
                     ListItem(
                         leadingContent = { Text(notation, modifier = Modifier.width(48.dp)) },
                         headlineContent = { Text(value, style = MaterialTheme.typography.titleLarge) },
-                        supportingContent = if (current) { { Text(stringResource(R.string.lift_sheet_now)) } } else null,
+                        supportingContent = when {
+                            effort != null -> { { EffortText(effort) } }
+                            current -> { { Text(stringResource(R.string.lift_sheet_now)) } }
+                            else -> null
+                        },
                         trailingContent = { Checkbox(values.done,
                             onCheckedChange = { actions.onToggleDone(card.programExerciseId, row.index, it, slot) },
                             modifier = Modifier.testTag("lift-check-$slot-${row.index}").semantics { contentDescription = description }) },

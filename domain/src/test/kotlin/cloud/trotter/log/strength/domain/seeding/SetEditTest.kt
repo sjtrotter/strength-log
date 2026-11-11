@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.Effort
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,6 +13,33 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SetEditTest {
+    @Test fun `a tick or an untick clears effort and a retick keeps it`() {
+        val rows = listOf(
+            LoggedSet(275.0, 5, SetKind.WORK, done = false, rir = 4),
+            LoggedSet(275.0, 5, SetKind.WORK, done = true, rir = 1),
+        )
+        assertNull(SetEditor.edit(rows, 0, SetEdit(done = true))[0].rir)
+        assertNull(SetEditor.edit(rows, 1, SetEdit(done = false))[1].rir)
+        assertEquals(1, SetEditor.edit(rows, 1, SetEdit(done = true))[1].rir)
+        assertEquals(1, SetEditor.edit(rows, 1, SetEdit(reps = 4))[1].rir)
+    }
+
+    @Test fun `effort rates only a done working row`() {
+        val rows = listOf(
+            LoggedSet(135.0, 5, SetKind.RAMP, done = true),
+            LoggedSet(275.0, 5, SetKind.TOP, done = true,
+                startedAtMillis = 10L, completedAtMillis = 70L, watchEditedAt = 100L),
+            LoggedSet(275.0, 5, SetKind.WORK),
+            LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30),
+        )
+        val rated = requireNotNull(SetEditor.effort(rows, 1, Effort.HARD))
+        assertEquals(rows.mapIndexed { i, set -> if (i == 1) set.copy(rir = 1) else set }, rated)
+        assertEquals(rows, SetEditor.effort(rated, 1, null))
+        for (index in listOf(-1, 0, 2, 3, 9)) assertNull(SetEditor.effort(rows, index, Effort.HARD))
+        assertNull(SetEditor.effort(rated, 1, Effort.HARD))
+        assertNull(SetEditor.effort(rows, 1, null))
+    }
+
     private val row = LoggedSet(50.0, 8, SetKind.WORK)
 
     @Test fun `watch tick writes observed timing and watch stamp only on its row`() {

@@ -28,7 +28,9 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.rest.RestRuntime
@@ -190,6 +192,73 @@ class DayViewModelWorkoutTest {
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN }.sets,
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.SS }.sets,
         ) is RunWriteResult.InRun)
+    }
+
+    @Test
+    fun `effort on the logged set writes its rir and survives Undo matching`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val focus = requireNotNull(vm.uiState.value.workout?.focus)
+        val id = focus.programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        val logged = track(vm, id)[focus.index]
+        vm.setEffort(id, Slot.MAIN, focus.index, Effort.EASY)
+        runCurrent()
+        assertEquals(logged.copy(rir = 4), track(vm, id)[focus.index])
+        assertEquals(4, vm.uiState.value.workout?.undo?.set?.rir)
+        assertEquals(4, vm.uiState.value.exercises.single().rows[focus.index].rir)
+        vm.setEffort(id, Slot.MAIN, focus.index, null)
+        runCurrent()
+        assertNull(track(vm, id)[focus.index].rir)
+        vm.setEffort(id, Slot.MAIN, focus.index, Effort.HARD)
+        runCurrent()
+        vm.undoLastLog()
+        runCurrent()
+        val undone = track(vm, id)[focus.index]
+        assertFalse(undone.done)
+        assertNull(undone.rir)
+    }
+
+    @Test
+    fun `unticking a rated set clears its effort`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val focus = requireNotNull(vm.uiState.value.workout?.focus)
+        vm.logFocusedSet()
+        runCurrent()
+        vm.setEffort(focus.programExerciseId, Slot.MAIN, focus.index, Effort.MAX)
+        runCurrent()
+        assertEquals(0, track(vm, focus.programExerciseId)[focus.index].rir)
+        vm.toggleDone(focus.programExerciseId, focus.index, false, Slot.MAIN)
+        runCurrent()
+        val undone = track(vm, focus.programExerciseId)[focus.index]
+        assertFalse(undone.done)
+        assertNull(undone.rir)
+    }
+
+    @Test
+    fun `effort on a RAMP or unlogged set writes nothing`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN, listOf(
+            LoggedSet(135.0, 5, SetKind.RAMP, done = true),
+            LoggedSet(275.0, 5, SetKind.WORK),
+        ))
+        runCurrent()
+        val before = track(vm, id)
+        vm.setEffort(id, Slot.MAIN, 0, Effort.EASY)
+        runCurrent()
+        vm.setEffort(id, Slot.MAIN, 1, Effort.MAX)
+        runCurrent()
+        assertEquals(before, track(vm, id))
     }
 
     @Test

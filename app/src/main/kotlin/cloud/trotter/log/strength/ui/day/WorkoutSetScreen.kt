@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.ui.theme.SetNumerals
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.PaddingValues
 import android.animation.ValueAnimator
@@ -763,6 +764,8 @@ private fun WorkoutEditableHero(
             modifier = Modifier.align(Alignment.CenterVertically).semantics { contentDescription = editLabel },
             colors = neutralTextButtonColors(),
             contentPadding = PaddingValues(0.dp),
+            // The default pill shape clips the corners of numerals this tall.
+            shape = RectangleShape,
         ) { hero() }
         if (offer != null) Box(Modifier.align(Alignment.CenterVertically)) {
             NextTimeOfferChip(offer, slot) {

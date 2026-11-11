@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
 import cloud.trotter.log.strength.transfer.csv.HistoryCsvWriter
@@ -90,7 +91,7 @@ class CardioHistoryRestoreTest {
         service.import(backup)
         assertEquals(before.cardioSessions, db.cardioSessionDao().all())
         assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
-        assertEquals(sets, repository.history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), repository.history.cardioSetsFor(id))
         assertEquals(backup, service.export())
     }
 

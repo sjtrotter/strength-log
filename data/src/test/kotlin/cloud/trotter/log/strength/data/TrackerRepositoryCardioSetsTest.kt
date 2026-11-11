@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import java.io.File
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
@@ -109,7 +110,7 @@ class TrackerRepositoryCardioSetsTest {
     @Test fun `three results round trip in order with null skipped distance`() = runTest {
         val id = repo.logCardioSession(session, sets)
         assertEquals(session.copy(id = id), history.cardioSession(id))
-        assertEquals(sets, history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(id))
         assertEquals(listOf(0, 1, 2), db.cardioSetResultDao().forSession(id).map { it.position })
     }
 
@@ -131,7 +132,7 @@ class TrackerRepositoryCardioSetsTest {
         val id = repo.logCardioSession(session, sets)
         assertEquals(id, repo.logCardioSession(session.copy(completedAt = 999_000), sets))
         assertEquals(1, db.cardioSessionDao().all().size)
-        assertEquals(sets, history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(id))
     }
 
     @Test fun `cardio completion advances the originating authored plan once even if another plan is selected`() = runTest {
@@ -166,7 +167,7 @@ class TrackerRepositoryCardioSetsTest {
 
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
         assertEquals(planId, history.cardioSession(id)?.planId)
-        assertEquals(sets, history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(id))
     }
 
     @Test fun `a second device completion for A logs without advancing its rotation again`() = runTest {
@@ -245,12 +246,12 @@ class TrackerRepositoryCardioSetsTest {
         assertEquals(originalRows, deleted.sets)
         assertNull(history.cardioSession(id))
         assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))
-        assertEquals(sets, history.cardioSetsFor(other))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(other))
         assertNull(history.deleteCardioSession(id))
         history.restoreCardioSession(deleted)
         assertEquals(deleted.session, history.cardioSession(id))
         assertEquals(originalRows, db.cardioSetResultDao().forSession(id))
-        assertEquals(sets, history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(id))
     }
 
     @Test fun `full restore replaces sets and restores their original ids`() = runTest {
@@ -260,7 +261,7 @@ class TrackerRepositoryCardioSetsTest {
         backupRepository.importSnapshot(snapshot, journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
         assertEquals(snapshot.cardioSetResults, db.cardioSetResultDao().all())
-        assertEquals(sets, history.cardioSetsFor(id))
+        assertEquals(sets.map(FinishedRule::atEnd), history.cardioSetsFor(id))
         backupRepository.importSnapshot(snapshot.copy(cardioSetResults = emptyList()), journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
         assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))

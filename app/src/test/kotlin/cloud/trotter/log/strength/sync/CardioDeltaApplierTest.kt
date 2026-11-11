@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
@@ -88,7 +89,7 @@ class CardioDeltaApplierTest {
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals("TRACK_RUN", session.activity)
         assertEquals(planId, session.planId)
-        assertEquals(listOf(result.toDomain()), repo.history.cardioSetsFor(session.id))
+        assertEquals(listOf(FinishedRule.atEnd(result.toDomain())), repo.history.cardioSetsFor(session.id))
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
         assertEquals("A", db.planDao().plan(other)?.suggestedDayId)
         // Change the rotation before replay: a duplicate must not reset it to B.
@@ -98,6 +99,33 @@ class CardioDeltaApplierTest {
         assertEquals(1, repo.history.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
         assertEquals(listOf(10L, 99L), recordedStamps)
+    }
+
+    @Test fun `a watch-run 15 minute set arrives with its 15 minute reading`() = runTest {
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val timed = WatchCardioSetSpec("WORK", "TIME", 900)
+        val distance = WatchCardioSetSpec("WORK", "DISTANCE", 2414)
+        val block = WatchCardioBlock("ROAD_RUN", listOf(timed, distance)).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
+        }))
+        val event = delta().copy(
+            planId = planId, activity = "ROAD_RUN", seconds = 1650,
+            completedAt = 1_651_000, stepsCompleted = 2,
+            sets = listOf(
+                WatchCardioSetResult(timed, "FINISHED", 900, 3470, "MANUAL"),
+                WatchCardioSetResult(distance, "FINISHED", 750, 2414, "MANUAL"),
+            ),
+        )
+        val applier = CardioDeltaApplier(repo, ackLog, publisher, historyRepository = repo.history)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val rows = repo.history.cardioSetsFor(session.id)
+        assertEquals(listOf(3470 to 900, 2414 to 750), rows.map { it.metresAtEnd to it.secondsAtEnd })
+        val bests = repo.history.cardioBestsFor(CardioActivity.ROAD_RUN)
+        assertEquals(rows.toSet(), bests.values.toSet())
+        assertEquals(setOf(3470, 750), bests.values.map(FinishedRule::reading).toSet())
     }
 
     @Test fun `old watch retains summary logging without set rows or rotation`() = runTest {
@@ -154,7 +182,7 @@ class CardioDeltaApplierTest {
         val event = delta().copy(planId = planId, sets = listOf(result))
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, ackLog, publisher, historyRepository = repo.history).apply(event))
         val session = repo.history.cardioSessionsFlow.first().single()
-        assertEquals(listOf(result.toDomain()), repo.history.cardioSetsFor(session.id))
+        assertEquals(listOf(FinishedRule.atEnd(result.toDomain())), repo.history.cardioSetsFor(session.id))
         assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
     }
 
@@ -179,7 +207,7 @@ class CardioDeltaApplierTest {
         assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
         val loggedA = repo.history.cardioSessionsFlow.first().single { it.dayId == "A" }
         assertEquals(offline.startedAt, loggedA.startedAt)
-        assertEquals(listOf(result.toDomain()), repo.history.cardioSetsFor(loggedA.id))
+        assertEquals(listOf(FinishedRule.atEnd(result.toDomain())), repo.history.cardioSetsFor(loggedA.id))
         assertEquals(1, publisher.cardioPublishes)
     }
 
@@ -189,7 +217,7 @@ class CardioDeltaApplierTest {
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, ackLog, publisher, historyRepository = repo.history).apply(event))
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals(null, session.activity)
-        assertEquals(listOf(result.toDomain()), repo.history.cardioSetsFor(session.id))
+        assertEquals(listOf(FinishedRule.atEnd(result.toDomain())), repo.history.cardioSetsFor(session.id))
     }
 
     @Test fun `invalid structured prescriptions are acknowledged without partial logging`() = runTest {

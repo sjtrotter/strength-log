@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.records.PersonalBests
@@ -187,11 +188,12 @@ object ReceiptBuilder {
         for (record in CardioBests.records(activity, results, standing)) {
             val index = workRows.getValue(record.key.end)
             val row = rows[index]
+            val previous = FinishedRule.reading(record.previous)
             val mark = CardioRecordMark(
                 record.kind,
                 row.intervals.indexOf(record.best.interval()),
-                record.previous.elapsedSeconds.takeIf { record.key.end is Measure.Distance },
-                record.previous.metres.takeIf { record.key.end is Measure.Time },
+                previous.takeIf { record.key.end is Measure.Distance },
+                previous.takeIf { record.key.end is Measure.Time },
             )
             rows[index] = row.copy(record = mark)
         }

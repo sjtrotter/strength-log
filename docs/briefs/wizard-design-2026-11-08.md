@@ -891,3 +891,9 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - Starting or editing another day while a draft is open asks to drop the draft, in one step. A started workout keeps the two-step Discard and start, and an edit on another day shows "Another workout is open".
 - Today offers "Start day A" for a draft instead of "Resume day A".
 - A set timer started before Start opens the same ready-to-start sheet; Start begins the workout and then the timer.
+
+## 27. Revision 18 (PR 2b part four-a, readings at the end, 2026-11-10)
+
+- PR 2b part four ships as three parts in the 2a/2b release: (a) readings at the end; (b) Finish judges cardio and `CardioProgression` goes; (c) openings through `cardioAtStart`.
+- No executor reads distance while a set runs, so a set's readings at the end are the ones its totals prove (`FinishedRule.atEnd`), written by `logCardioSession`, a distance amendment and a one-set History edit. The wire gains no field: the watch never runs past an end, so the phone derives a wrist set's readings, old watches included. The fields come back with the distance tracker.
+- A phone steady run stopped past its planned time reads its time at the end and no distance, so it is not a record, meets no distance aim and proves no timed goal. The totals keep the overrun.

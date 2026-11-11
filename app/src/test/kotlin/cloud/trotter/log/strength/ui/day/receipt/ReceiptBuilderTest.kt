@@ -535,6 +535,18 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun `a record names the previous best by its reading at the end`() {
+        val previous = CardioSetResult(
+            CardioSetSpec(CardioRole.WORK, Measure.Time(900)), CardioSetStatus.FINISHED,
+            904, 3485, DistanceSource.MANUAL, metresAtEnd = 3470, secondsAtEnd = 900,
+        )
+        val standing = CardioBests.bests(CardioActivity.ROAD_RUN, listOf(previous))
+        val today = cardioResult(CardioRole.WORK, Measure.Time(900), 900, 3480)
+        val row = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN, listOf(today), standing).single()
+        assertEquals(CardioRecordMark(PrKind.FARTHER, 0, null, 3470), row.record)
+    }
+
+    @Test
     fun `a blank cardio distance stays missing and cannot earn a record`() {
         val row = roadRow(metres = null)
         assertNull(row.intervals.single().metres)

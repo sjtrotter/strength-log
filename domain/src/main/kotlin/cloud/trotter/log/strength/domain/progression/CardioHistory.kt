@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 
 /** One logged session for [CardioHistory.of]: when it completed and its set results. */
@@ -39,7 +40,12 @@ data class CardioHistory(
             secondsPerMetre = sessions.asReversed().firstNotNullOfOrNull { session ->
                 val maxima = RunCap.maxima(listOf(session.results)) ?: return@firstNotNullOfOrNull null
                 val metres = maxima.metres ?: return@firstNotNullOfOrNull null
-                val seconds = maxima.seconds ?: return@firstNotNullOfOrNull null
+                val seconds = session.results.filter { it.spec.role == CardioRole.WORK || it.spec.role == CardioRole.RECOVERY }
+                    .sumOf { result ->
+                        // With no distance reading at the end, only the totals form a matching pace pair.
+                        if (result.secondsAtEnd != null && result.metresAtEnd == null) result.elapsedSeconds
+                        else result.secondsAtEnd ?: result.elapsedSeconds
+                    }
                 if (metres > 0 && seconds > 0) seconds.toDouble() / metres else null
             },
         )

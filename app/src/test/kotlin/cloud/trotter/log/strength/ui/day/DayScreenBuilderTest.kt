@@ -658,6 +658,18 @@ class DayScreenBuilderTest {
         CardioSetResult(spec, CardioSetStatus.FINISHED, elapsed, metres, metres?.let { DistanceSource.MANUAL }),
     )
 
+    @Test fun `an ask time overrun offers the earned increase on the chip`() {
+        val opening = cardioBlock(Measure.Time(1200))
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening)
+        val plan = PlanEntity(1, "Run", "AUTHORED", 0, 1000, offerCardioIncreases = true)
+        val last = cardioSession(opening).copy(seconds = 1300)
+        val row = cardioResult(opening.sets.single(), 1300)
+        assertEquals(1200, row.secondsAtEnd)
+        assertNull(row.metresAtEnd)
+        assertEquals(CardioNextTime.Offer(cardioBlock(Measure.Time(1260)), opening, false, CardioIncrease.Time(60)),
+            DayScreenBuilder.cardioNextTime(day, plan, listOf(last), mapOf(last.id to listOf(row))))
+    }
+
     @Test fun `an automatic plan shows its cardio chip only with the offers switch on`() {
         val opening = cardioBlock(Measure.Time(1200))
         val offered = cardioBlock(Measure.Time(1260))

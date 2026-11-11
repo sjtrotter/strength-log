@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
@@ -20,6 +21,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import java.io.File
@@ -33,6 +35,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,6 +101,31 @@ class CardioFinishTest {
         assertEquals(block(time(1260)), working())
         repo.setCardioWorking(plan, "A", opening)
         assertNull(working())
+    }
+
+    @Test fun `an automatic time overrun earns the increase at the commit`() = runTest {
+        prepare(block(time(1200)))
+        val id = log(t, listOf(result(time(1200), 1300)))
+        val row = db.cardioSetResultDao().forSession(id).single().toDomain()
+        assertEquals(1200, row.secondsAtEnd)
+        assertNull(row.metresAtEnd)
+        // 1200 planned seconds earned 5% = 60; the cap from 1200 is 1320.
+        assertEquals(block(time(1260)), working())
+        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+    }
+
+    @Test fun `an ask time overrun earns the chip judgment without writing`() = runTest {
+        prepare(block(time(1200)), automatic = false)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val id = log(t, listOf(result(time(1200), 1300)))
+        val session = db.cardioSessionDao().byId(id)!!
+        val storedDay = db.programDao().day(plan, "A")!!
+        val rows = db.cardioSetResultDao().forSession(id).map { it.toDomain() }
+        val judged = CardioJudge.judge(storedDay.toDomain(emptyList()), session, listOf(session), mapOf(id to rows))!!
+        assertTrue(judged.outcome.change is CardioChange.Increase)
+        assertEquals(block(time(1260)), judged.outcome.block)
+        assertNull(working())
+        assertNull(CardioBlockJson.appliedBySessionId(storedDay.cardioBlockJson))
     }
 
     @Test fun `an ask plan writes nothing`() = runTest {
@@ -176,12 +204,48 @@ class CardioFinishTest {
         assertNull(working())
         repo.amendCardioSetDistance(id, 0, 3100)
         assertEquals(block(time(945, aim = 3150)), working())
+        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        // The chip restores its opening through this setter; the marker stays on the plan block.
         repo.setCardioWorking(plan, "A", opening)
+        assertNull(working())
         repo.amendCardioSetDistance(id, 0, 3200)
         assertNull(working())
         repo.amendCardioSetDistance(id, 0, null)
         assertNull(working())
+        repo.amendCardioSetDistance(id, 0, 3100)
+        assertNull(working())
+        val storedDay = db.programDao().day(plan, "A")!!
+        assertEquals(opening, storedDay.toDomain(emptyList()).cardioToRun)
+        assertEquals(id, CardioBlockJson.appliedBySessionId(storedDay.cardioBlockJson))
     }
+    @Test fun `an increase earned at commit stays undone after lowering and raising the distance`() = runTest {
+        val opening = block(time(900, aim = 3000))
+        prepare(opening)
+        val id = log(t, listOf(result(opening.sets.single(), 900, 3100)))
+        assertEquals(block(time(945, aim = 3150)), working())
+        repo.setCardioWorking(plan, "A", opening)
+        repo.amendCardioSetDistance(id, 0, 2900)
+        assertNull(working())
+        repo.amendCardioSetDistance(id, 0, 3100)
+        assertNull(working())
+        assertEquals(id, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+    }
+
+    @Test fun `a newer session can earn after an undone increase`() = runTest {
+        val opening = block(time(900))
+        prepare(opening)
+        val first = log(t, listOf(result(time(900), 900)))
+        assertEquals(block(time(945)), working())
+        repo.setCardioWorking(plan, "A", opening)
+        val newest = log(t + day, listOf(result(time(900), 900)))
+        assertEquals(block(time(945)), working())
+        assertEquals(newest, CardioBlockJson.appliedBySessionId(db.programDao().day(plan, "A")!!.cardioBlockJson))
+        repo.setCardioWorking(plan, "A", opening)
+        repo.amendCardioSetDistance(first, 0, 3100)
+        repo.amendCardioSetDistance(newest, 0, 3100)
+        assertNull(working())
+    }
+
     @Test fun `an ask plan writes nothing after a distance amendment`() = runTest {
         val opening = block(time(900, aim = 3000))
         prepare(opening, automatic = false)

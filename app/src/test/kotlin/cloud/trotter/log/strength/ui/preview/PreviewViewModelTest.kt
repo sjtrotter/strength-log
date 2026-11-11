@@ -571,4 +571,41 @@ class PreviewViewModelTest : OverviewFixture() {
         assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
     }
 
+    @Test fun `a distance entered later stays undone through chip undo and further amendments`() = runTest(dispatcher) {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900), Measure.Distance(3000))
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening))))
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val session = CardioSessionEntity(planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1000, completedAt = 901000, seconds = 900, stepsCompleted = 1,
+            activity = opening.activity.name)
+        val id = repo.logCardioSession(session, listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals(opening, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        repo.amendCardioSetDistance(id, 0, 3100)
+        advanceUntilIdle()
+        val offered = opening.copy(sets = listOf(spec.copy(end = Measure.Time(945), aim = Measure.Distance(3150))))
+        val chip = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertTrue(chip.applied)
+        assertEquals(offered, chip.offered)
+        assertEquals(offered, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        vm.applyCardioNextTime(chip.opening)
+        advanceUntilIdle()
+        assertFalse((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        assertEquals(opening, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        repo.amendCardioSetDistance(id, 0, 3200)
+        advanceUntilIdle()
+        assertEquals(opening, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        repo.amendCardioSetDistance(id, 0, null)
+        advanceUntilIdle()
+        assertEquals(opening, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        repo.amendCardioSetDistance(id, 0, 3100)
+        advanceUntilIdle()
+        assertEquals(opening, repo.plans.programFor(plan).first().days.single().cardioToRun)
+        assertFalse((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+    }
+
 }

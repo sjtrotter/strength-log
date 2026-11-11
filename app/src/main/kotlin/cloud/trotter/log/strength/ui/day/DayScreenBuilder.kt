@@ -1,32 +1,32 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.model.CardioSetResult
-import cloud.trotter.log.strength.domain.model.CardioBlock
-import cloud.trotter.log.strength.domain.model.CardioRole
-import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.model.ProgressMeasure
-import cloud.trotter.log.strength.domain.progression.CardioChange
-import cloud.trotter.log.strength.domain.progression.distanceMetres
-import cloud.trotter.log.strength.domain.progression.timeSeconds
 import cloud.trotter.log.strength.data.CardioJudge
-import cloud.trotter.log.strength.domain.model.ProgramDay
-import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.progression.distanceMetres
+import cloud.trotter.log.strength.domain.progression.timeSeconds
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -219,11 +219,11 @@ object DayScreenBuilder {
         return CardioNextTime.Offer(offered, opening, applied, cardioIncrease(opening, offered, change.measure))
     }
 
-    private fun cardioIncrease(opening: CardioBlock, offered: CardioBlock, measure: ProgressMeasure): CardioIncrease {
+    private fun cardioIncrease(opening: CardioBlock, offered: CardioBlock, measure: ProgressMeasure): CardioIncrease = run {
         val first = opening.sets.indexOfFirst { it.role == CardioRole.WORK }
         val before = opening.sets[first]
         val after = offered.sets[first]
-        val change = when (measure) {
+        when (measure) {
             ProgressMeasure.DISTANCE -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
             ProgressMeasure.TIME -> CardioIncrease.Time(after.timeSeconds() - before.timeSeconds())
             ProgressMeasure.PACE -> when (before.end) {
@@ -231,7 +231,6 @@ object DayScreenBuilder {
                 is Measure.Time -> CardioIncrease.Distance(after.distanceMetres() - before.distanceMetres())
             }
         }
-        return change
     }
 
     fun offerDelta(offerLb: Double, openingLb: Double, unit: WeightUnit): Double =

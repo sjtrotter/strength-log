@@ -37,9 +37,13 @@ class SetupViewModel @Inject constructor(
         state.copy(themePreference = theme, keepScreenOn = keepOn)
     }.combine(combine(settings.gpsDistanceFlow, gpsAccess, ::Pair)) { state, (enabled, access) ->
         state.copy(gpsDistance = enabled, gpsAccess = access)
+    }.combine(settings.saveRouteFlow) { state, on ->
+        state.copy(saveRoute = on)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
 
     fun refreshLocationAccess() { gpsAccess.value = gps.access() }
+
+    fun setSaveRoute(on: Boolean) { viewModelScope.launch { settings.setSaveRoute(on) } }
 
     fun setGpsDistance(on: Boolean) { viewModelScope.launch { settings.setGpsDistance(on) } }
 

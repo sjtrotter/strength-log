@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.CardioRouteJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
@@ -596,6 +597,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             }
         }
         for (session in doc.cardioSessions) {
+            checkValue("route of cardio session ${session.id}") {
+                session.route?.let { require(CardioRouteJson.decode(it) != null) }
+            }
             checkValue("effort of cardio session ${session.id}") { session.effort?.let(CardioEffort::valueOf) }
             for (set in session.sets) {
                 checkValue("cardio set ${set.id} in session ${session.id}") {

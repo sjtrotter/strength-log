@@ -594,3 +594,10 @@ private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))
 private fun Cursor.nullableString(name: String): String? = getColumnIndexOrThrow(name).let { if (isNull(it)) null else getString(it) }
 private fun Cursor.nullableLong(name: String): Long? = getColumnIndexOrThrow(name).let { if (isNull(it)) null else getLong(it) }
+
+/** v30 → v31: a cardio session can keep its route when the user turns on Save route. */
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `cardio_route` (`cardioSessionId` INTEGER NOT NULL, `pointsJson` TEXT NOT NULL, PRIMARY KEY(`cardioSessionId`))")
+    }
+}

@@ -36,16 +36,20 @@ class SystemCardioClock @Inject constructor(
 /** One in-process exact elapsed-realtime alarm. Implementations replace any pending alarm. */
 interface CardioAlarm {
     fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit)
+    /** Same as [arm] without the buzz: a pocketed run's wait for its boundary to settle. */
+    fun armQuiet(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) = arm(deadlineElapsedMillis, identity, onBoundary)
     fun cancel()
     /** Same end-boundary feedback when the foreground ticker wins the alarm race. */
     fun buzz() = Unit
 }
 
 /**
- * Phone twin of the wear exact-alarm adapter. `OnAlarmListener` needs no exact-alarm
- * permission. Delivery is guaranteed only while the app is foreground and the day
- * screen is live; a run's GPS service doesn't keep this alarm. Backgrounding cancels the
- * listener, and returning arms only the next future boundary.
+ * Phone twin of the wear exact-alarm adapter. `OnAlarmListener` needs no exact-alarm permission.
+ * Delivery holds while the day screen is live, and with the screen off while the run's GPS service runs.
+ * The alarm is exact, and light Doze, which applies while the phone moves, doesn't defer it.
+ * Deep Doze needs the phone still for a long time; it can defer an alarm to its next maintenance window.
+ * Reconcile uses exact deadlines, so only the buzz is late, never the data. Without the GPS service,
+ * backgrounding cancels the listener, and returning arms only the next future boundary.
  */
 @Singleton
 class AndroidCardioAlarm @Inject constructor(
@@ -57,7 +61,13 @@ class AndroidCardioAlarm @Inject constructor(
     private var listener: AlarmManager.OnAlarmListener? = null
     private var armedIdentity: String? = null
 
-    override fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
+    override fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) =
+        schedule(deadlineElapsedMillis, identity, true, onBoundary)
+
+    override fun armQuiet(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) =
+        schedule(deadlineElapsedMillis, identity, false, onBoundary)
+
+    private fun schedule(deadlineElapsedMillis: Long, identity: String, buzz: Boolean, onBoundary: () -> Unit) {
         val alarmIdentity = "$identity:$deadlineElapsedMillis"
         if (armedIdentity == alarmIdentity) return
         cancel()
@@ -66,7 +76,7 @@ class AndroidCardioAlarm @Inject constructor(
             if (listener !== next || armedIdentity != alarmIdentity) return@OnAlarmListener
             listener = null
             armedIdentity = null
-            vibrate()
+            if (buzz) vibrate()
             onBoundary()
         }
         listener = next

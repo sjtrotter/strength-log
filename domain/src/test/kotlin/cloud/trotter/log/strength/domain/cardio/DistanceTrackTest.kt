@@ -26,6 +26,10 @@ class DistanceTrackTest {
     private fun distance(metres: Int) = CardioSetSpec(CardioRole.WORK, Measure.Distance(metres))
     private fun metres(track: DistanceTrack, time: Long) = assertNotNull(track.metresAt(time))
 
+    @Test fun `steady fixes count six anchor moves through twenty seconds`() {
+        assertEquals(6, steady(last = 20).anchorMoves)
+    }
+
     @Test fun `steady fixes interpolate totals and planned end readings`() {
         val track = steady()
         assertEquals(900.0, metres(track, 300_000), 0.01)

@@ -30,6 +30,8 @@ class DistanceTrack(private val maxMetresPerSecond: Double) : SetMeter {
     private var lastFix: Fix? = null
     private var anchorMetres = 0.0
 
+    val anchorMoves: Int get() = moveTimes.size
+
     val lastFixMillis: Long? get() = lastFix?.elapsedMillis
 
     fun add(fix: Fix): Boolean {

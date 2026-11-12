@@ -17,7 +17,7 @@ because there isn't much to say: the app doesn't collect anything.
 - The only data leaving your control is data *you* explicitly export, to a
   file *you* choose, using Android's own file picker.
 - If you turn on GPS distance, the app uses your phone's precise
-  location for outdoor runs, walks and rides to measure distance. It stores the distance, not where you went.
+  location for outdoor runs, walks and rides to measure distance. It stores the distance, and the route only if you turn on Save route.
 
 ## What the app stores, and where
 
@@ -67,8 +67,10 @@ screen or running. While one runs, a notification shows, though Android may tuck
 the app's notifications.
 
 Locations stay in memory on your phone just long enough to add up the distance. The app saves the distances
-and times it measured, not coordinates or a route, and it can't send anything anywhere (it has no internet
-permission). If you say no, or allow only approximate location, GPS distance turns off and you type distances
+and times it measured. If you turn on Settings › Save route (it's off until you do), it also saves each outdoor activity's path on your phone. The path is included in your backup
+file, never in CSV exports, and the app can't send it anywhere (it has no internet permission). Turning
+Save route off stops saving new routes; routes already saved stay with their sessions until you delete
+those sessions. If you say no, or allow only approximate location, GPS distance turns off and you type distances
 as before. You can turn it off in Settings or revoke the permission in Android's settings at any time.
 
 ## Backups and exports

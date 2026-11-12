@@ -1077,5 +1077,7 @@
     <string name="settings_gps_distance_detail">Outdoor runs, walks and rides</string>
     <string name="settings_gps_needs_precise">Needs precise location</string>
     <string name="settings_gps_blocked">Allow location in system settings</string>
+    <string name="settings_save_route">Save route</string>
+    <string name="settings_save_route_detail">Stored on this phone only</string>
     <string name="run_channel_name">Distance tracking</string>
 </resources>

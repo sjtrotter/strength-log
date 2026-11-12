@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.prefs.UndoTarget
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.CardioRouteJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.setCounts
@@ -38,6 +39,7 @@ import cloud.trotter.log.strength.run.GpsState
 import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.run.LocationAnswer
 import cloud.trotter.log.strength.run.usesGps
+import cloud.trotter.log.strength.domain.cardio.DistanceTrack
 import cloud.trotter.log.strength.domain.cardio.CardioExecution
 import cloud.trotter.log.strength.domain.cardio.SetMeter
 import cloud.trotter.log.strength.domain.cardio.BootAnchor
@@ -179,6 +181,7 @@ class DayViewModel @Inject constructor(
     private val gpsSets = savedState.getStateFlow<ArrayList<CardioGpsSet>>(KEY_CARDIO_GPS_SETS, arrayListOf())
     private val gpsAsk = savedState.getStateFlow<String?>(KEY_GPS_ASK, null)
     private val gpsEnabled = settings.gpsDistanceFlow.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    private val saveRoute = settings.saveRouteFlow.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val mutableGpsNotice = MutableStateFlow<GpsNotice?>(null)
     val gpsNotice: StateFlow<GpsNotice?> = mutableGpsNotice.asStateFlow()
     private val runDistance = savedState.getStateFlow<CardioRunDistance?>(KEY_CARDIO_RUN_DISTANCE, null)
@@ -651,6 +654,27 @@ class DayViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            saveRoute.collect { on ->
+                cardioRun.value?.takeIf { it.block.activity.usesGps }?.let { gps.keepRoute(it.runId, on) }
+            }
+        }
+        viewModelScope.launch {
+            gps.reached.collect { runId ->
+                if (cardioRun.value?.runId == runId) cardioAlarm.buzz()
+            }
+        }
+        viewModelScope.launch {
+            gps.lastFix.collect {
+                val run = cardioRun.value ?: return@collect
+                val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time ?: return@collect
+                if (isPocketed(run) && run.running && run.elapsedMillis(cardioClock) > end.seconds * 1000L) {
+                    reconcileCardio()
+                    afterPocketStep(run)
+                    cardioTick.value++
+                }
+            }
+        }
+        viewModelScope.launch {
             gpsEnabled.collect { enabled ->
                 if (!enabled) {
                     cardioRun.value?.takeIf { it.block.activity.usesGps }?.let { gps.end(it.runId) }
@@ -725,6 +749,11 @@ class DayViewModel @Inject constructor(
 
     private fun saveCardioRun(run: CardioRun) {
         savedState[KEY_CARDIO_RUN] = run
+        val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Distance
+        if (run.block.activity.usesGps && run.running && end != null &&
+            end.metres >= DistanceTrack.MIN_DISTANCE_END_METRES) {
+            gps.watch(run.runId, run.anchorElapsedMillis(cardioClock), end.metres)
+        } else gps.watch(run.runId, null, null)
     }
 
     private fun gpsSetsFor(run: CardioRun): List<CardioGpsSet> = gpsSets.value.filter { it.runId == run.runId }
@@ -750,6 +779,7 @@ class DayViewModel @Inject constructor(
             savedState[KEY_GPS_ASK] = run.runId
         }
         gps.begin(run.runId, run.block.activity, requireNotNull(run.startedAt))
+        gps.keepRoute(run.runId, saveRoute.value)
     }
 
     private fun coolDownGps() {
@@ -1203,6 +1233,7 @@ class DayViewModel @Inject constructor(
                     if (current.finishesDay && current.showReceipt) {
                         savedState[KEY_VIEW_SELECTION] = DaySelection(current.planId, current.dayId)
                     }
+                    val route = gps.route(current.runId).takeIf { it.size >= 2 && saveRoute.value }?.let(CardioRouteJson::encode)
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = summary.mode.name,
                         hard = summary.hard,
@@ -1211,7 +1242,7 @@ class DayViewModel @Inject constructor(
                         seconds = summary.seconds,
                         stepsCompleted = summary.stepsCompleted,
                         planId = current.planId, planName = current.planName, activity = activity.name,
-                    ), current.resultSets(gpsSetsFor(current)), finishDay = current.finishesDay)
+                    ), current.resultSets(gpsSetsFor(current)), finishDay = current.finishesDay, route = route)
                     val nextDayId = plans.plansFlow.first().firstOrNull { it.id == current.planId }?.suggestedDayId
                     val program = plans.programFor(current.planId).first()
                     val nextDay = program.days.firstOrNull { it.id == nextDayId }
@@ -1337,7 +1368,9 @@ class DayViewModel @Inject constructor(
         if (!live) {
             timedRepAlertAnchor = null
             cardioAlertAnchor = null
-            cardioAlarm.cancel()
+            val run = cardioRun.value
+            if (run != null && run.running && gps.state.value == GpsState.Tracking(run.runId)) armCardioBoundary(run)
+            else cardioAlarm.cancel()
             cardioRun.value?.takeIf { !it.running && it.block.activity.usesGps }?.let { gps.end(it.runId) }
         } else {
             cardioRun.value?.takeIf { it.running && it.block.activity.usesGps && gpsEnabled.value && gps.meter(it.runId) == null }
@@ -2441,23 +2474,7 @@ class DayViewModel @Inject constructor(
         if (state.loading || savedRun == null || savedRun != cardioRun.value) return base
         val run = reconcileCardio() ?: return base
         maybeLogCardio()
-        if (timedRepEvent.value?.awaitingCount != false) {
-            val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
-            if (run.running && end != null && cardioScreenLive && !run.block.openEnded) {
-                val remaining = end.seconds * 1_000L - run.elapsedMillis(cardioClock)
-                val identity = cardioAlarmIdentity(run)
-                if (remaining > 0) {
-                    cardioAlertAnchor = identity
-                    cardioAlarm.arm(cardioClock.elapsedRealtimeMillis() + remaining, identity) {
-                        if (cardioRun.value?.let(::cardioAlarmIdentity) == identity) {
-                            cardioAlertAnchor = null // The adapter already delivered feedback.
-                            reconcileCardio()
-                            cardioTick.value++
-                        }
-                    }
-                } else cardioAlarm.cancel()
-            } else cardioAlarm.cancel()
-        }
+        armCardioBoundary(run)
         if (run.dayId != state.viewDayId || base == null) return base
         val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
         val elapsed = cardioElapsedSeconds(run)
@@ -2470,8 +2487,48 @@ class DayViewModel @Inject constructor(
             stepSecondsLeft = end?.let { ((it.seconds * 1_000L - run.elapsedMillis(cardioClock) + 999L) / 1_000L).toInt().coerceAtLeast(0) } ?: 0)
     }
 
+    private fun isPocketed(run: CardioRun): Boolean =
+        !cardioScreenLive && gps.state.value == GpsState.Tracking(run.runId)
+
+    private fun armCardioBoundary(run: CardioRun) {
+        if (timedRepEvent.value?.awaitingCount != false) {
+            val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
+            if (run.running && end != null && !run.block.openEnded &&
+                (cardioScreenLive || gps.state.value == GpsState.Tracking(run.runId))) {
+                val remaining = end.seconds * 1000L - run.elapsedMillis(cardioClock)
+                val identity = cardioAlarmIdentity(run)
+                if (remaining > 0) {
+                    cardioAlertAnchor = identity
+                    cardioAlarm.arm(cardioClock.elapsedRealtimeMillis() + remaining, identity) { onCardioBoundary(identity) }
+                } else if (isPocketed(run)) {
+                    cardioAlertAnchor = null
+                    val deadline = requireNotNull(run.anchorElapsedMillis(cardioClock)) + end.seconds * 1000L + DistanceTrack.FRESH_MILLIS
+                    cardioAlarm.armQuiet(deadline, "$identity:settle") { onCardioBoundary(identity) }
+                } else cardioAlarm.cancel()
+            } else cardioAlarm.cancel()
+        }
+    }
+
+    private fun onCardioBoundary(identity: String) {
+        val run = cardioRun.value ?: return
+        if (cardioAlarmIdentity(run) != identity) return
+        cardioAlertAnchor = null
+        reconcileCardio()
+        cardioTick.value++
+        if (!cardioScreenLive) afterPocketStep(run)
+    }
+
+    private fun afterPocketStep(run: CardioRun) {
+        val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return
+        if (current.complete && current.sessionId != null) return
+        if (current.running) armCardioBoundary(current) else gps.end(current.runId)
+    }
+
     private fun clearCardioExecution(keepDistanceSheet: Boolean = false, keepRecordState: Boolean = false) {
-        cardioRun.value?.takeIf { it.block.activity.usesGps }?.let { gps.end(it.runId) }
+        cardioRun.value?.takeIf { it.block.activity.usesGps }?.let {
+            gps.end(it.runId)
+            gps.keepRoute(it.runId, false)
+        }
         savedState[KEY_GPS_ASK] = null
         if (!keepDistanceSheet) cardioRun.value?.let {
             clearDistanceInputs(it.runId)

@@ -28,7 +28,7 @@ Per-category form answers, for reference:
 
 | Category | Collected? | Shared? | Notes |
 |---|---|---|---|
-| Location | No | No | Precise location is read on the device while the user has an outdoor activity on screen or running, to measure distance. It is not stored as coordinates and never leaves the device (no INTERNET permission). |
+| Location | No | No | Precise location is read on the device while the user has an outdoor activity on screen or running, to measure distance. It is stored as coordinates only when the user turns on Save route, then on the device and in user-initiated backups, and it never leaves the device through the app (no INTERNET permission). |
 | Personal info | No | No | Age/bodyweight are training inputs, stored locally only, never transmitted. |
 | Financial info | No | No | App has no purchases, no payment flow. |
 | Health and fitness | No\* | No | See "Health Connect" below — this is on-device, not collection by us. |

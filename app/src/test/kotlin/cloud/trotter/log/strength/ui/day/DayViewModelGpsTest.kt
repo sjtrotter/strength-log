@@ -10,6 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioRouteJson
 import cloud.trotter.log.strength.domain.cardio.Fix
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -27,6 +28,7 @@ import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.run.FakeForeground
 import cloud.trotter.log.strength.run.FakeLocationSource
+import cloud.trotter.log.strength.run.GpsState
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.run.LocationAnswer
@@ -156,17 +158,23 @@ class DayViewModelGpsTest {
         var identity: String? = null
         var callback: (() -> Unit)? = null
         var buzzes = 0
+        var quiet = false
         override fun buzz() { buzzes++ }
         fun fire() {
             val boundary = callback ?: return
             cancel()
-            buzz()
+            if (!quiet) buzz()
             boundary()
         }
         override fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
             this.deadline = deadlineElapsedMillis
             this.identity = identity
             callback = onBoundary
+            quiet = false
+        }
+        override fun armQuiet(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
+            arm(deadlineElapsedMillis, identity, onBoundary)
+            quiet = true
         }
         override fun cancel() { deadline = null; identity = null; callback = null }
     }
@@ -510,4 +518,247 @@ class DayViewModelGpsTest {
         assertEquals(CardioGpsSet(id, 0, 899, null, null, false, false), stamps(handle).single())
         assertEquals("899", vm.run().drafts.single().text)
     }
+
+    private suspend fun TestScope.pocketVm(handle: SavedStateHandle): DayViewModel {
+        val vm = vm(handle)
+        val observing = backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        begin(vm)
+        vm.setCardioScreenLive(false)
+        observing.cancel()
+        advanceTimeBy(5_001)
+        runCurrent()
+        return vm
+    }
+
+    private fun savedRun(handle: SavedStateHandle): CardioRun = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
+
+    private suspend fun TestScope.pocketFixes(first: Long, last: Long) {
+        for (t in first..last) { clock.advance(1000); fix(t) }
+    }
+
+    private suspend fun savedRoute() = CardioRouteJson.decode(db.cardioRouteDao().all().single().pointsJson)
+
+    @Test fun `pocket boundaries buzz through recovery and end tracking at the next work set`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        pocketVm(handle)
+        val startElapsed = clock.elapsed
+        assertEquals(startElapsed + 60_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+        pocketFixes(1, 60)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+        assertTrue(savedRun(handle).running)
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+        pocketFixes(61, 120)
+        alarm.fire()
+        runCurrent()
+        assertEquals(2, alarm.buzzes)
+        assertEquals(2, savedRun(handle).position)
+        assertFalse(savedRun(handle).running)
+        assertNull(alarm.callback)
+        assertEquals(1, foreground.stops)
+    }
+
+    @Test fun `a pocket boundary settles on the next fix and arms recovery`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        pocketVm(handle)
+        val startElapsed = clock.elapsed
+        val runId = savedRun(handle).runId
+        pocketFixes(1, 59)
+        clock.advance(1000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(0, savedRun(handle).position)
+        assertTrue(savedRun(handle).running)
+        assertTrue(alarm.quiet)
+        assertEquals(startElapsed + 70_000, alarm.deadline)
+        clock.advance(1000)
+        fix(61)
+        assertEquals(CardioSetStatus.FINISHED.name, savedRun(handle).results.single().status)
+        assertEquals(CardioGpsSet(runId, 0, 175, 175, 60, true, false), stamps(handle).single())
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+    }
+
+    @Test fun `a quiet pocket timeout settles without another buzz or an invented reading`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        pocketVm(handle)
+        val startElapsed = clock.elapsed
+        val runId = savedRun(handle).runId
+        pocketFixes(1, 59)
+        clock.advance(1000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertTrue(alarm.quiet)
+        assertEquals(startElapsed + 70_000, alarm.deadline)
+        clock.advance(10_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(CardioSetStatus.FINISHED.name, savedRun(handle).results.single().status)
+        assertEquals(CardioGpsSet(runId, 0, 168, null, null, true, false), stamps(handle).single())
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+    }
+
+    @Test fun `an indoor timed boundary is canceled when the screen stops being live`() = test {
+        prepareBlock(time(60), time(60), activity = CardioActivity.TREADMILL_RUN)
+        val vm = readyVm()
+        begin(vm, false)
+        vm.setCardioScreenLive(false)
+        assertNull(alarm.deadline)
+    }
+
+    @Test fun `a distance end buzzes once and Reached does not buzz again`() = test {
+        prepareBlock(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600)))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 535)
+        assertEquals(0, alarm.buzzes)
+        fixes(536, 536)
+        assertEquals(1, alarm.buzzes)
+        fixes(537, 560)
+        vm.reachCardioTarget(vm.run().action())
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+    }
+
+    @Test fun `a short distance end never buzzes from GPS`() = test {
+        prepareBlock(CardioSetSpec(CardioRole.WORK, Measure.Distance(300)))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 560)
+        assertEquals(0, alarm.buzzes)
+    }
+
+    @Test fun `Save route on stores every anchor of an open run`() = test {
+        settings.setSaveRoute(true)
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 1900)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(session.id, db.cardioRouteDao().all().single().cardioSessionId)
+        val points = requireNotNull(savedRoute())
+        assertEquals(476, points.size)
+        assertEquals(0, points.first().seconds)
+        assertEquals(1900, points.last().seconds)
+    }
+
+    @Test fun `Save route off stores no route for an open run`() = test {
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 1900)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertTrue(db.cardioRouteDao().all().isEmpty())
+    }
+
+    @Test fun `turning Save route off mid run drops the captured route`() = test {
+        settings.setSaveRoute(true)
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 600)
+        settings.setSaveRoute(false)
+        runCurrent()
+        assertTrue(trackers.single().route(vm.run().runId).isEmpty())
+        fixes(601, 1900)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        assertTrue(db.cardioRouteDao().all().isEmpty())
+    }
+
+    @Test fun `turning Save route on mid run begins at the next anchor`() = test {
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 600)
+        settings.setSaveRoute(true)
+        runCurrent()
+        fixes(601, 1900)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        val points = requireNotNull(savedRoute())
+        assertEquals(325, points.size)
+        assertEquals(604, points.first().seconds)
+        assertEquals(1900, points.last().seconds)
+    }
+
+    @Test fun `a saved route spans an idle end and the next Start`() = test {
+        settings.setSaveRoute(true)
+        prepareBlock(time(60), time(60))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 61)
+        vm.setCardioScreenLive(false)
+        runCurrent()
+        assertEquals(1, foreground.stops)
+        vm.setCardioScreenLive(true)
+        vm.startCardio()
+        runCurrent()
+        fix(61)
+        fixes(62, 121)
+        tick(0)
+        val points = requireNotNull(savedRoute())
+        assertEquals(32, points.size)
+        assertEquals(0, points.first().seconds)
+        assertEquals(121, points.last().seconds)
+    }
+
+    @Test fun `leaving location off warmup stops the ticker access reads`() = test {
+        source.access = LocationAccess.LOCATION_OFF
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        vm.selectWorkoutLift("cardio")
+        runCurrent()
+        assertEquals(GpsState.LocationOff(null), trackers.single().state.value)
+        vm.selectWorkoutLift("exercise:${vm.uiState.value.exercises.first().programExerciseId}")
+        runCurrent()
+        assertEquals(GpsState.Off, trackers.single().state.value)
+        val calls = source.accessCalls
+        tick(5_000)
+        assertEquals(calls, source.accessCalls)
+    }
+
+    @Test fun `location off across a screen return preserves earlier distance`() = test {
+        prepareBlock(time(600))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 60)
+        val runId = vm.run().runId
+        source.access = LocationAccess.LOCATION_OFF
+        tick(0)
+        vm.setCardioScreenLive(false)
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        assertEquals(GpsState.LocationOff(runId), trackers.single().state.value)
+        assertEquals(0, foreground.stops)
+        source.access = LocationAccess.PRECISE
+        tick(40_000)
+        assertEquals(GpsState.Tracking(runId), trackers.single().state.value)
+        fixes(101, 300)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        val row = rows().single()
+        assertEquals(891, row.metres)
+        assertEquals(DistanceSource.GPS, row.distanceSource)
+        assertEquals(CardioSetStatus.SHORTENED, row.status)
+    }
+
 }

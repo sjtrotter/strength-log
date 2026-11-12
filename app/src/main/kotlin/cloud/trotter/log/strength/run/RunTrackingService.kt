@@ -12,7 +12,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.units.DistanceUnit
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -52,7 +51,7 @@ class RunTrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val initial = tracker.notice.value
         try {
-            ServiceCompat.startForeground(this, RunNotification.ID, notification.build(initial, DistanceUnit.MI),
+            ServiceCompat.startForeground(this, RunNotification.ID, notification.build(initial, setting = null),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         } catch (_: IllegalStateException) {
             tracker.foregroundRefused()

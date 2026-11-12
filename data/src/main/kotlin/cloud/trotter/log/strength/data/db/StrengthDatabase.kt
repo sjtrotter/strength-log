@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
+import cloud.trotter.log.strength.data.db.dao.CardioRouteDao
 import cloud.trotter.log.strength.data.db.dao.CardioSessionDao
 import cloud.trotter.log.strength.data.db.dao.CardioSetResultDao
 import cloud.trotter.log.strength.data.db.dao.PlanDao
@@ -13,6 +14,7 @@ import cloud.trotter.log.strength.data.db.dao.RestoreMarkerDao
 import cloud.trotter.log.strength.data.db.dao.RunDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -35,12 +37,13 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         CustomExerciseEntity::class,
         RestoreMarkerEntity::class,
         CardioSessionEntity::class,
+        CardioRouteEntity::class,
         CardioSetResultEntity::class,
         PlanEntity::class,
         WorkoutRunEntity::class,
         RunTrackEntity::class,
     ],
-    version = 30,
+    version = 31,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -53,6 +56,7 @@ abstract class StrengthDatabase : RoomDatabase() {
     abstract fun restoreMarkerDao(): RestoreMarkerDao
     abstract fun cardioSetResultDao(): CardioSetResultDao
     abstract fun cardioSessionDao(): CardioSessionDao
+    abstract fun cardioRouteDao(): CardioRouteDao
     abstract fun planDao(): PlanDao
 
     companion object {
@@ -97,6 +101,7 @@ abstract class StrengthDatabase : RoomDatabase() {
                     MIGRATION_27_28,
                     MIGRATION_28_29,
                     MIGRATION_29_30,
+                    MIGRATION_30_31,
                 )
                 .build()
     }

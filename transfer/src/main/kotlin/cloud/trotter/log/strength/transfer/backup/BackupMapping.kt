@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -53,6 +54,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
     val daysByPlan = days.groupBy { it.planId }
     val setsBySession = sessionSets.groupBy { it.sessionId }
     val cardioSetsBySession = cardioSetResults.groupBy { it.cardioSessionId }
+    val routesBySession = cardioRoutes.associateBy { it.cardioSessionId }
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
         settings = SettingsBackup(
@@ -210,6 +212,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 note = it.note,
                 effort = it.effort,
                 increaseApplied = it.increaseApplied,
+                route = routesBySession[it.id]?.pointsJson,
                 sets = cardioSetsBySession[it.id].orEmpty().sortedWith(compareBy({ it.position }, { it.id })).map { set ->
                     CardioSetResultBackup(
                         id = set.id, specJson = set.specJson, status = set.status,
@@ -453,6 +456,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 increaseApplied = if (schemaVersion >= 27) it.increaseApplied else false,
             )
         },
+        cardioRoutes = cardioSessions.mapNotNull { s -> s.route?.let { CardioRouteEntity(s.id, it) } },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->
             session.sets.mapIndexed { position, set ->
                 CardioSetResultEntity(

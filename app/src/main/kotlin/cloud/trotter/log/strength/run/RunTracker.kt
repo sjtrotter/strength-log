@@ -5,16 +5,21 @@ import cloud.trotter.log.strength.di.RunDispatcher
 import cloud.trotter.log.strength.domain.cardio.DistanceTrack
 import cloud.trotter.log.strength.domain.cardio.SetMeter
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.RoutePoint
 import cloud.trotter.log.strength.ui.day.CardioClock
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.floor
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -44,6 +49,11 @@ data class RunNotice(val activity: CardioActivity, val startedAtWall: Long, val 
 
 interface GpsDistance {
     val state: StateFlow<GpsState>
+    val lastFix: StateFlow<Long?>
+    val reached: SharedFlow<String>
+    fun watch(runId: String, setStartElapsed: Long?, metres: Int?)
+    fun keepRoute(runId: String, on: Boolean)
+    fun route(runId: String): List<RoutePoint>
     fun access(): LocationAccess
     fun refreshAccess()
     fun warmUp(activity: CardioActivity)
@@ -55,6 +65,11 @@ interface GpsDistance {
 
     object None : GpsDistance {
         override val state: StateFlow<GpsState> = MutableStateFlow(GpsState.Off)
+        override val lastFix: StateFlow<Long?> = MutableStateFlow(null)
+        override val reached: SharedFlow<String> = MutableSharedFlow()
+        override fun watch(runId: String, setStartElapsed: Long?, metres: Int?) = Unit
+        override fun keepRoute(runId: String, on: Boolean) = Unit
+        override fun route(runId: String): List<RoutePoint> = emptyList()
         override fun access() = LocationAccess.DENIED
         override fun refreshAccess() = Unit
         override fun warmUp(activity: CardioActivity) = Unit
@@ -78,7 +93,8 @@ interface TrackingForeground {
 }
 
 /** Holds the run's track in memory only; nothing here is written to disk. The foreground service
- *  keeps the process alive while it runs. */
+ *  keeps the process alive while it runs. With Save route on, the run's anchor points are kept in memory
+ *  until the session is logged; nothing is written here. */
 @Singleton
 class RunTracker @Inject constructor(
     private val source: LocationSource,
@@ -91,6 +107,15 @@ class RunTracker @Inject constructor(
     override val state = mutableState.asStateFlow()
     private val mutableNotice = MutableStateFlow<RunNotice?>(null)
     val notice = mutableNotice.asStateFlow()
+    private val mutableLastFix = MutableStateFlow<Long?>(null)
+    override val lastFix = mutableLastFix.asStateFlow()
+    private val mutableReached = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    override val reached = mutableReached.asSharedFlow()
+    private data class Watch(val runId: String, val start: Long, val metres: Int, var fired: Boolean = false)
+    private var watch: Watch? = null
+    private var routeRunId: String? = null
+    private var keeping = false
+    private val points = mutableListOf<RoutePoint>()
     private var track: DistanceTrack? = null
     private var runId: String? = null
     private var activity: CardioActivity? = null
@@ -140,11 +165,17 @@ class RunTracker @Inject constructor(
         if (runId != null) return
         stopUpdates()
         activity = null
-        mutableState.value = if (source.access() == LocationAccess.LOCATION_OFF) GpsState.LocationOff(null) else GpsState.Off
+        mutableState.value = GpsState.Off
     }
 
     override fun begin(runId: String, activity: CardioActivity, startedAtWall: Long) {
         if (!activity.usesGps) return
+        if (runId != routeRunId) {
+            points.clear()
+            routeRunId = null
+            keeping = false
+        }
+        val sameTrack = this.runId == runId && track != null
         if (this.runId != null && this.runId != runId || this.activity != null && this.activity != activity) endAll()
         this.runId = runId
         this.activity = activity
@@ -163,7 +194,7 @@ class RunTracker @Inject constructor(
                 updateNotice()
             }
             LocationAccess.LOCATION_OFF -> {
-                stopUpdates()
+                if (!sameTrack) stopUpdates()
                 mutableState.value = GpsState.LocationOff(runId)
             }
             else -> {
@@ -178,7 +209,23 @@ class RunTracker @Inject constructor(
         collection = scope.launch {
             try {
                 source.updates().collect { fix ->
-                    track?.add(fix)
+                    val current = track ?: return@collect
+                    val before = current.anchorMoves
+                    if (current.add(fix)) {
+                        if (current.anchorMoves > before && keeping && routeRunId == runId &&
+                            fix.elapsedMillis >= startElapsed && points.size < 100_000) {
+                            points += RoutePoint(((fix.elapsedMillis - startElapsed) / 1000).toInt(),
+                                (fix.latitude * 1e5).roundToInt(), (fix.longitude * 1e5).roundToInt())
+                        }
+                        watch?.takeIf { it.runId == runId && !it.fired }?.let { target ->
+                            if (requireNotNull(current.metresAt(fix.elapsedMillis)) -
+                                requireNotNull(current.metresAt(target.start)) >= target.metres) {
+                                target.fired = true
+                                mutableReached.emit(target.runId)
+                            }
+                        }
+                        mutableLastFix.value = fix.elapsedMillis
+                    }
                     updateNotice()
                 }
                 foregroundRefused()
@@ -196,6 +243,30 @@ class RunTracker @Inject constructor(
         track = null
         mutableNotice.value = null
     }
+
+    override fun watch(runId: String, setStartElapsed: Long?, metres: Int?) {
+        if (setStartElapsed == null || metres == null) {
+            watch = null
+        } else if (watch?.runId != runId || watch?.start != setStartElapsed || watch?.metres != metres) {
+            watch = Watch(runId, setStartElapsed, metres)
+        }
+    }
+
+    override fun keepRoute(runId: String, on: Boolean) {
+        if (on) {
+            if (routeRunId != runId) {
+                points.clear()
+                routeRunId = runId
+            }
+            keeping = true
+        } else if (routeRunId == runId) {
+            points.clear()
+            routeRunId = null
+            keeping = false
+        }
+    }
+
+    override fun route(runId: String): List<RoutePoint> = if (routeRunId == runId) points.toList() else emptyList()
 
     override fun end(runId: String) {
         if (this.runId == runId) endAll()

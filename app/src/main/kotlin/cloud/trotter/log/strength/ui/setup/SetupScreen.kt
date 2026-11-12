@@ -128,7 +128,7 @@ fun SetupScreen(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "gps_distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -192,6 +192,13 @@ fun SetupScreen(
                                     else -> permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                                 }
                             },
+                        )
+                        "save_route" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_save_route)) },
+                            supportingContent = { Text(stringResource(R.string.settings_save_route_detail)) },
+                            trailingContent = { Switch(state.saveRoute, onCheckedChange = null, enabled = state.gpsDistance) },
+                            modifier = Modifier.fillMaxWidth().toggleable(value = state.saveRoute,
+                                enabled = state.gpsDistance, role = Role.Switch, onValueChange = actions.onSaveRouteChange),
                         )
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
@@ -472,7 +479,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
             actions = SetupActions(
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {}, onDistanceUnitChange = {},
-                onGpsDistanceChange = {}, onRefreshLocationAccess = {},
+                onSaveRouteChange = {}, onGpsDistanceChange = {}, onRefreshLocationAccess = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

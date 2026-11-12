@@ -3,7 +3,8 @@
 Reference answers for the Play Console "Data safety" section (App content →
 Data safety) when this app is submitted for release. Mirrors `docs/privacy.md`
 — if the two ever disagree, fix `privacy.md` first, then this file, since the
-privacy policy is the one Play links to and users actually read.
+privacy policy is the one Play links to and users actually read. The app's own location
+foreground service measures distance during outdoor runs, walks and rides.
 
 ## Does your app collect or share any of the required user data types?
 
@@ -27,7 +28,7 @@ Per-category form answers, for reference:
 
 | Category | Collected? | Shared? | Notes |
 |---|---|---|---|
-| Location | No | No | Never requested. |
+| Location | No | No | Precise location is read on the device while the user has an outdoor activity on screen or running, to measure distance. It is not stored as coordinates and never leaves the device (no INTERNET permission). |
 | Personal info | No | No | Age/bodyweight are training inputs, stored locally only, never transmitted. |
 | Financial info | No | No | App has no purchases, no payment flow. |
 | Health and fitness | No\* | No | See "Health Connect" below — this is on-device, not collection by us. |
@@ -70,6 +71,12 @@ itself is on-device IPC (not a network service), and the user grants or
 revokes each permission independently from Health Connect's own settings at
 any time. The app remains fully functional with none, some, or all of these
 permissions denied. The watch app does not use Health Connect.
+
+## Foreground service declaration
+
+Play Console › App content › Foreground service permissions, type `location`, use case "the user
+starts an outdoor run, walk or ride; distance is measured while it runs", with a short video. No
+background-location declaration is needed.
 
 ## Is all user data encrypted in transit?
 

@@ -40,8 +40,21 @@ enum class CardioSetStatus { FINISHED, SHORTENED, SKIPPED }
 
 enum class DistanceSource { MANUAL, GPS, HEALTH_CONNECT }
 
-/** A supplied reading's source. A null source means derived from the totals or no reading. */
-enum class ReadingSource { TYPED }
+/** A supplied reading's source: TYPED by the user, GPS measured between two fresh fixes of the phone's track.
+ *  Stored by name; new constants go at the end. Null means derived from the totals or no reading. */
+enum class ReadingSource { TYPED, GPS }
+
+/** What the phone's GPS saw over one set: [metres] from its start to its end, [complete] when the track
+ *  covered the whole set, and [reading] at its planned end (metres at a time end, seconds at a distance end)
+ *  when a fresh fix lies on each side of that moment. Only a complete set has a reading. */
+data class GpsSet(val metres: Int, val reading: Int?, val complete: Boolean) {
+    init { require(metres >= 0 && (reading == null || (complete && reading >= 0))) }
+
+    companion object {
+        /** The worst accuracy the track accepts, and the margin a tap must miss by before GPS replaces it. */
+        const val RESOLUTION_METRES = 20
+    }
+}
 
 data class CardioSetResult(
     val spec: CardioSetSpec,

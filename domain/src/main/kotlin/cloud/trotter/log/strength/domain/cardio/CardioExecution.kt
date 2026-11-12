@@ -8,7 +8,9 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.GpsSet
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import java.util.Locale
 
 data class Clocks(val wallMillis: Long, val elapsedMillis: Long, val bootCount: Int?)
@@ -53,6 +55,7 @@ data class CardioExecution(
     val distanceEntries: List<Int> = emptyList(),
     /** The phone opts in while the watch retains deadline execution. */
     val allowOpenEnded: Boolean = false,
+    val measured: Map<Int, GpsSet> = emptyMap(),
 ) {
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
@@ -62,6 +65,11 @@ data class CardioExecution(
 
     fun elapsedSeconds(now: Clocks): Int =
         (elapsedMillis(now) / 1_000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+    fun measure(meter: SetMeter, now: Clocks): GpsSet? {
+        if (!running || complete) return null
+        return meter.measure(block.sets[position], requireNotNull(anchor).deadlineElapsedMillis(0L, now), now.elapsedMillis)
+    }
 
     fun start(now: Clocks): CardioExecution = copy(
         startedAt = startedAt ?: now.wallMillis,
@@ -75,17 +83,25 @@ data class CardioExecution(
         metres: Int? = null,
         requestDistance: Boolean = true,
         autoStart: Boolean = false,
+        gps: GpsSet? = null,
     ): CardioExecution {
         val spec = block.sets[position]
-        val needsEntry = requestDistance && (status == CardioSetStatus.SHORTENED ||
-            (status == CardioSetStatus.FINISHED && spec.end is Measure.Time &&
-                (spec.aim is Measure.Distance || (allowOpenEnded && block.openEnded))))
-        val nextResults = results + CardioSetResult(spec, status, seconds, metres, metres?.let { DistanceSource.MANUAL })
+        val result = FinishedRule.measured(
+            CardioSetResult(spec, status, seconds, metres, metres?.let { DistanceSource.MANUAL }), gps)
+        val needsEntry = when {
+            result.distanceSource == DistanceSource.GPS -> FinishedRule.awaitsReading(result)
+            gps != null && !gps.complete && metres == null && status != CardioSetStatus.SKIPPED -> true
+            else -> requestDistance && (status == CardioSetStatus.SHORTENED ||
+                (status == CardioSetStatus.FINISHED && spec.end is Measure.Time &&
+                    (spec.aim is Measure.Distance || (allowOpenEnded && block.openEnded))))
+        }
+        val nextResults = results + result
         val next = copy(
             results = nextResults,
             anchor = null,
             distanceEntries = if (needsEntry) distanceEntries + position else distanceEntries,
             completedAt = if (nextResults.size == block.sets.size) now.wallMillis else null,
+            measured = if (gps != null) measured + (position to gps) else measured,
         )
         return if (autoStart && !next.complete &&
             block.sets[next.position].role in listOf(CardioRole.RECOVERY, CardioRole.COOLDOWN)
@@ -93,7 +109,7 @@ data class CardioExecution(
     }
 
     /** Expired automatic sets keep their exact deadlines; work and distance never finish by inference. */
-    fun reconcile(now: Clocks): CardioExecution {
+    fun reconcile(now: Clocks, meter: SetMeter? = null, waitForFix: Boolean = true): CardioExecution {
         var run = this
         while (run.running && !run.complete) {
             if (run.allowOpenEnded && run.block.openEnded) break
@@ -102,15 +118,19 @@ data class CardioExecution(
             val active = requireNotNull(run.anchor)
             val boundary = Clocks(active.wallMillis + seconds * 1_000L,
                 requireNotNull(active.elapsedMillis) + seconds * 1_000L, active.bootCount)
-            run = run.finishStep(CardioSetStatus.FINISHED, seconds, boundary, autoStart = true)
+            if (meter != null && waitForFix && !meter.settled(boundary.elapsedMillis, now.elapsedMillis)) break
+            run = run.finishStep(CardioSetStatus.FINISHED, seconds, boundary, autoStart = true,
+                gps = meter?.measure(run.block.sets[run.position], requireNotNull(active.elapsedMillis), boundary.elapsedMillis))
         }
         return run
     }
 
-    fun reachTarget(now: Clocks): CardioExecution {
+    fun reachTarget(now: Clocks, meter: SetMeter? = null): CardioExecution {
         val target = block.sets.getOrNull(position)?.end as? Measure.Distance ?: return this
         if (!running) return this
-        return finishStep(CardioSetStatus.FINISHED, elapsedSeconds(now), now, target.metres, autoStart = true)
+        val gps = meter?.let { measure(it, now) }?.takeIf { FinishedRule.gpsPassed(target, it) }
+        return finishStep(CardioSetStatus.FINISHED, elapsedSeconds(now), now,
+            metres = if (gps == null) target.metres else null, gps = gps, autoStart = true)
     }
 
     fun enterDistance(position: Int, metres: Int?): CardioExecution = copy(

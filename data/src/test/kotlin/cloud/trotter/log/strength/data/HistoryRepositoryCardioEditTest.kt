@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -196,5 +197,79 @@ class HistoryRepositoryCardioEditTest {
             assertEquals(session, history.cardioSession(id))
             assertEquals(sets, db.cardioSetResultDao().forSession(id))
         }
+    }
+
+    private fun gpsRow() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1800)),
+        CardioSetStatus.FINISHED, 1900, 5700, DistanceSource.GPS, 5400, 1800, ReadingSource.GPS)
+
+    private fun exactGpsRow() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(300)),
+        CardioSetStatus.FINISHED, 300, 888, DistanceSource.GPS, secondsAtEnd = 300)
+
+    @Test fun `a seconds only GPS edit keeps its distance source`() = runTest {
+        val row = gpsRow()
+        val id = insert(listOf(row))
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1950, 5700, "")
+        assertEquals(row.copy(elapsedSeconds = 1950), history.cardioSetsFor(id).single())
+        assertEquals("GPS", db.cardioSetResultDao().forSession(id).single().distanceSource)
+    }
+
+    @Test fun `a changed GPS total becomes manual and keeps its reading`() = runTest {
+        val row = gpsRow()
+        val id = insert(listOf(row))
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1900, 5600, "")
+        assertEquals(row.copy(metres = 5600, distanceSource = DistanceSource.MANUAL), history.cardioSetsFor(id).single())
+        assertEquals("MANUAL", db.cardioSetResultDao().forSession(id).single().distanceSource)
+    }
+
+    @Test fun `a History reading replaces the stored GPS reading`() = runTest {
+        val row = gpsRow()
+        val id = insert(listOf(row))
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1900, 5700, "", readingAtEnd = 5300)
+        assertEquals(row.copy(metresAtEnd = 5300, readingSource = ReadingSource.TYPED), history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `an invalid GPS reading leaves the session and set unchanged`() = runTest {
+        val row = gpsRow()
+        val id = insert(listOf(row))
+        val before = history.cardioSession(id)
+        val failure = runCatching {
+            history.updateCardioSession(id, CardioActivity.TRAIL_RUN, 1900, 5700, "Changed", readingAtEnd = 5800)
+        }.exceptionOrNull()
+        assertTrue(failure is IllegalArgumentException)
+        assertEquals(before, history.cardioSession(id))
+        assertEquals(row, history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `an unchanged GPS edit keeps the stored row`() = runTest {
+        val id = insert(listOf(gpsRow()))
+        val before = db.cardioSetResultDao().forSession(id).single()
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 1900, 5700, "")
+        assertEquals(before, db.cardioSetResultDao().forSession(id).single())
+    }
+
+    @Test fun `an exact GPS duration edit keeps its reading unknown`() = runTest {
+        val row = exactGpsRow()
+        val id = insert(listOf(row))
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 301, 888, "")
+        assertEquals(row.copy(spec = row.spec.copy(end = Measure.Time(301)), elapsedSeconds = 301, secondsAtEnd = 301),
+            history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `an exact GPS finish accepts a replacement reading`() = runTest {
+        val row = exactGpsRow()
+        val id = insert(listOf(row))
+        history.updateCardioSession(id, CardioActivity.ROAD_RUN, 300, 888, "", readingAtEnd = 805)
+        assertEquals(row.copy(metresAtEnd = 805, readingSource = ReadingSource.TYPED), history.cardioSetsFor(id).single())
+    }
+
+    @Test fun `distance amendments preserve GPS only when the total stays the same`() = runTest {
+        val row = gpsRow()
+        val id = insert(listOf(row))
+        history.amendCardioSetDistance(id, 0, 5700)
+        assertEquals(row, history.cardioSetsFor(id).single())
+        assertEquals("GPS", db.cardioSetResultDao().forSession(id).single().distanceSource)
+        history.amendCardioSetDistance(id, 0, 5600)
+        assertEquals(row.copy(metres = 5600, distanceSource = DistanceSource.MANUAL), history.cardioSetsFor(id).single())
+        assertEquals("MANUAL", db.cardioSetResultDao().forSession(id).single().distanceSource)
     }
 }

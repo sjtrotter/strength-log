@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.domain.progression
 
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.GpsSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ReadingSource
 
@@ -9,8 +11,9 @@ import cloud.trotter.log.strength.domain.model.ReadingSource
  *  reached. An at-end field on the row marks a reached end (see [CardioSetResult.secondsAtEnd]); the totals keep the
  *  overrun. Records and comparisons read the reading at the end, never the totals, so there is no grace window. */
 object FinishedRule {
-    /** [result] with the readings at its planned end that its own totals prove, and no others (#526). No executor in
-     *  this build reads distance while a set runs, so a FINISHED distance end reads its planned metres and elapsed
+    /** [result] with the readings at its planned end that its own totals prove, and no others (#526). This rule
+     *  derives readings from the totals; a reading the phone's GPS measured arrives through [measured] instead.
+     *  A FINISHED distance end reads its planned metres and elapsed
      *  seconds unless its total passed the end, when no time is known there. A FINISHED time end run exactly reads
      *  its seconds and [CardioSetResult.metres];
      *  a FINISHED time end run past its seconds (the phone's steady run) reads its seconds and no distance, since
@@ -35,9 +38,30 @@ object FinishedRule {
             secondsAtEnd = previous.secondsAtEnd, readingSource = previous.readingSource)
         else atEnd(edited)
 
+    /** What the phone's GPS measured over [result] (owner decision 2026-11-11): the total of a
+     *  set the track covered when nothing was typed, and the reading at its planned end when two fresh fixes
+     *  bracket that moment. A covered set past its end with no such reading keeps that reading unknown. */
+    fun measured(result: CardioSetResult, gps: GpsSet?): CardioSetResult {
+        if (gps == null || !gps.complete || result.metres != null || result.status == CardioSetStatus.SKIPPED) return result
+        val total = result.copy(metres = gps.metres, distanceSource = DistanceSource.GPS)
+        return when (val end = result.spec.end) {
+            is Measure.Time -> if (result.status == CardioSetStatus.FINISHED && result.elapsedSeconds >= end.seconds) {
+                total.copy(metresAtEnd = gps.reading, secondsAtEnd = end.seconds,
+                    readingSource = gps.reading?.let { ReadingSource.GPS })
+            } else total
+            is Measure.Distance -> if (gpsPassed(end, gps)) {
+                total.copy(status = CardioSetStatus.FINISHED, metresAtEnd = end.metres,
+                    secondsAtEnd = gps.reading, readingSource = ReadingSource.GPS)
+            } else total
+        }
+    }
+
+    fun gpsPassed(end: Measure.Distance, gps: GpsSet): Boolean =
+        gps.reading != null && gps.metres > end.metres + GpsSet.RESOLUTION_METRES
+
     /** True when [result] passed its planned end and has no reading there: a FINISHED time end stopped after its
      *  seconds with no [CardioSetResult.metresAtEnd], or a distance end whose total passed its metres with no
-     *  [CardioSetResult.secondsAtEnd]. No phone executor reads that moment, so only the user can supply it. */
+     *  [CardioSetResult.secondsAtEnd]. When GPS couldn't read that moment, only the user can supply it. */
     fun awaitsReading(result: CardioSetResult): Boolean = when (val end = result.spec.end) {
         is Measure.Time -> result.status == CardioSetStatus.FINISHED && result.elapsedSeconds > end.seconds &&
             result.metresAtEnd == null
@@ -55,6 +79,18 @@ object FinishedRule {
             is Measure.Distance -> result.copy(status = CardioSetStatus.FINISHED, metresAtEnd = end.metres,
                 secondsAtEnd = reading, readingSource = ReadingSource.TYPED).takeIf { reading <= result.elapsedSeconds }
         }
+    }
+
+    /** A user-supplied reading at a reached end, including a replacement for an existing reading. */
+    fun typed(result: CardioSetResult, reading: Int): CardioSetResult? = when (val end = result.spec.end) {
+        is Measure.Time -> if (result.status == CardioSetStatus.FINISHED && result.elapsedSeconds >= end.seconds &&
+            reading in 1..(result.metres ?: 0)) {
+            result.copy(metresAtEnd = reading, secondsAtEnd = end.seconds, readingSource = ReadingSource.TYPED)
+        } else null
+        is Measure.Distance -> if ((result.metres ?: 0) >= end.metres && reading in 1..result.elapsedSeconds) {
+            result.copy(status = CardioSetStatus.FINISHED, metresAtEnd = end.metres,
+                secondsAtEnd = reading, readingSource = ReadingSource.TYPED)
+        } else null
     }
 
     /** True when the row reached its planned end and finished; false when it carries an at-end field but did not

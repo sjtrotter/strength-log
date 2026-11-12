@@ -49,6 +49,26 @@ class ReadingSourceBackupTest {
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }
 
+    @Test fun `v27 GPS reading source round trips through the snapshot and document`() {
+        val source = document().let { document ->
+            document.copy(cardioSessions = document.cardioSessions.map { session ->
+                session.copy(sets = session.sets.map { it.copy(readingSource = "GPS") })
+            })
+        }
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(source, decoded)
+        val snapshot = decoded.toSnapshot()
+        val row = snapshot.cardioSetResults.single()
+        assertEquals("GPS", row.readingSource)
+        assertEquals(ReadingSource.GPS, row.toDomain().readingSource)
+        assertEquals(5050 to 1500, row.metresAtEnd to row.secondsAtEnd)
+
+        val exported = snapshot.toDocument()
+        assertEquals(27, exported.schemaVersion)
+        assertEquals(source.cardioSessions, exported.cardioSessions)
+        assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
+    }
+
     @Test fun `a v0_10_0 v27 document without readingSource decodes as null`() {
         val root = Json.parseToJsonElement(codec.encode(document())).jsonObject
         val sessions = root.getValue("cardioSessions").jsonArray
@@ -72,7 +92,7 @@ class ReadingSourceBackupTest {
 
     @Test fun `unknown reading sources are inconsistent`() {
         val source = document()
-        for (name in listOf("GPS", "typed")) {
+        for (name in listOf("RADAR", "typed")) {
             val invalid = source.copy(cardioSessions = source.cardioSessions.map { session ->
                 session.copy(sets = session.sets.map { it.copy(readingSource = name) })
             })

@@ -264,8 +264,15 @@ strength day; the shipped cardio vectors stay pinned.
   and no pre-filled lighter number; Health Connect run linking; and every
   record type Health Connect can hold. Each new Health Connect permission
   ships with its rationale line, privacy policy text, Data safety answer and
-  Play declaration. GPS only if manual and linked distance fall short, and
-  then on the watch first.
+  Play declaration. **Phone GPS distance (owner, 2026-11-11, superseding "GPS only if manual and linked distance fall short, and
+  then on the watch first").** Outdoor runs, walks and rides measure distance with the phone's GPS through a
+  foreground service of type location started while the app is visible. Precise location is asked in context
+  (the first outdoor Start or Settings › GPS distance), never at install and never in the background. Declining,
+  approximate location, location off or no fix falls back to typed distance. A set GPS covers from start to end is
+  measured; one it doesn't is offered as a typed starting point. Measured readings (GPS, the watch's exact end)
+  win over derived ones, interpolation between two real fixes counts as measured, and a typed value always
+  sticks. Coordinates are stored only when the user turns on Save route (default off). The watch follows later
+  (Health Services) and never blocks a phone feature.
 - **Plans stay generic and rotation-based.** No stored plan kind (derive one
   if a screen ever needs it); alternating plans by weekday is the lifter
   switching, not a calendar.

@@ -1963,6 +1963,32 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun cardioLoggedBeforeStrengthStartKeepsItsDeferredReceipt() = test {
+        prepareBlock(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(1_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        val run = vm.uiState.value.cardio!!.distanceRuns.single()
+        assertFalse(run.finishesDay)
+        vm.closeSheet()
+        vm.startWorkout()
+        runCurrent()
+        assertTrue(vm.uiState.value.runOpen)
+
+        finishOldDistance(vm, run)
+
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardio)
+        assertEquals(run.sessionId, vm.finisher.receipt.value?.sessionId)
+        assertTrue(vm.uiState.value.runOpen)
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+    }
+
+    @Test
     fun heldReceiptReleasesWhenTimedRepIsStopped() = test {
         val (vm, first) = receiptDueDuringTimedRep()
 

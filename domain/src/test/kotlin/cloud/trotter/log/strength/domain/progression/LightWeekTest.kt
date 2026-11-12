@@ -32,7 +32,7 @@ class LightWeekTest {
     fun `case 14 Finish restores working rows and preserves all streaks on a light day`() {
         val input = rule()
         val planned = LightWeek.rows(squat(), ctx)
-        val out = Progression.afterSession(input, squat(), Progression.Exposure(planned, actual(planned), 1004, false), ctx)
+        val out = Progression.afterSession(input, squat(), Progression.Exposure(planned, actual(planned), 1004), ctx)
         assertEquals(Change.LightCycle, out.change)
         assertEquals(Reason.LightCycle, out.reason)
         assertEquals(WorkingRows.cleared(squat()), out.rows)

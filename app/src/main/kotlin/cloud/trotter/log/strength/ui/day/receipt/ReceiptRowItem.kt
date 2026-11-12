@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -70,7 +71,6 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.accentLabelContainer
 
@@ -226,14 +226,13 @@ internal fun StrengthReceiptRow(
     rowKey: String,
     roll: () -> Float,
     gutter: String? = null,
-    nextTime: ReceiptNextTime? = null,
-    nextReps: Int? = null,
+    nextTime: ReceiptLiftLine? = null,
 ) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, nextReps), row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime), row.shape == ReceiptRow.Shape.STRAIGHT,
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -268,10 +267,7 @@ internal fun StrengthReceiptRow(
             }
             if (row.lighterSets > 0) ValueLabel(pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets))
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
-            if (nextReps != null) ValueLabel(stringResource(R.string.receipt_next_time, stringResource(R.string.next_time_reps, nextReps)))
-            if (nextTime != null) ValueLabel(stringResource(R.string.receipt_next_time,
-                nextTime.offerLb?.let { DayScreenBuilder.offerLabel(it, nextTime.openingLb, unit) }
-                    ?: stringResource(R.string.next_time_repeat)))
+            if (nextTime != null) ValueLabel(ReceiptLines.label(nextTime, unit, LocalContext.current.resources))
         }, children = {
             row.sets.forEachIndexed { index, set ->
                 val mark = row.record?.takeIf { it.setIndex == index }

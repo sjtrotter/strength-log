@@ -36,6 +36,12 @@ interface CardioSessionDao {
     @Query("SELECT * FROM cardio_session WHERE activity IN (:activities) ORDER BY completedAt, id")
     suspend fun forActivities(activities: List<String>): List<CardioSessionEntity>
 
+    @Query("UPDATE cardio_session SET progressionUndoJson = NULL WHERE planId = :planId AND dayId = :dayId")
+    suspend fun clearProgressionUndoForDay(planId: Long, dayId: String)
+
+    @Query("UPDATE cardio_session SET progressionUndoJson = NULL WHERE planId = :planId AND completedAt < :startedAt")
+    suspend fun clearProgressionUndoBefore(planId: Long, startedAt: Long)
+
     @Query("DELETE FROM cardio_session WHERE id = :id")
     suspend fun deleteById(id: Long)
 

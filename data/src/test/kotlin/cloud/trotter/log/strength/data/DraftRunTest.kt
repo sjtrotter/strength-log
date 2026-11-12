@@ -378,12 +378,12 @@ class DraftRunTest : OpeningFixture() {
         assertNotEquals(beforeRows, afterRows)
         assertNotEquals(beforeRule, afterRule)
         val next = benchDraft(plan, b)
-        assertFalse(repo.undoProgression(session))
+        assertEquals(UndoResult.DayOpen, repo.undoFinish(session, null))
         assertEquals(afterRows, rows(plan, b))
         assertEquals(afterRule, rule(b))
         assertNotNull(db.sessionDao().sessionById(session)!!.progressionUndoJson)
         assertTrue(repo.discardRun(next))
-        assertTrue(repo.undoProgression(session))
+        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(beforeRows, rows(plan, b))
         assertEquals(beforeRule, rule(b))
     }
@@ -393,7 +393,7 @@ class DraftRunTest : OpeningFixture() {
         val next = benchDraft(plan, b)
         assertEquals(RunStartResult.Started(next), repo.startRun(plan, "A"))
         assertNull(db.sessionDao().sessionById(session)!!.progressionUndoJson)
-        assertFalse(repo.undoProgression(session))
+        assertEquals(UndoResult.DayOpen, repo.undoFinish(session, null))
     }
 
     @Test fun `a watch swap before Start opens a draft and a refused swap leaves none`() = runTest {

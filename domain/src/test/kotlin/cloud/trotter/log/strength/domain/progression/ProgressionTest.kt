@@ -35,9 +35,9 @@ class ProgressionTest {
         }
     }
     private fun finish(rule: SlotRule = rule(), working: List<LoggedSet> = work(), actual: List<LoggedSet> = actual(working),
-                       planned: List<LoggedSet> = working, rough: Boolean = false, layoff: LayoffKind = LayoffKind.None,
+                       planned: List<LoggedSet> = working, layoff: LayoffKind = LayoffKind.None,
                        context: Progression.Context = ctx(), day: Long = 130) =
-        Progression.afterSession(rule, working, Progression.Exposure(planned, actual, day, rough, layoff), context)
+        Progression.afterSession(rule, working, Progression.Exposure(planned, actual, day, layoff), context)
     private fun top(out: Outcome) = requireNotNull(WorkingRows.workingWeight(out.rows))
     private fun assertStreaks(out: Outcome, success: Int, rep: Int, effort: Int) {
         assertEquals(listOf(success, rep, effort), listOf(out.rule.state.successStreak, out.rule.state.repMissStreak, out.rule.state.effortMissStreak))
@@ -90,17 +90,6 @@ class ProgressionTest {
         assertStreaks(second, 0, 0, 0)
         assertEquals(listOf(130L), second.rule.state.resetEpochDays)
         assertEquals(work(175.0), second.rows)
-    }
-
-    @Test
-    fun `case 9 Rough day preserves all streaks despite rep misses`() {
-        val state = SlotState(successStreak = 2, repMissStreak = 1, effortMissStreak = 1, exposures = 7)
-        val out = finish(rule(state = state), actual = actual(work(), reps = listOf(5, 3, 3)), rough = true)
-        assertEquals(Change.Hold, out.change)
-        assertEquals(Reason.RoughDay, out.reason)
-        assertEquals(work(), out.rows)
-        assertEquals(state.copy(exposures = 8), out.rule.state)
-        assertStreaks(out, 2, 1, 1)
     }
 
     @Test

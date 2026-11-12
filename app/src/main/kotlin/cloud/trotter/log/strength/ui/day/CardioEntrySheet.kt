@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.progression.CardioEffort
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,6 +66,8 @@ internal fun CardioEntrySheet(
     gps: CardioEditGps? = null,
     reading: CardioReadingInput? = null,
     onReadingChange: (String) -> Unit = {},
+    effort: CardioEffort? = null,
+    onEffort: ((CardioEffort?) -> Unit)? = null,
 ) {
     val currentSaving by rememberUpdatedState(saving)
     var dateOpen by rememberSaveable { mutableStateOf(false) }
@@ -106,6 +109,7 @@ internal fun CardioEntrySheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { !currentSaving }),
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         footer = {
+            if (onEffort != null) CardioEffortRow(effort, { if (!saving) onEffort(it) }, "past-cardio-effort")
             SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = !saving && draft.valid(nowMillis(), completedAt) && readingValid,
                 cancelLabel = if (saving) null else stringResource(R.string.day_cancel_button), onCancel = onDismiss)
         },

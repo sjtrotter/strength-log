@@ -8,6 +8,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
+import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
@@ -42,14 +43,14 @@ class Migration29To30Test {
         helper.close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_29_30, MIGRATION_30_31).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 assertEquals(sequence, V24Fixture.rows(sql, "sqlite_sequence"))
                 if (reopen == 0) {
                     val after = V24Fixture.dump(sql)
                     before.forEach { (table, rows) ->
-                        assertEquals(if (table == "cardio_set_result") rows.map { it + listOf<String?>(null) } else rows,
+                        assertEquals(if (table in listOf("cardio_set_result", "cardio_session")) rows.map { it + listOf<String?>(null) } else rows,
                             after.getValue(table), table)
                     }
                     sql.query("PRAGMA table_info(cardio_set_result)").use { cursor ->

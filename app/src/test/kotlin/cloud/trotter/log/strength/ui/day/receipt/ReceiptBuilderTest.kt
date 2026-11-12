@@ -36,6 +36,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReceiptBuilderTest {
+    @Test fun `recovered tracks keep the live receipt groups including skipped main and dropped partner`() {
+        val planned = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
+        val live = listOf(
+            RunTrack(1, 0, 7, Slot.MAIN, "bb_back_squat", true, planned, planned.mapIndexed { i, row ->
+                row.copy(done = i == 0, plannedIndex = i)
+            }),
+            RunTrack(2, 1, 7, Slot.MAIN, "bb_bench", false, planned,
+                (planned + planned.first()).mapIndexed { i, row -> row.copy(done = i == 0, plannedIndex = i) }),
+            RunTrack(3, 2, 7, Slot.SS, "cable_row", true, planned, planned, dropped = true),
+            RunTrack(4, 3, 8, Slot.MAIN, "ez_curl", true, planned, planned, dropped = true),
+        )
+        val slots = listOf(ProgramSlot(7, 0, ProgramExercise("bb_bench", superset = SupersetPartner("cable_row"))),
+            ProgramSlot(8, 1, ProgramExercise("ez_curl")))
+        val json = cloud.trotter.log.strength.data.serialization.SessionPlanJson.encode(live.map { track ->
+            cloud.trotter.log.strength.data.serialization.PlannedTrackDto(track.position, track.exerciseId, track.slot,
+                track.retired, track.planned.map(cloud.trotter.log.strength.data.serialization.SetDto::of),
+                liveSetCount = track.setCounts().total, programExerciseId = track.programExerciseId, dropped = track.dropped)
+        })
+        val session = WorkoutSessionEntity(1, "A", "Day A", 1000, 2000, null, plannedJson = json)
+        val sets = live.flatMap { track -> track.sets.mapIndexedNotNull { index, row ->
+            if (track.retired && !row.done) null else cloud.trotter.log.strength.data.db.entity.SessionSetEntity(
+                0, 1, track.exerciseId, track.exerciseId, track.slot, index, row.kind.name, row.weightLb, row.reps, row.done,
+                trackPosition = track.position, plannedIndex = row.plannedIndex)
+        } }
+        val recovered = cloud.trotter.log.strength.data.ArchivedRun.of(session, sets, slots)
+        val before = ReceiptBuilder.strengthWithTracks(live, slots, { it }, emptyMap()).map { it.first }
+        val after = ReceiptBuilder.strengthWithTracks(recovered.tracks, recovered.slots, { it }, emptyMap()).map { it.first }
+        assertEquals(before, after)
+        assertEquals(live.setCounts(), recovered.tracks.setCounts())
+        assertTrue(after.flatMap { it.rows }.any { it.name == "ez_curl" && it.shape == ReceiptRow.Shape.SKIPPED })
+        assertTrue(after.flatMap { it.rows }.any { it.name == "cable_row" && it.shape == ReceiptRow.Shape.SKIPPED })
+    }
+
     @Test
     fun `ramped squat keeps every done set and marks the top weight record`() {
         val groups = ReceiptBuilder.strength(

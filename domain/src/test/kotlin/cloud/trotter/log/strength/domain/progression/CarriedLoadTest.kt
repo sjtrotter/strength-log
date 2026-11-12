@@ -16,7 +16,7 @@ class CarriedLoadTest {
     private fun finish(rows: List<LoggedSet>, weights: List<Double>, rule: SlotRule = this.rule, actual: List<LoggedSet>? = null) =
         Progression.afterSession(rule, rows, Progression.Exposure(rows, actual ?: rows.mapIndexed { i, row ->
             row.copy(weightLb = weights[i], plannedIndex = i, done = true)
-        }, 130, false), ctx)
+        }, 130), ctx)
 
     @Test fun `a strict majority adopts the lower load without an increase`() {
         val out = finish(work(), listOf(175.0, 175.0, 185.0))

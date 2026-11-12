@@ -23,7 +23,6 @@ object Progression {
         val planned: List<LoggedSet>,
         val actual: List<LoggedSet>,
         val epochDay: Long,
-        val roughDay: Boolean,
         val layoff: LayoffKind = LayoffKind.None,
     )
 
@@ -119,7 +118,6 @@ object Progression {
             val anchor = requireNotNull(WorkingRows.workingWeight(working))
             loaded(ctx.steps.nearest(anchor * 0.75, ctx.equipment, ctx.unit))
         } else null
-        if (exposure.roughDay) return result(Reason.RoughDay, rows = recalibrationRows ?: base)
         if (ctx.light) return result(Reason.LightCycle, Change.LightCycle, recalibrationRows ?: WorkingRows.cleared(working))
         if (current.state.calibrating && loadCalibration) {
             val anchors = done.map { it.second }.filter { it.kind == SetKind.TOP || it.kind == SetKind.WORK }

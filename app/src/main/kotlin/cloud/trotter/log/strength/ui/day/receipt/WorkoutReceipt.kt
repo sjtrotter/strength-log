@@ -128,12 +128,3 @@ internal val WorkoutReceipt.isPartial: Boolean get() = if (cardio) {
 /** Older receipt bundles omitted plans on closed and skipped rows. */
 internal val WorkoutReceipt.hasPlannedSetCount: Boolean get() = cardio ||
     groups.all { group -> group.rows.all { it.planned != null } }
-
-/** Next time for one receipt row; [offerLb] null means Repeat. Saved under its own key, so receipt parcels keep their layout. */
-@Parcelize data class ReceiptNextTime(val groupIndex: Int, val rowIndex: Int, val offerLb: Double?, val openingLb: Double) : Parcelable
-
-@Parcelize data class ReceiptNextTimes(val sessionId: Long, val rows: List<ReceiptNextTime>) : Parcelable
-
-/** Rep offers use a separate saved-state key so older receipt parcels retain their layout. */
-@Parcelize data class ReceiptRepNextTimes(val sessionId: Long, val rows: List<ReceiptRepNextTime>) : Parcelable
-@Parcelize data class ReceiptRepNextTime(val groupIndex: Int, val rowIndex: Int, val reps: Int) : Parcelable

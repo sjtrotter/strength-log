@@ -109,7 +109,7 @@ class LightCycleFinishTest : OpeningFixture() {
         val session = asPlanned(opened(plan, "B"), plan, "B")
         assertEquals(LightCycle(2, 6), counters(plan))
         restart()
-        assertTrue(repo.undoProgression(session))
+        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(LightCycle(0, 5), counters(plan))
         val normal = opened(plan)
         assertNull(normal.openingJson)
@@ -118,7 +118,7 @@ class LightCycleFinishTest : OpeningFixture() {
         val second = asPlanned(opened(plan, "B"), plan, "B")
         assertEquals(LightCycle(2, 6), counters(plan))
         db.planDao().updateLightCycle(plan, 1, 6)
-        assertTrue(repo.undoProgression(second))
+        assertEquals(UndoResult.Undone, repo.undoFinish(second, null))
         assertEquals(LightCycle(1, 6), counters(plan))
         assertEquals(beforeRows, rows(plan, id(plan, "bb_bench", "B"), "B"))
         assertEquals(beforeRule, rule(id(plan, "bb_bench", "B")))
@@ -156,7 +156,7 @@ class LightCycleFinishTest : OpeningFixture() {
         advanceDays(1)
         val last = finish(plan, b, reps = listOf(5, 4, 4), day = "B")
         assertEquals(if (automatic) 2 else 0, counters(plan).remaining)
-        assertTrue(repo.undoProgression(last))
+        assertEquals(UndoResult.Undone, repo.undoFinish(last, null))
         assertEquals(0, counters(plan).remaining)
     }
 

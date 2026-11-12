@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day.receipt
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
@@ -15,7 +16,6 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -103,7 +103,7 @@ private fun spokenRecords(mark: RecordMark): String {
 }
 
 @Composable
-internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptNextTime? = null, nextReps: Int? = null): String {
+internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftLine? = null): String {
     if (row.shape == ReceiptRow.Shape.SKIPPED) return stringResource(R.string.receipt_say_skipped, row.name)
     val work = when (row.shape) {
         ReceiptRow.Shape.TOP_SET -> row.lines.mapIndexed { index, line ->
@@ -135,13 +135,7 @@ internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptNextT
         if (row.shape == ReceiptRow.Shape.STRAIGHT) stringResource(R.string.receipt_say_record_on_set, spokenRecords(it), it.setIndex + 1, previous)
         else stringResource(R.string.receipt_say_record_up_from, spokenRecords(it), previous)
     }
-    val next = nextReps?.let { stringResource(R.string.receipt_say_next_time_reps, it) } ?: nextTime?.let {
-        val offer = it.offerLb
-        if (offer == null) stringResource(R.string.receipt_say_next_time_repeat)
-        else stringResource(if (offer < it.openingLb) R.string.receipt_say_next_time_lower else R.string.receipt_say_next_time_add,
-            WeightStepper.format(kotlin.math.abs(DayScreenBuilder.offerDelta(offer, it.openingLb, unit))) + " " + stringResource(
-                if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms))
-    }
+    val next = nextTime?.let { ReceiptLines.spoken(it, unit, LocalContext.current.resources) }
     return listOfNotNull("${row.name}.", work, record, next).joinToString(" ")
 }
 

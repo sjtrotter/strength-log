@@ -241,7 +241,7 @@ class TrackerRepositoryRunEditsTest {
         repo.ensureSeeded(plan, "B")
         assertEquals(tracks, db.runDao().tracks(run.runId))
         val finished = requireNotNull(repo.finishRunCapturing(run.runId))
-        assertEquals(partnerRows, requireNotNull(finished.tracks).single { it.slot == Slot.SS }.sets)
+        assertEquals(partnerRows, finished.tracks.single { it.slot == Slot.SS }.sets)
     }
 
     @Test fun `a plan swap pads replacement rows at the history estimate`() = runTest {

@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_27_28
 import cloud.trotter.log.strength.data.db.MIGRATION_28_29
 import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
+import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -37,7 +38,7 @@ class Migration27To28Test {
         createV27().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32).allowMainThreadQueries().build()
             try {
                 val run = db.runDao().allRuns().single()
                 assertEquals(WorkoutRunEntity("open-run", 1, "A", "Day A", "Plan", 1000), run)

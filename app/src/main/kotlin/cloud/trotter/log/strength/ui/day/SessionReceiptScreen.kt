@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import android.animation.ValueAnimator
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,12 +48,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.domain.progression.CardioEffort
+import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptLines
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptMutation
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptProgressState
+import cloud.trotter.log.strength.ui.day.receipt.spokenCardioNextLine
+import cloud.trotter.log.strength.ui.day.receipt.cardioNextLine
+import cloud.trotter.log.strength.ui.day.receipt.cardioWhyLine
 import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
@@ -63,8 +80,6 @@ import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
-import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTimes
-import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
 import cloud.trotter.log.strength.ui.theme.Done
@@ -84,12 +99,30 @@ internal fun SessionReceiptScreen(
     onNoteSaveHandled: () -> Unit = {},
     modifier: Modifier = Modifier,
     setCounts: ReceiptSetCounts? = null,
-    nextTimes: ReceiptNextTimes? = null,
-    repNextTimes: ReceiptRepNextTimes? = null,
+    progress: ReceiptProgressState = ReceiptProgressState(),
+    mutation: ReceiptMutation? = null,
+    onMutationHandled: () -> Unit = {},
+    onUndo: () -> Unit = {},
+    onRoughDay: (Boolean) -> Unit = {},
+    onCardioEffort: (CardioEffort?) -> Unit = {},
 ) {
     val counts = setCounts?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }
-    val nextRows = nextTimes?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }?.rows.orEmpty()
-    val repNextRows = repNextTimes?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }?.rows.orEmpty()
+    val resources = LocalContext.current.resources
+    val snackbar = remember { SnackbarHostState() }
+    var whyOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
+    LaunchedEffect(mutation) {
+        if (mutation != null) {
+            snackbar.showSnackbar(when (mutation) {
+                ReceiptMutation.Undone -> resources.getString(R.string.receipt_changes_undone)
+                is ReceiptMutation.DayOpen -> resources.getString(R.string.receipt_undo_day_open, mutation.dayId)
+                ReceiptMutation.Failed -> resources.getString(R.string.receipt_undo_failed)
+                is ReceiptMutation.RoughDayOpen -> resources.getString(R.string.receipt_rough_day_day_open, mutation.dayId)
+                ReceiptMutation.RoughDayFailed -> resources.getString(R.string.receipt_rough_day_failed)
+                ReceiptMutation.EffortFailed -> resources.getString(R.string.receipt_effort_failed)
+            })
+            onMutationHandled()
+        }
+    }
     val partial = counts?.let { it.remaining > 0 } ?: receipt.isPartial
     var noteOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
     val noteDrafts = rememberSaveableStateHolder()
@@ -110,7 +143,7 @@ internal fun SessionReceiptScreen(
             roll.animateTo(0f, tween(400, easing = emphasizedDecelerate))
         }
     }
-    val backProgress = rememberBackGestureProgress(enabled = !noteOpen, onBack = onFinishSession)
+    val backProgress = rememberBackGestureProgress(enabled = !noteOpen && !whyOpen, onBack = onFinishSession)
     ReceiptScaffold(
         title = stringResource(if (partial) R.string.operation_receipt_saved else R.string.receipt_title_done, receipt.dayTitle),
         planLine = receipt.planName,
@@ -119,6 +152,7 @@ internal fun SessionReceiptScreen(
         shareEnabled = true,
         onShare = onShare,
         modifier = modifier.backGesturePreview { backProgress.value },
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (receipt.allPlansDone && !partial) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
@@ -146,8 +180,7 @@ internal fun SessionReceiptScreen(
                             StrengthReceiptRow(if (receipt.recordsChecked) row else row.copy(record = null), receipt.unit, receipt.dayIndex,
                                 "${receipt.sessionId}:$groupIndex:$rowIndex", { roll.value },
                                 if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
-                                nextTime = nextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex },
-                                nextReps = repNextRows.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex }?.reps)
+                                nextTime = progress.lifts.firstOrNull { it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex }?.line)
                         }
                     }
                 }
@@ -166,6 +199,30 @@ internal fun SessionReceiptScreen(
                 }
             }
         }
+        if (receipt.cardioRows.isNotEmpty() && progress.cardioSessionId != null) {
+            CardioEffortRow(progress.cardioEffort, onCardioEffort, "receipt-cardio-effort")
+            val spokenNext = spokenCardioNextLine(progress).orEmpty()
+            cardioNextLine(progress)?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp).clearAndSetSemantics { contentDescription = spokenNext }) }
+        }
+        if (progress.lightWeekNext) Text(stringResource(R.string.receipt_light_week_next),
+            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Row(Modifier.padding(horizontal = 4.dp)) {
+            if (progress.undoVisible) TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.receipt_undo_changes))
+            }
+            if (progress.whyVisible) TextButton(onClick = { whyOpen = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.receipt_why))
+            }
+        }
+        if (!receipt.cardio && progress.lifts.isNotEmpty()) ListItem(
+            headlineContent = { Text(stringResource(R.string.receipt_rough_day)) },
+            supportingContent = { Text(stringResource(R.string.receipt_rough_day_detail)) },
+            leadingContent = { Checkbox(progress.rough, onCheckedChange = null, enabled = progress.roughEnabled) },
+            modifier = Modifier.toggleable(progress.rough, enabled = progress.roughEnabled,
+                role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = onRoughDay),
+        )
         if (receipt.note.isNotBlank()) Text(receipt.note, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 16.dp))
@@ -176,6 +233,7 @@ internal fun SessionReceiptScreen(
             }
         }
     }
+    if (whyOpen) ReceiptWhySheet(receipt, progress) { whyOpen = false }
     // A closed sheet consumes the result, including one that lands after it closed, so the next
     // sheet never opens on a stale Saved or Failed.
     LaunchedEffect(noteOpen, noteSave) {
@@ -202,10 +260,12 @@ internal fun ReceiptScaffold(
     onShare: () -> Unit,
     bottomBar: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHost: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = snackbarHost,
         topBar = {
             TopAppBar(title = {}, actions = {
                 if (showShare) IconButton(onClick = onShare, enabled = shareEnabled) {
@@ -243,4 +303,30 @@ internal fun ReceiptDoneButton(dayIndex: Int, onClick: () -> Unit, enabled: Bool
         colors = ButtonDefaults.buttonColors(containerColor = dayAccent(dayIndex), contentColor = onDayAccent(dayIndex))) {
         Text(stringResource(R.string.receipt_done))
     }
+}
+
+@Composable
+internal fun CardioEffortRow(selected: CardioEffort?, onPick: (CardioEffort?) -> Unit, tagPrefix: String) {
+    EffortRow(selected?.let { Effort.valueOf(it.name) }, { onPick(it?.let { word -> CardioEffort.valueOf(word.name) }) },
+        tagPrefix, entries = listOf(Effort.EASY, Effort.GOOD, Effort.HARD), label = stringResource(R.string.cardio_how_was_it))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReceiptWhySheet(receipt: WorkoutReceipt, progress: ReceiptProgressState, onDismiss: () -> Unit) {
+    val resources = LocalContext.current.resources
+    AppModalBottomSheet(onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        title = { Text(stringResource(R.string.receipt_why), style = MaterialTheme.typography.titleLarge) },
+        body = {
+            if (progress.rough) Text(stringResource(R.string.receipt_why_rough))
+            else progress.lifts.forEach { lift ->
+                lift.whyLine?.let { ReceiptLines.why(lift.name, it, receipt.unit, resources) }?.let { Text(it) }
+            }
+            if (progress.roughStartedLight) Text(stringResource(R.string.receipt_why_rough_light))
+            else if (progress.lightRemaining > 0) Text(resources.getQuantityString(R.plurals.receipt_why_light_remaining,
+                progress.lightRemaining, progress.lightRemaining))
+            else if (progress.lightEnded) Text(stringResource(R.string.receipt_why_light_done))
+            cardioWhyLine(progress, receipt.activity?.let { cardioActivityName(it) }.orEmpty())?.let { Text(it) }
+        })
 }

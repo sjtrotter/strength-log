@@ -90,8 +90,10 @@ android {
             it.systemProperty("playtest.dir", playtestDir.absolutePath)
             it.systemProperty("playtest.captureFrom", providers.gradleProperty("playtestCaptureFrom").orNull ?: "0")
             it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit || playtestScript != null).toString())
+            // Robolectric loads a full android-all jar per SDK level in one JVM; Gradle's default
+            // test heap ran out on TodayWidgetViewsTest's SDK 30 case once the suite grew (#571).
+            it.maxHeapSize = "2g"
             if (playtestScript != null) {
-                it.maxHeapSize = "2g"
                 it.outputs.dir(playtestDir)
                 it.outputs.upToDateWhen { false }
                 it.outputs.cacheIf { false }
@@ -110,10 +112,6 @@ android {
                 it.outputs.dir(listingImagesDir)
                 it.outputs.upToDateWhen { false }
                 it.outputs.cacheIf { false }
-            } else {
-                // Render-only: it asserts nothing, and its native-graphics captures pushed the
-                // plain unit-test JVM out of memory (#571). The store-shots run renders it.
-                it.exclude("**/store/ProgressionPreviewShotsTest.class")
             }
             // A hung test fails in minutes and, on CI, names itself instead of
             // holding the job to GitHub's six-hour limit (#310).

@@ -1,15 +1,13 @@
 package cloud.trotter.log.strength.widget
 
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
-import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
+import cloud.trotter.log.strength.openAppPendingIntent
 import cloud.trotter.log.strength.ui.day.cardioActivityNameRes
 
 /** A [android.graphics.drawable.ClipDrawable] is fully revealed at level 10000. */
@@ -58,7 +56,7 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
         views.setThemeColor(context, R.id.widget_progress_fill, "setColorFilter", lightAccent, darkAccent)
     }
 
-    views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
+    views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent(context, 0))
     return views
 }
 
@@ -80,21 +78,4 @@ private fun RemoteViews.setThemeColor(context: Context, viewId: Int, method: Str
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         setInt(viewId, method, if (night) dark else light)
     }
-}
-
-/** ACTION_MAIN/LAUNCHER on an explicit intent: tapping the widget resumes the
- *  app's existing task exactly as tapping its icon would, rather than stacking a
- *  second MainActivity on top of whatever the user left open. */
-private fun openApp(context: Context): PendingIntent {
-    val intent = Intent(context, MainActivity::class.java).apply {
-        action = Intent.ACTION_MAIN
-        addCategory(Intent.CATEGORY_LAUNCHER)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-    }
-    return PendingIntent.getActivity(
-        context,
-        0,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
 }

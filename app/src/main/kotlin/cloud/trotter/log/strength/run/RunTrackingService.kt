@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -23,7 +24,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 
@@ -51,21 +51,20 @@ class RunTrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val initial = tracker.notice.value
+        try {
+            ServiceCompat.startForeground(this, RunNotification.ID, notification.build(initial, DistanceUnit.MI),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        } catch (_: IllegalStateException) {
+            tracker.foregroundRefused()
+            stopSelf()
+            return START_NOT_STICKY
+        } catch (_: SecurityException) {
+            tracker.foregroundRefused()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (initial == null) { stopSelf(); return START_NOT_STICKY }
         if (updates == null) updates = scope.launch {
-            val unit = settings.distanceUnitFlow.first()
-            try {
-                ServiceCompat.startForeground(this@RunTrackingService, RunNotification.ID, notification.build(initial, unit),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-            } catch (_: IllegalStateException) {
-                tracker.foregroundRefused()
-                stopSelf()
-                return@launch
-            } catch (_: SecurityException) {
-                tracker.foregroundRefused()
-                stopSelf()
-                return@launch
-            }
             launch {
                 while (true) { delay(5_000L); tracker.updateNotice() }
             }

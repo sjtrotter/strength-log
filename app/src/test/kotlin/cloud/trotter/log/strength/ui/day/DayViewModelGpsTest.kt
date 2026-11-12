@@ -410,6 +410,61 @@ class DayViewModelGpsTest {
         assertEquals(3.0, requireNotNull(live.metresPerSecond), 0.01)
     }
 
+    @Test fun `the existing tick recovers after location returns mid run`() = test {
+        prepareBlock(time(1800))
+        val vm = readyVm()
+        begin(vm)
+
+        source.access = LocationAccess.LOCATION_OFF
+        tick(1000)
+        assertEquals(GpsShown.LOCATION_OFF, vm.uiState.value.cardio?.gps?.shown)
+
+        source.access = LocationAccess.PRECISE
+        tick(1000)
+        fix(2)
+        tick(1)
+        assertEquals(GpsShown.LIVE, vm.uiState.value.cardio?.gps?.shown)
+        assertEquals(1, foreground.starts)
+        assertEquals(0, foreground.stops)
+    }
+
+    @Test fun `a restored run waits for its disabled GPS setting before tracking`() = test {
+        prepareBlock(time(1800))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        begin(first)
+        first.viewModelScope.cancel()
+        trackers.forEach { it.endAll() }
+        foreground.starts = 0
+        settings.setGpsDistance(false)
+
+        val restored = vm(parcelHandle(handle))
+        restored.setCardioScreenLive(true)
+        assertEquals(0, foreground.starts)
+        backgroundScope.launch { restored.uiState.collect {} }
+        runCurrent()
+        assertEquals(0, foreground.starts)
+        assertEquals(0, source.fixes.subscriptionCount.value)
+    }
+
+    @Test fun `a restored run begins when its enabled GPS setting loads`() = test {
+        prepareBlock(time(1800))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        begin(first)
+        first.viewModelScope.cancel()
+        trackers.forEach { it.endAll() }
+        foreground.starts = 0
+
+        val restored = vm(parcelHandle(handle))
+        restored.setCardioScreenLive(true)
+        assertEquals(0, foreground.starts)
+        backgroundScope.launch { restored.uiState.collect {} }
+        runCurrent()
+        assertEquals(1, foreground.starts)
+        assertEquals(1, source.fixes.subscriptionCount.value)
+    }
+
     @Test fun `a reached tap inside the GPS margin remains manual and unstamped`() = test {
         prepareBlock(CardioSetSpec(CardioRole.WORK, Measure.Distance(1000)))
         val handle = SavedStateHandle()

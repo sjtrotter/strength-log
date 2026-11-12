@@ -103,6 +103,26 @@ class HistoryRepositoryCardioEditTest {
     }
 
     @Test
+    fun `a History duration edit preserves sprint timing columns`() = runTest {
+        val id = insert(listOf(ManualCardio.result(13, 100)))
+        val stored = db.cardioSetResultDao().forSession(id).single().copy(
+            centis = 1234,
+            timingMethod = "PHONE",
+            startProtocol = "THREE_POINT",
+        )
+        db.cardioSetResultDao().update(stored)
+
+        history.updateCardioSession(id, CardioActivity.TRACK_RUN, 14, 100, "")
+
+        val edited = db.cardioSetResultDao().forSession(id).single()
+        assertEquals(14, edited.elapsedSeconds)
+        assertEquals(stored.id, edited.id)
+        assertEquals(1234, edited.centis)
+        assertEquals("PHONE", edited.timingMethod)
+        assertEquals("THREE_POINT", edited.startProtocol)
+    }
+
+    @Test
     fun `editing an interval session keeps its sets`() = runTest {
         val sets = listOf(
             CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)), CardioSetStatus.FINISHED, 300),

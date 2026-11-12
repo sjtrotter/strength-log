@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -91,6 +92,47 @@ class RunTrackerTest {
         assertEquals(1, foreground.stops)
         assertEquals(GpsState.Off, tracker.state.value)
         assertNull(tracker.meter("r1"))
+    }
+
+    @Test fun `access reads leave tracker state unchanged`() = runTest(dispatcher) {
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        source.access = LocationAccess.LOCATION_OFF
+        assertEquals(LocationAccess.LOCATION_OFF, tracker.access())
+        assertEquals(GpsState.Tracking("r1"), tracker.state.value)
+        tracker.refreshAccess()
+        source.access = LocationAccess.PRECISE
+        assertEquals(LocationAccess.PRECISE, tracker.access())
+        assertEquals(GpsState.LocationOff("r1"), tracker.state.value)
+        tracker.endAll()
+    }
+
+    @Test fun `location returning mid run resumes live tracking with the same meter`() = runTest(dispatcher) {
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        runCurrent()
+        source.fixes.emit(north(0))
+        runCurrent()
+        val meter = requireNotNull(tracker.meter("r1"))
+
+        source.access = LocationAccess.LOCATION_OFF
+        tracker.refreshAccess()
+        assertEquals(GpsState.LocationOff("r1"), tracker.state.value)
+        assertNull(tracker.live("r1", 0, elapsed))
+
+        elapsed = 32_000
+        source.access = LocationAccess.PRECISE
+        tracker.refreshAccess()
+        source.fixes.emit(north(32))
+        runCurrent()
+
+        assertEquals(GpsState.Tracking("r1"), tracker.state.value)
+        assertSame(meter, tracker.meter("r1"))
+        val live = requireNotNull(tracker.live("r1", 0, elapsed))
+        assertEquals(GpsLiveStatus.LIVE, live.status)
+        assertEquals(96, live.metres)
+        assertEquals(3.0, requireNotNull(live.metresPerSecond), 0.01)
+        assertEquals(1, foreground.starts)
+        assertEquals(0, foreground.stops)
+        tracker.endAll()
     }
 
     @Test fun `a fix older than ten seconds leaves the last total without speed`() = runTest(dispatcher) {

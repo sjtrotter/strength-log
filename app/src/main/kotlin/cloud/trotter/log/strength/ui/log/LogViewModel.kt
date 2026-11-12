@@ -37,7 +37,6 @@ import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.units.DistanceUnit
-import cloud.trotter.log.strength.run.GpsDistance
 import cloud.trotter.log.strength.ui.day.CardioReadingEntry
 import cloud.trotter.log.strength.ui.day.CardioReadingInput
 import cloud.trotter.log.strength.ui.day.formatCardioTime
@@ -122,7 +121,6 @@ class LogViewModel @Inject constructor(
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
     tracker: TrackerRepository,
-    val gps: GpsDistance = GpsDistance.None,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)

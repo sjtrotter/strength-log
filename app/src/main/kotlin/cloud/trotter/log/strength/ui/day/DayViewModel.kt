@@ -178,7 +178,7 @@ class DayViewModel @Inject constructor(
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val gpsSets = savedState.getStateFlow<ArrayList<CardioGpsSet>>(KEY_CARDIO_GPS_SETS, arrayListOf())
     private val gpsAsk = savedState.getStateFlow<String?>(KEY_GPS_ASK, null)
-    private val gpsEnabled = settings.gpsDistanceFlow.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    private val gpsEnabled = settings.gpsDistanceFlow.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val mutableGpsNotice = MutableStateFlow<GpsNotice?>(null)
     val gpsNotice: StateFlow<GpsNotice?> = mutableGpsNotice.asStateFlow()
     private val runDistance = savedState.getStateFlow<CardioRunDistance?>(KEY_CARDIO_RUN_DISTANCE, null)
@@ -317,12 +317,15 @@ class DayViewModel @Inject constructor(
      *  otherwise. Living inside the uiState pipeline means WhileSubscribed owns
      *  its lifecycle — no free-running loop survives the screen. */
     private val cardioSecondTicker = combine(cardioRun, timedRepEvent, gps.state) { cardio, reps, location ->
-        cardio?.running == true || reps?.awaitingCount == false || location is GpsState.Tracking
+        cardio?.running == true || reps?.awaitingCount == false || location is GpsState.Tracking || location is GpsState.LocationOff
     }.distinctUntilChanged().flatMapLatest { running ->
         if (!running) flowOf(0L)
         else flow {
             var beat = 0L
             while (true) {
+                if (gpsEnabled.value && (gps.state.value is GpsState.Tracking || gps.state.value is GpsState.LocationOff)) {
+                    gps.refreshAccess()
+                }
                 emit(beat++)
                 delay(CARDIO_TICK_MS)
             }
@@ -652,6 +655,9 @@ class DayViewModel @Inject constructor(
                 if (!enabled) {
                     cardioRun.value?.takeIf { it.block.activity.usesGps }?.let { gps.end(it.runId) }
                     coolDownGps()
+                } else {
+                    cardioRun.value?.takeIf { it.running }?.let(::beginCardioGps)
+                    refreshGpsWarmup(uiState.value)
                 }
             }
         }
@@ -756,7 +762,7 @@ class DayViewModel @Inject constructor(
         val selected = (state.workout?.shown as? WorkoutSelection.Shown.Group)?.key == "cardio"
         if (cardioScreenLive && selected && block?.activity?.usesGps == true &&
             cardio.loggedSeconds == null && cardio.run?.complete != true && cardio.run?.running != true &&
-            gpsEnabled.value && gps.access() == LocationAccess.PRECISE
+            gpsEnabled.value
         ) gps.warmUp(block.activity) else coolDownGps()
     }
 
@@ -780,7 +786,6 @@ class DayViewModel @Inject constructor(
 
     private fun cardioGpsState(block: CardioBlock?, run: CardioRun?): CardioGpsState? {
         if (block?.activity?.usesGps != true || !gpsEnabled.value || run?.complete == true) return null
-        gps.access()
         return when (val location = gps.state.value) {
             is GpsState.LocationOff -> CardioGpsState(GpsShown.LOCATION_OFF)
             is GpsState.Tracking -> {

@@ -45,6 +45,7 @@ data class RunNotice(val activity: CardioActivity, val startedAtWall: Long, val 
 interface GpsDistance {
     val state: StateFlow<GpsState>
     fun access(): LocationAccess
+    fun refreshAccess()
     fun warmUp(activity: CardioActivity)
     fun coolDown()
     fun begin(runId: String, activity: CardioActivity, startedAtWall: Long)
@@ -55,6 +56,7 @@ interface GpsDistance {
     object None : GpsDistance {
         override val state: StateFlow<GpsState> = MutableStateFlow(GpsState.Off)
         override fun access() = LocationAccess.DENIED
+        override fun refreshAccess() = Unit
         override fun warmUp(activity: CardioActivity) = Unit
         override fun coolDown() = Unit
         override fun begin(runId: String, activity: CardioActivity, startedAtWall: Long) = Unit
@@ -97,21 +99,35 @@ class RunTracker @Inject constructor(
     private var collection: Job? = null
     private var foregroundStarted = false
 
-    override fun access(): LocationAccess {
-        val access = source.access()
-        if (access == LocationAccess.LOCATION_OFF) mutableState.value = GpsState.LocationOff(runId)
-        else if (access == LocationAccess.PRECISE && state.value == GpsState.LocationOff(null)) mutableState.value = GpsState.Off
-        return access
+    override fun access(): LocationAccess = source.access()
+
+    override fun refreshAccess() {
+        val currentActivity = activity ?: return
+        when (access()) {
+            LocationAccess.LOCATION_OFF -> mutableState.value = GpsState.LocationOff(runId)
+            LocationAccess.PRECISE -> if (state.value is GpsState.LocationOff) {
+                val currentRun = runId
+                if (track != null) {
+                    mutableState.value = GpsState.Tracking(currentRun)
+                    updateNotice()
+                } else if (currentRun != null) begin(currentRun, currentActivity, startedAtWall)
+                else warmUp(currentActivity)
+            }
+            else -> Unit
+        }
     }
 
     override fun warmUp(activity: CardioActivity) {
         if (runId != null || !activity.usesGps) return
-        if (access() == LocationAccess.LOCATION_OFF) {
+        if (this.activity == activity && state.value == GpsState.Tracking(null)) return
+        val access = access()
+        if (access == LocationAccess.LOCATION_OFF) {
             coolDown()
+            this.activity = activity
             mutableState.value = GpsState.LocationOff(null)
             return
         }
-        if (access() != LocationAccess.PRECISE) { coolDown(); return }
+        if (access != LocationAccess.PRECISE) { coolDown(); return }
         if (this.activity != activity) endAll()
         this.activity = activity
         if (track == null) track = DistanceTrack.forActivity(activity)

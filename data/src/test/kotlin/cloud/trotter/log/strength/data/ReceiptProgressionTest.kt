@@ -217,8 +217,18 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
         assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
     }
 
+    @Test fun `a cardio commit without a block or counter write has no journal`() = runTest {
+        val plan = cardioPlan()
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = false))
+        val id = cardio(plan, finishDay = false)
+        assertNull(db.cardioSessionDao().byId(id)!!.progressionUndoJson)
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertFalse(repo.finishUndoState(null, id).restorable)
+    }
+
     @Test fun `an amendment adds a block snapshot to a counter only journal preserving the current block`() = runTest {
         val plan = cardioPlan()
+        // 630 s at a 10% distance step makes the capped 250 m increase also move time to 660 s.
         val working = block(5250, seconds = 630)
         repo.setCardioWorking(plan, "A", working)
         repo.setCardioProgression(plan, "A", ProgressMeasure.DISTANCE, 10)

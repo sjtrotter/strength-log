@@ -766,7 +766,7 @@ class ReceiptScreenTest {
     @Test fun `receipt Undo and Why share one block and Rough day disables after Undo`() {
         val receipt = receiptFixture().copy(groups = receiptFixture().groups.take(1), cardioRows = emptyList(), activity = null)
         val line = ReceiptLiftLine(190.0, null, null, 5.0, false, "ALL_MADE", 1, true)
-        val initial = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"), "Bench Press", line)),
+        val initial = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"), "Bench Press", line, whyLine = line)),
             undoVisible = true, roughEnabled = true)
         val state = mutableStateOf(initial)
         val mutation = mutableStateOf<ReceiptMutation?>(null)
@@ -815,6 +815,14 @@ class ReceiptScreenTest {
         rule.onNodeWithText("Max").assertDoesNotExist()
     }
 
+    @Test fun `a failed cardio effort write has save failure wording`() {
+        rule.setContent {
+            AppTheme { SessionReceiptScreen(receiptFixture(), {}, {}, mutation = ReceiptMutation.EffortFailed) }
+        }
+        rule.onNodeWithText("Couldn't save.").assertIsDisplayed()
+        rule.onNodeWithText("Couldn't undo.").assertDoesNotExist()
+    }
+
     private fun setReceipt(
         receipt: WorkoutReceipt = receiptFixture(),
         onShare: () -> Unit = {},
@@ -828,9 +836,9 @@ class ReceiptScreenTest {
             CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) {
                 AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts,
                     progress = ReceiptProgressState(lifts = nextTimes?.takeIf { it.sessionId == receipt.sessionId }?.rows.orEmpty().map { next ->
-                        ReceiptLiftProgress(ReceiptSlotRef(next.groupIndex, next.rowIndex, 1, "main"), "",
-                            ReceiptLiftLine(next.offerLb ?: next.openingLb, null, null,
-                                next.offerLb?.let { it - next.openingLb }, false, "ALL_MADE", 1, next.offerLb != null))
+                        val line = ReceiptLiftLine(next.offerLb ?: next.openingLb, null, null,
+                            next.offerLb?.let { it - next.openingLb }, false, "ALL_MADE", 1, next.offerLb != null)
+                        ReceiptLiftProgress(ReceiptSlotRef(next.groupIndex, next.rowIndex, 1, "main"), "", line, whyLine = line)
                     })) }
             }
         }

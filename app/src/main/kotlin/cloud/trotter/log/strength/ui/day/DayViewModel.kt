@@ -612,6 +612,9 @@ class DayViewModel @Inject constructor(
                 closeSheet()
             },
             executionActive = { executionActive },
+            loggedCardio = { planId, dayId ->
+                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis())
+            },
         )
 
         viewModelScope.launch {
@@ -1254,6 +1257,9 @@ class DayViewModel @Inject constructor(
                         savedState[KEY_VIEW_SELECTION] = DaySelection(current.planId, current.dayId)
                     }
                     val route = gps.route(current.runId).takeIf { it.size >= 2 && saveRoute.value == true }?.let(CardioRouteJson::encode)
+                    val strengthOpen = repo.openRunFlow.first()?.let {
+                        it.planId == current.planId && it.dayId == current.dayId && !it.draft
+                    } == true
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = summary.mode.name,
                         hard = summary.hard,
@@ -1270,6 +1276,8 @@ class DayViewModel @Inject constructor(
                     val logged = latest.copy(
                         sessionId = id,
                         nextDayTitle = nextDay?.let { GlanceLines.dayLine(it.id, it.title) },
+                        // Distance can be entered after strength Start; receipt ownership stays with the commit.
+                        showReceipt = latest.showReceipt && !strengthOpen,
                     )
                     // Drafts own only amendment state, never the execution slot or alarm.
                     if (logged.drafts.isNotEmpty()) {
@@ -1340,8 +1348,7 @@ class DayViewModel @Inject constructor(
     private suspend fun finishCardioReceipt(run: CardioRun) {
         clearGpsStamps(run.runId)
         clearDistanceInputs(run.runId)
-        val strengthOpen = repo.openRunFlow.first()?.let { it.planId == run.planId && it.dayId == run.dayId && !it.draft } == true
-        if (strengthOpen || !run.showReceipt) {
+        if (!run.showReceipt) {
             clearCardioRecordState(run)
             return
         }

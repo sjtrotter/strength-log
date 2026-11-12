@@ -29,7 +29,7 @@ data class ReceiptProgress(val sessionId: Long?, val cardioSessionId: Long?, val
 data class ReceiptSlotRef(val groupIndex: Int, val rowIndex: Int, val programExerciseId: Long, val slot: String) : Parcelable
 
 data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val line: ReceiptLiftLine,
-                               val whyLine: ReceiptLiftLine? = line)
+                               val whyLine: ReceiptLiftLine?)
 
 data class ReceiptProgressState(
     val lifts: List<ReceiptLiftProgress> = emptyList(),
@@ -55,6 +55,7 @@ sealed interface ReceiptMutation {
     data object Failed : ReceiptMutation
     data class RoughDayOpen(val dayId: String) : ReceiptMutation
     data object RoughDayFailed : ReceiptMutation
+    data object EffortFailed : ReceiptMutation
 }
 
 internal object ReceiptProgressBuilder {

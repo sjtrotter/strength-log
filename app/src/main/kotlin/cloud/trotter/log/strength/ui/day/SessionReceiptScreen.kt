@@ -118,6 +118,7 @@ internal fun SessionReceiptScreen(
                 ReceiptMutation.Failed -> resources.getString(R.string.receipt_undo_failed)
                 is ReceiptMutation.RoughDayOpen -> resources.getString(R.string.receipt_rough_day_day_open, mutation.dayId)
                 ReceiptMutation.RoughDayFailed -> resources.getString(R.string.receipt_rough_day_failed)
+                ReceiptMutation.EffortFailed -> resources.getString(R.string.receipt_effort_failed)
             })
             onMutationHandled()
         }

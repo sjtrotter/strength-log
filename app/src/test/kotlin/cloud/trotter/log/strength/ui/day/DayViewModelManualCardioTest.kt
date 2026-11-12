@@ -209,6 +209,7 @@ class DayViewModelManualCardioTest {
 
         val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals("Easy", session.note)
+        assertNotNull(session.progressionUndoJson)
         assertNull(vm.uiState.value.cardio?.loggedSessionId)
         assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(2835)))),
             vm.uiState.value.cardio?.block)
@@ -222,7 +223,8 @@ class DayViewModelManualCardioTest {
         runCurrent()
         assertNull(vm.uiState.value.cardio?.nextTime)
         assertEquals(offer.offered, vm.uiState.value.cardio?.run?.block)
-        assertEquals(session, repo.history.cardioSession(session.id))
+        // §2.3: creating the day's next cardio run clears its earlier undo journal.
+        assertEquals(session.copy(progressionUndoJson = null), repo.history.cardioSession(session.id))
     }
 
     @Test fun `cardio before strength Start gets its own receipt and Undo on a combined day`() = runTest(dispatcher) {

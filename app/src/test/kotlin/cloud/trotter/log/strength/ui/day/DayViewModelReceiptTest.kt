@@ -1226,6 +1226,7 @@ class DayViewModelReceiptTest {
             repo, repo.history, repo.plans, repo.catalog, settings, publisher, shareCardService,
             SavedStateHandle(), backgroundScope, kotlinx.coroutines.sync.Mutex(), java.time.Clock.systemUTC(),
             afterCommit = { _, _ -> }, executionActive = { executionActive },
+            loggedCardio = { _, _ -> null },
         )
         beforeSessionsRead = { executionActive = true }
         finisher.showCardio(run, emptyMap(), session.copy(id = id))
@@ -1254,14 +1255,14 @@ class DayViewModelReceiptTest {
 
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
-    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle(), cardioClock: CardioClock = FixedCardioClock()): DayViewModel =
+        DayViewModel(repo, publisher, shareCardService, handle, cardioClock, InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read
      *  zero no matter what was ticked. */
-    private fun newCollectingViewModel(): DayViewModel =
-        newViewModel().also { vm -> vm.viewModelScope.launch { vm.uiState.collect {} } }
+    private fun newCollectingViewModel(cardioClock: CardioClock = FixedCardioClock()): DayViewModel =
+        newViewModel(cardioClock = cardioClock).also { vm -> vm.viewModelScope.launch { vm.uiState.collect {} } }
 
     private suspend fun insertProgram() {
         repo.replaceProgram(
@@ -1513,6 +1514,26 @@ class DayViewModelReceiptTest {
         assertNull(repo.history.cardioSession(id)!!.effort)
     }
 
+    @Test fun `a failed cardio effort write preserves the selection and reports a save failure`() = runVmTest {
+        val (plan, _) = automaticBench()
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900))
+        repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN, listOf(spec)))
+        val id = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1000, completedAt = 901000, seconds = 900, stepsCompleted = 1,
+            planId = plan, activity = "TRACK_RUN", effort = "GOOD"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900)))
+        val vm = newViewModel()
+        vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), repo.history.cardioSetsFor(id), 0, emptyMap())
+        advanceUntilIdle()
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_effort BEFORE UPDATE ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+
+        vm.finisher.setCardioEffort(cloud.trotter.log.strength.domain.progression.CardioEffort.HARD)
+        advanceUntilIdle()
+
+        assertEquals(ReceiptMutation.EffortFailed, vm.finisher.mutation.value)
+        assertEquals("GOOD", repo.history.cardioSession(id)!!.effort)
+        assertEquals(cloud.trotter.log.strength.domain.progression.CardioEffort.GOOD, vm.finisher.progressState.value.cardioEffort)
+    }
+
     @Test fun `mixed Automatic and Ask lifts show Undo at the receipt state`() = runVmTest {
         val (plan, bench) = automaticBench()
         repo.addExercise("A", ProgramExercise("ohp", targetSets = 3,
@@ -1600,7 +1621,7 @@ class DayViewModelReceiptTest {
             label = "Run", startedAt = completedAt - 900000, completedAt = completedAt, seconds = 900, stepsCompleted = 1,
             planId = plan, activity = "TRACK_RUN"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900,
                 5000, DistanceSource.MANUAL)))
-        val vm = newCollectingViewModel()
+        val vm = newCollectingViewModel(cardioClock = FixedCardioClock(completedAt))
         vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), repo.history.cardioSetsFor(id), 0, emptyMap())
         advanceUntilIdle()
         assertTrue(vm.finisher.progressState.value.undoVisible)

@@ -457,7 +457,7 @@ class DayEditSheetTest {
     fun tappingLiftOpensItsPrescription() {
         var opened: Long? = null
         show(edit = false, onOpenPrescription = { opened = it })
-        composeTestRule.onNodeWithText("Plank / Side Plank").performClick()
+        composeTestRule.onNodeWithText("Plank").performClick()
         composeTestRule.runOnIdle { assertEquals(1L, opened) }
         composeTestRule.onNodeWithText("Tracking").assertExists()
         composeTestRule.onNodeWithText("Save").assertIsEnabled()
@@ -467,7 +467,7 @@ class DayEditSheetTest {
     fun liftMenuOffersSwapAndRemoveAndRemovesItsPosition() {
         var removed: Int? = null
         show(edit = false, hasCardio = true, onRemove = { removed = it })
-        composeTestRule.onNodeWithContentDescription("More options for Plank / Side Plank").performClick()
+        composeTestRule.onNodeWithContentDescription("More options for Plank").performClick()
         composeTestRule.onNodeWithText("Swap").assertIsEnabled()
         composeTestRule.onNodeWithText("Remove").assertIsEnabled().performClick()
         composeTestRule.runOnIdle { assertEquals(0, removed) }
@@ -476,7 +476,7 @@ class DayEditSheetTest {
     @Test
     fun lastLiftCannotBeRemovedAndExplainsWhy() {
         show(edit = false)
-        composeTestRule.onNodeWithContentDescription("More options for Plank / Side Plank").performClick()
+        composeTestRule.onNodeWithContentDescription("More options for Plank").performClick()
         composeTestRule.onNodeWithText("Remove").assertIsNotEnabled()
         composeTestRule.onNodeWithText("A day keeps at least one lift").assertExists()
     }
@@ -486,7 +486,7 @@ class DayEditSheetTest {
         var removed: Int? = null
         // Leave canRemove unset: DayEditRules must decide whether removal is allowed.
         show(edit = false, slotCount = 4, onRemove = { removed = it })
-        composeTestRule.onAllNodesWithContentDescription("More options for Plank / Side Plank")[1].performClick()
+        composeTestRule.onAllNodesWithContentDescription("More options for Plank")[1].performClick()
         composeTestRule.onNodeWithText("Remove").assertIsEnabled().performClick()
         composeTestRule.runOnIdle { assertEquals(1, removed) }
     }

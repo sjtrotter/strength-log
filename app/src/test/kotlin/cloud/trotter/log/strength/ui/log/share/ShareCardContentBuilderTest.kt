@@ -107,9 +107,9 @@ class ShareCardContentBuilderTest {
     @Test
     fun mixedTrackingUsesTheNewestCountingType() {
         val sets = listOf(
-            weightedSet("plank", "Plank / Side Plank", 25.0, 5).copy(kind = SetKind.RAMP.name),
-            repsSet("plank", "Plank / Side Plank", 60),
-            timedSet("plank", "Plank / Side Plank", 90),
+            weightedSet("plank", "Plank", 25.0, 5).copy(kind = SetKind.RAMP.name),
+            repsSet("plank", "Plank", 60),
+            timedSet("plank", "Plank", 90),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
         assertEquals("1:30", content.liftLines.single().value)
@@ -127,7 +127,7 @@ class ShareCardContentBuilderTest {
 
     @Test
     fun aTimedLiftAlwaysShowsMinutesColonSeconds() {
-        val sets = listOf(timedSet("plank", "Plank / Side Plank", 45), timedSet("plank", "Plank / Side Plank", 30))
+        val sets = listOf(timedSet("plank", "Plank", 45), timedSet("plank", "Plank", 30))
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
         assertEquals("0:45", content.liftLines.single().value)
     }
@@ -238,7 +238,7 @@ class ShareCardContentBuilderTest {
     fun bodyweightNeverAppearsAnywhereOnTheCard() {
         val sets = listOf(
             weightedSet("bb_back_squat", "Barbell Back Squat", 235.0, 5),
-            timedSet("plank", "Plank / Side Plank", 45),
+            timedSet("plank", "Plank", 45),
             repsSet("pushup", "Push-Up", 12),
         )
         // A distinctive bodyweight value that would stand out if it leaked in.

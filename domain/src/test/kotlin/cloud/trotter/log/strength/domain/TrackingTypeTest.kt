@@ -68,11 +68,11 @@ class TrackingTypeTest {
     }
 
     @Test
-    fun `catalog has 35 non-WEIGHTED entries`() {
+    fun `catalog has 37 non-WEIGHTED entries`() {
         // Exact counts are pinned in ExerciseLibraryTest ("catalog totals are
-        // 184 entries, ...").
+        // 186 entries, ...").
         val nonWeighted = ExerciseLibrary.entries.filter { it.tracking != TrackingType.WEIGHTED }
-        assertEquals(35, nonWeighted.size)
+        assertEquals(37, nonWeighted.size)
     }
 
     @Test

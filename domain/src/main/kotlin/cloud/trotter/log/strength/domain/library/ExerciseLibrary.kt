@@ -232,12 +232,13 @@ object ExerciseLibrary {
         ExerciseEntry("seated_calf", "Seated Calf Raise", CALF_SOLEUS, listOf(MACHINE), false, flat(90.0), 1, shortName = "Seated Calf"),
         ExerciseEntry("bent_knee_lp_calf", "Leg-Press Calf Raise (Bent-Knee)", CALF_SOLEUS, listOf(MACHINE), false, flat(140.0), 2, shortName = "Bent-Knee Calf"),
 
-        ExerciseEntry("plank", "Plank / Side Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 1, weightedPairId = "weighted_plank", shortName = "Plank"),
+        ExerciseEntry("plank", "Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 1, weightedPairId = "weighted_plank"),
         ExerciseEntry("ab_wheel", "Ab Wheel Rollout", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 2, shortName = "Ab Wheel"),
         ExerciseEntry("dead_bug", "Dead Bug", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 3),
         ExerciseEntry("weighted_plank", "Weighted Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45, 25.0), 4),
         ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 5),
         ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6),
+        ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, flat(25.0), 1),
         ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2),
@@ -246,6 +247,7 @@ object ExerciseLibrary {
         ExerciseEntry("kb_windmill", "KB Windmill", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(25.0), 5),
         ExerciseEntry("turkish_getup", "Turkish Get-Up", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(35.0), 6),
         ExerciseEntry("farmers_carry", "Farmer's Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 7),
+        ExerciseEntry("side_plank", "Side Plank", CORE_ANTI_ROT, listOf(BODYWEIGHT), false, time(30), 8),
 
         ExerciseEntry("cable_crunch", "Cable Crunch", CORE_FLEX, listOf(CABLE), false, flat(90.0), 1),
         ExerciseEntry("hanging_raise", "Hanging Leg Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(10), 2, shortName = "Leg Raise"),
@@ -258,6 +260,9 @@ object ExerciseLibrary {
         ExerciseEntry("hanging_knee_raise", "Hanging Knee Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(12), 9, weightedPairId = "weighted_knee_raise"),
         ExerciseEntry("weighted_knee_raise", "Weighted Knee Raise", CORE_FLEX, listOf(PULLUP_BAR, DUMBBELL), false, flat(10.0), 10),
     )
+
+    /** Names a catalog entry used to have, so files written before a rename still match. */
+    val FORMER_NAMES: Map<String, String> = mapOf("Plank / Side Plank" to "plank")
 
     /** Ids reclassified from a bodyweight-fake [GoalSource.Flat] to
      *  [GoalSource.Time] in the tracking-types catalog pass. The one-shot

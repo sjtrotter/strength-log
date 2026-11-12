@@ -127,7 +127,7 @@ class LogScreenBuilderTest {
 
     @Test
     fun groupByExercise_reads_a_hold_from_a_positive_seconds_value() {
-        val sets = listOf(set("plank", "Plank / Side Plank", SetKind.WORK, 0.0, 0, seconds = 45))
+        val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 0, seconds = 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
         assertEquals("45s", groups.single().sets.single().weightRepsDisplay)
     }
@@ -137,7 +137,7 @@ class LogScreenBuilderTest {
         // Logged before "plank" was reclassified to TIMED: history is excluded
         // from the live exercise_log fixup, so this row is still weight 0 /
         // reps 45 / seconds 0 — must read as reps.
-        val sets = listOf(set("plank", "Plank / Side Plank", SetKind.WORK, 0.0, 45))
+        val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
         assertEquals("×45", groups.single().sets.single().weightRepsDisplay)
     }

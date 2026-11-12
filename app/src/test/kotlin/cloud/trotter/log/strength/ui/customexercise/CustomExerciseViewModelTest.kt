@@ -252,14 +252,14 @@ class CustomExerciseViewModelTest {
         val vm = newViewModel()
         advanceUntilIdle()
 
-        vm.setName("Plank")
+        vm.setName("Custom Unloaded Hold")
         vm.setPattern(MovementPattern.H_PULL)
         vm.setTracking(TrackingType.TIMED)
         vm.setTargetSeconds(45)
         vm.save()
         advanceUntilIdle()
 
-        val saved = repo.catalogFlow.first().entries.first { it.name == "Plank" }
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Custom Unloaded Hold" }
         assertEquals(GoalSource.Time(45, 0.0), saved.goal)
     }
 

@@ -456,7 +456,7 @@ class DayScreenBuilderTest {
         val weightedPlank = catalog.get("weighted_plank")
         val swap = DayScreenBuilder.weightSwapAffordance(weightedPlank, catalog)
         assertEquals("plank", swap?.targetExerciseId)
-        assertEquals("Plank / Side Plank", swap?.targetName)
+        assertEquals("Plank", swap?.targetName)
         assertEquals(true, swap?.isRemove)
     }
 

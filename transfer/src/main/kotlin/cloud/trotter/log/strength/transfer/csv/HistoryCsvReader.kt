@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -525,7 +526,14 @@ object HistoryCsvReader {
     }
 
     private fun catalogLookup(catalog: ExerciseCatalog): Map<String, String> =
-        catalog.entries.associate { normalizeExerciseName(it.name) to it.id }
+        buildMap {
+            for (entry in catalog.entries) {
+                put(normalizeExerciseName(entry.name), entry.id)
+            }
+            for ((name, id) in ExerciseLibrary.FORMER_NAMES) {
+                if (catalog.find(id) != null) putIfAbsent(normalizeExerciseName(name), id)
+            }
+        }
 
     private fun matchExerciseNames(sessions: List<PreviewSession>, catalog: ExerciseCatalog): List<UnmatchedExerciseName> {
         val known = catalogLookup(catalog)

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.Equipment.BODYWEIGHT
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
 import cloud.trotter.log.strength.domain.model.MovementPattern.CALF_GASTROC
@@ -102,12 +103,12 @@ class ExerciseLibraryTest {
     // --- Tracking types (catalog classification + variant pairs) ------------
 
     @Test
-    fun `catalog totals are 184 entries, 149 weighted, 28 reps, 7 timed`() {
+    fun `catalog totals are 186 entries, 149 weighted, 28 reps, 9 timed`() {
         val byType = ExerciseLibrary.entries.groupingBy { it.tracking }.eachCount()
-        assertEquals(184, ExerciseLibrary.entries.size)
+        assertEquals(186, ExerciseLibrary.entries.size)
         assertEquals(149, byType[TrackingType.WEIGHTED] ?: 0)
         assertEquals(28, byType[TrackingType.REPS] ?: 0)
-        assertEquals(7, byType[TrackingType.TIMED] ?: 0)
+        assertEquals(9, byType[TrackingType.TIMED] ?: 0)
     }
 
     @Test
@@ -127,6 +128,7 @@ class ExerciseLibraryTest {
     fun `exact set of TIMED entries`() {
         val expected = setOf(
             "plank", "hollow_hold", "weighted_plank", "suitcase_carry", "dead_hang", "farmers_carry", "wall_sit",
+            "high_plank", "side_plank",
         )
         val actual = ExerciseLibrary.entries.filter { it.tracking == TrackingType.TIMED }.map { it.id }.toSet()
         assertEquals(expected, actual)
@@ -153,6 +155,50 @@ class ExerciseLibraryTest {
         assertEquals(GoalSource.Time(30, 0.0), ExerciseLibrary.get("hollow_hold").goal)
         assertEquals(GoalSource.Time(45, 25.0), ExerciseLibrary.get("weighted_plank").goal)
         assertEquals(GoalSource.Time(40, 50.0), ExerciseLibrary.get("suitcase_carry").goal)
+    }
+
+    @Test
+    fun `front plank keeps its id and prescription after the rename`() {
+        val plank = ExerciseLibrary.get("plank")
+        assertEquals("Plank", plank.name)
+        assertEquals(null, plank.shortName)
+        assertEquals(CORE_ANTI_EXT, plank.pattern)
+        assertEquals(listOf(BODYWEIGHT), plank.equipment)
+        assertFalse(plank.perHand)
+        assertEquals(GoalSource.Time(45), plank.goal)
+        assertEquals(1, plank.subRank)
+        assertEquals("weighted_plank", plank.weightedPairId)
+    }
+
+    @Test
+    fun `high and side planks are timed bodyweight holds at the end of their patterns`() {
+        val highPlank = ExerciseLibrary.get("high_plank")
+        assertEquals("High Plank", highPlank.name)
+        assertEquals(CORE_ANTI_EXT, highPlank.pattern)
+        assertEquals(GoalSource.Time(45), highPlank.goal)
+        assertEquals(7, highPlank.subRank)
+
+        val sidePlank = ExerciseLibrary.get("side_plank")
+        assertEquals("Side Plank", sidePlank.name)
+        assertEquals(CORE_ANTI_ROT, sidePlank.pattern)
+        assertEquals(GoalSource.Time(30), sidePlank.goal)
+        assertEquals(8, sidePlank.subRank)
+
+        for (entry in listOf(highPlank, sidePlank)) {
+            assertEquals(TrackingType.TIMED, entry.tracking)
+            assertEquals(listOf(BODYWEIGHT), entry.equipment)
+            assertFalse(entry.perHand)
+            assertEquals(entry, ExerciseLibrary.byPattern(entry.pattern).last())
+        }
+    }
+
+    @Test
+    fun `former names resolve to existing ids and differ from current names`() {
+        val currentNames = ExerciseLibrary.entries.map { it.name }.toSet()
+        for ((name, id) in ExerciseLibrary.FORMER_NAMES) {
+            assertTrue(ExerciseLibrary.find(id) != null, "former name $name has unknown id $id")
+            assertFalse(name in currentNames, "former name $name is still a current name")
+        }
     }
 
     @Test
@@ -516,11 +562,11 @@ class ExerciseLibraryTest {
     )
 
     @Test
-    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 184`() {
+    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 186`() {
         assertEquals(175, preExistingRanks.size)
         val currentIds = ExerciseLibrary.entries.map { it.id }.toSet()
         assertTrue(preExistingRanks.keys.all { it in currentIds })
-        assertEquals(184, currentIds.size)
+        assertEquals(186, currentIds.size)
     }
 
     @Test

@@ -42,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -193,13 +194,20 @@ fun SetupScreen(
                                 }
                             },
                         )
-                        "save_route" -> ListItem(
-                            headlineContent = { Text(stringResource(R.string.settings_save_route)) },
-                            supportingContent = { Text(stringResource(R.string.settings_save_route_detail)) },
-                            trailingContent = { Switch(state.saveRoute, onCheckedChange = null, enabled = state.gpsDistance) },
-                            modifier = Modifier.fillMaxWidth().toggleable(value = state.saveRoute,
-                                enabled = state.gpsDistance, role = Role.Switch, onValueChange = actions.onSaveRouteChange),
-                        )
+                        "save_route" -> {
+                            val colors = ListItemDefaults.colors()
+                            ListItem(
+                                headlineContent = { Text(stringResource(R.string.settings_save_route)) },
+                                supportingContent = { Text(stringResource(R.string.settings_save_route_detail)) },
+                                trailingContent = { Switch(state.saveRoute, onCheckedChange = null, enabled = state.gpsDistance) },
+                                modifier = Modifier.fillMaxWidth().toggleable(value = state.saveRoute,
+                                    enabled = state.gpsDistance, role = Role.Switch, onValueChange = actions.onSaveRouteChange),
+                                colors = if (state.gpsDistance) colors else colors.copy(
+                                    headlineColor = colors.disabledHeadlineColor,
+                                    supportingTextColor = colors.disabledHeadlineColor,
+                                ),
+                            )
+                        }
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
                             supportingContent = {

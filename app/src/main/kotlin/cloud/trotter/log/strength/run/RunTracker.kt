@@ -121,6 +121,7 @@ class RunTracker @Inject constructor(
     private var activity: CardioActivity? = null
     private var startedAtWall = 0L
     private var startElapsed = 0L
+    private var startRunId: String? = null
     private var collection: Job? = null
     private var foregroundStarted = false
 
@@ -183,7 +184,10 @@ class RunTracker @Inject constructor(
         when (access()) {
             LocationAccess.PRECISE -> {
                 if (track == null) track = DistanceTrack.forActivity(activity)
-                startElapsed = clock.elapsedRealtimeMillis() - (clock.wallMillis() - startedAtWall).coerceAtLeast(0)
+                if (startRunId != runId) {
+                    startElapsed = clock.elapsedRealtimeMillis() - (clock.wallMillis() - startedAtWall).coerceAtLeast(0)
+                    startRunId = runId
+                }
                 collectFixes()
                 if (track == null) return
                 if (!foregroundStarted) {
@@ -214,7 +218,9 @@ class RunTracker @Inject constructor(
                     if (current.add(fix)) {
                         if (current.anchorMoves > before && keeping && routeRunId == runId &&
                             fix.elapsedMillis >= startElapsed && points.size < 100_000) {
-                            points += RoutePoint(((fix.elapsedMillis - startElapsed) / 1000).toInt(),
+                            val seconds = ((fix.elapsedMillis - startElapsed) / 1000)
+                                .coerceIn((points.lastOrNull()?.seconds ?: 0).toLong(), Int.MAX_VALUE.toLong()).toInt()
+                            points += RoutePoint(seconds,
                                 (fix.latitude * 1e5).roundToInt(), (fix.longitude * 1e5).roundToInt())
                         }
                         watch?.takeIf { it.runId == runId && !it.fired }?.let { target ->

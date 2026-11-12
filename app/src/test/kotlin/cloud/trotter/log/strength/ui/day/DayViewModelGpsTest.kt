@@ -2,7 +2,9 @@ package cloud.trotter.log.strength.ui.day
 
 import android.content.Context
 import android.os.Parcel
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -28,8 +30,9 @@ import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.run.FakeForeground
 import cloud.trotter.log.strength.run.FakeLocationSource
-import cloud.trotter.log.strength.run.GpsState
+import cloud.trotter.log.strength.run.GpsDistance
 import cloud.trotter.log.strength.run.GpsNotice
+import cloud.trotter.log.strength.run.GpsState
 import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.run.LocationAnswer
 import cloud.trotter.log.strength.run.RunTracker
@@ -37,12 +40,15 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import kotlin.math.PI
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -72,6 +78,7 @@ class DayViewModelGpsTest {
     private lateinit var repo: TrackerRepository
     private lateinit var share: ShareCardService
     private lateinit var storeScope: CoroutineScope
+    private lateinit var dataStore: DataStore<Preferences>
     private val clock = FakeCardioClock()
     private val alarm = FakeCardioAlarm()
     private val vms = mutableListOf<DayViewModel>()
@@ -87,7 +94,7 @@ class DayViewModelGpsTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries().setQueryCoroutineContext(dispatcher).build()
         storeScope = CoroutineScope(dispatcher + Job())
-        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
+        dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("cardio-vm", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
@@ -112,13 +119,17 @@ class DayViewModelGpsTest {
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
-    private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
+    private fun vm(
+        handle: SavedStateHandle = SavedStateHandle(),
+        gps: GpsDistance = tracker(),
+        preferences: SettingsStore = settings,
+    ) = DayViewModel(
         repo, SessionPublisher.NoOp, share, handle, clock, alarm, PhoneRestController(settings, NoOpRestRuntime),
-        settings = settings,
+        settings = preferences,
         plans = repo.plans,
         catalog = repo.catalog,
         historyRepository = repo.history,
-        gps = tracker(),
+        gps = gps,
     ).also { vms += it }
 
     private suspend fun TestScope.readyVm(handle: SavedStateHandle = SavedStateHandle()): DayViewModel {
@@ -589,6 +600,99 @@ class DayViewModelGpsTest {
         assertFalse(alarm.quiet)
     }
 
+    @Test fun `a fix delivered after a pocket deadline leaves the buzzing alarm pending`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        pocketVm(handle)
+        val startElapsed = clock.elapsed
+        pocketFixes(1, 59)
+        clock.advance(1200)
+        fix(60)
+        assertEquals(0, alarm.buzzes)
+        assertEquals(0, savedRun(handle).position)
+        assertEquals(startElapsed + 60_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+        assertEquals(1, savedRun(handle).results.size)
+        assertTrue(savedRun(handle).running)
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        clock.advance(800)
+        fix(61)
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+    }
+
+    @Test fun `a predeadline fix delivered late cannot replace the buzzing pocket alarm`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        val vm = pocketVm(handle)
+        val startElapsed = clock.elapsed
+        pocketFixes(1, 59)
+        clock.advance(1200)
+        source.fixes.emit(Fix(startElapsed + 59_900, 179.7 / (6_371_000.0 * PI / 180.0), 0.0, 5.0))
+        runCurrent()
+        backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        assertEquals(0, alarm.buzzes)
+        assertEquals(startElapsed + 60_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(0, savedRun(handle).position)
+        assertTrue(alarm.quiet)
+        clock.advance(800)
+        fix(61)
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+        assertEquals(1, savedRun(handle).results.size)
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+    }
+
+    @Test fun `pocket reconciliation gives the pending alarm a single fallback buzz`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        val vm = pocketVm(handle)
+        val startElapsed = clock.elapsed
+        pocketFixes(1, 59)
+        clock.advance(1200)
+        fix(60)
+        backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+        clock.advance(800)
+        fix(61)
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).results.size)
+    }
+
+    @Test fun `pocketing during a live boundary fix wait preserves its pending buzz`() = test {
+        prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        begin(vm)
+        val startElapsed = clock.elapsed
+        fixes(1, 59)
+        tick(1200)
+        vm.setCardioScreenLive(false)
+        assertEquals(startElapsed + 60_000, alarm.deadline)
+        assertFalse(alarm.quiet)
+        clock.advance(800)
+        fix(61)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, savedRun(handle).position)
+        assertEquals(1, savedRun(handle).results.size)
+        assertEquals(startElapsed + 120_000, alarm.deadline)
+    }
+
     @Test fun `a quiet pocket timeout settles without another buzz or an invented reading`() = test {
         prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
         val handle = SavedStateHandle()
@@ -640,6 +744,30 @@ class DayViewModelGpsTest {
         begin(vm)
         fixes(1, 560)
         assertEquals(0, alarm.buzzes)
+    }
+
+    @Test fun `a restored running distance set buzzes once at its target`() = test {
+        prepareBlock(CardioSetSpec(CardioRole.WORK, Measure.Distance(1000)))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        begin(first)
+        fixes(1, 60)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        trackers.forEach { it.endAll() }
+        val restored = readyVm(parcelHandle(handle))
+        fix(60)
+        fixes(61, 395)
+        assertEquals(0, alarm.buzzes)
+        fixes(396, 396)
+        assertEquals(1, alarm.buzzes)
+        fixes(397, 410)
+        assertEquals(1, alarm.buzzes)
+        assertTrue(restored.run().running)
+        assertTrue(restored.run().results.isEmpty())
+        restored.reachCardioTarget(restored.run().action())
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
     }
 
     @Test fun `Save route on stores every anchor of an open run`() = test {
@@ -721,6 +849,66 @@ class DayViewModelGpsTest {
         assertEquals(121, points.last().seconds)
     }
 
+    @Test fun `a backward wall clock step still logs the session with a valid route`() = test {
+        settings.setSaveRoute(true)
+        prepareBlock(time(60), time(60))
+        val vm = readyVm()
+        begin(vm)
+        fixes(1, 61)
+        vm.setCardioScreenLive(false)
+        runCurrent()
+        clock.wall -= 2_000
+        vm.setCardioScreenLive(true)
+        vm.startCardio()
+        runCurrent()
+        fix(61)
+        fixes(62, 121)
+        tick(0)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        val points = requireNotNull(savedRoute())
+        assertEquals(32, points.size)
+        assertEquals(0, points.first().seconds)
+        assertEquals(121, points.last().seconds)
+        assertTrue(points.zipWithNext().all { (before, after) -> after.seconds >= before.seconds })
+    }
+
+    @Test fun `a new ViewModel preserves captured points while Save route loads`() = test {
+        settings.setSaveRoute(true)
+        prepareBlock(time(1800))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        begin(first)
+        fixes(1, 60)
+        val tracker = trackers.single()
+        val runId = first.run().runId
+        val captured = tracker.route(runId)
+        assertEquals(16, captured.size)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        val loaded = CompletableDeferred<Unit>()
+        val delayedSettings = SettingsStore(object : DataStore<Preferences> {
+            override val data = flow {
+                loaded.await()
+                emitAll(dataStore.data)
+            }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                dataStore.updateData(transform)
+        })
+        val restored = vm(parcelHandle(handle), gps = tracker, preferences = delayedSettings)
+        backgroundScope.launch { restored.uiState.collect {} }
+        restored.setCardioScreenLive(true)
+        runCurrent()
+        assertEquals(captured, tracker.route(runId))
+        loaded.complete(Unit)
+        runCurrent()
+        assertEquals(captured, tracker.route(runId))
+        fixes(61, 64)
+        assertEquals(17, tracker.route(runId).size)
+        restored.stopCardio(restored.run().action())
+        runCurrent()
+        assertEquals(captured, requireNotNull(savedRoute()).take(captured.size))
+    }
+
     @Test fun `leaving location off warmup stops the ticker access reads`() = test {
         source.access = LocationAccess.LOCATION_OFF
         prepareBlock(time(1800))
@@ -737,7 +925,7 @@ class DayViewModelGpsTest {
     }
 
     @Test fun `location off across a screen return preserves earlier distance`() = test {
-        prepareBlock(time(600))
+        prepareBlock(time(600), time(300))
         val vm = readyVm()
         begin(vm)
         fixes(1, 60)
@@ -753,9 +941,14 @@ class DayViewModelGpsTest {
         tick(40_000)
         assertEquals(GpsState.Tracking(runId), trackers.single().state.value)
         fixes(101, 300)
+        assertEquals(1_800_000_300_000L, clock.wall)
+        assertEquals(9_300_000L, clock.elapsed)
+        assertEquals(300_000L, vm.run().elapsedMillis(clock))
         vm.stopCardio(vm.run().action())
         runCurrent()
-        val row = rows().single()
+        vm.endCardioBlock()
+        runCurrent()
+        val row = rows().first()
         assertEquals(891, row.metres)
         assertEquals(DistanceSource.GPS, row.distanceSource)
         assertEquals(CardioSetStatus.SHORTENED, row.status)

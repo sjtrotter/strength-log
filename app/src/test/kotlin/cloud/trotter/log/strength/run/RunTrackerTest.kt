@@ -265,4 +265,23 @@ class RunTrackerTest {
         tracker.endAll()
     }
 
+    @Test fun `route seconds keep their elapsed origin after a backward wall clock step`() = runTest(dispatcher) {
+        var wallOffset = 0L
+        val jumpingClock = object : CardioClock by clock {
+            override fun wallMillis() = elapsed + wallOffset
+        }
+        val tracker = RunTracker(source, foreground, jumpingClock, dispatcher)
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        tracker.keepRoute("r1", true)
+        runCurrent()
+        for (t in 0L..2L) { elapsed = t * 1000; source.fixes.emit(north(t, 11.0 * t)); runCurrent() }
+        wallOffset = -2_000
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        elapsed = 3_000
+        source.fixes.emit(north(3, 33.0))
+        runCurrent()
+        assertEquals(listOf(0, 1, 2, 3), tracker.route("r1").map { it.seconds })
+        tracker.endAll()
+    }
+
 }

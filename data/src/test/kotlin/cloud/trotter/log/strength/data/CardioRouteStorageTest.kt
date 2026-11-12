@@ -12,7 +12,6 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -69,13 +68,21 @@ class CardioRouteStorageTest {
         assertEquals(id, repo.logCardioSession(session, sets, route = "x"))
         val without = repo.logCardioSession(session.copy(startedAt = 2_000), sets, route = null)
         assertNull(db.cardioRouteDao().forSession(without))
-        assertFailsWith<IllegalArgumentException> {
-            repo.logCardioSession(session.copy(startedAt = 3_000), sets, route = "x")
-        }
-        assertNull(db.cardioSessionDao().forRun("A", 3_000))
         assertEquals(2, db.cardioSessionDao().all().size)
         assertEquals(2, db.cardioSetResultDao().all().size)
         assertEquals(listOf(CardioRouteEntity(id, route)), db.cardioRouteDao().all())
+    }
+
+    @Test fun `an invalid route logs the session without its route`() = runTest {
+        listOf("x", """{"v":1,"p":[[5,0,0],[4,11,0]]}""").forEachIndexed { index, invalid ->
+            val entry = session.copy(startedAt = 3_000L + index)
+            val id = repo.logCardioSession(entry, sets, route = invalid)
+            assertEquals(id, assertNotNull(db.cardioSessionDao().forRun("A", entry.startedAt)).id)
+            assertEquals(sets, history.cardioSetsFor(id))
+            assertNull(db.cardioRouteDao().forSession(id))
+        }
+        assertEquals(2, db.cardioSessionDao().all().size)
+        assertEquals(2, db.cardioSetResultDao().all().size)
     }
 
     @Test fun `delete and undo carry the exact saved route`() = runTest {

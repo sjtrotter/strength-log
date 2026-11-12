@@ -869,8 +869,7 @@ class TrackerRepository(
                 // A GPS row carries what its track read; an unread reading stays unknown.
                 (if (set.readingSource != null || set.distanceSource == DistanceSource.GPS) set else FinishedRule.atEnd(set)).toEntity(id, position)
             })
-            if (route != null) {
-                require(CardioRouteJson.decode(route) != null)
+            if (route != null && CardioRouteJson.decode(route) != null) {
                 cardioRouteDao.insert(CardioRouteEntity(id, route))
             }
             if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }

@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsOn
+import cloud.trotter.log.strength.run.LocationAccess
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -213,6 +215,29 @@ class SetupSectionsTest {
         composeTestRule.onNodeWithText("Cancel").performClick()
         composeTestRule.onNodeWithText("Minutes").assertDoesNotExist()
         assertEquals(0, writes)
+    }
+
+    @Test fun gpsDistanceShowsItsEnabledSwitchAndOutdoorDetail() {
+        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(gpsDistance = true), setupActions()) } }
+        composeTestRule.onNodeWithText("GPS distance").assertIsOn()
+        composeTestRule.onNodeWithText("Outdoor runs, walks and rides").assertExists()
+    }
+
+    @Test fun approximateLocationShowsThePreciseRequirement() {
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(gpsDistance = false, gpsAccess = LocationAccess.APPROXIMATE), setupActions())
+        } }
+        composeTestRule.onNodeWithText("Needs precise location").assertExists()
+    }
+
+    @Test fun preciseLocationEnablesGpsWithoutAsking() {
+        var chosen: Boolean? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(gpsDistance = false, gpsAccess = LocationAccess.PRECISE),
+                setupActions().copy(onGpsDistanceChange = { chosen = it }))
+        } }
+        composeTestRule.onNodeWithText("GPS distance").performClick()
+        composeTestRule.runOnIdle { assertEquals(true, chosen) }
     }
 
     private fun setupActions() = SetupActions(

@@ -295,7 +295,14 @@ data class CardioCardState(
     val readingInputs: List<CardioReadingInput> = emptyList(),
     val nextTime: CardioNextTime? = null,
     val canSwap: Boolean = false,
+    val gps: CardioGpsState? = null,
+    val gpsAsk: Boolean = false,
+    val gpsSets: List<CardioGpsSet> = emptyList(),
 )
+
+enum class GpsShown { READY, FINDING, LIVE, NO_SIGNAL, PARTIAL, LOCATION_OFF }
+@Immutable
+data class CardioGpsState(val shown: GpsShown, val metres: Int? = null, val metresPerSecond: Double? = null)
 
 enum class CardioPhase { SUGGESTION, EXECUTING }
 

@@ -170,11 +170,13 @@ internal fun CardioDistanceSheet(
     distanceUnit: DistanceUnit,
     input: CardioDistanceInput? = null,
     reading: CardioReadingInput? = null,
+    gpsSets: List<CardioGpsSet> = emptyList(),
 ) {
     val draft = run.drafts.firstOrNull { it.position == position } ?: return
     val unit = DistanceUnit.forActivity(distanceUnit, run.block.activity)
     val text = input?.takeIf { it.unit == unit }?.text
         ?: draft.metres()?.let(unit::inputText) ?: draft.text
+    val stamp = gpsSets.firstOrNull { it.runId == run.runId && it.position == position }
     val valid = draft.valid()
     val awaiting = CardioReadingEntry.awaiting(run, position, draft.metres())
     val readingText = reading?.takeIf { awaiting?.spec?.end !is Measure.Time || it.unit == unit }?.text.orEmpty()
@@ -214,6 +216,12 @@ internal fun CardioDistanceSheet(
                 onTextChange = actions.onCardioDistanceChange,
                 isError = !valid,
             )
+            stamp?.let {
+                Text(if (!it.complete) stringResource(R.string.gps_lost_signal)
+                    else if (draft.metres() == it.metres) stringResource(R.string.gps_measured)
+                    else stringResource(R.string.gps_measured_value, unit.format(it.metres)),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (!valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
             if (awaiting != null) {
                 val end = awaiting.spec.end

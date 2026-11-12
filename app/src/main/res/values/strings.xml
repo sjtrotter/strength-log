@@ -1054,4 +1054,28 @@
     <string name="effort_good">Good</string>
     <string name="effort_hard">Hard</string>
     <string name="effort_max">Max</string>
+
+    <string name="gps_distance_label">Distance</string>
+    <string name="gps_pace_label">Pace</string>
+    <string name="gps_speed_label">Speed</string>
+    <string name="gps_pace_value">%1$s /%2$s</string>
+    <string name="gps_speed_value">%1$s %2$s</string>
+    <string name="gps_speed_mph">mph</string>
+    <string name="gps_speed_kmh">km/h</string>
+    <string name="gps_ready">GPS ready</string>
+    <string name="gps_finding">Finding GPS</string>
+    <string name="gps_no_signal">No GPS signal</string>
+    <string name="gps_lost_signal">GPS lost signal</string>
+    <string name="gps_location_off">Location is off</string>
+    <string name="gps_turn_on">Turn on</string>
+    <string name="gps_off_notice">GPS distance off</string>
+    <string name="gps_precise_notice">GPS distance needs precise location</string>
+    <string name="gps_settings_action">Settings</string>
+    <string name="gps_measured">Measured by GPS</string>
+    <string name="gps_measured_value">GPS measured %1$s</string>
+    <string name="settings_gps_distance">GPS distance</string>
+    <string name="settings_gps_distance_detail">Outdoor runs, walks and rides</string>
+    <string name="settings_gps_needs_precise">Needs precise location</string>
+    <string name="settings_gps_blocked">Allow location in system settings</string>
+    <string name="run_channel_name">Distance tracking</string>
 </resources>

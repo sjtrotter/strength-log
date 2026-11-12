@@ -44,7 +44,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -66,6 +66,7 @@ internal fun SetEditSheet(
     dayIndex: Int,
     actions: DayActions,
     onDismiss: () -> Unit,
+    effortScale: EffortScale = EffortScale.WORDS,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     AppModalBottomSheet(
@@ -115,9 +116,9 @@ internal fun SetEditSheet(
                 actions = actions,
             )
             if (row.done && row.kind != SetKind.RAMP && card.tracking != TrackingType.TIMED) {
-                EffortRow(Effort.of(row.rir), {
+                SetEffortRow(row.rir, effortScale, {
                     actions.onSetEffort(card.programExerciseId, Slot.MAIN, row.index, it)
-                }, "set-edit-effort-${Slot.MAIN}")
+                }, { actions.onSetRepsLeft(card.programExerciseId, Slot.MAIN, row.index, it) }, "set-edit-effort-${Slot.MAIN}")
             }
             row.partner?.let { partner ->
                 Text(card.partnerTitle.orEmpty(), style = MaterialTheme.typography.titleMedium)
@@ -134,9 +135,9 @@ internal fun SetEditSheet(
                     actions = actions,
                 )
                 if (partner.done && card.tracking(Slot.SS) != TrackingType.TIMED) {
-                    EffortRow(Effort.of(partner.rir), {
+                    SetEffortRow(partner.rir, effortScale, {
                         actions.onSetEffort(card.programExerciseId, Slot.SS, row.index, it)
-                    }, "set-edit-effort-${Slot.SS}")
+                    }, { actions.onSetRepsLeft(card.programExerciseId, Slot.SS, row.index, it) }, "set-edit-effort-${Slot.SS}")
                 }
             }
             if (card.timedRepAim != null) {

@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -81,4 +83,19 @@ suspend fun TrackerRepository.writeTestRowsPaired(
 /** Replacing a program after migration requires a fresh conversion latch for the new fixture slots. */
 suspend fun StrengthDatabase.convertTestPlans(settings: SettingsStore) {
     PlanRepository(this, settings).runPlanSettingsFixupIfNeeded()
+}
+
+/** Seeds persisted Plan mode from releases that allowed unprescribed lifts. Prescribed fixtures use the current writer. */
+suspend fun TrackerRepository.keepToPlanFixture(db: StrengthDatabase, programExerciseId: Long) {
+    if (setKeepToPlan(programExerciseId, true)) return
+    val row = requireNotNull(db.programDao().exercise(programExerciseId))
+    if (row.keepToPlan) return
+    val parked = listOfNotNull(Slot.MAIN to row.exerciseId, row.supersetExerciseId?.let { Slot.SS to it })
+        .mapNotNull { (slot, id) ->
+            db.programDao().logForSlot(row.planId, row.dayId, row.id, slot)?.let { ParkedTrackDto(slot, id, it.setsJson) }
+        }
+    db.programDao().setKeepToPlan(row.id, true)
+    if (parked.isNotEmpty()) db.programDao().setParkedLogs(row.id, ParkedLogsJson.encode(parked))
+    db.programDao().deleteLogForSlot(row.planId, row.dayId, row.id, Slot.MAIN)
+    db.programDao().deleteLogForSlot(row.planId, row.dayId, row.id, Slot.SS)
 }

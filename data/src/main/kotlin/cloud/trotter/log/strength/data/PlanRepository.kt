@@ -27,6 +27,8 @@ import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -259,6 +261,22 @@ class PlanRepository(
     suspend fun useAlongside(id: Long) = setOnToday(id, true)
 
     suspend fun pause(id: Long) = setOnToday(id, false)
+
+    suspend fun setAutoApply(planId: Long, on: Boolean) = planDao.updateAutoApply(planId, on)
+
+    suspend fun setLightWeek(planId: Long, cycles: Int?) {
+        require(cycles == null || cycles in 4..8)
+        planDao.updateDeloadEvery(planId, cycles)
+    }
+
+    suspend fun setDefaultsFor(planId: Long, goal: LiftGoal) = editSettings(planId) { it.copy(defaultsFor = goal) }
+
+    suspend fun setRunCap(planId: Long, on: Boolean) = editSettings(planId) { it.copy(runCap = on) }
+
+    private suspend fun editSettings(planId: Long, edit: (PlanSettings) -> PlanSettings) = db.withTransaction {
+        val plan = planDao.plan(planId) ?: return@withTransaction
+        planDao.updateSettings(planId, PlanSettingsJson.encode(edit(plan.planSettings)))
+    }
 
     suspend fun setOfferStrengthIncreases(planId: Long, on: Boolean) = planDao.updateOfferStrengthIncreases(planId, on)
 

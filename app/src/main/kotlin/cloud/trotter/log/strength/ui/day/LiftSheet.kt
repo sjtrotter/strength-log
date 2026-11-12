@@ -40,7 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +57,8 @@ internal fun LiftSheet(
     onDismiss: () -> Unit,
     skippedPartner: SkippedLift? = null,
     canSkipLift: Boolean = card.isSuperset,
+    onOptions: () -> Unit = {},
+    effortScale: EffortScale = EffortScale.WORDS,
 ) {
     val partner = slot == Slot.SS
     val title = if (partner) card.partnerTitle.orEmpty() else card.title
@@ -87,6 +89,8 @@ internal fun LiftSheet(
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sheet_more)) }
                         DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.sheet_lift_options)) },
+                                onClick = { menuOpen = false; onOptions() })
                             if (canSwap) DropdownMenuItem(text = { Text(stringResource(R.string.day_menu_swap)) },
                                 onClick = { menuOpen = false; actions.onOpenSwapSheet(card.position, slot) })
                             if (canSkipLift) DropdownMenuItem(text = { Text(stringResource(R.string.day_skip_workout)) },
@@ -132,13 +136,13 @@ internal fun LiftSheet(
                         if (partner) card.partnerTimedShowsWeight else card.timedShowsWeight)
                     val notation = if (partner) card.partnerSetLabels.getOrNull(row.index) ?: "${row.index + 1}" else row.kindLabel
                     val description = stringResource(R.string.set_done_description, title, notation, value)
-                    val effort = Effort.of(values.rir).takeIf { values.done }
+                    val rir = values.rir.takeIf { values.done }
                     val current = focus == WorkoutFocus(card.programExerciseId, slot, row.index)
                     ListItem(
                         leadingContent = { Text(notation, modifier = Modifier.width(48.dp)) },
                         headlineContent = { Text(value, style = MaterialTheme.typography.titleLarge) },
                         supportingContent = when {
-                            effort != null -> { { EffortText(effort) } }
+                            rir != null -> { { SetEffortText(rir, effortScale) } }
                             current -> { { Text(stringResource(R.string.lift_sheet_now)) } }
                             else -> null
                         },

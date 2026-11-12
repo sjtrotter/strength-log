@@ -1210,7 +1210,7 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `bodyweight change while a kept to plan original is swapped out preserves its restored rows`() = runTest {
         val plan = generated()
         val id = slot(plan)
-        repo.setKeepToPlan(id, true)
+        repo.keepToPlanFixture(db, id)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
         assertEquals(RunStartResult.Started(runId), repo.startRun(plan, "A"))
         val original = db.runDao().tracks(runId).single()

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
@@ -29,6 +30,10 @@ data class PlanUiState(
     val goal: PlanGoalUi? = null,
     val goalDraft: PlanGoalDraft? = null,
     val shuttleEntry: String? = null,
+    val autoApply: Boolean = false,
+    val defaultsFor: LiftGoal = LiftGoal.STRENGTH,
+    val lightWeek: Int? = null,
+    val runCap: Boolean = true,
 )
 
 data class PlanGoalUi(val goal: PlanGoal, val best: Int?, val met: Boolean)
@@ -82,4 +87,8 @@ data class PlanActions(
     val onShuttleEntry: (String) -> Unit = {},
     val onSaveShuttleEntry: () -> Unit = {},
     val onDismissShuttleEntry: () -> Unit = {},
+    val onAutoApplyChange: (Boolean) -> Unit = {},
+    val onDefaultsForChange: (LiftGoal) -> Unit = {},
+    val onLightWeekChange: (Int?) -> Unit = {},
+    val onRunCapChange: (Boolean) -> Unit = {},
 )

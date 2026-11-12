@@ -60,6 +60,16 @@ class BackupV27Test {
                 metresAtEnd = 3470, secondsAtEnd = 900, centis = 452, timingMethod = "PHONE", startProtocol = "THREE_POINT")))),
     )
 
+    @Test fun `v27 preserves runCap false through codec snapshot and export`() {
+        val source = document().let { doc -> doc.copy(plans = doc.plans.map {
+            it.copy(settingsJson = PlanSettingsJson.encode(PlanSettings(runCap = false)))
+        }) }
+        val decoded = codec.decode(codec.encode(source)).toSnapshot().toDocument()
+        assertEquals(27, decoded.schemaVersion)
+        assertEquals(false, PlanSettingsJson.decode(decoded.plans.single().settingsJson)!!.runCap)
+        assertEquals(source.plans, decoded.plans)
+    }
+
     @Test fun `v27 round trip preserves every new field`() {
         val source = document().let { doc ->
             doc.copy(cardioSessions = doc.cardioSessions.map { it.copy(increaseApplied = true) })

@@ -938,3 +938,14 @@ A death after the Finish commit recovers through the normal Finish path, using a
 Applied changes show whatever the offer switches say. Each lift's own rule determines its mode. The receipt gives absolute next-time values, one Undo, Rough day, and one Why disclosure; cardio receipts and past-cardio entry include How was it?. Existing SavedStateHandle parcels retain their layouts; receipt identity and past-cardio effort have separate keys.
 
 Section 8's first 2c criterion (a short set stores rir 0) is superseded by revision 22.
+
+
+## 33. Revision 24 (2c-2)
+
+Plan settings expose Automatic or Ask, Defaults for, Light week (Off or every 4 to 8 rotations), and Run cap on cardio plans. The owner's Q2 keeps the Offer switches on Ask plans only. Automatic plans show every next-time chip; an Automatic lift override also shows its strength chip. Switching modes retains the stored Offer values for Ask.
+
+The owner's Q3 keeps Lift options to Next time, Rest, Reps left, and Increase. Back-offs, Misses lower by, and Strength days remain cut. Plan mode and Reset to plan require a prescription. A legacy unprescribed lift kept to plan offers Automatic and Ask with neither selected; either choice restores its parked rows. Rest reads the timer's resolver, including the user's bucket overrides. Settings exposes Words or Reps left, and numeric effort stores the selected rir.
+
+Prescription and structure edits preserve Next time, Rest, Reps left, and Increase; a swap preserves Next time only. Prescription and structure edits carry `rir` and `incrementPct` even when they still hold the old default, so a General accessory that turns ramped keeps rir 2 rather than MAIN's 3; this is deliberate, since the rule records no edit flag.
+
+Plan settings stay in optional JSON fields, with absent runCap meaning on. Room and backup versions stay unchanged. Existing SavedStateHandle parcels keep their layouts; the Lift options entry uses a separate key.

@@ -272,7 +272,7 @@ class RunOpeningTest : OpeningFixture() {
         }
         repo.discardRun(paired.runId)
         repo.removeSupersetPartner("A", id)
-        repo.setKeepToPlan(id, true)
+        repo.keepToPlanFixture(db, id)
         assertNull(opened(plan).openingJson)
     }
 

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -50,10 +51,13 @@ object SetEditor {
     }
 
     /** One row's effort; null when the row can't be rated or already holds it. */
-    fun effort(sets: List<LoggedSet>, index: Int, effort: Effort?): List<LoggedSet>? {
+    fun effort(sets: List<LoggedSet>, index: Int, effort: Effort?): List<LoggedSet>? = repsLeft(sets, index, effort?.rir)
+
+    fun repsLeft(sets: List<LoggedSet>, index: Int, rir: Int?): List<LoggedSet>? {
+        require(rir == null || rir in 0..EffortScale.MAX_REPS_LEFT)
         val row = sets.getOrNull(index) ?: return null
-        if (!row.done || row.kind == SetKind.RAMP || row.seconds > 0 || row.rir == effort?.rir) return null
-        return sets.mapIndexed { i, set -> if (i == index) set.copy(rir = effort?.rir) else set }
+        if (!row.done || row.kind == SetKind.RAMP || row.seconds > 0 || row.rir == rir) return null
+        return sets.mapIndexed { i, set -> if (i == index) set.copy(rir = rir) else set }
     }
 
     /**

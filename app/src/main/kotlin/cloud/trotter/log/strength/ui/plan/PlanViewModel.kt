@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import android.content.Context
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -160,6 +161,13 @@ class PlanViewModel @Inject constructor(
         savedState[GOAL] = null
         savedState[GOAL_DRAFT] = null
     }
+
+    fun setAutoApply(on: Boolean) { viewModelScope.launch { plans.setAutoApply(planId, on) } }
+    fun setDefaultsFor(goal: LiftGoal) {
+        viewModelScope.launch { plans.setDefaultsFor(planId, goal) }
+    }
+    fun setLightWeek(cycles: Int?) { viewModelScope.launch { plans.setLightWeek(planId, cycles) } }
+    fun setRunCap(on: Boolean) { viewModelScope.launch { plans.setRunCap(planId, on) } }
 
     fun setOfferStrengthIncreases(on: Boolean) {
         viewModelScope.launch { plans.setOfferStrengthIncreases(planId, on) }

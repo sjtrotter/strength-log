@@ -66,7 +66,7 @@ class PlanRowsTest : FinishProgressionFixture() {
         val plan = converted(day("bb_bench"))
         val b = id(plan, "bb_bench")
         history(plan)
-        repo.setKeepToPlan(b, true)
+        repo.keepToPlanFixture(db, b)
 
         assertEquals(mapOf(b to work(3, 185.0, 5)), repo.observePlanRows(plan, "A").first())
         assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))

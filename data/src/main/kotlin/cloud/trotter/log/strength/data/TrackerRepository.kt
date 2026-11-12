@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.CardioUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockUndoDto
@@ -271,7 +272,7 @@ class TrackerRepository(
             val updated = row.copy(prescriptionJson = json, targetSets = count, structure = structure?.name ?: row.structure)
             programDao.setPrescription(row.id, json, count)
             val catalog = this.catalog.snapshot()
-            val rule = plans.defaultRule(updated, catalog)
+            val rule = plans.defaultRule(updated, catalog).preservingSettings(SlotRuleJson.decode(row.ruleJson))
             replanSlot(updated.copy(ruleJson = SlotRuleJson.encode(rule)),
                 answersForPlan(planDao.plan(row.planId), global).config.weightUnit, catalog)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
@@ -289,7 +290,7 @@ class TrackerRepository(
             val updated = row.copy(structure = structure.name)
             programDao.setStructure(row.id, structure.name)
             val catalog = this.catalog.snapshot()
-            val rule = plans.defaultRule(updated, catalog)
+            val rule = plans.defaultRule(updated, catalog).preservingSettings(SlotRuleJson.decode(row.ruleJson))
             replanSlot(updated.copy(ruleJson = SlotRuleJson.encode(rule)),
                 answersForPlan(planDao.plan(row.planId), global).config.weightUnit, catalog)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
@@ -449,6 +450,9 @@ class TrackerRepository(
         programDao.deleteLogsForExercise(planId, dayId, programExerciseId)
         val replacement = programDao.exercise(programExerciseId) ?: return
         plans.ruleSlot(replacement, unit, catalog)
+        val replacementRule = SlotRuleJson.decode(programDao.exercise(row.id)?.ruleJson)
+        if (replacementRule != null) programDao.setRule(row.id,
+            SlotRuleJson.encode(replacementRule.copy(nextTime = SlotRuleJson.decode(row.ruleJson)?.nextTime)))
     }
 
     /** The open run's active track for this slot: retired when it holds done work, deleted otherwise. */
@@ -532,10 +536,11 @@ class TrackerRepository(
         }
     }
 
-    suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {
+    suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean): Boolean =
         db.withTransaction {
-            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
-            if (row.keepToPlan == keep) return@withTransaction
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+            if (keep && PrescriptionJson.decode(row.prescriptionJson) == null) return@withTransaction false
+            if (row.keepToPlan == keep) return@withTransaction true
             programDao.setKeepToPlan(row.id, keep)
             if (keep) {
                 parkWorkingValues(row)
@@ -543,8 +548,8 @@ class TrackerRepository(
             } else {
                 restoreParkedValues(row)
             }
+            true
         }
-    }
 
     private suspend fun parkWorkingValues(row: ProgramExerciseEntity) {
         val tracks = listOf(Slot.MAIN, Slot.SS).mapNotNull { slot ->
@@ -578,7 +583,7 @@ class TrackerRepository(
 
     suspend fun resetSlotToPlan(programExerciseId: Long): Boolean = db.withTransaction {
         val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
-        if (row.keepToPlan) return@withTransaction false
+        if (row.keepToPlan || PrescriptionJson.decode(row.prescriptionJson) == null) return@withTransaction false
         val run = runDao.openRun()
         if (run?.planId == row.planId && run.dayId == row.dayId) return@withTransaction false
         deleteSlotWorkingValues(row)
@@ -612,6 +617,11 @@ class TrackerRepository(
             val partnered = row.copy(supersetExerciseId = partnerExerciseId)
             plans.rulePartner(partnered, liveMainRows(partnered),
                 answersForPlan(planDao.plan(planId), global).config.weightUnit, catalog)
+            if (row.supersetExerciseId != null) {
+                val replacementRule = SlotRuleJson.decode(programDao.exercise(row.id)?.partnerRuleJson)
+                if (replacementRule != null) programDao.setPartnerRule(row.id,
+                    SlotRuleJson.encode(replacementRule.copy(nextTime = SlotRuleJson.decode(row.partnerRuleJson)?.nextTime)))
+            }
         }
     }
 
@@ -914,7 +924,7 @@ class TrackerRepository(
             .mapValues { (_, rows) -> rows.mapNotNull { it.toDomainOrNull() } }
         val day = entity.toDomain(emptyList())
         val stored = day.cardioToRun ?: return null
-        val judged = CardioJudge.judge(day, session, sessions, sets) ?: return null
+        val judged = CardioJudge.judge(day, session, sessions, sets, plan.planSettings.runCap) ?: return null
         if (judged.opening != stored) return null
         return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome)
     }
@@ -1598,6 +1608,26 @@ class TrackerRepository(
         Slot.SS -> partnerRuleJson
         else -> null
     }
+
+    suspend fun editRule(programExerciseId: Long, slot: String, edit: RuleEdit) = db.withTransaction {
+        require(slot == Slot.MAIN || slot == Slot.SS)
+        val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+        val rule = SlotRuleJson.decode(row.ruleJsonFor(slot)) ?: return@withTransaction
+        val updated = when (edit) {
+            is RuleEdit.NextTime -> {
+                val default = if (planDao.plan(row.planId)?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK
+                rule.copy(nextTime = edit.mode?.takeUnless { it == default })
+            }
+            is RuleEdit.Rest -> rule.copy(restSeconds = edit.seconds)
+            is RuleEdit.RepsLeft -> rule.copy(rir = edit.value)
+            is RuleEdit.Increase -> rule.copy(incrementPct = edit.fraction)
+        }
+        setRuleFor(row.id, slot, SlotRuleJson.encode(updated))
+    }
+
+    private fun SlotRule.preservingSettings(old: SlotRule?): SlotRule = if (old == null) this else copy(
+        nextTime = old.nextTime, restSeconds = old.restSeconds, rir = old.rir, incrementPct = old.incrementPct,
+    )
 
     private suspend fun setRuleFor(programExerciseId: Long, slot: String, json: String) {
         when (slot) {

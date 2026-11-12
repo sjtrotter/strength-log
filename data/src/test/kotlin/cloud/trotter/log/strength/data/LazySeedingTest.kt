@@ -162,7 +162,7 @@ class LazySeedingTest : FinishProgressionFixture() {
         history(plan)
         val before = rule(b)
         db.programDao().deleteLogForSlot(plan, "A", b, Slot.MAIN)
-        repo.setKeepToPlan(b, true)
+        repo.keepToPlanFixture(db, b)
         repo.setKeepToPlan(b, false)
         assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
 
@@ -177,7 +177,7 @@ class LazySeedingTest : FinishProgressionFixture() {
         val b = id(plan, "bb_bench")
         history(plan)
         val before = db.programDao().exercise(b)!!.ruleJson
-        repo.setKeepToPlan(b, true)
+        repo.keepToPlanFixture(db, b)
         assertNull(db.programDao().logForSlot(plan, "A", b, Slot.MAIN))
 
         repo.ensureSeeded(plan, "A")

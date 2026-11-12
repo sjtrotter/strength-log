@@ -470,8 +470,8 @@ class DayViewModel @Inject constructor(
             ),
             remoteTick,
         )
-    }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
+    }.combine(settings.effortScaleFlow) { state, scale -> state.copy(effortScale = scale) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
     private val otherWorkoutOpenMessage = MutableStateFlow(false)
 
@@ -588,6 +588,7 @@ class DayViewModel @Inject constructor(
             otherWorkoutOpenMessage = otherWorkoutOpenMessage,
             plans = plans,
             catalog = catalog,
+            restSettingsFlow = settings.restSettingsFlow,
         )
 
         finisher = SessionFinisher(
@@ -1620,14 +1621,17 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    fun setEffort(programExerciseId: Long, slot: String, index: Int, effort: Effort?) {
+    fun setEffort(programExerciseId: Long, slot: String, index: Int, effort: Effort?) =
+        setRepsLeft(programExerciseId, slot, index, effort?.rir)
+
+    fun setRepsLeft(programExerciseId: Long, slot: String, index: Int, rir: Int?) {
         val state = dayState.value
         val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
         val planId = state.planId ?: return
         val runId = state.runId ?: return
         mutate {
             val result = repo.applyToRun(runId, planId, day, listOf(
-                TrackEdit(programExerciseId, slot) { rows -> SetEditor.effort(rows, index, effort) },
+                TrackEdit(programExerciseId, slot) { rows -> SetEditor.repsLeft(rows, index, rir) },
             ))
             reportOtherDay(result, planId, day)
         }
@@ -2327,7 +2331,7 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
             exercises = performedDay.slots.map { slot ->
-                buildCard(slot, ctx.unit, history, ctx.plan?.offerStrengthIncreases ?: true,
+                buildCard(slot, ctx.unit, history, ctx.plan,
                     ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH).copy(
                     weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
                 )
@@ -2586,7 +2590,7 @@ class DayViewModel @Inject constructor(
         slot: PerformedSlot,
         unit: WeightUnit,
         history: DayHistory,
-        offersOn: Boolean,
+        plan: PlanEntity?,
         liftGoal: LiftGoal,
     ): ExerciseCardState {
         val id = slot.slot.programExerciseId
@@ -2645,10 +2649,10 @@ class DayViewModel @Inject constructor(
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
             nextTime = DayScreenBuilder.nextTime(slot.main.baseRows.orEmpty(), history.slotSessions[id to Slot.MAIN]?.takeIf { performed.exerciseId == pe.exerciseId }, pe.keepToPlan, unit,
-                offersOn = offersOn, rule = pe.rule),
+                offersOn = NextTimeGate.shows(plan, pe.rule?.nextTime), rule = pe.rule),
             partnerNextTime = slot.partner?.let { partnerTrack ->
                 DayScreenBuilder.nextTime(partnerTrack.baseRows.orEmpty(), history.slotSessions[id to Slot.SS]?.takeIf { partnerTrack.performed.exerciseId == pe.superset?.exerciseId }, pe.keepToPlan, unit,
-                    offersOn = offersOn, rule = pe.superset?.rule)
+                    offersOn = NextTimeGate.shows(plan, pe.superset?.rule?.nextTime), rule = pe.superset?.rule)
             },
             perHand = entry?.perHand == true,
             tracking = tracking,

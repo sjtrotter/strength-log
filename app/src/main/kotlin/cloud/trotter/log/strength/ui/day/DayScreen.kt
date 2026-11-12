@@ -337,6 +337,8 @@ fun DayScreen(
                             else if (sheet.slot == Slot.SS) dayEditActions.onSetSuperset(card.position, swap.targetExerciseId)
                             else dayEditActions.onSwap(card.position, swap.targetExerciseId)
                         },
+                        effortScale = state.effortScale,
+                        onOptions = { actions.onCloseAllSets(); dayEditActions.onOpenOptions(card.programExerciseId) },
                         onNote = { actions.onCloseAllSets(); noteCardId = card.programExerciseId },
                         onDismiss = actions.onCloseAllSets)
                 }
@@ -368,6 +370,7 @@ fun DayScreen(
                         dayIndex = state.dayIndex,
                         actions = actions,
                         onDismiss = actions.onCloseSetEditor,
+                        effortScale = state.effortScale,
                     )
                 }
             }
@@ -587,6 +590,7 @@ data class DayActions(
     val onAnswerLocation: (cloud.trotter.log.strength.run.LocationAnswer) -> Unit = {},
     val onGpsNoticeShown: () -> Unit = {},
     val onSwapCardio: (CardioActivity, CardioTemplate?) -> Unit = { _, _ -> },
+    val onSetRepsLeft: (Long, String, Int, Int?) -> Unit = { _, _, _, _ -> },
 )
 
 @Composable

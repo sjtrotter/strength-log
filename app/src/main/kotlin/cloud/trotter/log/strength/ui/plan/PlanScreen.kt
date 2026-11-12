@@ -33,6 +33,14 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.ui.components.RadioChoiceDialog
+import cloud.trotter.log.strength.ui.day.NextTimeControl
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +68,7 @@ import cloud.trotter.log.strength.ui.setup.SectionHeader
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanScreen(state: PlanUiState, actions: PlanActions) {
+    var progressionDialog by rememberSaveable(state.planId) { mutableStateOf<String?>(null) }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0),
@@ -102,21 +111,45 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 item(key = "progression_header") {
                     Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_progression)) }
                 }
-                item(key = "offer_strength") {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.plan_offer_strength)) },
-                        trailingContent = { Switch(checked = state.offerStrengthIncreases, onCheckedChange = null) },
-                        modifier = Modifier.toggleable(state.offerStrengthIncreases, role = Role.Switch,
-                            onValueChange = actions.onOfferStrengthChange),
-                    )
+                item(key = "next_time") {
+                    Box(Modifier.padding(horizontal = 16.dp)) {
+                        NextTimeControl(if (state.autoApply) NextTimeMode.AUTO else NextTimeMode.ASK,
+                            { actions.onAutoApplyChange(it == NextTimeMode.AUTO) })
+                    }
                 }
-                item(key = "offer_cardio") {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.plan_offer_cardio)) },
-                        trailingContent = { Switch(checked = state.offerCardioIncreases, onCheckedChange = null) },
-                        modifier = Modifier.toggleable(state.offerCardioIncreases, role = Role.Switch,
-                            onValueChange = actions.onOfferCardioChange),
-                    )
+                if (!state.autoApply) {
+                    item(key = "offer_strength") {
+                        ListItem(
+                            headlineContent = { Text(stringResource(R.string.plan_offer_strength)) },
+                            trailingContent = { Switch(checked = state.offerStrengthIncreases, onCheckedChange = null) },
+                            modifier = Modifier.toggleable(state.offerStrengthIncreases, role = Role.Switch,
+                                onValueChange = actions.onOfferStrengthChange),
+                        )
+                    }
+                    item(key = "offer_cardio") {
+                        ListItem(
+                            headlineContent = { Text(stringResource(R.string.plan_offer_cardio)) },
+                            trailingContent = { Switch(checked = state.offerCardioIncreases, onCheckedChange = null) },
+                            modifier = Modifier.toggleable(state.offerCardioIncreases, role = Role.Switch,
+                                onValueChange = actions.onOfferCardioChange),
+                        )
+                    }
+                }
+                item(key = "defaults_for") {
+                    ListItem(headlineContent = { Text(stringResource(R.string.plan_defaults_for)) },
+                        supportingContent = { Text(defaultsForLabel(state.defaultsFor)) },
+                        modifier = Modifier.clickable { progressionDialog = "defaults" })
+                }
+                item(key = "light_week") {
+                    ListItem(headlineContent = { Text(stringResource(R.string.plan_light_week)) },
+                        supportingContent = { Text(lightWeekLabel(state.lightWeek)) },
+                        modifier = Modifier.clickable { progressionDialog = "light" })
+                }
+                if (state.days.any { it.cardioActivity != null }) item(key = "run_cap") {
+                    ListItem(headlineContent = { Text(stringResource(R.string.plan_run_cap)) },
+                        supportingContent = { Text(stringResource(R.string.plan_run_cap_detail, *emptyArray<Any>())) },
+                        trailingContent = { Switch(state.runCap, onCheckedChange = null) },
+                        modifier = Modifier.toggleable(state.runCap, role = Role.Switch, onValueChange = actions.onRunCapChange))
                 }
                 item(key = "cardio_goal_header") {
                     Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goal)) }
@@ -154,6 +187,16 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
             }
         }
     }
+    if (progressionDialog == "defaults") RadioChoiceDialog(
+        stringResource(R.string.plan_defaults_for), stringResource(R.string.plan_defaults_for_detail),
+        LiftGoal.entries.map { it to defaultsForLabel(it) }, state.defaultsFor, actions.onDefaultsForChange,
+        { progressionDialog = null },
+    )
+    if (progressionDialog == "light") RadioChoiceDialog(
+        stringResource(R.string.plan_light_week), stringResource(R.string.plan_light_week_detail, *emptyArray<Any>()),
+        (listOf<Int?>(null) + (4..8).toList()).map { it to lightWeekLabel(it) }, state.lightWeek,
+        actions.onLightWeekChange, { progressionDialog = null },
+    )
     state.goalDraft?.let { PlanCardioGoalEditor(it, state.goal != null, actions) }
     state.shuttleEntry?.let { PlanShuttleEntry(it, actions) }
     state.goalDialog?.let { dialog ->
@@ -315,3 +358,14 @@ private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> 
         }
     }
 }
+
+@Composable
+private fun defaultsForLabel(goal: LiftGoal): String = stringResource(when (goal) {
+    LiftGoal.STRENGTH -> R.string.plan_defaults_strength
+    LiftGoal.MUSCLE -> R.string.plan_defaults_muscle
+    LiftGoal.GENERAL -> R.string.plan_defaults_general
+})
+
+@Composable
+private fun lightWeekLabel(cycles: Int?): String = if (cycles == null) stringResource(R.string.plan_light_week_off)
+    else stringResource(R.string.plan_light_week_every, cycles)

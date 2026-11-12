@@ -91,7 +91,7 @@ class PreviewViewModel @Inject constructor(
                     slotSessions[slot.slot.programExerciseId to Slot.MAIN]?.takeIf {
                         slot.main.performed.exerciseId == slot.slot.exercise.exerciseId
                     }, slot.slot.exercise.keepToPlan, unit,
-                    offersOn = plan?.offerStrengthIncreases ?: true, rule = slot.slot.exercise.rule)
+                    offersOn = cloud.trotter.log.strength.ui.day.NextTimeGate.shows(plan, slot.slot.exercise.rule?.nextTime), rule = slot.slot.exercise.rule)
                 val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
                     val slotLast = last[track.performed.exerciseId to slotName]
                     val previous = slotLast?.last

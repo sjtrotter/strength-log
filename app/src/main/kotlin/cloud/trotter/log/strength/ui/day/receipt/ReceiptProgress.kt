@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
-import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.ui.day.NextTimeGate
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.data.CardioJudge
 import android.os.Parcelable
@@ -73,7 +74,7 @@ internal object ReceiptProgressBuilder {
             val rows = tracks.tracks.firstOrNull { it.programExerciseId == ref.programExerciseId && it.slot == ref.slot }?.sets.orEmpty()
             val session = sessions[ref.programExerciseId to ref.slot] ?: return@mapNotNull null
             val line = ReceiptLines.strength(rows, session, slot.exercise.keepToPlan,
-                rule, receipt.unit, plan.autoApply || rule.nextTime == NextTimeMode.AUTO || plan.offerStrengthIncreases)
+                rule, receipt.unit, NextTimeGate.shows(plan, rule.nextTime))
                 ?: return@mapNotNull null
             ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
         }
@@ -84,12 +85,13 @@ internal object ReceiptProgressBuilder {
                 .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
         val day = program.days.firstOrNull { it.id == identity.dayId }
         val next = if (identity.cardioSessionId != null && day != null) {
+            // Receipts retain applied changes and unchanged values when Ask offers are hidden.
             DayScreenBuilder.cardioNextTime(day, plan.copy(offerCardioIncreases = true), cardio, sets)?.takeIf {
-                it !is CardioNextTime.Offer || it.applied || plan.autoApply || plan.offerCardioIncreases
+                it !is CardioNextTime.Offer || it.applied || NextTimeGate.shows(plan)
             }
         } else null
         val capped = if (entry != null && day != null && identity.cardioSessionId != null) {
-            (CardioJudge.judge(day, entry, cardio, sets)?.outcome?.change
+            (CardioJudge.judge(day, entry, cardio, sets, plan.planSettings.runCap)?.outcome?.change
                 as? CardioChange.Increase)?.capped == true
         } else false
         val counter = undo.roughLight ?: undo.strengthPlan ?: undo.cardioPlan

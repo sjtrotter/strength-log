@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.run.GpsDistance
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.lifecycle.ViewModel
@@ -39,7 +40,8 @@ class SetupViewModel @Inject constructor(
         state.copy(gpsDistance = enabled, gpsAccess = access)
     }.combine(settings.saveRouteFlow) { state, on ->
         state.copy(saveRoute = on)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
+    }.combine(settings.effortScaleFlow) { state, scale -> state.copy(effortScale = scale) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
 
     fun refreshLocationAccess() { gpsAccess.value = gps.access() }
 
@@ -49,6 +51,10 @@ class SetupViewModel @Inject constructor(
 
     fun setUnit(unit: WeightUnit) {
         viewModelScope.launch { settings.setUnit(unit) }
+    }
+
+    fun setEffortScale(scale: EffortScale) {
+        viewModelScope.launch { settings.setEffortScale(scale) }
     }
 
     fun setDistanceUnit(unit: DistanceUnit) {

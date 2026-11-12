@@ -71,6 +71,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.progression.EffortScale
+import androidx.compose.material3.TextButton
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -129,7 +131,7 @@ fun SetupScreen(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "effort_scale", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -155,6 +157,20 @@ fun SetupScreen(
             ) {
                 items(rows, key = { it }) { row ->
                     when (row) {
+                        "effort_scale" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_effort_scale)) },
+                            supportingContent = {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                    EffortScale.entries.forEachIndexed { index, scale ->
+                                        SegmentedButton(selected = state.effortScale == scale,
+                                            onClick = { actions.onEffortScaleChange(scale) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, 2),
+                                            label = { Text(stringResource(if (scale == EffortScale.WORDS)
+                                                R.string.settings_effort_words else R.string.settings_effort_reps_left)) })
+                                    }
+                                }
+                            },
+                        )
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
                             supportingContent = {
@@ -374,7 +390,8 @@ internal fun restDurationSeconds(minutes: String, seconds: String): Int? {
 /** Rest is edited in the app's standard sheet: two fields and one pinned Save, like the other entry sheets. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
+internal fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit,
+                               onUseDefault: (() -> Unit)? = null) {
     var minutes by rememberSaveable { mutableStateOf((initialSeconds / 60).toString()) }
     var seconds by rememberSaveable { mutableStateOf((initialSeconds % 60).toString()) }
     val total = restDurationSeconds(minutes, seconds)
@@ -392,6 +409,9 @@ private fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) 
             )
         },
         body = {
+            if (onUseDefault != null) TextButton(onClick = onUseDefault) {
+                Text(stringResource(R.string.lift_options_use_default))
+            }
             OutlinedTextField(
                 value = minutes, onValueChange = { minutes = it },
                 label = { Text(stringResource(R.string.form_minutes_label)) },

@@ -48,6 +48,22 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PlanScreenTest {
 
+    @Test fun automaticHidesOfferRowsAndSwitchingToAskShowsStoredChoices() {
+        val state = mutableStateOf(planScreenFixture().copy(autoApply = true, offerStrengthIncreases = false,
+            offerCardioIncreases = true))
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(onAutoApplyChange = { state.value = state.value.copy(autoApply = it) }))
+        } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Next time"))
+        rule.onNodeWithText("Offer strength increases").assertDoesNotExist()
+        rule.onNodeWithText("Offer cardio increases").assertDoesNotExist()
+        rule.onNodeWithText("Ask").performClick()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Offer strength increases"))
+        rule.onNodeWithText("Offer strength increases").assertIsOff()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Offer cardio increases"))
+        rule.onNodeWithText("Offer cardio increases").assertIsOn()
+    }
+
     @Test fun progressionSwitchesShowDefaultsAndForwardToggles() {
         var strength: Boolean? = null
         var cardio: Boolean? = null

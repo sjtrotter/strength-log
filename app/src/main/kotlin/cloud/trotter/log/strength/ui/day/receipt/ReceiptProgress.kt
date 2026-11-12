@@ -64,7 +64,16 @@ internal object ReceiptProgressBuilder {
     suspend fun build(identity: ReceiptProgress, receipt: WorkoutReceipt?, tracks: DayTracks, slots: List<ProgramSlot>,
                       plan: PlanEntity?, history: HistoryRepository, repo: TrackerRepository,
                       cardio: List<CardioSessionEntity>, sets: Map<Long, List<CardioSetResult>>, program: Program): ReceiptProgressState {
-        if (plan == null || receipt == null) return ReceiptProgressState()
+        if (receipt == null) return ReceiptProgressState()
+        val date = Instant.ofEpochMilli(receipt.completedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        val entry = identity.cardioSessionId?.let { id -> cardio.firstOrNull { it.id == id } }
+            ?: cardio.filter { plan != null && it.planId == plan.id && it.dayId == identity.dayId &&
+                Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == date }
+                .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
+        val cardioSets = entry?.id?.let {
+            ReceiptBuilder.cardioGroups(history.cardioSetsFor(it)).map { group -> group.sets }
+        }.orEmpty()
+        if (plan == null) return ReceiptProgressState(cardioSets = cardioSets)
         val undo = repo.finishUndoState(identity.sessionId, identity.cardioSessionId)
         val sessions = history.slotSessionsById(plan.id, identity.dayId)
         val lifts = identity.slots.mapNotNull { ref ->
@@ -79,11 +88,6 @@ internal object ReceiptProgressBuilder {
                 ?: return@mapNotNull null
             ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
         }
-        val date = Instant.ofEpochMilli(receipt.completedAt).atZone(ZoneId.systemDefault()).toLocalDate()
-        val entry = identity.cardioSessionId?.let { id -> cardio.firstOrNull { it.id == id } }
-            ?: cardio.filter { it.planId == plan.id && it.dayId == identity.dayId &&
-                Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == date }
-                .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
         val day = program.days.firstOrNull { it.id == identity.dayId }
         val next = if (identity.cardioSessionId != null && day != null) {
             // Receipts retain applied changes and unchanged values when Ask offers are hidden.
@@ -102,6 +106,6 @@ internal object ReceiptProgressBuilder {
             lightNext, plan.lightCycleRemaining, counter?.beforeRemaining?.let { it > 0 && counter.afterRemaining == 0 } == true,
             undo.roughLight != null, entry?.id, CardioEffort.entries.firstOrNull { it.name == entry?.effort },
             next, day?.cardioToRun.takeIf { identity.cardioSessionId != null }, capped,
-            entry?.id?.let { ReceiptBuilder.cardioGroups(history.cardioSetsFor(it)).map { group -> group.sets } }.orEmpty())
+            cardioSets)
     }
 }

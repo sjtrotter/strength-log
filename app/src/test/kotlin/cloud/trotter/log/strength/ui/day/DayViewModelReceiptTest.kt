@@ -1634,6 +1634,34 @@ class DayViewModelReceiptTest {
         assertEquals(listOf(listOf(result)), restored.finisher.progressState.value.cardioSets)
     }
 
+    @Test fun `an off plan receipt reloads measured legs from Room after restoring its saved identity`() = runVmTest {
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(1500))
+        val end = System.currentTimeMillis() - 1000
+        val result = CardioSetResult(spec, CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL,
+            metresAtEnd = 5000, secondsAtEnd = 1500, readingSource = ReadingSource.TYPED)
+        val id = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = end - 1690000, completedAt = end, seconds = 1690, stepsCompleted = 1,
+            activity = "ROAD_RUN"), listOf(result))
+        val vm = newCollectingViewModel(cardioClock = FixedCardioClock(end))
+        vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), listOf(result), 0, emptyMap())
+        advanceUntilIdle()
+        assertNull(vm.finisher.receiptProgress.value?.planId)
+        assertEquals(id, vm.finisher.receiptProgress.value?.cardioSessionId)
+        assertEquals(listOf(listOf(result)), vm.finisher.progressState.value.cardioSets)
+
+        val restored = newViewModel(SavedStateHandle(mapOf(
+            "day_workout_receipt" to vm.finisher.receipt.value,
+            "day_receipt_progress" to vm.finisher.receiptProgress.value,
+        )), cardioClock = FixedCardioClock(end))
+        advanceUntilIdle()
+
+        assertEquals(id, restored.finisher.receiptProgress.value?.cardioSessionId)
+        assertEquals(listOf(listOf(result)), restored.finisher.progressState.value.cardioSets)
+        assertNull(restored.finisher.progressState.value.cardioSessionId)
+        assertFalse(restored.finisher.progressState.value.undoVisible)
+        assertNull(restored.finisher.progressState.value.cardioNext)
+    }
+
     @Test fun `cardio logged before Start has rows but no next time on the strength receipt`() = runVmTest {
         val (plan, bench) = automaticBench()
         val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900), Measure.Distance(5000))

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PlanRepository
@@ -13,6 +14,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
@@ -71,14 +73,16 @@ internal class SessionFinisher(
     val receiptProgress = savedState.getStateFlow<ReceiptProgress?>(KEY_RECEIPT_PROGRESS, null)
     val progressState = combine(receiptProgress, receipt) { identity, current -> identity to current }.flatMapLatest { (identity, current) ->
         val planId = identity?.planId
-        if (identity == null || planId == null) flowOf(ReceiptProgressState()) else combine(
-            repo.dayTracksFlow(planId, identity.dayId), plans.slotsFor(planId, identity.dayId),
+        if (identity == null) flowOf(ReceiptProgressState()) else combine(
+            if (planId == null) flowOf(DayTracks(null, false, emptyList())) else repo.dayTracksFlow(planId, identity.dayId),
+            if (planId == null) flowOf(emptyList()) else plans.slotsFor(planId, identity.dayId),
             plans.plansFlow, historyRepository.sessionsFlow,
             combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets -> sessions to sets },
         ) { tracks, slots, allPlans, _, cardio ->
             try {
                 ReceiptProgressBuilder.build(identity, current, tracks, slots, allPlans.firstOrNull { it.id == planId },
-                    historyRepository, repo, cardio.first, cardio.second, plans.programFor(planId).first())
+                    historyRepository, repo, cardio.first, cardio.second,
+                    if (planId == null) Program(emptyList()) else plans.programFor(planId).first())
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

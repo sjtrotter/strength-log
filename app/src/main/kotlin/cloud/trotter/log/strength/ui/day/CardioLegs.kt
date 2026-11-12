@@ -44,8 +44,10 @@ internal data class CardioLegs(val at: String, val past: String) {
 }
 
 @Composable
-internal fun CardioLegLines(set: CardioSetResult, unit: DistanceUnit) {
+internal fun CardioLegLines(set: CardioSetResult, unit: DistanceUnit, label: String? = null) {
     CardioLegs.of(set, unit, LocalContext.current.resources)?.let {
+        if (label != null) Text(label, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(it.at, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(it.past, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

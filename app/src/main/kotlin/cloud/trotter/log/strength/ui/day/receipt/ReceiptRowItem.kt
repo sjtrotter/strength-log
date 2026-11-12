@@ -324,7 +324,7 @@ internal fun CardioReceiptRowItem(
         return
     }
     val spoken = spokenCardioRow(row, unit) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
-    ExpandableReceiptRow(rowKey, name, spoken, row.role == CardioRole.WORK && row.count > 1,
+    ExpandableReceiptRow(rowKey, name, spoken, row.intervals.size > 1,
         dayIndex, row.record?.kind, values = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (row.role == CardioRole.WORK && bestInterval(row) != null) ValueLabel(cardioValueLabel(row), Modifier.alignByBaseline())

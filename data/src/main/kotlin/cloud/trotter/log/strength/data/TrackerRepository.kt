@@ -1987,8 +1987,7 @@ class TrackerRepository(
             val main = tracks.firstOrNull {
                 it.programExerciseId == slot.id && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
             } ?: return@filter false
-            tracks.none { it.programExerciseId == slot.id && OpeningJson.decode(it.openingJson)?.light == true } &&
-                SetJson.decodeSets(main.plannedJson).isNotEmpty() &&
+            SetJson.decodeSets(main.plannedJson).isNotEmpty() &&
                 !main.canReplan(prescription.tracking == TrackingType.TIMED)
         }.map { it.id }.toSet()
         changedShape.forEach {
@@ -2005,8 +2004,8 @@ class TrackerRepository(
             val actual = SetJson.decodeSets(track.setsJson)
             if (track.dropped && actual.none { it.done }) continue
             val opening = OpeningJson.decode(track.openingJson)
-            // A light opening is a view; Finish must not persist its rows or rule state.
-            if (opening?.light == true) {
+            // Recalibration must persist through a light opening; other light openings are views.
+            if (opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
                 val planned = SetJson.decodeSets(track.plannedJson)
                 val reached = WorkingRows.workSetIndices(planned).any { i -> actual.any { it.plannedIndex == i && it.done } }
                 reasons[track.id] = ReasonCode.encode(if (reached) Reason.LightCycle else Reason.NoSets)
@@ -2046,7 +2045,7 @@ class TrackerRepository(
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
-                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today))
+                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true))
                 val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
                 Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))

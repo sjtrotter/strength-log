@@ -1119,6 +1119,7 @@
     <string name="receipt_why_cardio">%1$s %2$s %5$s (%3$s): every set finished.</string>
     <string name="receipt_why_cardio_capped">%1$s %2$s %5$s (%3$s): held to 10%% past your longest recent run.</string>
     <string name="receipt_cardio_intervals">%1$d × %2$s</string>
+    <string name="log_cardio_interval">Interval %1$d</string>
     <plurals name="receipt_why_light_remaining">
         <item quantity="one">Light week, %1$d day left.</item>
         <item quantity="other">Light week, %1$d days left.</item>

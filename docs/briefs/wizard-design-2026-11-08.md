@@ -955,7 +955,7 @@ Plan settings stay in optional JSON fields, with absent runCap meaning on. Room 
 
 Lift markers describe the captured opening, including its read-only preview before Start. Estimate takes precedence over Light week, Lighter today, and After a break. The set page and Lift sheet use the same marker for each half of a superset.
 
-Today offers Lighter today above Start only with an eligible ruled lift and no draft, run, or light week. The choice opens through the existing light-week calculation. Finish records LIGHT_CYCLE for completed work and leaves stored working rows and rules unchanged, including exposure counts.
+Today offers Lighter today above Start only with an eligible ruled lift and no draft, run, or light week. The choice opens through the existing light-week calculation. For non-recalibration light openings, Finish records LIGHT_CYCLE for completed work and leaves stored working rows and rules unchanged, including exposure counts. Counter-driven light weeks also leave exposure counts unchanged for these openings. A light RECALIBRATE opening retains the existing progression path: Automatic writes the 0.75× recalibration rows, sets calibrating, and counts the exposure; Ask keeps its stored rows and calibration state and counts the exposure.
 
 Cardio overruns show two legs on the receipt and in History only when Room holds a measured or typed reading at the planned end: metresAtEnd for a time end, secondsAtEnd for a distance end. Derived readings never qualify. Receipt results reload through the receipt's cardio session identity; existing SavedStateHandle parcels keep their layouts.
 

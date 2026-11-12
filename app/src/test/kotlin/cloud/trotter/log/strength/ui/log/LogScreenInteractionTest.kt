@@ -176,6 +176,27 @@ class LogScreenInteractionTest {
         composeTestRule.onAllNodesWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertCountEquals(1)
     }
 
+    @Test fun historyLabelsEachIntervalsMeasuredLegs() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Road run", startedAt = 1000, completedAt = 346_000, seconds = 345,
+            stepsCompleted = 2, activity = CardioActivity.ROAD_RUN.name)
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(500))
+        val results = listOf(
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 165, 550, DistanceSource.MANUAL,
+                secondsAtEnd = 150, readingSource = ReadingSource.TYPED),
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 180, 600, DistanceSource.MANUAL,
+                secondsAtEnd = 160, readingSource = ReadingSource.TYPED),
+        )
+        setContent(false, distanceUnit = DistanceUnit.KM, sessions = listOf(LogScreenBuilder.cardioItem(session, results)))
+
+        val labelsAndLegs = listOf("Interval 1", "2:30 at 0.5 km", "0:15, 0.05 km past the target",
+            "Interval 2", "2:40 at 0.5 km", "0:20, 0.10 km past the target")
+        val positions = labelsAndLegs.map {
+            composeTestRule.onNodeWithText(it, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
+        }
+        assertTrue(positions.zipWithNext().all { (first, second) -> first < second })
+    }
+
     @Test fun roadHistoryTotalsUseMiles() {
         val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
             label = "Road run", startedAt = 1000, completedAt = 1_801_000, seconds = 1800,

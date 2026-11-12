@@ -83,7 +83,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
         repo.setKeepToPlan(slot, false)
-        db.programDao().setRule(slot, null)
+        db.programDao().setStructure(slot, db.programDao().exercise(slot)!!.structure)
         advanceUntilIdle()
         assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
     }

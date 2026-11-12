@@ -14,10 +14,10 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.StrengthLogApp
 import cloud.trotter.log.strength.domain.standards.PhoneRest
+import cloud.trotter.log.strength.openAppPendingIntent
 import cloud.trotter.log.strength.ui.components.AppHaptics
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -95,7 +95,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         .setChronometerCountDown(true)
         .setOngoing(true)
         .setSilent(true)
-        .setContentIntent(openAppIntent(context))
+        .setContentIntent(openAppPendingIntent(context, 0))
         .addAction(0, context.getString(R.string.rest_notification_add), actionIntent(context, RestActionReceiver.ADD))
         .addAction(0, context.getString(R.string.rest_notification_skip), actionIntent(context, RestActionReceiver.SKIP))
         .build()
@@ -105,7 +105,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         .setContentTitle(context.getString(R.string.rest_over))
         .setAutoCancel(true)
         .setDefaults(NotificationCompat.DEFAULT_ALL)
-        .setContentIntent(openAppIntent(context))
+        .setContentIntent(openAppPendingIntent(context, 0))
         .build()
 
     companion object {
@@ -134,9 +134,6 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         )
         private fun alarmIntent(context: Context) = PendingIntent.getBroadcast(
             context, 0, Intent(context, RestAlarmReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        private fun openAppIntent(context: Context) = PendingIntent.getActivity(
-            context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 }

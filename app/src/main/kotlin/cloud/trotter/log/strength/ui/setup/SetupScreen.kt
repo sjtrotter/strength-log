@@ -1,5 +1,17 @@
 package cloud.trotter.log.strength.ui.setup
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import cloud.trotter.log.strength.run.LocationAccess
+import cloud.trotter.log.strength.run.LocationAnswer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,13 +93,42 @@ fun SetupScreen(
     actions: SetupActions,
     openRestTimer: Boolean = false,
 ) {
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+    var blocked by rememberSaveable { mutableStateOf(false) }
+    var wanted by rememberSaveable { mutableStateOf(false) }
+    val openSettings = {
+        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val answer = LocationAnswer.from(grants, activity?.let {
+            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION)
+        } == true)
+        actions.onRefreshLocationAccess()
+        when (answer) {
+            LocationAnswer.PRECISE -> { blocked = false; wanted = false; actions.onGpsDistanceChange(true) }
+            LocationAnswer.APPROXIMATE, LocationAnswer.DENIED -> actions.onGpsDistanceChange(false)
+            LocationAnswer.BLOCKED -> { blocked = true; wanted = true; actions.onGpsDistanceChange(false); openSettings() }
+        }
+    }
+    LifecycleResumeEffect(Unit) {
+        actions.onRefreshLocationAccess()
+        onPauseOrDispose {}
+    }
+    LaunchedEffect(state.gpsAccess, wanted) {
+        if (wanted && state.gpsAccess == LocationAccess.PRECISE) {
+            actions.onGpsDistanceChange(true)
+            wanted = false
+            blocked = false
+        }
+    }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     var showDistanceUnitDialog by rememberSaveable { mutableStateOf(false) }
     val distanceUnits = mapOf(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "gps_distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -134,6 +175,23 @@ fun SetupScreen(
                             supportingContent = { Text(stringResource(distanceUnits.getValue(state.distanceUnit))) },
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                                 .clickable { showDistanceUnitDialog = true },
+                        )
+                        "gps_distance" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_gps_distance)) },
+                            supportingContent = { Text(stringResource(when {
+                                blocked -> R.string.settings_gps_blocked
+                                !state.gpsDistance && state.gpsAccess == LocationAccess.APPROXIMATE -> R.string.settings_gps_needs_precise
+                                else -> R.string.settings_gps_distance_detail
+                            })) },
+                            trailingContent = { Switch(state.gpsDistance, onCheckedChange = null) },
+                            modifier = Modifier.fillMaxWidth().toggleable(value = state.gpsDistance, role = Role.Switch) { on ->
+                                when {
+                                    !on -> actions.onGpsDistanceChange(false)
+                                    state.gpsAccess == LocationAccess.PRECISE || state.gpsAccess == LocationAccess.LOCATION_OFF -> actions.onGpsDistanceChange(true)
+                                    blocked -> { wanted = true; openSettings() }
+                                    else -> permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                                }
+                            },
                         )
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
@@ -414,6 +472,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
             actions = SetupActions(
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {}, onDistanceUnitChange = {},
+                onGpsDistanceChange = {}, onRefreshLocationAccess = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

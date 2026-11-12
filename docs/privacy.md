@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: October 13, 2026**
+**Last updated: November 11, 2026**
 
 exercise.log is a strength-training tracker for Android and Wear OS. This
 page explains what the app does and doesn't do with your data. It's short
@@ -16,6 +16,8 @@ because there isn't much to say: the app doesn't collect anything.
   We never see it.
 - The only data leaving your control is data *you* explicitly export, to a
   file *you* choose, using Android's own file picker.
+- If you turn on GPS distance, the app uses your phone's precise
+  location for outdoor runs, walks and rides to measure distance. It stores the distance, not where you went.
 
 ## What the app stores, and where
 
@@ -56,6 +58,18 @@ Health Connect is itself on-device. It isn't a network service, it's an
 Android system component other apps exchange data through, under your
 control. The app works fully with none of these granted, and you can revoke
 access at any time from Health Connect's own settings.
+
+## Location
+
+GPS distance measures outdoor runs, walks and rides. The app asks for your precise location the first time you
+start one, or when you turn on Settings › GPS distance. It reads location only while an outdoor activity is on
+screen or running. While one runs, a notification shows, though Android may tuck it away if you've turned off
+the app's notifications.
+
+Locations stay in memory on your phone just long enough to add up the distance. The app saves the distances
+and times it measured, not coordinates or a route, and it can't send anything anywhere (it has no internet
+permission). If you say no, or allow only approximate location, GPS distance turns off and you type distances
+as before. You can turn it off in Settings or revoke the permission in Android's settings at any time.
 
 ## Backups and exports
 

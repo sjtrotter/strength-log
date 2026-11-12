@@ -4,6 +4,15 @@ import cloud.trotter.log.strength.ui.theme.SetNumerals
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.PaddingValues
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.SnackbarResult
+import cloud.trotter.log.strength.run.GpsNotice
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import java.util.Locale
+import kotlin.math.roundToInt
 import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -129,7 +138,19 @@ fun WorkoutSetScreen(
     onBack: (() -> Unit)? = null,
     nowMillis: () -> Long = System::currentTimeMillis,
     onNote: (Long) -> Unit = {},
+    gpsNotice: GpsNotice? = null,
 ) {
+    val context = LocalContext.current
+    val noticeText = gpsNotice?.let { stringResource(if (it == GpsNotice.NEEDS_PRECISE) R.string.gps_precise_notice else R.string.gps_off_notice) }
+    val settingsLabel = stringResource(R.string.gps_settings_action)
+    LaunchedEffect(gpsNotice) {
+        if (noticeText != null) {
+            val result = snackbarHost.showSnackbar(noticeText, actionLabel = settingsLabel.takeIf { gpsNotice == GpsNotice.NEEDS_PRECISE })
+            actions.onGpsNoticeShown()
+            if (result == SnackbarResult.ActionPerformed) context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", context.packageName, null)))
+        }
+    }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
         primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
     )) {
@@ -416,7 +437,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(stringResource(R.string.workout_cardio_aim, measureText(end, block.activity)), style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (run?.running == true) OutlinedTextField(
+                    if (run?.running == true && (cardio.gps == null || cardio.gps.shown == GpsShown.LOCATION_OFF)) OutlinedTextField(
                         value = cardio.runDistanceText, onValueChange = actions.onCardioRunDistanceChange,
                         label = { Text(stringResource(R.string.cardio_distance_label, entryUnit.symbol)) }, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = if (entryUnit == DistanceUnit.M) KeyboardType.Number else KeyboardType.Decimal),
@@ -438,6 +459,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                 Text(stringResource(R.string.workout_cardio_aim, measureText(it, block.activity)), style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            cardio.gps?.let { WorkoutGps(it, cardio.distanceUnit, activity, run?.running == true) }
             if (run == null && !done) {
                 when (val nextTime = cardio.nextTime) {
                     is CardioNextTime.Offer ->
@@ -450,6 +472,56 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             if (spec.end is Measure.Distance && run?.running == true) {
                 Text(stringResource(R.string.workout_cardio_to, measureText(spec.end, block.activity)), style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutGps(gps: CardioGpsState, setting: DistanceUnit, activity: cloud.trotter.log.strength.domain.model.CardioActivity, running: Boolean) {
+    val context = LocalContext.current
+    val label = stringResource(when (gps.shown) {
+        GpsShown.READY -> R.string.gps_ready
+        GpsShown.FINDING -> R.string.gps_finding
+        GpsShown.NO_SIGNAL -> R.string.gps_no_signal
+        GpsShown.PARTIAL -> R.string.gps_lost_signal
+        GpsShown.LOCATION_OFF -> R.string.gps_location_off
+        GpsShown.LIVE -> R.string.gps_distance_label
+    })
+    val turnOn: @Composable () -> Unit = {
+        TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }) {
+            Text(stringResource(R.string.gps_turn_on))
+        }
+    }
+    if (!running) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("workout-gps-status")) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (gps.shown == GpsShown.LOCATION_OFF) turnOn()
+        }
+        return
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Column(Modifier.weight(1f)) {
+            if (gps.shown != GpsShown.LOCATION_OFF) Text(
+                gps.metres?.takeUnless { gps.shown == GpsShown.FINDING }
+                    ?.let { DistanceUnit.forActivity(setting, activity).format(it) }.orEmpty(),
+                style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("workout-gps-distance"))
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("workout-gps-status"))
+            if (gps.shown == GpsShown.LOCATION_OFF) turnOn()
+        }
+        if (gps.shown == GpsShown.LIVE || gps.shown == GpsShown.NO_SIGNAL) {
+            val unit = if (setting == DistanceUnit.MI) DistanceUnit.MI else DistanceUnit.KM
+            val ride = CardioFamily.of(activity) == CardioFamily.RIDE
+            val speed = gps.metresPerSecond?.takeIf { it > 0 }
+            val value = if (speed == null) "" else if (ride) stringResource(R.string.gps_speed_value,
+                String.format(Locale.US, "%.1f", speed * 3600 * unit.fromMetres(1)),
+                stringResource(if (unit == DistanceUnit.MI) R.string.gps_speed_mph else R.string.gps_speed_kmh))
+                else stringResource(R.string.gps_pace_value, formatCardioTime((1.0 / (speed * unit.fromMetres(1))).roundToInt()), unit.symbol)
+            Column(Modifier.weight(1f)) {
+                Text(value, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("workout-gps-pace"))
+                Text(stringResource(if (ride) R.string.gps_speed_label else R.string.gps_pace_label),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

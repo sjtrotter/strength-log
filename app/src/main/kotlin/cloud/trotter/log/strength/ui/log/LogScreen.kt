@@ -87,6 +87,7 @@ import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateButton
 import cloud.trotter.log.strength.ui.components.emptyJournalAction
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.day.CardioReadingInput
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.day.CardioEntrySheet
 import cloud.trotter.log.strength.ui.text.resolve
@@ -112,7 +113,11 @@ import kotlinx.coroutines.launch
  * disclosure state is saveable across recreation.
  */
 @Composable
-fun LogScreen(state: LogUiState, actions: LogActions) {
+fun LogScreen(
+    state: LogUiState, actions: LogActions,
+    cardioEditGps: CardioEditGps? = null,
+    cardioEditReading: CardioReadingInput? = null,
+) {
     val showPlanNames = state.sessions.mapNotNull { it.planId }.distinct().size > 1
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -270,6 +275,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 saving = state.cardioEditSaving,
                 startEditable = false,
                 completedAt = state.cardioEditCompletedAt ?: draft.completedAt,
+                gps = cardioEditGps, reading = cardioEditReading, onReadingChange = actions.onCardioEditReadingChange,
             )
         }
     }
@@ -721,6 +727,7 @@ data class LogActions(
     val onOpenBackup: () -> Unit = {},
     val onEditCardio: (Long) -> Unit = {},
     val onCardioEditChange: (CardioEntryDraft) -> Unit = {},
+    val onCardioEditReadingChange: (String) -> Unit = {},
     val onSaveCardioEdit: () -> Unit = {},
     val onDismissCardioEdit: () -> Unit = {},
 )

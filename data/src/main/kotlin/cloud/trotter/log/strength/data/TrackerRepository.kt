@@ -50,6 +50,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -828,7 +829,7 @@ class TrackerRepository(
      * without a plan cannot advance a rotation.
      * A note is trimmed and capped at [NOTE_MAX_LENGTH].
      * A new session never starts with [CardioSessionEntity.increaseApplied].
-     * A set without a reading source gets the readings its totals prove ([FinishedRule.atEnd]).
+     * A set without a reading source or GPS total gets the readings its totals prove ([FinishedRule.atEnd]).
      * A session that counts is judged in the same transaction ([CardioJudge]); an Automatic plan takes its next block.
      */
     suspend fun logCardioSession(
@@ -861,7 +862,8 @@ class TrackerRepository(
             }
             val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH), increaseApplied = false))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
-                (if (set.readingSource != null) set else FinishedRule.atEnd(set)).toEntity(id, position)
+                // A GPS row carries what its track read; an unread reading stays unknown.
+                (if (set.readingSource != null || set.distanceSource == DistanceSource.GPS) set else FinishedRule.atEnd(set)).toEntity(id, position)
             })
             if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {

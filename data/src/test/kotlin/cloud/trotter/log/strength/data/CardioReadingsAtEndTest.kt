@@ -218,4 +218,11 @@ class CardioReadingsAtEndTest {
         history.updateCardioSession(id, CardioActivity.ROAD_RUN, 2412, null, "")
         assertEquals(null to 2412, history.cardioSetsFor(id).single().let { it.metresAtEnd to it.secondsAtEnd })
     }
+
+    @Test fun `logging an exact GPS finish keeps its unread distance unknown`() = runTest {
+        val row = CardioSetResult(time(300), CardioSetStatus.FINISHED, 300, 888, DistanceSource.GPS, secondsAtEnd = 300)
+        val id = repo.logCardioSession(session.copy(activity = "ROAD_RUN"), listOf(row))
+        assertNull(db.cardioSetResultDao().forSession(id).single().metresAtEnd)
+        assertEquals(row, history.cardioSetsFor(id).single())
+    }
 }

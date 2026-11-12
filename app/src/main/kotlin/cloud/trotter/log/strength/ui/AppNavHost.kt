@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.activity.compose.LocalActivity
+import androidx.core.app.ActivityCompat
+import cloud.trotter.log.strength.run.LocationAnswer
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -498,6 +504,21 @@ internal fun DayRoute(
     // this is the call site that hands it to the chooser.
     val context = LocalContext.current
     val pendingShare by viewModel.finisher.pendingShare.collectAsStateWithLifecycle()
+    val gpsNotice by viewModel.gpsNotice.collectAsStateWithLifecycle()
+    val locationActivity = LocalActivity.current
+    val askedRun = state.cardio?.run?.runId
+    var locationLaunched by rememberSaveable(askedRun) { mutableStateOf(false) }
+    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        viewModel.answerLocation(LocationAnswer.from(grants, locationActivity?.let {
+            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION)
+        } == true))
+    }
+    LaunchedEffect(askedRun, state.cardio?.gpsAsk) {
+        if (state.cardio?.gpsAsk == true && !locationLaunched) {
+            locationLaunched = true
+            locationPermission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        }
+    }
     val notificationAsked by viewModel.notificationPermissionAsked.collectAsStateWithLifecycle()
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(state.rest, notificationAsked) {
@@ -556,6 +577,8 @@ internal fun DayRoute(
         onDropDraftWorkout = viewModel::dropDraftWorkout,
         onClearTodayChecks = viewModel::clearTodayChecks,
         onDone = viewModel::completeDay,
+        onAnswerLocation = viewModel::answerLocation,
+        onGpsNoticeShown = viewModel::gpsNoticeShown,
         onStartCardio = viewModel::startCardio,
         onStopCardio = viewModel::stopCardio,
         onReachCardioTarget = viewModel::reachCardioTarget,
@@ -642,6 +665,7 @@ internal fun DayRoute(
         pastCardioSaveFailed = pastCardioSaveFailed,
         pastCardioSaving = pastCardioSaving,
         pastCardioCollision = pastCardioCollision,
+        gpsNotice = gpsNotice,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )
 }
@@ -673,6 +697,8 @@ private fun SetupRoute(
         actions = SetupActions(
             onUnitToggle = viewModel::setUnit,
             onDistanceUnitChange = viewModel::setDistanceUnit,
+            onGpsDistanceChange = viewModel::setGpsDistance,
+            onRefreshLocationAccess = viewModel::refreshLocationAccess,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,
             onPhoneRestTimerEnabledChange = viewModel::setPhoneRestTimerEnabled,
@@ -801,7 +827,10 @@ private fun LogRoute(
             viewModel.shareHandled()
         }
     }
+    val cardioEditGps by viewModel.cardioEditGps.collectAsStateWithLifecycle()
+    val cardioEditReading by viewModel.cardioEditReading.collectAsStateWithLifecycle()
     LogScreen(
+        cardioEditGps = cardioEditGps, cardioEditReading = cardioEditReading,
         state = state,
         actions = LogActions(
             onToggleExpanded = viewModel::toggleExpanded,
@@ -820,6 +849,7 @@ private fun LogRoute(
             onUndoDeleteSession = viewModel::undoDeleteSession,
             onEditCardio = viewModel::editCardio,
             onCardioEditChange = viewModel::changeCardioEdit,
+            onCardioEditReadingChange = viewModel::changeCardioEditReading,
             onSaveCardioEdit = viewModel::saveCardioEdit,
             onDismissCardioEdit = viewModel::dismissCardioEdit,
             onSetSessionNote = viewModel::setSessionNote,

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -31,6 +32,8 @@ data class SetupUiState(
     val restCategories: List<RestCategoryUiState> =
         RestCategory.entries.map { RestCategoryUiState(it, RestPolicy.defaultSeconds(it)) },
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
+    val gpsDistance: Boolean = true,
+    val gpsAccess: LocationAccess = LocationAccess.DENIED,
 )
 
 /** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
@@ -47,4 +50,6 @@ data class SetupActions(
     val onOpenLicenses: () -> Unit,
     val onBack: () -> Unit,
     val onKeepScreenOnChange: (Boolean) -> Unit = {},
+    val onGpsDistanceChange: (Boolean) -> Unit = {},
+    val onRefreshLocationAccess: () -> Unit = {},
 )

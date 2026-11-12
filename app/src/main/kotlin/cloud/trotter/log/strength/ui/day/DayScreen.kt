@@ -88,6 +88,7 @@ fun DayScreen(
     pastCardioSaveFailed: Boolean = false,
     pastCardioSaving: Boolean = false,
     pastCardioCollision: Boolean = false,
+    gpsNotice: cloud.trotter.log.strength.run.GpsNotice? = null,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -260,6 +261,7 @@ fun DayScreen(
                 }
             }
         } else WorkoutSetScreen(
+            gpsNotice = gpsNotice,
             state = state,
             actions = actions,
             catalog = dayEditState.catalog,
@@ -304,7 +306,8 @@ fun DayScreen(
             cardio.distanceRuns.firstOrNull { it.runId == sheet.cardioRunId }?.let {
                 CardioDistanceSheet(it, sheet.setIndex, actions, cardio.distanceUnit,
                     cardio.distanceInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex },
-                    reading = cardio.readingInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex })
+                    reading = cardio.readingInputs.firstOrNull { input -> input.runId == it.runId && input.position == sheet.setIndex },
+                    gpsSets = cardio.gpsSets)
             }
         }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
@@ -572,6 +575,8 @@ data class DayActions(
     val onConfirmStart: () -> Unit = {},
     val onDismissStart: () -> Unit = {},
     val onDropDraftWorkout: (() -> Unit)? = null,
+    val onAnswerLocation: (cloud.trotter.log.strength.run.LocationAnswer) -> Unit = {},
+    val onGpsNoticeShown: () -> Unit = {},
     val onSwapCardio: (CardioActivity, CardioTemplate?) -> Unit = { _, _ -> },
 )
 

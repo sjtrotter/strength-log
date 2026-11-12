@@ -13,6 +13,15 @@
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
 
+    <!-- GPS distance (owner 2026-11-11). Asked in context: the first outdoor Start or the Settings switch. Fine and
+         coarse are requested together (Android 12+); only precise measures distance. No background location: a
+         foreground service of type location, started while the app is visible, measures with the screen off. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
     <!-- Cardio step boundaries buzz (C1b); install-time, not runtime. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -49,6 +58,7 @@
         android:enableOnBackInvokedCallback="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
+        <service android:name=".run.RunTrackingService" android:exported="false" android:foregroundServiceType="location" />
         <receiver android:name=".rest.RestAlarmReceiver" android:exported="false" />
         <receiver android:name=".rest.RestActionReceiver" android:exported="false" />
 

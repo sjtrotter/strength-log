@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.domain.cardio.CardioSummary
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlinx.parcelize.Parcelize
@@ -54,6 +56,14 @@ data class CardioDistanceInput(
 @Parcelize
 data class CardioReadingInput(val runId: String, val position: Int, val text: String, val unit: DistanceUnit) : Parcelable
 
+/** GPS measurements of a run's finished sets. Their own key, so `CardioRun` never
+ *  changes shape; [typed] records the user's edit so the log never infers the source. */
+@Parcelize
+data class CardioGpsSet(
+    val runId: String, val position: Int, val metres: Int, val metresAtEnd: Int?, val secondsAtEnd: Int?,
+    val complete: Boolean, val typed: Boolean,
+) : Parcelable
+
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize
 data class CardioRun(
@@ -85,15 +95,34 @@ data class CardioRun(
     val complete: Boolean get() = position == block.sets.size
     val running: Boolean get() = wallStart != null
     val canAddSet: Boolean get() = !complete && !(running && block.openEnded)
-    val resultSets: List<CardioSetResult> get() {
+    val resultSets: List<CardioSetResult> get() = resultSets(emptyList())
+
+    fun resultSets(gps: List<CardioGpsSet>): List<CardioSetResult> {
         val prescriptions = block.sets
         return results.mapIndexed { index, result ->
-            CardioSetResult(prescriptions[index], CardioSetStatus.valueOf(result.status), result.seconds,
+            val row = CardioSetResult(prescriptions[index], CardioSetStatus.valueOf(result.status), result.seconds,
                 result.metres, result.metres?.let { DistanceSource.MANUAL })
+            val stamp = gps.firstOrNull { it.runId == runId && it.position == index && it.complete }
+            if (stamp == null) row else {
+                val keepReading = !stamp.typed || when (row.spec.end) {
+                    is Measure.Time -> stamp.metresAtEnd?.let { it <= (row.metres ?: 0) } == true
+                    is Measure.Distance -> stamp.secondsAtEnd?.let { it <= row.elapsedSeconds } == true
+                }
+                row.copy(
+                    metres = if (stamp.typed) row.metres else stamp.metres,
+                    distanceSource = if (stamp.typed) row.distanceSource else DistanceSource.GPS,
+                    metresAtEnd = stamp.metresAtEnd.takeIf { keepReading },
+                    secondsAtEnd = if (keepReading) stamp.secondsAtEnd
+                        ?: (row.spec.end as? Measure.Time)?.seconds?.takeIf {
+                            row.status == CardioSetStatus.FINISHED && row.elapsedSeconds >= it
+                        } else null,
+                    readingSource = ReadingSource.GPS.takeIf { keepReading && stamp.metresAtEnd != null && stamp.secondsAtEnd != null },
+                )
+            }
         }
     }
 
-    private val execution: CardioExecution get() = CardioExecution(
+    internal val execution: CardioExecution get() = CardioExecution(
         block = block,
         results = resultSets,
         startedAt = startedAt,
@@ -103,7 +132,7 @@ data class CardioRun(
         allowOpenEnded = true,
     )
 
-    private fun withExecution(next: CardioExecution): CardioRun = copy(
+    internal fun withExecution(next: CardioExecution): CardioRun = copy(
         results = next.results.map { SavedCardioResult(it.status.name, it.elapsedSeconds, it.metres) },
         startedAt = next.startedAt,
         wallStart = next.anchor?.wallMillis,
@@ -114,6 +143,23 @@ data class CardioRun(
             CardioDistanceDraft(position, next.results[position].status == CardioSetStatus.SHORTENED)
         },
     )
+
+    fun stepped(step: (CardioExecution) -> CardioExecution): Pair<CardioRun, List<CardioGpsSet>> {
+        val next = step(execution)
+        val stamps = next.measured.map { (position, gps) ->
+            val result = next.results[position]
+            CardioGpsSet(runId, position, gps.metres,
+                result.metresAtEnd.takeIf { result.readingSource == ReadingSource.GPS },
+                result.secondsAtEnd.takeIf { result.readingSource == ReadingSource.GPS },
+                gps.complete, result.metres != null && result.distanceSource != DistanceSource.GPS)
+        }
+        val run = withExecution(next)
+        return run.copy(drafts = run.drafts.map { draft ->
+            stamps.firstOrNull { it.position == draft.position && !it.typed }?.let { draft.copy(text = it.metres.toString()) } ?: draft
+        }) to stamps
+    }
+
+    fun anchorElapsedMillis(clock: CardioClock): Long? = execution.anchor?.deadlineElapsedMillis(0L, clock.clocks())
 
     fun elapsedMillis(clock: CardioClock): Long = execution.elapsedMillis(clock.clocks())
 

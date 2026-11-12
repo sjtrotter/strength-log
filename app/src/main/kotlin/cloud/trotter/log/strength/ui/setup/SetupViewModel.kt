@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.run.GpsDistance
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -20,7 +22,10 @@ import kotlinx.coroutines.launch
 class SetupViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val phoneRest: PhoneRestController,
+    private val gps: GpsDistance = GpsDistance.None,
 ) : ViewModel() {
+
+    private val gpsAccess = MutableStateFlow(gps.access())
 
     private val preferences = combine(
         settings.unitFlow, settings.restSettingsFlow, settings.phoneRestTimerEnabledFlow, settings.distanceUnitFlow,
@@ -30,7 +35,13 @@ class SetupViewModel @Inject constructor(
 
     val uiState: StateFlow<SetupUiState> = combine(preferences, settings.themePreferenceFlow, settings.keepScreenOnFlow) { state, theme, keepOn ->
         state.copy(themePreference = theme, keepScreenOn = keepOn)
+    }.combine(combine(settings.gpsDistanceFlow, gpsAccess, ::Pair)) { state, (enabled, access) ->
+        state.copy(gpsDistance = enabled, gpsAccess = access)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
+
+    fun refreshLocationAccess() { gpsAccess.value = gps.access() }
+
+    fun setGpsDistance(on: Boolean) { viewModelScope.launch { settings.setGpsDistance(on) } }
 
     fun setUnit(unit: WeightUnit) {
         viewModelScope.launch { settings.setUnit(unit) }

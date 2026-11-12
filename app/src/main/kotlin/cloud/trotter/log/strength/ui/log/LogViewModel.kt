@@ -29,6 +29,17 @@ import cloud.trotter.log.strength.transfer.health.ExternalSessionFormatter
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.data.CardioEdit
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.ui.day.CardioReadingEntry
+import cloud.trotter.log.strength.ui.day.CardioReadingInput
+import cloud.trotter.log.strength.ui.day.formatCardioTime
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,6 +62,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+data class CardioEditGps(val row: CardioSetResult) {
+    val metres: Int? get() = row.metres.takeIf { row.distanceSource == DistanceSource.GPS }
+    val reading: Int? get() = storedReading.takeIf { row.readingSource == ReadingSource.GPS }
+    private val storedReading: Int? get() = when (row.spec.end) {
+        is Measure.Time -> row.metresAtEnd
+        is Measure.Distance -> row.secondsAtEnd
+    }
+    val readingShown: Boolean get() = FinishedRule.awaitsReading(row) || when (val end = row.spec.end) {
+        is Measure.Time -> row.status == CardioSetStatus.FINISHED && row.elapsedSeconds >= end.seconds
+        is Measure.Distance -> (row.metres ?: 0) >= end.metres
+    }
+    fun readingText(unit: DistanceUnit): String = storedReading?.let {
+        if (row.spec.end is Measure.Time) unit.inputText(it) else formatCardioTime(it)
+    }.orEmpty()
+}
 
 /**
  * The Log screen ViewModel (PLAN.md A1; Health Connect read path; journal
@@ -103,6 +130,11 @@ class LogViewModel @Inject constructor(
     private var deletionExpiry: Job? = null
     private val cardioEditId: StateFlow<Long?> = savedState.getStateFlow(KEY_CARDIO_EDIT, null)
     private val cardioEditDraft: StateFlow<CardioEntryDraft?> = savedState.getStateFlow(KEY_CARDIO_EDIT_DRAFT, null)
+    private val distanceUnit = settings.distanceUnitFlow.stateIn(viewModelScope, SharingStarted.Eagerly, DistanceUnit.MI)
+    val cardioEditReading: StateFlow<CardioReadingInput?> = savedState.getStateFlow(KEY_CARDIO_EDIT_READING, null)
+    val cardioEditGps: StateFlow<CardioEditGps?> = combine(cardioEditId, repo.cardioSetResultsFlow) { id, sets ->
+        sets[id]?.singleOrNull()?.let(::CardioEditGps)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val cardioEditSaving = MutableStateFlow(false)
     private val editMutex = Mutex()
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
@@ -316,6 +348,7 @@ class LogViewModel @Inject constructor(
                 note = session.note,
                 measuresEditable = results.size == 1,
             )
+            savedState[KEY_CARDIO_EDIT_READING] = null
             savedState[KEY_CARDIO_EDIT] = cardioId
         }
     }
@@ -330,12 +363,22 @@ class LogViewModel @Inject constructor(
         if (cardioEditSaving.value) return
         savedState[KEY_CARDIO_EDIT] = null
         savedState[KEY_CARDIO_EDIT_DRAFT] = null
+        savedState[KEY_CARDIO_EDIT_READING] = null
     }
 
     private fun dismissCardioEdit(id: Long, draft: CardioEntryDraft) {
         if (cardioEditId.value != id || cardioEditDraft.value !== draft) return
         savedState[KEY_CARDIO_EDIT] = null
         savedState[KEY_CARDIO_EDIT_DRAFT] = null
+        savedState[KEY_CARDIO_EDIT_READING] = null
+    }
+
+    fun changeCardioEditReading(text: String) {
+        if (cardioEditSaving.value) return
+        val id = cardioEditId.value ?: return
+        val draft = cardioEditDraft.value ?: return
+        val unit = DistanceUnit.forActivity(distanceUnit.value, draft.activity)
+        savedState[KEY_CARDIO_EDIT_READING] = CardioReadingInput("cardio:$id", 0, text, unit)
     }
 
     fun saveCardioEdit() {
@@ -350,10 +393,19 @@ class LogViewModel @Inject constructor(
                 val entry = draft.copy(startedAt = session.startedAt)
                 val completedAt = if (entry.measuresEditable) entry.completedAt else session.completedAt
                 if (!entry.valid(now, completedAt)) return@launch
+                val row = repo.cardioSetsFor(id).singleOrNull()
+                val unit = DistanceUnit.forActivity(distanceUnit.value, draft.activity)
+                val input = cardioEditReading.value?.takeIf {
+                    it.runId == "cardio:$id" && (it.unit == unit || row?.spec?.end is Measure.Distance)
+                }
+                val value = if (row == null || input == null || input.text.isBlank() || input.text == CardioEditGps(row).readingText(input.unit)) null
+                    else CardioReadingEntry.value(row.spec.end, input.text, input.unit)
+                if (input != null && input.text.isNotBlank() && row != null && input.text != CardioEditGps(row).readingText(input.unit) && value == null) return@launch
+                if (row != null && entry.measuresEditable && CardioEdit.apply(row, entry.seconds, entry.metres, value) == null) return@launch
                 repo.updateCardioSession(
                     id, draft.activity,
                     draft.seconds.takeIf { draft.measuresEditable },
-                    draft.metres.takeIf { draft.measuresEditable }, draft.note,
+                    draft.metres.takeIf { draft.measuresEditable }, draft.note, readingAtEnd = value,
                 )
                 dismissCardioEdit(id, draft)
                 viewModelScope.launch { sessionPublisher.replaceCardio(id) }
@@ -635,6 +687,7 @@ class LogViewModel @Inject constructor(
         const val KEY_MONTH_OFFSET = "log_calendar_month_offset"
         const val KEY_EDITING = "log_editing_session"
         const val KEY_CARDIO_EDIT = "log_cardio_edit_id"
+        const val KEY_CARDIO_EDIT_READING = "log_cardio_edit_reading"
         const val KEY_CARDIO_EDIT_DRAFT = "log_cardio_edit_draft"
         const val STOP_TIMEOUT_MS = 5_000L
         const val UNDO_WINDOW_MS = 5_000L

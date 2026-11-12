@@ -31,6 +31,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.CardioEdit
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.ui.log.CardioEditGps
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -59,6 +62,9 @@ internal fun CardioEntrySheet(
     collision: Boolean = false,
     startEditable: Boolean = true,
     completedAt: Long = draft.completedAt,
+    gps: CardioEditGps? = null,
+    reading: CardioReadingInput? = null,
+    onReadingChange: (String) -> Unit = {},
 ) {
     val currentSaving by rememberUpdatedState(saving)
     var dateOpen by rememberSaveable { mutableStateOf(false) }
@@ -69,15 +75,23 @@ internal fun CardioEntrySheet(
     var distanceText by rememberSaveable(unit) {
         mutableStateOf(draft.metres?.let(unit::inputText) ?: draft.metresText)
     }
+    val gpsMetres = gps?.metres
     val onDistanceChange: (String) -> Unit = { text ->
         distanceText = text
         val meters = when {
+            gpsMetres != null && text == unit.inputText(gpsMetres) -> gpsMetres.toString()
             text.isBlank() -> ""
             unit == DistanceUnit.M -> text
             else -> text.toDoubleOrNull()?.let(unit::toMetres)?.toString() ?: "0"
         }
         onChange(draft.copy(metresText = meters))
     }
+    val readingText = reading?.takeIf { it.unit == unit || gps?.row?.spec?.end is Measure.Distance }?.text ?: gps?.readingText(unit).orEmpty()
+    val unchangedReading = readingText == gps?.readingText(unit)
+    val readingValue = if (unchangedReading || readingText.isBlank() || gps == null) null
+        else CardioReadingEntry.value(gps.row.spec.end, readingText, unit)
+    val readingValid = gps == null || !gps.readingShown ||
+        ((unchangedReading || readingText.isBlank() || readingValue != null) && CardioEdit.apply(gps.row, draft.seconds, draft.metres, readingValue) != null)
     val zone = ZoneId.systemDefault()
     val start = Instant.ofEpochMilli(draft.startedAt).atZone(zone)
     val today = Instant.ofEpochMilli(nowMillis()).atZone(zone).toLocalDate()
@@ -92,7 +106,7 @@ internal fun CardioEntrySheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { !currentSaving }),
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         footer = {
-            SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = !saving && draft.valid(nowMillis(), completedAt),
+            SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = !saving && draft.valid(nowMillis(), completedAt) && readingValid,
                 cancelLabel = if (saving) null else stringResource(R.string.day_cancel_button), onCancel = onDismiss)
         },
         body = {
@@ -149,6 +163,32 @@ internal fun CardioEntrySheet(
                     onChange = { onDistanceChange(it.takeIf { value -> value > 0 }?.let(WeightStepper::format).orEmpty()) },
                     textOverride = distanceText, onTextChange = onDistanceChange,
                 )
+                gps?.metres?.let { metres -> GpsMeasuredLine(metres, draft.metres == metres, unit) }
+                if (gps?.readingShown == true) {
+                    val end = gps.row.spec.end
+                    val distance = end is Measure.Time
+                    val label = stringResource(if (distance) R.string.cardio_reading_distance_at else R.string.cardio_reading_time_at,
+                        measureText(end, draft.activity))
+                    NumericSetField(
+                        identity = "cardio-entry:reading:$unit", value = if (distance) readingText.toDoubleOrNull() ?: 0.0 else parseSheetDuration(readingText) ?: 0.0,
+                        label = label, field = label, partnerName = null, modifier = Modifier.fillMaxWidth(), minimum = 0.0,
+                        maximum = if (distance) unit.fromMetres(ManualCardio.MAX_METRES) else ManualCardio.MAX_SECONDS.toDouble(),
+                        decimal = distance && unit != DistanceUnit.M, duration = !distance, enabled = !saving,
+                        step = { if (distance && unit != DistanceUnit.M) 0.05 else 1.0 },
+                        round = { if (distance) WeightStepper.format(it).toDouble() else Math.round(it).toDouble() },
+                        onChange = { onReadingChange(if (distance) WeightStepper.format(it) else formatCardioTime(it.toInt())) },
+                        textOverride = readingText, onTextChange = onReadingChange, isError = !readingValid,
+                        suffix = unit.symbol.takeIf { distance },
+                    )
+                    gps.reading?.let { value ->
+                        if (distance) GpsMeasuredLine(value, unchangedReading, unit)
+                        else Text(if (unchangedReading) stringResource(R.string.gps_measured)
+                            else stringResource(R.string.gps_measured_value, formatCardioTime(value)),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (!readingValid) Text(stringResource(if (distance) R.string.cardio_reading_over_distance else R.string.cardio_reading_over_time),
+                        color = MaterialTheme.colorScheme.error)
+                }
             }
             OutlinedTextField(
                 value = draft.note, onValueChange = { onChange(draft.copy(note = it.take(NOTE_MAX_LENGTH))) },
@@ -200,4 +240,10 @@ internal fun CardioEntrySheet(
             dismissButton = { TextButton(onClick = { timeOpen = false }) { Text(stringResource(R.string.day_cancel_button)) } },
         )
     }
+}
+
+@Composable
+private fun GpsMeasuredLine(metres: Int, unchanged: Boolean, unit: DistanceUnit) {
+    Text(if (unchanged) stringResource(R.string.gps_measured) else stringResource(R.string.gps_measured_value, unit.format(metres)),
+        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

@@ -86,7 +86,7 @@ class ProgressionUndoTest : FinishProgressionFixture() {
         start(plan, "B")
         assertNull(db.sessionDao().sessionById(bSession)!!.progressionUndoJson)
         assertEquals(UndoResult.Nothing, repo.undoFinish(aSession, null))
-        assertEquals(UndoResult.Nothing, repo.undoFinish(bSession, null))
+        assertEquals(UndoResult.DayOpen, repo.undoFinish(bSession, null))
     }
     @Test fun `undo also restores cross-day success credit`() = runTest {
         val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))

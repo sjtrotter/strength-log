@@ -116,6 +116,8 @@ internal fun SessionReceiptScreen(
                 ReceiptMutation.Undone -> resources.getString(R.string.receipt_changes_undone)
                 is ReceiptMutation.DayOpen -> resources.getString(R.string.receipt_undo_day_open, mutation.dayId)
                 ReceiptMutation.Failed -> resources.getString(R.string.receipt_undo_failed)
+                is ReceiptMutation.RoughDayOpen -> resources.getString(R.string.receipt_rough_day_day_open, mutation.dayId)
+                ReceiptMutation.RoughDayFailed -> resources.getString(R.string.receipt_rough_day_failed)
             })
             onMutationHandled()
         }
@@ -318,7 +320,7 @@ private fun ReceiptWhySheet(receipt: WorkoutReceipt, progress: ReceiptProgressSt
         body = {
             if (progress.rough) Text(stringResource(R.string.receipt_why_rough))
             else progress.lifts.forEach { lift ->
-                ReceiptLines.why(lift.name, lift.line, receipt.unit, resources)?.let { Text(it) }
+                lift.whyLine?.let { ReceiptLines.why(lift.name, it, receipt.unit, resources) }?.let { Text(it) }
             }
             if (progress.roughStartedLight) Text(stringResource(R.string.receipt_why_rough_light))
             else if (progress.lightRemaining > 0) Text(resources.getQuantityString(R.plurals.receipt_why_light_remaining,

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
@@ -13,6 +14,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -51,13 +53,16 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
         val bench = add(plan, "bb_bench")
         lifter(plan, bench)
         val beforeRule = db.programDao().exercise(bench)!!.ruleJson
+        val beforeCycles = db.planDao().plan(plan)!!.cyclesCompleted
         val session = finish(plan, bench)
+        assertEquals(beforeCycles + 1, db.planDao().plan(plan)!!.cyclesCompleted)
         assertEquals(work(w = 190.0), rows(plan, bench))
         restart()
         assertTrue(repo.finishUndoState(session, null).restorable)
         assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(work(), rows(plan, bench))
         assertEquals(beforeRule, db.programDao().exercise(bench)!!.ruleJson)
+        assertEquals(beforeCycles, db.planDao().plan(plan)!!.cyclesCompleted)
         assertNull(db.sessionDao().sessionById(session)!!.progressionUndoJson)
     }
 
@@ -83,6 +88,18 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
         // Avoid a rotation wrap, which also writes plan counters.
         repo.addDay(plan, "Day B")
         val session = finish(plan, bench)
+        assertFalse(repo.finishUndoState(session, null).restorable)
+        assertTrue(repo.finishUndoState(session, null).hasStrengthRecord)
+    }
+
+    @Test fun `a rotation wrap alone on Ask leaves Undo hidden`() = runTest {
+        val plan = converted(day("bb_bench"))
+        val bench = id(plan, "bb_bench")
+        lifter(plan, bench)
+        val session = finish(plan, bench)
+        assertEquals(1, db.planDao().plan(plan)!!.cyclesCompleted)
+        assertEquals(0, db.planDao().plan(plan)!!.lightCycleRemaining)
+        assertEquals(work(), rows(plan, bench))
         assertFalse(repo.finishUndoState(session, null).restorable)
         assertTrue(repo.finishUndoState(session, null).hasStrengthRecord)
     }
@@ -143,8 +160,16 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
     @Test fun `two rough strength days start a rotation of light days only on Automatic`() = runTest { roughPair(true) }
     @Test fun `two rough strength days on Ask leave the light counter alone`() = runTest { roughPair(false) }
 
-    private suspend fun roughPair(automatic: Boolean) {
-        val plan = converted(day("bb_bench"), day("ohp", id = "B"), day("bb_back_squat", id = "C"))
+    @Test fun `two rough days exclude generated C1 and C2 extras from the light week`() = runTest {
+        roughPair(automatic = true, extras = true)
+    }
+
+    private suspend fun roughPair(automatic: Boolean, extras: Boolean = false) {
+        val days = listOf(day("bb_bench"), day("ohp", id = "B"), day("bb_back_squat", id = "C")) +
+            if (extras) listOf("C1", "C2").map {
+                ProgramDay(it, "Run", "", emptyList(), kind = ProgramDayKind.CARDIO, cardioBlock = block())
+            } else emptyList()
+        val plan = converted(*days.toTypedArray())
         db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
         val bench = id(plan, "bb_bench")
         val press = id(plan, "ohp", "B")
@@ -158,8 +183,8 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
         assertEquals(0, db.planDao().plan(plan)!!.lightCycleRemaining)
     }
 
-    private fun block(meters: Int = 5000) = CardioBlock(CardioActivity.TRACK_RUN,
-        listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500), Measure.Distance(meters))))
+    private fun block(meters: Int = 5000, seconds: Int = 1500) = CardioBlock(CardioActivity.TRACK_RUN,
+        listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds), Measure.Distance(meters))))
     private suspend fun cardioPlan(combined: Boolean = false): Long {
         val plan = converted(if (combined) day("bb_bench").copy(cardioBlock = block()) else
             ProgramDay("A", "Run", "", emptyList(), kind = ProgramDayKind.CARDIO, cardioBlock = block()))
@@ -167,11 +192,14 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
         repo.setCardioProgression(plan, "A", ProgressMeasure.DISTANCE, 5)
         return plan
     }
-    private suspend fun cardio(plan: Long, meters: Int? = 5000, finishDay: Boolean = true, current: CardioBlock = block()): Long =
-        repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
-            startedAt = clock.millis(), completedAt = clock.millis() + 1500000, seconds = 1500, stepsCompleted = 1,
+    private suspend fun cardio(plan: Long, meters: Int? = 5000, finishDay: Boolean = true, current: CardioBlock = block()): Long {
+        val seconds = (current.sets.single().end as Measure.Time).seconds
+        return repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+            startedAt = clock.millis(), completedAt = clock.millis() + seconds * 1000L, seconds = seconds, stepsCompleted = 1,
             planId = plan, activity = current.activity.name),
-            listOf(CardioSetResult(current.sets.single(), CardioSetStatus.FINISHED, 1500, meters)), finishDay)
+            listOf(CardioSetResult(current.sets.single(), CardioSetStatus.FINISHED, seconds, meters,
+                meters?.let { DistanceSource.MANUAL })), finishDay)
+    }
 
     @Test fun `cardio journal restores block and counters after reopening and never reapplies`() = runTest {
         val plan = cardioPlan()
@@ -191,17 +219,24 @@ class ReceiptProgressionTest : FinishProgressionFixture() {
 
     @Test fun `an amendment adds a block snapshot to a counter only journal preserving the current block`() = runTest {
         val plan = cardioPlan()
-        repo.setCardioWorking(plan, "A", block(5250))
+        val working = block(5250, seconds = 630)
+        repo.setCardioWorking(plan, "A", working)
+        repo.setCardioProgression(plan, "A", ProgressMeasure.DISTANCE, 10)
         val before = db.programDao().day(plan, "A")!!.cardioWorkingJson
         db.planDao().updateLightCycle(plan, 2, 0)
-        val id = cardio(plan, meters = null, current = block(5250))
+        val id = cardio(plan, meters = null, current = working)
         assertNull(CardioUndoJson.decode(db.cardioSessionDao().byId(id)!!.progressionUndoJson)?.block)
         repo.amendCardioSetDistance(id, 0, 5250)
         val journal = assertNotNull(CardioUndoJson.decode(db.cardioSessionDao().byId(id)!!.progressionUndoJson))
-        assertEquals(before, assertNotNull(journal.block).before)
+        val snapshot = assertNotNull(journal.block)
+        assertEquals(before, snapshot.before)
+        assertEquals(working, CardioBlockJson.decode(snapshot.before))
+        assertEquals(block(5500, seconds = 660), CardioBlockJson.decode(snapshot.after))
+        assertEquals(snapshot.after, db.programDao().day(plan, "A")!!.cardioWorkingJson)
         assertTrue(repo.finishUndoState(null, id).restorable)
-        repo.undoFinish(null, id)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
         assertEquals(before, db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertEquals(working, CardioBlockJson.decode(db.programDao().day(plan, "A")!!.cardioWorkingJson))
         assertEquals(2, db.planDao().plan(plan)!!.lightCycleRemaining)
     }
 

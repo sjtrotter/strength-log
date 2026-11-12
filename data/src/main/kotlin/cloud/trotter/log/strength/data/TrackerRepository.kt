@@ -62,6 +62,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
@@ -1829,7 +1830,7 @@ class TrackerRepository(
     suspend fun finishRun(runId: String): Long? = finishRunCapturing(runId)?.sessionId
 
     /** A finished run's session, captured tracks, and slot prescriptions, including on retry. */
-    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?, val slots: List<ProgramSlot>? = null)
+    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>, val slots: List<ProgramSlot>? = null)
 
     /** [finishRun], also returning the exact tracks the transaction archived, so a caller
      *  describing the session cannot disagree with it after a concurrent edit (the watch's
@@ -2057,11 +2058,14 @@ class TrackerRepository(
     private fun localEpochDay(millis: Long): Long =
         Instant.ofEpochMilli(millis).atZone(clock.zone).toLocalDate().toEpochDay()
 
+    private fun trainingDays(program: Program): List<ProgramDay> =
+        program.rotationDays.filter { it.kind != ProgramDayKind.REST }
+
     /** Counts a finished training day down and records a wrap (spec W2b-2a decisions 5 and 6); null when nothing
      *  changed or [dayId] is not a training day of the rotation. Reads the rotation before it advances. Room only. */
     private suspend fun lightAfterDay(plan: PlanEntity, dayId: String, reactive: Boolean): UndoPlanDto? {
         val program = assemble(programDao.daysForPlan(plan.id), programDao.exercisesForPlan(plan.id))
-        val training = program.rotationDays.filter { it.kind != ProgramDayKind.REST }
+        val training = trainingDays(program)
         if (training.none { it.id == dayId }) return null
         val before = LightCycle(plan.lightCycleRemaining, plan.cyclesCompleted)
         val after = LightWeek.afterDay(before, training.size, Rotation.wraps(program, plan.suggestedDayId, dayId),
@@ -2173,11 +2177,10 @@ class TrackerRepository(
         val plan = planDao.plan(planId)
         var roughLight: UndoPlanDto? = null
         if (rough && plan?.autoApply == true && plan.lightCycleRemaining == 0) {
-            val previous = sessionDao.allSessions().filter { it.planId == planId && it.id != sessionId &&
-                (it.completedAt < session.completedAt || it.completedAt == session.completedAt && it.id < sessionId) }
-                .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
+            val previous = sessionDao.previousSessionForPlan(planId, session.completedAt, sessionId)
             if (previous?.roughDay == true) {
-                val days = programDao.daysForPlan(planId).count { it.kind != ProgramDayKind.REST.name }.coerceAtLeast(1)
+                val program = assemble(programDao.daysForPlan(planId), programDao.exercisesForPlan(planId))
+                val days = trainingDays(program).size.coerceAtLeast(1)
                 roughLight = UndoPlanDto(0, plan.cyclesCompleted, days, plan.cyclesCompleted)
                 planDao.updateLightCycle(planId, days, plan.cyclesCompleted)
             }
@@ -2195,7 +2198,7 @@ class TrackerRepository(
         val strength = ProgressionUndoJson.decode(session?.progressionUndoJson)
         val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
         suspend fun countersMatch(planId: Long?, undo: UndoPlanDto?): Boolean {
-            if (undo == null || planId == null || undo.beforeRemaining == undo.afterRemaining && undo.beforeCycles == undo.afterCycles) return false
+            if (undo == null || planId == null || undo.beforeRemaining == undo.afterRemaining) return false
             val plan = planDao.plan(planId) ?: return false
             return plan.lightCycleRemaining == undo.afterRemaining && plan.cyclesCompleted == undo.afterCycles
         }

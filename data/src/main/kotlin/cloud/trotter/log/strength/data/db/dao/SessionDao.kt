@@ -149,6 +149,9 @@ interface SessionDao {
     @Query("SELECT * FROM workout_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
     suspend fun lastSessionForDay(planId: Long, dayId: String): WorkoutSessionEntity?
 
+    @Query("SELECT * FROM workout_session WHERE planId = :planId AND (completedAt < :completedAt OR (completedAt = :completedAt AND id < :sessionId)) ORDER BY completedAt DESC, id DESC LIMIT 1")
+    suspend fun previousSessionForPlan(planId: Long, completedAt: Long, sessionId: Long): WorkoutSessionEntity?
+
     @Query("UPDATE workout_session SET progressionUndoJson = :json, roughDay = :rough WHERE id = :sessionId")
     suspend fun updateProgression(sessionId: Long, json: String?, rough: Boolean)
 

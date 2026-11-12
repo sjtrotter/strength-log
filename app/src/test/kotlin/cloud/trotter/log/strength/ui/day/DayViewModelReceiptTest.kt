@@ -19,6 +19,10 @@ import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptLines
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptMutation
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -29,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
@@ -230,6 +235,9 @@ class DayViewModelReceiptTest {
 
         val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals(ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, null, 215.0))), nextTimes(vm))
+        val why = requireNotNull(vm.finisher.progressState.value.lifts.single().whyLine)
+        assertEquals("Bench Press 220 lb offered (+5): all sets made.", ReceiptLines.why("Bench Press", why,
+            WeightUnit.LB, ApplicationProvider.getApplicationContext<Context>().resources))
     }
 
     @Test
@@ -1467,10 +1475,10 @@ class DayViewModelReceiptTest {
         repo.setCardioProgression(plan, "A", cloud.trotter.log.strength.domain.model.ProgressMeasure.DISTANCE, 5)
         val run = doneBench(plan, bench)
         val start = java.time.Instant.parse("2026-11-10T23:45:00Z").toEpochMilli()
-        db.openHelper.writableDatabase.execSQL("UPDATE workout_run SET startedAt = ? WHERE id = ?", arrayOf(start, run.id))
+        db.openHelper.writableDatabase.execSQL("UPDATE workout_run SET startedAt = ? WHERE id = ?", arrayOf<Any>(start, run.id))
         val cardioId = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
             label = "Run", startedAt = start, completedAt = start + 300000, seconds = 900, stepsCompleted = 1,
-            planId = plan, activity = "TRACK_RUN"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900, 5000)))
+            planId = plan, activity = "TRACK_RUN"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900, 5000, DistanceSource.MANUAL)))
         val session = requireNotNull(repo.finishRun(run.id))
         val end = java.time.Instant.parse("2026-11-11T00:10:00Z").toEpochMilli()
         db.openHelper.writableDatabase.execSQL("UPDATE workout_session SET completedAt = ? WHERE id = ?", arrayOf(end, session))
@@ -1503,6 +1511,136 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         assertNull(vm.finisher.progressState.value.cardioEffort)
         assertNull(repo.history.cardioSession(id)!!.effort)
+    }
+
+    @Test fun `mixed Automatic and Ask lifts show Undo at the receipt state`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        repo.addExercise("A", ProgramExercise("ohp", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(95.0, 5))), plan)
+        val press = db.programDao().exercisesForDay(plan, "A").single { it.exerciseId == "ohp" }
+        val rule = requireNotNull(SlotRuleJson.decode(press.ruleJson))
+        db.programDao().setRule(press.id, SlotRuleJson.encode(rule.copy(nextTime = NextTimeMode.ASK)))
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val run = doneBench(plan, bench)
+        repo.applyToRun(run.id, plan, "A", listOf(cloud.trotter.log.strength.data.TrackEdit(press.id, Slot.MAIN) { rows ->
+            rows.map { it.copy(done = true, rir = 2) }
+        }))
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        val progress = vm.finisher.progressState.value
+        val resources = ApplicationProvider.getApplicationContext<Context>().resources
+        assertEquals(listOf("Next time: 190 lb (+5)", "Next time: 100 lb offered (+5)"),
+            progress.lifts.map { ReceiptLines.label(it.line, WeightUnit.LB, resources) })
+        assertTrue(progress.undoVisible)
+    }
+
+    @Test fun `a rotation wrap alone on Ask hides Undo at the receipt state`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = false))
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        doneBench(plan, bench)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        assertEquals(1, db.planDao().plan(plan)!!.cyclesCompleted)
+        assertTrue(vm.finisher.progressState.value.lifts.single().line.offered)
+        assertFalse(vm.finisher.progressState.value.undoVisible)
+    }
+
+    @Test fun `progress recovers on the next emission after a history read fails`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        doneBench(plan, bench)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertTrue(vm.finisher.progressState.value.undoVisible)
+        failSessionById = true
+        repo.history.setSessionNote(receipt.sessionId, "First note")
+        advanceUntilIdle()
+        assertTrue(vm.finisher.progressState.value.lifts.isEmpty())
+        assertFalse(vm.finisher.progressState.value.undoVisible)
+        failSessionById = false
+        repo.history.setSessionNote(receipt.sessionId, "Second note")
+        advanceUntilIdle()
+        assertTrue(vm.finisher.progressState.value.undoVisible)
+        assertEquals(190.0, vm.finisher.progressState.value.lifts.single().line.weightLb, 0.0)
+    }
+
+    @Test fun `Rough day refusals use Rough day mutation results`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        doneBench(plan, bench)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        val run = (repo.startRun(plan, "A") as cloud.trotter.log.strength.data.RunStartResult.Started).runId
+        vm.finisher.setRoughDay(true)
+        advanceUntilIdle()
+        assertEquals(ReceiptMutation.RoughDayOpen("A"), vm.finisher.mutation.value)
+        repo.discardRun(run)
+        vm.finisher.setRoughDay(true)
+        advanceUntilIdle()
+        assertEquals(ReceiptMutation.RoughDayFailed, vm.finisher.mutation.value)
+    }
+
+    @Test fun `cardio logged before Start has rows but no next time on the strength receipt`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900), Measure.Distance(5000))
+        repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN, listOf(spec)))
+        repo.setCardioProgression(plan, "A", cloud.trotter.log.strength.domain.model.ProgressMeasure.DISTANCE, 5)
+        val completedAt = System.currentTimeMillis() - 1000
+        val id = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = completedAt - 900000, completedAt = completedAt, seconds = 900, stepsCompleted = 1,
+            planId = plan, activity = "TRACK_RUN"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900,
+                5000, DistanceSource.MANUAL)))
+        val vm = newCollectingViewModel()
+        vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), repo.history.cardioSetsFor(id), 0, emptyMap())
+        advanceUntilIdle()
+        assertTrue(vm.finisher.progressState.value.undoVisible)
+        assertNotNull(vm.finisher.progressState.value.cardioNext)
+        assertTrue(vm.finisher.dismissReceipt())
+        val after = db.programDao().day(plan, "A")!!.cardioWorkingJson
+        doneBench(plan, bench)
+        assertNull(db.cardioSessionDao().byId(id)!!.progressionUndoJson)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        assertEquals(5000, vm.finisher.receipt.value?.cardioRows?.single()?.intervals?.single()?.metres)
+        assertNull(vm.finisher.receiptProgress.value?.cardioSessionId)
+        assertNull(vm.finisher.progressState.value.cardioNext)
+        assertNull(vm.finisher.progressState.value.cardioStored)
+        assertEquals(id, vm.finisher.progressState.value.cardioSessionId)
+        vm.finisher.undoChanges()
+        advanceUntilIdle()
+        assertEquals(after, db.programDao().day(plan, "A")!!.cardioWorkingJson)
+    }
+
+    @Test fun `a counter only cardio receipt shows Undo and restores the light counter`() = runVmTest {
+        val (plan, _) = automaticBench()
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900))
+        repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN, listOf(spec)))
+        repo.setCardioKeepToPlan(plan, "A", true)
+        db.planDao().updateLightCycle(plan, 2, 0)
+        val id = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1000, completedAt = 901000, seconds = 900, stepsCompleted = 1,
+            planId = plan, activity = "TRACK_RUN"), listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 900)), finishDay = true)
+        val vm = newViewModel()
+        vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), repo.history.cardioSetsFor(id), 0, emptyMap())
+        advanceUntilIdle()
+        assertEquals(1, db.planDao().plan(plan)!!.lightCycleRemaining)
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+        assertTrue(vm.finisher.progressState.value.undoVisible)
+        vm.finisher.undoChanges()
+        advanceUntilIdle()
+        assertEquals(2, db.planDao().plan(plan)!!.lightCycleRemaining)
+        assertFalse(vm.finisher.progressState.value.undoVisible)
     }
 
     private fun nextTimes(vm: DayViewModel): ReceiptNextTimes? {

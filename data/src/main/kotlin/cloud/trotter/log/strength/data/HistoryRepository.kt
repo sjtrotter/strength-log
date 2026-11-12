@@ -365,7 +365,7 @@ class HistoryRepository(
                         beforeRule?.state?.calibrating == true || dto.opening?.layoff == OpeningDto.RECALIBRATE)
                 },
                 dto.opening != null,
-                rough = session.roughDay, reason = dto.reason, opening = dto.opening,
+                rough = session.roughDay, reason = dto.reason,
             )
         }
     }
@@ -473,7 +473,7 @@ fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
     CardioMode.entries.find { it.name == mode }
 
 /** One archived track of the newest session for a plan and day. */
-data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null, val opened: Boolean = false, val rough: Boolean = false, val reason: String? = null, val opening: OpeningDto? = null)
+data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null, val opened: Boolean = false, val rough: Boolean = false, val reason: String? = null)
 
 /** The next-time change recorded on an archived track. */
 data class NextOffer(val fromLb: Double, val toLb: Double, val fromReps: Int? = null, val toReps: Int? = null, val calibration: Boolean = false)

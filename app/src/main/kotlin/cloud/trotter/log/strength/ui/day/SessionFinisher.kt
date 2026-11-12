@@ -76,8 +76,14 @@ internal class SessionFinisher(
             plans.plansFlow, historyRepository.sessionsFlow,
             combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets -> sessions to sets },
         ) { tracks, slots, allPlans, _, cardio ->
-            ReceiptProgressBuilder.build(identity, current, tracks, slots, allPlans.firstOrNull { it.id == planId },
-                historyRepository, repo, cardio.first, cardio.second, plans.programFor(planId).first())
+            try {
+                ReceiptProgressBuilder.build(identity, current, tracks, slots, allPlans.firstOrNull { it.id == planId },
+                    historyRepository, repo, cardio.first, cardio.second, plans.programFor(planId).first())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                ReceiptProgressState()
+            }
         }
     }.stateIn(scope, SharingStarted.Eagerly, ReceiptProgressState())
     private val _mutation = MutableStateFlow<ReceiptMutation?>(null)
@@ -153,7 +159,7 @@ internal class SessionFinisher(
         }
         val sessionId = finished.sessionId
         scope.launch { sessionPublisher.publish(sessionId) }
-        val tracks = requireNotNull(finished.tracks)
+        val tracks = finished.tracks
         val slots = requireNotNull(finished.slots)
         val ids = tracks.map { it.exerciseId }.distinct()
         if (run == null) standing = baseline(ids, runId)
@@ -243,12 +249,14 @@ internal class SessionFinisher(
                     val identity = receiptProgress.value ?: return@withLock
                     _mutation.value = when (write(identity)) {
                         UndoResult.Undone -> ReceiptMutation.Undone.takeIf { announceUndo }
-                        UndoResult.DayOpen -> ReceiptMutation.DayOpen(identity.dayId)
-                        UndoResult.Nothing -> ReceiptMutation.Failed
+                        UndoResult.DayOpen -> if (announceUndo) ReceiptMutation.DayOpen(identity.dayId) else ReceiptMutation.RoughDayOpen(identity.dayId)
+                        UndoResult.Nothing -> if (announceUndo) ReceiptMutation.Failed else ReceiptMutation.RoughDayFailed
                     }
                 }
             } catch (cancelled: CancellationException) { throw cancelled
-            } catch (_: Exception) { _mutation.value = ReceiptMutation.Failed }
+            } catch (_: Exception) {
+                _mutation.value = if (announceUndo) ReceiptMutation.Failed else ReceiptMutation.RoughDayFailed
+            }
         }
     }
 
@@ -354,7 +362,6 @@ internal class SessionFinisher(
     private fun showCardioReceipt(receipt: WorkoutReceipt, planId: Long?) {
         if (executionActive()) return
         savedState[KEY_RECEIPT_SET_COUNTS] = null
-        savedState[KEY_RECEIPT_PROGRESS] = null
         savedState[KEY_WORKOUT_RECEIPT] = receipt
         savedState[KEY_RECEIPT_PROGRESS] = ReceiptProgress(null, receipt.sessionId, planId, receipt.dayId, emptyList())
     }

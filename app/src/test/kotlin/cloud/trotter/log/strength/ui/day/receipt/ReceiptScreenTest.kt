@@ -769,19 +769,35 @@ class ReceiptScreenTest {
         val initial = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"), "Bench Press", line)),
             undoVisible = true, roughEnabled = true)
         val state = mutableStateOf(initial)
+        val mutation = mutableStateOf<ReceiptMutation?>(null)
         rule.setContent {
             AppTheme {
-                SessionReceiptScreen(receipt, {}, {}, progress = state.value,
-                    onUndo = { state.value = initial.copy(undoVisible = false, roughEnabled = false,
-                        lifts = initial.lifts.map { it.copy(line = it.line.copy(offered = true)) }) })
+                SessionReceiptScreen(receipt, {}, {}, progress = state.value, mutation = mutation.value,
+                    onMutationHandled = { mutation.value = null },
+                    onUndo = {
+                        state.value = initial.copy(undoVisible = false, roughEnabled = false,
+                            lifts = initial.lifts.map { it.copy(line = it.line.copy(offered = true), whyLine = it.whyLine?.copy(offered = true)) })
+                        mutation.value = ReceiptMutation.Undone
+                    })
             }
         }
         rule.onNodeWithText("Undo changes").performScrollTo().performClick()
         rule.onNodeWithText("Undo changes").assertDoesNotExist()
+        rule.onNodeWithText("Changes undone").assertIsDisplayed()
         rule.onNodeWithText("Next time: 190 lb offered (+5)", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Rough day").performScrollTo().assertIsNotEnabled()
         rule.onNodeWithText("Why").performScrollTo().performClick()
         rule.onNodeWithText("Bench Press 190 lb offered (+5): all sets made.").assertExists()
+    }
+
+    @Test fun `a refused Rough day toggle has its own Snackbar wording`() {
+        val mutation = mutableStateOf<ReceiptMutation?>(ReceiptMutation.RoughDayOpen("A"))
+        rule.setContent {
+            AppTheme { SessionReceiptScreen(receiptFixture(), {}, {}, mutation = mutation.value) }
+        }
+        rule.onNodeWithText("Rough day isn't available while day A is open.").assertIsDisplayed()
+        rule.runOnIdle { mutation.value = ReceiptMutation.RoughDayFailed }
+        rule.onNodeWithText("Couldn't save Rough day.").assertIsDisplayed()
     }
 
     @Test fun `cardio How was it has three choices and a second tap clears Good`() {

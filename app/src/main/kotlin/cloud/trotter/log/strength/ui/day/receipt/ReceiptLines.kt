@@ -8,7 +8,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.standards.SetFormatter
-import cloud.trotter.log.strength.domain.units.SecondsStepper
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
@@ -27,25 +27,41 @@ data class ReceiptLiftLine(
 )
 
 object ReceiptLines {
-    fun strength(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?,
-                 unit: WeightUnit, chipGate: Boolean): ReceiptLiftLine? {
+    private fun storedLine(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?): ReceiptLiftLine? {
         if (keepToPlan || rule == null || session == null || session.retired || session.reason == "NO_SETS" ||
             session.actual.none { it.done }) return null
         val weight = WorkingRows.workingWeight(rows) ?: return null
         val anchor = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] } ?: return null
+        return ReceiptLiftLine(weight, anchor.reps.takeIf { weight == 0.0 && anchor.seconds == 0 },
+            anchor.seconds.takeIf { it > 0 }, null, false, session.reason, rule.everyExposures, session.offer != null)
+    }
+
+    fun strength(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?,
+                 unit: WeightUnit, chipGate: Boolean): ReceiptLiftLine? {
+        val stored = storedLine(rows, session, keepToPlan, rule) ?: return null
         val offer = (DayScreenBuilder.nextTime(rows, session, false, unit, offersOn = true, rule = rule) as? NextTime.Offer)
-            ?.takeIf { it.applied || chipGate }
-        return ReceiptLiftLine(offer?.offerLb ?: weight,
-            offer?.reps ?: anchor.reps.takeIf { weight == 0.0 && anchor.seconds == 0 },
-            anchor.seconds.takeIf { it > 0 },
-            offer?.takeUnless { it.calibration || it.reps != null }?.let {
+            ?.takeIf { it.applied || chipGate } ?: return stored
+        return stored.copy(weightLb = offer.offerLb, reps = offer.reps ?: stored.reps,
+            delta = offer.takeUnless { it.calibration || it.reps != null }?.let {
                 DayScreenBuilder.offerDelta(it.offerLb, it.openingLb, unit).takeIf { delta -> delta != 0.0 }
-            }, offer?.applied == false, session.reason, rule.everyExposures, session.offer != null)
+            }, offered = !offer.applied)
+    }
+
+    fun whyLine(rows: List<LoggedSet>, session: SlotSession, rule: SlotRule, unit: WeightUnit): ReceiptLiftLine? {
+        val stored = storedLine(rows, session, false, rule) ?: return null
+        val offer = session.offer ?: return stored.takeUnless { it.reason in setOf("ALL_MADE", "EASY_SESSION", "STALL") }
+        val delta = DayScreenBuilder.offerDelta(offer.toLb, offer.fromLb, unit)
+        val reps = offer.toReps.takeIf { delta == 0.0 }
+        val applied = (DayScreenBuilder.nextTime(rows, session, false, unit, offersOn = true, rule = rule)
+            as? NextTime.Offer)?.applied == true
+        return stored.copy(weightLb = offer.toLb, reps = reps, delta = delta.takeIf {
+            !offer.calibration && reps == null && it != 0.0
+        }, offered = !applied)
     }
 
     fun value(line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String = when {
         line.reps != null -> resources.getString(R.string.next_time_reps, line.reps)
-        line.seconds != null -> SecondsStepper.format(line.seconds)
+        line.seconds != null -> ClockText.minutesSeconds(line.seconds)
         else -> SetFormatter.weight(line.weightLb, unit)
     }
 

@@ -1084,6 +1084,8 @@
     <string name="receipt_changes_undone">Changes undone</string>
     <string name="receipt_undo_day_open">Undo isn\'t available while day %1$s is open.</string>
     <string name="receipt_undo_failed">Couldn\'t undo.</string>
+    <string name="receipt_rough_day_day_open">Rough day isn\'t available while day %1$s is open.</string>
+    <string name="receipt_rough_day_failed">Couldn\'t save Rough day.</string>
     <string name="receipt_rough_day">Rough day</string>
     <string name="receipt_rough_day_detail">Next time stays as it was</string>
     <string name="receipt_why">Why</string>

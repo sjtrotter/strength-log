@@ -28,7 +28,8 @@ data class ReceiptProgress(val sessionId: Long?, val cardioSessionId: Long?, val
 @Parcelize
 data class ReceiptSlotRef(val groupIndex: Int, val rowIndex: Int, val programExerciseId: Long, val slot: String) : Parcelable
 
-data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val line: ReceiptLiftLine)
+data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val line: ReceiptLiftLine,
+                               val whyLine: ReceiptLiftLine? = line)
 
 data class ReceiptProgressState(
     val lifts: List<ReceiptLiftProgress> = emptyList(),
@@ -52,6 +53,8 @@ sealed interface ReceiptMutation {
     data object Undone : ReceiptMutation
     data class DayOpen(val dayId: String) : ReceiptMutation
     data object Failed : ReceiptMutation
+    data class RoughDayOpen(val dayId: String) : ReceiptMutation
+    data object RoughDayFailed : ReceiptMutation
 }
 
 internal object ReceiptProgressBuilder {
@@ -65,12 +68,13 @@ internal object ReceiptProgressBuilder {
             val slot = slots.firstOrNull { it.programExerciseId == ref.programExerciseId } ?: return@mapNotNull null
             val row = receipt.groups.getOrNull(ref.groupIndex)?.rows?.getOrNull(ref.rowIndex) ?: return@mapNotNull null
             if (row.shape == ReceiptRow.Shape.SKIPPED) return@mapNotNull null
-            val rule = if (ref.slot == Slot.SS) slot.exercise.superset?.rule else slot.exercise.rule
+            val rule = (if (ref.slot == Slot.SS) slot.exercise.superset?.rule else slot.exercise.rule) ?: return@mapNotNull null
             val rows = tracks.tracks.firstOrNull { it.programExerciseId == ref.programExerciseId && it.slot == ref.slot }?.sets.orEmpty()
-            val line = ReceiptLines.strength(rows, sessions[ref.programExerciseId to ref.slot], slot.exercise.keepToPlan,
-                rule, receipt.unit, plan.autoApply || rule?.nextTime == NextTimeMode.AUTO || plan.offerStrengthIncreases)
+            val session = sessions[ref.programExerciseId to ref.slot] ?: return@mapNotNull null
+            val line = ReceiptLines.strength(rows, session, slot.exercise.keepToPlan,
+                rule, receipt.unit, plan.autoApply || rule.nextTime == NextTimeMode.AUTO || plan.offerStrengthIncreases)
                 ?: return@mapNotNull null
-            ReceiptLiftProgress(ref, row.name, line)
+            ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
         }
         val date = Instant.ofEpochMilli(receipt.completedAt).atZone(ZoneId.systemDefault()).toLocalDate()
         val entry = identity.cardioSessionId?.let { id -> cardio.firstOrNull { it.id == id } }

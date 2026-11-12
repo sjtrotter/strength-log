@@ -393,7 +393,7 @@ class DraftRunTest : OpeningFixture() {
         val next = benchDraft(plan, b)
         assertEquals(RunStartResult.Started(next), repo.startRun(plan, "A"))
         assertNull(db.sessionDao().sessionById(session)!!.progressionUndoJson)
-        assertEquals(UndoResult.Nothing, repo.undoFinish(session, null))
+        assertEquals(UndoResult.DayOpen, repo.undoFinish(session, null))
     }
 
     @Test fun `a watch swap before Start opens a draft and a refused swap leaves none`() = runTest {

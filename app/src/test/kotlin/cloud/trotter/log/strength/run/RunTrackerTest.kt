@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.GpsSet
+import kotlinx.coroutines.launch
 import cloud.trotter.log.strength.ui.day.CardioClock
 import kotlin.math.PI
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,7 +25,8 @@ import org.robolectric.annotation.Config
 
 internal class FakeLocationSource(var access: LocationAccess = LocationAccess.PRECISE) : LocationSource {
     val fixes = MutableSharedFlow<Fix>(extraBufferCapacity = 64)
-    override fun access() = access
+    var accessCalls = 0
+    override fun access(): LocationAccess { accessCalls++; return access }
     override fun updates() = fixes
 }
 
@@ -180,4 +183,105 @@ class RunTrackerTest {
         assertNull(tracker.meter("r1"))
         assertEquals(0, source.fixes.subscriptionCount.value)
     }
+    @Test fun `cooling down location off stops without further access reads`() = runTest(dispatcher) {
+        source.access = LocationAccess.LOCATION_OFF
+        tracker.warmUp(CardioActivity.ROAD_RUN)
+        assertEquals(GpsState.LocationOff(null), tracker.state.value)
+        val calls = source.accessCalls
+        tracker.coolDown()
+        assertEquals(GpsState.Off, tracker.state.value)
+        runCurrent()
+        assertEquals(calls, source.accessCalls)
+    }
+
+    @Test fun `beginning the same run with location off preserves its track and service`() = runTest(dispatcher) {
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        runCurrent()
+        for (t in 0L..20L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        source.access = LocationAccess.LOCATION_OFF
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        assertEquals(GpsState.LocationOff("r1"), tracker.state.value)
+        assertEquals(0, foreground.stops)
+        assertEquals(1, foreground.starts)
+        source.access = LocationAccess.PRECISE
+        tracker.refreshAccess()
+        for (t in 21L..40L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(GpsState.Tracking("r1"), tracker.state.value)
+        assertEquals(GpsSet(84, 84, true), requireNotNull(tracker.meter("r1"))
+            .measure(CardioSetSpec(CardioRole.WORK, Measure.Time(30)), 0, 30_000))
+        tracker.endAll()
+    }
+
+    @Test fun `a distance watch emits once at its crossing and clears on null`() = runTest(dispatcher) {
+        val reached = mutableListOf<String>()
+        backgroundScope.launch { tracker.reached.collect { reached += it } }
+        tracker.begin("r1", CardioActivity.ROAD_RUN, clock.wallMillis())
+        tracker.watch("r1", 0, 400)
+        runCurrent()
+        for (t in 0L..135L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(emptyList<String>(), reached)
+        elapsed = 136_000
+        source.fixes.emit(north(136))
+        runCurrent()
+        assertEquals(listOf("r1"), reached)
+        for (t in 137L..140L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(listOf("r1"), reached)
+        tracker.watch("r1", null, null)
+        for (t in 141L..150L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(listOf("r1"), reached)
+        tracker.endAll()
+    }
+
+    @Test fun `route capture keeps only opted in anchor moves and survives the idle end`() = runTest(dispatcher) {
+        tracker.begin("r1", CardioActivity.ROAD_RUN, clock.wallMillis())
+        tracker.keepRoute("r1", true)
+        runCurrent()
+        for (t in 0L..20L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(listOf(0, 4, 8, 12, 16, 20), tracker.route("r1").map { it.seconds })
+        assertEquals(listOf(0, 11, 22, 32, 43, 54), tracker.route("r1").map { it.latitudeE5 })
+        assertEquals(List(6) { 0 }, tracker.route("r1").map { it.longitudeE5 })
+        tracker.end("r1")
+        assertEquals(6, tracker.route("r1").size)
+        tracker.keepRoute("r1", false)
+        assertEquals(emptyList<Int>(), tracker.route("r1").map { it.seconds })
+        tracker.begin("r1", CardioActivity.ROAD_RUN, clock.wallMillis())
+        runCurrent()
+        for (t in 21L..24L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(emptyList<Int>(), tracker.route("r1").map { it.seconds })
+        tracker.keepRoute("r1", true)
+        for (t in 25L..28L) { elapsed = t * 1000; source.fixes.emit(north(t)); runCurrent() }
+        assertEquals(1, tracker.route("r1").size)
+        tracker.begin("r2", CardioActivity.ROAD_RUN, clock.wallMillis())
+        assertEquals(emptyList<Int>(), tracker.route("r1").map { it.seconds })
+        tracker.endAll()
+    }
+
+    @Test fun `last fix exposes the accepted fix elapsed time`() = runTest(dispatcher) {
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        runCurrent()
+        source.fixes.emit(north(20))
+        runCurrent()
+        assertEquals(20_000L, tracker.lastFix.value)
+        tracker.endAll()
+    }
+
+    @Test fun `route seconds keep their elapsed origin after a backward wall clock step`() = runTest(dispatcher) {
+        var wallOffset = 0L
+        val jumpingClock = object : CardioClock by clock {
+            override fun wallMillis() = elapsed + wallOffset
+        }
+        val tracker = RunTracker(source, foreground, jumpingClock, dispatcher)
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        tracker.keepRoute("r1", true)
+        runCurrent()
+        for (t in 0L..2L) { elapsed = t * 1000; source.fixes.emit(north(t, 11.0 * t)); runCurrent() }
+        wallOffset = -2_000
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        elapsed = 3_000
+        source.fixes.emit(north(3, 33.0))
+        runCurrent()
+        assertEquals(listOf(0, 1, 2, 3), tracker.route("r1").map { it.seconds })
+        tracker.endAll()
+    }
+
 }

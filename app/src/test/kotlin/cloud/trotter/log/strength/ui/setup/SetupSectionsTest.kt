@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
 import cloud.trotter.log.strength.run.LocationAccess
 import androidx.compose.ui.test.assertHasNoClickAction
@@ -237,6 +239,29 @@ class SetupSectionsTest {
                 setupActions().copy(onGpsDistanceChange = { chosen = it }))
         } }
         composeTestRule.onNodeWithText("GPS distance").performClick()
+        composeTestRule.runOnIdle { assertEquals(true, chosen) }
+    }
+
+    @Test fun saveRouteDefaultsOffWithItsPhoneStorageDetail() {
+        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(), setupActions()) } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Save route"))
+        composeTestRule.onNodeWithText("Save route").assertIsDisplayed().assertIsOff()
+        composeTestRule.onNodeWithText("Stored on this phone only").assertIsDisplayed()
+    }
+
+    @Test fun saveRouteIsDisabledWhenGpsDistanceIsOff() {
+        composeTestRule.setContent { AppTheme { SetupScreen(SetupUiState(gpsDistance = false), setupActions()) } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Save route"))
+        composeTestRule.onNodeWithText("Save route").assertIsNotEnabled()
+    }
+
+    @Test fun saveRouteToggleForwardsItsEnabledValue() {
+        var chosen: Boolean? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(gpsDistance = true), setupActions().copy(onSaveRouteChange = { chosen = it }))
+        } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Save route"))
+        composeTestRule.onNodeWithText("Save route").performClick()
         composeTestRule.runOnIdle { assertEquals(true, chosen) }
     }
 

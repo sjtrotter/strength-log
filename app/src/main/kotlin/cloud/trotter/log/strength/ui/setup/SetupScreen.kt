@@ -42,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -128,7 +129,7 @@ fun SetupScreen(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "gps_distance", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -193,6 +194,20 @@ fun SetupScreen(
                                 }
                             },
                         )
+                        "save_route" -> {
+                            val colors = ListItemDefaults.colors()
+                            ListItem(
+                                headlineContent = { Text(stringResource(R.string.settings_save_route)) },
+                                supportingContent = { Text(stringResource(R.string.settings_save_route_detail)) },
+                                trailingContent = { Switch(state.saveRoute, onCheckedChange = null, enabled = state.gpsDistance) },
+                                modifier = Modifier.fillMaxWidth().toggleable(value = state.saveRoute,
+                                    enabled = state.gpsDistance, role = Role.Switch, onValueChange = actions.onSaveRouteChange),
+                                colors = if (state.gpsDistance) colors else colors.copy(
+                                    headlineColor = colors.disabledHeadlineColor,
+                                    supportingTextColor = colors.disabledHeadlineColor,
+                                ),
+                            )
+                        }
                         "theme" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
                             supportingContent = {
@@ -472,7 +487,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
             actions = SetupActions(
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {}, onDistanceUnitChange = {},
-                onGpsDistanceChange = {}, onRefreshLocationAccess = {},
+                onSaveRouteChange = {}, onGpsDistanceChange = {}, onRefreshLocationAccess = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

@@ -42,6 +42,7 @@ class BackupRepository(
      *  every construction site would claim otherwise. */
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
+    private val cardioRouteDao = db.cardioRouteDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
     private val runDao = db.runDao()
@@ -99,6 +100,7 @@ class BackupRepository(
                 sessions = sessionDao.allSessions(),
                 sessionSets = sessionDao.allSessionSets(),
                 cardioSessions = cardioSessionDao.all(),
+                cardioRoutes = cardioRouteDao.all(),
                 cardioSetResults = cardioSetResultDao.all(),
                 runs = runDao.allRuns(),
                 runTracks = runDao.allTracks(),
@@ -181,6 +183,7 @@ class BackupRepository(
             planDao.deleteAllPlans()
             sessionDao.deleteAllSessionSets()
             sessionDao.deleteAllSessions()
+            cardioRouteDao.deleteAll()
             cardioSetResultDao.deleteAll()
             cardioSessionDao.deleteAll()
             customExerciseDao.deleteAll()
@@ -218,6 +221,7 @@ class BackupRepository(
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)
+            cardioRouteDao.insertAll(snapshot.cardioRoutes)
             cardioSetResultDao.insertAll(snapshot.cardioSetResults)
             runDao.insertRuns(snapshot.runs)
             runDao.insertTracks(snapshot.runTracks)

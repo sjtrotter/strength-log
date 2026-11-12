@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
@@ -60,6 +61,7 @@ class HistoryRepository(
 ) {
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
+    private val cardioRouteDao = db.cardioRouteDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val sessionNotesMigrationMutex = Mutex()
 
@@ -214,15 +216,18 @@ class HistoryRepository(
     suspend fun deleteCardioSession(sessionId: Long): DeletedCardio? = db.withTransaction {
         val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction null
         val sets = cardioSetResultDao.forSession(sessionId)
+        val route = cardioRouteDao.forSession(sessionId)
+        cardioRouteDao.deleteForSession(sessionId)
         cardioSetResultDao.deleteForSession(sessionId)
         cardioSessionDao.deleteById(sessionId)
-        DeletedCardio(session, sets)
+        DeletedCardio(session, sets, route)
     }
 
     suspend fun restoreCardioSession(deleted: DeletedCardio) {
         db.withTransaction {
             cardioSessionDao.insert(deleted.session)
             if (deleted.sets.isNotEmpty()) cardioSetResultDao.insertAll(deleted.sets)
+            deleted.route?.let { cardioRouteDao.insert(it) }
         }
     }
 
@@ -273,6 +278,7 @@ class HistoryRepository(
     data class DeletedCardio(
         val session: CardioSessionEntity,
         val sets: List<CardioSetResultEntity>,
+        val route: CardioRouteEntity? = null,
     )
 
     /**

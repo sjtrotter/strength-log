@@ -19,8 +19,8 @@ class RunNotification @Inject constructor(@ApplicationContext private val contex
         )
     }
 
-    fun build(notice: RunNotice?, setting: DistanceUnit): Notification {
-        val text = when (notice?.live?.status) {
+    fun build(notice: RunNotice?, setting: DistanceUnit?): Notification {
+        val text = if (setting == null) context.getString(R.string.gps_finding) else when (notice?.live?.status) {
             GpsLiveStatus.FINDING -> context.getString(R.string.gps_finding)
             GpsLiveStatus.NO_SIGNAL -> context.getString(R.string.gps_no_signal)
             else -> notice?.let { current ->

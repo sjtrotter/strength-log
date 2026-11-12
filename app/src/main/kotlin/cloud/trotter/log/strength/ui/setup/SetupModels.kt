@@ -34,6 +34,7 @@ data class SetupUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val gpsDistance: Boolean = true,
     val gpsAccess: LocationAccess = LocationAccess.DENIED,
+    val saveRoute: Boolean = false,
 )
 
 /** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
@@ -52,4 +53,5 @@ data class SetupActions(
     val onKeepScreenOnChange: (Boolean) -> Unit = {},
     val onGpsDistanceChange: (Boolean) -> Unit = {},
     val onRefreshLocationAccess: () -> Unit = {},
+    val onSaveRouteChange: (Boolean) -> Unit = {},
 )

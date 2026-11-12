@@ -698,6 +698,7 @@ private fun SetupRoute(
             onUnitToggle = viewModel::setUnit,
             onDistanceUnitChange = viewModel::setDistanceUnit,
             onGpsDistanceChange = viewModel::setGpsDistance,
+            onSaveRouteChange = viewModel::setSaveRoute,
             onRefreshLocationAccess = viewModel::refreshLocationAccess,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,

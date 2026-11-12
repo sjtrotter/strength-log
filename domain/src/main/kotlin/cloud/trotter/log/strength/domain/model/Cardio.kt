@@ -103,3 +103,7 @@ enum class CardioFamily(val activities: List<CardioActivity>) {
         fun of(activity: CardioActivity): CardioFamily = entries.first { activity in it.activities }
     }
 }
+
+/** One saved route point: [seconds] since the run's start, and the anchor fix's latitude and longitude in
+ *  1e-5 degrees (about 1.1 m). Only stored when the user turns on Save route. */
+data class RoutePoint(val seconds: Int, val latitudeE5: Int, val longitudeE5: Int)

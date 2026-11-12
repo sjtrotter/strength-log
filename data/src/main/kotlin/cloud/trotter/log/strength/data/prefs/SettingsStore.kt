@@ -67,6 +67,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
         val GPS_DISTANCE = booleanPreferencesKey("gps_distance")
+        val SAVE_ROUTE = booleanPreferencesKey("save_route")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
         val SESSION_STARTED_DATE = stringPreferencesKey("session_started_date")
         val SESSION_STARTED_PLAN_ID = longPreferencesKey("session_started_plan_id")
@@ -176,6 +177,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** True means use GPS on outdoor activities, asking when needed; a decline writes false.
      *  Device-local, paired with location permission, and not backed up. */
     val gpsDistanceFlow: Flow<Boolean> = dataStore.data.map { it[Keys.GPS_DISTANCE] ?: true }
+
+    val saveRouteFlow: Flow<Boolean> = dataStore.data.map { it[Keys.SAVE_ROUTE] ?: false }
 
     /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live
      *  logs has already run. */
@@ -405,6 +408,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setDistanceUnit(unit: DistanceUnit) {
         require(unit != DistanceUnit.M)
         dataStore.edit { it[Keys.DISTANCE_UNIT] = unit.name }
+    }
+
+    suspend fun setSaveRoute(on: Boolean) {
+        dataStore.edit { it[Keys.SAVE_ROUTE] = on }
     }
 
     suspend fun setGpsDistance(on: Boolean) {

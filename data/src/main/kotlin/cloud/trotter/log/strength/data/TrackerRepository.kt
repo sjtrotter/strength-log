@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
+import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -22,6 +23,7 @@ import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioRouteJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.OfferDto
 import cloud.trotter.log.strength.data.serialization.OpeningDto
@@ -117,6 +119,7 @@ class TrackerRepository(
 
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
+    private val cardioRouteDao = db.cardioRouteDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
     private val runDao = db.runDao()
@@ -836,6 +839,7 @@ class TrackerRepository(
         session: CardioSessionEntity,
         sets: List<CardioSetResult> = emptyList(),
         finishDay: Boolean = false,
+        route: String? = null,
     ): Long {
         require(session.label.isNotBlank()) { "cardio label must not be blank" }
         require(session.label.length <= CARDIO_LABEL_MAX_LENGTH) {
@@ -865,6 +869,9 @@ class TrackerRepository(
                 // A GPS row carries what its track read; an unread reading stays unknown.
                 (if (set.readingSource != null || set.distanceSource == DistanceSource.GPS) set else FinishedRule.atEnd(set)).toEntity(id, position)
             })
+            if (route != null && CardioRouteJson.decode(route) != null) {
+                cardioRouteDao.insert(CardioRouteEntity(id, route))
+            }
             if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
                 lightAfterDay(plan, stamped.dayId, reactive = false)

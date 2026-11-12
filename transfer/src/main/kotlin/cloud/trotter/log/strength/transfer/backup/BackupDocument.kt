@@ -30,7 +30,7 @@ import kotlinx.serialization.Serializable
  * v24 adds Rest entries (program day kind REST).
  * v25 carries each plan's optional cardio goal.
  * v26 carries lift note timestamps and run track notes.
- * v27 carries draft runs, slot, partner and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, and the effort scale.
+ * v27 carries draft runs, slot, partner and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, the effort scale, and optional saved routes.
  */
 const val CURRENT_SCHEMA_VERSION: Int = 27
 
@@ -88,6 +88,10 @@ data class CardioSessionBackup(
     val note: String = "",
     val effort: String? = null,
     val increaseApplied: Boolean = false,
+    /** The session's saved route ([cloud.trotter.log.strength.data.serialization.CardioRouteJson]); absent unless the user turned on Save route. */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val route: String? = null,
 )
 
 /** Position is list order; ids and the stored spec survive a full restore verbatim. */

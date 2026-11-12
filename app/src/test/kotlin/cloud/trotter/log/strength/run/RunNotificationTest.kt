@@ -45,4 +45,10 @@ class RunNotificationTest {
         assertEquals("Finding GPS", built.extras.getString(Notification.EXTRA_TEXT))
         assertFalse(built.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
     }
+    @Test fun initialNotificationFindsGpsUntilTheDistanceSettingIsKnown() {
+        val notice = RunNotice(CardioActivity.ROAD_RUN, 1000, GpsLive(GpsLiveStatus.LIVE, 1996, 3.0))
+        assertEquals("Finding GPS", notification.build(notice, null).extras.getString(Notification.EXTRA_TEXT))
+        assertEquals("1.24 mi", notification.build(notice, DistanceUnit.MI).extras.getString(Notification.EXTRA_TEXT))
+    }
+
 }

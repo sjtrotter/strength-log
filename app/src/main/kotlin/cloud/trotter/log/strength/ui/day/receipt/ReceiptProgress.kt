@@ -46,6 +46,7 @@ data class ReceiptProgressState(
     val cardioNext: CardioNextTime? = null,
     val cardioStored: CardioBlock? = null,
     val cardioCapped: Boolean = false,
+    val cardioSets: List<List<CardioSetResult>> = emptyList(),
 ) {
     val whyVisible: Boolean get() = lifts.isNotEmpty() || lightRemaining > 0 || lightEnded || cardioNext is CardioNextTime.Offer
 }
@@ -100,6 +101,7 @@ internal object ReceiptProgressBuilder {
         return ReceiptProgressState(lifts, undo.restorable && !undo.rough, undo.rough, undo.hasStrengthRecord,
             lightNext, plan.lightCycleRemaining, counter?.beforeRemaining?.let { it > 0 && counter.afterRemaining == 0 } == true,
             undo.roughLight != null, entry?.id, CardioEffort.entries.firstOrNull { it.name == entry?.effort },
-            next, day?.cardioToRun.takeIf { identity.cardioSessionId != null }, capped)
+            next, day?.cardioToRun.takeIf { identity.cardioSessionId != null }, capped,
+            entry?.id?.let { ReceiptBuilder.cardioGroups(history.cardioSetsFor(it)).map { group -> group.sets } }.orEmpty())
     }
 }

@@ -41,6 +41,11 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -415,6 +420,25 @@ class ReceiptScreenTest {
         rule.onNodeWithContentDescription("Recovery 1 minute 30 seconds each").assertExists()
         rule.onNodeWithText("PR, up from 1:42", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Interval 2, 1 minute 38 seconds, faster record, up from 1 minute 42 seconds.").assertExists()
+    }
+
+    @Test fun measuredOverrunShowsTwoLegsAndDerivedReadingShowsTheTotal() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
+            CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,
+            secondsAtEnd = 1500, readingSource = ReadingSource.TYPED)
+        val progress = mutableStateOf(ReceiptProgressState(cardioSets = listOf(listOf(result))))
+        val receipt = timeTargetFixture().copy(cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN,
+            listOf(result), emptyMap()))
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) {
+            SessionReceiptScreen(receipt, {}, {}, progress = progress.value)
+        } } }
+        rule.onNodeWithText("5.00 km at 25:00", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertExists()
+        rule.runOnIdle { progress.value = progress.value.copy(cardioSets = listOf(listOf(
+            result.copy(metresAtEnd = null, readingSource = null)))) }
+        rule.onNodeWithText("5.00 km at 25:00", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("5.6 km", useUnmergedTree = true).assertExists()
     }
 
     @Test

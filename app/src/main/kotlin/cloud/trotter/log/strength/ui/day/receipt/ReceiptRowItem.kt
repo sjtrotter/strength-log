@@ -66,6 +66,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.ui.day.CardioLegs
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -309,13 +311,20 @@ private fun ReceiptAfter(text: String, spoken: String) {
 }
 
 @Composable
-internal fun CardioReceiptRowItem(row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float, unit: DistanceUnit) {
+internal fun CardioReceiptRowItem(
+    row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float, unit: DistanceUnit,
+    sets: List<CardioSetResult> = emptyList(),
+) {
+    val resources = LocalContext.current.resources
+    val legs = sets.map { CardioLegs.of(it, unit, resources) }
+    val singleLeg = legs.singleOrNull()
     val name = cardioRowName(row, unit)
     if (row.role != CardioRole.WORK && row.intervals.all { it.status == CardioSetStatus.SKIPPED }) {
         SkippedReceiptRow(name)
         return
     }
-    ExpandableReceiptRow(rowKey, name, spokenCardioRow(row, unit), row.role == CardioRole.WORK && row.count > 1,
+    val spoken = spokenCardioRow(row, unit) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
+    ExpandableReceiptRow(rowKey, name, spoken, row.role == CardioRole.WORK && row.count > 1,
         dayIndex, row.record?.kind, values = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (row.role == CardioRole.WORK && bestInterval(row) != null) ValueLabel(cardioValueLabel(row), Modifier.alignByBaseline())
@@ -328,10 +337,20 @@ internal fun CardioReceiptRowItem(row: CardioReceiptRow, dayIndex: Int, rowKey: 
                     } else Modifier))
                 row.record?.let { OldBest(cardioPrevious(it, unit), Modifier.alignByBaseline()) }
             }
+            singleLeg?.let {
+                ReceiptAfter(it.at, it.at)
+                ReceiptAfter(it.past, it.past)
+            }
         }, children = {
             row.intervals.forEachIndexed { index, interval ->
-                ReceiptSetLine(index, cardioIntervalValue(row, interval, unit), spokenInterval(row, index, unit), dayIndex,
+                val leg = legs.getOrNull(index)
+                ReceiptSetLine(index, cardioIntervalValue(row, interval, unit),
+                    spokenInterval(row, index, unit) + leg?.let { " ${it.at}. ${it.past}" }.orEmpty(), dayIndex,
                     row.record?.takeIf { it.intervalIndex == index }?.let { stringResource(R.string.receipt_set_pr_note, cardioPrevious(it, unit)) })
+                leg?.let {
+                    ReceiptAfter(it.at, it.at)
+                    ReceiptAfter(it.past, it.past)
+                }
             }
             if (row.recoverySeconds.isNotEmpty()) ReceiptAfter(recoveryText(row.recoverySeconds), recoveryText(row.recoverySeconds, spoken = true))
         })

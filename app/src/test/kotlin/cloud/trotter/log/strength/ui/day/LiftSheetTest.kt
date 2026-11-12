@@ -37,6 +37,16 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class LiftSheetTest {
+    @Test fun supportLineUsesTheSelectedPartnersMarker() {
+        val base = workoutSetSupersetFixture().exercises.single()
+        rule.setContent { AppTheme {
+            LiftSheet(base.copy(marker = LiftMarker.ESTIMATE, partnerMarker = LiftMarker.AFTER_BREAK), Slot.SS,
+                null, workoutActions(), false, null, {}, {}, {})
+        } }
+        rule.onNodeWithText("After a break.", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Estimate.", substring = true).assertDoesNotExist()
+    }
+
     @get:Rule val rule = createComposeRule()
 
     @Test fun onlyDoneRatedRowsShowTheirEffortWord() {

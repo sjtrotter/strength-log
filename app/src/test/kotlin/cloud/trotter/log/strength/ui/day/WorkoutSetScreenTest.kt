@@ -80,6 +80,18 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
+    @Test fun markersFollowTheShownLiftBeforeAndAfterStart() {
+        val base = workoutSetSupersetFixture()
+        var state by mutableStateOf(base.copy(beforeStart = true,
+            exercises = base.exercises.map { it.copy(marker = LiftMarker.ESTIMATE, partnerMarker = LiftMarker.LIGHTER_TODAY) }))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("Estimate").assertIsDisplayed()
+        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+        rule.runOnIdle { state = state.copy(beforeStart = false,
+            workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1))) }
+        rule.onNodeWithText("Lighter today").assertIsDisplayed()
+        rule.onNodeWithText("Estimate").assertDoesNotExist()
+    }
 
     @Test fun loggedWorkingSetOffersFourUnselectedEffortWords() {
         val base = workoutSetSingleFixture()

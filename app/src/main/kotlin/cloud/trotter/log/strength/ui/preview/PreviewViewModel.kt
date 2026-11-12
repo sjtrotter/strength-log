@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.ui.day.LiftMarker
 import cloud.trotter.log.strength.ui.day.WorkoutStart
 import cloud.trotter.log.strength.ui.day.activityLabel
 import cloud.trotter.log.strength.ui.day.dayHistoryKeys
@@ -112,7 +113,14 @@ class PreviewViewModel @Inject constructor(
                 }
                 PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },
                     working, previousResults, nextTime, note = slot.slot.exercise.note,
-                    programExerciseId = slot.slot.programExerciseId)
+                    programExerciseId = slot.slot.programExerciseId,
+                    marker = LiftMarker.of(slot.slot.exercise.rule.takeIf { !slot.slot.exercise.keepToPlan &&
+                        slot.main.performed.exerciseId == slot.slot.exercise.exerciseId },
+                        slot.main.openingInfo, plan?.lightCycleRemaining ?: 0),
+                    partnerMarker = slot.partner?.let { partnerTrack -> LiftMarker.of(
+                        slot.slot.exercise.superset?.rule.takeIf { !slot.slot.exercise.keepToPlan &&
+                            partnerTrack.performed.exerciseId == slot.slot.exercise.superset?.exerciseId },
+                        partnerTrack.openingInfo, plan?.lightCycleRemaining ?: 0) })
             },
             cardio = opening?.let { block ->
                 PreviewCardio(activityLabel(block.activity), block.plannedTimeDetail(), block.activity, cardioNextTime)

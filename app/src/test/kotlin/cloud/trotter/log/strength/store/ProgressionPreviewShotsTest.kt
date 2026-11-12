@@ -1,10 +1,34 @@
 package cloud.trotter.log.strength.store
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
+import cloud.trotter.log.strength.ui.day.WorkoutFocus
+import cloud.trotter.log.strength.ui.day.SetRowState
+import cloud.trotter.log.strength.ui.day.DayUiState
+import cloud.trotter.log.strength.ui.day.LiftMarker
+import cloud.trotter.log.strength.ui.day.OpenSheet
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilder
+import cloud.trotter.log.strength.ui.today.TodayActions
+import cloud.trotter.log.strength.ui.today.TodayDay
+import cloud.trotter.log.strength.ui.today.TodayScreen
+import cloud.trotter.log.strength.ui.today.TodayUiState
+import cloud.trotter.log.strength.ui.log.LogActions
+import cloud.trotter.log.strength.ui.log.LogScreen
+import cloud.trotter.log.strength.ui.log.LogUiState
+import cloud.trotter.log.strength.ui.log.SessionListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
@@ -145,6 +169,72 @@ class ProgressionPreviewShotsTest {
     @Test fun repsLeft() = repsLeft("p13-reps-left-1x.png", 1f)
     @Test fun repsLeftLargeFont() = repsLeft("p14-reps-left-2x.png", 2f)
 
+    @Test fun markerEstimate() = marker("p15-marker-estimate.png", LiftMarker.ESTIMATE)
+    @Test fun markerLightWeek() = marker("p16-marker-light-week.png", LiftMarker.LIGHT_WEEK)
+    @Test fun markerAfterBreak() = marker("p17-marker-after-break.png", LiftMarker.AFTER_BREAK)
+
+    @Test fun liftSheetMarker() {
+        val base = markerState(LiftMarker.LIGHTER_TODAY)
+        render { WorkoutSetHost(base.copy(
+            openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, base.exercises.single().programExerciseId, 0))) }
+        capture("p18-lift-sheet-marker.png", sheet = true)
+    }
+
+    @Test fun todayLighter() {
+        render { TodayScreen(TodayUiState(hasProgram = true,
+            upNext = listOf(TodayDay(1, "Strength", "A", 0, "Bench Press", lighterAvailable = true))), TodayActions({}, {}, {})) }
+        capture("p19-today-lighter.png")
+    }
+
+    @Test fun receiptTwoLegs() {
+        val set = twoLegsSet()
+        val receipt = timeTargetFixture().copy(minutes = 28,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN, listOf(set), emptyMap()))
+        render { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            SessionReceiptScreen(receipt, {}, {}, progress = ReceiptProgressState(cardioSessionId = 2,
+                cardioSets = listOf(listOf(set))))
+        } }
+        rule.onNodeWithText("3.11 mi at 25:00", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("3:10, 0.37 mi past the target", useUnmergedTree = true).assertExists()
+        capture("p20-receipt-two-legs.png")
+    }
+
+    @Test fun historyTwoLegs() {
+        val set = twoLegsSet()
+        val item = SessionListItem(1, "Nov 12", "A", 0, "Road run", 0, null, false,
+            cardioId = 2, cardioSets = listOf(set), cardioSeconds = set.elapsedSeconds, activity = CardioActivity.ROAD_RUN)
+        render { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            LogScreen(LogUiState(sessions = listOf(item)), LogActions({}, {}, {}, {}, {}, {}, {},
+                onStartSession = {}, onSetUpProgram = {}))
+        } }
+        rule.onNodeWithText("3.11 mi at 25:00", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("3:10, 0.37 mi past the target", useUnmergedTree = true).assertExists()
+        capture("p21-history-two-legs.png")
+    }
+
+    private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
+        CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,
+        secondsAtEnd = 1500, readingSource = ReadingSource.TYPED)
+
+    private fun markerState(marker: LiftMarker): DayUiState {
+        val base = workoutSetSingleFixture()
+        val count = if (marker == LiftMarker.LIGHT_WEEK || marker == LiftMarker.LIGHTER_TODAY) 2 else 3
+        val weight = when (marker) {
+            LiftMarker.LIGHT_WEEK, LiftMarker.LIGHTER_TODAY -> 165.0
+            LiftMarker.AFTER_BREAK -> 155.0
+            LiftMarker.ESTIMATE -> 185.0
+        }
+        return base.copy(runOpen = true, exercises = base.exercises.map { it.copy(marker = marker,
+            workingHeading = "$count × 5 · ${weight.toInt()} lb",
+            rows = List(count) { index -> SetRowState(index, "${index + 1}", false, weight, 5, false) }) },
+            workout = base.workout?.copy(focus = WorkoutFocus(1, Slot.MAIN, 0)))
+    }
+
+    private fun marker(name: String, marker: LiftMarker) {
+        render { WorkoutSetHost(markerState(marker)) }
+        capture(name)
+    }
+
     private fun receipt(name: String, offered: Boolean = false, undone: Boolean = false, rough: Boolean = false, why: Boolean = false) {
         val names = listOf("Bench Press", "Pull-up", "Barbell Row")
         val rows = names.mapIndexed { index, title ->
@@ -168,7 +258,7 @@ class ProgressionPreviewShotsTest {
                 progress = progress, mutation = ReceiptMutation.Undone.takeIf { undone })
         }
         if (why) rule.onNodeWithText("Why").performClick()
-        capture(name)
+        capture(name, sheet = why)
     }
 
     private fun plan(name: String, automatic: Boolean) {
@@ -186,7 +276,9 @@ class ProgressionPreviewShotsTest {
             prescription = if (prescribed) Prescription(PrescribedTarget.LoadReps(185.0, 5)) else null,
             keepToPlan = kept, weightedTarget = true, nextTime = if (prescribed) NextTimeMode.AUTO else NextTimeMode.ASK,
             lifts = listOf(LiftOptionsState(Slot.MAIN, "Barbell Back Squat", 180, 180, false, 2, 0.025, "5 lb")))
-        render { SlotOptionsScreen(slot, {}, {}, {}, {}, {}, {}, false, {}, {}, {}, {}) }
+        render { Surface(color = MaterialTheme.colorScheme.surface) {
+            SlotOptionsScreen(slot, {}, {}, {}, {}, {}, {}, false, {}, {}, {}, {})
+        } }
         capture(name)
     }
 
@@ -211,8 +303,13 @@ class ProgressionPreviewShotsTest {
         rule.waitForIdle()
     }
 
-    private fun capture(name: String) {
-        val root = rule.onAllNodes(isRoot()).onLast()
+    private fun capture(name: String, sheet: Boolean = false) {
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.waitForIdle()
+        val root = if (sheet) {
+            val dialogs = rule.onAllNodes(isDialog())
+            if (dialogs.fetchSemanticsNodes().isNotEmpty()) dialogs.onLast() else rule.onAllNodes(isPopup()).onLast()
+        } else rule.onAllNodes(isRoot()).onLast()
         root.assertExists()
         if (System.getProperty("roborazzi.test.record") == "true") {
             val file = File(System.getProperty("previewShots.dir", "app/build/outputs/preview"), name)

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.domain.model.LoggedSet
 
 enum class ExerciseSwapResult { CHANGED, ALREADY_THERE, REJECTED }
@@ -50,6 +51,7 @@ data class RunTrack(
     val sets: List<LoggedSet>,
     val dropped: Boolean = false,
     val note: String = "",
+    val opening: OpeningDto? = null,
 )
 
 data class RunSetCounts(val done: Int, val total: Int, val remaining: Int)

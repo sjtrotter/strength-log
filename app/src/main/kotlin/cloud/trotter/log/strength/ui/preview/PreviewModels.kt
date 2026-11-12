@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.day.LiftMarker
 import cloud.trotter.log.strength.ui.day.NextTime
 
 data class PreviewUiState(
@@ -25,6 +26,8 @@ data class PreviewLift(
     val nextTime: NextTime? = null,
     val note: String = "",
     val programExerciseId: Long = 0L,
+    val marker: LiftMarker? = null,
+    val partnerMarker: LiftMarker? = null,
 )
 data class PreviewPreviousResult(
     val last: String?,

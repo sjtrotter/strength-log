@@ -53,7 +53,12 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
         }) },
         bottomBar = {
             if (!state.loading && primaryDay != null && (state.hasProgram || state.resume != null)) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (state.resume == null && !primaryDay.rest && !primaryDay.cardioOnly && primaryDay.lighterAvailable) {
+                        TextButton(onClick = { actions.onStartLighter(primaryDay.selection) }) {
+                            Text(stringResource(R.string.today_lighter))
+                        }
+                    }
                     ScreenStateButton(
                         ScreenStateAction(
                             label = stringResource(

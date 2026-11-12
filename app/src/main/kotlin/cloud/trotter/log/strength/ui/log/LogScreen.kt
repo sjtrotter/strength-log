@@ -87,6 +87,8 @@ import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateButton
 import cloud.trotter.log.strength.ui.components.emptyJournalAction
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.day.CardioLegLines
+import cloud.trotter.log.strength.ui.day.distanceUnitFor
 import cloud.trotter.log.strength.ui.day.CardioReadingInput
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.day.CardioEntrySheet
@@ -304,6 +306,7 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean, onE
         }
         if (item.cardioSets.isNotEmpty()) {
             cloud.trotter.log.strength.ui.day.CardioSummary(item.cardioSets, item.cardioSeconds, item.activity)
+            item.cardioSets.forEach { CardioLegLines(it, distanceUnitFor(item.activity)) }
         }
         if (item.note.isNotBlank()) {
             Text(item.note, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)

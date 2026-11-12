@@ -24,7 +24,7 @@ data class ArchivedRun(val tracks: List<RunTrack>, val slots: List<ProgramSlot>)
                     (planned.getOrNull(actual.size + index) ?: planned.lastOrNull() ?: LoggedSet(0.0, 0, SetKind.WORK)).copy(done = false)
                 }
                 RunTrack(dto.position.toLong(), dto.position, dto.programExerciseId, dto.slot, dto.exerciseId,
-                    dto.retired, planned, rows, dropped = dto.dropped, note = dto.note.orEmpty())
+                    dto.retired, planned, rows, dropped = dto.dropped, note = dto.note.orEmpty(), opening = dto.opening)
             }
             return ArchivedRun(tracks, slots)
         }

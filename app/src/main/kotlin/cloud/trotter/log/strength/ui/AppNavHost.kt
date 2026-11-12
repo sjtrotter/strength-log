@@ -373,7 +373,7 @@ internal fun TodayRoute(
     val conflict by start.conflict.collectAsStateWithLifecycle()
     LaunchedEffect(start) { start.navigation.collect { onStart(it) } }
     TodayScreen(state, TodayActions(
-        onStart = start::start, onResume = onStart,
+        onStart = start::start, onResume = onStart, onStartLighter = start::startLighter,
         onOpenCardio = onOpenCardio, onOpenPreview = onOpenPreview,
         onRestTaken = viewModel::takeRest, onSkipRest = onOpenPreview,
         onOpenSettings = onOpenSettings, onSetUpProgram = onSetUpProgram,

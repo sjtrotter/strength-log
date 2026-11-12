@@ -2644,6 +2644,9 @@ class DayViewModel @Inject constructor(
             note = if (performed.exerciseId != pe.exerciseId) slot.main.note else pe.note,
             isSuperset = pe.superset != null,
             headerTarget = headerTarget,
+            marker = LiftMarker.of(pe.rule.takeIf { !pe.keepToPlan && performed.exerciseId == pe.exerciseId }, slot.main.openingInfo, plan?.lightCycleRemaining ?: 0),
+            partnerMarker = slot.partner?.let { LiftMarker.of(pe.superset?.rule.takeIf { !pe.keepToPlan && partner?.exerciseId == pe.superset?.exerciseId },
+                it.openingInfo, plan?.lightCycleRemaining ?: 0) },
             workingHeading = if (performed.prescription?.target is PrescribedTarget.RepsInTime) headerTarget.display
                 else DayScreenBuilder.workingHeading(main, tracking, unit),
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display

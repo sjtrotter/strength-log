@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -1609,6 +1610,28 @@ class DayViewModelReceiptTest {
         vm.finisher.setRoughDay(true)
         advanceUntilIdle()
         assertEquals(ReceiptMutation.RoughDayFailed, vm.finisher.mutation.value)
+    }
+
+    @Test fun `receipt reloads measured legs from Room after restoring its saved identity`() = runVmTest {
+        val (plan, _) = automaticBench()
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(1500))
+        repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.ROAD_RUN, listOf(spec)))
+        val end = System.currentTimeMillis() - 1000
+        val result = CardioSetResult(spec, CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL,
+            metresAtEnd = 5000, secondsAtEnd = 1500, readingSource = ReadingSource.TYPED)
+        val id = repo.logCardioSession(CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = end - 1690000, completedAt = end, seconds = 1690, stepsCompleted = 1,
+            planId = plan, activity = "ROAD_RUN"), listOf(result))
+        val vm = newCollectingViewModel(cardioClock = FixedCardioClock(end))
+        vm.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)), listOf(result), 0, emptyMap())
+        advanceUntilIdle()
+        assertEquals(listOf(listOf(result)), vm.finisher.progressState.value.cardioSets)
+        val restored = newViewModel(SavedStateHandle(mapOf(
+            "day_workout_receipt" to vm.finisher.receipt.value,
+            "day_receipt_progress" to vm.finisher.receiptProgress.value,
+        )), cardioClock = FixedCardioClock(end))
+        advanceUntilIdle()
+        assertEquals(listOf(listOf(result)), restored.finisher.progressState.value.cardioSets)
     }
 
     @Test fun `cardio logged before Start has rows but no next time on the strength receipt`() = runVmTest {

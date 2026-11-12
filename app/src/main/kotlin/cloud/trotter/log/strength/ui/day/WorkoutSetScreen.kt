@@ -636,13 +636,19 @@ private fun WorkoutLift(
             }
             Text(card.summaryLine, style = MaterialTheme.typography.bodyLarge)
         } else if (row != null) {
-            Text(
-                if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
-                    stringResource(R.string.workout_set_kind, index + 1, card.rows.size, row.kindLabel)
-                } else stringResource(R.string.day_set_of, index + 1, card.rows.size),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
+                        stringResource(R.string.workout_set_kind, index + 1, card.rows.size, row.kindLabel)
+                    } else stringResource(R.string.day_set_of, index + 1, card.rows.size),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                (if (slot == Slot.SS) card.partnerMarker else card.marker)?.let {
+                    Text(stringResource(it.label), style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             val values = row.values(slot)
             if (values != null) {
                 if (timed) WorkoutTimedRepHero(card, event, index, actions) else {

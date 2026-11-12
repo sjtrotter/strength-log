@@ -26,6 +26,22 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class TodayScreenTest {
+    @Test fun lighterTodayStartsTheSelectedDayAndHidesForResumeRestAndCardio() {
+        val next = first.copy(lighterAvailable = true)
+        val state = mutableStateOf(TodayUiState(hasProgram = true, upNext = listOf(next)))
+        var started: DaySelection? = null
+        rule.setContent { AppTheme { TodayScreen(state.value, actions().copy(onStartLighter = { started = it })) } }
+        rule.onNodeWithText("Lighter today").assertIsDisplayed().performClick()
+        rule.runOnIdle { assertEquals(next.selection, started); state.value = state.value.copy(resume = next, resumeDraft = true) }
+        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+        rule.runOnIdle { state.value = state.value.copy(resume = null, upNext = listOf(next.copy(rest = true))) }
+        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(next.copy(cardioOnly = true))) }
+        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(next.copy(lighterAvailable = false))) }
+        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+    }
+
     @get:Rule val rule = createComposeRule()
     private val first = todayFirstFixture()
     private val second = todaySecondFixture()

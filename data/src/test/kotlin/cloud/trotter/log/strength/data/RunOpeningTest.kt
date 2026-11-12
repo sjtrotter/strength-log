@@ -74,6 +74,33 @@ abstract class OpeningFixture : FinishProgressionFixture() {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class RunOpeningTest : OpeningFixture() {
+    @Test fun `lighter today opens two light sets and Finish preserves stored rows and rules`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_bench")
+        lifter(plan, id)
+        val beforeLog = log(plan, id)
+        val beforeRule = rule(id)
+        val started = repo.startRun(plan, "A", lighter = true) as RunStartResult.Started
+        val track = db.runDao().tracks(started.runId).single()
+        assertEquals(work(n = 2, w = 165.0), planned(track))
+        assertEquals(OpeningDto(light = true), OpeningJson.decode(track.openingJson))
+        restart()
+        val session = asPlanned(track, plan)
+        assertEquals(beforeLog, log(plan, id))
+        assertEquals(beforeRule, rule(id))
+        assertEquals("LIGHT_CYCLE", SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single().reason)
+        assertNull(offer(plan, "bb_bench"))
+    }
+
+    @Test fun `default Start keeps three working sets`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_bench")
+        lifter(plan, id)
+        val track = opened(plan)
+        assertEquals(work(), planned(track))
+        assertNull(OpeningJson.decode(track.openingJson))
+    }
+
     @Test fun `case 13 a sixteen day gap opens the squat at ninety five percent`() = runTest {
         val plan = rPlan()
         history(plan, 16, sixteen)

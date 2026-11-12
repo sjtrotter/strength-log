@@ -195,7 +195,8 @@ internal fun SessionReceiptScreen(
             receipt.cardioRows.forEachIndexed { index, row ->
                 key(receipt.sessionId, index) {
                     CardioReceiptRowItem(if (receipt.recordsChecked) row else row.copy(record = null), receipt.dayIndex,
-                        "${receipt.sessionId}:cardio:$index", { roll.value }, distanceUnitFor(receipt.activity))
+                        "${receipt.sessionId}:cardio:$index", { roll.value }, distanceUnitFor(receipt.activity),
+                        progress.cardioSets.getOrNull(index).orEmpty())
                 }
             }
         }

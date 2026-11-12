@@ -383,6 +383,8 @@ data class ExerciseCardState(
     val exerciseId: String = "",
     val timedRepDurationSeconds: Int? = null,
     val timedRepAim: Int? = null,
+    val marker: LiftMarker? = null,
+    val partnerMarker: LiftMarker? = null,
     val workingHeading: String? = null,
     val partnerWorkingHeading: String? = null,
     val nextTime: NextTime? = null,

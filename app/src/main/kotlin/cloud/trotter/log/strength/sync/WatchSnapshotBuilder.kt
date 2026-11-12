@@ -166,8 +166,11 @@ object WatchSnapshotBuilder {
             slot = Slot.MAIN,
             name = entry?.watchName ?: performed.exerciseId,
             goal = slot.main.loadLb,
-            goalLabel = if (performed.prescription != null) DayScreenBuilder.headerTargetLabel(header)
-                else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
+            goalLabel = if (performed.prescription != null) {
+                if (repWindow != null) DayScreenBuilder.headerTargetLabel(header)
+                else (slot.main.opening ?: slot.main.baseRows)?.let { DayScreenBuilder.workingHeading(it, tracking, unit) }
+                    ?: DayScreenBuilder.headerTargetLabel(header)
+            } else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             targetDetail = DayScreenBuilder.headerTargetDetail(header),
             repWindowSeconds = repWindow?.seconds ?: 0,
             repAim = repWindow?.repAim,

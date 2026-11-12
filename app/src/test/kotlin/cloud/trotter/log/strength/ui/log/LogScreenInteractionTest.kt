@@ -5,6 +5,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -33,6 +35,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -156,6 +159,21 @@ class LogScreenInteractionTest {
         )))
 
         composeTestRule.onNodeWithText("2,147,483,647 m").assertIsDisplayed()
+    }
+
+    @Test fun historyShowsLegsOnlyForASuppliedReadingAtTheTarget() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Road run", startedAt = 1000, completedAt = 1_691_000, seconds = 1690,
+            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name)
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
+            CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,
+            secondsAtEnd = 1500, readingSource = ReadingSource.GPS)
+        setContent(false, distanceUnit = DistanceUnit.KM, sessions = listOf(
+            LogScreenBuilder.cardioItem(session, listOf(result)),
+            LogScreenBuilder.cardioItem(session.copy(id = 9), listOf(result.copy(metresAtEnd = null, readingSource = null))),
+        ))
+        composeTestRule.onAllNodesWithText("5.00 km at 25:00", useUnmergedTree = true).assertCountEquals(1)
+        composeTestRule.onAllNodesWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test fun roadHistoryTotalsUseMiles() {

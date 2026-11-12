@@ -949,3 +949,14 @@ The owner's Q3 keeps Lift options to Next time, Rest, Reps left, and Increase. B
 Prescription and structure edits preserve Next time, Rest, Reps left, and Increase; a swap preserves Next time only. Prescription and structure edits carry `rir` and `incrementPct` even when they still hold the old default, so a General accessory that turns ramped keeps rir 2 rather than MAIN's 3; this is deliberate, since the rule records no edit flag.
 
 Plan settings stay in optional JSON fields, with absent runCap meaning on. Room and backup versions stay unchanged. Existing SavedStateHandle parcels keep their layouts; the Lift options entry uses a separate key.
+
+
+## 34. Revision 25 (2c-3)
+
+Lift markers describe the captured opening, including its read-only preview before Start. Estimate takes precedence over Light week, Lighter today, and After a break. The set page and Lift sheet use the same marker for each half of a superset.
+
+Today offers Lighter today above Start only with an eligible ruled lift and no draft, run, or light week. The choice opens through the existing light-week calculation. Finish records LIGHT_CYCLE for completed work and leaves stored working rows and rules unchanged, including exposure counts.
+
+Cardio overruns show two legs on the receipt and in History only when Room holds a measured or typed reading at the planned end: metresAtEnd for a time end, secondsAtEnd for a distance end. Derived readings never qualify. Receipt results reload through the receipt's cardio session identity; existing SavedStateHandle parcels keep their layouts.
+
+The watch's prescribed LoadReps, Reps, and Hold labels follow working rows. RepsInTime retains the prescribed window. Room and backup versions stay unchanged.

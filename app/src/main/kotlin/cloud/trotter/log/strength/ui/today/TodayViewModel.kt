@@ -69,7 +69,11 @@ class TodayViewModel @Inject constructor(
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
                             (day.exercises.isEmpty() && day.cardioBlock != null),
                         rest = day.kind == ProgramDayKind.REST,
-                        trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST }) to (day.id == next)
+                        trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST },
+                        lighterAvailable = run == null && plan.lightCycleRemaining == 0 &&
+                            day.kind == ProgramDayKind.STRENGTH && day.exercises.any {
+                                !it.keepToPlan && (it.rule != null || it.superset?.rule != null)
+                            }) to (day.id == next)
                 }
             }
             val openDay = run?.takeIf { it.planId != null && it.dayId != null }?.let { open ->

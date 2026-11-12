@@ -725,10 +725,12 @@ class TrackerRepository(
             initialRunTracks(it, seeds, answers.config.weightUnit, catalog, olderAdult)
                 .filter { track -> track.openingJson != null }
                 .mapNotNull { track -> track.programExerciseId?.let { id ->
-                    (id to track.slot) to SetJson.decodeSets(track.plannedJson)
+                    (id to track.slot) to track
                 } }.toMap()
         }.orEmpty()
-        PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog, seeds.mapValues { it.value.rows }, openings)
+        PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog, seeds.mapValues { it.value.rows },
+            openings.mapValues { SetJson.decodeSets(it.value.plannedJson) },
+            openings.mapValues { OpeningJson.decode(it.value.openingJson) })
     }
 
     /** Each of the day's slots' next-time MAIN rows: stored (`exercise_log`, whatever run is open), else its seed
@@ -755,7 +757,7 @@ class TrackerRepository(
     ) { open, days, logs, slots ->
         if (open?.planId == planId && open.dayId == dayId) {
             DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
-                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId, track.note) }
+                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId, track.note, track.opening) }
             }, retired = open.tracks.filter { it.retired && (!it.dropped || it.sets.any { set -> set.done }) },
                 droppedPartners = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
                     open.isPartnerDropped(id)
@@ -999,23 +1001,23 @@ class TrackerRepository(
 
     private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
         id, position, programExerciseId, slot, exerciseId, retired,
-        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson), dropped, note,
+        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson), dropped, note, OpeningJson.decode(openingJson),
     )
 
-    suspend fun startRun(planId: Long, dayId: String): RunStartResult {
+    suspend fun startRun(planId: Long, dayId: String, lighter: Boolean = false): RunStartResult {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
         val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
             val config = answersForPlan(planDao.plan(planId), global).config
             val catalog = this.catalog.snapshot()
-            startRun(planId, dayId, config.weightUnit, catalog, olderAdult)
+            startRun(planId, dayId, config.weightUnit, catalog, olderAdult, lighter)
         }
     }
 
     /** Runs inside a transaction and takes unit and catalog from the caller. */
     private suspend fun startRun(
-        planId: Long, dayId: String, unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean,
+        planId: Long, dayId: String, unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean, lighter: Boolean = false,
     ): RunStartResult {
         val open = runDao.openRun()
         if (open != null) {
@@ -1030,7 +1032,7 @@ class TrackerRepository(
         val day = programDao.day(planId, dayId) ?: return RunStartResult.NoStrengthSlots
         if (programDao.exercisesForDay(planId, dayId).isEmpty()) return RunStartResult.NoStrengthSlots
         val seeds = seedPlan(day, null, unit, catalog)
-        insertStarted(day, seeds, initialRunTracks(day, seeds, unit, catalog, olderAdult))
+        insertStarted(day, seeds, initialRunTracks(day, seeds, unit, catalog, olderAdult, lighter))
         return RunStartResult.Started(day.nextRunId)
     }
 
@@ -1664,7 +1666,7 @@ class TrackerRepository(
     /** The tracks a run would open with now: each track's stored rows, else its seed, opened through [opened].
      *  Reads only Room; writes nothing. */
     private suspend fun initialRunTracks(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>,
-                                         unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean): List<RunTrackEntity> {
+                                         unit: WeightUnit, catalog: ExerciseCatalog, olderAdult: Boolean, lighter: Boolean = false): List<RunTrackEntity> {
         val tracks = mutableListOf<RunTrackEntity>()
         for (slot in programDao.exercisesForDay(day.planId, day.dayId)) {
             for (slotName in listOf(Slot.MAIN, Slot.SS)) {
@@ -1673,19 +1675,19 @@ class TrackerRepository(
                 tracks.add(runTrack(day.nextRunId, slot, slotName, exerciseId, base))
             }
         }
-        return opened(day, tracks, unit, catalog, olderAdult)
+        return opened(day, tracks, unit, catalog, olderAdult, lighter)
     }
 
     /** [tracks] with each eligible MAIN and SS track opened through [Progression.atStart] (spec W2b-2a decision 4
      *  as amended by W2b-3c decision 3: any start, stored or seeded; W2b-2b decision 8). Reads only Room. */
     private suspend fun opened(day: ProgramDayEntity, tracks: List<RunTrackEntity>, unit: WeightUnit,
-                               catalog: ExerciseCatalog, olderAdult: Boolean): List<RunTrackEntity> {
+                               catalog: ExerciseCatalog, olderAdult: Boolean, lighter: Boolean = false): List<RunTrackEntity> {
         val plan = planDao.plan(day.planId) ?: return tracks
         val program = assemble(programDao.daysForPlan(day.planId), programDao.exercisesForPlan(day.planId))
         val training = program.rotationDays.filter { it.kind == ProgramDayKind.STRENGTH }
         val steps = plans.planSettings(day.planId).loadSteps ?: LoadSteps.defaults(unit)
         val today = localEpochDay(clock.millis())
-        val light = plan.lightCycleRemaining > 0
+        val light = plan.lightCycleRemaining > 0 || lighter
         fun startOfDay(epochDay: Long) = LocalDate.ofEpochDay(epochDay).atStartOfDay(clock.zone).toInstant().toEpochMilli()
         val result = tracks.map { track ->
             if (track.slot != Slot.MAIN && track.slot != Slot.SS) return@map track
@@ -1985,7 +1987,8 @@ class TrackerRepository(
             val main = tracks.firstOrNull {
                 it.programExerciseId == slot.id && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
             } ?: return@filter false
-            SetJson.decodeSets(main.plannedJson).isNotEmpty() &&
+            tracks.none { it.programExerciseId == slot.id && OpeningJson.decode(it.openingJson)?.light == true } &&
+                SetJson.decodeSets(main.plannedJson).isNotEmpty() &&
                 !main.canReplan(prescription.tracking == TrackingType.TIMED)
         }.map { it.id }.toSet()
         changedShape.forEach {
@@ -2001,6 +2004,14 @@ class TrackerRepository(
             if (track.retired && !track.dropped) continue
             val actual = SetJson.decodeSets(track.setsJson)
             if (track.dropped && actual.none { it.done }) continue
+            val opening = OpeningJson.decode(track.openingJson)
+            // A light opening is a view; Finish must not persist its rows or rule state.
+            if (opening?.light == true) {
+                val planned = SetJson.decodeSets(track.plannedJson)
+                val reached = WorkingRows.workSetIndices(planned).any { i -> actual.any { it.plannedIndex == i && it.done } }
+                reasons[track.id] = ReasonCode.encode(if (reached) Reason.LightCycle else Reason.NoSets)
+                continue
+            }
             val slot = slots[track.programExerciseId] ?: continue
             if (slot.exerciseIdFor(track.slot) != track.exerciseId) continue
             if (slot.id in changedShape) continue
@@ -2015,7 +2026,6 @@ class TrackerRepository(
             val working = log?.let {
                 runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull()
             } ?: WorkingRows.cleared(planned)
-            val opening = OpeningJson.decode(track.openingJson)
             // Only fitting gives a partner's Hold another row count than its stored row; a row deleted mid-run reads as fitted.
             val fittedPartner = track.slot == Slot.SS && opening?.layoff == OpeningDto.HOLD && (log == null || planned.size != working.size)
             if (rule == null) {
@@ -2031,13 +2041,12 @@ class TrackerRepository(
                 continue
             }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
-            val light = opening?.light == true
             val entry = catalog.find(track.exerciseId)
             val automatic = (rule.nextTime ?: if (plan?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
-                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = light))
+                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today))
                 val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
                 Triple(outcome, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))

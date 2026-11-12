@@ -60,11 +60,22 @@ class WorkoutStart(
     }
 
     fun start(target: DaySelection) {
-        scope.launch { lock.withLock { startNow(target) } }
+        scope.launch { lock.withLock {
+            savedState["start_lighter"] = false
+            startNow(target)
+        } }
+    }
+
+    fun startLighter(target: DaySelection) {
+        scope.launch { lock.withLock {
+            savedState["start_lighter"] = true
+            startNow(target)
+        } }
     }
 
     fun startWithWorkingWeight(target: DaySelection, programExerciseId: Long, weightLb: Double) {
         scope.launch { lock.withLock {
+            savedState["start_lighter"] = false
             savedState["start_offer_exercise"] = programExerciseId
             savedState["start_offer_weight_lb"] = weightLb
             startNow(target)
@@ -74,7 +85,7 @@ class WorkoutStart(
     private suspend fun startNow(target: DaySelection) {
         val planId = target.planId ?: return
         savedState["start_drop_only"] = false
-        when (val result = repo.startRun(planId, target.dayId)) {
+        when (val result = repo.startRun(planId, target.dayId, lighter = savedState.get<Boolean>("start_lighter") == true)) {
             is RunStartResult.OtherRunOpen -> {
                 savedState["start_target"] = target
                 savedState["start_conflict"] = result.runId
@@ -103,6 +114,7 @@ class WorkoutStart(
     }
 
     fun dismiss() {
+        savedState["start_lighter"] = null
         savedState["start_drop_only"] = false
         savedState["start_target"] = null
         savedState["start_conflict"] = null

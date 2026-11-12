@@ -41,6 +41,7 @@ import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.ui.day.WorkoutFocus
+import cloud.trotter.log.strength.ui.day.LiftMarker
 import cloud.trotter.log.strength.ui.day.DaySelection
 import java.io.File
 import java.time.Clock
@@ -192,6 +193,8 @@ class PreStartOpeningTest : OverviewFixture() {
 
         val card = workout.uiState.value.exercises.single()
         assertEquals(listOf(155.0, 210.0, 260.0, 235.0, 235.0), card.rows.map { it.weightDisplay })
+        assertEquals(LiftMarker.AFTER_BREAK, card.marker)
+        assertEquals(LiftMarker.AFTER_BREAK, preview.uiState.value.lifts.single().marker)
         assertEquals("TOP × 5 · 260 lb", card.workingHeading)
         assertNull(card.nextTime)
         assertEquals("TOP × 5 · 260 lb", preview.uiState.value.lifts.single().working)
@@ -224,6 +227,7 @@ class PreStartOpeningTest : OverviewFixture() {
 
         val draft = assertNotNull(db.runDao().openRun())
         assertTrue(draft.draft)
+        assertEquals(LiftMarker.AFTER_BREAK, workout.uiState.value.exercises.single().marker)
         val track = db.runDao().tracks(draft.id).single()
         assertEquals(OpeningDto("SCALED", 0.95), OpeningJson.decode(track.openingJson))
         val rows = SetJson.decodeSets(track.setsJson)

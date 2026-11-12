@@ -246,6 +246,22 @@ class WatchSnapshotBuilderTest {
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets)
 
+    @Test fun `prescribed labels follow working load reps and hold while timed reps keep their window`() {
+        val cases = listOf(
+            Triple(PrescribedTarget.LoadReps(185.0, 5), LoggedSet(190.0, 5, SetKind.WORK), "3 × 5 · 190 lb"),
+            Triple(PrescribedTarget.Reps(8), LoggedSet(0.0, 9, SetKind.WORK), "3 × 9"),
+            Triple(PrescribedTarget.Hold(45, 25.0), LoggedSet(30.0, 0, SetKind.WORK, seconds = 50), "3 × 0:50 · 30 lb"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), LoggedSet(0.0, 45, SetKind.WORK, seconds = 130), "2:00 · aim 40"),
+        )
+        for ((target, row, label) in cases) {
+            val exercise = ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(target))
+            val program = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
+            val snapshot = WatchSnapshotBuilder.build(performedDay(program, "A", listOf(ProgramSlot(1, 0, exercise)),
+                listOf(LoggedSlot(1, Slot.MAIN, List(3) { row }))), WeightUnit.LB, revision = 1)!!
+            assertEquals(label, snapshot.day.exercises.single().goalLabel)
+        }
+    }
+
     private fun prescribed(target: PrescribedTarget, unit: WeightUnit = WeightUnit.LB) =
         WatchSnapshotBuilder.build(
             performedDay(program, "A", listOf(ProgramSlot(10L, 0, ProgramExercise(

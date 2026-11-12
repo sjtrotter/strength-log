@@ -70,6 +70,7 @@ import cloud.trotter.log.strength.ui.day.CardioLegs
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -324,7 +325,8 @@ internal fun CardioReceiptRowItem(
         return
     }
     val spoken = spokenCardioRow(row, unit) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
-    ExpandableReceiptRow(rowKey, name, spoken, row.intervals.size > 1,
+    val expandable = row.intervals.size > 1 && (row.role == CardioRole.WORK || legs.any { it != null })
+    ExpandableReceiptRow(rowKey, name, spoken, expandable,
         dayIndex, row.record?.kind, values = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (row.role == CardioRole.WORK && bestInterval(row) != null) ValueLabel(cardioValueLabel(row), Modifier.alignByBaseline())
@@ -344,8 +346,11 @@ internal fun CardioReceiptRowItem(
         }, children = {
             row.intervals.forEachIndexed { index, interval ->
                 val leg = legs.getOrNull(index)
-                ReceiptSetLine(index, cardioIntervalValue(row, interval, unit),
-                    spokenInterval(row, index, unit) + leg?.let { " ${it.at}. ${it.past}" }.orEmpty(), dayIndex,
+                val childRow = sets.getOrNull(index)?.spec?.end?.let { end ->
+                    row.copy(endSeconds = (end as? Measure.Time)?.seconds, endMetres = (end as? Measure.Distance)?.metres)
+                } ?: row
+                ReceiptSetLine(index, cardioIntervalValue(childRow, interval, unit),
+                    spokenInterval(childRow, index, unit) + leg?.let { " ${it.at}. ${it.past}" }.orEmpty(), dayIndex,
                     row.record?.takeIf { it.intervalIndex == index }?.let { stringResource(R.string.receipt_set_pr_note, cardioPrevious(it, unit)) })
                 leg?.let {
                     ReceiptAfter(it.at, it.at)

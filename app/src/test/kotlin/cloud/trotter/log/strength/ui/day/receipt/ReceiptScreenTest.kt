@@ -464,6 +464,62 @@ class ReceiptScreenTest {
             "2:40 at 0.5 km", "0:20, 0.10 km past the target").forEach {
             rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
         }
+        rule.onNodeWithContentDescription("Warm-up, 2 minutes 45 seconds. 2:30 at 0.5 km. 0:15, 0.05 km past the target").assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 3 minutes. 2:40 at 0.5 km. 0:20, 0.10 km past the target").assertExists()
+        rule.onNodeWithContentDescription("Interval 1", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun mergedWarmupsAndCooldownsStayClosedWithoutMeasuredLegs() {
+        val results = listOf(CardioRole.WARMUP, CardioRole.COOLDOWN).flatMap { role ->
+            List(2) { CardioSetResult(CardioSetSpec(role, Measure.Time(300)),
+                CardioSetStatus.FINISHED, 310, 1050, DistanceSource.MANUAL,
+                metresAtEnd = 1000, secondsAtEnd = 300) }
+        }
+        val receipt = timeTargetFixture().copy(cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN,
+            results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = ReceiptBuilder.cardioGroups(results).map { it.sets })
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Warm-up, 10 minutes 20 seconds.").assertHasNoClickAction()
+        rule.onNodeWithContentDescription("Cool-down, 10 minutes 20 seconds.").assertHasNoClickAction()
+    }
+
+    @Test fun mergedCooldownWithOneMeasuredLegOpensAndNamesItsRole() {
+        val spec = CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500))
+        val results = listOf(
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 150, 500, DistanceSource.MANUAL),
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 180, 600, DistanceSource.MANUAL,
+                secondsAtEnd = 160, readingSource = ReadingSource.TYPED),
+        )
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = listOf(results))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Cool-down, 5 minutes 30 seconds.").assertHasClickAction().performClick()
+        rule.onNodeWithContentDescription("Cool-down, 2 minutes 30 seconds.").assertExists()
+        rule.onNodeWithContentDescription("Cool-down, 3 minutes. 2:40 at 500 m. 0:20, 100 m past the target").assertExists()
+        rule.onNodeWithContentDescription("Interval 1", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun mixedWarmupChildrenUseTheirOwnTargetTypeForVisibleAndSpokenValues() {
+        val results = listOf(
+            CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+                CardioSetStatus.FINISHED, 300, 1000, DistanceSource.MANUAL),
+            CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Distance(500)),
+                CardioSetStatus.FINISHED, 165, 550, DistanceSource.MANUAL,
+                secondsAtEnd = 150, readingSource = ReadingSource.TYPED),
+        )
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = listOf(results))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Warm-up, 7 minutes 45 seconds.").performClick()
+        rule.onNodeWithText("1,000 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("2:45", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 1,000 meters.").assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 2 minutes 45 seconds. 2:30 at 500 m. 0:15, 50 m past the target").assertExists()
     }
 
     @Test

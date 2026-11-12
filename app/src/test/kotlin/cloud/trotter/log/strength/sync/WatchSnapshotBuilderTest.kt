@@ -246,11 +246,11 @@ class WatchSnapshotBuilderTest {
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets)
 
-    @Test fun `prescribed labels follow working load reps and hold while timed reps keep their window`() {
+    @Test fun `prescribed labels keep their shape and follow only the working load`() {
         val cases = listOf(
-            Triple(PrescribedTarget.LoadReps(185.0, 5), LoggedSet(190.0, 5, SetKind.WORK), "3 × 5 · 190 lb"),
-            Triple(PrescribedTarget.Reps(8), LoggedSet(0.0, 9, SetKind.WORK), "3 × 9"),
-            Triple(PrescribedTarget.Hold(45, 25.0), LoggedSet(30.0, 0, SetKind.WORK, seconds = 50), "3 × 0:50 · 30 lb"),
+            Triple(PrescribedTarget.LoadReps(185.0, 5), LoggedSet(190.0, 7, SetKind.WORK), "3 × 5 · 190 lb"),
+            Triple(PrescribedTarget.Reps(8), LoggedSet(0.0, 9, SetKind.WORK), "3 × 8"),
+            Triple(PrescribedTarget.Hold(45, 25.0), LoggedSet(30.0, 0, SetKind.WORK, seconds = 50), "3 × 0:45 · 30 lb"),
             Triple(PrescribedTarget.RepsInTime(120, 40), LoggedSet(0.0, 45, SetKind.WORK, seconds = 130), "2:00 · aim 40"),
         )
         for ((target, row, label) in cases) {
@@ -258,6 +258,19 @@ class WatchSnapshotBuilderTest {
             val program = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
             val snapshot = WatchSnapshotBuilder.build(performedDay(program, "A", listOf(ProgramSlot(1, 0, exercise)),
                 listOf(LoggedSlot(1, Slot.MAIN, List(3) { row }))), WeightUnit.LB, revision = 1)!!
+            assertEquals(label, snapshot.day.exercises.single().goalLabel)
+        }
+    }
+
+    @Test fun `ramped prescribed labels keep the authored count and use the top load in either unit`() {
+        val exercise = ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF, targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5)))
+        val program = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
+        val rows = listOf(LoggedSet(100.0, 8, SetKind.RAMP), LoggedSet(190.0, 7, SetKind.TOP),
+            LoggedSet(140.0, 8, SetKind.BACKOFF))
+        val day = performedDay(program, "A", listOf(ProgramSlot(1, 0, exercise)), listOf(LoggedSlot(1, Slot.MAIN, rows)))
+        for ((unit, label) in listOf(WeightUnit.LB to "3 × 5 · 190 lb", WeightUnit.KG to "3 × 5 · 86.18 kg")) {
+            val snapshot = WatchSnapshotBuilder.build(day, unit, revision = 1)!!
             assertEquals(label, snapshot.day.exercises.single().goalLabel)
         }
     }

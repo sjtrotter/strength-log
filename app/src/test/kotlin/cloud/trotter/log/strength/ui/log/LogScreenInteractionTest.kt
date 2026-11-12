@@ -197,6 +197,29 @@ class LogScreenInteractionTest {
         assertTrue(positions.zipWithNext().all { (first, second) -> first < second })
     }
 
+    @Test fun historyLabelsMeasuredLegsByRoleAndCountsOnlyWorkIntervals() {
+        fun result(role: CardioRole, end: Measure, seconds: Int, metres: Int, secondsAtEnd: Int) =
+            CardioSetResult(CardioSetSpec(role, end), CardioSetStatus.FINISHED, seconds, metres,
+                DistanceSource.MANUAL, metresAtEnd = if (end is Measure.Time) 100 else null,
+                secondsAtEnd = secondsAtEnd, readingSource = ReadingSource.TYPED)
+        val warmup = result(CardioRole.WARMUP, Measure.Time(60), 65, 110, 60)
+        val work = result(CardioRole.WORK, Measure.Distance(400), 110, 420, 100)
+        val recovery = result(CardioRole.RECOVERY, Measure.Time(30), 35, 110, 30)
+        val cooldown = result(CardioRole.COOLDOWN, Measure.Time(60), 70, 120, 60)
+        val results = listOf(warmup, work, recovery, work, recovery.copy(readingSource = null), work, cooldown)
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Track run", startedAt = 1000, completedAt = 536_000, seconds = 535,
+            stepsCompleted = results.size, activity = CardioActivity.TRACK_RUN.name)
+        setContent(false, sessions = listOf(LogScreenBuilder.cardioItem(session, results)))
+
+        val labels = listOf("Warm-up", "Interval 1", "Recovery", "Interval 2", "Interval 3", "Cool-down")
+        val positions = labels.map {
+            composeTestRule.onNodeWithText(it, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
+        }
+        assertTrue(positions.zipWithNext().all { (first, second) -> first < second })
+        composeTestRule.onNodeWithText("Interval 4", useUnmergedTree = true).assertDoesNotExist()
+    }
+
     @Test fun roadHistoryTotalsUseMiles() {
         val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
             label = "Road run", startedAt = 1000, completedAt = 1_801_000, seconds = 1800,

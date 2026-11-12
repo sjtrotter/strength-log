@@ -93,6 +93,16 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Estimate").assertDoesNotExist()
     }
 
+    @Test fun markersFollowTheSingleLiftBeforeAndAfterStart() {
+        val base = workoutSetSingleFixture()
+        var state by mutableStateOf(base.copy(beforeStart = true,
+            exercises = base.exercises.map { it.copy(marker = LiftMarker.AFTER_BREAK) }))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("After a break").assertIsDisplayed()
+        rule.runOnIdle { state = state.copy(beforeStart = false) }
+        rule.onNodeWithText("After a break").assertIsDisplayed()
+    }
+
     @Test fun loggedWorkingSetOffersFourUnselectedEffortWords() {
         val base = workoutSetSingleFixture()
         val undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",

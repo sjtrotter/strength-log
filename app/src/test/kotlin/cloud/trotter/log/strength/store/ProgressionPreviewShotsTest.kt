@@ -138,6 +138,7 @@ class ProgressionPreviewShotsTest {
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {}, onOpenLicenses = {}, onBack = {}))
         }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Effort scale"))
         capture("p12-settings-effort-scale.png")
     }
 

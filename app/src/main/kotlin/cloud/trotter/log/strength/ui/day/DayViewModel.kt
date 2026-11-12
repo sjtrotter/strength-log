@@ -2649,10 +2649,10 @@ class DayViewModel @Inject constructor(
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
             nextTime = DayScreenBuilder.nextTime(slot.main.baseRows.orEmpty(), history.slotSessions[id to Slot.MAIN]?.takeIf { performed.exerciseId == pe.exerciseId }, pe.keepToPlan, unit,
-                offersOn = NextTimeGate.shows(plan, pe.rule?.nextTime), rule = pe.rule),
+                offersOn = NextTimeGate.strength(plan, pe.rule?.nextTime), rule = pe.rule),
             partnerNextTime = slot.partner?.let { partnerTrack ->
                 DayScreenBuilder.nextTime(partnerTrack.baseRows.orEmpty(), history.slotSessions[id to Slot.SS]?.takeIf { partnerTrack.performed.exerciseId == pe.superset?.exerciseId }, pe.keepToPlan, unit,
-                    offersOn = NextTimeGate.shows(plan, pe.superset?.rule?.nextTime), rule = pe.superset?.rule)
+                    offersOn = NextTimeGate.strength(plan, pe.superset?.rule?.nextTime), rule = pe.superset?.rule)
             },
             perHand = entry?.perHand == true,
             tracking = tracking,

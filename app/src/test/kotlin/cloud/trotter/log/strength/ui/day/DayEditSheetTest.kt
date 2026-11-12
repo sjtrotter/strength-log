@@ -451,9 +451,12 @@ class DayEditSheetTest {
 
     @Test
     fun openDayHidesResetToPlan() {
-        show(prescription = Prescription(PrescribedTarget.Reps(12)), runOpen = true)
-        composeTestRule.onNodeWithText("Plan").assertDoesNotExist()
+        var choice: Pair<Long, Boolean>? = null
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), runOpen = true,
+            onKeepToPlan = { slot, keep -> choice = slot to keep })
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Plan").assertIsDisplayed().performClick()
+        composeTestRule.runOnIdle { assertEquals(1L to true, choice) }
     }
     @Test
     fun tappingLiftOpensItsPrescription() {

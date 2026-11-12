@@ -16,19 +16,18 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 
 object NextTimeGate {
-    fun shows(plan: PlanEntity?, slotMode: NextTimeMode?): Boolean =
+    fun strength(plan: PlanEntity?, slotMode: NextTimeMode?): Boolean =
         plan?.autoApply == true || slotMode == NextTimeMode.AUTO || plan?.offerStrengthIncreases != false
 
-    fun shows(plan: PlanEntity): Boolean = plan.autoApply || plan.offerCardioIncreases
+    fun cardio(plan: PlanEntity): Boolean = plan.autoApply || plan.offerCardioIncreases
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NextTimeControl(mode: NextTimeMode, onMode: (NextTimeMode) -> Unit,
-                             prescribed: Boolean = false, keptToPlan: Boolean = false, onPlan: () -> Unit = {},
-                             planAvailable: Boolean = true) {
+                             prescribed: Boolean = false, keptToPlan: Boolean = false, onPlan: () -> Unit = {}) {
     val labels = listOf(R.string.next_time_automatic, R.string.next_time_ask) +
-        if (prescribed && planAvailable) listOf(R.string.day_edit_next_time_plan) else emptyList()
+        if (prescribed) listOf(R.string.day_edit_next_time_plan) else emptyList()
     Column {
         Text(stringResource(R.string.day_edit_next_time), style = MaterialTheme.typography.titleSmall)
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {

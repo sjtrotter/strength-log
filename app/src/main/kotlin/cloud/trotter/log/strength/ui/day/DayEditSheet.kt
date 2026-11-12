@@ -580,7 +580,7 @@ internal fun SlotOptionsScreen(
         PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(24.dp))
         NextTimeControl(slot.nextTime, onNextTime, prescribed = slot.prescription != null,
-            keptToPlan = slot.keepToPlan, onPlan = { onKeepToPlanChange(true) }, planAvailable = !runOpen)
+            keptToPlan = slot.keepToPlan, onPlan = { onKeepToPlanChange(true) })
         if (slot.prescription != null && !slot.keepToPlan && !runOpen) {
             TextButton(onClick = { confirmingReset = true }) {
                 Text(stringResource(R.string.day_edit_reset_to_plan))
@@ -1152,7 +1152,7 @@ private fun LiftRuleOptions(lift: LiftOptionsState, showTitle: Boolean, onEdit: 
     var dialog by rememberSaveable(lift.slot) { mutableStateOf<String?>(null) }
     Spacer(Modifier.size(24.dp))
     if (showTitle) Text(lift.title, style = MaterialTheme.typography.titleMedium)
-    ListItem(headlineContent = { Text(stringResource(R.string.lift_options_rest)) },
+    if (lift.slot == Slot.MAIN) ListItem(headlineContent = { Text(stringResource(R.string.lift_options_rest)) },
         supportingContent = { Text(if (lift.restOverridden) ClockText.minutesSeconds(lift.restSeconds)
             else stringResource(R.string.lift_options_rest_default, ClockText.minutesSeconds(lift.defaultRestSeconds))) },
         modifier = Modifier.clickable { dialog = "rest" })

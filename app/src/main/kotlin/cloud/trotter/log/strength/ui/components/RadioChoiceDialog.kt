@@ -15,11 +15,11 @@ import androidx.compose.ui.semantics.Role
 import cloud.trotter.log.strength.R
 
 @Composable
-internal fun <T> RadioChoiceDialog(title: String, detail: String, choices: List<Pair<T, String>>,
+internal fun <T> RadioChoiceDialog(title: String, detail: String?, choices: List<Pair<T, String>>,
                                    selected: T, onPick: (T) -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = {
         Column(Modifier.selectableGroup()) {
-            Text(detail)
+            if (detail != null) Text(detail)
             choices.forEach { (value, label) ->
                 ListItem(headlineContent = { Text(label) },
                     leadingContent = { RadioButton(selected = selected == value, onClick = null) },

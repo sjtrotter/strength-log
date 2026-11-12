@@ -7,16 +7,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.NextOffer
+import cloud.trotter.log.strength.data.RuleEdit
 import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -52,11 +56,11 @@ class ProgressionControlsTest {
 
     @Test fun automaticAndOverrideChipsIgnoreOfferSwitchWhileAskFollowsIt() {
         val off = plan.copy(offerStrengthIncreases = false, offerCardioIncreases = false)
-        assertTrue(NextTimeGate.shows(off.copy(autoApply = true), null))
-        assertFalse(NextTimeGate.shows(off, null))
-        assertTrue(NextTimeGate.shows(off, NextTimeMode.AUTO))
-        assertTrue(NextTimeGate.shows(off.copy(autoApply = true)))
-        assertFalse(NextTimeGate.shows(off))
+        assertTrue(NextTimeGate.strength(off.copy(autoApply = true), null))
+        assertFalse(NextTimeGate.strength(off, null))
+        assertTrue(NextTimeGate.strength(off, NextTimeMode.AUTO))
+        assertTrue(NextTimeGate.cardio(off.copy(autoApply = true)))
+        assertFalse(NextTimeGate.cardio(off))
     }
 
     @Test fun appliedAutomaticOfferShowsSelectedInTheLiftSheetWithTheSwitchOff() {
@@ -66,7 +70,7 @@ class ProgressionControlsTest {
         val history = SlotSession(before, before.mapIndexed { index, set -> set.copy(done = true, plannedIndex = index) },
             false, NextOffer(185.0, 190.0))
         val next = DayScreenBuilder.nextTime(after, history, false, WeightUnit.LB,
-            offersOn = NextTimeGate.shows(automatic, null))
+            offersOn = NextTimeGate.strength(automatic, null))
         assertEquals(NextTime.Offer("+5 lb", true, 190.0, 185.0), next)
         val card = workoutLiftSheetFixture().exercises.first().copy(nextTime = next)
         rule.setContent { AppTheme { LiftSheet(card, Slot.MAIN, null, workoutActions(), false, null, {}, {}, {}) } }
@@ -127,6 +131,28 @@ class ProgressionControlsTest {
         rule.onNodeWithText("2.5%, at least 5 lb").assertExists()
         rule.onNodeWithText("Plan").assertDoesNotExist()
         rule.onNodeWithText("Reset to plan").assertDoesNotExist()
+    }
+
+    @Test fun supersetOptionsShowRestForMainAndKeepBothRepsLeftAndIncreaseControls() {
+        var edited: Pair<String, RuleEdit>? = null
+        val main = LiftOptionsState(Slot.MAIN, "DB Bench Press", 180, 180, false, 2, 0.025, "5 lb")
+        val partner = main.copy(slot = Slot.SS, title = "Cable Row", restSeconds = 90, defaultRestSeconds = 90)
+        val slot = DayEditSlotState(1, 0, "db_bench", main.title, null, true,
+            partnerExerciseId = "cable_row", partnerTitle = partner.title, lifts = listOf(main, partner))
+        rule.setContent { AppTheme {
+            SlotOptionsScreen(slot, {}, {}, {}, {}, {}, {}, false, {}, {}, {}, {},
+                onRuleEdit = { half, edit -> edited = half to edit })
+        } }
+        rule.onAllNodesWithText("Rest").assertCountEquals(1)
+        rule.onAllNodesWithText("Reps left").assertCountEquals(2)
+        rule.onAllNodesWithText("Increase").assertCountEquals(2)
+        rule.onNodeWithText("Default, 3:00").assertExists()
+        rule.onNodeWithText("Default, 1:30").assertDoesNotExist()
+        rule.onNodeWithText("Rest").performClick()
+        rule.onNodeWithText("Minutes").performTextReplacement("2")
+        rule.onNodeWithText("Seconds").performTextReplacement("30")
+        rule.onNodeWithText("Save").performClick()
+        rule.runOnIdle { assertEquals(Slot.MAIN to RuleEdit.Rest(150), edited) }
     }
 
     @Test fun repsLeftAtLargeFontUsesTwoRowsWith48DpTargetsAndOneSelection() {

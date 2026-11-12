@@ -74,7 +74,7 @@ internal object ReceiptProgressBuilder {
             val rows = tracks.tracks.firstOrNull { it.programExerciseId == ref.programExerciseId && it.slot == ref.slot }?.sets.orEmpty()
             val session = sessions[ref.programExerciseId to ref.slot] ?: return@mapNotNull null
             val line = ReceiptLines.strength(rows, session, slot.exercise.keepToPlan,
-                rule, receipt.unit, NextTimeGate.shows(plan, rule.nextTime))
+                rule, receipt.unit, NextTimeGate.strength(plan, rule.nextTime))
                 ?: return@mapNotNull null
             ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
         }
@@ -87,7 +87,7 @@ internal object ReceiptProgressBuilder {
         val next = if (identity.cardioSessionId != null && day != null) {
             // Receipts retain applied changes and unchanged values when Ask offers are hidden.
             DayScreenBuilder.cardioNextTime(day, plan.copy(offerCardioIncreases = true), cardio, sets)?.takeIf {
-                it !is CardioNextTime.Offer || it.applied || NextTimeGate.shows(plan)
+                it !is CardioNextTime.Offer || it.applied || NextTimeGate.cardio(plan)
             }
         } else null
         val capped = if (entry != null && day != null && identity.cardioSessionId != null) {

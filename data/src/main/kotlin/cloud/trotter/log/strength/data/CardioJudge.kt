@@ -43,7 +43,7 @@ object CardioJudge {
      *  sets, or no progress measure. [sessions] may hold anything: the family's sessions before [session] are taken
      *  from it, and [sets] maps session ids to their results. */
     fun judge(day: ProgramDay, session: CardioSessionEntity, sessions: List<CardioSessionEntity>,
-              sets: Map<Long, List<CardioSetResult>>, runCap: Boolean = true): Judged? {
+              sets: Map<Long, List<CardioSetResult>>, runCap: Boolean): Judged? {
         if (day.cardioBlock == null || day.cardioProgress.keepToPlan || day.cardioRule?.ladderLevel != null) return null
         val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
         val results = sets[session.id].orEmpty().ifEmpty { return null }

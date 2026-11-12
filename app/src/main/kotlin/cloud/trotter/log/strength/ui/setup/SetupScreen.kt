@@ -81,6 +81,7 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
+import cloud.trotter.log.strength.ui.components.RadioChoiceDialog
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
@@ -127,6 +128,11 @@ fun SetupScreen(
     }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     var showDistanceUnitDialog by rememberSaveable { mutableStateOf(false) }
+    var showEffortScaleDialog by rememberSaveable { mutableStateOf(false) }
+    val effortScales = listOf(
+        EffortScale.WORDS to stringResource(R.string.settings_effort_words),
+        EffortScale.REPS_LEFT to stringResource(R.string.settings_effort_reps_left),
+    )
     val distanceUnits = mapOf(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
@@ -159,17 +165,9 @@ fun SetupScreen(
                     when (row) {
                         "effort_scale" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_effort_scale)) },
-                            supportingContent = {
-                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                                    EffortScale.entries.forEachIndexed { index, scale ->
-                                        SegmentedButton(selected = state.effortScale == scale,
-                                            onClick = { actions.onEffortScaleChange(scale) },
-                                            shape = SegmentedButtonDefaults.itemShape(index, 2),
-                                            label = { Text(stringResource(if (scale == EffortScale.WORDS)
-                                                R.string.settings_effort_words else R.string.settings_effort_reps_left)) })
-                                    }
-                                }
-                            },
+                            supportingContent = { Text(effortScales.first { it.first == state.effortScale }.second) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                .clickable { showEffortScaleDialog = true },
                         )
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
@@ -267,6 +265,13 @@ fun SetupScreen(
                 }
             }
         }
+    }
+    if (showEffortScaleDialog) {
+        RadioChoiceDialog(
+            title = stringResource(R.string.settings_effort_scale), detail = null,
+            choices = effortScales, selected = state.effortScale,
+            onPick = actions.onEffortScaleChange, onDismiss = { showEffortScaleDialog = false },
+        )
     }
     if (showDistanceUnitDialog) {
         AppAlertDialog(

@@ -210,7 +210,7 @@ object DayScreenBuilder {
      *  holds it, unselected while the day holds the session's opening. Automatic plans show changes; Ask plans follow their Offer switch. */
     fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
                        sets: Map<Long, List<CardioSetResult>>): CardioNextTime? {
-        if (!NextTimeGate.shows(plan)) return null
+        if (!NextTimeGate.cardio(plan)) return null
         val stored = day.cardioToRun ?: return null
         val last = sessions.filter { it.planId == plan.id && it.dayId == day.id }
             .maxWithOrNull(compareBy({ it.completedAt }, { it.id })) ?: return null

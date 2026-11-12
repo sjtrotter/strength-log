@@ -311,7 +311,7 @@ class SeedingSourceOrderTest {
         )
         db.programDao().upsertLog(ExerciseLogEntity(plan, "A", id, track, SetJson.encodeSets(timed), 1000))
         val before = db.programDao().allLogs().associate { it.slot to it.setsJson }
-        repo.setKeepToPlan(id, true)
+        repo.keepToPlanFixture(db, id)
         assertTrue(db.programDao().allLogs().isEmpty())
         assertNotNull(db.programDao().exercise(id)!!.parkedLogsJson)
         db.customExerciseDao().upsert(custom.copy(pattern = "UNKNOWN"))

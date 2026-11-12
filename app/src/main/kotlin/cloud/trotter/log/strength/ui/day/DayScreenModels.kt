@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.standards.PhoneRest
@@ -96,6 +97,7 @@ data class DayUiState(
     /** True while the viewed day has lifts and no started workout: no row, or this day's draft. */
     val beforeStart: Boolean = false,
     val startSheet: Boolean = false,
+    val effortScale: EffortScale = EffortScale.WORDS,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning

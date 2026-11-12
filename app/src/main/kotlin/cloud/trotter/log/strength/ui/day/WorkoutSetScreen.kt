@@ -110,6 +110,8 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
+import androidx.compose.foundation.layout.BoxWithConstraints
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -962,9 +964,9 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
                 }
             }
             if (undo != null && undo.set.done && undo.set.kind != SetKind.RAMP && undo.tracking != TrackingType.TIMED) {
-                EffortRow(Effort.of(undo.set.rir), {
+                SetEffortRow(undo.set.rir, state.effortScale, {
                     actions.onSetEffort(undo.programExerciseId, undo.slot, undo.index, it)
-                }, "workout-effort")
+                }, { actions.onSetRepsLeft(undo.programExerciseId, undo.slot, undo.index, it) }, "workout-effort")
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (undo != null) {
@@ -1115,3 +1117,40 @@ internal fun SetRowState.values(slot: String): PartnerRowState? =
 
 internal fun ExerciseCardState.tracking(slot: String): TrackingType =
     if (slot == Slot.SS) partnerTracking ?: TrackingType.WEIGHTED else tracking
+
+internal fun effortWord(rir: Int?): Effort? = if (rir == 3) Effort.GOOD else Effort.of(rir)
+
+@Composable
+internal fun SetEffortText(rir: Int, scale: EffortScale) {
+    if (scale == EffortScale.REPS_LEFT) Text(stringResource(R.string.effort_reps_left_value, rir))
+    else effortWord(rir)?.let { EffortText(it) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SetEffortRow(rir: Int?, scale: EffortScale, onWord: (Effort?) -> Unit,
+                          onRepsLeft: (Int?) -> Unit, tagPrefix: String) {
+    if (scale == EffortScale.WORDS) {
+        EffortRow(effortWord(rir), onWord, tagPrefix)
+    } else {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.settings_effort_reps_left), style = MaterialTheme.typography.labelLarge)
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val perRow = if (maxWidth / 6 / LocalDensity.current.fontScale < 48.dp) 3 else 6
+                Column(Modifier.fillMaxWidth()) {
+                    (0..5).toList().chunked(perRow).forEach { values ->
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            values.forEachIndexed { index, value ->
+                                SegmentedButton(selected = rir == value,
+                                    onClick = { onRepsLeft(if (rir == value) null else value) },
+                                    shape = SegmentedButtonDefaults.itemShape(index, values.size),
+                                    label = { Text(value.toString()) }, icon = {},
+                                    modifier = Modifier.testTag("$tagPrefix-$value").heightIn(min = 48.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

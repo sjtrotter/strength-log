@@ -121,7 +121,7 @@ class CardioFinishTest {
         val session = db.cardioSessionDao().byId(id)!!
         val storedDay = db.programDao().day(plan, "A")!!
         val rows = db.cardioSetResultDao().forSession(id).map { it.toDomain() }
-        val judged = CardioJudge.judge(storedDay.toDomain(emptyList()), session, listOf(session), mapOf(id to rows))!!
+        val judged = CardioJudge.judge(storedDay.toDomain(emptyList()), session, listOf(session), mapOf(id to rows), runCap = true)!!
         assertTrue(judged.outcome.change is CardioChange.Increase)
         assertEquals(block(time(1260)), judged.outcome.block)
         assertNull(working())

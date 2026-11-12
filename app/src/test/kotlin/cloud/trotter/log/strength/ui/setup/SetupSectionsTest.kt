@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsOff
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -80,6 +82,30 @@ class SetupSectionsTest {
         composeTestRule.onNode(hasText("Miles") and hasAnyAncestor(isDialog())).performClick()
         composeTestRule.runOnIdle { assertEquals(DistanceUnit.MI, chosen) }
         composeTestRule.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    @Test
+    fun effortScaleRowShowsCurrentChoiceAndForwardsBothOptions() {
+        val scale = mutableStateOf(EffortScale.WORDS)
+        val choices = mutableListOf<EffortScale>()
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(effortScale = scale.value), setupActions().copy(onEffortScaleChange = {
+                choices += it
+                scale.value = it
+            }))
+        } }
+        composeTestRule.onNodeWithText("Words").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Effort scale").performClick()
+        composeTestRule.onNode(hasText("Words") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Reps left") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Reps left").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Effort scale").performClick()
+        composeTestRule.onNode(hasText("Reps left") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Words") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Words").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(listOf(EffortScale.REPS_LEFT, EffortScale.WORDS), choices) }
     }
 
     @Test

@@ -71,6 +71,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.progression.EffortScale
+import androidx.compose.material3.TextButton
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -79,6 +81,7 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
+import cloud.trotter.log.strength.ui.components.RadioChoiceDialog
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
@@ -125,11 +128,16 @@ fun SetupScreen(
     }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     var showDistanceUnitDialog by rememberSaveable { mutableStateOf(false) }
+    var showEffortScaleDialog by rememberSaveable { mutableStateOf(false) }
+    val effortScales = listOf(
+        EffortScale.WORDS to stringResource(R.string.settings_effort_words),
+        EffortScale.REPS_LEFT to stringResource(R.string.settings_effort_reps_left),
+    )
     val distanceUnits = mapOf(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = listOf("units", "distance", "effort_scale", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
@@ -155,6 +163,12 @@ fun SetupScreen(
             ) {
                 items(rows, key = { it }) { row ->
                     when (row) {
+                        "effort_scale" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_effort_scale)) },
+                            supportingContent = { Text(effortScales.first { it.first == state.effortScale }.second) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                .clickable { showEffortScaleDialog = true },
+                        )
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
                             supportingContent = {
@@ -251,6 +265,13 @@ fun SetupScreen(
                 }
             }
         }
+    }
+    if (showEffortScaleDialog) {
+        RadioChoiceDialog(
+            title = stringResource(R.string.settings_effort_scale), detail = null,
+            choices = effortScales, selected = state.effortScale,
+            onPick = actions.onEffortScaleChange, onDismiss = { showEffortScaleDialog = false },
+        )
     }
     if (showDistanceUnitDialog) {
         AppAlertDialog(
@@ -374,7 +395,8 @@ internal fun restDurationSeconds(minutes: String, seconds: String): Int? {
 /** Rest is edited in the app's standard sheet: two fields and one pinned Save, like the other entry sheets. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
+internal fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit,
+                               onUseDefault: (() -> Unit)? = null) {
     var minutes by rememberSaveable { mutableStateOf((initialSeconds / 60).toString()) }
     var seconds by rememberSaveable { mutableStateOf((initialSeconds % 60).toString()) }
     val total = restDurationSeconds(minutes, seconds)
@@ -392,6 +414,9 @@ private fun RestDurationSheet(label: String, initialSeconds: Int, onSave: (Int) 
             )
         },
         body = {
+            if (onUseDefault != null) TextButton(onClick = onUseDefault) {
+                Text(stringResource(R.string.lift_options_use_default))
+            }
             OutlinedTextField(
                 value = minutes, onValueChange = { minutes = it },
                 label = { Text(stringResource(R.string.form_minutes_label)) },

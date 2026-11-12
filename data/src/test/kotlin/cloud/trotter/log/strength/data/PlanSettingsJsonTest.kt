@@ -22,6 +22,12 @@ class PlanSettingsJsonTest {
         assertNull(PlanSettingsJson.decode("junk"))
     }
 
+    @Test fun `released settings without runCap default on and false round trips`() {
+        assertEquals(true, PlanSettingsJson.decode("""{"defaultsFor":"STRENGTH"}""")!!.runCap)
+        val settings = PlanSettings(runCap = false)
+        assertEquals(settings, PlanSettingsJson.decode(PlanSettingsJson.encode(settings)))
+    }
+
     @Test fun `Muscle with steps round trips`() {
         val settings = PlanSettings(LiftGoal.MUSCLE, LoadSteps(2.5, 5.0, 10.0))
         assertEquals(settings, PlanSettingsJson.decode(PlanSettingsJson.encode(settings)))

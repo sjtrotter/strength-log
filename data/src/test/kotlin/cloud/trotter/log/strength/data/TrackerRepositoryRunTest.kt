@@ -829,7 +829,7 @@ class TrackerRepositoryRunTest {
         repo.plans.publishCreatedPlan(plan, answers)
         db.programDao().closeDay(plan, "A", day(plan).nextRunId, 1000)
         val before = day(plan)
-        repo.setKeepToPlan(slot(plan), true)
+        repo.keepToPlanFixture(db, slot(plan))
         repo.resetDayToTemplate("A")
         assertTrue(db.programDao().exercisesForDay(plan, "A").none { it.keepToPlan })
         assertEquals(before.nextRunId, day(plan).nextRunId)
@@ -997,7 +997,7 @@ class TrackerRepositoryRunTest {
         db.storeTestRows("A", slot, Slot.SS, partner)
         val logs = listOf(Slot.MAIN, Slot.SS).map { db.programDao().logForSlot(plan, "A", slot, it)!! }
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
 
         assertTrue(db.programDao().exercise(slot)!!.keepToPlan)
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
@@ -1038,7 +1038,7 @@ class TrackerRepositoryRunTest {
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
         db.storeTestRows("A", slot, Slot.SS, work())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         val parked = db.programDao().exercise(slot)!!.parkedLogsJson
 
         assertTrue(repo.swapExerciseById("A", slot, "hack_squat"))
@@ -1057,7 +1057,7 @@ class TrackerRepositoryRunTest {
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
         db.storeTestRows("A", slot, Slot.SS, work())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         val parked = db.programDao().exercise(slot)!!.parkedLogsJson
 
         repo.setPrescription(slot, Prescription(PrescribedTarget.Hold(45)), 3)
@@ -1075,7 +1075,7 @@ class TrackerRepositoryRunTest {
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
         db.storeTestRows("A", slot, Slot.SS, work())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         val parked = db.programDao().exercise(slot)!!.parkedLogsJson
 
         repo.removeSupersetPartner("A", slot)
@@ -1086,7 +1086,7 @@ class TrackerRepositoryRunTest {
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
         assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
         db.storeTestRows("A", slot, Slot.MAIN, emptyList())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         repo.setKeepToPlan(slot, false)
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
@@ -1103,7 +1103,7 @@ class TrackerRepositoryRunTest {
         db.storeTestRows("A", slot, Slot.MAIN, main)
         db.storeTestRows("A", slot, Slot.SS, partner)
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         repo.ensureSeeded(plan, "A")
         repo.setKeepToPlan(slot, false)
 
@@ -1125,12 +1125,12 @@ class TrackerRepositoryRunTest {
 
         assertEquals(progress, db.programDao().exercise(slot))
         assertEquals(logs, db.programDao().allLogs())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         repo.ensureSeeded(plan, "A")
         val kept = db.programDao().exercise(slot)
         val seeds = db.programDao().allLogs()
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
 
         assertEquals(kept, db.programDao().exercise(slot))
         assertEquals(seeds, db.programDao().allLogs())
@@ -1141,14 +1141,14 @@ class TrackerRepositoryRunTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
         db.storeTestRows("A", slot, Slot.MAIN, squat())
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         repo.setKeepToPlan(slot, false)
         assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
         val restored = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
         val edited = SetEditor.editWeight(restored, restored.indexOfFirst { it.kind == SetKind.TOP }, 245.0)
         db.storeTestRows("A", slot, Slot.MAIN, edited)
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
 
         assertEquals(listOf(ParkedTrackDto(Slot.MAIN, "bb_back_squat", SetJson.encodeSets(edited))),
             ParkedLogsJson.decode(db.programDao().exercise(slot)!!.parkedLogsJson!!))
@@ -1160,7 +1160,7 @@ class TrackerRepositoryRunTest {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         assertNull(db.programDao().exercise(slot)!!.parkedLogsJson)
         repo.setKeepToPlan(slot, false)
 
@@ -1173,7 +1173,7 @@ class TrackerRepositoryRunTest {
         repo.replaceProgram(generated())
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         assertNull(db.programDao().exercise(slot)!!.prescriptionJson)
         val seed = squat()
         db.storeTestRows("A", slot, Slot.MAIN, seed)
@@ -1434,7 +1434,7 @@ class TrackerRepositoryRunTest {
         repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
         val captured = db.runDao().tracks(runId)
 
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
 
         assertEquals(captured, db.runDao().tracks(runId))
         assertTrue(db.programDao().logsForDay(plan, "A").none { it.programExerciseId == slot })
@@ -1456,6 +1456,8 @@ class TrackerRepositoryRunTest {
             db.storeTestRows("A", slot, Slot.MAIN, squat())
             db.storeTestRows("A", slot, Slot.SS, work())
         }
+        db.programDao().setPrescription(slot,
+            cloud.trotter.log.strength.data.serialization.PrescriptionJson.encode(Prescription(PrescribedTarget.LoadReps(185.0, 5))), 6)
         seedPair()
         assertEquals(2, db.programDao().logsForDay(plan, "A").size)
         assertTrue(repo.resetSlotToPlan(slot))
@@ -1469,10 +1471,12 @@ class TrackerRepositoryRunTest {
         assertEquals(logs, db.programDao().allLogs())
         assertEquals(tracks, db.runDao().tracks(runId))
         val other = slot(plan, "B")
+        db.programDao().setPrescription(other,
+            cloud.trotter.log.strength.data.serialization.PrescriptionJson.encode(Prescription(PrescribedTarget.LoadReps(185.0, 5))), 3)
         db.storeTestRows("B", other, Slot.MAIN, work())
         assertTrue(repo.resetSlotToPlan(other))
         repo.discardRun(runId)
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         seedPair()
         val keptLogs = db.programDao().allLogs()
         assertFalse(repo.resetSlotToPlan(slot))
@@ -1497,7 +1501,7 @@ class TrackerRepositoryRunTest {
         repo.replaceProgram(generated())
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
-        repo.setKeepToPlan(slot, true)
+        repo.keepToPlanFixture(db, slot)
         repo.swapExerciseById("A", slot, "hack_squat")
         assertTrue(db.programDao().exercise(slot)!!.keepToPlan)
         assertTrue(repo.swapExerciseById("A", slot, "bb_back_squat"))

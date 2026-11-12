@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.keepToPlanFixture
 import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.TrackEdit
@@ -1799,7 +1800,7 @@ class DayViewModelWiringTest {
         val run = repo.openRunFlow.first()!!
         val rows = vm.uiState.value.exercises.first { it.programExerciseId == id }.rows
 
-        vm.editor.setDaySlotKeepToPlan(id, true)
+        repo.keepToPlanFixture(db, id)
         advanceUntilIdle()
 
         assertEquals(run, repo.openRunFlow.first())

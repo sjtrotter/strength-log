@@ -227,6 +227,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val legacySessionNotesFlow: Flow<Map<Long, String>> =
         dataStore.data.map { decodeSessionNotes(it[Keys.SESSION_NOTES]) }
 
+    suspend fun setEffortScale(scale: EffortScale) { dataStore.edit { it[Keys.EFFORT_SCALE] = scale.name } }
+
     val effortScaleFlow: Flow<EffortScale> =
         dataStore.data.map { it.enum(Keys.EFFORT_SCALE, EffortScale.WORDS) }
 

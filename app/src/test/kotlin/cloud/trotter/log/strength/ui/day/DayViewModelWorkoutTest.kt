@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.keepToPlanFixture
+import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.data.writeTestRowsPaired
 import android.content.Context
@@ -14,6 +16,7 @@ import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.RuleEdit
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -192,6 +195,72 @@ class DayViewModelWorkoutTest {
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN }.sets,
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.SS }.sets,
         ) is RunWriteResult.InRun)
+    }
+
+    @Test fun `reps left preference and tap persist the exact rir`() = test {
+        prepare()
+        settings.setEffortScale(cloud.trotter.log.strength.domain.progression.EffortScale.REPS_LEFT)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val focus = requireNotNull(vm.uiState.value.workout?.focus)
+        vm.logFocusedSet()
+        runCurrent()
+        vm.setRepsLeft(focus.programExerciseId, focus.slot, focus.index, 3)
+        runCurrent()
+        assertEquals(3, track(vm, focus.programExerciseId)[focus.index].rir)
+        assertEquals(cloud.trotter.log.strength.domain.progression.EffortScale.REPS_LEFT, vm.uiState.value.effortScale)
+        assertEquals(3, vm.uiState.value.workout?.undo?.set?.rir)
+    }
+
+    @Test fun `legacy Plan options restore both superset halves and store Ask on Automatic`() = test {
+        prepare(exercises = listOf(bench(superset = true).copy(prescription = null)))
+        db.convertTestPlans(settings)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setAutoApply(plan, true)
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        repo.keepToPlanFixture(db, id)
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        val options = vm.dayEditState.value.slots.single()
+        assertTrue(options.keptToPlan)
+        assertFalse(options.prescribed)
+        val parked = requireNotNull(db.programDao().exercise(id)!!.parkedLogsJson)
+        vm.editor.openOptions(id)
+        vm.editor.setNextTime(id, cloud.trotter.log.strength.domain.progression.NextTimeMode.ASK)
+        runCurrent()
+        val stored = db.programDao().exercise(id)!!
+        assertFalse(stored.keepToPlan)
+        assertNull(stored.parkedLogsJson)
+        assertEquals(id, vm.dayEditState.value.optionsSlotId)
+        for (half in cloud.trotter.log.strength.data.serialization.ParkedLogsJson.decode(parked)) {
+            assertEquals(half.setsJson, db.programDao().logForSlot(plan, "A", id, half.slot)!!.setsJson)
+        }
+        for (json in listOf(stored.ruleJson, stored.partnerRuleJson)) assertEquals(
+            cloud.trotter.log.strength.domain.progression.NextTimeMode.ASK,
+            cloud.trotter.log.strength.data.serialization.SlotRuleJson.decode(json)!!.nextTime)
+    }
+
+    @Test fun `editing MAIN rest to 150 sets the superset round timer to 150`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        db.convertTestPlans(settings)
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.editor.editRule(id, Slot.MAIN, RuleEdit.Rest(150))
+        runCurrent()
+        assertEquals(150, vm.dayEditState.value.slots.single().lifts.single { it.slot == Slot.MAIN }.restSeconds)
+        vm.startWorkout()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        assertNull(settings.phoneRestFlow.first())
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(150, runtime.armed.single().totalSeconds)
+        assertEquals(runtime.armed.single(), settings.phoneRestFlow.first())
     }
 
     @Test

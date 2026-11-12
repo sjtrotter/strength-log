@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -35,6 +36,7 @@ data class SetupUiState(
     val gpsDistance: Boolean = true,
     val gpsAccess: LocationAccess = LocationAccess.DENIED,
     val saveRoute: Boolean = false,
+    val effortScale: EffortScale = EffortScale.WORDS,
 )
 
 /** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
@@ -54,4 +56,5 @@ data class SetupActions(
     val onGpsDistanceChange: (Boolean) -> Unit = {},
     val onRefreshLocationAccess: () -> Unit = {},
     val onSaveRouteChange: (Boolean) -> Unit = {},
+    val onEffortScaleChange: (EffortScale) -> Unit = {},
 )

@@ -670,7 +670,7 @@ class DayScreenBuilderTest {
             DayScreenBuilder.cardioNextTime(day, plan, listOf(last), mapOf(last.id to listOf(row))))
     }
 
-    @Test fun `an automatic plan shows its cardio chip only with the offers switch on`() {
+    @Test fun `an automatic plan shows its cardio chip with either switch value and Ask follows the switch`() {
         val opening = cardioBlock(Measure.Time(1200))
         val offered = cardioBlock(Measure.Time(1260))
         val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening,
@@ -680,10 +680,11 @@ class DayScreenBuilderTest {
         val last = cardioSession(opening)
         val sessions = listOf(last)
         val sets = mapOf(last.id to listOf(cardioResult(opening.sets.single(), 1200)))
-        assertNull(DayScreenBuilder.cardioNextTime(day, auto, sessions, sets))
+        // Owner decision 2026-11-12, design-2c §7 Q2: Automatic plans show every next-time chip.
+        val offer = CardioNextTime.Offer(offered, opening, true, CardioIncrease.Time(60))
+        assertEquals(offer, DayScreenBuilder.cardioNextTime(day, auto, sessions, sets))
         assertNull(DayScreenBuilder.cardioNextTime(day, plan, sessions, sets))
         val enabled = auto.copy(offerCardioIncreases = true)
-        val offer = CardioNextTime.Offer(offered, opening, true, CardioIncrease.Time(60))
         assertEquals(offer, DayScreenBuilder.cardioNextTime(day, enabled, sessions, sets))
         assertEquals(offer.copy(applied = false), DayScreenBuilder.cardioNextTime(
             day.copy(cardioProgress = CardioProgress()), enabled, sessions, sets))

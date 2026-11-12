@@ -1,6 +1,15 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.lifecycle.SavedStateHandle
+import cloud.trotter.log.strength.data.RuleEdit
+import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.domain.progression.LoadSteps
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -57,7 +66,9 @@ internal class DayEditor(
     otherWorkoutOpenMessage: Flow<Boolean>,
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
+    restSettingsFlow: Flow<RestSettings>,
 ) {
+    private val optionsSlotId = savedState.getStateFlow<Long?>(KEY_OPTIONS_SLOT, null)
     val pendingPlanSwap = savedState.getStateFlow<PendingPlanSwap?>(KEY_PENDING_PLAN_SWAP, null)
 
     /** Render model for the day-edit sheet (spec §8.3) — a second view over the
@@ -74,10 +85,11 @@ internal class DayEditor(
                     .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap())
             }.distinctUntilChanged(),
             repo.observePlanRows(plan.id, dayId),
-        ) { slots, answers, (runOpen, performed), rows ->
+            combine(unitFlow, restSettingsFlow, ::Pair),
+        ) { slots, answers, (runOpen, performed), rows, (unit, rest) ->
             val day = ctx.program.days.firstOrNull { it.id == dayId }
             val block = day?.cardioBlock
-            buildEditState(slots, ctx.catalog, answers.equipment, rows).copy(
+            buildEditState(slots, ctx.catalog, answers.equipment, rows, plan, unit, rest).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
@@ -99,13 +111,13 @@ internal class DayEditor(
     )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
-        editProgramState, unitFlow, combine(prescriptionDraft, prescriptionStructure, ::Pair), dayEditorOpen,
-    ) { state, unit, (draft, structure), editorOpen ->
+        editProgramState, combine(prescriptionDraft, prescriptionStructure, ::Pair), dayEditorOpen,
+    ) { state, (draft, structure), editorOpen ->
         val shownDraft = draft?.takeIf { restored ->
             state.slots.any { it.programExerciseId == restored.slotId }
         }
         state.copy(
-            unit = unit, editorOpen = editorOpen, planEditing = planEditing,
+            editorOpen = editorOpen, planEditing = planEditing,
             prescriptionDraft = shownDraft,
             prescriptionStructure = structure?.takeIf { shownDraft != null }?.let { name ->
                 SetStructure.entries.firstOrNull { it.name == name }
@@ -113,9 +125,9 @@ internal class DayEditor(
         )
     }
     val dayEditState: StateFlow<DayEditUiState> = combine(
-        prescriptionEditState, cardioDraft, otherWorkoutOpenMessage,
-    ) { state, draft, message ->
-        state.copy(cardioDraft = draft?.takeIf {
+        prescriptionEditState, cardioDraft, otherWorkoutOpenMessage, optionsSlotId,
+    ) { state, draft, message, options ->
+        state.copy(optionsSlotId = options, cardioDraft = draft?.takeIf {
             it.planId == state.planId && it.dayId == state.dayId
         }, otherWorkoutOpenMessage = message)
     }.stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState(planEditing = planEditing))
@@ -137,6 +149,7 @@ internal class DayEditor(
     fun setDayEditorOpen(open: Boolean) {
         savedState[KEY_DAY_EDITOR_OPEN] = open
         if (!open) {
+            savedState[KEY_OPTIONS_SLOT] = null
             discardPrescription()
             savedState.remove<CardioSetDraft>(KEY_CARDIO_SET_BEFORE_EDIT)
             savedState[KEY_CARDIO_DRAFT] = null
@@ -378,6 +391,23 @@ internal class DayEditor(
         }
     }
 
+    fun openOptions(slotId: Long) {
+        savedState[KEY_OPTIONS_SLOT] = slotId
+        setDayEditorOpen(true)
+    }
+
+    fun setNextTime(slotId: Long, mode: NextTimeMode) {
+        mutate {
+            repo.setKeepToPlan(slotId, false)
+            repo.editRule(slotId, Slot.MAIN, RuleEdit.NextTime(mode))
+            repo.editRule(slotId, Slot.SS, RuleEdit.NextTime(mode))
+        }
+    }
+
+    fun editRule(slotId: Long, half: String, edit: RuleEdit) {
+        mutate { repo.editRule(slotId, half, edit) }
+    }
+
     fun setDaySlotStructure(slotId: Long, structure: SetStructure) {
         mutate { repo.setStructure(slotId, structure) }
     }
@@ -416,6 +446,9 @@ internal class DayEditor(
         catalog: ExerciseCatalog,
         equipment: Set<Equipment>,
         rows: Map<Long, List<LoggedSet>>,
+        plan: PlanEntity,
+        unit: WeightUnit,
+        rest: RestSettings,
     ): DayEditUiState {
         val slotStates = slots.mapIndexed { index, slot ->
             val pe = slot.exercise
@@ -432,6 +465,17 @@ internal class DayEditor(
                 partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
                 prescription = pe.prescription,
                 keepToPlan = pe.keepToPlan,
+                nextTime = pe.rule?.nextTime ?: if (plan.autoApply) NextTimeMode.AUTO else NextTimeMode.ASK,
+                lifts = listOfNotNull(
+                    liftOptionsState(Slot.MAIN, entry?.name ?: pe.exerciseId, pe.rule,
+                        pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED,
+                        entry?.equipment.orEmpty(), plan, unit, rest),
+                    partnerId?.let { id ->
+                        val partner = catalog.find(id)
+                        liftOptionsState(Slot.SS, partner?.name ?: id, pe.superset?.rule,
+                            partner?.tracking ?: TrackingType.WEIGHTED, partner?.equipment.orEmpty(), plan, unit, rest)
+                    },
+                ),
                 structure = pe.structure,
                 weightedTarget = entry?.tracking == TrackingType.WEIGHTED &&
                     pe.prescription.let { it == null || it.target is PrescribedTarget.LoadReps },
@@ -443,6 +487,7 @@ internal class DayEditor(
         }
         return DayEditUiState(
             slots = slotStates,
+            unit = unit,
             canRemove = DayEditRules.canRemove(slotStates.size),
             defaultEquipmentFilter = equipment,
             catalog = catalog,
@@ -457,6 +502,7 @@ internal class DayEditor(
     )
 
     private companion object {
+        const val KEY_OPTIONS_SLOT = "day_lift_options_slot"
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
         const val KEY_PRESCRIPTION_STRUCTURE = "day_prescription_structure"
         const val KEY_CARDIO_SET_BEFORE_EDIT = "day_cardio_set_before_edit"
@@ -465,4 +511,17 @@ internal class DayEditor(
         const val KEY_PENDING_PLAN_SWAP = "day_pending_plan_swap"
         const val STOP_TIMEOUT_MS = 5_000L
     }
+}
+
+internal fun liftOptionsState(half: String, title: String, rule: SlotRule?,
+                              tracking: TrackingType, equipment: Collection<Equipment>, plan: PlanEntity,
+                              unit: WeightUnit, rest: RestSettings): LiftOptionsState? {
+    rule ?: return null
+    val goal = plan.planSettings.defaultsFor
+    return LiftOptionsState(half, title,
+        RestPolicy.effectiveRestSeconds(SetKind.WORK, tracking, rest.overrides, rule, goal),
+        RestPolicy.effectiveRestSeconds(SetKind.WORK, tracking, rest.overrides, rule.copy(restSeconds = null), goal),
+        rule.restSeconds != null, rule.rir, rule.incrementPct,
+        if (tracking == TrackingType.WEIGHTED) SetFormatter.weight(
+            (plan.planSettings.loadSteps ?: LoadSteps.defaults(unit)).stepLb(equipment), unit) else null)
 }

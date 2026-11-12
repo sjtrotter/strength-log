@@ -38,6 +38,20 @@ import org.robolectric.annotation.Config
 class SetEditSheetTest {
     @get:Rule val rule = createComposeRule()
 
+    @Test fun repsLeftUsesTheSameNumbersAndForwardsTheSetIdentity() {
+        val card = workoutDayFixture().exercises[1]
+        val row = card.rows[1].copy(done = true, kind = SetKind.WORK, rir = 3)
+        var picked: List<Any?>? = null
+        rule.setContent { AppTheme {
+            SetEditSheet(card, row, WeightUnit.LB, 0, workoutActions().copy(
+                onSetRepsLeft = { id, half, index, rir -> picked = listOf(id, half, index, rir) },
+            ), {}, effortScale = cloud.trotter.log.strength.domain.progression.EffortScale.REPS_LEFT)
+        } }
+        for (value in 0..5) rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-$value").assertExists()
+        rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-2").performClick()
+        rule.runOnIdle { assertEquals(listOf(card.programExerciseId, Slot.MAIN, row.index, 2), picked) }
+    }
+
     @Test fun effortRatesOnlyDoneWorkingRowsAndUsesTheSlotIdentity() {
         val base = workoutDayFixture().exercises[1]
         var card by mutableStateOf(base)

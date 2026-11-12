@@ -40,6 +40,17 @@ class SetEditTest {
         assertNull(SetEditor.effort(rows, 1, null))
     }
 
+    @Test fun `reps left stores every number and clears only a rated working row`() {
+        val rows = listOf(LoggedSet(185.0, 5, SetKind.WORK, done = true))
+        for (value in 0..5) {
+            val rated = requireNotNull(SetEditor.repsLeft(rows, 0, value))
+            assertEquals(value, rated.single().rir)
+            assertEquals(rows, SetEditor.repsLeft(rated, 0, null))
+        }
+        assertNull(SetEditor.repsLeft(rows.map { it.copy(done = false) }, 0, 3))
+        assertNull(SetEditor.repsLeft(rows.map { it.copy(kind = SetKind.RAMP) }, 0, 3))
+    }
+
     private val row = LoggedSet(50.0, 8, SetKind.WORK)
 
     @Test fun `watch tick writes observed timing and watch stamp only on its row`() {

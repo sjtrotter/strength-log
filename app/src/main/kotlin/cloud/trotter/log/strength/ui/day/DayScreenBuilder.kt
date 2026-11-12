@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.CardioJudge
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -206,15 +207,14 @@ object DayScreenBuilder {
             Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay())
 
     /** The cardio chip: [CardioJudge]'s outcome for the day's newest session in [sessions], selected while the day
-     *  holds it, unselected while the day holds the session's opening. The plan's offers switch controls visibility
-     *  in both Automatic and Ask modes. */
+     *  holds it, unselected while the day holds the session's opening. Automatic plans show changes; Ask plans follow their Offer switch. */
     fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
                        sets: Map<Long, List<CardioSetResult>>): CardioNextTime? {
-        if (!plan.offerCardioIncreases) return null
+        if (!NextTimeGate.cardio(plan)) return null
         val stored = day.cardioToRun ?: return null
         val last = sessions.filter { it.planId == plan.id && it.dayId == day.id }
             .maxWithOrNull(compareBy({ it.completedAt }, { it.id })) ?: return null
-        val judged = CardioJudge.judge(day, last, sessions, sets) ?: return null
+        val judged = CardioJudge.judge(day, last, sessions, sets, plan.planSettings.runCap) ?: return null
         val opening = judged.opening
         val change = judged.outcome.change as? CardioChange.Increase
             ?: return CardioNextTime.Repeat.takeIf { stored == opening }

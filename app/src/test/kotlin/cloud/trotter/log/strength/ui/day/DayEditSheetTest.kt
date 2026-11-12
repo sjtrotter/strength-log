@@ -408,10 +408,10 @@ class DayEditSheetTest {
     @Test
     fun generatedSlotOffersNextTimeAndForwardsItsChoice() {
         var choice: Pair<Long, Boolean>? = null
-        show(onKeepToPlan = { slot, keep -> choice = slot to keep })
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), onKeepToPlan = { slot, keep -> choice = slot to keep })
         composeTestRule.onNodeWithText("Next time").assertExists()
-        val progress = composeTestRule.onNodeWithText("Progress").assertIsSelected().fetchSemanticsNode().boundsInRoot
-        val disclosure = composeTestRule.onNodeWithText("Planned reps; increases need your approval.")
+        val progress = composeTestRule.onNodeWithText("Ask").assertIsSelected().fetchSemanticsNode().boundsInRoot
+        val disclosure = composeTestRule.onNodeWithText("Finish offers changes")
             .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(disclosure.top >= progress.bottom)
         composeTestRule.onNodeWithText("Plan").performClick()
@@ -419,18 +419,19 @@ class DayEditSheetTest {
     }
 
     @Test
-    fun authoredSlotOffersNextTimeAndReset() {
+    fun unprescribedSlotOffersAutomaticAndAskWithoutPlanOrReset() {
         show()
-        composeTestRule.onNodeWithText("Progress").assertExists()
-        composeTestRule.onNodeWithText("Planned reps; increases need your approval.").assertExists()
-        composeTestRule.onNodeWithText("Plan").assertExists()
-        composeTestRule.onNodeWithText("Reset to plan").assertExists()
+        composeTestRule.onNodeWithText("Ask").assertIsSelected()
+        composeTestRule.onNodeWithText("Automatic").assertExists()
+        composeTestRule.onNodeWithText("Finish offers changes").assertExists()
+        composeTestRule.onNodeWithText("Plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
     }
 
     @Test
     fun resetToPlanAsksBeforeForwardingTheSlot() {
         var resetSlot: Long? = null
-        show(onResetSlot = { resetSlot = it })
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), onResetSlot = { resetSlot = it })
         composeTestRule.onNodeWithText("Reset to plan").performClick()
         composeTestRule.onNodeWithText("Reset to plan?").assertExists()
         composeTestRule.onNodeWithText("Next time starts from the plan instead of your progress.").assertExists()
@@ -444,14 +445,18 @@ class DayEditSheetTest {
 
     @Test
     fun keptSlotHidesResetToPlan() {
-        show(keepToPlan = true)
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), keepToPlan = true)
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
     }
 
     @Test
     fun openDayHidesResetToPlan() {
-        show(runOpen = true)
+        var choice: Pair<Long, Boolean>? = null
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), runOpen = true,
+            onKeepToPlan = { slot, keep -> choice = slot to keep })
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Plan").assertIsDisplayed().performClick()
+        composeTestRule.runOnIdle { assertEquals(1L to true, choice) }
     }
     @Test
     fun tappingLiftOpensItsPrescription() {

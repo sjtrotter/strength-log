@@ -69,7 +69,7 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(stored, db.programDao().exercise(b)!!.partnerRuleJson)
         assertNull(db.programDao().logForSlot(plan, "A", b, Slot.SS))
         assertNotNull(db.programDao().exercise(b)!!.ruleJson)
-        repo.setKeepToPlan(b, true)
+        repo.keepToPlanFixture(db, b)
         assertEquals(stored, db.programDao().exercise(b)!!.partnerRuleJson)
         repo.setKeepToPlan(b, false)
         assertEquals(stored, db.programDao().exercise(b)!!.partnerRuleJson)

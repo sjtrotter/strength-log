@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -49,6 +50,10 @@ object PlanScreenBuilder {
             name = plan?.name,
             planId = plan?.id,
             hasProgram = days.isNotEmpty(),
+            autoApply = plan?.autoApply ?: false,
+            defaultsFor = plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH,
+            lightWeek = plan?.deloadEveryCycles,
+            runCap = plan?.planSettings?.runCap ?: true,
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,

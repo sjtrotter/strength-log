@@ -47,6 +47,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import cloud.trotter.log.strength.data.RuleEdit
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.ui.components.RadioChoiceDialog
+import cloud.trotter.log.strength.ui.setup.RestDurationSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +84,6 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -139,7 +144,7 @@ internal fun DayEditPages(
     var addPatternName by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmingReset by rememberSaveable { mutableStateOf(false) }
     var cardioOptions by rememberSaveable { mutableStateOf(false) }
-    var optionsSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var optionsSlotId by rememberSaveable(state.optionsSlotId) { mutableStateOf(state.optionsSlotId) }
     var ssSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var ssPatternName by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -309,6 +314,8 @@ internal fun DayEditPages(
             onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
             onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
             onStraightSets = { actions.onOpenStraightSets(optionsSlot.programExerciseId) },
+            onNextTime = { actions.onNextTimeChange(optionsSlot.programExerciseId, it) },
+            onRuleEdit = { half, edit -> actions.onEditRule(optionsSlot.programExerciseId, half, edit) },
         )
         else -> DaySlotList(
             state = state,
@@ -389,7 +396,7 @@ private fun DaySlotList(
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.day_edit_next_time)) },
                     supportingContent = { Text(stringResource(if (state.cardioProgress.keepToPlan)
-                        R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
+                        R.string.day_edit_next_time_plan else R.string.cardio_next_time_progress)) },
                     modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onCardioOptions),
                 )
             }
@@ -417,7 +424,7 @@ internal fun CardioNextTimePage(state: DayEditUiState, actions: DayEditActions, 
                     selected = progress.keepToPlan == keep,
                     onClick = { actions.onCardioKeepToPlanChange(keep) },
                     shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
+                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.cardio_next_time_progress)) },
                 )
             }
         }
@@ -537,7 +544,7 @@ private fun DaySlotRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SlotOptionsScreen(
+internal fun SlotOptionsScreen(
     slot: DayEditSlotState,
     onPrescriptionClick: () -> Unit,
     onMove: (Boolean) -> Unit,
@@ -550,9 +557,11 @@ private fun SlotOptionsScreen(
     onResetToPlanClick: () -> Unit,
     onStructureChange: (SetStructure) -> Unit,
     onStraightSets: () -> Unit,
+    onNextTime: (NextTimeMode) -> Unit = {},
+    onRuleEdit: (String, RuleEdit) -> Unit = { _, _ -> },
 ) {
     var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
-    if (confirmingReset && !slot.keepToPlan && !runOpen) {
+    if (confirmingReset && slot.prescription != null && !slot.keepToPlan && !runOpen) {
         AppAlertDialog(
             onDismissRequest = { confirmingReset = false },
             title = { Text(stringResource(R.string.day_edit_reset_to_plan_confirm_title)) },
@@ -567,26 +576,18 @@ private fun SlotOptionsScreen(
         )
     }
     val title = slot.partnerTitle?.let { stringResource(R.string.day_edit_slot_pair_title, slot.title, it) } ?: slot.title
-    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(24.dp))
-        Text(stringResource(R.string.day_edit_next_time), style = MaterialTheme.typography.titleSmall)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            listOf(false, true).forEachIndexed { index, keep ->
-                SegmentedButton(
-                    selected = slot.keepToPlan == keep,
-                    onClick = { onKeepToPlanChange(keep) },
-                    shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_progress)) },
-                )
-            }
-        }
-        Text(stringResource(R.string.day_edit_next_time_disclosure), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
-        if (!slot.keepToPlan && !runOpen) {
+        NextTimeControl(slot.nextTime, onNextTime, prescribed = slot.prescription != null,
+            keptToPlan = slot.keepToPlan, onPlan = { onKeepToPlanChange(true) })
+        if (slot.prescription != null && !slot.keepToPlan && !runOpen) {
             TextButton(onClick = { confirmingReset = true }) {
                 Text(stringResource(R.string.day_edit_reset_to_plan))
             }
+        }
+        if (!slot.keepToPlan) slot.lifts.forEach { lift ->
+            LiftRuleOptions(lift, showTitle = slot.isSuperset) { onRuleEdit(lift.slot, it) }
         }
         if (slot.weightedTarget) {
             Spacer(Modifier.size(24.dp))
@@ -1144,3 +1145,38 @@ private fun equipmentLabel(equipment: Equipment): String = enumLabel(equipment.n
 
 private fun enumLabel(name: String): String =
     name.split("_").joinToString(" ") { it.lowercase().replaceFirstChar(Char::uppercase) }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LiftRuleOptions(lift: LiftOptionsState, showTitle: Boolean, onEdit: (RuleEdit) -> Unit) {
+    var dialog by rememberSaveable(lift.slot) { mutableStateOf<String?>(null) }
+    Spacer(Modifier.size(24.dp))
+    if (showTitle) Text(lift.title, style = MaterialTheme.typography.titleMedium)
+    if (lift.slot == Slot.MAIN) ListItem(headlineContent = { Text(stringResource(R.string.lift_options_rest)) },
+        supportingContent = { Text(if (lift.restOverridden) ClockText.minutesSeconds(lift.restSeconds)
+            else stringResource(R.string.lift_options_rest_default, ClockText.minutesSeconds(lift.defaultRestSeconds))) },
+        modifier = Modifier.clickable { dialog = "rest" })
+    Text(stringResource(R.string.lift_options_reps_left), style = MaterialTheme.typography.titleSmall)
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        (1..3).forEachIndexed { index, value ->
+            SegmentedButton(selected = lift.rir == value, onClick = { onEdit(RuleEdit.RepsLeft(value)) },
+                shape = SegmentedButtonDefaults.itemShape(index, 3), label = { Text(value.toString()) })
+        }
+    }
+    Text(stringResource(R.string.lift_options_reps_left_detail), style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (lift.stepText != null) ListItem(
+        headlineContent = { Text(stringResource(R.string.lift_options_increase)) },
+        supportingContent = { Text(stringResource(R.string.lift_options_increase_value,
+            increasePercent(lift.incrementPct), lift.stepText)) },
+        modifier = Modifier.clickable { dialog = "increase" })
+    if (dialog == "rest") RestDurationSheet(stringResource(R.string.lift_options_rest), lift.restSeconds,
+        onSave = { onEdit(RuleEdit.Rest(it)); dialog = null }, onDismiss = { dialog = null },
+        onUseDefault = { onEdit(RuleEdit.Rest(null)); dialog = null })
+    if (dialog == "increase") RadioChoiceDialog(stringResource(R.string.lift_options_increase),
+        stringResource(R.string.lift_options_increase_detail, *emptyArray<Any>()),
+        listOf(0.0125, 0.025, 0.05).map { it to increasePercent(it) }, lift.incrementPct,
+        { onEdit(RuleEdit.Increase(it)) }, { dialog = null })
+}
+
+private fun increasePercent(fraction: Double): String = WeightStepper.format(fraction * 100) + "%"

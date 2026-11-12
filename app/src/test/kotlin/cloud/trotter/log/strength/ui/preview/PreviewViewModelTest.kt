@@ -556,9 +556,7 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         val offered = block.copy(sets = listOf(spec.copy(end = Measure.Time(1260))))
         assertEquals(offered, repo.plans.programFor(plan).first().days.single().cardioToRun)
-        assertNull(vm.uiState.value.cardio?.nextTime)
-        repo.plans.setOfferCardioIncreases(plan, true)
-        advanceUntilIdle()
+        // Owner decision 2026-11-12, design-2c §7 Q2: Automatic plans show every next-time chip.
         val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
         assertTrue(offer.applied)
         assertEquals(CardioIncrease.Time(60), offer.change)
@@ -569,6 +567,13 @@ class PreviewViewModelTest : OverviewFixture() {
         vm.applyCardioNextTime(offer.offered)
         advanceUntilIdle()
         assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        advanceUntilIdle()
+        assertTrue((vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer).applied)
+        repo.plans.setOfferCardioIncreases(plan, false)
+        repo.plans.setAutoApply(plan, false)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cardio?.nextTime)
     }
 
     @Test fun `a distance entered later stays undone through chip undo and further amendments`() = runTest(dispatcher) {

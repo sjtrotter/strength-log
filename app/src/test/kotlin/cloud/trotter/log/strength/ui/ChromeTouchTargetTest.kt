@@ -78,7 +78,7 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+        listOf("Units", "Distance", "Effort scale", "Theme", "Keep screen on during workouts", "Rest timer on watch",
             "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
             "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))

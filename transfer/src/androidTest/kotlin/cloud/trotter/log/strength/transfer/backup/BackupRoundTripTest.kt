@@ -28,6 +28,8 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -127,6 +129,9 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
+        // Plan mode is offered only on prescribed lifts (wizard rebuild 2c-2), so the row gets one
+        // before the session that records its working values.
+        repository.setPrescription(rowId, Prescription(PrescribedTarget.LoadReps(95.0, 10)))
         repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
         ))
@@ -136,6 +141,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         val sessionId = repository.finishRun(repository.openRunFlow.first()!!.id)!!
         repository.history.setSessionNote(sessionId, "Felt smooth")
         repository.setKeepToPlan(rowId, true)
+        // Plan mode parks the row's saved working values; the round trip must carry them.
+        assertTrue(db.programDao().exercise(rowId)?.parkedLogsJson.orEmpty().isNotEmpty())
         // Fresh saved working values after the advance, so the exported live logs carry current work.
         // An edit before Start now changes a draft, not the saved plan, so the row is stored directly.
         db.programDao().upsertLog(ExerciseLogEntity(

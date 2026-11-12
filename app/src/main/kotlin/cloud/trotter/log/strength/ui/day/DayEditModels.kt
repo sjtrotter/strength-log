@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.RuleEdit
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -43,6 +45,7 @@ data class DayEditUiState(
     val performedExerciseIds: Map<Long, String> = emptyMap(),
     val performedPartnerIds: Map<Long, String> = emptyMap(),
     val otherWorkoutOpenMessage: Boolean = false,
+    val optionsSlotId: Long? = null,
 )
 
 /** One row of the day-edit sheet's slot list. */
@@ -70,6 +73,22 @@ data class DayEditSlotState(
     /** Next-time MAIN rows: stored, else the seed ([TrackerRepository.observePlanRows]); never a run's.
      *  Null for an unknown, unprescribed slot. */
     val rows: List<LoggedSet>? = null,
+    val nextTime: NextTimeMode = NextTimeMode.ASK,
+    val lifts: List<LiftOptionsState> = emptyList(),
+) {
+    val prescribed: Boolean get() = prescription != null
+    val keptToPlan: Boolean get() = keepToPlan
+}
+
+data class LiftOptionsState(
+    val slot: String,
+    val title: String,
+    val restSeconds: Int,
+    val defaultRestSeconds: Int,
+    val restOverridden: Boolean,
+    val rir: Int,
+    val incrementPct: Double,
+    val stepText: String?,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */
@@ -101,6 +120,9 @@ data class DayEditActions(
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
     val onWorkoutSwapHalf: (position: Int, newExerciseId: String, slot: String) -> Unit = { _, _, _ -> },
     val onMessageShown: () -> Unit = {},
+    val onNextTimeChange: (Long, NextTimeMode) -> Unit = { _, _ -> },
+    val onEditRule: (Long, String, RuleEdit) -> Unit = { _, _, _ -> },
+    val onOpenOptions: (Long) -> Unit = {},
 )
 
 internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState, half: String = Slot.MAIN): DayEditSlotState {

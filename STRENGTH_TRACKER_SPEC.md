@@ -310,11 +310,13 @@ in the table.
 | standing_calf | Standing Calf Raise | CALF_GASTROC | MACHINE,BODYWEIGHT | flat 90 | 1 | knee straight |
 | legpress_calf | Leg-Press Calf Raise | CALF_GASTROC | MACHINE | flat 180 | 2 | |
 | seated_calf | Seated Calf Raise | CALF_SOLEUS | MACHINE | flat 90 | 1 | knee bent — different head |
-| plank | Plank / Side Plank | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 1 | |
+| plank | Plank | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 1 | |
 | ab_wheel | Ab Wheel Rollout | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 2 | |
 | dead_bug | Dead Bug | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 3 | |
+| high_plank | High Plank | CORE_ANTI_EXT | BODYWEIGHT | time 45 | 7 | |
 | pallof | Pallof Press | CORE_ANTI_ROT | CABLE | flat 25 | 1 | |
 | suitcase_carry | Suitcase Carry | CORE_ANTI_ROT | DUMBBELL | flat 50 (perHand) | 2 | |
+| side_plank | Side Plank | CORE_ANTI_ROT | BODYWEIGHT | time 30 | 8 | |
 | cable_crunch | Cable Crunch | CORE_FLEX | CABLE | flat 90 | 1 | |
 | hanging_raise | Hanging Leg Raise | CORE_FLEX | PULLUP_BAR | flat 0 | 2 | |
 

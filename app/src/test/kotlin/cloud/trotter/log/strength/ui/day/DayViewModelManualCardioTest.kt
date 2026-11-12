@@ -225,6 +225,35 @@ class DayViewModelManualCardioTest {
         assertEquals(session, repo.history.cardioSession(session.id))
     }
 
+    @Test fun `cardio before strength Start gets its own receipt and Undo on a combined day`() = runTest(dispatcher) {
+        val plan = prepare(mixed = true)
+        val vm = readyVm()
+        vm.openPastCardio()
+        vm.changePastCardio(requireNotNull(vm.pastCardio.value).copy(startedAt = now - 2700000, seconds = 2700))
+        vm.savePastCardio()
+        runCurrent()
+        assertTrue(requireNotNull(vm.finisher.receipt.value).cardio)
+        assertTrue(vm.finisher.progressState.value.undoVisible)
+        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        vm.finisher.undoChanges()
+        runCurrent()
+        assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
+    }
+
+    @Test fun `past cardio effort has its own saved key and is written with the session`() = runTest(dispatcher) {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        enter(vm)
+        vm.setPastCardioEffort(cloud.trotter.log.strength.domain.progression.CardioEffort.GOOD)
+        assertEquals(cloud.trotter.log.strength.domain.progression.CardioEffort.GOOD,
+            handle.get<cloud.trotter.log.strength.domain.progression.CardioEffort>("day_past_cardio_effort"))
+        vm.savePastCardio()
+        runCurrent()
+        assertEquals("GOOD", repo.history.cardioSessionsFlow.first().single().effort)
+        assertNull(handle.get<cloud.trotter.log.strength.domain.progression.CardioEffort>("day_past_cardio_effort"))
+    }
+
     @Test fun `a cardio finisher logged after the fact does not finish a lift day`() = runTest(dispatcher) {
         val plan = prepare(mixed = true)
         repo.startRun(plan, "A")

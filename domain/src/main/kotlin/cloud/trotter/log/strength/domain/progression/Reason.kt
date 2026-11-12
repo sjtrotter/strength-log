@@ -4,7 +4,6 @@ package cloud.trotter.log.strength.domain.progression
  *  reasons in PR 3. */
 sealed interface Reason {
     data object NoSets : Reason
-    data object RoughDay : Reason
     data object LightCycle : Reason
     data object Layoff : Reason
     data object Calibrating : Reason

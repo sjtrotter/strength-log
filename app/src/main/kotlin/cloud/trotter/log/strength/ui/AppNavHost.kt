@@ -490,8 +490,9 @@ internal fun DayRoute(
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val receipt by viewModel.finisher.receipt.collectAsStateWithLifecycle()
     val receiptSetCounts by viewModel.finisher.receiptSetCounts.collectAsStateWithLifecycle()
-    val receiptNextTimes by viewModel.finisher.receiptNextTimes.collectAsStateWithLifecycle()
-    val receiptRepNextTimes by viewModel.finisher.receiptRepNextTimes.collectAsStateWithLifecycle()
+    val receiptProgress by viewModel.finisher.progressState.collectAsStateWithLifecycle()
+    val receiptMutation by viewModel.finisher.mutation.collectAsStateWithLifecycle()
+    val pastCardioEffort by viewModel.pastCardioEffort.collectAsStateWithLifecycle()
     val finish by viewModel.finisher.attempt.collectAsStateWithLifecycle()
     val noteSave by viewModel.finisher.noteSave.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
@@ -647,8 +648,11 @@ internal fun DayRoute(
         dayEditActions = dayEditActions,
         receipt = receipt,
         receiptSetCounts = receiptSetCounts,
-        receiptNextTimes = receiptNextTimes,
-        receiptRepNextTimes = receiptRepNextTimes,
+        receiptProgress = receiptProgress, receiptMutation = receiptMutation,
+        onReceiptMutationHandled = viewModel.finisher::mutationHandled,
+        onUndoChanges = viewModel.finisher::undoChanges, onRoughDay = viewModel.finisher::setRoughDay,
+        onCardioEffort = viewModel.finisher::setCardioEffort,
+        pastCardioEffort = pastCardioEffort, onPastCardioEffort = viewModel::setPastCardioEffort,
         finish = finish,
         noteSave = noteSave,
         onRetryFinish = viewModel.finisher::retry,

@@ -29,4 +29,5 @@ data class CardioSessionEntity(
     val effort: String? = null,
     /** True once this session's judgment wrote an increase to the day's block; an amendment of this session never writes again, even after an undo. */
     @ColumnInfo(defaultValue = "0") val increaseApplied: Boolean = false,
+    val progressionUndoJson: String? = null,
 )

@@ -926,3 +926,15 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 - After a set is logged on the phone, the rest panel shows Easy, Good, Hard and Max beside Undo for as long as Undo shows. One tap stores the word on that set; tapping it again clears it. Nothing is preselected, and an unrated set counts as on target. The row has the label Effort to its left.
 - The Lift sheet shows a rated set's word, and the set editor offers the same row for any logged set.
 - Logging a set short does not store an effort. The watch does not offer effort.
+
+## 32. Revision 23 (2c-1)
+
+Rough day is a reversible toggle over Finish's undo record. It restores the prior rows and rules by compare-and-swap, skips SCALED and RECALIBRATE break openings, and leaves Finish's own light-counter snapshot alone. Unticking restores Finish's result. Two consecutive rough strength sessions on an Automatic plan start a light week when none is running; the toggle records and reverses that counter change. This retires design case 9 ("hold, missStreak unchanged") and `Exposure.roughDay`.
+
+The cardio commit keeps a persisted undo journal in Room 32, including the exact block writes and light-counter snapshots. Distance amendments preserve the original block snapshot. One Undo covers strength Finish and cardio logged during its run. Cardio logged with no strength run open has its own receipt and Undo; the day's next strength Start or cardio run creation clears earlier undo records. Undo shows for counter-only changes, too. Journals are omitted from v27 backups.
+
+A death after the Finish commit recovers through the normal Finish path, using archived tracks (including dropped lifts and partners), archived live set counts, and the run's time window for cardio Undo identity. Receipt cardio rows include sessions completed on the session's date or during its window. The recovery path skips the live no-done-sets check and computes record baselines from captured tracks.
+
+Applied changes show whatever the offer switches say. Each lift's own rule determines its mode. The receipt gives absolute next-time values, one Undo, Rough day, and one Why disclosure; cardio receipts and past-cardio entry include How was it?. Existing SavedStateHandle parcels retain their layouts; receipt identity and past-cardio effort have separate keys.
+
+Section 8's first 2c criterion (a short set stores rir 0) is superseded by revision 22.

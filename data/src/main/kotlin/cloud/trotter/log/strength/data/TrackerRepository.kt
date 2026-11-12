@@ -23,6 +23,11 @@ import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioUndoDto
+import cloud.trotter.log.strength.data.serialization.CardioUndoJson
+import cloud.trotter.log.strength.data.serialization.CardioBlockUndoDto
+import cloud.trotter.log.strength.data.serialization.ReasonCode
+import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.data.serialization.CardioRouteJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.OfferDto
@@ -864,6 +869,10 @@ class TrackerRepository(
             if (sets.isNotEmpty()) {
                 cardioSessionDao.forRun(stamped.dayId, stamped.startedAt)?.let { return@withTransaction it.id }
             }
+            if (plan != null) {
+                sessionDao.clearProgressionUndoBefore(plan.id, stamped.startedAt)
+                cardioSessionDao.clearProgressionUndoBefore(plan.id, stamped.startedAt)
+            }
             val id = cardioSessionDao.insert(stamped.copy(id = 0, note = stamped.note.trim().take(NOTE_MAX_LENGTH), increaseApplied = false))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 // A GPS row carries what its track read; an unread reading stays unknown.
@@ -874,7 +883,11 @@ class TrackerRepository(
             }
             if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
-                lightAfterDay(plan, stamped.dayId, reactive = false)
+                lightAfterDay(plan, stamped.dayId, reactive = false)?.let { counters ->
+                    val entry = requireNotNull(cardioSessionDao.byId(id))
+                    val undo = CardioUndoJson.decode(entry.progressionUndoJson) ?: CardioUndoDto()
+                    cardioSessionDao.update(entry.copy(progressionUndoJson = CardioUndoJson.encode(undo.copy(plan = counters))))
+                }
                 advanceRotation(plan, stamped.dayId)
             }
             id
@@ -907,13 +920,26 @@ class TrackerRepository(
 
     /** An Automatic plan's write; Ask writes nothing (decision 6). */
     private suspend fun applyCardio(judgment: CardioJudgment) {
-        if (judgment.automatic && judgment.outcome.change is CardioChange.Increase &&
-            judgment.outcome.block != judgment.stored &&
-            setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)
-        ) {
-            val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
-            cardioSessionDao.update(session.copy(increaseApplied = true))
-        }
+        if (!judgment.automatic || judgment.outcome.change !is CardioChange.Increase || judgment.outcome.block == judgment.stored) return
+        val before = programDao.day(judgment.planId, judgment.dayId)?.cardioWorkingJson
+        if (!setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)) return
+        val after = programDao.day(judgment.planId, judgment.dayId)?.cardioWorkingJson
+        val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
+        val undo = CardioUndoJson.decode(session.progressionUndoJson) ?: CardioUndoDto()
+        cardioSessionDao.update(session.copy(increaseApplied = true, progressionUndoJson = CardioUndoJson.encode(
+            undo.copy(block = CardioBlockUndoDto(if (undo.block != null) undo.block.before else before, after)),
+        )))
+    }
+
+    suspend fun setCardioEffort(sessionId: Long, effort: CardioEffort?) = db.withTransaction {
+        val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction
+        cardioSessionDao.update(session.copy(effort = effort?.name))
+        cardioJudgment(sessionId)?.let { applyCardio(it) }
+    }
+
+    suspend fun clearFinishUndoForDay(planId: Long, dayId: String) = db.withTransaction {
+        sessionDao.clearProgressionUndoForDay(planId, dayId)
+        cardioSessionDao.clearProgressionUndoForDay(planId, dayId)
     }
 
     /** Amends a set's typed distance and judges the session again: an Automatic judgment writes at most once per
@@ -1700,6 +1726,7 @@ class TrackerRepository(
      *  never skips a seed's calibrating flag. */
     private suspend fun beginWorkout(day: ProgramDayEntity, seeds: Map<Pair<Long, String>, SlotSeeding.Seeded>) {
         sessionDao.clearProgressionUndoForDay(day.planId, day.dayId)
+        cardioSessionDao.clearProgressionUndoForDay(day.planId, day.dayId)
         keepSeeds(day, seeds)
     }
 
@@ -1801,8 +1828,7 @@ class TrackerRepository(
     /** Archives a run once, carries forward its working values, and advances its day. */
     suspend fun finishRun(runId: String): Long? = finishRunCapturing(runId)?.sessionId
 
-    /** A finished run's session, tracks, and slot prescriptions; [tracks] is null when an
-     *  earlier finish already archived the run. */
+    /** A finished run's session, captured tracks, and slot prescriptions, including on retry. */
     data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?, val slots: List<ProgramSlot>? = null)
 
     /** [finishRun], also returning the exact tracks the transaction archived, so a caller
@@ -1814,7 +1840,12 @@ class TrackerRepository(
         val hasAnswers = settings.hasLifterAnswersFlow.first()
         val catalog = this.catalog.snapshot()
         return db.withTransaction {
-            sessionDao.sessionByRunId(runId)?.let { return@withTransaction FinishedRun(it.id, null) }
+            sessionDao.sessionByRunId(runId)?.let { session ->
+                val slots = session.planId?.let { programDao.exercisesForDay(it, session.dayId) }.orEmpty()
+                    .map { ProgramSlot(it.id, it.position, it.toDomain()) }
+                val archived = ArchivedRun.of(session, sessionDao.setsForSession(session.id), slots)
+                return@withTransaction FinishedRun(session.id, archived.tracks, archived.slots)
+            }
             val run = runDao.openRun()?.takeIf { it.id == runId && !it.draft } ?: return@withTransaction null
             val tracks = runDao.tracks(runId)
             val now = clock.millis()
@@ -1823,11 +1854,12 @@ class TrackerRepository(
                 .orEmpty().map { ProgramSlot(it.id, it.position, it.toDomain()) }
             val progressed = if (day != null && day.nextRunId == run.id) {
                 progress(day, tracks, config.weightUnit, catalog, now).also {
-                    sessionDao.clearProgressionUndoForPlan(day.planId)
+                    sessionDao.clearProgressionUndoBefore(day.planId, run.startedAt)
+                    cardioSessionDao.clearProgressionUndoBefore(day.planId, run.startedAt)
                 }
             } else null
             val sessionId = archiveRun(run, tracks, config.bodyweightLb.takeIf { hasAnswers }, catalog, now,
-                progressed?.offers.orEmpty(), progressed?.undoJson)
+                progressed?.offers.orEmpty(), progressed?.undoJson, progressed?.reasons.orEmpty())
             if (day != null && day.nextRunId == run.id) {
                 planDao.plan(day.planId)?.let { advanceRotation(it, day.dayId) }
                 programDao.closeDay(day.planId, day.dayId, mintRunId(), now)
@@ -1846,6 +1878,7 @@ class TrackerRepository(
         now: Long,
         offers: Map<Long, OfferDto> = emptyMap(),
         undoJson: String? = null,
+        reasons: Map<Long, String> = emptyMap(),
     ): Long {
         val sessionId = sessionDao.insertSession(WorkoutSessionEntity(
             id = 0, dayId = run.dayId ?: "", dayTitle = run.dayTitle, startedAt = run.startedAt,
@@ -1861,6 +1894,7 @@ class TrackerRepository(
                     offer = offers[track.id],
                     programExerciseId = track.programExerciseId,
                     opening = OpeningJson.decode(track.openingJson),
+                    reason = reasons[track.id], dropped = track.dropped,
                 )
             }),
         ))
@@ -1886,7 +1920,7 @@ class TrackerRepository(
         return slot.note.takeIf { it.isNotBlank() && updatedAt >= startedAt }
     }
 
-    private class Progressed(val offers: Map<Long, OfferDto>, val undoJson: String?)
+    private class Progressed(val offers: Map<Long, OfferDto>, val undoJson: String?, val reasons: Map<Long, String>)
 
     /** Runs inside Finish's transaction. All inputs come from Room or the caller's frozen settings. */
     private suspend fun progress(day: ProgramDayEntity, tracks: List<RunTrackEntity>, unit: WeightUnit,
@@ -1894,6 +1928,7 @@ class TrackerRepository(
         val logs = mutableListOf<UndoLogDto>()
         val rules = mutableListOf<UndoRuleDto>()
         val offers = mutableMapOf<Long, OfferDto>()
+        val reasons = mutableMapOf<Long, String>()
         suspend fun writeLog(slot: ProgramExerciseEntity, name: String, rows: List<LoggedSet>?) {
             val before = programDao.logForSlot(day.planId, day.dayId, slot.id, name)
             if (rows == null) {
@@ -1970,7 +2005,7 @@ class TrackerRepository(
             val automatic = (rule.nextTime ?: if (plan?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
-                val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, roughDay = false, layoff = layoff),
+                val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
                     Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = light))
                 val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
@@ -1981,6 +2016,7 @@ class TrackerRepository(
                 continue
             }
             val (outcome, encodedRule, offer) = prepared
+            reasons[track.id] = ReasonCode.encode(outcome.reason)
             writeLog(slot, track.slot, if (automatic) outcome.rows else WorkingRows.cleared(working))
             writeRule(slot, track.slot, requireNotNull(stored), encodedRule)
             if (outcome.reason == Reason.Stall) stalled = true
@@ -2015,7 +2051,7 @@ class TrackerRepository(
         val planUndo = plan?.let { lightAfterDay(it, day.dayId, reactive) }
         val undo = if (logs.isEmpty() && rules.isEmpty() && planUndo == null) null
             else ProgressionUndoJson.encode(ProgressionUndoDto(logs, rules, planUndo))
-        return Progressed(offers, undo)
+        return Progressed(offers, undo, reasons)
     }
 
     private fun localEpochDay(millis: Long): Long =
@@ -2065,34 +2101,120 @@ class TrackerRepository(
             outcome.rows.map(SetDto::of), SlotRuleJson.encode(rule), SlotRuleJson.encode(outcome.rule))
     }
 
-    /** Restores each row and rule only while it still holds what this Finish wrote.
-     *  Refused while the session's day has a draft or run open (spec W2b-3c-i decision 5). */
-    suspend fun undoProgression(sessionId: Long): Boolean = db.withTransaction {
-        val session = sessionDao.sessionById(sessionId) ?: return@withTransaction false
-        val planId = session.planId ?: return@withTransaction false
-        if (runDao.openRun()?.let { it.planId == planId && it.dayId == session.dayId } == true) return@withTransaction false
-        val undo = ProgressionUndoJson.decode(session.progressionUndoJson) ?: return@withTransaction false
+    suspend fun undoFinish(sessionId: Long?, cardioSessionId: Long?): UndoResult = db.withTransaction {
+        val session = sessionId?.let { sessionDao.sessionById(it) }
+        val cardio = cardioSessionId?.let { cardioSessionDao.byId(it) }
+        val planId = session?.planId ?: cardio?.planId ?: return@withTransaction UndoResult.Nothing
+        val dayId = session?.dayId ?: cardio?.dayId ?: return@withTransaction UndoResult.Nothing
+        if (dayOpen(planId, dayId)) return@withTransaction UndoResult.DayOpen
+        if (session?.roughDay == true) return@withTransaction UndoResult.Nothing
+        val strengthUndo = ProgressionUndoJson.decode(session?.progressionUndoJson)
+        val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
+        if (strengthUndo == null && cardioUndo == null) return@withTransaction UndoResult.Nothing
+        if (strengthUndo != null) {
+            swapStrength(planId, dayId, strengthUndo, reverse = false)
+            strengthUndo.plan?.let { swapCounters(planId, it, reverse = false) }
+            sessionDao.clearProgressionUndo(requireNotNull(session).id)
+        }
+        if (cardioUndo != null && cardio?.planId == planId && cardio.dayId == dayId) {
+            cardioUndo.block?.let { block ->
+                if (programDao.day(planId, dayId)?.cardioWorkingJson == block.after) {
+                    programDao.setCardioWorking(planId, dayId, block.before)
+                }
+            }
+            cardioUndo.plan?.let { swapCounters(planId, it, reverse = false) }
+            cardioSessionDao.update(cardio.copy(progressionUndoJson = null))
+        }
+        UndoResult.Undone
+    }
+
+    private suspend fun dayOpen(planId: Long, dayId: String): Boolean =
+        runDao.openRun()?.let { it.planId == planId && it.dayId == dayId } == true
+
+    private suspend fun swapCounters(planId: Long, counters: UndoPlanDto, reverse: Boolean) {
+        val current = planDao.plan(planId) ?: return
+        val expectedRemaining = if (reverse) counters.beforeRemaining else counters.afterRemaining
+        val expectedCycles = if (reverse) counters.beforeCycles else counters.afterCycles
+        if (current.lightCycleRemaining == expectedRemaining && current.cyclesCompleted == expectedCycles) {
+            planDao.updateLightCycle(planId, if (reverse) counters.afterRemaining else counters.beforeRemaining,
+                if (reverse) counters.afterCycles else counters.beforeCycles)
+        }
+    }
+
+    private suspend fun swapStrength(planId: Long, dayId: String, undo: ProgressionUndoDto, reverse: Boolean,
+                                     excluded: Set<Pair<Long?, String>> = emptySet()) {
         for (log in undo.logs) {
-            val current = programDao.logForSlot(planId, session.dayId, log.programExerciseId, log.slot)
-            if (current?.setsJson != log.afterSetsJson) continue
-            val before = log.before
-            if (before != null) programDao.upsertLog(ExerciseLogEntity(planId, session.dayId, log.programExerciseId,
-                log.slot, before.setsJson, before.updatedAt))
-            else programDao.deleteLogForSlot(planId, session.dayId, log.programExerciseId, log.slot)
+            if (log.programExerciseId to log.slot in excluded) continue
+            val current = programDao.logForSlot(planId, dayId, log.programExerciseId, log.slot)
+            if (current?.setsJson != (if (reverse) log.before?.setsJson else log.afterSetsJson)) continue
+            val target = if (reverse) log.afterSetsJson else log.before?.setsJson
+            if (target != null) programDao.upsertLog(ExerciseLogEntity(planId, dayId, log.programExerciseId,
+                log.slot, target, if (reverse) clock.millis() else log.before!!.updatedAt))
+            else programDao.deleteLogForSlot(planId, dayId, log.programExerciseId, log.slot)
         }
         for (rule in undo.rules) {
-            if (programDao.exercise(rule.programExerciseId)?.ruleJsonFor(rule.slot) == rule.afterJson) {
-                setRuleFor(rule.programExerciseId, rule.slot, rule.beforeJson)
+            if (rule.programExerciseId to rule.slot in excluded) continue
+            if (programDao.exercise(rule.programExerciseId)?.ruleJsonFor(rule.slot) == (if (reverse) rule.beforeJson else rule.afterJson)) {
+                setRuleFor(rule.programExerciseId, rule.slot, if (reverse) rule.afterJson else rule.beforeJson)
             }
         }
-        undo.plan?.let { counters ->
-            val current = planDao.plan(planId)
-            if (current?.lightCycleRemaining == counters.afterRemaining && current.cyclesCompleted == counters.afterCycles) {
-                planDao.updateLightCycle(planId, counters.beforeRemaining, counters.beforeCycles)
+    }
+
+    suspend fun setRoughDay(sessionId: Long, rough: Boolean): UndoResult = db.withTransaction {
+        val session = sessionDao.sessionById(sessionId) ?: return@withTransaction UndoResult.Nothing
+        val planId = session.planId ?: return@withTransaction UndoResult.Nothing
+        if (dayOpen(planId, session.dayId)) return@withTransaction UndoResult.DayOpen
+        val undo = ProgressionUndoJson.decode(session.progressionUndoJson) ?: return@withTransaction UndoResult.Nothing
+        if (session.roughDay == rough) return@withTransaction UndoResult.Nothing
+        val excluded = session.plannedJson?.let(SessionPlanJson::decode).orEmpty().filter {
+            it.opening?.layoff in listOf(OpeningDto.SCALED, OpeningDto.RECALIBRATE)
+        }.map { it.programExerciseId to it.slot }.toSet()
+        swapStrength(planId, session.dayId, undo, reverse = !rough, excluded = excluded)
+        val plan = planDao.plan(planId)
+        var roughLight: UndoPlanDto? = null
+        if (rough && plan?.autoApply == true && plan.lightCycleRemaining == 0) {
+            val previous = sessionDao.allSessions().filter { it.planId == planId && it.id != sessionId &&
+                (it.completedAt < session.completedAt || it.completedAt == session.completedAt && it.id < sessionId) }
+                .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
+            if (previous?.roughDay == true) {
+                val days = programDao.daysForPlan(planId).count { it.kind != ProgramDayKind.REST.name }.coerceAtLeast(1)
+                roughLight = UndoPlanDto(0, plan.cyclesCompleted, days, plan.cyclesCompleted)
+                planDao.updateLightCycle(planId, days, plan.cyclesCompleted)
             }
         }
-        sessionDao.clearProgressionUndo(sessionId)
-        true
+        if (!rough) undo.roughLight?.let { swapCounters(planId, it, reverse = false) }
+        sessionDao.updateProgression(sessionId, ProgressionUndoJson.encode(undo.copy(roughLight = roughLight)), rough)
+        UndoResult.Undone
+    }
+
+    suspend fun sessionByRunId(runId: String): WorkoutSessionEntity? = sessionDao.sessionByRunId(runId)
+
+    suspend fun finishUndoState(sessionId: Long?, cardioSessionId: Long?): FinishUndoState = db.withTransaction {
+        val session = sessionId?.let { sessionDao.sessionById(it) }
+        val cardio = cardioSessionId?.let { cardioSessionDao.byId(it) }
+        val strength = ProgressionUndoJson.decode(session?.progressionUndoJson)
+        val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
+        suspend fun countersMatch(planId: Long?, undo: UndoPlanDto?): Boolean {
+            if (undo == null || planId == null || undo.beforeRemaining == undo.afterRemaining && undo.beforeCycles == undo.afterCycles) return false
+            val plan = planDao.plan(planId) ?: return false
+            return plan.lightCycleRemaining == undo.afterRemaining && plan.cyclesCompleted == undo.afterCycles
+        }
+        val logs = if (session?.planId != null) strength?.logs.orEmpty().any { log ->
+            log.before?.setsJson != log.afterSetsJson &&
+                programDao.logForSlot(session.planId, session.dayId, log.programExerciseId, log.slot)?.setsJson == log.afterSetsJson
+        } else false
+        val ruleChanges = strength?.rules.orEmpty().any { record ->
+            val before = SlotRuleJson.decode(record.beforeJson)
+            val after = SlotRuleJson.decode(record.afterJson)
+            before != null && after != null && (before.target != after.target || before.state.calibrating != after.state.calibrating) &&
+                programDao.exercise(record.programExerciseId)?.ruleJsonFor(record.slot) == record.afterJson
+        }
+        val block = cardioUndo?.block
+        val cardioMatches = block != null && block.before != block.after && cardio?.planId != null && cardio.dayId != null &&
+            programDao.day(cardio.planId, cardio.dayId)?.cardioWorkingJson == block.after
+        FinishUndoState(session?.roughDay == true, strength != null,
+            logs || ruleChanges || cardioMatches || countersMatch(session?.planId, strength?.plan) || countersMatch(cardio?.planId, cardioUndo?.plan),
+            strength?.plan, strength?.roughLight, cardioUndo?.plan)
     }
 
     /** Unticks the open workout's rows, including retired tracks, without changing their values. */

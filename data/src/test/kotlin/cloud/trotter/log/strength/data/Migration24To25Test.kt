@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_27_28
 import cloud.trotter.log.strength.data.db.MIGRATION_28_29
 import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
+import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -40,7 +41,7 @@ class Migration24To25Test {
         var written: Map<String, List<List<String?>>>? = null
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 if (reopen == 0) {
@@ -73,7 +74,7 @@ class Migration24To25Test {
         val before = V24Fixture.dump(helper.writableDatabase)
         helper.close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32).allowMainThreadQueries().build()
         try {
             val after = V24Fixture.dump(db.openHelper.writableDatabase)
             before.forEach { (table, rows) ->
@@ -101,7 +102,7 @@ class Migration24To25Test {
 internal object V24Fixture {
     val defaults = mapOf(
         "program_exercise" to listOf<String?>(null, null), "program_day" to listOf(null), "run_track" to listOf(null),
-        "workout_run" to listOf("0"), "session_set" to listOf(null), "cardio_session" to listOf(null, "0"),
+        "workout_run" to listOf("0"), "session_set" to listOf(null), "cardio_session" to listOf(null, "0", null),
         "cardio_set_result" to List<String?>(6) { null },
         "plan" to listOf(null, "0", "0", null, "0"), "workout_session" to listOf("0", null),
     )

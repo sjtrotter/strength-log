@@ -97,11 +97,13 @@ class BackupV27Test {
 
     @Test fun `Undo is never exported`() {
         val snapshot = document().toSnapshot()
-        val withUndo = snapshot.copy(sessions = snapshot.sessions.map { it.copy(progressionUndoJson = "x") })
+        val withUndo = snapshot.copy(sessions = snapshot.sessions.map { it.copy(progressionUndoJson = "x") },
+            cardioSessions = snapshot.cardioSessions.map { it.copy(progressionUndoJson = "cardio journal") })
         val json = codec.encode(withUndo.toDocument())
         assertFalse("progressionUndoJson" in json)
         val restored = codec.decode(json).toSnapshot()
         assertNull(restored.sessions.single().progressionUndoJson)
+        assertNull(restored.cardioSessions.single().progressionUndoJson)
         assertEquals(snapshot, restored)
     }
 

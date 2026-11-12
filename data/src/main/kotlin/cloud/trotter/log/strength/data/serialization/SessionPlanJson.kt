@@ -17,6 +17,8 @@ data class PlannedTrackDto(
     val offer: OfferDto? = null,
     val programExerciseId: Long? = null,
     val opening: OpeningDto? = null,
+    val reason: String? = null,
+    val dropped: Boolean = false,
 )
 
 /** The change Finish recorded. Proposed rows and targets travel together for Ask acceptance. */

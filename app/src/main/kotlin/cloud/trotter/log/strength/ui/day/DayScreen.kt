@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptMutation
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptProgressState
+import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import androidx.compose.foundation.background
@@ -54,8 +57,6 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
-import cloud.trotter.log.strength.ui.day.receipt.ReceiptRepNextTimes
-import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
@@ -82,8 +83,14 @@ fun DayScreen(
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
-    receiptNextTimes: ReceiptNextTimes? = null,
-    receiptRepNextTimes: ReceiptRepNextTimes? = null,
+    receiptProgress: ReceiptProgressState = ReceiptProgressState(),
+    receiptMutation: ReceiptMutation? = null,
+    onReceiptMutationHandled: () -> Unit = {},
+    onUndoChanges: () -> Unit = {},
+    onRoughDay: (Boolean) -> Unit = {},
+    onCardioEffort: (CardioEffort?) -> Unit = {},
+    pastCardioEffort: CardioEffort? = null,
+    onPastCardioEffort: (CardioEffort?) -> Unit = {},
     pastCardio: CardioEntryDraft? = null,
     pastCardioSaveFailed: Boolean = false,
     pastCardioSaving: Boolean = false,
@@ -96,8 +103,9 @@ fun DayScreen(
         SessionReceiptScreen(
             receipt = receipt,
             setCounts = receiptSetCounts,
-            nextTimes = receiptNextTimes,
-            repNextTimes = receiptRepNextTimes,
+            progress = receiptProgress, mutation = receiptMutation,
+            onMutationHandled = onReceiptMutationHandled, onUndo = onUndoChanges,
+            onRoughDay = onRoughDay, onCardioEffort = onCardioEffort,
             onShare = onShareSession,
             onFinishSession = onFinishSession,
             onSetNote = actions.onSetSessionNote,
@@ -369,7 +377,8 @@ fun DayScreen(
     pastCardio?.let {
         CardioEntrySheet(it, stringResource(R.string.cardio_log_past), nowMillis,
             actions.onPastCardioChange, actions.onSavePastCardio, actions.onDismissPastCardio,
-            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving, collision = pastCardioCollision)
+            saveFailed = pastCardioSaveFailed, saving = pastCardioSaving, collision = pastCardioCollision,
+            effort = pastCardioEffort, onEffort = onPastCardioEffort)
     }
 
     if (showEditSheet) {

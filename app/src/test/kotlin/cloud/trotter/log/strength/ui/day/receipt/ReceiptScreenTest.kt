@@ -104,10 +104,10 @@ class ReceiptScreenTest {
             ReceiptNextTime(0, 0, 220.0, 215.0), ReceiptNextTime(0, 1, null, 215.0),
         )))
 
-        rule.onNodeWithText("Next time: +5 lb", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("Next time: Repeat", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithContentDescription("Bench. 215 pounds: 5, 5 and 5 reps. Next time, add 5 pounds.").assertExists()
-        rule.onNodeWithContentDescription("Row. 215 pounds: 5, 5 and 4 reps. Next time, repeat.").assertExists()
+        rule.onNodeWithText("Next time: 220 lb (+5)", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Next time: 215 lb", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Bench. 215 pounds: 5, 5 and 5 reps. Next time, 220 pounds, up 5 pounds.").assertExists()
+        rule.onNodeWithContentDescription("Row. 215 pounds: 5, 5 and 4 reps. Next time, 215 pounds.").assertExists()
     }
 
     @Test
@@ -763,6 +763,42 @@ class ReceiptScreenTest {
             abs(headline.left - (root.width - back.right)) <= 2f)
     }
 
+    @Test fun `receipt Undo and Why share one block and Rough day disables after Undo`() {
+        val receipt = receiptFixture().copy(groups = receiptFixture().groups.take(1), cardioRows = emptyList(), activity = null)
+        val line = ReceiptLiftLine(190.0, null, null, 5.0, false, "ALL_MADE", 1, true)
+        val initial = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"), "Bench Press", line)),
+            undoVisible = true, roughEnabled = true)
+        val state = mutableStateOf(initial)
+        rule.setContent {
+            AppTheme {
+                SessionReceiptScreen(receipt, {}, {}, progress = state.value,
+                    onUndo = { state.value = initial.copy(undoVisible = false, roughEnabled = false,
+                        lifts = initial.lifts.map { it.copy(line = it.line.copy(offered = true)) }) })
+            }
+        }
+        rule.onNodeWithText("Undo changes").performScrollTo().performClick()
+        rule.onNodeWithText("Undo changes").assertDoesNotExist()
+        rule.onNodeWithText("Next time: 190 lb offered (+5)", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Rough day").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText("Why").performScrollTo().performClick()
+        rule.onNodeWithText("Bench Press 190 lb offered (+5): all sets made.").assertExists()
+    }
+
+    @Test fun `cardio How was it has three choices and a second tap clears Good`() {
+        val selected = mutableStateOf<cloud.trotter.log.strength.domain.progression.CardioEffort?>(null)
+        rule.setContent {
+            AppTheme {
+                cloud.trotter.log.strength.ui.day.CardioEffortRow(selected.value, { selected.value = it }, "receipt-cardio-effort")
+            }
+        }
+        rule.onNodeWithText("How was it?").assertExists()
+        rule.onNodeWithTag("receipt-cardio-effort-GOOD").performClick()
+        rule.runOnIdle { assertEquals(cloud.trotter.log.strength.domain.progression.CardioEffort.GOOD, selected.value) }
+        rule.onNodeWithTag("receipt-cardio-effort-GOOD").performClick()
+        rule.runOnIdle { assertNull(selected.value) }
+        rule.onNodeWithText("Max").assertDoesNotExist()
+    }
+
     private fun setReceipt(
         receipt: WorkoutReceipt = receiptFixture(),
         onShare: () -> Unit = {},
@@ -774,7 +810,12 @@ class ReceiptScreenTest {
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
             CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) {
-                AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts, nextTimes = nextTimes) }
+                AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts,
+                    progress = ReceiptProgressState(lifts = nextTimes?.takeIf { it.sessionId == receipt.sessionId }?.rows.orEmpty().map { next ->
+                        ReceiptLiftProgress(ReceiptSlotRef(next.groupIndex, next.rowIndex, 1, "main"), "",
+                            ReceiptLiftLine(next.offerLb ?: next.openingLb, null, null,
+                                next.offerLb?.let { it - next.openingLb }, false, "ALL_MADE", 1, next.offerLb != null))
+                    })) }
             }
         }
     }
@@ -800,8 +841,8 @@ class ReceiptScreenTest {
             0, PlannedSets(3, 185.0, 5, 0), null)
         val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(3, listOf(bench))))
         setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 175.0, 185.0))))
-        rule.onNodeWithText("Next time: −10 lb", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithContentDescription("Bench. 185 pounds: 5, 5 and 5 reps. Next time, lower by 10 pounds.").assertExists()
+        rule.onNodeWithText("Next time: 175 lb (−10)", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Bench. 185 pounds: 5, 5 and 5 reps. Next time, 175 pounds, down 10 pounds.").assertExists()
     }
 
 }

@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_27_28
 import cloud.trotter.log.strength.data.db.MIGRATION_28_29
 import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
+import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -39,7 +40,7 @@ class Migration25To26Test {
         createV25().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32).allowMainThreadQueries().build()
             try {
                 val expected = RunTrackEntity(11, "open-run", 0, 7, "main", "bb_back_squat", false,
                     "[]", "[]", 3000, note = "Belt", openingJson = if (reopen == 0) null else opening)

@@ -201,11 +201,11 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(work(3, 130.0, 10), ssRows(plan, b))
         assertTrue("\"slot\":\"ss\"" in db.sessionDao().sessionById(session)!!.progressionUndoJson!!)
         restart()
-        assertTrue(repo.undoProgression(session))
+        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(before, db.programDao().exercise(b))
         assertEquals(main, log(plan, b))
         assertEquals(ss, db.programDao().logForSlot(plan, "A", b, Slot.SS))
-        assertFalse(repo.undoProgression(session))
+        assertEquals(UndoResult.Nothing, repo.undoFinish(session, null))
     }
 
     @Test fun `a superset opens both tracks light with equal row counts`() = runTest {
@@ -354,7 +354,7 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(work(squat().size, 120.0, 8), SetJson.decodeSets(seeded.setsJson))
         assertEquals(after.partnerRuleJson, db.programDao().exercise(s)!!.partnerRuleJson)
         assertEquals(after.ruleJson, db.programDao().exercise(s)!!.ruleJson)
-        assertTrue(repo.undoProgression(session))
+        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(before.partnerRuleJson, db.programDao().exercise(s)!!.partnerRuleJson)
         assertEquals(before.ruleJson, db.programDao().exercise(s)!!.ruleJson)
         assertEquals(seeded, db.programDao().logForSlot(plan, "A", s, Slot.SS))
@@ -391,7 +391,7 @@ class PartnerRuleTest : OpeningFixture() {
         ), rows(plan, b))
         val seededRule = db.programDao().exercise(b)!!.ruleJson
         val seeded = log(plan, b)
-        assertTrue(repo.undoProgression(session))
+        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
         assertEquals(seededRule, db.programDao().exercise(b)!!.ruleJson)
         assertEquals(seeded, log(plan, b))
     }

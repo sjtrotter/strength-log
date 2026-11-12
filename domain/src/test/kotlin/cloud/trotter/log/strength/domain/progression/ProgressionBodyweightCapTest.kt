@@ -12,7 +12,7 @@ class ProgressionBodyweightCapTest {
             val rows = List(3) { LoggedSet(0.0, target.reps, SetKind.WORK) }
             val rule = SlotRule(SlotRole.ACCESSORY, target, 2, 0.0125, 1, scheme = Scheme.STRENGTH)
             val outcome = Progression.afterSession(rule, rows, Progression.Exposure(rows,
-                rows.mapIndexed { index, row -> row.copy(done = true, plannedIndex = index) }, 130, false),
+                rows.mapIndexed { index, row -> row.copy(done = true, plannedIndex = index) }, 130),
                 Progression.Context(WeightUnit.LB, emptySet(), LoadSteps.defaults(WeightUnit.LB), 130))
             assertEquals(Reason.AddWeight, outcome.reason)
             assertEquals(Change.Hold, outcome.change)

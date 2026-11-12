@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.progression.CardioEffort
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -170,6 +171,7 @@ class DayViewModel @Inject constructor(
     private val swapUndo = savedState.getStateFlow<WorkoutSwapUndo?>(KEY_SWAP_UNDO, null)
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     val pastCardio: StateFlow<CardioEntryDraft?> = savedState.getStateFlow<CardioEntryDraft?>(KEY_PAST_CARDIO, null)
+    val pastCardioEffort = savedState.getStateFlow<CardioEffort?>(KEY_PAST_CARDIO_EFFORT, null)
     private val pastCardioDay = savedState.getStateFlow<DaySelection?>(KEY_PAST_CARDIO_DAY, null)
     private val _pastCardioSaveFailed = MutableStateFlow(false)
     val pastCardioSaveFailed: StateFlow<Boolean> = _pastCardioSaveFailed.asStateFlow()
@@ -610,9 +612,6 @@ class DayViewModel @Inject constructor(
                 closeSheet()
             },
             executionActive = { executionActive },
-            loggedCardio = { planId, dayId ->
-                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis())
-            },
         )
 
         viewModelScope.launch {
@@ -744,6 +743,7 @@ class DayViewModel @Inject constructor(
         val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
+        repo.clearFinishUndoForDay(plan.id, dayId)
         return CardioRun(plan.id, plan.name, dayId, Program.accentIndex(dayId),
             CardioBlockJson.encode(block), CardioBlockJson.encode(opening),
             day.exercises.isEmpty(), next?.let { GlanceLines.dayLine(it.id, it.title) })
@@ -1129,9 +1129,14 @@ class DayViewModel @Inject constructor(
         } else 1800
         val startedAt = Math.floorDiv(cardioClock.wallMillis() - seconds * 1_000L, 60_000L) * 60_000L
         savedState[KEY_PAST_CARDIO_DAY] = DaySelection(planId, dayId)
+        savedState[KEY_PAST_CARDIO_EFFORT] = null
         savedState[KEY_PAST_CARDIO] = CardioEntryDraft(block.activity, startedAt, seconds)
         _pastCardioSaveFailed.value = false
         _pastCardioCollision.value = false
+    }
+
+    fun setPastCardioEffort(effort: CardioEffort?) {
+        if (pastCardio.value != null && !_pastCardioSaving.value) savedState[KEY_PAST_CARDIO_EFFORT] = effort
     }
 
     fun changePastCardio(draft: CardioEntryDraft) {
@@ -1145,6 +1150,7 @@ class DayViewModel @Inject constructor(
         if (_pastCardioSaving.value) return
         savedState[KEY_PAST_CARDIO] = null
         savedState[KEY_PAST_CARDIO_DAY] = null
+        savedState[KEY_PAST_CARDIO_EFFORT] = null
         _pastCardioSaveFailed.value = false
         _pastCardioCollision.value = false
     }
@@ -1170,20 +1176,24 @@ class DayViewModel @Inject constructor(
                         dayId = dayId, mode = summary.mode.name, hard = false, label = summary.label,
                         startedAt = draft.startedAt, completedAt = draft.completedAt, seconds = draft.seconds,
                         stepsCompleted = 1, planId = planId, activity = draft.activity.name, note = draft.note,
+                        effort = pastCardioEffort.value?.name,
                     )
                     val id = repo.logCardioSession(entry, results, finishDay = finishDay)
                     val session = requireNotNull(historyRepository.cardioSession(id))
                     // Retry identity omits the plan and contents; only matching work acknowledges this draft.
                     val expected = entry.copy(id = id, planName = session.planName,
                         note = entry.note.trim().take(NOTE_MAX_LENGTH))
-                    if (session != expected || historyRepository.cardioSetsFor(id) != results) {
+                    if (session.copy(progressionUndoJson = null, increaseApplied = false) != expected || historyRepository.cardioSetsFor(id) != results) {
                         _pastCardioSaveFailed.value = true
                         _pastCardioCollision.value = true
                         return@withLock
                     }
-                    if (finishDay) savedState[KEY_PAST_CARDIO_RECEIPT_ID] = id
+                    if (repo.openRunFlow.first()?.let { it.planId == planId && it.dayId == dayId && !it.draft } != true) {
+                        savedState[KEY_PAST_CARDIO_RECEIPT_ID] = id
+                    }
                     savedState[KEY_PAST_CARDIO] = null
                     savedState[KEY_PAST_CARDIO_DAY] = null
+                    savedState[KEY_PAST_CARDIO_EFFORT] = null
                     _pastCardioSaveFailed.value = false
                     viewModelScope.launch { sessionPublisher.publishCardio(id) }
                 }
@@ -1330,7 +1340,8 @@ class DayViewModel @Inject constructor(
     private suspend fun finishCardioReceipt(run: CardioRun) {
         clearGpsStamps(run.runId)
         clearDistanceInputs(run.runId)
-        if (!run.finishesDay || !run.showReceipt) {
+        val strengthOpen = repo.openRunFlow.first()?.let { it.planId == run.planId && it.dayId == run.dayId && !it.draft } == true
+        if (strengthOpen || !run.showReceipt) {
             clearCardioRecordState(run)
             return
         }
@@ -2692,6 +2703,7 @@ class DayViewModel @Inject constructor(
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
+        const val KEY_PAST_CARDIO_EFFORT = "day_past_cardio_effort"
         const val KEY_PAST_CARDIO = "day_past_cardio_draft"
         const val KEY_PAST_CARDIO_DAY = "day_past_cardio_day"
         const val KEY_PAST_CARDIO_RECEIPT_ID = "day_past_cardio_receipt_id"

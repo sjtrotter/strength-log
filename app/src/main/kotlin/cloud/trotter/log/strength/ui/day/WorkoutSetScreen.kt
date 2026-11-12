@@ -1079,16 +1079,17 @@ private fun workoutValue(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String) {
+internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String,
+                       entries: List<Effort> = Effort.entries, label: String = stringResource(R.string.effort)) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.effort), style = MaterialTheme.typography.labelLarge)
+        Text(label, style = MaterialTheme.typography.labelLarge)
         SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
-            Effort.entries.forEachIndexed { index, effort ->
+            entries.forEachIndexed { index, effort ->
                 SegmentedButton(
                     selected = effort == selected,
                     onClick = { onPick(if (effort == selected) null else effort) },
-                    shape = SegmentedButtonDefaults.itemShape(index, 4),
+                    shape = SegmentedButtonDefaults.itemShape(index, entries.size),
                     label = { EffortText(effort) },
                     modifier = Modifier.testTag("$tagPrefix-${effort.name}"),
                 )

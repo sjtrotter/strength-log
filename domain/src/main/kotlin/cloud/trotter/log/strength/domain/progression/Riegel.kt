@@ -10,12 +10,13 @@ object Riegel {
     const val MARATHON_MARGIN = 1.05
 
     fun seconds(fromMetres: Double, fromSeconds: Double, toMetres: Double): Int =
-        Math.round(predicted(fromMetres, fromSeconds, toMetres)).toInt()
+        Math.round(predictedSeconds(fromMetres, fromSeconds, toMetres)).toInt()
 
     /** The Plan screen's goal check: [seconds], × [MARATHON_MARGIN] when [toMetres] is a marathon or longer. */
     fun goalCheckSeconds(fromMetres: Double, fromSeconds: Double, toMetres: Double): Int =
-        Math.round(predicted(fromMetres, fromSeconds, toMetres) * if (toMetres >= MARATHON_METRES) MARATHON_MARGIN else 1.0).toInt()
+        Math.round(predictedSeconds(fromMetres, fromSeconds, toMetres) * if (toMetres >= MARATHON_METRES) MARATHON_MARGIN else 1.0).toInt()
 
-    private fun predicted(fromMetres: Double, fromSeconds: Double, toMetres: Double): Double =
+    /** Unrounded; callers round once. */
+    fun predictedSeconds(fromMetres: Double, fromSeconds: Double, toMetres: Double): Double =
         fromSeconds * (toMetres / fromMetres).pow(EXPONENT)
 }

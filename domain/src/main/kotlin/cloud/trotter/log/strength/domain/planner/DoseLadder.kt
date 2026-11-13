@@ -12,8 +12,12 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 
 private val shortScheme = Scheme(listOf(Scheme.Ramp(0.80, 3)), backoffs = 0, backoffPct = 0.0, backoffReps = 0)
 
-internal fun fitDay(day: ProgramDay, answers: SetupAnswers): Pair<ProgramDay, List<PlanReason>> {
-    val budget = answers.minutes * 60
+internal fun fitDay(
+    day: ProgramDay,
+    answers: SetupAnswers,
+    budgetSeconds: Int = answers.minutes * 60,
+): Pair<ProgramDay, List<PlanReason>> {
+    val budget = budgetSeconds
     if (SessionBudget.seconds(day, answers.goal) <= budget) return day to emptyList()
     var current = day
     for (step in 1..6) {

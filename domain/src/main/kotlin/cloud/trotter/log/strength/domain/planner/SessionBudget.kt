@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -13,7 +15,8 @@ import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 
 /** Design §3.1 invariant 1: "5 min warm-up, then per set 45 s plus its rest; a superset counts once".
- *  The rest is the timer's own resolver with no user overrides, so the estimate and the timer agree. */
+ *  A cardio block counts its planned time. The rest is the timer's own resolver with no user overrides, so the
+ *  estimate and the timer agree. */
 object SessionBudget {
     const val WARM_UP_SECONDS = 300
     const val SET_SECONDS = 45
@@ -25,7 +28,7 @@ object SessionBudget {
             setKinds(slot).sumOf { kind ->
                 SET_SECONDS + RestPolicy.effectiveRestSeconds(kind, tracking, emptyMap(), slot.rule, goal)
             }
-        }
+        } + (day.cardioBlock?.let(::plannedSeconds) ?: 0)
     }
 }
 
@@ -35,3 +38,14 @@ internal fun setKinds(slot: ProgramExercise): List<SetKind> {
     return List(scheme.ramps.size) { SetKind.RAMP } + SetKind.TOP +
         if (slot.structure == SetStructure.RAMP_TOP_BACKOFF) List(scheme.backoffs) { SetKind.BACKOFF } else emptyList()
 }
+
+/** 6:00 per km, practice; only for a distance set with no time aim. */
+private const val ESTIMATE_SECONDS_PER_METRE = 0.36
+
+internal fun plannedSeconds(block: CardioBlock): Int = Math.round(block.sets.sumOf { set ->
+    when (val end = set.end) {
+        is Measure.Time -> end.seconds.toDouble()
+        is Measure.Distance -> (set.aim as? Measure.Time)?.seconds?.toDouble()
+            ?: end.metres * ESTIMATE_SECONDS_PER_METRE
+    }
+}).toInt()

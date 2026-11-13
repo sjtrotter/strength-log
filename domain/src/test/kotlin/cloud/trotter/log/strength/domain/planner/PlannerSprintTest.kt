@@ -94,8 +94,10 @@ class PlannerSprintTest {
 
     @Test fun `the other events keep the table`() {
         for (event in SprintEvent.entries) for (days in 2..4) {
-            val reference = Planner.plan(sprint(days = days))
-            val draft = Planner.plan(sprint(event, days))
+            val reference = Planner.plan(sprint(days = days, minutes = 75))
+            val draft = Planner.plan(sprint(event, days, minutes = 75))
+            assertTrue(draft.reasons.isEmpty(), "$event $days reasons")
+            assertTrue(seconds(draft).all { it <= 4500 }, "$event $days budget")
             assertEquals(reference.program.days.map { it.kind }, draft.program.days.map { it.kind }, "$event $days kinds")
             assertEquals(reference.program.days.map { it.exercises.map { slot -> slot.exerciseId } },
                 draft.program.days.map { it.exercises.map { slot -> slot.exerciseId } }, "$event $days lifts")
@@ -113,6 +115,26 @@ class PlannerSprintTest {
             }
         }
         assertEquals(37, SprintEvent.YD40.metres)
+    }
+
+    @Test fun `200 and 400 m at two days fit sixty minutes at ladder step three`() {
+        for (event in listOf(SprintEvent.M200, SprintEvent.M400)) {
+            val reference = Planner.plan(sprint(event, days = 2, minutes = 75))
+            val draft = Planner.plan(sprint(event, days = 2, minutes = 60))
+            assertTrue(reference.reasons.isEmpty(), "$event reference reasons")
+            assertEquals(listOf(2996, 0, 3903), seconds(reference), "$event reference seconds")
+            assertEquals(listOf(PlanReason.ShortSession("C", 3)), draft.reasons, "$event reasons")
+            assertEquals(listOf(2996, 0, 3018), seconds(draft), "$event seconds")
+            for (id in listOf("A", "B")) {
+                assertEquals(day(reference, id), day(draft, id), "$event $id unchanged")
+            }
+            assertEquals(listOf("bb_bench", "ohp", "bb_row"), ids(draft, "C"), "$event C lifts")
+            assertEquals(List(3) { SlotRole.MAIN }, roles(draft, "C"), "$event C roles")
+            assertEquals(listOf(2, 2, 2), day(draft, "C").exercises.map { it.targetSets }, "$event C sets")
+            assertEquals(day(reference, "C").cardioBlock, day(draft, "C").cardioBlock, "$event C block")
+            assertEquals(day(reference, "C").cardioRule, day(draft, "C").cardioRule, "$event C rule")
+            assertEquals(reference.sessions, draft.sessions, "$event sessions")
+        }
     }
 
     @Test fun `five and six days append tempo then upper lifts`() {

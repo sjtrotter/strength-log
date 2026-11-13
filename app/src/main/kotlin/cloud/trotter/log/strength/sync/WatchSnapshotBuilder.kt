@@ -149,12 +149,17 @@ object WatchSnapshotBuilder {
         val tracking = slot.main.tracking
         val target = slot.main.goal
         val prescribedTarget = performed.prescription?.target
-        val workingLoad = (slot.main.opening ?: slot.main.baseRows)?.let(WorkingRows::workingWeight)
+        val workingRow = (slot.main.opening ?: slot.main.baseRows)?.let { rows ->
+            WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] }
+        }
         val labelPrescription = performed.prescription?.let { prescription ->
             prescription.copy(target = when (val authored = prescription.target) {
-                is PrescribedTarget.LoadReps -> workingLoad?.let { authored.copy(lb = it) } ?: authored
-                is PrescribedTarget.Hold -> workingLoad?.let { authored.copy(addedLb = it) } ?: authored
-                else -> authored
+                is PrescribedTarget.LoadReps -> workingRow?.let {
+                    authored.copy(lb = it.weightLb.takeIf { load -> load > 0.0 } ?: authored.lb, reps = it.reps)
+                } ?: authored
+                is PrescribedTarget.Reps -> workingRow?.let { authored.copy(reps = it.reps) } ?: authored
+                is PrescribedTarget.Hold -> workingRow?.let { authored.copy(seconds = it.seconds, addedLb = it.weightLb) } ?: authored
+                is PrescribedTarget.RepsInTime -> authored
             })
         }
         val header = DayScreenBuilder.headerTarget(pe.copy(prescription = labelPrescription), target ?: GoalTarget.Weight(0.0, false), unit)

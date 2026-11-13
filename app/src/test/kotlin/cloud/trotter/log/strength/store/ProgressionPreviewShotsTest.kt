@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.ui.log.SessionListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -34,6 +35,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -82,7 +84,9 @@ import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupUiState
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import java.io.File
 import java.util.Locale
 import java.util.TimeZone
@@ -257,7 +261,11 @@ class ProgressionPreviewShotsTest {
             SessionReceiptScreen(receiptFixture().copy(groups = rows.map { ReceiptGroup(null, listOf(it)) }), {}, {},
                 progress = progress, mutation = ReceiptMutation.Undone.takeIf { undone })
         }
-        if (why) rule.onNodeWithText("Why").performClick()
+        if (why) {
+            rule.onNodeWithText("Why").performScrollTo().performClick()
+            rule.waitForIdle()
+            rule.onNodeWithText("Bench Press 190 lb next time (+5): all sets made.").assertIsDisplayed()
+        }
         capture(name, sheet = why)
     }
 
@@ -303,6 +311,7 @@ class ProgressionPreviewShotsTest {
         rule.waitForIdle()
     }
 
+    @OptIn(ExperimentalRoborazziApi::class)
     private fun capture(name: String, sheet: Boolean = false) {
         rule.mainClock.advanceTimeBy(1_000)
         rule.waitForIdle()
@@ -314,7 +323,7 @@ class ProgressionPreviewShotsTest {
         if (System.getProperty("roborazzi.test.record") == "true") {
             val file = File(System.getProperty("previewShots.dir", "app/build/outputs/preview"), name)
             file.parentFile.mkdirs()
-            root.captureRoboImage(file)
+            if (sheet) captureScreenRoboImage(file.absolutePath) else root.captureRoboImage(file)
         }
     }
 }

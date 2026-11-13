@@ -201,7 +201,9 @@ internal fun SessionReceiptScreen(
             }
         }
         if (receipt.cardioRows.isNotEmpty() && progress.cardioSessionId != null) {
-            CardioEffortRow(progress.cardioEffort, onCardioEffort, "receipt-cardio-effort")
+            Box(Modifier.padding(horizontal = 16.dp)) {
+                CardioEffortRow(progress.cardioEffort, onCardioEffort, "receipt-cardio-effort")
+            }
             val spokenNext = spokenCardioNextLine(progress).orEmpty()
             cardioNextLine(progress)?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

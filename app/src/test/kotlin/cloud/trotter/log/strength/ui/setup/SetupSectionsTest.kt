@@ -251,6 +251,21 @@ class SetupSectionsTest {
         composeTestRule.onNodeWithText("Outdoor runs, walks and rides").assertExists()
     }
 
+    @Test fun unavailableLocationOmitsGpsDistanceAndSaveRouteRows() {
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(gpsDistance = true, saveRoute = true, gpsAccess = LocationAccess.UNAVAILABLE), setupActions())
+        } }
+        val list = composeTestRule.onNode(hasScrollAction())
+        while (true) {
+            composeTestRule.onNodeWithText("GPS distance").assertDoesNotExist()
+            composeTestRule.onNodeWithText("Save route").assertDoesNotExist()
+            val node = list.fetchSemanticsNode()
+            val scroll = node.config[SemanticsProperties.VerticalScrollAxisRange]
+            if (scroll.value() >= scroll.maxValue()) break
+            list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
+        }
+    }
+
     @Test fun approximateLocationShowsThePreciseRequirement() {
         composeTestRule.setContent { AppTheme {
             SetupScreen(SetupUiState(gpsDistance = false, gpsAccess = LocationAccess.APPROXIMATE), setupActions())

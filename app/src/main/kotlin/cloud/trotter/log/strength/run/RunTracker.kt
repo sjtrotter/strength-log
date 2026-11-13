@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class LocationAccess { PRECISE, APPROXIMATE, DENIED, LOCATION_OFF }
+enum class LocationAccess { PRECISE, APPROXIMATE, DENIED, LOCATION_OFF, UNAVAILABLE }
 enum class LocationAnswer {
     PRECISE, APPROXIMATE, DENIED, BLOCKED;
     companion object {
@@ -139,7 +139,7 @@ class RunTracker @Inject constructor(
                 } else if (currentRun != null) begin(currentRun, currentActivity, startedAtWall)
                 else warmUp(currentActivity)
             }
-            else -> Unit
+            LocationAccess.APPROXIMATE, LocationAccess.DENIED, LocationAccess.UNAVAILABLE -> Unit
         }
     }
 
@@ -171,6 +171,8 @@ class RunTracker @Inject constructor(
 
     override fun begin(runId: String, activity: CardioActivity, startedAtWall: Long) {
         if (!activity.usesGps) return
+        val access = access()
+        if (access == LocationAccess.UNAVAILABLE) return
         if (runId != routeRunId) {
             points.clear()
             routeRunId = null
@@ -181,7 +183,7 @@ class RunTracker @Inject constructor(
         this.runId = runId
         this.activity = activity
         this.startedAtWall = startedAtWall
-        when (access()) {
+        when (access) {
             LocationAccess.PRECISE -> {
                 if (track == null) track = DistanceTrack.forActivity(activity)
                 if (startRunId != runId) {

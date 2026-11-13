@@ -183,7 +183,9 @@ class DayViewModel @Inject constructor(
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val gpsSets = savedState.getStateFlow<ArrayList<CardioGpsSet>>(KEY_CARDIO_GPS_SETS, arrayListOf())
     private val gpsAsk = savedState.getStateFlow<String?>(KEY_GPS_ASK, null)
-    private val gpsEnabled = settings.gpsDistanceFlow.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    private val gpsEnabled = settings.gpsDistanceFlow.map { enabled ->
+        enabled && gps.access() != LocationAccess.UNAVAILABLE
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val saveRoute = settings.saveRouteFlow.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val mutableGpsNotice = MutableStateFlow<GpsNotice?>(null)
     val gpsNotice: StateFlow<GpsNotice?> = mutableGpsNotice.asStateFlow()
@@ -785,6 +787,7 @@ class DayViewModel @Inject constructor(
     private fun beginCardioGps(run: CardioRun) {
         if (!run.block.activity.usesGps || !gpsEnabled.value || !cardioScreenLive) return
         val access = gps.access()
+        if (access == LocationAccess.UNAVAILABLE) return
         if (access != LocationAccess.PRECISE && access != LocationAccess.LOCATION_OFF && gpsAsk.value == null) {
             savedState[KEY_GPS_ASK] = run.runId
         }

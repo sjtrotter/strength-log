@@ -255,6 +255,26 @@ class DayViewModelGpsTest {
         assertEquals(0, foreground.starts)
     }
 
+    @Test fun `unavailable GPS leaves the enabled setting stored and uses typed distance without asking`() = test {
+        source.access = LocationAccess.UNAVAILABLE
+        prepareBlock(time(1800))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        assertTrue(settings.gpsDistanceFlow.first())
+        assertEquals(0, source.fixes.subscriptionCount.value)
+        assertNull(vm.uiState.value.cardio?.gps)
+        begin(vm, false)
+        assertEquals(0, foreground.starts)
+        assertEquals(0, source.fixes.subscriptionCount.value)
+        assertNull(handle.get<String>("day_gps_ask"))
+        assertFalse(vm.uiState.value.cardio!!.gpsAsk)
+        tick(200_000)
+        vm.stopCardio(vm.run().action())
+        runCurrent()
+        assertTrue(vm.uiState.value.cardio!!.distanceRuns.single().drafts.isNotEmpty())
+        assertTrue(settings.gpsDistanceFlow.first())
+    }
+
     @Test fun `denial clears the ask turns GPS off and retains typed entry`() = test {
         source.access = LocationAccess.DENIED
         prepareBlock(time(1800))

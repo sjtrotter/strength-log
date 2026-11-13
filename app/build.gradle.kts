@@ -207,6 +207,7 @@ dependencies {
     // Wear Data Layer: publish snapshots + receive set-edit deltas. The
     // play-services adapter gives Task.await() so the flow pipeline stays suspend.
     implementation(libs.play.services.wearable)
+    implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)
     // DataModule constructs the Room DB and Preferences DataStore, so the app
     // module depends on them directly (they are not part of :data's API).

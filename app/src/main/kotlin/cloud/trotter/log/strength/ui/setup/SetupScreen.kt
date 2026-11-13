@@ -137,7 +137,11 @@ fun SetupScreen(
         DistanceUnit.MI to R.string.settings_distance_miles,
         DistanceUnit.KM to R.string.settings_distance_kilometers,
     )
-    val rows = listOf("units", "distance", "effort_scale", "gps_distance", "save_route", "theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses")
+    val rows = buildList {
+        addAll(listOf("units", "distance", "effort_scale"))
+        if (state.gpsAccess != LocationAccess.UNAVAILABLE) addAll(listOf("gps_distance", "save_route"))
+        addAll(listOf("theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses"))
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
         if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))

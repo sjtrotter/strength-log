@@ -1,10 +1,21 @@
 package cloud.trotter.log.strength.playtest
 
+import android.app.Application
+import android.content.pm.PackageManager
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.MainActivity
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.run.GpsDistance
+import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -14,13 +25,16 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineExceptionHandler
+import org.junit.Assert.assertNotEquals
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -31,6 +45,7 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaytestReplayTest {
     private val hilt = HiltAndroidRule(this)
+    private val app = ApplicationProvider.getApplicationContext<Application>()
     private lateinit var crashes: AppCrashes
     private val compose = createEmptyComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val rules: RuleChain = RuleChain.outerRule(hilt).around(compose)
@@ -40,6 +55,34 @@ class PlaytestReplayTest {
     @Inject lateinit var backup: BackupService
     @Inject lateinit var settings: SettingsStore
     @Inject lateinit var database: StrengthDatabase
+    @Inject lateinit var gps: GpsDistance
+
+    @Before fun setUpPhone() {
+        shadowOf(app.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
+    }
+
+    @Test fun replayPhoneShowsGpsDistanceInSettings() {
+        hilt.inject()
+        assertNotEquals(LocationAccess.UNAVAILABLE, gps.access())
+        waitForStorage(10_000) { settings.setWizardComplete(true) }
+        val settingsDescription = app.getString(R.string.today_settings_description)
+        val gpsDistance = app.getString(R.string.settings_gps_distance)
+        AppCrashes().use { crashes ->
+            this.crashes = crashes
+            crashes.step { ActivityScenario.launch(MainActivity::class.java) }.use {
+                crashes.step(compose) {
+                    compose.waitUntil(10_000) {
+                        compose.onAllNodesWithContentDescription(settingsDescription).fetchSemanticsNodes().isNotEmpty()
+                    }
+                    compose.onNodeWithContentDescription(settingsDescription).performClick()
+                    compose.waitUntil(10_000) {
+                        compose.onAllNodesWithText(gpsDistance).fetchSemanticsNodes().isNotEmpty()
+                    }
+                    compose.onNodeWithText(gpsDistance).assertExists()
+                }
+            }
+        }
+    }
 
     @Test fun replay() {
         val path = System.getProperty("playtest.script").orEmpty()

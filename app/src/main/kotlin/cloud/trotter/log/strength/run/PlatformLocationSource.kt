@@ -17,12 +17,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 @Singleton
-class PlatformLocationSource @Inject constructor(
+open class PlatformLocationSource @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : LocationSource {
     private val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     override fun access(): LocationAccess = when {
+        !context.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS) -> LocationAccess.UNAVAILABLE
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ->
             if (LocationManagerCompat.isLocationEnabled(manager) && manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                 LocationAccess.PRECISE else LocationAccess.LOCATION_OFF
@@ -33,8 +34,7 @@ class PlatformLocationSource @Inject constructor(
 
     override fun updates(): Flow<Fix> = callbackFlow {
         val listener = LocationListenerCompat { location ->
-            trySend(Fix(location.elapsedRealtimeNanos / 1_000_000, location.latitude, location.longitude,
-                if (location.hasAccuracy()) location.accuracy.toDouble() else Double.MAX_VALUE))
+            trySend(location.toFix())
         }
         try {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.run
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Looper
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,6 +29,25 @@ class PlatformLocationSourceTest {
     private val app = ApplicationProvider.getApplicationContext<Application>()
     private val manager = app.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val source = PlatformLocationSource(app)
+
+    @Before fun setUp() {
+        shadowOf(app.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
+    }
+
+    @Test fun `no GPS hardware reads as unavailable`() {
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        shadowOf(manager).setLocationEnabled(true)
+        shadowOf(manager).setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        shadowOf(app.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, false)
+        assertEquals(LocationAccess.UNAVAILABLE, source.access())
+    }
+
+    @Test fun `GPS hardware with fine permission reads as precise`() {
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        shadowOf(manager).setLocationEnabled(true)
+        shadowOf(manager).setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        assertEquals(LocationAccess.PRECISE, source.access())
+    }
 
     @Test fun `platform elapsed time and accuracy become a fix`() = runTest {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)

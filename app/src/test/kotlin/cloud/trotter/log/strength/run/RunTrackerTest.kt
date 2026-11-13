@@ -75,6 +75,28 @@ class RunTrackerTest {
         assertNull(tracker.meter("r1"))
     }
 
+    @Test fun `unavailable warm up stays off without collecting locations`() = runTest(dispatcher) {
+        source.access = LocationAccess.UNAVAILABLE
+        tracker.warmUp(CardioActivity.ROAD_RUN)
+        tracker.refreshAccess()
+        runCurrent()
+        assertEquals(GpsState.Off, tracker.state.value)
+        assertEquals(0, source.fixes.subscriptionCount.value)
+        assertEquals(0, foreground.starts)
+        assertNull(tracker.meter("r1"))
+    }
+
+    @Test fun `unavailable begin stays off without collecting locations`() = runTest(dispatcher) {
+        source.access = LocationAccess.UNAVAILABLE
+        tracker.begin("r1", CardioActivity.ROAD_RUN, 0)
+        tracker.refreshAccess()
+        runCurrent()
+        assertEquals(GpsState.Off, tracker.state.value)
+        assertEquals(0, source.fixes.subscriptionCount.value)
+        assertEquals(0, foreground.starts)
+        assertNull(tracker.meter("r1"))
+    }
+
     @Test fun `location off can begin once precise becomes available`() = runTest(dispatcher) {
         source.access = LocationAccess.LOCATION_OFF
         tracker.begin("r1", CardioActivity.ROAD_RUN, 0)

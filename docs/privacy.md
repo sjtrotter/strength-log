@@ -66,6 +66,9 @@ start one, or when you turn on Settings › GPS distance. It reads location only
 screen or running. While one runs, a notification shows, though Android may tuck it away if you've turned off
 the app's notifications.
 
+On phones with Google Play services, the app asks Android's fused location provider (which may combine GPS with
+Wi-Fi and motion sensors); otherwise it uses GPS alone, and either way the app keeps locations on the phone.
+
 Locations stay in memory on your phone just long enough to add up the distance. The app saves the distances
 and times it measured. If you turn on Settings › Save route (it's off until you do), it also saves each outdoor activity's path on your phone. The path is included in your backup
 file, never in CSV exports, and the app can't send it anywhere (it has no internet permission). Turning

@@ -117,17 +117,7 @@ private fun dayContents(
 ): List<ProgramExercise> {
     val result = mutableListOf<ProgramExercise>()
     val chosen = mains.map { it.id }.toSet()
-    if (answers.olderAdult) {
-        val stance = ExerciseLibrary.get("single_leg_stance")
-        if (stance.availableWith(answers.equipment, answers.excluded)) result += liftSlot(SlotRole.BALANCE, stance, answers)
-        val carry = ExerciseLibrary.get("farmers_carry")
-        if (carry.availableWith(answers.equipment, answers.excluded)) {
-            val load = (carry.goal as GoalSource.Time).addedWeightLb
-            result += liftSlot(SlotRole.BALANCE, carry, answers).copy(
-                prescription = Prescription(PrescribedTarget.Hold(20, GeneratedLoad.snap(load, answers.unit))),
-            )
-        }
-    }
+    result += balanceBlock(answers)
     result += anchors
     val unfilled = anchors.toMutableList()
     fun pick(pattern: MovementPattern, reusePull: Boolean = false): ExerciseEntry? =
@@ -199,4 +189,20 @@ internal fun accessoryCandidates(
     entry.availableWith(answers.equipment, answers.excluded) && !entry.mainCapable &&
         onDay.none { it.exerciseId == entry.id || it.superset?.exerciseId == entry.id } &&
         ExerciseLibrary.bodyweightPairFor(entry.id) == null
+}
+
+internal fun balanceBlock(answers: SetupAnswers): List<ProgramExercise> {
+    val result = mutableListOf<ProgramExercise>()
+    if (answers.olderAdult) {
+        val stance = ExerciseLibrary.get("single_leg_stance")
+        if (stance.availableWith(answers.equipment, answers.excluded)) result += liftSlot(SlotRole.BALANCE, stance, answers)
+        val carry = ExerciseLibrary.get("farmers_carry")
+        if (carry.availableWith(answers.equipment, answers.excluded)) {
+            val load = (carry.goal as GoalSource.Time).addedWeightLb
+            result += liftSlot(SlotRole.BALANCE, carry, answers).copy(
+                prescription = Prescription(PrescribedTarget.Hold(20, GeneratedLoad.snap(load, answers.unit))),
+            )
+        }
+    }
+    return result
 }

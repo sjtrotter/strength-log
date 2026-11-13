@@ -12,4 +12,10 @@ class GoalPaceTest {
         assertEquals(113, GoalPace.testAimSeconds(goal, 400))
         assertEquals(227, GoalPace.testAimSeconds(goal, 800))
     }
+    @Test
+    fun `race aim preserves the existing test pace arithmetic`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960)
+        assertEquals(113, GoalPace.aimSeconds(960.0, 3219.0, 400, 0.95))
+        assertEquals(GoalPace.testAimSeconds(goal, 400), GoalPace.aimSeconds(960.0, 3219.0, 400, 0.95))
+    }
 }

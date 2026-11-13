@@ -50,6 +50,7 @@ internal object VolumeBalance {
         answers: SetupAnswers,
         chosen: Set<String>,
         touched: Set<String>,
+        budgetSeconds: Int = answers.minutes * 60,
     ): Pair<List<ProgramDay>, List<PlanReason>> {
         val current = days.toMutableList()
         var weekly = SetCount.weekly(Program(current)).toMutableMap()
@@ -79,7 +80,7 @@ internal object VolumeBalance {
                 fun accept(dayIndex: Int, day: ProgramDay, slot: ProgramExercise): Boolean {
                     val credit = SetCount.weekly(Program(listOf(day.copy(exercises = listOf(slot.copy(targetSets = 1))))))
                     if (credit.any { (credited, sets) -> weekly.getOrDefault(credited, 0.0) + sets > CAP }) return false
-                    if (SessionBudget.seconds(day, answers.goal) > answers.minutes * 60) {
+                    if (SessionBudget.seconds(day, answers.goal) > budgetSeconds) {
                         minutesBlocked += day.id
                         return false
                     }

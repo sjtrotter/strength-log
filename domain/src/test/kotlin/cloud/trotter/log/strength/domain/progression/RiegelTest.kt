@@ -13,4 +13,10 @@ class RiegelTest {
         assertEquals(14449, Riegel.goalCheckSeconds(21097.5, 6600.0, 42195.0))
         assertEquals(3127, Riegel.goalCheckSeconds(5000.0, 1500.0, 10000.0))
     }
+    @Test
+    fun `unrounded prediction rounds to the existing seconds result`() {
+        val predicted = Riegel.predictedSeconds(5000.0, 1500.0, 10000.0)
+        assertEquals(3127, Math.round(predicted).toInt())
+        assertEquals(Riegel.seconds(5000.0, 1500.0, 10000.0), Math.round(predicted).toInt())
+    }
 }

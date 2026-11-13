@@ -22,7 +22,9 @@ enum class EquipmentPreset(val equipment: Set<Equipment>) {
     BODYWEIGHT(setOf(Equipment.BODYWEIGHT, Equipment.PULLUP_BAR)),
 }
 
-/** The lift branches' setup answers (design §2.1, §2.2). [mains] null takes [Planner.defaultMains]. */
+/** Setup answers (design §2.1, §2.2). [mains] null takes [Planner.defaultMains].
+ *  [goal] is the lift sub-goal; a Run plan's strength blocks use the Strength rules (D8).
+ *  [run] is read on Run and Both, [both] on Both. */
 data class SetupAnswers(
     val goal: LiftGoal = LiftGoal.GENERAL,
     val days: Int = 3,
@@ -35,9 +37,21 @@ data class SetupAnswers(
     val mains: List<String>? = null,
     val recent: Map<String, RecentNumber> = emptyMap(),
     val excluded: Set<String> = emptySet(),
+    val branch: PlanBranch = PlanBranch.LIFT,
+    val run: RunAnswers = RunAnswers(),
+    val both: BothAnswers = BothAnswers(),
 ) {
     init {
         require(days in 1..6)
         require(minutes in setOf(30, 45, 60, 75, 90))
     }
+}
+
+/** Stored by name; new constants go at the end. Sprint arrives in PR 5. */
+enum class PlanBranch { LIFT, RUN, BOTH }
+
+/** Both's Which first and Together (design §2.2). [together] null takes the default: separate days from 4 days. */
+data class BothAnswers(val cardioFirst: Boolean = false, val together: Together? = null) {
+    enum class Together { SAME_VISIT, SEPARATE_DAYS }
+    fun together(days: Int): Together = together ?: if (days >= 4) Together.SEPARATE_DAYS else Together.SAME_VISIT
 }

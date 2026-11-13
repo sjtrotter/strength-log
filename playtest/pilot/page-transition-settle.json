@@ -101,6 +101,12 @@
     },
     {
       "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },

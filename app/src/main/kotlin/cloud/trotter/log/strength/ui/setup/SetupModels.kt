@@ -37,6 +37,8 @@ data class SetupUiState(
     val gpsAccess: LocationAccess = LocationAccess.DENIED,
     val saveRoute: Boolean = false,
     val effortScale: EffortScale = EffortScale.WORDS,
+    val warmUp: Boolean = true,
+    val coolDown: Boolean = true,
 )
 
 /** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
@@ -57,4 +59,6 @@ data class SetupActions(
     val onRefreshLocationAccess: () -> Unit = {},
     val onSaveRouteChange: (Boolean) -> Unit = {},
     val onEffortScaleChange: (EffortScale) -> Unit = {},
+    val onWarmUpChange: (Boolean) -> Unit = {},
+    val onCoolDownChange: (Boolean) -> Unit = {},
 )

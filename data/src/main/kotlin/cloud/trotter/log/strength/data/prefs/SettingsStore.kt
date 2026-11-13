@@ -67,6 +67,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
         val GPS_DISTANCE = booleanPreferencesKey("gps_distance")
+        val WARM_UP = booleanPreferencesKey("warm_up")
+        val COOL_DOWN = booleanPreferencesKey("cool_down")
+        val WARM_UP_CLOSED_RUN = stringPreferencesKey("warm_up_closed_run")
+        val COOL_DOWN_CLOSED_RUN = stringPreferencesKey("cool_down_closed_run")
         val SAVE_ROUTE = booleanPreferencesKey("save_route")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
         val SESSION_STARTED_DATE = stringPreferencesKey("session_started_date")
@@ -177,6 +181,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** True means use GPS on outdoor activities, asking when needed; a decline writes false.
      *  Device-local, paired with location permission, and not backed up. */
     val gpsDistanceFlow: Flow<Boolean> = dataStore.data.map { it[Keys.GPS_DISTANCE] ?: true }
+
+    val routinePrefsFlow: Flow<RoutinePrefs> = dataStore.data.map { prefs ->
+        RoutinePrefs(prefs[Keys.WARM_UP] ?: true, prefs[Keys.COOL_DOWN] ?: true,
+            prefs[Keys.WARM_UP_CLOSED_RUN], prefs[Keys.COOL_DOWN_CLOSED_RUN])
+    }
 
     val saveRouteFlow: Flow<Boolean> = dataStore.data.map { it[Keys.SAVE_ROUTE] ?: false }
 
@@ -412,6 +421,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.DISTANCE_UNIT] = unit.name }
     }
 
+    suspend fun setWarmUpEnabled(on: Boolean) { dataStore.edit { it[Keys.WARM_UP] = on } }
+    suspend fun setCoolDownEnabled(on: Boolean) { dataStore.edit { it[Keys.COOL_DOWN] = on } }
+    suspend fun closeWarmUp(runId: String) { dataStore.edit { it[Keys.WARM_UP_CLOSED_RUN] = runId } }
+    suspend fun closeCoolDown(runId: String) { dataStore.edit { it[Keys.COOL_DOWN_CLOSED_RUN] = runId } }
+
     suspend fun setSaveRoute(on: Boolean) {
         dataStore.edit { it[Keys.SAVE_ROUTE] = on }
     }
@@ -446,6 +460,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
      * — never a mix.
+     *
+     * The warm-up and cool-down switches and closed-run markers are not carried; a restore turns both switches back on.
      *
      * Device-local automatic-backup keys are captured and restored around the
      * clear: their SAF grant cannot be transferred in a backup document, but a

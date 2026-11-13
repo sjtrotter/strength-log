@@ -25,7 +25,11 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.performedExercise
+import cloud.trotter.log.strength.data.prefs.RoutinePrefs
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.routine.CreditedExercise
+import cloud.trotter.log.strength.domain.routine.Move
+import cloud.trotter.log.strength.domain.routine.Routines
 import cloud.trotter.log.strength.data.prefs.UndoTarget
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -154,6 +158,13 @@ class DayViewModel @Inject constructor(
     val nowMillis: () -> Long = clock::millis
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val pendingStart = savedState.getStateFlow<PendingStartTick?>(KEY_PENDING_START, null)
+
+    private val warmUpProgress = savedState.getStateFlow<RoutineProgress?>(KEY_WARM_UP, null)
+    private val coolDownProgress = savedState.getStateFlow<RoutineProgress?>(KEY_COOL_DOWN, null)
+    private val closedWarmUpOwner = savedState.getStateFlow<String?>(KEY_CLOSED_WARM_UP_OWNER, null)
+    private val closedCoolDownOwner = savedState.getStateFlow<String?>(KEY_CLOSED_COOL_DOWN_OWNER, null)
+    private val routinePrefs: StateFlow<RoutinePrefs?> = settings.routinePrefsFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val distanceUnit: StateFlow<DistanceUnit> = settings.distanceUnitFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, DistanceUnit.MI)
@@ -473,6 +484,13 @@ class DayViewModel @Inject constructor(
             remoteTick,
         )
     }.combine(settings.effortScaleFlow) { state, scale -> state.copy(effortScale = scale) }
+        .combine(combine(routinePrefs, warmUpProgress, coolDownProgress, ::Triple)) { state, (prefs, warm, cool) ->
+            state.copy(warmUp = RoutineSheets.warmUp(state, prefs, warm), coolDown = RoutineSheets.coolDown(state, prefs, cool))
+        }
+        .combine(combine(closedWarmUpOwner, closedCoolDownOwner, ::Pair)) { state, (warm, cool) ->
+            state.copy(warmUp = state.warmUp?.takeUnless { it.owner == warm },
+                coolDown = state.coolDown?.takeUnless { it.owner == cool })
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
     private val otherWorkoutOpenMessage = MutableStateFlow(false)
@@ -719,6 +737,79 @@ class DayViewModel @Inject constructor(
             if (uiState.value.planId != planId || currentDay() != dayId || cardioRun.value != null) return@mutate
             repo.setCardioWorking(planId, dayId, block)
         }
+    }
+
+    private fun routineSheet(kind: RoutineKind): RoutineSheetState? = when (kind) {
+        RoutineKind.WARM_UP -> uiState.value.warmUp
+        RoutineKind.COOL_DOWN -> uiState.value.coolDown
+    }
+
+    private fun routineKey(kind: RoutineKind): String = when (kind) {
+        RoutineKind.WARM_UP -> KEY_WARM_UP
+        RoutineKind.COOL_DOWN -> KEY_COOL_DOWN
+    }
+
+    private fun routineProgress(kind: RoutineKind, sheet: RoutineSheetState): RoutineProgress =
+        savedState.get<RoutineProgress>(routineKey(kind))?.takeIf { it.owner == sheet.owner }
+            ?: RoutineProgress(sheet.owner, sheet.moves.map { it.name }, emptyList(), null)
+
+    fun toggleRoutineMove(kind: RoutineKind, move: Move) {
+        val sheet = routineSheet(kind) ?: return
+        if (move !in sheet.moves) return
+        val progress = routineProgress(kind, sheet)
+        savedState[routineKey(kind)] = progress.copy(checked =
+            if (move.name in progress.checked) progress.checked - move.name else progress.checked + move.name)
+    }
+
+    fun startRoutineTimer(kind: RoutineKind) {
+        val sheet = routineSheet(kind) ?: return
+        savedState[routineKey(kind)] = routineProgress(kind, sheet).copy(timerStartedAt = clock.millis())
+    }
+
+    fun stopRoutineTimer(kind: RoutineKind) {
+        val sheet = routineSheet(kind) ?: return
+        savedState[routineKey(kind)] = routineProgress(kind, sheet).copy(timerStartedAt = null)
+    }
+
+    /** Done, Skip and dismissal only close the sheet; they never log workout data. */
+    fun closeRoutine(kind: RoutineKind) {
+        val sheet = routineSheet(kind) ?: return
+        val runId = sheet.runId
+        if (runId == null) {
+            savedState[routineKey(kind)] = null
+            return
+        }
+        savedState[when (kind) {
+            RoutineKind.WARM_UP -> KEY_CLOSED_WARM_UP_OWNER
+            RoutineKind.COOL_DOWN -> KEY_CLOSED_COOL_DOWN_OWNER
+        }] = sheet.owner
+        viewModelScope.launch {
+            when (kind) {
+                RoutineKind.WARM_UP -> settings.closeWarmUp(runId)
+                RoutineKind.COOL_DOWN -> settings.closeCoolDown(runId)
+            }
+            if (savedState.get<RoutineProgress>(routineKey(kind))?.owner == sheet.owner) {
+                savedState[routineKey(kind)] = null
+            }
+        }
+    }
+
+    fun requestCardioStart() {
+        val prefs = routinePrefs.value
+        val state = uiState.value
+        val planId = state.planId
+        val dayId = state.viewDayId
+        if (prefs?.warmUp == true && state.exercises.isEmpty() && state.cardio != null &&
+            state.cardio.run == null && state.cardio.loggedSeconds == null && cardioRun.value == null &&
+            planId != null && dayId != null) {
+            savedState[KEY_WARM_UP] = RoutineProgress(RoutineProgress.cardioStartOwner(planId, dayId),
+                state.warmUpMoves.map { it.name }, emptyList(), null)
+        } else startCardio()
+    }
+
+    fun startCardioAfterWarmUp() {
+        savedState[KEY_WARM_UP] = null
+        startCardio()
     }
 
     fun startCardio() {
@@ -1370,6 +1461,10 @@ class DayViewModel @Inject constructor(
     private suspend fun showDeferredCardioReceipt() {
         if (executionActive) return
         val run = deferredCardioReceipt.value ?: return
+        val coolDownMoves = if (run.finishesDay) {
+            val day = repo.observeDay(run.planId, run.dayId).first()
+            Routines.coolDown(routineExercises(day), run.block, day.equipment)
+        } else emptyList()
         val advancedTo = plans.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
         val standing = try {
@@ -1383,6 +1478,10 @@ class DayViewModel @Inject constructor(
         if (executionActive) return
         finisher.showCardio(run, standing?.let { CardioBests.bests(run.block.activity, it.map(SavedCardioBest::toDomain)) }, session)
         if (executionActive) return
+        if (run.finishesDay && routinePrefs.value?.coolDown == true) {
+            savedState[KEY_COOL_DOWN] = RoutineProgress(RoutineProgress.cardioOwner(run.runId),
+                coolDownMoves.map { it.name }, emptyList(), null)
+        }
         savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         if (currentDay() == run.dayId) {
@@ -2322,6 +2421,13 @@ class DayViewModel @Inject constructor(
         val dayId = performedDay.dayId
         val day = performedDay.day ?: return noDayState(ctx)
         val dayIndex = Program.accentIndex(dayId)
+        val cards = performedDay.slots.map { slot ->
+            buildCard(slot, ctx.unit, history, ctx.plan,
+                ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH).copy(
+                weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
+            )
+        }
+        val credited = routineExercises(performedDay)
         return DayUiState(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },
@@ -2332,18 +2438,28 @@ class DayViewModel @Inject constructor(
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
             nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
-            exercises = performedDay.slots.map { slot ->
-                buildCard(slot, ctx.unit, history, ctx.plan,
-                    ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH).copy(
-                    weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
-                )
-            },
+            exercises = cards,
+            warmUpMoves = Routines.warmUp(credited, day.cardioToRun, performedDay.equipment),
+            coolDownMoves = Routines.coolDown(credited, day.cardioToRun, performedDay.equipment),
             cardio = day.cardioToRun?.let {
                 CardioCardState(label = activityLabel(it.activity), detail = it.plannedTimeDetail(),
                     hard = it.sets.any { spec -> spec.hard }, block = it, finishesDay = day.exercises.isEmpty())
             },
         )
     }
+
+    private fun routineExercises(day: PerformedDay): List<CreditedExercise> = day.slots.flatMap { slot ->
+        listOfNotNull(
+            slot.main.performed.entry?.let { entry ->
+                CreditedExercise(entry, slot.main.sets.count { it.kind != SetKind.RAMP })
+            },
+            slot.partner?.let { partner ->
+                partner.performed.entry?.let { entry ->
+                    CreditedExercise(entry, minOf(slot.main.sets.size, partner.sets.size))
+                }
+            },
+        )
+    }.filter { it.workingSets > 0 }
 
     private fun sheetResolves(state: DayUiState, sheet: OpenSheet, event: TimedRepEvent?): Boolean =
         !state.loading && sheet.dayId == state.viewDayId &&
@@ -2711,6 +2827,10 @@ class DayViewModel @Inject constructor(
         const val REST_TICK_MS = 250L
         /** How long a logged set stays undoable when no rest started after it. */
         const val LOG_UNDO_WINDOW_MS = 10_000L
+        const val KEY_WARM_UP = "day_warm_up"
+        const val KEY_COOL_DOWN = "day_cool_down"
+        const val KEY_CLOSED_WARM_UP_OWNER = "day_closed_warm_up_owner"
+        const val KEY_CLOSED_COOL_DOWN_OWNER = "day_closed_cool_down_owner"
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_VIEW_SELECTION = "day_view_selection"
         const val KEY_SWAP_UNDO = "day_swap_undo"

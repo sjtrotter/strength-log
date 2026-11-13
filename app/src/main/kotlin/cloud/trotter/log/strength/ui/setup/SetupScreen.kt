@@ -140,7 +140,7 @@ fun SetupScreen(
     val rows = buildList {
         addAll(listOf("units", "distance", "effort_scale"))
         if (state.gpsAccess != LocationAccess.UNAVAILABLE) addAll(listOf("gps_distance", "save_route"))
-        addAll(listOf("theme", "keep_screen_on", "backup", "rest_timer", "custom_exercise", "licenses"))
+        addAll(listOf("theme", "keep_screen_on", "warm_up", "cool_down", "backup", "rest_timer", "custom_exercise", "licenses"))
     }
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
@@ -253,6 +253,17 @@ fun SetupScreen(
                                 trailingContent = { Switch(state.keepScreenOn, onCheckedChange = null) },
                                 modifier = Modifier.fillMaxWidth().toggleable(value = state.keepScreenOn,
                                     role = Role.Switch, onValueChange = actions.onKeepScreenOnChange),
+                            )
+                        }
+                        "warm_up", "cool_down" -> {
+                            val warm = row == "warm_up"
+                            val checked = if (warm) state.warmUp else state.coolDown
+                            ListItem(
+                                headlineContent = { Text(stringResource(if (warm) R.string.settings_warm_up else R.string.settings_cool_down)) },
+                                supportingContent = { Text(stringResource(if (warm) R.string.settings_warm_up_detail else R.string.settings_cool_down_detail)) },
+                                trailingContent = { Switch(checked, onCheckedChange = null) },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked,
+                                    role = Role.Switch, onValueChange = if (warm) actions.onWarmUpChange else actions.onCoolDownChange),
                             )
                         }
                         "rest_timer" -> Column(Modifier.padding(horizontal = 16.dp)) {

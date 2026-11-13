@@ -38,6 +38,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.records.PrKind
+import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.CardioInterval
@@ -60,6 +61,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -83,6 +85,123 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class DayViewModelCardioExecutionTest {
+
+    // (F)
+    @Test fun cardioOnlyRequestWaitsForWarmupStart() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.warmUp).startsCardio)
+        assertNull(vm.uiState.value.cardio?.run)
+        vm.startCardioAfterWarmUp()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    @Test fun cardioWarmupDismissalDoesNotStartAndCanBeRequestedAgain() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        vm.closeRoutine(RoutineKind.WARM_UP)
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertNull(vm.uiState.value.cardio?.run)
+        vm.requestCardioStart()
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.warmUp).startsCardio)
+    }
+
+    @Test fun disabledWarmupStartsCardioImmediately() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        settings.setWarmUpEnabled(false)
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    @Test fun liftDayCardioRequestStartsImmediately() = test {
+        prepareBlock(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    // (F)
+    @Test fun cardioOnlyCooldownWaitsForReceiptWithoutAnotherSessionRow() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            handle.getStateFlow<RoutineProgress?>("day_cool_down", null).collect { progress ->
+                if (progress?.owner?.startsWith("cardio:") == true) assertNotNull(vm.finisher.receipt.value)
+            }
+        }
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        assertNull(vm.finisher.receipt.value)
+        assertNull(handle.get<RoutineProgress>("day_cool_down"))
+        assertNull(vm.uiState.value.coolDown)
+        vm.openCardioDistance()
+        runCurrent()
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertNotNull(vm.finisher.receipt.value)
+        assertTrue(requireNotNull(vm.uiState.value.coolDown).owner.startsWith("cardio:"))
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        vm.closeRoutine(RoutineKind.COOL_DOWN)
+        runCurrent()
+        assertNull(vm.uiState.value.coolDown)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+    }
+
+    @Test fun deferredCardioCooldownKeepsOriginatingLiftDayStretchesAfterDaySwitch() = test {
+        val planId = repo.plans.createAuthoredPlan("Strength and running", "Workout")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(time(CardioRole.WORK)))
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Lift then run", "", listOf(ProgramExercise("db_bench", targetSets = 3,
+                prescription = Prescription(PrescribedTarget.LoadReps(80.0, 10)))), cardioBlock = block),
+            ProgramDay("B", "Run", "", emptyList(), cardioBlock = block),
+        )))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val expected = vm.uiState.value.coolDownMoves
+        assertTrue(Move.DOORWAY_CHEST in expected)
+        val run = CardioRun(planId, "Strength and running", "A", 0,
+            CardioBlockJson.encode(block), CardioBlockJson.encode(block), true, null,
+            results = listOf(SavedCardioResult(CardioSetStatus.FINISHED.name, 10)),
+            startedAt = clock.wall - 10_000, completedAt = clock.wall)
+        val sessionId = repo.logCardioSession(CardioSessionEntity(
+            planId = planId, dayId = run.dayId, mode = CardioMode.OUTDOOR_RUN.name,
+            hard = true, label = "Run", activity = block.activity.name,
+            startedAt = requireNotNull(run.startedAt), completedAt = clock.wall, seconds = 10, stepsCompleted = 1,
+        ), run.resultSets, finishDay = true)
+        vm.selectDay("B")
+        runCurrent()
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertFalse(Move.DOORWAY_CHEST in vm.uiState.value.coolDownMoves)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            handle.getStateFlow<RoutineProgress?>("day_cool_down", null).collect { progress ->
+                if (progress?.owner == RoutineProgress.cardioOwner(run.runId)) {
+                    assertNotNull(vm.finisher.receipt.value)
+                }
+            }
+        }
+        handle["day_deferred_cardio_receipt"] = run.copy(sessionId = sessionId)
+        runCurrent()
+        assertEquals("A", vm.finisher.receipt.value?.dayId)
+        assertEquals(expected, requireNotNull(vm.uiState.value.coolDown).moves)
+    }
 
     @Test fun cardioEditorPersistsProgressionAndParksWorkingValues() = test {
         prepareAuthoredCardioDay(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(480)))

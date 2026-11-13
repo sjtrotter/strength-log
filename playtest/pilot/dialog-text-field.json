@@ -238,27 +238,23 @@
       }
     },
     {
-      "swipe": {
-        "text": "Rest timer",
-        "direction": "up"
+      "scrollTo": {
+        "text": "Theme"
       }
     },
     {
-      "swipe": {
-        "text": "Theme",
-        "direction": "up"
+      "scrollTo": {
+        "text": "Warm-up"
       }
     },
     {
-      "swipe": {
-        "text": "Warm-up",
-        "direction": "up"
+      "scrollTo": {
+        "text": "Rest timer"
       }
     },
     {
-      "swipe": {
-        "text": "Rest timer",
-        "direction": "up"
+      "scrollTo": {
+        "text": "Licenses"
       }
     },
     {

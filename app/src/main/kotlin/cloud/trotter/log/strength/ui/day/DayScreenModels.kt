@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
@@ -98,6 +99,10 @@ data class DayUiState(
     val beforeStart: Boolean = false,
     val startSheet: Boolean = false,
     val effortScale: EffortScale = EffortScale.WORDS,
+    val warmUpMoves: List<Move> = emptyList(),
+    val coolDownMoves: List<Move> = emptyList(),
+    val warmUp: RoutineSheetState? = null,
+    val coolDown: RoutineSheetState? = null,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning

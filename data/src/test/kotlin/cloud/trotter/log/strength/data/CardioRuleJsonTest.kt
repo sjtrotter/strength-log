@@ -51,6 +51,8 @@ class CardioRuleJsonTest {
     @Test fun `existing rules keep their exact JSON`() {
         assertEquals("""{"ladderLevel":3}""", CardioRuleJson.encode(CardioRule(3)))
         assertEquals("{}", CardioRuleJson.encode(CardioRule(null)))
+        assertEquals(CardioRule(3), CardioRuleJson.decode("""{"ladderLevel":3}"""))
+        assertEquals(CardioRule(null), CardioRuleJson.decode("{}"))
     }
 
     @Test fun `invalid run rules reject on decode and validation`() {

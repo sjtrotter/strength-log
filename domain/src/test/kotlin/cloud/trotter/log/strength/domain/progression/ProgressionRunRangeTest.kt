@@ -140,6 +140,18 @@ class ProgressionRunRangeTest {
             finish(opening, rule, history = CardioHistory(), context = ctx.copy(runCap = false)))
     }
 
+    @Test fun `a restored round preserves stored sets and waits when capped`() {
+        val warmup = time(300, role = CardioRole.WARMUP)
+        val cooldown = time(180, role = CardioRole.COOLDOWN)
+        val rep = distance(400, 60, true)
+        val opening = block(warmup, *intervals(4, rep, 90).sets.toTypedArray(), cooldown)
+        val rule = CardioRule(null, RunSession.RACE_PACE, credits = 1)
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), finish(opening, rule, history = CardioHistory()))
+        val expected = block(warmup, *intervals(5, rep, 90).sets.toTypedArray(), cooldown)
+        assertEquals(CardioOutcome(expected, rule.copy(credits = 0), CardioChange.Step),
+            finish(opening, rule, history = CardioHistory(), context = ctx.copy(runCap = false)))
+    }
+
     @Test fun `case 29 fifty K long run stops at distance or three and a half hours without shrinking`() {
         val rule = CardioRule(null, RunSession.LONG, longMetres = 40_000, longSeconds = 12_600)
         for ((pace, metres) in listOf(

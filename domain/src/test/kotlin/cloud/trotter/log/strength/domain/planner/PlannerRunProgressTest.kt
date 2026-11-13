@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoggedCardio
 import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.RecentMaxima
+import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -134,6 +135,31 @@ class PlannerRunProgressTest {
         }
     }
 
+    @Test fun `thirty minute base intervals restore one stored round before advancing range steps`() {
+        val draft = plan(run(RunGoal.FIVE_TO_TEN_K, days = 5, minutes = 30, experience = RunExperience.SOME), known(8050, 2900))
+        assertEquals(RunPhase.BASE, draft.phase)
+        var opening = block(draft, "D")
+        var rule = rule(draft, "D")
+        assertEquals(CardioRule(null, RunSession.VO2MAX), rule)
+        val range = requireNotNull(RunRange.of(RunSession.VO2MAX))
+        val low = range.block(0, opening.activity)
+        assertEquals(low.copy(sets = low.sets.take(7)), opening)
+        val history = CardioHistory(longest = RecentMaxima(8050, 2900))
+        for (session in 1..4) {
+            val next = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.HARD, history, ctx)
+            val expected = when (session) {
+                1 -> opening
+                2, 3 -> low
+                else -> range.block(1, opening.activity)
+            }
+            assertEquals(expected, next.block)
+            assertEquals(if (session % 2 == 0) CardioChange.Step else CardioChange.Repeat, next.change)
+            assertEquals(CardioRule(null, RunSession.VO2MAX, steps = if (session < 4) 0 else 1, credits = session % 2), next.rule)
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
+    }
+
     @Test fun `case 30 ladder base half and marathon progress through replanning from the log`() {
         val answers = run(RunGoal.MARATHON, experience = RunExperience.NEW,
             runAnswers = RunAnswers(RunGoal.MARATHON, RunExperience.NEW, dateEpochDay = TODAY + 210))
@@ -166,16 +192,16 @@ class PlannerRunProgressTest {
         fun climb(draft: PlanDraft, metres: List<Int>, date: Long, before: RunPhase, after: RunPhase): CardioBlock {
             var opening = block(draft, "D")
             val rule = rule(draft, "D")
-            for ((index, expected) in metres.withIndex()) {
+            for (expected in metres) {
                 val previous = (opening.sets.single().end as Measure.Distance).metres
+                assertEquals(before, plan(answers, logKnown(opening), date).phase, "after finishing $previous m")
                 val next = Progression.cardioAfterSession(opening, rule, finished(opening, 0.36), CardioEffort.EASY,
                     CardioHistory(longest = RecentMaxima(previous, secs(previous)), secondsPerMetre = 0.36), ctx)
                 assertEquals(CardioOutcome(next.block, rule, CardioChange.Increase(ProgressMeasure.DISTANCE, false)), next)
                 assertEquals(Measure.Distance(expected), next.block.sets.single().end)
                 opening = next.block
-                val phase = plan(answers, logKnown(opening), date).phase
-                assertEquals(if (index == metres.lastIndex) after else before, phase)
             }
+            assertEquals(after, plan(answers, logKnown(opening), date).phase, "after finishing ${metres.last()} m")
             return opening
         }
         climb(base, listOf(5775, 6064, 6367, 6685, 7019, 7370, 7739, 8126, 8532, 8959, 9407, 9877, 10_371),

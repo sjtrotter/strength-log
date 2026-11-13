@@ -36,6 +36,11 @@ data class CardioSetSpec(
     }
 }
 
+fun CardioSetSpec.endValue(): Int = when (val end = end) {
+    is Measure.Time -> end.seconds
+    is Measure.Distance -> end.metres
+}
+
 enum class CardioSetStatus { FINISHED, SHORTENED, SKIPPED }
 
 enum class DistanceSource { MANUAL, GPS, HEALTH_CONNECT }

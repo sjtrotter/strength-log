@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.endValue
 
 /** Drops the last round: a WORK set together with the RECOVERY sets directly before it, back to the previous WORK
  *  set. The first WORK set's round has no RECOVERY in front unless the block starts with one. RECOVERY sets after the
@@ -21,10 +22,7 @@ internal fun CardioBlock.withoutLastRound(): CardioBlock {
 /** This set with its end moved to [value] in its own measure and its aim, if any, moved by the same ratio, so the pace
  *  holds: aim = max(1, Math.round(aim × value ÷ old end)). */
 internal fun CardioSetSpec.withEndValue(value: Int): CardioSetSpec {
-    val old = when (val end = end) {
-        is Measure.Time -> end.seconds
-        is Measure.Distance -> end.metres
-    }
+    val old = endValue()
     fun scaled(aim: Int) = maxOf(1, Math.round(aim.toDouble() * value / old).toInt())
     return copy(
         end = when (end) {

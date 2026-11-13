@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.endValue
 import kotlin.math.floor
 
 /** No planned session's counted total passes 110 % of the family's longest recent session (design §3.2 Run cap row;
@@ -84,10 +85,7 @@ object RunCap {
         val set = work.single()
         val workValue = requireNotNull(value(set))
         val budget = cap - (total - workValue)
-        val endValue = when (val end = set.end) {
-            is Measure.Time -> end.seconds
-            is Measure.Distance -> end.metres
-        }
+        val endValue = set.endValue()
         val grid = if (set.end is Measure.Distance) METRES_GRID else SECONDS_GRID
         val floored = floor(endValue * budget / workValue + 1e-9).toInt()
         val rounded = floored / grid * grid

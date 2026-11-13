@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -132,14 +133,23 @@ class DayViewModelCardioExecutionTest {
     }
 
     // (F)
-    @Test fun cardioOnlyReceiptOffersCooldownWithoutAnotherSessionRow() = test {
+    @Test fun cardioOnlyCooldownWaitsForReceiptWithoutAnotherSessionRow() = test {
         prepareAuthoredCardioDay(time(CardioRole.WORK))
-        val vm = readyVm()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            handle.getStateFlow<RoutineProgress?>("day_cool_down", null).collect { progress ->
+                if (progress?.owner?.startsWith("cardio:") == true) assertNotNull(vm.finisher.receipt.value)
+            }
+        }
         vm.startCardio()
         runCurrent()
         tick(10_000)
         vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
         runCurrent()
+        assertNull(vm.finisher.receipt.value)
+        assertNull(handle.get<RoutineProgress>("day_cool_down"))
+        assertNull(vm.uiState.value.coolDown)
         vm.openCardioDistance()
         runCurrent()
         vm.saveCardioDistance(vm.distanceAction())

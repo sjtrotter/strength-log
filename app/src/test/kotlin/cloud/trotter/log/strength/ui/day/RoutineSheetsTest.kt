@@ -30,6 +30,18 @@ class RoutineSheetsTest {
     private fun cool(state: DayUiState = this.state, prefs: RoutinePrefs = RoutinePrefs(), progress: RoutineProgress? = null) =
         RoutineSheets.coolDown(state, prefs, progress)
 
+    @Test fun `unloaded preferences hide lift and cardio routines`() {
+        assertNull(RoutineSheets.warmUp(state, null, null))
+        val all = state.copy(exercises = listOf(card.copy(rows = listOf(row.copy(done = true)))),
+            workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, null))
+        assertNull(RoutineSheets.coolDown(all, null, null))
+        val only = state.copy(exercises = emptyList(), cardio = cardio, runId = null, runOpen = false)
+        val warm = RoutineProgress(RoutineProgress.cardioStartOwner(1, "A"), emptyList(), emptyList(), null)
+        assertNull(RoutineSheets.warmUp(only, null, warm))
+        val cool = RoutineProgress(RoutineProgress.cardioOwner("cardio-run"), listOf("COBRA"), emptyList(), null)
+        assertNull(RoutineSheets.coolDown(only, null, cool))
+    }
+
     @Test fun `lift warmup needs an open non draft zero set run`() {
         assertEquals(300, warm()?.timerSeconds)
         assertNull(warm(state.copy(runOpen = false)))

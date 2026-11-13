@@ -1171,6 +1171,7 @@
     <string name="routine_timer_start">Start timer</string>
     <string name="routine_timer_stop">Stop timer</string>
     <string name="routine_timer_left">%1$s left</string>
+    <string name="routine_timer_duration">Timer, %1$s</string>
     <string name="routine_timer_done">Time is up</string>
     <plurals name="routine_dose_reps"><item quantity="one">%d rep</item><item quantity="other">%d reps</item></plurals>
     <plurals name="routine_dose_reps_each_side"><item quantity="one">%d each side</item><item quantity="other">%d each side</item></plurals>

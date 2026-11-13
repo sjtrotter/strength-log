@@ -454,13 +454,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * The warm-up and cool-down switches and closed-run markers are not carried; a restore turns both switches back on.
      * Replaces every preference in one atomic [edit] (backup restore, A2). The
      * leading [clear] drops any key not overwritten below, so a restore can't
      * leave a stale value behind; because these inputs together own every
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
      * — never a mix.
+     *
+     * The warm-up and cool-down switches and closed-run markers are not carried; a restore turns both switches back on.
      *
      * Device-local automatic-backup keys are captured and restored around the
      * clear: their SAF grant cannot be transferred in a backup document, but a

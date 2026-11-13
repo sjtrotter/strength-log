@@ -27,8 +27,8 @@ data class RoutineSheetState(val owner: String, val moves: List<Move>, val check
                              val startsCardio: Boolean = false)
 
 internal object RoutineSheets {
-    fun warmUp(state: DayUiState, prefs: RoutinePrefs, progress: RoutineProgress?): RoutineSheetState? {
-        if (!prefs.warmUp || state.loading) return null
+    fun warmUp(state: DayUiState, prefs: RoutinePrefs?, progress: RoutineProgress?): RoutineSheetState? {
+        if (prefs == null || !prefs.warmUp || state.loading) return null
         val planId = state.planId
         val dayId = state.viewDayId
         if (planId != null && dayId != null && progress?.owner == RoutineProgress.cardioStartOwner(planId, dayId) &&
@@ -44,8 +44,8 @@ internal object RoutineSheets {
         return null
     }
 
-    fun coolDown(state: DayUiState, prefs: RoutinePrefs, progress: RoutineProgress?): RoutineSheetState? {
-        if (!prefs.coolDown) return null
+    fun coolDown(state: DayUiState, prefs: RoutinePrefs?, progress: RoutineProgress?): RoutineSheetState? {
+        if (prefs == null || !prefs.coolDown) return null
         if (progress?.owner?.startsWith("cardio:") == true) {
             return sheet(progress.owner, emptyList(), progress, null, warmUp = false)
         }

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -72,6 +73,29 @@ class RoutineSheetTest {
         } }
         rule.onNodeWithText("Start timer").performScrollTo().performClick()
         rule.runOnIdle { assertEquals(1, started) }
+    }
+
+    @Test fun `idle timer exposes its total duration`() {
+        rule.setContent { AppTheme {
+            RoutineSheet(RoutineKind.WARM_UP, sheet, 0, { 0 }, {}, {}, {}, {}, {})
+        } }
+        rule.onNodeWithContentDescription("Timer, 5 minutes").assertIsDisplayed()
+    }
+
+    @Test fun `running timer updates the remaining line every second`() {
+        var now = 108_000L
+        rule.mainClock.autoAdvance = false
+        rule.setContent { AppTheme {
+            RoutineSheet(RoutineKind.WARM_UP, sheet.copy(timerStartedAt = 0), 0, { now },
+                {}, {}, {}, {}, {})
+        } }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithContentDescription("3 minutes 12 seconds left").assertExists()
+        rule.runOnIdle { now += 1_000 }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag("routine-timer-3:11", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("3 minutes 11 seconds left").assertIsDisplayed()
+        rule.onNodeWithContentDescription("3 minutes 11 seconds left").assertExists()
     }
 
     @Test fun `running timer shows the remaining time and Stop callback`() {

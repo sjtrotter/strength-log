@@ -130,17 +130,20 @@ private fun RoutineTimer(sheet: RoutineSheetState, nowMillis: () -> Long, onStar
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (startedAt != null) {
-            val announcedSeconds = remember(sheet.owner, startedAt, if (remaining == 0) -1 else (remaining - 1) / 60) { remaining }
-            val announcement = if (announcedSeconds == 0) stringResource(R.string.routine_timer_done) else
-                stringResource(R.string.routine_timer_left, formatDurationWords(context.resources, announcedSeconds))
+            val announcement = if (remaining == 0) stringResource(R.string.routine_timer_done) else
+                stringResource(R.string.routine_timer_left, formatDurationWords(context.resources, remaining))
             Text(announcement, style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement })
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             val time = formatCardioTime(remaining)
+            val timerDescription = stringResource(R.string.routine_timer_duration,
+                formatDurationWords(context.resources, sheet.timerSeconds))
             Text(time, style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.testTag("routine-timer-$time").clearAndSetSemantics { })
+                modifier = Modifier.testTag("routine-timer-$time").clearAndSetSemantics {
+                    if (startedAt == null) contentDescription = timerDescription
+                })
             if (startedAt == null) {
                 FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.routine_timer_start)) }
             } else {

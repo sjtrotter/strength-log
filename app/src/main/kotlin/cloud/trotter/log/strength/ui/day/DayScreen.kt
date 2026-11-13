@@ -113,7 +113,7 @@ fun DayScreen(
             noteSave = noteSave,
             onNoteSaveHandled = onNoteSaveHandled,
         )
-        state.coolDown?.let { RoutineSheetHost(RoutineKind.COOL_DOWN, it, state.dayIndex, nowMillis, actions) }
+        state.coolDown?.let { RoutineSheetHost(RoutineKind.COOL_DOWN, it, receipt.dayIndex, nowMillis, actions) }
         return
     }
     if (finish != null) {

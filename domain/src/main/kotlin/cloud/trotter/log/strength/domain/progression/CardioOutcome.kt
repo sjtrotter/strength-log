@@ -16,6 +16,8 @@ sealed interface CardioChange {
     data object Step : CardioChange
     /** A lone base-phase quality day switched kind (§3.1.2). */
     data class Alternate(val to: RunSession) : CardioChange
+    /** A layoff took a sprint day back to its low end and restarted the intro (design §3.1.3). */
+    data object Restart : CardioChange
 }
 
 /** Next time's block and rule for a cardio day; the caller writes both together. */

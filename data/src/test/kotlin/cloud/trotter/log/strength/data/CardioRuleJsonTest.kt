@@ -67,4 +67,25 @@ class CardioRuleJsonTest {
             assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(json) }
         }
     }
+
+    @Test fun `sprint rule state round trips and stays absent by default`() {
+        for ((rule, json) in listOf(
+            CardioRule(null, RunSession.ACCELERATION, intro = 3) to """{"session":"ACCELERATION","intro":3}""",
+            CardioRule(null, RunSession.ACCELERATION, steps = 4, credits = 1, held = 2) to
+                """{"session":"ACCELERATION","steps":4,"credits":1,"held":2}""",
+            CardioRule(null, RunSession.ACCELERATION) to """{"session":"ACCELERATION"}""",
+        )) {
+            assertEquals(json, CardioRuleJson.encode(rule))
+            assertEquals(rule, CardioRuleJson.decode(json))
+            CardioRuleJson.validate(json)
+        }
+        for (json in listOf(
+            """{"session":"EASY","intro":1}""",
+            """{"session":"ACCELERATION","held":1}""",
+            """{"session":"ACCELERATION","steps":1,"intro":2}""",
+        )) {
+            assertNull(CardioRuleJson.decode(json))
+            assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(json) }
+        }
+    }
 }

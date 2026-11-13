@@ -17,12 +17,14 @@ object GoalProgress {
      * using recorded metres first, then a planned Distance end. Longer attempts use their whole
      * time: reaching the goal distance was no slower than completing the longer attempt.
      * A row with at-end readings uses them: the time at the planned end, never the overrun.
+     * A timed sprint rep counts only in its own series ([SprintComparison]).
      */
     fun bestTimed(goal: PlanGoal.Timed, sessions: List<Pair<CardioActivity?, List<CardioSetResult>>>): Int? =
         sessions.mapNotNull { (activity, results) ->
             if (activity != goal.activity) return@mapNotNull null
             val work = results.filter { it.spec.role == CardioRole.WORK }.singleOrNull()
                 ?: return@mapNotNull null
+            if (work.timing != null) return@mapNotNull null
             val atEnd = FinishedRule.finished(work)
             val metres = (if (atEnd != null) work.metresAtEnd else work.metres)
                 ?: (work.spec.end as? Measure.Distance)?.metres ?: return@mapNotNull null

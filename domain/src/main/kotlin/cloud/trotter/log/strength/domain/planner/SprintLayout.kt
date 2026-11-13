@@ -3,11 +3,6 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.availableWith
-import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.CardioBlock
-import cloud.trotter.log.strength.domain.model.CardioRole
-import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.Program
@@ -21,21 +16,20 @@ import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SprintRules
+import cloud.trotter.log.strength.domain.progression.sprintBlock
 
 private data class SprintEntry(
     val session: RunSession? = null, val plyos: Boolean = false, val lower: Boolean = false,
     val upper: Boolean = false, val nordic: Boolean = false,
 )
 
-/** §3.1.3: "Every sprint day opens with a 10 min build-up block before the first maximal rep". */
-private val BUILD_UP = CardioSetSpec(CardioRole.WARMUP, Measure.Time(600))
 /** Acceleration without the intro opens at 100 to 200 m of WORK (§3.1.3, revision 30). */
 private const val OPENING_METRES = 100
 /** 65 contacts, inside 40 to 80 (revision 30). */
 private val OPENING_PLYOS = listOf("pogo_hop" to 3, "a_skip" to 1)
 /** Nordic 2 × 4 to 6 (§3.1.3). */
 private val NORDIC_TARGET = RepTarget.Range(4, 6, 4)
-private val SPRINT_ACTIVITY = CardioActivity.TRACK_RUN
 
 private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
     val short = event in listOf(SprintEvent.YD40, SprintEvent.M60, SprintEvent.M100)
@@ -58,17 +52,10 @@ private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
     }
 }
 
-internal fun sprintBlock(session: RunSession, steps: Int): CardioBlock {
-    val block = requireNotNull(RunRange.of(session)).block(steps, SPRINT_ACTIVITY)
-    return if (session == RunSession.SPRINT_TEMPO) block else block.copy(sets = listOf(BUILD_UP) + block.sets)
-}
-
 private fun openingSteps(session: RunSession, intro: Boolean): Int {
     if (intro || session != RunSession.ACCELERATION) return 0
-    val range = requireNotNull(RunRange.of(session))
-    return (0..range.top).first { steps ->
-        range.block(steps, SPRINT_ACTIVITY).sets.filter { it.role == CardioRole.WORK }
-            .sumOf { (it.end as Measure.Distance).metres } >= OPENING_METRES
+    return (0..requireNotNull(RunRange.of(session)).top).first {
+        SprintRules.workMetres(sprintBlock(session, it)) >= OPENING_METRES
     }
 }
 
@@ -93,7 +80,7 @@ private fun upperLifts(answers: SetupAnswers, mains: List<ExerciseEntry>): List<
     mains.filter { mainRow(it.pattern) in 2..4 }.map { liftSlot(SlotRole.MAIN, it, answers) }
 
 /** Design §2.1's Sprint column at creation: two sprint days a rest entry apart, plyometrics on Sprint A,
- *  lift days with [liftGoal]'s rules. Sprint blocks are exempt from the run cap; progression is PR 5c. */
+ *  lift days with [liftGoal]'s rules. Sprint blocks are exempt from the run cap; [SprintRules] steps them. */
 internal fun sprintDraft(answers: SetupAnswers, known: KnownLoads, liftGoal: LiftGoal): PlanDraft {
     val liftAnswers = answers.copy(goal = liftGoal)
     val mains = resolveMains(liftAnswers)
@@ -128,7 +115,8 @@ internal fun sprintDraft(answers: SetupAnswers, known: KnownLoads, liftGoal: Lif
             sessions[id] = session
             val steps = openingSteps(session, answers.sprint.intro)
             ProgramDay(id, session.title, "", exercises, kind = ProgramDayKind.CARDIO,
-                cardioBlock = sprintBlock(session, steps), cardioRule = CardioRule(null, session, steps = steps))
+                cardioBlock = sprintBlock(session, steps), cardioRule = CardioRule(null, session, steps = steps,
+                    intro = if (answers.sprint.intro) SprintRules.INTRO_SESSIONS else 0))
         } else ProgramDay(id, if (entry.lower) "Lower" else "Upper", "", exercises)
         if (exercises.isNotEmpty()) {
             val (fittedDay, dayReasons) = fitDay(day, liftAnswers)

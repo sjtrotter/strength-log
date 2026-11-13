@@ -4,8 +4,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 
 /** A cardio day's progression state, the cardio twin of [SlotRule], kept on [ProgramDay.cardioRule] and changed
  *  only by [Progression.cardioAfterSession]. The planner sets the ladder level, the session kind, the alternation
- *  and the long-run target; ranges step in [Progression.cardioAfterSession]; a sprint day's opening step is set
- *  at creation, its progression in PR 5c. */
+ *  and the long-run target; ranges step in [Progression.cardioAfterSession]; sprint days step by [SprintRules]. */
 data class CardioRule(
     /** The run/walk ladder level, 1 to [RunWalkLadder.TOP]; null when the day is not on the ladder. */
     val ladderLevel: Int?,
@@ -21,6 +20,10 @@ data class CardioRule(
      *  pace, a distance end. */
     val longMetres: Int? = null,
     val longSeconds: Int? = null,
+    /** Counted sessions left at the range's low end (design §3.1.3 Intro); sprint days only. */
+    val intro: Int = 0,
+    /** Counted sessions a ready sprint step has waited on the weekly 15%; each adds another 15% ([SprintRules.withinRise]). */
+    val held: Int = 0,
 ) {
     init {
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
@@ -36,5 +39,10 @@ data class CardioRule(
         require(session != RunSession.LONG || longMetres != null || longSeconds != null)
         require(longMetres == null || longMetres in 1..200_000)
         require(longSeconds == null || longSeconds in 1..86_400)
+        require(intro in 0..SprintRules.INTRO_SESSIONS && held >= 0)
+        require((intro == 0 && held == 0) || session?.sprint == true)
+        require(intro == 0 || (steps == 0 && credits == 0))
+        require(held == 0 || credits == 1)
+        require(alternate == null || (session?.sprint != true && !alternate.sprint))
     }
 }

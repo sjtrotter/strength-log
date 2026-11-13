@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.sprintBlock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -53,8 +54,8 @@ class PlannerSprintTest {
         assertEquals(mapOf("A" to RunSession.ACCELERATION, "C" to RunSession.MAX_VELOCITY), draft.sessions)
         assertEquals(acc0, day(draft, "A").cardioBlock)
         assertEquals(maxv0, day(draft, "C").cardioBlock)
-        assertEquals(CardioRule(null, RunSession.ACCELERATION), day(draft, "A").cardioRule)
-        assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), day(draft, "C").cardioRule)
+        assertEquals(CardioRule(null, RunSession.ACCELERATION, intro = 3), day(draft, "A").cardioRule)
+        assertEquals(CardioRule(null, RunSession.MAX_VELOCITY, intro = 3), day(draft, "C").cardioRule)
         assertEquals(listOf("pogo_hop", "a_skip", "bb_back_squat", "rdl", "bss"), ids(draft, "A"))
         assertEquals(listOf(SlotRole.PLYO, SlotRole.PLYO, SlotRole.MAIN, SlotRole.ACCESSORY, SlotRole.ACCESSORY), roles(draft, "A"))
         assertEquals(listOf("bb_bench", "ohp", "bb_row", "nordic"), ids(draft, "C"))
@@ -105,9 +106,9 @@ class PlannerSprintTest {
             if (event in listOf(SprintEvent.M200, SprintEvent.M400)) {
                 val cardio = draft.program.cardioDays
                 assertEquals(maxv0, cardio[0].cardioBlock)
-                assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), cardio[0].cardioRule)
+                assertEquals(CardioRule(null, RunSession.MAX_VELOCITY, intro = 3), cardio[0].cardioRule)
                 assertEquals(se0, cardio[1].cardioBlock)
-                assertEquals(CardioRule(null, RunSession.SPRINT_ENDURANCE), cardio[1].cardioRule)
+                assertEquals(CardioRule(null, RunSession.SPRINT_ENDURANCE, intro = 3), cardio[1].cardioRule)
                 assertEquals(listOf(RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE), draft.sessions.values.toList())
             } else {
                 assertEquals(reference.program.days.map { it.cardioBlock }, draft.program.days.map { it.cardioBlock })
@@ -146,7 +147,7 @@ class PlannerSprintTest {
         val tempo = day(five, "F")
         assertEquals(ProgramDayKind.CARDIO, tempo.kind)
         assertEquals(tempo0, tempo.cardioBlock)
-        assertEquals(CardioRule(null, RunSession.SPRINT_TEMPO), tempo.cardioRule)
+        assertEquals(CardioRule(null, RunSession.SPRINT_TEMPO, intro = 3), tempo.cardioRule)
         assertTrue(tempo.exercises.isEmpty())
         assertEquals(816, SessionBudget.seconds(tempo, LiftGoal.STRENGTH))
         val upper = day(six, "G")
@@ -172,7 +173,7 @@ class PlannerSprintTest {
         assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), day(draft, "D").cardioRule)
         val strain = Planner.plan(sprint(answers = recent.copy(hamstringStrain = true)))
         assertEquals(acc0, day(strain, "A").cardioBlock)
-        assertEquals(CardioRule(null, RunSession.ACCELERATION), day(strain, "A").cardioRule)
+        assertEquals(CardioRule(null, RunSession.ACCELERATION, intro = 3), day(strain, "A").cardioRule)
         val longEvent = Planner.plan(sprint(answers = recent.copy(event = SprintEvent.M200)))
         assertEquals(maxv0, day(longEvent, "A").cardioBlock)
         assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), day(longEvent, "A").cardioRule)

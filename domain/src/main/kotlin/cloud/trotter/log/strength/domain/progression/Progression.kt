@@ -230,18 +230,24 @@ object Progression {
     }
 
     /** [measure] and [percent] are the day's resolved A16 settings ([CardioMeasures.resolve], the day's or plan's
-     *  percent); [runCap] is the plan's Run cap setting, on by default. */
+     *  percent); [runCap] is the plan's Run cap setting, on by default. [sprint] is read on sprint days, which require it. */
     data class CardioContext(
         val todayEpochDay: Long,
         val measure: ProgressMeasure?,
         val percent: Int,
         val runCap: Boolean = true,
+        val sprint: SprintContext? = null,
     )
 
     /** The block a cardio day opens with, as a view: the taper from [goal]'s date, then the run cap against [recent].
-     *  A ladder day opens unchanged: the ladder is its own guardrail. */
+     *  A ladder day opens unchanged: the ladder is its own guardrail.
+     *  A sprint day takes neither: it opens its intro block after a layoff or the time trial on its rotation ([SprintRules]). */
     fun cardioAtStart(block: CardioBlock, rule: CardioRule?, recent: CardioHistory, goal: PlanGoal?, ctx: CardioContext): CardioBlock {
         if (rule?.ladderLevel != null) return block
+        val session = rule?.session
+        if (rule != null && session != null && session.sprint) {
+            return SprintRules.opening(block, rule, session, requireNotNull(ctx.sprint), ctx.todayEpochDay)
+        }
         val tapered = Taper.factor(goal, ctx.todayEpochDay)?.let { Taper.applied(block, it) } ?: block
         return if (ctx.runCap) RunCap.capped(tapered, RunCap.anchor(recent, ctx.todayEpochDay), recent.secondsPerMetre) else tapered
     }
@@ -249,7 +255,8 @@ object Progression {
     /** After Finish: next time's block and rule. A ladder day moves by [effort] (null reads as Easy, the ladder's band)
      *  and [pain]; any other day takes A16's increase on full success, capped against [recent] and this session.
      *  A ruled day: an easy run repeats, a long run takes A16's increase up to its target, and a quality session adds
-     *  one unit of its range every two counted sessions (design §3.1). */
+     *  one unit of its range every two counted sessions (design §3.1); a sprint day steps every two counted sessions
+     *  under the weekly 15% ([SprintRules]). */
     fun cardioAfterSession(
         block: CardioBlock,
         rule: CardioRule?,
@@ -280,6 +287,8 @@ object Progression {
             session == RunSession.LONG -> grown(block, rule, results, recent, ctx) {
                 longStopped(it, block, rule, recent.secondsPerMetre)
             }
+            session.sprint -> SprintRules.afterSession(block, rule, session, results, effort, pain,
+                requireNotNull(ctx.sprint), ctx.todayEpochDay)
             else -> ranged(block, rule, session, results, effort, recent, ctx)
         }
     }

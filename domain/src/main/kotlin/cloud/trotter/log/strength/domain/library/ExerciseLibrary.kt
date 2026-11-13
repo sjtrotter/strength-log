@@ -12,6 +12,8 @@ import cloud.trotter.log.strength.domain.model.Equipment.PULLUP_BAR
 import cloud.trotter.log.strength.domain.model.Equipment.RACK
 import cloud.trotter.log.strength.domain.model.Equipment.TRAP_BAR
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.MovementPattern.BALANCE
+import cloud.trotter.log.strength.domain.model.MovementPattern.PLYOMETRIC
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
 import cloud.trotter.log.strength.domain.model.MovementPattern.CALF_GASTROC
 import cloud.trotter.log.strength.domain.model.MovementPattern.CALF_SOLEUS
@@ -54,6 +56,77 @@ object ExerciseLibrary {
 
     private fun time(targetSeconds: Int, addedWeightLb: Double = 0.0) =
         GoalSource.Time(targetSeconds, addedWeightLb)
+
+    private val PATTERN_MUSCLES: Map<MovementPattern, Pair<Set<Muscle>, Set<Muscle>>> = mapOf(
+        SQUAT_BILATERAL to (setOf(Muscle.QUADS, Muscle.GLUTES) to setOf()),
+        SINGLE_LEG to (setOf(Muscle.QUADS, Muscle.GLUTES) to setOf()),
+        HINGE to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf(Muscle.QUADS, Muscle.UPPER_BACK)),
+        KNEE_FLEXION to (setOf(Muscle.HAMSTRINGS) to setOf()),
+        KNEE_EXTENSION to (setOf(Muscle.QUADS) to setOf()),
+        H_PUSH to (setOf(Muscle.CHEST) to setOf(Muscle.FRONT_DELT, Muscle.TRICEPS)),
+        V_PUSH to (setOf(Muscle.FRONT_DELT) to setOf(Muscle.TRICEPS)),
+        H_PULL to (setOf(Muscle.UPPER_BACK, Muscle.LATS) to setOf(Muscle.BICEPS, Muscle.REAR_DELT)),
+        V_PULL to (setOf(Muscle.LATS) to setOf(Muscle.BICEPS, Muscle.UPPER_BACK)),
+        SIDE_DELT to (setOf(Muscle.SIDE_DELT) to setOf()),
+        REAR_DELT to (setOf(Muscle.REAR_DELT) to setOf(Muscle.UPPER_BACK)),
+        BICEPS to (setOf(Muscle.BICEPS) to setOf()),
+        TRICEPS to (setOf(Muscle.TRICEPS) to setOf()),
+        CALF_GASTROC to (setOf(Muscle.CALVES) to setOf()),
+        CALF_SOLEUS to (setOf(Muscle.CALVES) to setOf()),
+        CORE_ANTI_EXT to (setOf(Muscle.CORE) to setOf()),
+        CORE_ANTI_ROT to (setOf(Muscle.CORE) to setOf()),
+        CORE_FLEX to (setOf(Muscle.CORE) to setOf()),
+    )
+
+    private val MUSCLE_EXCEPTIONS: Map<String, Pair<Set<Muscle>, Set<Muscle>>> = mapOf(
+        "leg_press" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "hack_squat" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "pendulum_squat" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "belt_squat" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "smith_squat" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "sl_leg_press" to (setOf(Muscle.QUADS) to setOf(Muscle.GLUTES)),
+        "wall_sit" to (setOf(Muscle.QUADS) to setOf()),
+        "trap_dl" to (setOf(Muscle.QUADS, Muscle.GLUTES) to setOf(Muscle.HAMSTRINGS, Muscle.UPPER_BACK)),
+        "rdl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "stiff_dl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "good_morning" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "db_rdl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "kb_rdl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "smith_rdl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "sl_rdl" to (setOf(Muscle.HAMSTRINGS, Muscle.GLUTES) to setOf()),
+        "hip_thrust" to (setOf(Muscle.GLUTES) to setOf(Muscle.HAMSTRINGS)),
+        "glute_bridge" to (setOf(Muscle.GLUTES) to setOf(Muscle.HAMSTRINGS)),
+        "machine_hip_thrust" to (setOf(Muscle.GLUTES) to setOf(Muscle.HAMSTRINGS)),
+        "cable_pullthrough" to (setOf(Muscle.GLUTES) to setOf(Muscle.HAMSTRINGS)),
+        "back_ext" to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf()),
+        "back_ext_45" to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf()),
+        "reverse_hyper" to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf()),
+        "kb_swing" to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf()),
+        "kb_deadlift" to (setOf(Muscle.GLUTES, Muscle.HAMSTRINGS) to setOf(Muscle.QUADS)),
+        "ghr" to (setOf(Muscle.HAMSTRINGS) to setOf(Muscle.GLUTES)),
+        "db_fly" to (setOf(Muscle.CHEST) to setOf()),
+        "cable_fly" to (setOf(Muscle.CHEST) to setOf()),
+        "low_cable_fly" to (setOf(Muscle.CHEST) to setOf()),
+        "pec_deck" to (setOf(Muscle.CHEST) to setOf()),
+        "dips" to (setOf(Muscle.CHEST, Muscle.TRICEPS) to setOf(Muscle.FRONT_DELT)),
+        "bw_dip" to (setOf(Muscle.CHEST, Muscle.TRICEPS) to setOf(Muscle.FRONT_DELT)),
+        "landmine_press" to (setOf(Muscle.FRONT_DELT) to setOf(Muscle.CHEST, Muscle.TRICEPS)),
+        "straight_arm_pd" to (setOf(Muscle.LATS) to setOf()),
+        "db_pullover" to (setOf(Muscle.LATS) to setOf()),
+        "dead_hang" to (setOf() to setOf()),
+        "db_upright_row" to (setOf(Muscle.SIDE_DELT) to setOf(Muscle.UPPER_BACK)),
+        "bb_upright_row" to (setOf(Muscle.SIDE_DELT) to setOf(Muscle.UPPER_BACK)),
+        "cgbp" to (setOf(Muscle.TRICEPS) to setOf(Muscle.CHEST, Muscle.FRONT_DELT)),
+        "diamond_pushup" to (setOf(Muscle.TRICEPS) to setOf(Muscle.CHEST)),
+        "farmers_carry" to (setOf(Muscle.CORE) to setOf(Muscle.UPPER_BACK)),
+        "suitcase_carry" to (setOf(Muscle.CORE) to setOf(Muscle.UPPER_BACK)),
+        "turkish_getup" to (setOf(Muscle.CORE) to setOf(Muscle.FRONT_DELT)),
+        "pogo_hop" to (setOf() to setOf(Muscle.CALVES)),
+        "a_skip" to (setOf() to setOf()),
+        "single_leg_stance" to (setOf() to setOf()),
+        "bound" to (setOf() to setOf(Muscle.QUADS, Muscle.GLUTES)),
+        "box_jump" to (setOf() to setOf(Muscle.QUADS, Muscle.GLUTES)),
+    )
 
     val entries: List<ExerciseEntry> = listOf(
         ExerciseEntry("bb_back_squat", "Barbell Back Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, std(SQUAT), 1, shortName = "Squat", mainCapable = true),
@@ -178,7 +251,7 @@ object ExerciseLibrary {
         ExerciseEntry("db_pullover", "DB Pullover", V_PULL, listOf(DUMBBELL, BENCH), false, flat(60.0), 9),
         ExerciseEntry("weighted_pullup", "Weighted Pull-Up", V_PULL, listOf(PULLUP_BAR), false, flat(25.0), 10),
         ExerciseEntry("weighted_neutral_pullup", "Weighted Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, flat(25.0), 11),
-        ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12),
+        ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12, dose = Dose(3, 60)),
 
         ExerciseEntry("cable_lateral", "Cable Lateral Raise", SIDE_DELT, listOf(CABLE), false, flat(15.0), 1, shortName = "Cable Lateral"),
         ExerciseEntry("db_lateral", "DB Lateral Raise", SIDE_DELT, listOf(DUMBBELL), true, flat(15.0), 2, shortName = "DB Lateral"),
@@ -241,13 +314,13 @@ object ExerciseLibrary {
         ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, flat(25.0), 1),
-        ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2),
+        ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2, eachSide = true),
         ExerciseEntry("half_kneel_pallof", "Half-Kneeling Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, flat(20.0), 3, shortName = "Kneeling Pallof"),
         ExerciseEntry("landmine_rotation", "Landmine Rotation", CORE_ANTI_ROT, listOf(BARBELL), false, flat(25.0), 4),
         ExerciseEntry("kb_windmill", "KB Windmill", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(25.0), 5),
         ExerciseEntry("turkish_getup", "Turkish Get-Up", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(35.0), 6),
         ExerciseEntry("farmers_carry", "Farmer's Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 7),
-        ExerciseEntry("side_plank", "Side Plank", CORE_ANTI_ROT, listOf(BODYWEIGHT), false, time(30), 8),
+        ExerciseEntry("side_plank", "Side Plank", CORE_ANTI_ROT, listOf(BODYWEIGHT), false, time(30), 8, eachSide = true),
 
         ExerciseEntry("cable_crunch", "Cable Crunch", CORE_FLEX, listOf(CABLE), false, flat(90.0), 1),
         ExerciseEntry("hanging_raise", "Hanging Leg Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(10), 2, shortName = "Leg Raise"),
@@ -259,7 +332,17 @@ object ExerciseLibrary {
         ExerciseEntry("knee_raise", "Captain's Chair Knee Raise", CORE_FLEX, listOf(MACHINE), false, reps(12), 8, shortName = "Knee Raise"),
         ExerciseEntry("hanging_knee_raise", "Hanging Knee Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(12), 9, weightedPairId = "weighted_knee_raise"),
         ExerciseEntry("weighted_knee_raise", "Weighted Knee Raise", CORE_FLEX, listOf(PULLUP_BAR, DUMBBELL), false, flat(10.0), 10),
-    )
+        ExerciseEntry("pogo_hop", "Pogo Hop", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(15), 1, dose = Dose(3, 60)),
+        ExerciseEntry("a_skip", "A-Skip", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(20), 2, dose = Dose(2, 60)),
+        ExerciseEntry("bound", "Bound", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(6), 3, dose = Dose(3, 90)),
+        ExerciseEntry("box_jump", "Box Jump", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(5), 4, dose = Dose(3, 90)),
+        ExerciseEntry("single_leg_stance", "Single-Leg Stance", BALANCE, listOf(BODYWEIGHT), false, time(30), 1, eachSide = true, dose = Dose(2, 30)),
+        ExerciseEntry("sit_to_stand", "Sit-to-Stand", SQUAT_BILATERAL, listOf(BODYWEIGHT), false, reps(10), 15, weightedPairId = "goblet_squat", dose = Dose(2, 60)),
+    ).map { entry ->
+        val (primary, secondary) = MUSCLE_EXCEPTIONS[entry.id] ?: PATTERN_MUSCLES[entry.pattern]
+            ?: (emptySet<Muscle>() to emptySet())
+        entry.copy(primary = primary, secondary = secondary)
+    }
 
     /** Names a catalog entry used to have, so files written before a rename still match. */
     val FORMER_NAMES: Map<String, String> = mapOf("Plank / Side Plank" to "plank")

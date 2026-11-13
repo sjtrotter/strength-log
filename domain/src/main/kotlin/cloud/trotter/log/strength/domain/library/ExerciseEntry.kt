@@ -76,7 +76,16 @@ data class ExerciseEntry(
     /** May anchor a plan as a main lift: conversion makes a straight slot of this entry MAIN (design §4.4), and
      *  setup's Your lifts lists these (PR 6). Custom exercises never are. */
     val mainCapable: Boolean = false,
+    /** A primary credits 1 per working set, a secondary 0.5 (design §3.1 invariant 5). */
+    val primary: Set<Muscle> = emptySet(),
+    val secondary: Set<Muscle> = emptySet(),
+    /** One set covers both sides; the set timer runs the target once per side (PR 6). */
+    val eachSide: Boolean = false,
+    /** The owner's set count and rest for this exercise wherever the planner places it outside a main slot. */
+    val dose: Dose? = null,
 )
 
-fun ExerciseEntry.availableWith(equipment: Set<Equipment>): Boolean =
-    this.equipment.all { it in equipment }
+data class Dose(val sets: Int, val restSeconds: Int)
+
+fun ExerciseEntry.availableWith(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): Boolean =
+    id !in excluded && this.equipment.all { it in equipment }

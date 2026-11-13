@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
-/** Why a slot changed (or didn't) after a session; the receipt's "Why" line reads it. The planner adds its own
- *  reasons in PR 3. */
+/** Why a slot changed (or didn't) after a session; the receipt's "Why" line reads it. */
 sealed interface Reason {
     data object NoSets : Reason
     data object LightCycle : Reason

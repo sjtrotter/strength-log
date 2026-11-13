@@ -255,9 +255,13 @@ internal fun cardioIntervalValue(row: CardioReceiptRow, interval: CardioInterval
 @Composable
 internal fun spokenInterval(row: CardioReceiptRow, index: Int, unit: DistanceUnit): String {
     val interval = row.intervals[index]
-    if (interval.status == CardioSetStatus.SKIPPED) return stringResource(R.string.receipt_say_interval_skipped, index + 1)
+    if (interval.status == CardioSetStatus.SKIPPED) return if (row.role == CardioRole.WORK) {
+        stringResource(R.string.receipt_say_interval_skipped, index + 1)
+    } else stringResource(R.string.receipt_say_skipped, cardioRowName(row, unit))
     val value = if (row.endMetres != null) spokenDuration(interval.elapsedSeconds)
         else interval.metres?.let { spokenDistance(it, unit) } ?: stringResource(R.string.receipt_cardio_distance_missing)
+    if (row.role != CardioRole.WORK) return stringResource(R.string.receipt_say_cardio_value, cardioRowName(row, unit),
+        if (interval.status == CardioSetStatus.SHORTENED) shortenedInterval(row, interval, unit, spoken = true) else value)
     val record = row.record?.takeIf { it.intervalIndex == index }
     return when {
         record != null -> stringResource(R.string.receipt_say_interval_record, index + 1, value,

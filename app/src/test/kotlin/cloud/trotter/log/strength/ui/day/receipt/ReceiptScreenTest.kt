@@ -41,6 +41,11 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.ReadingSource
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -415,6 +420,106 @@ class ReceiptScreenTest {
         rule.onNodeWithContentDescription("Recovery 1 minute 30 seconds each").assertExists()
         rule.onNodeWithText("PR, up from 1:42", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Interval 2, 1 minute 38 seconds, faster record, up from 1 minute 42 seconds.").assertExists()
+    }
+
+    @Test fun measuredOverrunShowsTwoLegsAndDerivedReadingShowsTheTotal() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
+            CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,
+            secondsAtEnd = 1500, readingSource = ReadingSource.TYPED)
+        val progress = mutableStateOf(ReceiptProgressState(cardioSets = listOf(listOf(result))))
+        val receipt = timeTargetFixture().copy(cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN,
+            listOf(result), emptyMap()))
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) {
+            SessionReceiptScreen(receipt, {}, {}, progress = progress.value)
+        } } }
+        rule.onNodeWithText("5.00 km at 25:00", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertExists()
+        rule.runOnIdle { progress.value = progress.value.copy(cardioSets = listOf(listOf(
+            result.copy(metresAtEnd = null, readingSource = null)))) }
+        rule.onNodeWithText("5.00 km at 25:00", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("3:10, 0.60 km past the target", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("5.6 km", useUnmergedTree = true).assertExists()
+    }
+
+    @Test fun mergedDistanceWarmupsExpandToShowEachSetsMeasuredLegs() {
+        val spec = CardioSetSpec(CardioRole.WARMUP, Measure.Distance(500))
+        val results = listOf(
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 165, 550, DistanceSource.MANUAL,
+                secondsAtEnd = 150, readingSource = ReadingSource.TYPED),
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 180, 600, DistanceSource.MANUAL,
+                secondsAtEnd = 160, readingSource = ReadingSource.TYPED),
+        )
+        val receipt = timeTargetFixture().copy(cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN,
+            results, emptyMap()))
+        assertEquals(2, receipt.cardioRows.single().intervals.size)
+        val progress = ReceiptProgressState(cardioSets = listOf(results))
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) {
+            SessionReceiptScreen(receipt, {}, {}, progress = progress)
+        } } }
+
+        rule.onNodeWithText("2:30 at 0.5 km", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("2:40 at 0.5 km", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("Warm-up, 5 minutes 45 seconds.").assertHasClickAction().performClick()
+        listOf("2:30 at 0.5 km", "0:15, 0.05 km past the target",
+            "2:40 at 0.5 km", "0:20, 0.10 km past the target").forEach {
+            rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
+        }
+        rule.onNodeWithContentDescription("Warm-up, 2 minutes 45 seconds. 2:30 at 0.5 km. 0:15, 0.05 km past the target").assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 3 minutes. 2:40 at 0.5 km. 0:20, 0.10 km past the target").assertExists()
+        rule.onNodeWithContentDescription("Interval 1", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun mergedWarmupsAndCooldownsStayClosedWithoutMeasuredLegs() {
+        val results = listOf(CardioRole.WARMUP, CardioRole.COOLDOWN).flatMap { role ->
+            List(2) { CardioSetResult(CardioSetSpec(role, Measure.Time(300)),
+                CardioSetStatus.FINISHED, 310, 1050, DistanceSource.MANUAL,
+                metresAtEnd = 1000, secondsAtEnd = 300) }
+        }
+        val receipt = timeTargetFixture().copy(cardioRows = ReceiptBuilder.cardio(CardioActivity.ROAD_RUN,
+            results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = ReceiptBuilder.cardioGroups(results).map { it.sets })
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Warm-up, 10 minutes 20 seconds.").assertHasNoClickAction()
+        rule.onNodeWithContentDescription("Cool-down, 10 minutes 20 seconds.").assertHasNoClickAction()
+    }
+
+    @Test fun mergedCooldownWithOneMeasuredLegOpensAndNamesItsRole() {
+        val spec = CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500))
+        val results = listOf(
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 150, 500, DistanceSource.MANUAL),
+            CardioSetResult(spec, CardioSetStatus.FINISHED, 180, 600, DistanceSource.MANUAL,
+                secondsAtEnd = 160, readingSource = ReadingSource.TYPED),
+        )
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = listOf(results))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Cool-down, 5 minutes 30 seconds.").assertHasClickAction().performClick()
+        rule.onNodeWithContentDescription("Cool-down, 2 minutes 30 seconds.").assertExists()
+        rule.onNodeWithContentDescription("Cool-down, 3 minutes. 2:40 at 500 m. 0:20, 100 m past the target").assertExists()
+        rule.onNodeWithContentDescription("Interval 1", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun mixedWarmupChildrenUseTheirOwnTargetTypeForVisibleAndSpokenValues() {
+        val results = listOf(
+            CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+                CardioSetStatus.FINISHED, 300, 1000, DistanceSource.MANUAL),
+            CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Distance(500)),
+                CardioSetStatus.FINISHED, 165, 550, DistanceSource.MANUAL,
+                secondsAtEnd = 150, readingSource = ReadingSource.TYPED),
+        )
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        val progress = ReceiptProgressState(cardioSets = listOf(results))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+
+        rule.onNodeWithContentDescription("Warm-up, 7 minutes 45 seconds.").performClick()
+        rule.onNodeWithText("1,000 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("2:45", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 1,000 meters.").assertExists()
+        rule.onNodeWithContentDescription("Warm-up, 2 minutes 45 seconds. 2:30 at 500 m. 0:15, 50 m past the target").assertExists()
     }
 
     @Test

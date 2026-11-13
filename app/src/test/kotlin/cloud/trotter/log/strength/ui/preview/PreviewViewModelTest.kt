@@ -45,6 +45,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun `Automatic Finish updates the prescribed watch label from working rows`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))),
+        )))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        db.convertTestPlans(settings)
+        repo.plans.setAutoApply(plan, true)
+        val id = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", id, Slot.MAIN,
+            List(3) { index -> LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 2, plannedIndex = index) }, started.runId)
+        repo.finishRun(started.runId)
+        val day = repo.observeDay(plan, "A").first()
+        val watch = cloud.trotter.log.strength.sync.WatchSnapshotBuilder.build(day,
+            cloud.trotter.log.strength.domain.units.WeightUnit.LB, revision = 1)!!
+        assertEquals("3 × 5 · 190 lb", watch.day.exercises.single().goalLabel)
+    }
 
     @Test fun `cardio offer applies to working values and newest same-day session is judged`() = runTest(dispatcher) {
         val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(1200))

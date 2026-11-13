@@ -1,6 +1,10 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.lifecycle.SavedStateHandle
+import cloud.trotter.log.strength.data.convertTestPlans
+import cloud.trotter.log.strength.data.serialization.OpeningJson
+import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.RunStartResult
@@ -11,6 +15,9 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -36,6 +43,78 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TodayViewModelWiringTest : OverviewFixture() {
+    @Test fun lighterTodayHidesDuringALightWeekDraftOrRun() = runTest(dispatcher) {
+        insertProgram()
+        db.convertTestPlans(settings)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = today()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.upNext.single().lighterAvailable)
+        db.planDao().updateLightCycle(plan, 2, 0)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
+        db.planDao().updateLightCycle(plan, 0, 0)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.upNext.single().lighterAvailable)
+        val slot = repo.plans.slotsFor(plan, "A").first().first().programExerciseId
+        repo.applyToRun(db.programDao().day(plan, "A")!!.nextRunId, plan, "A", listOf(
+            TrackEdit(slot, Slot.MAIN) { rows -> rows.map { it.copy(reps = 3) } },
+        ))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.resumeDraft)
+        assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
+        vm.workoutStart.start(vm.uiState.value.resume!!.selection)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.resumeDraft)
+        assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
+    }
+
+    @Test fun planModeAndUnruledLiftsHaveNoLighterStart() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))),
+        )))))
+        db.convertTestPlans(settings)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        val vm = today()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.upNext.single().lighterAvailable)
+        assertTrue(repo.setKeepToPlan(slot, true))
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
+        repo.setKeepToPlan(slot, false)
+        db.programDao().setStructure(slot, db.programDao().exercise(slot)!!.structure)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.upNext.single().lighterAvailable)
+    }
+
+    @Test fun cardioOnlyAndRestDaysHaveNoLighterStart() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Run", "", emptyList(), kind = ProgramDayKind.CARDIO,
+                cardioBlock = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))),
+            ProgramDay("R", "Rest", "", emptyList(), kind = ProgramDayKind.REST),
+        )))
+        val vm = today()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.upNext.isNotEmpty())
+        assertTrue((vm.uiState.value.upNext + vm.uiState.value.otherDays).none { it.lighterAvailable })
+    }
+
+    @Test fun lighterStartOpensRuledLiftsBeforeNavigating() = runTest(dispatcher) {
+        insertProgram()
+        db.convertTestPlans(settings)
+        val vm = today()
+        advanceUntilIdle()
+        val target = vm.uiState.value.upNext.single().selection
+        vm.workoutStart.startLighter(target)
+        advanceUntilIdle()
+        val run = repo.openRunFlow.first()!!
+        assertFalse(run.draft)
+        assertTrue(run.tracks.all { it.opening?.light == true })
+        assertTrue(db.runDao().tracks(run.id).all { OpeningJson.decode(it.openingJson)?.light == true })
+        assertEquals(target, vm.workoutStart.navigation.first())
+    }
+
     @Test fun aGapInDayLettersKeepsTheThirdAccentForUpNextOtherDaysAndResume() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!

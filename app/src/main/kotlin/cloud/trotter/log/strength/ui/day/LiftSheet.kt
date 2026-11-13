@@ -67,6 +67,7 @@ internal fun LiftSheet(
     val nextTime = if (partner) card.partnerNextTime else card.nextTime
     val last = if (partner) card.partnerLastTimeDisplay else card.lastTimeDisplay
     val date = if (partner) card.partnerLastTimeDate else card.lastTimeDate
+    val marker = if (partner) card.partnerMarker else card.marker
     val support = listOfNotNull(
         workingHeading?.let { stringResource(R.string.lift_sheet_target, it) },
         (target as? HeaderTarget.Goal)?.takeIf { it.display.isNotBlank() && it.display.any { digit -> digit in '1'..'9' } }?.let {
@@ -78,6 +79,7 @@ internal fun LiftSheet(
         },
         target?.let { DayScreenBuilder.headerTargetDetail(it, stringResource(R.string.day_target_each_side)) }
             ?.takeIf { it.isNotBlank() },
+        marker?.let { stringResource(R.string.lift_sheet_marker, stringResource(it.label)) },
     ).joinToString(" ")
     var menuOpen by remember { mutableStateOf(false) }
     AppModalBottomSheet(onDismissRequest = onDismiss,

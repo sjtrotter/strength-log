@@ -10,6 +10,8 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -74,6 +76,89 @@ abstract class OpeningFixture : FinishProgressionFixture() {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class RunOpeningTest : OpeningFixture() {
+    @Test fun `lighter today opens two light sets and Finish preserves stored rows and rules`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_bench")
+        lifter(plan, id)
+        val beforeLog = log(plan, id)
+        val beforeRule = rule(id)
+        val started = repo.startRun(plan, "A", lighter = true) as RunStartResult.Started
+        val track = db.runDao().tracks(started.runId).single()
+        assertEquals(work(n = 2, w = 165.0), planned(track))
+        assertEquals(OpeningDto(light = true), OpeningJson.decode(track.openingJson))
+        restart()
+        val session = asPlanned(track, plan)
+        assertEquals(beforeLog, log(plan, id))
+        assertEquals(beforeRule, rule(id))
+        assertEquals("LIGHT_CYCLE", SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single().reason)
+        assertNull(offer(plan, "bb_bench"))
+    }
+
+    @Test fun `default Start keeps three working sets`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_bench")
+        lifter(plan, id)
+        val track = opened(plan)
+        assertEquals(work(), planned(track))
+        assertNull(OpeningJson.decode(track.openingJson))
+    }
+
+    @Test fun `a light week preserves recalibration after a three week break`() = runTest {
+        lightRecalibration(lighter = false)
+    }
+
+    @Test fun `lighter today preserves recalibration after a three week break`() = runTest {
+        lightRecalibration(lighter = true)
+    }
+
+    private suspend fun lightRecalibration(lighter: Boolean) {
+        val plan = rPlan()
+        val id = id(plan, "bb_back_squat")
+        settings.setGlobalLifter(GlobalLifter(age = 66))
+        history(plan, 21, sixteen)
+        db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = true,
+            lightCycleRemaining = if (lighter) 0 else 3))
+        val started = repo.startRun(plan, "A", lighter = lighter) as RunStartResult.Started
+        val track = db.runDao().tracks(started.runId).single()
+        assertEquals(OpeningDto(OpeningDto.RECALIBRATE, light = true), OpeningJson.decode(track.openingJson))
+        assertEquals(185.0, top(track))
+        restart()
+
+        val session = asPlanned(track, plan)
+
+        assertTrue(rule(id).state.calibrating)
+        assertEquals(1, rule(id).state.exposures)
+        assertEquals(WorkingRows.withWorkingWeight(squat(), 205.0, WeightUnit.LB,
+            listOf(Equipment.BARBELL, Equipment.RACK), Scheme.STRENGTH), rows(plan, id))
+        assertEquals("LIGHT_CYCLE", SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single().reason)
+    }
+
+    @Test fun `a tracking type change during a light run clears stale working rows for both tracks`() = runTest {
+        val plan = authored()
+        val id = add(plan, "bb_bench")
+        lifter(plan, id)
+        val started = repo.startRun(plan, "A", lighter = true) as RunStartResult.Started
+        repo.applyToRun(started.runId, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->
+            rows.map { it.copy(done = true) }
+        }))
+        val captured = db.runDao().tracks(started.runId).single()
+        repo.setPrescription(id, Prescription(PrescribedTarget.Hold(45)), 3)
+        db.storeTestRows("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.SS, work())
+        assertNotNull(db.programDao().logForSlot(plan, "A", id, Slot.MAIN))
+        assertNotNull(db.programDao().logForSlot(plan, "A", id, Slot.SS))
+
+        val session = assertNotNull(repo.finishRun(started.runId))
+
+        assertNull(db.programDao().logForSlot(plan, "A", id, Slot.MAIN))
+        assertNull(db.programDao().logForSlot(plan, "A", id, Slot.SS))
+        val archived = repo.history.sessionSets(session)
+        val actual = SetJson.decodeSets(captured.setsJson)
+        assertEquals(actual.map { it.reps }, archived.map { it.reps })
+        assertEquals(actual.map { it.done }, archived.map { it.done })
+        assertEquals(actual.map { it.seconds }, archived.map { it.seconds })
+    }
+
     @Test fun `case 13 a sixteen day gap opens the squat at ninety five percent`() = runTest {
         val plan = rPlan()
         history(plan, 16, sixteen)

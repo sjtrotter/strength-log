@@ -150,40 +150,15 @@ object ReceiptBuilder {
         results: List<CardioSetResult>,
         standing: Map<CardioRecordKey, CardioSetResult>,
     ): List<CardioReceiptRow> {
-        val rows = mutableListOf<CardioReceiptRow>()
-        val workRows = mutableMapOf<Measure, Int>()
-        var latestWork: Int? = null
-        var previousRole: CardioRole? = null
-        for (result in results) {
-            val role = result.spec.role
-            when (role) {
-                CardioRole.RECOVERY -> {
-                    if (result.status != CardioSetStatus.FINISHED) {
-                        rows += cardioRow(result).copy(intervals = listOf(result.interval()))
-                    } else latestWork?.let { index ->
-                        val row = rows[index]
-                        rows[index] = row.copy(recoverySeconds = row.recoverySeconds + result.elapsedSeconds)
-                    }
-                }
-                CardioRole.WORK -> {
-                    val index = workRows.getOrPut(result.spec.end) {
-                        rows.add(cardioRow(result))
-                        rows.lastIndex
-                    }
-                    val row = rows[index]
-                    rows[index] = row.copy(count = row.count + 1, intervals = row.intervals + result.interval())
-                    latestWork = index
-                }
-                CardioRole.WARMUP, CardioRole.COOLDOWN -> {
-                    val previous = rows.lastOrNull()
-                    if (previousRole == role && previous != null &&
-                        previous.intervals.all { it.status == CardioSetStatus.FINISHED } &&
-                        result.status == CardioSetStatus.FINISHED) {
-                        rows[rows.lastIndex] = previous.copy(intervals = previous.intervals + result.interval())
-                    } else rows += cardioRow(result).copy(intervals = listOf(result.interval()))
-                }
-            }
-            previousRole = role
+        val rows = cardioGroups(results).map { group ->
+            val first = group.sets.first()
+            cardioRow(first).copy(
+                count = if (first.spec.role == CardioRole.WORK) group.sets.size else 1,
+                intervals = group.sets.map { it.interval() }, recoverySeconds = group.recoverySeconds,
+            )
+        }.toMutableList()
+        val workRows = rows.withIndex().filter { it.value.role == CardioRole.WORK }.associate { (index, row) ->
+            (row.endSeconds?.let { Measure.Time(it) } ?: Measure.Distance(requireNotNull(row.endMetres))) to index
         }
         for (record in CardioBests.records(activity, results, standing)) {
             val index = workRows.getValue(record.key.end)
@@ -198,6 +173,44 @@ object ReceiptBuilder {
             rows[index] = row.copy(record = mark)
         }
         return rows
+    }
+
+    internal data class CardioResultGroup(val sets: List<CardioSetResult>, val recoverySeconds: List<Int> = emptyList())
+
+    internal fun cardioGroups(results: List<CardioSetResult>): List<CardioResultGroup> {
+        val groups = mutableListOf<CardioResultGroup>()
+        val workRows = mutableMapOf<Measure, Int>()
+        var latestWork: Int? = null
+        var previousRole: CardioRole? = null
+        for (result in results) {
+            val role = result.spec.role
+            when (role) {
+                CardioRole.RECOVERY -> {
+                    if (result.status != CardioSetStatus.FINISHED) groups += CardioResultGroup(listOf(result))
+                    else latestWork?.let { index ->
+                        val group = groups[index]
+                        groups[index] = group.copy(recoverySeconds = group.recoverySeconds + result.elapsedSeconds)
+                    }
+                }
+                CardioRole.WORK -> {
+                    val index = workRows.getOrPut(result.spec.end) {
+                        groups.add(CardioResultGroup(emptyList()))
+                        groups.lastIndex
+                    }
+                    groups[index] = groups[index].copy(sets = groups[index].sets + result)
+                    latestWork = index
+                }
+                CardioRole.WARMUP, CardioRole.COOLDOWN -> {
+                    val previous = groups.lastOrNull()
+                    if (previousRole == role && previous != null &&
+                        previous.sets.all { it.status == CardioSetStatus.FINISHED } && result.status == CardioSetStatus.FINISHED) {
+                        groups[groups.lastIndex] = previous.copy(sets = previous.sets + result)
+                    } else groups += CardioResultGroup(listOf(result))
+                }
+            }
+            previousRole = role
+        }
+        return groups
     }
 
     private fun cardioRow(result: CardioSetResult): CardioReceiptRow {

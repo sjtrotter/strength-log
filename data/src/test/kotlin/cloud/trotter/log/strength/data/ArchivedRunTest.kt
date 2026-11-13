@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
@@ -18,7 +19,8 @@ class ArchivedRunTest {
         val planned = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
         val dtos = listOf(
             PlannedTrackDto(0, "bb_bench", Slot.MAIN, true, planned.map(SetDto::of), liveSetCount = 0, programExerciseId = 7),
-            PlannedTrackDto(1, "ohp", Slot.MAIN, false, planned.map(SetDto::of), liveSetCount = 4, programExerciseId = 7),
+            PlannedTrackDto(1, "ohp", Slot.MAIN, false, planned.map(SetDto::of), liveSetCount = 4, programExerciseId = 7,
+                opening = OpeningDto(light = true)),
             PlannedTrackDto(2, "ez_curl", Slot.MAIN, true, planned.map(SetDto::of), liveSetCount = 0, programExerciseId = 8, dropped = true),
             PlannedTrackDto(3, "cable_row", Slot.SS, true, planned.map(SetDto::of), liveSetCount = 0, programExerciseId = 7, dropped = true),
         )
@@ -36,6 +38,7 @@ class ArchivedRunTest {
         assertEquals(1, recovered.tracks[0].sets.single().plannedIndex)
         assertEquals(2, recovered.tracks.sumOf { track -> track.sets.count { it.done } })
         assertEquals(4, recovered.tracks[1].sets.size)
+        assertEquals(OpeningDto(light = true), recovered.tracks[1].opening)
         assertTrue(recovered.tracks[2].dropped)
         assertTrue(recovered.tracks[3].dropped)
         assertEquals(RunSetCounts(2, 4, 3), recovered.tracks.setCounts())

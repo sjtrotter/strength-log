@@ -108,6 +108,9 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                                         }
                                     }
                                 }
+                                listOfNotNull(lift.marker, lift.partnerMarker).distinct().forEach {
+                                    Text(stringResource(it.label), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 lift.previous.forEach { previous ->
                                     val source = previous.source?.let { day ->
                                         previous.sourcePlanName?.let { stringResource(R.string.today_plan_day, it, day) }

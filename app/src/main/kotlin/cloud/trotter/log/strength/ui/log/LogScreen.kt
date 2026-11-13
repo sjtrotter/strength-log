@@ -70,6 +70,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -85,11 +86,14 @@ import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.ScreenStateButton
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.components.emptyJournalAction
 import cloud.trotter.log.strength.ui.components.pressable
-import cloud.trotter.log.strength.ui.day.CardioReadingInput
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.day.CardioEntrySheet
+import cloud.trotter.log.strength.ui.day.CardioLegLines
+import cloud.trotter.log.strength.ui.day.CardioReadingInput
+import cloud.trotter.log.strength.ui.day.roleName
 import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -304,6 +308,14 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean, onE
         }
         if (item.cardioSets.isNotEmpty()) {
             cloud.trotter.log.strength.ui.day.CardioSummary(item.cardioSets, item.cardioSeconds, item.activity)
+            var workIndex = 0
+            item.cardioSets.forEach { set ->
+                val label = if (set.spec.role == CardioRole.WORK) {
+                    workIndex++
+                    if (item.cardioSets.size > 1) stringResource(R.string.log_cardio_interval, workIndex) else null
+                } else roleName(set.spec.role)
+                CardioLegLines(set, distanceUnitFor(item.activity), label)
+            }
         }
         if (item.note.isNotBlank()) {
             Text(item.note, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)

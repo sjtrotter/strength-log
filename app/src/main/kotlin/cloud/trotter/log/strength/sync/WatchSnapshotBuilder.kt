@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
@@ -148,7 +149,20 @@ object WatchSnapshotBuilder {
         val tracking = slot.main.tracking
         val target = slot.main.goal
         val prescribedTarget = performed.prescription?.target
-        val header = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), target ?: GoalTarget.Weight(0.0, false), unit)
+        val workingRow = (slot.main.opening ?: slot.main.baseRows)?.let { rows ->
+            WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] }
+        }
+        val labelPrescription = performed.prescription?.let { prescription ->
+            prescription.copy(target = when (val authored = prescription.target) {
+                is PrescribedTarget.LoadReps -> workingRow?.let {
+                    authored.copy(lb = it.weightLb.takeIf { load -> load > 0.0 } ?: authored.lb, reps = it.reps)
+                } ?: authored
+                is PrescribedTarget.Reps -> workingRow?.let { authored.copy(reps = it.reps) } ?: authored
+                is PrescribedTarget.Hold -> workingRow?.let { authored.copy(seconds = it.seconds, addedLb = it.weightLb) } ?: authored
+                is PrescribedTarget.RepsInTime -> authored
+            })
+        }
+        val header = DayScreenBuilder.headerTarget(pe.copy(prescription = labelPrescription), target ?: GoalTarget.Weight(0.0, false), unit)
         val repWindow = prescribedTarget as? PrescribedTarget.RepsInTime
         val partner = slot.partner?.performed
         val partnerEntry = partner?.entry
@@ -166,8 +180,9 @@ object WatchSnapshotBuilder {
             slot = Slot.MAIN,
             name = entry?.watchName ?: performed.exerciseId,
             goal = slot.main.loadLb,
-            goalLabel = if (performed.prescription != null) DayScreenBuilder.headerTargetLabel(header)
-                else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
+            goalLabel = if (performed.prescription != null) {
+                DayScreenBuilder.headerTargetLabel(header)
+            } else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             targetDetail = DayScreenBuilder.headerTargetDetail(header),
             repWindowSeconds = repWindow?.seconds ?: 0,
             repAim = repWindow?.repAim,

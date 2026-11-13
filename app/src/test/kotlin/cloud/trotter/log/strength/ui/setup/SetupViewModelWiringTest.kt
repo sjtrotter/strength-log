@@ -94,6 +94,27 @@ class SetupViewModelWiringTest {
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
 
+    @Test fun routineSwitchesDefaultOnAndPersistEachChange() = runVmTest {
+        assertEquals(true, settings.routinePrefsFlow.first().warmUp)
+        assertEquals(true, settings.routinePrefsFlow.first().coolDown)
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setWarmUpEnabled(false)
+        advanceUntilIdle()
+        assertEquals(false, settings.routinePrefsFlow.first().warmUp)
+        assertEquals(false, vm.uiState.value.warmUp)
+        assertEquals(true, vm.uiState.value.coolDown)
+        vm.setCoolDownEnabled(false)
+        advanceUntilIdle()
+        assertEquals(false, settings.routinePrefsFlow.first().coolDown)
+        assertEquals(false, vm.uiState.value.coolDown)
+        vm.setWarmUpEnabled(true)
+        vm.setCoolDownEnabled(true)
+        advanceUntilIdle()
+        assertEquals(true, settings.routinePrefsFlow.first().warmUp)
+        assertEquals(true, settings.routinePrefsFlow.first().coolDown)
+    }
+
     @Test fun distanceFollowsWeightUntilThePreferenceIsChosen() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()

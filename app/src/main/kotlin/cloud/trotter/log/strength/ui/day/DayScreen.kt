@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -112,6 +113,7 @@ fun DayScreen(
             noteSave = noteSave,
             onNoteSaveHandled = onNoteSaveHandled,
         )
+        state.coolDown?.let { RoutineSheetHost(RoutineKind.COOL_DOWN, it, state.dayIndex, nowMillis, actions) }
         return
     }
     if (finish != null) {
@@ -147,7 +149,7 @@ fun DayScreen(
     // Only the newest removal can be undone against the current row indices.
     val openOffer = removedSets.lastOrNull()
     val openSheet = state.openSheet
-    val countHostFree = !state.startSheet && pastCardio == null && !showEditSheet && openSheet == null &&
+    val countHostFree = state.warmUp == null && state.coolDown == null && !state.startSheet && pastCardio == null && !showEditSheet && openSheet == null &&
         noteCardId == null &&
         !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
@@ -159,7 +161,7 @@ fun DayScreen(
         if (cardioRequestsSheet && countHostFree) actions.onOpenCardioDistance()
     }
     val dayBackProgress = rememberBackGestureProgress(
-        enabled = onBack != null && pastCardio == null &&
+        enabled = onBack != null && state.warmUp == null && state.coolDown == null && pastCardio == null &&
             !showEditSheet && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
             !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null && !state.startSheet,
@@ -447,6 +449,12 @@ fun DayScreen(
 
     if (state.startSheet) StartWorkoutSheet(state.viewDayId.orEmpty(), state.dayIndex, actions.onConfirmStart, actions.onDismissStart)
 
+    if (openSheet == null && !showEditSheet && pastCardio == null && noteCardId == null && !state.startSheet &&
+        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null) {
+        if (state.warmUp != null) RoutineSheetHost(RoutineKind.WARM_UP, state.warmUp, state.dayIndex, nowMillis, actions)
+        else state.coolDown?.let { RoutineSheetHost(RoutineKind.COOL_DOWN, it, state.dayIndex, nowMillis, actions) }
+    }
+
     noteCardId?.let { id ->
         val card = state.exercises.firstOrNull { it.programExerciseId == id }
         if (card != null) {
@@ -591,6 +599,11 @@ data class DayActions(
     val onGpsNoticeShown: () -> Unit = {},
     val onSwapCardio: (CardioActivity, CardioTemplate?) -> Unit = { _, _ -> },
     val onSetRepsLeft: (Long, String, Int, Int?) -> Unit = { _, _, _, _ -> },
+    val onToggleRoutineMove: (RoutineKind, Move) -> Unit = { _, _ -> },
+    val onStartRoutineTimer: (RoutineKind) -> Unit = {},
+    val onStopRoutineTimer: (RoutineKind) -> Unit = {},
+    val onCloseRoutine: (RoutineKind) -> Unit = {},
+    val onStartCardioAfterWarmUp: () -> Unit = {},
 )
 
 @Composable
@@ -602,4 +615,12 @@ private fun PlanSwapConfirmDialog(pending: PendingPlanSwap, onConfirm: () -> Uni
         confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.day_swap_apply)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.day_cancel_button)) } },
     )
+}
+
+@Composable
+private fun RoutineSheetHost(kind: RoutineKind, sheet: RoutineSheetState, dayIndex: Int, nowMillis: () -> Long, actions: DayActions) {
+    RoutineSheet(kind, sheet, dayIndex, nowMillis,
+        onToggle = { actions.onToggleRoutineMove(kind, it) },
+        onStartTimer = { actions.onStartRoutineTimer(kind) }, onStopTimer = { actions.onStopRoutineTimer(kind) },
+        onClose = { actions.onCloseRoutine(kind) }, onStartCardio = actions.onStartCardioAfterWarmUp)
 }

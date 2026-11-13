@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.Muscle
+import cloud.trotter.log.strength.domain.library.muscleCredit
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 
@@ -13,8 +14,9 @@ object SetCount {
             val sets = setKinds(slot).count { it != SetKind.RAMP }
             for (id in listOfNotNull(slot.exerciseId, slot.superset?.exerciseId)) {
                 val entry = ExerciseLibrary.find(id) ?: continue
-                for (muscle in entry.primary) put(muscle, getOrDefault(muscle, 0.0) + sets)
-                for (muscle in entry.secondary) put(muscle, getOrDefault(muscle, 0.0) + sets * 0.5)
+                entry.muscleCredit(sets).forEach { (muscle, credit) ->
+                    put(muscle, getOrDefault(muscle, 0.0) + credit)
+                }
             }
         }
     }

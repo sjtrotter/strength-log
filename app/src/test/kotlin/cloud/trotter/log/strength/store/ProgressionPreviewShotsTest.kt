@@ -1,5 +1,13 @@
 package cloud.trotter.log.strength.store
 
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.planner.EquipmentPreset
+import cloud.trotter.log.strength.domain.routine.CreditedExercise
+import cloud.trotter.log.strength.domain.routine.Move
+import cloud.trotter.log.strength.domain.routine.Routines
+import cloud.trotter.log.strength.ui.day.RoutineKind
+import cloud.trotter.log.strength.ui.day.RoutineSheet
+import cloud.trotter.log.strength.ui.day.RoutineSheetState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -298,6 +306,62 @@ class ProgressionPreviewShotsTest {
                 LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 3), TrackingType.WEIGHTED, WeightUnit.LB, null)))
         render(fontScale) { WorkoutSetHost(state, nowMillis = { rule.mainClock.currentTime }) }
         capture(name)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun warmUpSheet() {
+        val moves = upperWarmUp()
+        render { routine(RoutineKind.WARM_UP, moves, checked = setOf(Move.ARM_CIRCLES)) }
+        capture("p22-warm-up-sheet.png", sheet = true)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun warmUpTimerLargeFont() {
+        val moves = upperWarmUp()
+        render(fontScale = 2f) { routine(RoutineKind.WARM_UP, moves, checked = setOf(Move.ARM_CIRCLES), startedAt = 0) }
+        capture("p23-warm-up-timer-2x.png", sheet = true)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun coolDownSheet() {
+        val work = listOf("bb_back_squat", "rdl", "lying_curl", "standing_calf", "plank")
+            .map { CreditedExercise(ExerciseLibrary.get(it), 3) }
+        val moves = Routines.coolDown(work, null, EquipmentPreset.FULL_GYM.equipment)
+        render { routine(RoutineKind.COOL_DOWN, moves) }
+        capture("p24-cool-down-sheet.png", sheet = true)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun warmUpRunDay() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1800))))
+        val moves = Routines.warmUp(emptyList(), block, EquipmentPreset.FULL_GYM.equipment)
+        render { routine(RoutineKind.WARM_UP, moves, startsCardio = true) }
+        capture("p25-warm-up-run-day.png", sheet = true)
+    }
+
+    @Test fun settingsWarmUp() {
+        render {
+            SetupScreen(SetupUiState(coolDown = false), SetupActions(
+                onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
+                onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {}, onOpenLicenses = {}, onBack = {}))
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Suggested warm-up"))
+        capture("p26-settings-warm-up.png")
+    }
+
+    private fun upperWarmUp(): List<Move> = Routines.warmUp(
+        listOf("bb_bench", "bb_row", "ohp", "pullup").map { CreditedExercise(ExerciseLibrary.get(it), 3) },
+        null, EquipmentPreset.FULL_GYM.equipment)
+
+    @Composable
+    private fun routine(kind: RoutineKind, moves: List<Move>, checked: Set<Move> = emptySet(),
+                        startedAt: Long? = null, startsCardio: Boolean = false) {
+        val seconds = when (kind) {
+            RoutineKind.WARM_UP -> cloud.trotter.log.strength.domain.planner.SessionBudget.WARM_UP_SECONDS
+            RoutineKind.COOL_DOWN -> Routines.seconds(moves)
+        }
+        RoutineSheet(kind, RoutineSheetState("preview", moves, checked, seconds, startedAt, null, startsCardio),
+            0, { 108_000 }, {}, {}, {}, {}, {})
     }
 
     private fun render(fontScale: Float = 1f, content: @Composable () -> Unit) {

@@ -60,7 +60,7 @@ class SetupSectionsTest {
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Rest timer",
+        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Suggested warm-up", "Suggested cool-down", "Rest timer",
             "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()

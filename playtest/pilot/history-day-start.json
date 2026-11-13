@@ -105,6 +105,12 @@
     },
     {
       "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
         "text": "All sets"
       }
     },
@@ -225,6 +231,12 @@
     {
       "tap": {
         "text": "Start day A",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
         "role": "Button"
       }
     },

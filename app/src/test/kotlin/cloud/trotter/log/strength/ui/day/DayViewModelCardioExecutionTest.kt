@@ -84,6 +84,75 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class DayViewModelCardioExecutionTest {
 
+    // (F)
+    @Test fun cardioOnlyRequestWaitsForWarmupStart() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.warmUp).startsCardio)
+        assertNull(vm.uiState.value.cardio?.run)
+        vm.startCardioAfterWarmUp()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    @Test fun cardioWarmupDismissalDoesNotStartAndCanBeRequestedAgain() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        vm.closeRoutine(RoutineKind.WARM_UP)
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertNull(vm.uiState.value.cardio?.run)
+        vm.requestCardioStart()
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.warmUp).startsCardio)
+    }
+
+    @Test fun disabledWarmupStartsCardioImmediately() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        settings.setWarmUpEnabled(false)
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    @Test fun liftDayCardioRequestStartsImmediately() = test {
+        prepareBlock(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.requestCardioStart()
+        runCurrent()
+        assertNull(vm.uiState.value.warmUp)
+        assertTrue(requireNotNull(vm.uiState.value.cardio?.run).running)
+    }
+
+    // (F)
+    @Test fun cardioOnlyReceiptOffersCooldownWithoutAnotherSessionRow() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertNotNull(vm.finisher.receipt.value)
+        assertTrue(requireNotNull(vm.uiState.value.coolDown).owner.startsWith("cardio:"))
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        vm.closeRoutine(RoutineKind.COOL_DOWN)
+        runCurrent()
+        assertNull(vm.uiState.value.coolDown)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+    }
+
     @Test fun cardioEditorPersistsProgressionAndParksWorkingValues() = test {
         prepareAuthoredCardioDay(CardioSetSpec(CardioRole.WORK, Measure.Distance(1600), Measure.Time(480)))
         val plan = repo.plans.selectedPlanIdFlow.first()!!

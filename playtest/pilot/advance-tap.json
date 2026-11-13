@@ -91,6 +91,12 @@
       }
     },
     {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
       "expect": {
         "text": "All sets"
       }

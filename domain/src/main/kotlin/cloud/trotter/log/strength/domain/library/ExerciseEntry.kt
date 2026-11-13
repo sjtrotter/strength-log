@@ -89,3 +89,10 @@ data class Dose(val sets: Int, val restSeconds: Int)
 
 fun ExerciseEntry.availableWith(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): Boolean =
     id !in excluded && this.equipment.all { it in equipment }
+
+/** What [sets] working sets of this entry credit each muscle: a primary 1 per set, a secondary 0.5
+ *  (design §3.1 invariant 5). */
+fun ExerciseEntry.muscleCredit(sets: Int): Map<Muscle, Double> = buildMap {
+    for (muscle in primary) put(muscle, getOrDefault(muscle, 0.0) + sets)
+    for (muscle in secondary) put(muscle, getOrDefault(muscle, 0.0) + sets * 0.5)
+}

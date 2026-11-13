@@ -41,7 +41,12 @@ class SetupViewModel @Inject constructor(
     }.combine(settings.saveRouteFlow) { state, on ->
         state.copy(saveRoute = on)
     }.combine(settings.effortScaleFlow) { state, scale -> state.copy(effortScale = scale) }
+        .combine(settings.routinePrefsFlow) { state, prefs -> state.copy(warmUp = prefs.warmUp, coolDown = prefs.coolDown) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
+
+    fun setWarmUpEnabled(on: Boolean) { viewModelScope.launch { settings.setWarmUpEnabled(on) } }
+
+    fun setCoolDownEnabled(on: Boolean) { viewModelScope.launch { settings.setCoolDownEnabled(on) } }
 
     fun refreshLocationAccess() { gpsAccess.value = gps.access() }
 

@@ -17,8 +17,7 @@ internal fun fitDay(
     answers: SetupAnswers,
     budgetSeconds: Int = answers.minutes * 60,
 ): Pair<ProgramDay, List<PlanReason>> {
-    val budget = budgetSeconds
-    if (SessionBudget.seconds(day, answers.goal) <= budget) return day to emptyList()
+    if (SessionBudget.seconds(day, answers.goal) <= budgetSeconds) return day to emptyList()
     var current = day
     for (step in 1..6) {
         val slots = when (step) {
@@ -55,12 +54,12 @@ internal fun fitDay(
             else -> current.exercises.filterNot { it.rule?.role == SlotRole.CORE }
         }
         if (slots.isNotEmpty()) current = current.copy(exercises = slots)
-        if (SessionBudget.seconds(current, answers.goal) <= budget) {
+        if (SessionBudget.seconds(current, answers.goal) <= budgetSeconds) {
             return current to listOf(PlanReason.ShortSession(day.id, step))
         }
     }
     return current to listOf(
         PlanReason.ShortSession(day.id, 6),
-        PlanReason.OverBudget(day.id, SessionBudget.seconds(current, answers.goal) - budget),
+        PlanReason.OverBudget(day.id, SessionBudget.seconds(current, answers.goal) - budgetSeconds),
     )
 }

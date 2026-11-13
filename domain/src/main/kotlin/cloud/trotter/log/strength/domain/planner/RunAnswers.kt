@@ -56,6 +56,7 @@ data class RunAnswers(
         require(event == null || event in goal.events)
         require(goalSeconds == null || goalSeconds in 1..86_400)
         require(testScore == null || testScore >= 1)
+        require(testScore == null || test !in listOf(FitnessTest.PACER, FitnessTest.HAMR) || testScore <= 999)
         require(PlanGoalDate.isValid(dateEpochDay))
         require(when (longest) {
             is Measure.Time -> longest.seconds >= 1

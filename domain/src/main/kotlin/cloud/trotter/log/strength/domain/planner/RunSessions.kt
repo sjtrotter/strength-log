@@ -19,7 +19,7 @@ enum class RunSession(val title: String, val quality: Boolean) {
 private const val EASY_SECONDS = 1_200
 private const val STRENGTH_SECONDS = 1_500
 
-internal fun easyLimit(long: CardioBlock?): Int? = long?.let { (3 * plannedSeconds(it) / 4) / 60 * 60 }
+internal fun easyLimit(long: CardioBlock?): Int? = long?.let { maxOf(60, (3 * plannedSeconds(it) / 4) / 60 * 60) }
 
 internal fun easySeconds(minutes: Int, strength: Boolean, long: CardioBlock?): Int = minOf(
     maxOf(EASY_SECONDS, minutes * 60 - SessionBudget.WARM_UP_SECONDS - if (strength) STRENGTH_SECONDS else 0),

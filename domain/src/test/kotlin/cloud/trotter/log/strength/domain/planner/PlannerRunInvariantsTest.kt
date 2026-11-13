@@ -56,7 +56,7 @@ class PlannerRunInvariantsTest {
                     }
                 }
                 if (session == RunSession.EASY && long != null) {
-                    assertTrue(plannedSeconds(block) <= (3 * plannedSeconds(long) / 4) / 60 * 60, "$label easy limit")
+                    assertTrue(plannedSeconds(block) <= maxOf(60, (3 * plannedSeconds(long) / 4) / 60 * 60), "$label easy limit")
                 }
                 if (day.kind == ProgramDayKind.CARDIO && day.exercises.isNotEmpty()) {
                     assertTrue(session != RunSession.LONG || answers.days == 2, "$label long strength")
@@ -81,7 +81,7 @@ class PlannerRunInvariantsTest {
         assertEquals(workingKeys, draft.working.keys, "$label working keys")
         assertTrue(draft.program.cardioDays.count { it.exercises.isNotEmpty() } <= run.strengthBlocks, "$label strength blocks")
         if (answers.branch == PlanBranch.BOTH) {
-            if (!answers.both.cardioFirst && answers.days > 1 && answers.minutes >= 45 &&
+            if (!answers.both.cardioFirst && answers.minutes >= 45 &&
                 answers.both.together(answers.days) == BothAnswers.Together.SAME_VISIT) {
                 assertTrue(draft.program.strengthDays.all { it.cardioBlock != null }, "$label reserve")
             }
@@ -127,7 +127,7 @@ class PlannerRunInvariantsTest {
     }
 
     @Test fun `D15 reserve also holds at forty five and seventy five minutes`() {
-        for (minutes in listOf(45, 75)) for (days in 2..6) for (goal in RunGoal.entries) {
+        for (minutes in listOf(45, 75)) for (days in 1..6) for (goal in RunGoal.entries) {
             val answers = run(goal, days, minutes).copy(branch = PlanBranch.BOTH,
                 both = BothAnswers(together = BothAnswers.Together.SAME_VISIT))
             check(answers, KnownLoads.NONE, "$goal $days days $minutes min reserve")

@@ -10,7 +10,7 @@ object GoalPace {
     fun testAimSeconds(goal: PlanGoal.Timed, repMetres: Int): Int =
         aimSeconds(goal.underSeconds.toDouble(), goal.metres.toDouble(), repMetres, TEST_FACTOR)
 
-    /** Seconds for [repMetres] at the race's pace × [factor], rounded once. */
+    /** Seconds for [repMetres] at the race's pace × [factor], rounded once, with a one-second minimum. */
     fun aimSeconds(raceSeconds: Double, raceMetres: Double, repMetres: Int, factor: Double = 1.0): Int =
-        Math.round(raceSeconds * repMetres / raceMetres * factor).toInt()
+        maxOf(1, Math.round(raceSeconds * repMetres / raceMetres * factor).toInt())
 }

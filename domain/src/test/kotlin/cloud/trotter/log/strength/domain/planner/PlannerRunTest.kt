@@ -278,6 +278,42 @@ class PlannerRunTest {
         assertEquals(block(time(960)), day(middle, "A").cardioBlock)
     }
 
+    @Test fun `middle distance with a one minute longest run keeps easy runs positive and capped`() {
+        val answers = RunAnswers(RunGoal.MIDDLE_DISTANCE, longest = Measure.Time(60))
+        val draft = plan(answers, days = 4)
+        val cap = RunCap.limit(60, RunCap.SECONDS_GRID)
+        val easyDays = draft.program.cardioDays.filter { draft.sessions[it.id] == RunSession.EASY }
+        assertEquals(2, easyDays.size)
+        for (day in easyDays) {
+            val seconds = (work(day).single().end as Measure.Time).seconds
+            assertTrue(seconds in 60..cap)
+        }
+    }
+
+    @Test fun `race and test interval aims stay positive for valid small goal times`() {
+        val variants = listOf(
+            RunAnswers(RunGoal.MIDDLE_DISTANCE, goalSeconds = 1),
+            RunAnswers(RunGoal.MIDDLE_DISTANCE, recent = RecentRace(200_000, 1)),
+            RunAnswers(RunGoal.FITNESS_TEST, goalSeconds = 1),
+            RunAnswers(RunGoal.FITNESS_TEST, test = FitnessTest.COOPER, testScore = 1_000_000),
+        )
+        for (answers in variants) {
+            val draft = plan(answers, days = 3)
+            val reps = work(day(draft, "B"))
+            assertTrue(reps.isNotEmpty())
+            assertTrue(reps.all { it.aim == Measure.Time(1) })
+        }
+    }
+
+    @Test fun `shuttle test scores stay within the supported goal bounds`() {
+        for (test in listOf(FitnessTest.PACER, FitnessTest.HAMR)) {
+            assertFailsWith<IllegalArgumentException> { RunAnswers(RunGoal.FITNESS_TEST, test = test, testScore = 1000) }
+            for (score in listOf(1, 999)) {
+                assertEquals(PlanGoal.Shuttle(test.name, score), plan(RunAnswers(RunGoal.FITNESS_TEST, test = test, testScore = score)).goal)
+            }
+        }
+    }
+
     @Test fun `older run strength starts with balance and keeps three reps in reserve`() {
         val draft = Planner.plan(run(RunGoal.HALF_MARATHON).copy(olderAdult = true), known(12_000, 4200), TODAY)
         assertEquals(listOf("single_leg_stance", "farmers_carry"), day(draft, "A").exercises.take(2).map { it.exerciseId })

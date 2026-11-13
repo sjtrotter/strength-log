@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.planner
 
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -98,9 +99,12 @@ class PlannerBothTest {
     }
 
     @Test fun `D15 thirty minutes uses the full lift budget and only attaches runs that fit`() {
-        val answers = answers(minutes = 30)
+        val answers = answers(days = 1, minutes = 30).copy(mains = emptyList(),
+            excluded = ExerciseLibrary.entries.filter { it.id != "plank" }.map { it.id }.toSet())
         val draft = plan(answers)
         val lift = plan(answers.copy(branch = PlanBranch.LIFT))
+        assertTrue(lift.program.days.any { SessionBudget.seconds(it, answers.goal) <= 600 })
+        assertTrue(draft.program.days.any { it.cardioBlock != null })
         for ((index, day) in draft.program.days.withIndex()) {
             assertEquals(lift.program.days[index], day.copy(cardioBlock = null, cardioRule = null))
             if (day.cardioBlock != null) {
@@ -126,12 +130,20 @@ class PlannerBothTest {
         }
     }
 
-    @Test fun `defaults choose separate from four days and one day is the primarys own plan`() {
+    @Test fun `defaults choose separate from four days and one day same visit includes a run`() {
+        assertEquals(BothAnswers.Together.SAME_VISIT, BothAnswers().together(1))
         assertEquals(BothAnswers.Together.SAME_VISIT, BothAnswers().together(3))
         assertEquals(BothAnswers.Together.SEPARATE_DAYS, BothAnswers().together(4))
-        val answers = answers(days = 1)
-        assertEquals(plan(answers.copy(branch = PlanBranch.LIFT)), plan(answers))
+        val answers = answers(days = 1).copy(both = BothAnswers())
+        val draft = plan(answers)
+        val lift = liftDraft(answers, known(8050, 2900), 2400)
+        assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null))
+        assertEquals(block(1200), draft.program.days.single().cardioBlock)
+        assertEquals(mapOf("A" to RunSession.EASY), draft.sessions)
+        assertEquals(plan(answers.copy(branch = PlanBranch.LIFT)),
+            plan(answers.copy(both = BothAnswers(together = BothAnswers.Together.SEPARATE_DAYS))))
         val cardio = plan(answers.copy(both = BothAnswers(cardioFirst = true)))
+        assertEquals(runDraft(answers.copy(branch = PlanBranch.RUN), known(8050, 2900), TODAY, answers.goal), cardio)
         assertEquals(ProgramDayKind.CARDIO, cardio.program.days.single().kind)
         assertEquals(RunSession.EASY, cardio.sessions["A"])
         assertTrue(cardio.program.days.single().exercises.isNotEmpty())

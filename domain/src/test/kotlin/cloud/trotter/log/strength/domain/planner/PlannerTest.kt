@@ -272,6 +272,8 @@ class PlannerTest {
                 assertEquals(full.reasons.filter { when (it) {
                     is PlanReason.ShortSession -> it.dayId == day.id
                     is PlanReason.OverBudget -> it.dayId == day.id
+                    is PlanReason.RunCapped -> it.dayId == day.id
+                    PlanReason.DateTooClose, is PlanReason.GoalCheck -> false
                 } }, draft.reasons)
             }
             assertNull(Planner.day(answers, "Z"))

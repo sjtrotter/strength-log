@@ -111,12 +111,13 @@ class PlannerTest {
         assertEquals(3, rule.rir)
         assertEquals(180, rest(rule, LiftGoal.STRENGTH))
         val muscle = Planner.plan(SetupAnswers(goal = LiftGoal.MUSCLE))
-        assertEquals(120, rest(slot(muscle, "A", "bb_back_squat").rule!!, LiftGoal.MUSCLE))
+        val muscleRule = requireNotNull(slot(muscle, "A", "bb_back_squat").rule)
+        assertEquals(120, rest(muscleRule, LiftGoal.MUSCLE))
         val curl = slot(muscle, "B", "ez_curl")
         assertEquals(SlotRole.ISOLATION, curl.rule!!.role)
         assertEquals(60, rest(curl.rule!!, LiftGoal.MUSCLE))
         assertEquals(150, rest(rule, LiftGoal.STRENGTH, overrides = mapOf(RestCategory.TOP to 150)))
-        assertEquals(150, rest(rule.copy(restSeconds = 150), LiftGoal.MUSCLE,
+        assertEquals(150, rest(muscleRule.copy(restSeconds = 150), LiftGoal.MUSCLE,
             overrides = mapOf(RestCategory.TOP to 100)))
     }
 
@@ -208,6 +209,8 @@ class PlannerTest {
             EquipmentPreset.BODYWEIGHT to listOf("sit_to_stand", "back_ext", "pushup", "pike_pushup", "pullup"),
         )
         for ((preset, ids) in expected) assertEquals(ids, Planner.defaultMains(preset.equipment), preset.name)
+        assertEquals("back_ext_45", Planner.defaultMains(EquipmentPreset.MACHINES_ONLY.equipment,
+            excluded = setOf("machine_hip_thrust", "cable_pullthrough"))[1])
         val answers = SetupAnswers(excluded = setOf("bb_bench"))
         assertEquals("db_bench", Planner.defaultMains(answers.equipment, answers.excluded)[2])
         assertTrue(Planner.plan(answers).program.strengthDays.flatMap { it.exercises }.none {
@@ -228,6 +231,28 @@ class PlannerTest {
             val exposures = SetCount.exposures(draft.program)
             assertEquals(2, exposures[Muscle.LATS])
             assertEquals(2, exposures[Muscle.BICEPS])
+        }
+    }
+
+    @Test fun `a kettlebell pull with two exposures is not reused as an accessory`() {
+        val draft = Planner.plan(SetupAnswers(goal = LiftGoal.STRENGTH, days = 5, minutes = 90,
+            equipment = EquipmentPreset.KETTLEBELLS.equipment, experience = LiftExperience.A_YEAR_OR_MORE))
+        assertTrue(draft.reasons.isEmpty())
+        val pulls = draft.program.strengthDays.flatMap { day ->
+            day.exercises.filter { it.exerciseId == "kb_row" }.map { day.id to it.rule?.role }
+        }
+        assertEquals(listOf("B" to SlotRole.MAIN, "E" to SlotRole.SECONDARY), pulls)
+        val exposures = SetCount.exposures(draft.program)
+        assertEquals(2, exposures[Muscle.UPPER_BACK])
+        assertEquals(2, exposures[Muscle.LATS])
+    }
+
+    @Test fun `a timed chosen main falls back to the default for its row`() {
+        for (preset in EquipmentPreset.entries) {
+            val answers = SetupAnswers(equipment = preset.equipment, mains = listOf("wall_sit"))
+            val draft = Planner.plan(answers)
+            val mains = draft.program.strengthDays.flatMap { it.exercises }.filter { it.rule?.role == SlotRole.MAIN }
+            assertEquals(listOf(Planner.defaultMains(preset.equipment).first()), mains.map { it.exerciseId }, preset.name)
         }
     }
 

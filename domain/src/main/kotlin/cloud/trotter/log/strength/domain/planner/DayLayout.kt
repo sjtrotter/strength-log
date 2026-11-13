@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.library.Muscle
 import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
@@ -24,6 +25,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern.V_PULL
 import cloud.trotter.log.strength.domain.model.MovementPattern.V_PUSH
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -75,20 +77,33 @@ internal fun layout(answers: SetupAnswers, mains: List<ExerciseEntry>): List<Pro
             if (next != null) slots[next] += liftSlot(SlotRole.SECONDARY, entry, answers)
         }
     }
-    val occurrences = mutableMapOf<Shape, Int>()
-    val days = mutableListOf<ProgramDay>()
+    val days = shapes.mapIndexed { training, shape ->
+        val occurrence = shapes.take(training).count { it == shape }
+        ProgramDay("", shape.title, "", dayContents(shape, occurrence, training, slots[training], mains, answers))
+    }.toMutableList()
     for ((training, shape) in shapes.withIndex()) {
-        val occurrence = occurrences.getOrDefault(shape, 0)
-        occurrences[shape] = occurrence + 1
-        val exercises = dayContents(shape, occurrence, training, slots[training], mains, answers)
-        if (exercises.isNotEmpty()) {
-            days += ProgramDay(('A' + days.size).toString(), shape.title, "", exercises)
+        val exposures = SetCount.exposures(Program(days))
+        val missing = setOf(Muscle.UPPER_BACK, Muscle.LATS).filter {
+            exposures.getOrDefault(it, 0) < minOf(2, answers.days)
+        }.toSet()
+        if (missing.isEmpty()) break
+        val onDay = SetCount.exposures(Program(listOf(days[training]))).keys
+        val needed = missing - onDay
+        if (needed.isEmpty()) continue
+        val occurrence = shapes.take(training).count { it == shape }
+        days[training] = days[training].copy(exercises =
+            dayContents(shape, occurrence, training, slots[training], mains, answers, reusePullFor = needed))
+    }
+    val rotation = mutableListOf<ProgramDay>()
+    for ((training, day) in days.withIndex()) {
+        if (day.exercises.isNotEmpty()) {
+            rotation += day.copy(id = ('A' + rotation.size).toString())
         }
         if (training == 2 && answers.days >= 4) {
-            days += ProgramDay(('A' + days.size).toString(), "Rest", "", emptyList(), kind = ProgramDayKind.REST)
+            rotation += ProgramDay(('A' + rotation.size).toString(), "Rest", "", emptyList(), kind = ProgramDayKind.REST)
         }
     }
-    return days
+    return rotation
 }
 
 private fun dayContents(
@@ -98,6 +113,7 @@ private fun dayContents(
     anchors: List<ProgramExercise>,
     mains: List<ExerciseEntry>,
     answers: SetupAnswers,
+    reusePullFor: Set<Muscle> = emptySet(),
 ): List<ProgramExercise> {
     val result = mutableListOf<ProgramExercise>()
     val chosen = mains.map { it.id }.toSet()
@@ -117,7 +133,8 @@ private fun dayContents(
     fun pick(pattern: MovementPattern, reusePull: Boolean = false): ExerciseEntry? =
         ExerciseLibrary.byPattern(pattern).firstOrNull { entry ->
             entry.availableWith(answers.equipment, answers.excluded) && !entry.mainCapable &&
-                (entry.id !in chosen || (reusePull && mainRow(entry.pattern) == 4)) &&
+                (entry.id !in chosen || (reusePull && mainRow(entry.pattern) == 4 &&
+                    (entry.primary + entry.secondary).any(reusePullFor::contains))) &&
                 result.none { it.exerciseId == entry.id || it.superset?.exerciseId == entry.id } &&
                 ExerciseLibrary.bodyweightPairFor(entry.id) == null
         }
@@ -127,7 +144,6 @@ private fun dayContents(
             unfilled.remove(anchor)
             return
         }
-        // A lone available pull must recur to meet the exposure floor without SECONDARY slots.
         val entry = patterns.firstNotNullOfOrNull { pick(it) }
             ?: patterns.firstNotNullOfOrNull { pick(it, reusePull = true) }
             ?: return

@@ -36,11 +36,14 @@ data class DayDraft(val day: ProgramDay, val working: Map<Int, List<LoggedSet>>,
 object Planner {
     /** Deterministic for (answers, known). Never reads the clock or custom exercises. */
     fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE): PlanDraft {
-        val mains = (answers.mains ?: defaultMains(answers.equipment, answers.excluded)).map { id ->
+        val defaults = defaultMains(answers.equipment, answers.excluded)
+        val mains = (answers.mains ?: defaults).mapNotNull { id ->
             val entry = requireNotNull(ExerciseLibrary.find(id)) { "Unknown main: $id" }
             require(entry.availableWith(answers.equipment, answers.excluded)) { "Unavailable main: $id" }
             require(mainRow(entry.pattern) >= 0) { "Not a main row: $id" }
-            entry
+            if (entry.tracking == TrackingType.TIMED) {
+                defaults.map(ExerciseLibrary::get).firstOrNull { mainRow(it.pattern) == mainRow(entry.pattern) }
+            } else entry
         }.sortedBy { mainRow(it.pattern) }
         require(mains.map { mainRow(it.pattern) }.distinct().size == mains.size) { "Choose one main per row" }
         val seedKnown = known.copy(lastWorking = known.lastWorking + answers.recent.mapValues { (_, number) ->
@@ -82,9 +85,9 @@ object Planner {
             val preferred = ExerciseLibrary.get(defaults[row]).takeIf { it.availableWith(equipment, excluded) }
             val fallback = patterns.firstNotNullOfOrNull { pattern ->
                 val candidates = ExerciseLibrary.byPattern(pattern).filter {
+                    val bodyweight = ExerciseLibrary.bodyweightPairFor(it.id)?.let(ExerciseLibrary::get)
                     it.availableWith(equipment, excluded) &&
-                        // The pinned Dumbbells default keeps goblet squat despite its sit-to-stand pair.
-                        (ExerciseLibrary.bodyweightPairFor(it.id) == null || it.id == "goblet_squat")
+                        it.equipment != bodyweight?.equipment
                 }
                 candidates.firstOrNull { it.tracking == TrackingType.WEIGHTED }
                     ?: candidates.firstOrNull { it.tracking == TrackingType.REPS }

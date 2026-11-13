@@ -38,6 +38,7 @@ object PlanScreenBuilder {
         return PlanUiState(
             goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
                 when (goal) {
+                    is PlanGoal.Sprint -> null // Shown from PR 7, with its copy.
                     is PlanGoal.Timed -> GoalProgress.bestTimed(goal, cardio).let { best ->
                         PlanGoalUi(goal, best, GoalProgress.met(goal, best))
                     }

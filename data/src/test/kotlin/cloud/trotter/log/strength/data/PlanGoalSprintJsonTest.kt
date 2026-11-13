@@ -3,6 +3,10 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.SprintAttempt
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
@@ -16,9 +20,8 @@ import org.robolectric.annotation.Config
 class PlanGoalSprintJsonTest {
     private val sprint = """{"type":"sprint","metres":30,"targetCentis":440,"sprintAttempts":[{"completedAt":1,"centis":452,"timingMethod":"PHONE","startProtocol":"THREE_POINT"}]}"""
 
-    @Test fun `timed goals without a time and sprint goals validate without a domain projection`() {
-        for (json in listOf("""{"type":"timed","activity":"ROAD_RUN","metres":5000}""", sprint,
-            """{"type":"sprint","metres":1}""", """{"type":"sprint","metres":1000,"targetCentis":360000}""")) {
+    @Test fun `timed goals without a time validate without a domain projection`() {
+        for (json in listOf("""{"type":"timed","activity":"ROAD_RUN","metres":5000}""")) {
             PlanGoalJson.validate(json)
             assertNull(PlanGoalJson.decode(json))
         }
@@ -31,6 +34,7 @@ class PlanGoalSprintJsonTest {
             sprint.replace("targetCentis\":440", "targetCentis\":0"),
             sprint.replace("centis\":452", "centis\":0"), sprint.replace("centis\":452", "centis\":360001"),
             sprint.replace("PHONE", "phone"), sprint.replace("THREE_POINT", "three_point"),
+            sprint.replace("PHONE", "STOPWATCH"), sprint.replace("THREE_POINT", "CROUCH"),
             sprint.replace("\"completedAt\":1,", ""),
         )
         for (json in invalid) {
@@ -43,5 +47,23 @@ class PlanGoalSprintJsonTest {
         for (goal in listOf(PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, 1500), PlanGoal.Shuttle("PACER", 52))) {
             assertEquals(goal, PlanGoalJson.decode(PlanGoalJson.encode(goal)))
         }
+    }
+
+    @Test fun `sprint goals decode and re-encode unchanged`() {
+        val goal = PlanGoal.Sprint(30, 440,
+            listOf(SprintAttempt(1, SprintTime(452, TimingMethod.PHONE, StartProtocol.THREE_POINT))))
+        for ((json, expected) in listOf(
+            sprint to goal,
+            """{"type":"sprint","metres":1}""" to PlanGoal.Sprint(1),
+            """{"type":"sprint","metres":1000,"targetCentis":360000}""" to PlanGoal.Sprint(1_000, 360_000),
+        )) {
+            PlanGoalJson.validate(json)
+            assertEquals(expected, PlanGoalJson.decode(json))
+            assertEquals(json, PlanGoalJson.encode(requireNotNull(PlanGoalJson.decode(json))))
+        }
+        val dated = goal.copy(byEpochDay = 20_000)
+        val encoded = PlanGoalJson.encode(dated)
+        assertEquals(dated, PlanGoalJson.decode(encoded))
+        assertEquals(encoded, PlanGoalJson.encode(requireNotNull(PlanGoalJson.decode(encoded))))
     }
 }

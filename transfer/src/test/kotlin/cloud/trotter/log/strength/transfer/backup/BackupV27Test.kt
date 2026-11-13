@@ -263,6 +263,14 @@ class BackupV27Test {
         rejectSet { it.copy(timingMethod = "phone") }
     }
 
+    @Test fun `validation rejects an unknown timing method`() {
+        rejectSet { it.copy(timingMethod = "STOPWATCH") }
+    }
+
+    @Test fun `validation rejects an unknown start protocol`() {
+        rejectSet { it.copy(startProtocol = "CROUCH") }
+    }
+
     @Test fun `validation rejects zero centis`() {
         rejectSet { it.copy(centis = 0) }
     }

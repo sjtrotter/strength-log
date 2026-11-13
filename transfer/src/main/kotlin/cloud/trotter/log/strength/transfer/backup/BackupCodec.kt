@@ -606,11 +606,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     require(set.metresAtEnd == null || set.metresAtEnd >= 0)
                     require(set.secondsAtEnd == null || set.secondsAtEnd >= 0)
                     set.readingSource?.let(ReadingSource::valueOf)
-                    val timing = listOf(set.centis, set.timingMethod, set.startProtocol)
-                    require(timing.all { it == null } || timing.all { it != null })
-                    set.centis?.let { require(it in 1..CardioTiming.MAX_CENTIS) }
-                    set.timingMethod?.let { require(CardioTiming.isName(it)) }
-                    set.startProtocol?.let { require(CardioTiming.isName(it)) }
+                    CardioTiming.of(set.centis, set.timingMethod, set.startProtocol)
                 }
             }
         }

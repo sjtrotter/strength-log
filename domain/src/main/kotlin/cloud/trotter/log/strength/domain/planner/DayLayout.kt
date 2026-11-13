@@ -131,12 +131,9 @@ private fun dayContents(
     result += anchors
     val unfilled = anchors.toMutableList()
     fun pick(pattern: MovementPattern, reusePull: Boolean = false): ExerciseEntry? =
-        ExerciseLibrary.byPattern(pattern).firstOrNull { entry ->
-            entry.availableWith(answers.equipment, answers.excluded) && !entry.mainCapable &&
-                (entry.id !in chosen || (reusePull && mainRow(entry.pattern) == 4 &&
-                    (entry.primary + entry.secondary).any(reusePullFor::contains))) &&
-                result.none { it.exerciseId == entry.id || it.superset?.exerciseId == entry.id } &&
-                ExerciseLibrary.bodyweightPairFor(entry.id) == null
+        accessoryCandidates(pattern, answers, result).firstOrNull { entry ->
+            entry.id !in chosen || (reusePull && mainRow(entry.pattern) == 4 &&
+                (entry.primary + entry.secondary).any(reusePullFor::contains))
         }
     fun fill(patterns: List<MovementPattern>) {
         val anchor = unfilled.firstOrNull { ExerciseLibrary.get(it.exerciseId).pattern in patterns }
@@ -190,4 +187,16 @@ private fun dayContents(
     }
     fill(listOf(listOf(CORE_ANTI_EXT, CORE_ANTI_ROT, CORE_FLEX)[training % 3]))
     return result
+}
+
+/** D8's accessory candidates for [pattern] by subRank: available and not excluded, not main-capable, not already on
+ *  [onDay] as a slot or partner, not the loaded side of a weighted pair. Chosen mains are the caller's filter. */
+internal fun accessoryCandidates(
+    pattern: MovementPattern,
+    answers: SetupAnswers,
+    onDay: List<ProgramExercise>,
+): List<ExerciseEntry> = ExerciseLibrary.byPattern(pattern).filter { entry ->
+    entry.availableWith(answers.equipment, answers.excluded) && !entry.mainCapable &&
+        onDay.none { it.exerciseId == entry.id || it.superset?.exerciseId == entry.id } &&
+        ExerciseLibrary.bodyweightPairFor(entry.id) == null
 }

@@ -201,8 +201,7 @@ fun DayScreen(
             else actions.onDismissSwapUndo()
         }
     }
-    // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
-    // view flag holds only while an execution clock runs; disposal clears it.
+    // This view holds the setting's timer leg; MainActivity's window holds the workout leg.
     DisposableEffect(state.executionKeepsScreenOn) {
         view.keepScreenOn = state.executionKeepsScreenOn
         onDispose { view.keepScreenOn = false }

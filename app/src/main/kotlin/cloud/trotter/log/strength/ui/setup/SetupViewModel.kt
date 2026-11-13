@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.run.GpsDistance
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,8 +71,8 @@ class SetupViewModel @Inject constructor(
         viewModelScope.launch { settings.setThemePreference(theme) }
     }
 
-    fun setKeepScreenOn(enabled: Boolean) {
-        viewModelScope.launch { settings.setKeepScreenOn(enabled) }
+    fun setKeepScreenOn(choice: KeepScreenOn) {
+        viewModelScope.launch { settings.setKeepScreenOn(choice) }
     }
 
     fun setRestTimerEnabled(enabled: Boolean) {

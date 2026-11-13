@@ -764,7 +764,10 @@
     <string name="day_sheet_round_now">Round %1$d of %2$d, now</string>
     <string name="day_sheet_lift_now">%1$d of %2$d, now</string>
     <string name="day_swapped_to">Swapped to %1$s</string>
-    <string name="setup_keep_screen_on">Keep screen on during workouts</string>
+    <string name="setup_keep_screen_on">Keep screen on</string>
+    <string name="settings_keep_screen_off">Off</string>
+    <string name="settings_keep_screen_timer">While a timer runs</string>
+    <string name="settings_keep_screen_workouts">During workouts</string>
     <string name="day_sheet_clear_checks">Clear today\'s checks</string>
     <string name="day_sheet_clear_title">Clear today\'s checks?</string>
     <string name="day_sheet_clear_body">All sets in this workout are unchecked. Your weight and rep changes stay.</string>

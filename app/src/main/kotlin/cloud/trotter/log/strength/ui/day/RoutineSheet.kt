@@ -124,7 +124,7 @@ private fun RoutineTimer(sheet: RoutineSheetState, nowMillis: () -> Long, onStar
             now = nowMillis()
             val left = (sheet.timerSeconds - (now - startedAt) / 1000).coerceIn(0L, sheet.timerSeconds.toLong())
             if (left == 0L) {
-                if (sawRunning) AppHaptics.restComplete(context)
+                if (sawRunning) AppHaptics.timerEnd(context)
                 break
             }
             sawRunning = true

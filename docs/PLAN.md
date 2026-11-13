@@ -128,7 +128,7 @@ Spec is lb-only; kettlebells and non-US users are kg-native.
 
 ### A7. Gym-floor usability (small, high-value)
 
-- **Keep-screen-on toggle** during a workout day screen.
+- **Keep screen on**: Off, While a timer runs (default) or During workouts; set-end and rest buzzes work with the screen off.
 - Touch targets ≥48 dp; steppers get content descriptions (TalkBack) and
   long-press-to-repeat.
 - Edge-to-edge, predictive back, font-scale tolerance — standard MAD hygiene.

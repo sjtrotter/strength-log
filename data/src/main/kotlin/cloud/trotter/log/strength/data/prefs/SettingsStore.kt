@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.prefs
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -104,10 +105,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
          *  one-shot — it never shows again. */
         val HEALTH_BACKFILL_DONE = booleanPreferencesKey("health_backfill_done")
 
-        /** Whether the phone screen stays awake while the app is in front. Absent
-         *  means off: a screen that never sleeps is a battery decision, so the
-         *  user has to ask for it, and having asked once they keep it. */
+        /** Legacy boolean fallback through [KeepScreenOn.fromLegacy] when KEEP_SCREEN is absent or unknown. */
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        /** A [KeepScreenOn] name; absent or unknown names fall back to KEEP_SCREEN_ON. */
+        val KEEP_SCREEN = stringPreferencesKey("keep_screen")
 
         val TOP_SET_HELPER_SEEN = booleanPreferencesKey("top_set_helper_seen")
         val SUPERSET_HELPER_SEEN = booleanPreferencesKey("superset_helper_seen")
@@ -221,11 +222,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val phoneRestNotificationAskedFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.PHONE_REST_NOTIFICATION_ASKED] ?: false }
 
-    /** Whether the screen is held awake while the app is in front.
-     *  Defaults off — the wake costs battery, so it is opt-in. Collected once by
-     *  MainActivity so the wake follows the app across screens. */
-    val keepScreenOnFlow: Flow<Boolean> =
-        dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
+    /** Collected by MainActivity for the window's workout leg and DayViewModel for the timer leg. */
+    val keepScreenOnFlow: Flow<KeepScreenOn> = dataStore.data.map { prefs ->
+        prefs.enum(Keys.KEEP_SCREEN, KeepScreenOn.fromLegacy(prefs[Keys.KEEP_SCREEN_ON] ?: false))
+    }
 
     val topSetHelperSeenFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.TOP_SET_HELPER_SEEN] ?: false }
@@ -399,9 +399,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
     }
 
-    /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
-    suspend fun setKeepScreenOn(on: Boolean) {
-        dataStore.edit { it[Keys.KEEP_SCREEN_ON] = on }
+    /** Writes the keep-screen choice from Settings, replacing the legacy boolean. */
+    suspend fun setKeepScreenOn(choice: KeepScreenOn) {
+        dataStore.edit {
+            it[Keys.KEEP_SCREEN] = choice.name
+            it.remove(Keys.KEEP_SCREEN_ON)
+        }
     }
 
     suspend fun markTopSetHelperSeen() {
@@ -480,7 +483,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         wizardComplete: Boolean,
         selectedPlanId: Long? = null,
         restSettings: RestSettings,
-        keepScreenOn: Boolean,
+        keepScreenOn: KeepScreenOn,
         topSetHelperSeen: Boolean = false,
         supersetHelperSeen: Boolean = false,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
@@ -508,7 +511,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         restSettings.overrides.forEach { (category, seconds) ->
             prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)
         }
-        prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
+        prefs[Keys.KEEP_SCREEN] = keepScreenOn.name
         prefs[Keys.TOP_SET_HELPER_SEEN] = topSetHelperSeen
         prefs[Keys.SUPERSET_HELPER_SEEN] = supersetHelperSeen
         autoEnabled?.let { prefs[Keys.AUTO_BACKUP_ENABLED] = it }

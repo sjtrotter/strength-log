@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import kotlin.test.Test
@@ -107,9 +108,9 @@ class BackupV3RestoreTest {
     }
 
     @Test
-    fun `it restores into a snapshot with keep screen on disabled`() {
+    fun `it restores into a snapshot that holds the screen while a timer runs`() {
         val snapshot = codec.decode(v3Json()).toSnapshot()
-        assertFalse(snapshot.keepScreenOn)
+        assertEquals(KeepScreenOn.WHILE_TIMER, snapshot.keepScreenOn)
     }
 
     @Test

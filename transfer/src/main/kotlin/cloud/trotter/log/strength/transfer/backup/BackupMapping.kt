@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.FullSnapshot
@@ -72,7 +73,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
             restBackoffSeconds = restSettings.overrides[RestCategory.BACKOFF],
             restWorkSeconds = restSettings.overrides[RestCategory.WORK],
             restLightSeconds = restSettings.overrides[RestCategory.LIGHT],
-            keepScreenOn = keepScreenOn,
+            keepScreenOn = keepScreenOn == KeepScreenOn.DURING_WORKOUTS,
+            keepScreen = keepScreenOn.name,
             topSetHelperSeen = topSetHelperSeen,
             supersetHelperSeen = supersetHelperSeen,
             theme = themePreference.name,
@@ -398,7 +400,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),
         ),
-        keepScreenOn = settings.keepScreenOn,
+        keepScreenOn = KeepScreenOn.entries.firstOrNull { it.name == settings.keepScreen }
+            ?: KeepScreenOn.fromLegacy(settings.keepScreenOn),
         topSetHelperSeen = settings.topSetHelperSeen,
         supersetHelperSeen = settings.supersetHelperSeen,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),

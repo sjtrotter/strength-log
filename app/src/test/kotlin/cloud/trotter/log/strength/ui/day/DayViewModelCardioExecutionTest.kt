@@ -665,6 +665,46 @@ class DayViewModelCardioExecutionTest {
     private fun time(role: CardioRole, seconds: Int = 10, aim: Int? = null) =
         CardioSetSpec(role, Measure.Time(seconds), aim?.let { Measure.Distance(it) }, hard = role == CardioRole.WORK)
 
+    @Test
+    fun screenOffIntervalBuzzesAtEachBoundaryAndArmsTheNext() = test {
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        val firstDeadline = clock.elapsed + 10_000
+        vm.setCardioScreenLive(false)
+        assertEquals(firstDeadline, alarm.deadline)
+        clock.advance(10_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertEquals(1, vm.uiState.value.cardio?.run?.position)
+        assertEquals(clock.elapsed + 10_000, alarm.deadline)
+        clock.advance(10_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(2, alarm.buzzes)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertNull(alarm.deadline)
+    }
+
+    @Test
+    fun stopCardioWithTheScreenOffCancelsTheAlarm() = test {
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.RECOVERY))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        val run = requireNotNull(vm.uiState.value.cardio?.run)
+        vm.setCardioScreenLive(false)
+        assertEquals(clock.elapsed + 10_000, alarm.deadline)
+        vm.stopCardio(run.action())
+        runCurrent()
+        assertNull(alarm.deadline)
+        clock.advance(10_000)
+        alarm.fire()
+        assertEquals(0, alarm.buzzes)
+    }
+
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
 
     private suspend fun TestScope.assertTypedRunDistance(unit: DistanceUnit, activity: CardioActivity, text: String, metres: Int) {

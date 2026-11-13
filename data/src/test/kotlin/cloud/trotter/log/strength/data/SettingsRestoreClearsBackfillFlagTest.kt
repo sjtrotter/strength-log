@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
@@ -60,7 +61,7 @@ class SettingsRestoreClearsBackfillFlagTest {
             unit = WeightUnit.LB,
             wizardComplete = true,
             restSettings = RestSettings(),
-            keepScreenOn = false,
+            keepScreenOn = KeepScreenOn.WHILE_TIMER,
         )
 
         assertFalse(settings.healthBackfillDoneFlow.first())
@@ -77,7 +78,7 @@ class SettingsRestoreClearsBackfillFlagTest {
             unit = WeightUnit.LB,
             wizardComplete = true,
             restSettings = RestSettings(),
-            keepScreenOn = false,
+            keepScreenOn = KeepScreenOn.WHILE_TIMER,
             themePreference = ThemePreference.LIGHT,
         )
 

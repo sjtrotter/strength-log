@@ -736,12 +736,14 @@ class DayViewModelGpsTest {
         assertFalse(alarm.quiet)
     }
 
-    @Test fun `an indoor timed boundary is canceled when the screen stops being live`() = test {
+    @Test fun `an indoor timed boundary stays armed with the screen off`() = test {
         prepareBlock(time(60), time(60), activity = CardioActivity.TREADMILL_RUN)
         val vm = readyVm()
         begin(vm, false)
+        val startElapsed = clock.elapsed
         vm.setCardioScreenLive(false)
-        assertNull(alarm.deadline)
+        assertEquals(startElapsed + 60_000, alarm.deadline)
+        assertFalse(alarm.quiet)
     }
 
     @Test fun `a distance end buzzes once and Reached does not buzz again`() = test {

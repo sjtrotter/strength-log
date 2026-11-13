@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.run.LocationAccess
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -29,7 +30,7 @@ data class SetupUiState(
     val distanceUnit: DistanceUnit = DistanceUnit.MI,
     val restTimerEnabled: Boolean = true,
     val phoneRestTimerEnabled: Boolean = true,
-    val keepScreenOn: Boolean = false,
+    val keepScreenOn: KeepScreenOn = KeepScreenOn.WHILE_TIMER,
     val restCategories: List<RestCategoryUiState> =
         RestCategory.entries.map { RestCategoryUiState(it, RestPolicy.defaultSeconds(it)) },
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
@@ -54,7 +55,7 @@ data class SetupActions(
     val onOpenBackup: () -> Unit,
     val onOpenLicenses: () -> Unit,
     val onBack: () -> Unit,
-    val onKeepScreenOnChange: (Boolean) -> Unit = {},
+    val onKeepScreenOnChange: (KeepScreenOn) -> Unit = {},
     val onGpsDistanceChange: (Boolean) -> Unit = {},
     val onRefreshLocationAccess: () -> Unit = {},
     val onSaveRouteChange: (Boolean) -> Unit = {},

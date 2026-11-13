@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.viewModelScope
@@ -134,14 +135,14 @@ class SetupViewModelWiringTest {
     fun keepScreenOnReadsAndWritesTheExistingPreference() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
-        assertEquals(false, vm.uiState.value.keepScreenOn)
-        vm.setKeepScreenOn(true)
+        assertEquals(KeepScreenOn.WHILE_TIMER, vm.uiState.value.keepScreenOn)
+        vm.setKeepScreenOn(KeepScreenOn.DURING_WORKOUTS)
         advanceUntilIdle()
-        assertEquals(true, settings.keepScreenOnFlow.first())
-        assertEquals(true, vm.uiState.value.keepScreenOn)
-        settings.setKeepScreenOn(false)
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, settings.keepScreenOnFlow.first())
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, vm.uiState.value.keepScreenOn)
+        settings.setKeepScreenOn(KeepScreenOn.OFF)
         advanceUntilIdle()
-        assertEquals(false, vm.uiState.value.keepScreenOn)
+        assertEquals(KeepScreenOn.OFF, vm.uiState.value.keepScreenOn)
     }
 
     @Test

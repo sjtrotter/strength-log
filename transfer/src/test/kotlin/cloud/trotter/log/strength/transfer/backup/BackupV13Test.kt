@@ -62,8 +62,9 @@ class BackupV13Test {
         assertEquals(session.plannedJson, snapshot.sessions.single().plannedJson)
         assertEquals(0, snapshot.sessionSets.single().trackPosition)
         assertEquals(0, snapshot.sessionSets.single().plannedIndex)
-        assertEquals(before, snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13))
-        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
+        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER"))
+        assertEquals(expected, snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13))
+        assertEquals(codec.encode(expected), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
     }
 
     @Test fun `session lift notes survive backup mappings and codec without rewriting the snapshot`() {

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.view.View
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -348,6 +349,24 @@ class CardioSetsScreenTest {
         rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Add set").assertDoesNotExist()
         rule.runOnIdle { assertEquals(0, additions) }
+    }
+
+    @Test fun offLetsTheViewSleepDuringCardio() {
+        var view: View? = null
+        val state = workoutSetCardioFixture().copy(keepScreenOn = KeepScreenOn.OFF, cardioRunning = true)
+        rule.setContent { AppTheme {
+            val currentView = LocalView.current
+            SideEffect { view = currentView }
+            WorkoutSetHost(state, workoutActions(), DayEditUiState(), workoutEditActions())
+        } }
+        rule.runOnIdle { assertFalse(requireNotNull(view).keepScreenOn) }
+    }
+
+    @Test fun cardioViewFlagFollowsEachKeepScreenMode() {
+        for ((mode, expected) in listOf(KeepScreenOn.OFF to false,
+            KeepScreenOn.WHILE_TIMER to true, KeepScreenOn.DURING_WORKOUTS to true)) {
+            assertEquals(expected, DayUiState(keepScreenOn = mode, cardioRunning = true).executionKeepsScreenOn)
+        }
     }
 
     @Test fun distanceAndRecoveryHoldTheViewAwakeAndDisposalClearsIt() {

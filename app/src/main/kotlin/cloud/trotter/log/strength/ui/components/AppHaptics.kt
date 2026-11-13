@@ -32,8 +32,9 @@ object AppHaptics {
         view.performHapticFeedback(feedbackConstant(cue))
     }
 
-    /** [alarm] marks a vibration made from the background, which API 33+ drops without an alarm usage. */
-    fun restComplete(context: Context, alarm: Boolean = false) {
+    /** One 400 ms timer-end buzz for rest and set ends.
+     *  [alarm] marks a vibration made from the background, which API 33+ drops without an alarm usage. */
+    fun timerEnd(context: Context, alarm: Boolean = false) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         } else {

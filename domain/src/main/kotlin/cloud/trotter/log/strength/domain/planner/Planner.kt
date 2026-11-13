@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 
 data class SlotKey(val dayId: String, val index: Int)
@@ -49,7 +50,9 @@ data class PlanDraft(
 data class DayDraft(val day: ProgramDay, val working: Map<Int, List<LoggedSet>>, val reasons: List<PlanReason>)
 
 object Planner {
-    /** Deterministic for (answers, known, today). Never reads the clock or custom exercises. */
+    /** Deterministic for (answers, known, today). Never reads the clock or custom exercises.
+     *  A plan built from the log's [known] starts at the first unmet gate, so a later [PlanDraft.phase] than the
+     *  stored plan's is a passed gate (design §3.1.2). */
     fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null): PlanDraft {
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {

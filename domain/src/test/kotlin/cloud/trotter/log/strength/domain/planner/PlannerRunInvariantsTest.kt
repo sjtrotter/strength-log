@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.RunCap
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import kotlin.test.Test

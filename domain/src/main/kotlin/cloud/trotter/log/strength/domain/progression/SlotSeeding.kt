@@ -20,6 +20,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 data class KnownLoads(
     val lastWorking: Map<String, LoggedSet>,
     val longestRecent: Map<CardioFamily, RecentMaxima> = emptyMap(),
+    /** Per family, [CardioHistory.longestWeek]; the half build's week gate reads it. */
+    val longestWeek: Map<CardioFamily, RecentMaxima> = emptyMap(),
 ) {
     companion object { val NONE = KnownLoads(emptyMap()) }
 }

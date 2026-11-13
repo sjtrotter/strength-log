@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
-import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PlanGoal
@@ -9,11 +8,11 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
-import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.Riegel
 import cloud.trotter.log.strength.domain.progression.RunCap
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.withoutLastRound
 
@@ -30,13 +29,13 @@ private val rows = listOf(
     listOf(Entry(Token.E, true), Entry(Token.Q), Entry(Token.E), Entry(Token.Q2), Entry(Token.E, true), Entry(Token.L), Entry(Token.R)),
 )
 
-internal fun runEntries(answers: SetupAnswers, phase: RunPhase?): List<RunEntry> {
+internal fun runEntries(answers: SetupAnswers, phase: RunPhase?, todayEpochDay: Long?): List<RunEntry> {
     val run = answers.run
     val q = when {
         phase == RunPhase.LADDER -> RunSession.LADDER
         run.goal == RunGoal.CARDIO_FITNESS -> RunSession.EASY
         run.goal == RunGoal.FITNESS_TEST -> RunSession.TEST_INTERVALS
-        run.goal == RunGoal.MIDDLE_DISTANCE -> RunSession.RACE_PACE
+        run.goal == RunGoal.MIDDLE_DISTANCE -> if (sharpening(run, todayEpochDay)) RunSession.SHARPENING else RunSession.RACE_PACE
         else -> RunSession.THRESHOLD
     }
     val q2 = if (run.experience == RunExperience.NEW) null else when {
@@ -91,12 +90,13 @@ internal fun runDraft(
     strengthGoal: LiftGoal,
 ): PlanDraft {
     val run = answers.run
-    val anchor = known.longestRecent[CardioFamily.of(run.activity)] ?: run.seed()
-    val phase = startPhase(run, anchor)
-    val entries = runEntries(answers, phase)
+    val anchor = runAnchor(run, known)
+    val phase = startPhase(run, anchor, runWeek(run, known))
+    val entries = runEntries(answers, phase, todayEpochDay)
+    val lone = entries.none { it.session == RunSession.VO2MAX }
     val level = ladderStart(anchor, run.runningInjury)
     val pace = run.recent?.let { it.seconds.toDouble() / it.metres }
-    fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level, todayEpochDay)
+    fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level)
     val long = entries.firstOrNull { it.session == RunSession.LONG }?.let {
         RunCap.capped(template(RunSession.LONG), anchor, pace)
     }
@@ -115,7 +115,7 @@ internal fun runDraft(
         if (block != template) reasons += PlanReason.RunCapped(id)
         val exercises = if (entry.strength) strengthBlock(strength++, blockAnswers, mains) else emptyList()
         var day = ProgramDay(id, session.title, "", exercises, kind = ProgramDayKind.CARDIO, cardioBlock = block,
-            cardioRule = if (session == RunSession.LADDER) CardioRule(level) else null)
+            cardioRule = runRule(session, run, phase, level, block, lone))
         if (session != RunSession.LONG) {
             if (session != RunSession.LADDER) {
                 while (block.sets.count { it.role == CardioRole.WORK } > 1 &&

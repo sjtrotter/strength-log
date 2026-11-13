@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -82,7 +83,7 @@ class RoutineSheetTest {
         rule.onNodeWithContentDescription("Timer, 5 minutes").assertIsDisplayed()
     }
 
-    @Test fun `running timer updates the remaining line every second`() {
+    @Test fun `running timer updates its description every second and announces whole minutes and the end`() {
         var now = 108_000L
         rule.mainClock.autoAdvance = false
         rule.setContent { AppTheme {
@@ -90,12 +91,30 @@ class RoutineSheetTest {
                 {}, {}, {}, {}, {})
         } }
         rule.mainClock.advanceTimeBy(1_000)
-        rule.onNodeWithContentDescription("3 minutes 12 seconds left").assertExists()
+        fun assertTimer(time: String, description: String, announcement: String) {
+            rule.onNodeWithTag("routine-timer-$time", useUnmergedTree = true).assertIsDisplayed()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(description)))
+                .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.LiveRegion))
+            rule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, announcement))
+            rule.onNodeWithText(description).assertDoesNotExist()
+        }
+        assertTimer("3:12", "3 minutes 12 seconds left", "4 minutes left")
         rule.runOnIdle { now += 1_000 }
         rule.mainClock.advanceTimeBy(1_000)
-        rule.onNodeWithTag("routine-timer-3:11", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("3 minutes 11 seconds left").assertIsDisplayed()
-        rule.onNodeWithContentDescription("3 minutes 11 seconds left").assertExists()
+        assertTimer("3:11", "3 minutes 11 seconds left", "4 minutes left")
+        rule.runOnIdle { now = 120_000 }
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTimer("3:00", "3 minutes left", "3 minutes left")
+        rule.runOnIdle { now += 1_000 }
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTimer("2:59", "2 minutes 59 seconds left", "3 minutes left")
+        rule.runOnIdle { now = 299_000 }
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTimer("0:01", "1 second left", "1 minute left")
+        rule.runOnIdle { now += 1_000 }
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTimer("0:00", "0 seconds left", "Time is up")
     }
 
     @Test fun `running timer shows the remaining time and Stop callback`() {

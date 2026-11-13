@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -36,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.routine.Move
@@ -128,30 +131,32 @@ private fun RoutineTimer(sheet: RoutineSheetState, nowMillis: () -> Long, onStar
             delay(1000)
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (startedAt != null) {
-            val announcement = if (remaining == 0) stringResource(R.string.routine_timer_done) else
-                stringResource(R.string.routine_timer_left, formatDurationWords(context.resources, remaining))
-            Text(announcement, style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement })
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+    val time = formatCardioTime(remaining)
+    val timerDescription = if (startedAt == null) stringResource(R.string.routine_timer_duration,
+        formatDurationWords(context.resources, sheet.timerSeconds)) else
+        stringResource(R.string.routine_timer_left, formatDurationWords(context.resources, remaining))
+    val announcement = if (remaining == 0) stringResource(R.string.routine_timer_done) else
+        stringResource(R.string.routine_timer_left, formatDurationWords(context.resources, ((remaining + 59) / 60) * 60))
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        maxItemsInEachRow = if (LocalDensity.current.fontScale >= 1.5f) 1 else 2) {
+        Text(time, style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier.testTag("routine-timer-$time").clearAndSetSemantics {
+                contentDescription = timerDescription
+            })
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            val time = formatCardioTime(remaining)
-            val timerDescription = stringResource(R.string.routine_timer_duration,
-                formatDurationWords(context.resources, sheet.timerSeconds))
-            Text(time, style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.testTag("routine-timer-$time").clearAndSetSemantics {
-                    if (startedAt == null) contentDescription = timerDescription
-                })
             if (startedAt == null) {
                 FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.routine_timer_start)) }
             } else {
                 LinearProgressIndicator(progress = { if (sheet.timerSeconds == 0) 0f else remaining.toFloat() / sheet.timerSeconds },
-                    modifier = Modifier.weight(1f).clearAndSetSemantics { },
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {
+                        liveRegion = LiveRegionMode.Polite
+                        stateDescription = announcement
+                    },
                     color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
+                TextButton(onClick = onStop) { Text(stringResource(R.string.routine_timer_stop)) }
             }
         }
-        if (startedAt != null) TextButton(onClick = onStop) { Text(stringResource(R.string.routine_timer_stop)) }
     }
 }

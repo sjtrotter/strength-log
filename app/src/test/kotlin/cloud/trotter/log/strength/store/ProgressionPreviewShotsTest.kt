@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.store
 
+import android.app.Application
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.routine.CreditedExercise
@@ -32,7 +33,8 @@ import cloud.trotter.log.strength.ui.log.LogUiState
 import cloud.trotter.log.strength.ui.log.SessionListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -42,10 +44,10 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -100,10 +102,12 @@ import java.util.Locale
 import java.util.TimeZone
 import org.junit.After
 import org.junit.Before
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -114,10 +118,12 @@ class ProgressionPreviewShotsTest {
     @get:Rule val rule = createComposeRule()
     private lateinit var originalLocale: Locale
     private lateinit var originalTimeZone: TimeZone
+    private var originalFontScale = 1f
 
     @Before fun fixLocaleAndTimeZone() {
         originalLocale = Locale.getDefault()
         originalTimeZone = TimeZone.getDefault()
+        originalFontScale = RuntimeEnvironment.getApplication<Application>().resources.configuration.fontScale
         Locale.setDefault(Locale.US)
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     }
@@ -125,6 +131,7 @@ class ProgressionPreviewShotsTest {
     @After fun restoreLocaleAndTimeZone() {
         Locale.setDefault(originalLocale)
         TimeZone.setDefault(originalTimeZone)
+        RuntimeEnvironment.setFontScale(originalFontScale)
     }
 
     @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
@@ -319,6 +326,14 @@ class ProgressionPreviewShotsTest {
     fun warmUpTimerLargeFont() {
         val moves = upperWarmUp()
         render(fontScale = 2f) { routine(RoutineKind.WARM_UP, moves, checked = setOf(Move.ARM_CIRCLES), startedAt = 0) }
+        val timer = rule.onNodeWithTag("routine-timer-3:12", useUnmergedTree = true)
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val progress = rule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "4 minutes left"))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val stop = rule.onNodeWithText("Stop timer").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(progress.top >= timer.bottom)
+        assertTrue(stop.top >= timer.bottom)
+        assertTrue(progress.width > 0f && progress.right <= stop.left)
         capture("p23-warm-up-timer-2x.png", sheet = true)
     }
 
@@ -365,11 +380,9 @@ class ProgressionPreviewShotsTest {
     }
 
     private fun render(fontScale: Float = 1f, content: @Composable () -> Unit) {
+        RuntimeEnvironment.setFontScale(fontScale)
         rule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                AppTheme(preference = ThemePreference.DARK, content = content)
-            }
+            AppTheme(preference = ThemePreference.DARK, content = content)
         }
         rule.mainClock.advanceTimeBy(1_000)
         rule.waitForIdle()

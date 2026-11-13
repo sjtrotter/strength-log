@@ -795,11 +795,11 @@ class DayViewModel @Inject constructor(
     }
 
     fun requestCardioStart() {
-        val prefs = routinePrefs.value ?: return
+        val prefs = routinePrefs.value
         val state = uiState.value
         val planId = state.planId
         val dayId = state.viewDayId
-        if (prefs.warmUp && state.exercises.isEmpty() && state.cardio != null &&
+        if (prefs?.warmUp == true && state.exercises.isEmpty() && state.cardio != null &&
             state.cardio.run == null && state.cardio.loggedSeconds == null && cardioRun.value == null &&
             planId != null && dayId != null) {
             savedState[KEY_WARM_UP] = RoutineProgress(RoutineProgress.cardioStartOwner(planId, dayId),
@@ -1461,6 +1461,10 @@ class DayViewModel @Inject constructor(
     private suspend fun showDeferredCardioReceipt() {
         if (executionActive) return
         val run = deferredCardioReceipt.value ?: return
+        val coolDownMoves = if (run.finishesDay) {
+            val day = repo.observeDay(run.planId, run.dayId).first()
+            Routines.coolDown(routineExercises(day), run.block, day.equipment)
+        } else emptyList()
         val advancedTo = plans.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
         val standing = try {
@@ -1475,10 +1479,8 @@ class DayViewModel @Inject constructor(
         finisher.showCardio(run, standing?.let { CardioBests.bests(run.block.activity, it.map(SavedCardioBest::toDomain)) }, session)
         if (executionActive) return
         if (run.finishesDay && routinePrefs.value?.coolDown == true) {
-            val moves = dayState.value.takeIf { it.planId == run.planId && it.viewDayId == run.dayId }
-                ?.coolDownMoves?.takeIf { it.isNotEmpty() } ?: Routines.coolDown(emptyList(), run.block, emptySet())
             savedState[KEY_COOL_DOWN] = RoutineProgress(RoutineProgress.cardioOwner(run.runId),
-                moves.map { it.name }, emptyList(), null)
+                coolDownMoves.map { it.name }, emptyList(), null)
         }
         savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
@@ -2425,12 +2427,7 @@ class DayViewModel @Inject constructor(
                 weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
             )
         }
-        val credited = cards.flatMap { card ->
-            listOfNotNull(
-                performedDay.catalog.find(card.exerciseId)?.let { CreditedExercise(it, card.rows.count { row -> row.kind != SetKind.RAMP }) },
-                card.partnerExerciseId?.let(performedDay.catalog::find)?.let { CreditedExercise(it, card.rows.count { row -> row.partner != null }) },
-            )
-        }.filter { it.workingSets > 0 }
+        val credited = routineExercises(performedDay)
         return DayUiState(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },
@@ -2450,6 +2447,19 @@ class DayViewModel @Inject constructor(
             },
         )
     }
+
+    private fun routineExercises(day: PerformedDay): List<CreditedExercise> = day.slots.flatMap { slot ->
+        listOfNotNull(
+            slot.main.performed.entry?.let { entry ->
+                CreditedExercise(entry, slot.main.sets.count { it.kind != SetKind.RAMP })
+            },
+            slot.partner?.let { partner ->
+                partner.performed.entry?.let { entry ->
+                    CreditedExercise(entry, minOf(slot.main.sets.size, partner.sets.size))
+                }
+            },
+        )
+    }.filter { it.workingSets > 0 }
 
     private fun sheetResolves(state: DayUiState, sheet: OpenSheet, event: TimedRepEvent?): Boolean =
         !state.loading && sheet.dayId == state.viewDayId &&

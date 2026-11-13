@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.domain.progression.RecentMaxima
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Riegel
 import cloud.trotter.log.strength.domain.progression.RunCap
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import kotlin.test.Test
@@ -164,7 +165,7 @@ class PlannerRunTest {
     @Test fun `case 29 middle distance uses dated race reps and unrounded predictions`() {
         val answers = RunAnswers(RunGoal.MIDDLE_DISTANCE, RunExperience.SOME, RunEvent.M800, goalSeconds = 120, dateEpochDay = TODAY + 30)
         val late = plan(answers)
-        assertEquals(RunSession.RACE_PACE, late.sessions["B"])
+        assertEquals(RunSession.SHARPENING, late.sessions["B"])
         assertEquals(List(3) { distance(300, 45, true) }, work(day(late, "B")))
         assertEquals(List(2) { time(240, role = CardioRole.RECOVERY) }, day(late, "B").cardioBlock!!.sets.filter { it.role == CardioRole.RECOVERY })
         for (date in listOf(TODAY + 60, null)) {

@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import kotlin.test.Test
@@ -70,7 +71,7 @@ class PlannerBothTest {
         assertEquals(listOf("Full Body", "Full Body", "Full Body"), draft.program.days.map { it.title })
         assertEquals(listOf(RunSession.EASY, RunSession.THRESHOLD, RunSession.EASY), draft.sessions.values.toList())
         for ((index, day) in draft.program.strengthDays.withIndex()) {
-            assertEquals(lift.program.days[index], day.copy(cardioBlock = null))
+            assertEquals(lift.program.days[index], day.copy(cardioBlock = null, cardioRule = null))
             assertEquals(block(1200, hard = index == 1), day.cardioBlock)
             val estimate = SessionBudget.seconds(day, answers.goal)
             val over = draft.reasons.filterIsInstance<PlanReason.OverBudget>().singleOrNull { it.dayId == day.id }
@@ -137,7 +138,7 @@ class PlannerBothTest {
         val answers = answers(days = 1).copy(both = BothAnswers())
         val draft = plan(answers)
         val lift = liftDraft(answers, known(8050, 2900), 2400)
-        assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null))
+        assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null, cardioRule = null))
         assertEquals(block(1200), draft.program.days.single().cardioBlock)
         assertEquals(mapOf("A" to RunSession.EASY), draft.sessions)
         assertEquals(plan(answers.copy(branch = PlanBranch.LIFT)),

@@ -31,6 +31,21 @@ data class CardioHistory(
 ) {
     companion object {
         const val WINDOW_MILLIS = 30L * 24 * 60 * 60 * 1000
+        const val WEEK_MILLIS = 7L * 24 * 60 * 60 * 1000
+
+        /** The largest 7 × 24 h total of the family's finished sessions in the last 30 days, metres and seconds
+         *  each its own maximum; the phase gates' week form (design §3.1.2). 4b-ii passes it as KnownLoads.longestWeek. */
+        fun longestWeek(sessions: List<LoggedCardio>, asOfMillis: Long): RecentMaxima? {
+            val finished = sessions.filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS }.mapNotNull { session ->
+                RunCap.maxima(listOf(session.results))?.let { session.completedAt to it }
+            }
+            return finished.map { (end, _) ->
+                val window = finished.filter { end - it.first in 0 until WEEK_MILLIS }.map { it.second }
+                val metres = window.mapNotNull { it.metres }
+                val seconds = window.mapNotNull { it.seconds }
+                RecentMaxima(metres.takeIf { it.isNotEmpty() }?.sum(), seconds.takeIf { it.isNotEmpty() }?.sum())
+            }.reduceOrNull { maximum, week -> maximum.max(week) }
+        }
 
         /** The history a judgment reads at [asOfMillis]. [sessions] are the family's sessions completed before it,
          *  oldest first: [longest] spans those within [WINDOW_MILLIS], the pace the newest finished one with a metres

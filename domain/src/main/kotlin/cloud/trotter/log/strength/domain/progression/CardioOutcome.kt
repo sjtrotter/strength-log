@@ -12,6 +12,10 @@ sealed interface CardioChange {
     data class LevelTo(val level: Int) : CardioChange
     /** Level 12 finished: the day leaves the ladder and runs A16 under the run cap from now on. */
     data object LadderDone : CardioChange
+    /** One unit of the session's range (§3.1): a round, else every rep's end. */
+    data object Step : CardioChange
+    /** A lone base-phase quality day switched kind (§3.1.2). */
+    data class Alternate(val to: RunSession) : CardioChange
 }
 
 /** Next time's block and rule for a cardio day; the caller writes both together. */

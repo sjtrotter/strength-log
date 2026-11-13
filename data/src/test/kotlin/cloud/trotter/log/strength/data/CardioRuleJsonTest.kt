@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunSession
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
@@ -28,6 +29,38 @@ class CardioRuleJsonTest {
     @Test fun `levels outside the ladder reject`() {
         for (level in listOf(0, 13)) {
             val json = """{"ladderLevel":$level}"""
+            assertNull(CardioRuleJson.decode(json))
+            assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(json) }
+        }
+    }
+
+    @Test fun `run rule shapes round trip`() {
+        for (rule in listOf(
+            CardioRule(null, RunSession.EASY),
+            CardioRule(null, RunSession.THRESHOLD, steps = 4, credits = 1, alternate = RunSession.VO2MAX),
+            CardioRule(null, RunSession.SHARPENING, steps = 3),
+            CardioRule(null, RunSession.LONG, longMetres = 40_000, longSeconds = 12_600),
+            CardioRule(null, RunSession.LONG, longSeconds = 5_400),
+        )) {
+            val json = CardioRuleJson.encode(rule)
+            CardioRuleJson.validate(json)
+            assertEquals(rule, CardioRuleJson.decode(json))
+        }
+    }
+
+    @Test fun `existing rules keep their exact JSON`() {
+        assertEquals("""{"ladderLevel":3}""", CardioRuleJson.encode(CardioRule(3)))
+        assertEquals("{}", CardioRuleJson.encode(CardioRule(null)))
+    }
+
+    @Test fun `invalid run rules reject on decode and validation`() {
+        for (json in listOf(
+            """{"session":"EASY","steps":1}""",
+            """{"session":"NOPE"}""",
+            """{"session":"THRESHOLD","credits":2}""",
+            """{"session":"EASY","longMetres":100}""",
+            """{"ladderLevel":2,"session":"EASY"}""",
+        )) {
             assertNull(CardioRuleJson.decode(json))
             assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(json) }
         }

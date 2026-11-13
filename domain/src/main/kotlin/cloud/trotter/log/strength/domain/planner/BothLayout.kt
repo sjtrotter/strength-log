@@ -1,18 +1,17 @@
 package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.model.CardioBlock
-import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.RunCap
+import cloud.trotter.log.strength.domain.progression.RunSession
 
 internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: Long?): PlanDraft {
     val run = answers.run
-    val anchor = known.longestRecent[CardioFamily.of(run.activity)] ?: run.seed()
-    val phase = startPhase(run, anchor)
+    val anchor = runAnchor(run, known)
+    val phase = startPhase(run, anchor, runWeek(run, known))
     if (answers.days == 1 && answers.both.together(answers.days) == BothAnswers.Together.SEPARATE_DAYS) {
         return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal)
         else {
@@ -49,13 +48,14 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
 
     val level = ladderStart(anchor, run.runningInjury)
     val pace = run.recent?.let { it.seconds.toDouble() / it.metres }
-    fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level, todayEpochDay)
+    fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level)
     fun capped(block: CardioBlock) = RunCap.capped(block, anchor, pace)
     val reserve = if (phase == RunPhase.LADDER) plannedSeconds(template(RunSession.LADDER)) else 1_200
     val budget = answers.minutes * 60
     val reservesRun = answers.minutes >= 45
     val lift = liftDraft(answers, known, if (reservesRun) budget - reserve else budget)
-    val entries = runEntries(answers, phase).mapNotNull { it.session }
+    val entries = runEntries(answers, phase, todayEpochDay).mapNotNull { it.session }
+    val lone = RunSession.VO2MAX !in entries
     val mapped = lift.program.days.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
         day.id to entries[index % entries.size]
     }.toMap()
@@ -86,7 +86,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
             if (block != original) reasons += PlanReason.RunCapped(day.id)
         }
         val combined = day.copy(cardioBlock = block,
-            cardioRule = if (block != null && session == RunSession.LADDER) CardioRule(level) else null)
+            cardioRule = block?.let { runRule(session, run, phase, level, it, lone) })
         val excess = SessionBudget.seconds(combined, answers.goal) - budget
         if (excess > 0) reasons += PlanReason.OverBudget(day.id, excess)
         combined

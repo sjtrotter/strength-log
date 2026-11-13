@@ -20,6 +20,11 @@ class TaperTest {
     private val half = PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, 7200, byEpochDay = 1000)
 
     @Test
+    fun `a sprint goal has no taper`() {
+        assertNull(Taper.factor(PlanGoal.Sprint(100, byEpochDay = 20_010), 20_005))
+    }
+
+    @Test
     fun `case 19 half marathon`() {
         for ((day, expected) in listOf(988L to 0.7, 995L to 0.5, 986L to 0.7, 993L to 0.5)) {
             assertEquals(expected, Taper.factor(half, day))

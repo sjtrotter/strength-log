@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
+import cloud.trotter.log.strength.domain.model.SprintAttempt
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -32,9 +33,12 @@ object PlanGoalJson {
             underSeconds = goal.underSeconds, byEpochDay = goal.byEpochDay)
         is PlanGoal.Shuttle -> PlanGoalDto("shuttle", protocol = goal.protocol, targetShuttles = goal.targetShuttles,
             attempts = goal.attempts.map { ShuttleAttemptDto(it.completedAt, it.shuttles) }, byEpochDay = goal.byEpochDay)
+        is PlanGoal.Sprint -> PlanGoalDto("sprint", metres = goal.metres, targetCentis = goal.targetCentis,
+            sprintAttempts = goal.attempts.map { SprintAttemptDto(it.completedAt, it.time.centis,
+                it.time.timingMethod.name, it.time.startProtocol.name) }, byEpochDay = goal.byEpochDay)
     })
 
-    /** Null for a goal this build cannot show: an unreadable one, a timed goal with no time, or a sprint goal;
+    /** Null for a goal this build cannot show: an unreadable one or a timed goal with no time;
      *  the stored JSON is kept as is. */
     fun decode(json: String?): PlanGoal? = json?.let { runCatching { parse(it) }.getOrNull() }
 
@@ -52,15 +56,9 @@ object PlanGoalJson {
                     PlanGoal.Timed(activity, metres, it, dto.byEpochDay)
                 }
             }
-            "sprint" -> {
-                require(requireNotNull(dto.metres) in 1..1_000)
-                require(dto.targetCentis == null || dto.targetCentis in 1..CardioTiming.MAX_CENTIS)
-                dto.sprintAttempts.forEach {
-                    require(it.centis in 1..CardioTiming.MAX_CENTIS)
-                    require(CardioTiming.isName(it.timingMethod) && CardioTiming.isName(it.startProtocol))
-                }
-                null
-            }
+            "sprint" -> PlanGoal.Sprint(requireNotNull(dto.metres), dto.targetCentis,
+                dto.sprintAttempts.map { SprintAttempt(it.completedAt,
+                    requireNotNull(CardioTiming.of(it.centis, it.timingMethod, it.startProtocol))) }, dto.byEpochDay)
             "shuttle" -> PlanGoal.Shuttle(requireNotNull(dto.protocol), requireNotNull(dto.targetShuttles),
                 dto.attempts.map { ShuttleAttempt(it.completedAt, it.shuttles) }, dto.byEpochDay)
             else -> throw IllegalArgumentException("unknown plan goal type '${dto.type}'")

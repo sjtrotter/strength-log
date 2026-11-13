@@ -17,9 +17,10 @@ data class CardioRecord(
 )
 
 object CardioBests {
-    /** At-end readings exclude the overrun; older time rows must end at exactly the planned seconds. */
+    /** At-end readings exclude the overrun; older time rows must end at exactly the planned seconds.
+     *  A timed sprint rep counts only in its own series ([SprintComparison]). */
     fun counts(result: CardioSetResult): Boolean =
-        result.spec.role == CardioRole.WORK && FinishedRule.reading(result) != null &&
+        result.timing == null && result.spec.role == CardioRole.WORK && FinishedRule.reading(result) != null &&
             (FinishedRule.finished(result) ?: (result.status == CardioSetStatus.FINISHED &&
                 (result.spec.end as? Measure.Time)?.let { result.elapsedSeconds == it.seconds } != false))
 

@@ -64,6 +64,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
         overlineContent = (goal as? PlanGoal.Timed)?.let { { Text(cardioActivityName(it.activity)) } },
         headlineContent = {
             Text(when (goal) {
+                is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
                 is PlanGoal.Timed -> stringResource(R.string.plan_goal_timed,
                     distanceUnitFor(goal.activity).format(goal.metres), ClockText.minutesSeconds(goal.underSeconds))
                 is PlanGoal.Shuttle -> stringResource(R.string.plan_goal_shuttle, goal.protocol, goal.targetShuttles)
@@ -85,6 +86,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
 private fun goalProgress(ui: PlanGoalUi): String {
     val best = ui.best ?: return stringResource(R.string.plan_goal_no_attempt)
     val gap = when (val goal = ui.goal) {
+        is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
         is PlanGoal.Timed -> {
             val seconds = abs(best - goal.underSeconds)
             val amount = if (seconds < 60) stringResource(R.string.plan_goal_seconds, seconds)

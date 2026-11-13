@@ -28,7 +28,7 @@ data class PlanGoalDraft(
                 underSeconds = goal.underSeconds, byEpochDay = goal.byEpochDay)
             is PlanGoal.Shuttle -> PlanGoalDraft(timed = false, protocol = goal.protocol,
                 targetShuttles = goal.targetShuttles, byEpochDay = goal.byEpochDay)
-            null -> PlanGoalDraft()
+            is PlanGoal.Sprint, null -> PlanGoalDraft()
         }
     }
 }

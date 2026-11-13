@@ -19,6 +19,7 @@ object Taper {
         val daysOut = (goal.byEpochDay ?: return null) - todayEpochDay
         if (daysOut < 0) return null
         return when (goal) {
+            is PlanGoal.Sprint -> null
             is PlanGoal.Shuttle -> if (daysOut <= 10) 0.6 else null
             is PlanGoal.Timed -> when {
                 goal.metres <= TEN_K_METRES -> if (daysOut <= 10) 0.6 else null

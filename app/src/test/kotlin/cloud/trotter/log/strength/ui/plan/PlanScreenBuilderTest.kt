@@ -49,6 +49,14 @@ class PlanScreenBuilderTest {
             WizardAnswers(), ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
     }
 
+    @Test fun `a sprint goal shows no goal row before PR 7`() {
+        val plan = PlanEntity(1, "Sprint", PlanOrigin.AUTHORED.name, 0, 0,
+            goalJson = PlanGoalJson.encode(PlanGoal.Sprint(100)))
+        val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList<ProgramDay>()), WizardAnswers(),
+            ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+        assertNull(state.goal)
+    }
+
     private val catalog = ExerciseCatalog.CODE_ONLY
 
     @Test

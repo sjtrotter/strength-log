@@ -74,6 +74,8 @@ data class CardioSetResult(
     val metresAtEnd: Int? = null,
     val secondsAtEnd: Int? = null,
     val readingSource: ReadingSource? = null,
+    /** A timed sprint rep's time (design §3.1.3); null on every other set. */
+    val timing: SprintTime? = null,
 ) {
     init {
         require(elapsedSeconds >= 0) { "elapsedSeconds must not be negative" }

@@ -1,9 +1,15 @@
 package cloud.trotter.log.strength.data.serialization
 
-/** The one check for a stored sprint timing name (`cardio_set_result.timingMethod/startProtocol`, sprint goal
- *  attempts) until PR 5 gives them enums: an upper-case identifier such as PHONE or THREE_POINT. */
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
+
+/** The three stored sprint timing columns (`cardio_set_result.centis/timingMethod/startProtocol`) as one domain
+ *  time: null when all three are null; IllegalArgumentException for a partial triple or an unknown name. */
 object CardioTiming {
-    const val MAX_CENTIS = 360_000
-    fun isName(value: String): Boolean = NAME.matches(value)
-    private val NAME = Regex("[A-Z][A-Z_]{0,23}")
+    fun of(centis: Int?, timingMethod: String?, startProtocol: String?): SprintTime? {
+        if (centis == null && timingMethod == null && startProtocol == null) return null
+        require(centis != null && timingMethod != null && startProtocol != null)
+        return SprintTime(centis, TimingMethod.valueOf(timingMethod), StartProtocol.valueOf(startProtocol))
+    }
 }

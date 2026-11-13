@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.SprintAttempt
 
 object GoalProgress {
     /**
@@ -32,4 +33,21 @@ object GoalProgress {
     fun met(goal: PlanGoal.Timed, best: Int?): Boolean = best != null && best < goal.underSeconds
     fun bestShuttles(goal: PlanGoal.Shuttle): Int? = goal.attempts.maxOfOrNull { it.shuttles }
     fun met(goal: PlanGoal.Shuttle, best: Int?): Boolean = best != null && best >= goal.targetShuttles
+
+    /** The best attempt in the series of the newest one; a hand time within 0.1 s of the standing best leaves it
+     *  (design §3.1.3). */
+    fun bestSprint(goal: PlanGoal.Sprint): SprintAttempt? {
+        val ordered = goal.attempts.sortedBy { it.completedAt }
+        val newest = ordered.lastOrNull() ?: return null
+        var best: SprintAttempt? = null
+        for (attempt in ordered) {
+            if (attempt.time.timingMethod != newest.time.timingMethod ||
+                attempt.time.startProtocol != newest.time.startProtocol) continue
+            val standing = best
+            if (standing == null || SprintComparison.verdict(attempt.time, standing.time) == SprintVerdict.FASTER) {
+                best = attempt
+            }
+        }
+        return best
+    }
 }

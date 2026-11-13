@@ -809,7 +809,7 @@ class WatchSnapshotBuilderTest {
             "bb_back_squat", catalog, setOf(Equipment.BODYWEIGHT),
         )
 
-        assertEquals(listOf("wall_sit"), alternates.map { it.exerciseId })
+        assertEquals(listOf("wall_sit", "sit_to_stand"), alternates.map { it.exerciseId })
         assertEquals(true, alternates.all { alternate ->
             catalog.get(alternate.exerciseId).equipment.all { it == Equipment.BODYWEIGHT }
         })

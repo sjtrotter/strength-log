@@ -41,7 +41,7 @@ class SetCountTest {
     @Test fun `partners count their own muscles and unknown ids count nothing`() {
         val program = Program(listOf(day(listOf(
             ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown")), ProgramExercise("unknown"),
-        )))))
+        ))))
         assertEquals(mapOf(Muscle.BICEPS to 3.0, Muscle.TRICEPS to 3.0), SetCount.weekly(program))
         assertEquals(mapOf(Muscle.BICEPS to 1, Muscle.TRICEPS to 1), SetCount.exposures(program))
     }

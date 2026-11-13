@@ -980,3 +980,15 @@ The planner writes `restSeconds` for the 65+ main's 120 seconds, ladder step 5 a
 Every equipment preset includes bodyweight. Full gym has all eleven equipment types; Home barbell adds barbell, rack, bench and pull-up bar; Dumbbells adds dumbbells and bench; Kettlebells adds kettlebells; Machines only adds machine, cable and bench; Bodyweight adds the pull-up bar. A muscle group no available entry credits is exempt from exposure floors. The owner muscle table supplies primary and secondary set credit, exercise doses and side flags. Plyometric and Balance are appended movement patterns; the app change is limited to their two labels and mapping checks.
 
 Volume balancing is PR 3b: enforce the owner's floors and a cap of 20 sets on rotation totals, with no enforcement of band tops. PR 3a includes set counting but makes no volume-band assertion. Recipe dates, plan goal, name, auto-apply, split choice, the General fitness finisher, other Why reasons and exclusion storage stay with later PRs.
+
+## 36. Revision 27 (PR 3b, weekly set floors)
+
+The planner enforces the owner's weekly set floors and a cap of 20 for every muscle on rotation totals. Section 3.1.1's band tops are not enforced. Strength and General fitness floor QUADS, HAMSTRINGS, GLUTES, CHEST, LATS, UPPER_BACK and FRONT_DELT; Muscle adds BICEPS and TRICEPS. SIDE_DELT, REAR_DELT, CALVES and CORE have no floor. Strength's floor is 6, General fitness's 4, and Muscle's 10 for New and Under a year or 12 for A year or more. The 65+ modifier sets the goal's floors to 6. A muscle no available entry credits as primary has no floor.
+
+Balancing runs after the ladder and before opening rows. The trim takes one set at a time from the ACCESSORY, ISOLATION or CORE slot with the most sets that credits an over-cap muscle as primary, latest day and last slot first, removing a slot at zero. It runs on every strength day because the cap never relaxes. CORE is in the trim because the 65+ carry and the core slot reach 24 sets over six days.
+
+The fill runs on days the ladder left alone, muscle by muscle, one set at a time: first the eligible slot with the fewest sets, earliest day and earliest slot first, up to five sets a slot; then a one-set accessory slot of the muscle's pattern on the day with the most room, before its core slot. When nothing else fits, it may reuse a chosen main that is not main-capable on a day without it. No set may push a day past its minutes or a muscle past 20. A floor the minutes stop marks those days `ShortSession` at step 0.
+
+Kettlebells for Muscle, A year or more, at two days has one row, already at five sets on both days. Its back stays at 10 sets with no reason, since longer sessions would not help.
+
+The reference rotation's second Upper day now has three bench sets as its second exposure, so day E estimates 3,195 s.

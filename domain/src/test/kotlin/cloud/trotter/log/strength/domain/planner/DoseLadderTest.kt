@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.planner
 
+import cloud.trotter.log.strength.domain.library.Muscle
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.Scheme
@@ -91,7 +92,13 @@ class DoseLadderTest {
     @Test fun `two seventy five minute days need no ladder`() {
         val draft = Planner.plan(answers(days = 2, minutes = 75))
         assertTrue(draft.reasons.isEmpty())
-        assertEquals(listOf(3960, 3465), draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
+        assertEquals(listOf(3960, 4215), draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
+        val last = draft.program.strengthDays.last().exercises
+        assertEquals(listOf("ez_curl", "seated_curl", "pallof"), last.takeLast(3).map { it.exerciseId })
+        val curl = last.single { it.exerciseId == "seated_curl" }
+        assertEquals(SlotRole.ISOLATION, curl.rule!!.role)
+        assertEquals(4, curl.targetSets)
+        assertEquals(6.5, SetCount.weekly(draft.program)[Muscle.HAMSTRINGS])
     }
 
     @Test fun `empty main selection never lets a removal empty the day`() {

@@ -67,8 +67,14 @@ class PlannerTest {
             ids(SlotRole.SECONDARY))
         assertEquals(referenceAnswers().mains!!.toSet(), ids(SlotRole.MAIN).flatten().toSet())
         assertEquals(5, ids(SlotRole.MAIN).flatten().size)
-        assertEquals(listOf(2700, 3525, 2700, 3030),
+        assertEquals(listOf(2700, 3525, 2700, 3195),
             draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
+        assertEquals(3, slot(draft, "E", "bb_bench").targetSets)
+        assertEquals(2, slot(draft, "E", "bb_row").targetSets)
+        val weekly = SetCount.weekly(draft.program)
+        assertEquals(6.0, weekly[Muscle.CHEST])
+        assertEquals(8.0, weekly[Muscle.FRONT_DELT])
+        assertEquals(11.5, weekly[Muscle.TRICEPS])
         assertTrue(draft.reasons.isEmpty())
         assertEquals(6, draft.deloadEveryCycles)
         for (day in draft.program.strengthDays) for (slot in day.exercises) {

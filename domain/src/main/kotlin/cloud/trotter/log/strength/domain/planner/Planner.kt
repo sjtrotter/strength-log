@@ -18,7 +18,8 @@ data class SlotKey(val dayId: String, val index: Int)
 
 /** Keys for the "Why this plan" sheet (PR 6). Re-derived from the answers, never stored. */
 sealed interface PlanReason {
-    /** The day fits after ladder step [step] (1 to 6). */
+    /** The day fits after ladder step [step] (1 to 6). Step 0: the ladder left the day alone, but its minutes stop
+     *  a weekly set floor (invariant 5). */
     data class ShortSession(val dayId: String, val step: Int) : PlanReason
     /** After step 6 the day is still [seconds] over; Your plan offers "Drop a lift" or "Longer sessions". */
     data class OverBudget(val dayId: String, val seconds: Int) : PlanReason
@@ -50,12 +51,20 @@ object Planner {
             LoggedSet(number.weightLb, number.reps, SetKind.WORK, rir = number.effort.rir)
         })
         val reasons = mutableListOf<PlanReason>()
-        val working = mutableMapOf<SlotKey, List<LoggedSet>>()
-        val days = layout(answers, mains).map { day ->
+        val fittedDays = layout(answers, mains).map { day ->
             if (day.kind != ProgramDayKind.STRENGTH) day else {
                 val (fitted, dayReasons) = fitDay(day, answers)
                 reasons += dayReasons
-                fitted.copy(exercises = fitted.exercises.mapIndexed { index, slot ->
+                fitted
+            }
+        }
+        val touched = reasons.filterIsInstance<PlanReason.ShortSession>().map { it.dayId }.toSet()
+        val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched)
+        reasons += volumeReasons
+        val working = mutableMapOf<SlotKey, List<LoggedSet>>()
+        val days = balancedDays.map { day ->
+            if (day.kind != ProgramDayKind.STRENGTH) day else {
+                day.copy(exercises = day.exercises.mapIndexed { index, slot ->
                     val seeded = SlotSeeding.rows(slot, requireNotNull(slot.rule), seedKnown, answers.steps, answers.unit)
                     working[SlotKey(day.id, index)] = seeded.rows
                     slot.copy(rule = seeded.rule)

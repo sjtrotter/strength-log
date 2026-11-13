@@ -29,6 +29,7 @@ class PlannerInvariantsTest {
         val draft = Planner.plan(answers)
         val chosen = Planner.defaultMains(answers.equipment, answers.excluded)
         val strength = draft.program.strengthDays
+        assertTrue(SetCount.weekly(draft.program).values.all { it <= 20.0 }, "$label weekly cap")
         assertEquals(answers.days, strength.size, label)
         assertEquals(if (answers.days >= 4) 1 else 0,
             draft.program.days.count { it.kind == ProgramDayKind.REST }, label)
@@ -40,6 +41,9 @@ class PlannerInvariantsTest {
         for (day in strength) {
             assertTrue(day.exercises.isNotEmpty(), "$label ${day.id} empty")
             val estimate = SessionBudget.seconds(day, answers.goal)
+            if (draft.reasons.none { it is PlanReason.ShortSession && it.dayId == day.id && it.step >= 1 }) {
+                assertTrue(estimate <= answers.minutes * 60, "$label ${day.id} fill budget")
+            }
             val over = draft.reasons.filterIsInstance<PlanReason.OverBudget>().singleOrNull { it.dayId == day.id }
             if (estimate > answers.minutes * 60) {
                 assertEquals(estimate - answers.minutes * 60, over?.seconds, "$label ${day.id} budget")
@@ -96,5 +100,55 @@ class PlannerInvariantsTest {
                     "excluded $goal $days days $minutes min $experience older=$older")
             }
         }
+    }
+
+    @Test fun `weekly set floors hold over 2160 setup combinations`() {
+        val seven = setOf(Muscle.QUADS, Muscle.HAMSTRINGS, Muscle.GLUTES, Muscle.CHEST,
+            Muscle.LATS, Muscle.UPPER_BACK, Muscle.FRONT_DELT)
+        val musclesByGoal = mapOf(
+            LiftGoal.STRENGTH to seven,
+            LiftGoal.GENERAL to seven,
+            LiftGoal.MUSCLE to seven + setOf(Muscle.BICEPS, Muscle.TRICEPS),
+        )
+        val catalogBound = mutableSetOf<String>()
+        var plans = 0
+        for (goal in LiftGoal.entries) for (days in 2..6) for (minutes in listOf(45, 60, 75, 90)) {
+            for (preset in EquipmentPreset.entries) for (experience in LiftExperience.entries) for (older in listOf(false, true)) {
+                val label = "$goal $days days $minutes min $preset $experience older=$older"
+                val answers = SetupAnswers(goal = goal, days = days, minutes = minutes, equipment = preset.equipment,
+                    experience = experience, olderAdult = older)
+                val draft = Planner.plan(answers)
+                plans++
+                if (draft.reasons.any { it is PlanReason.ShortSession }) continue
+                val floor = when {
+                    older -> 6
+                    goal == LiftGoal.STRENGTH -> 6
+                    goal == LiftGoal.GENERAL -> 4
+                    experience == LiftExperience.A_YEAR_OR_MORE -> 12
+                    else -> 10
+                }
+                val weekly = SetCount.weekly(draft.program)
+                val available = ExerciseLibrary.entries.filter { it.availableWith(answers.equipment, answers.excluded) }
+                val chosen = Planner.defaultMains(answers.equipment, answers.excluded).toSet()
+                for (muscle in musclesByGoal.getValue(goal)) {
+                    if (available.none { muscle in it.primary }) continue
+                    if (weekly.getOrDefault(muscle, 0.0) >= floor) continue
+                    val eligible = available.filter { muscle in it.primary && (!it.mainCapable || it.id in chosen) &&
+                        ExerciseLibrary.bodyweightPairFor(it.id) == null }
+                    assertTrue(eligible.all { entry ->
+                        draft.program.strengthDays.all { day ->
+                            val slots = day.exercises.filter { it.exerciseId == entry.id || it.superset?.exerciseId == entry.id }
+                            slots.isNotEmpty() && slots.all { it.targetSets >= 5 }
+                        }
+                    }, "$label $muscle below $floor at ${weekly[muscle]} and not catalog-bound")
+                    catalogBound += "$label $muscle"
+                }
+            }
+        }
+        assertEquals(2160, plans)
+        assertEquals(setOf(
+            "MUSCLE 2 days 90 min KETTLEBELLS A_YEAR_OR_MORE older=false LATS",
+            "MUSCLE 2 days 90 min KETTLEBELLS A_YEAR_OR_MORE older=false UPPER_BACK",
+        ), catalogBound)
     }
 }

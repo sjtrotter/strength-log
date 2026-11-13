@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.store
 
-import android.app.Application
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.routine.CreditedExercise
@@ -123,7 +122,7 @@ class ProgressionPreviewShotsTest {
     @Before fun fixLocaleAndTimeZone() {
         originalLocale = Locale.getDefault()
         originalTimeZone = TimeZone.getDefault()
-        originalFontScale = RuntimeEnvironment.getApplication<Application>().resources.configuration.fontScale
+        originalFontScale = RuntimeEnvironment.getApplication().resources.configuration.fontScale
         Locale.setDefault(Locale.US)
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     }

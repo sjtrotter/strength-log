@@ -24,7 +24,8 @@ enum class EquipmentPreset(val equipment: Set<Equipment>) {
 
 /** Setup answers (design §2.1, §2.2). [mains] null takes [Planner.defaultMains].
  *  [goal] is the lift sub-goal; a Run plan's strength blocks use the Strength rules (D8).
- *  [run] is read on Run and Both, [both] on Both. */
+ *  [run] is read on Run and Both, [both] on Both, [sprint] on Sprint and on Both with [BothAnswers.sprint];
+ *  a Sprint plan's lifts use the Strength rules. */
 data class SetupAnswers(
     val goal: LiftGoal = LiftGoal.GENERAL,
     val days: Int = 3,
@@ -40,6 +41,7 @@ data class SetupAnswers(
     val branch: PlanBranch = PlanBranch.LIFT,
     val run: RunAnswers = RunAnswers(),
     val both: BothAnswers = BothAnswers(),
+    val sprint: SprintAnswers = SprintAnswers(),
 ) {
     init {
         require(days in 1..6)
@@ -47,11 +49,18 @@ data class SetupAnswers(
     }
 }
 
-/** Stored by name; new constants go at the end. Sprint arrives in PR 5. */
-enum class PlanBranch { LIFT, RUN, BOTH }
+/** Stored by name; new constants go at the end. */
+enum class PlanBranch { LIFT, RUN, BOTH, SPRINT }
 
 /** Both's Which first and Together (design §2.2). [together] null takes the default: separate days from 4 days. */
-data class BothAnswers(val cardioFirst: Boolean = false, val together: Together? = null) {
+data class BothAnswers(
+    val cardioFirst: Boolean = false,
+    val together: Together? = null,
+    /** The cardio sub-goal is a sprint event: the sprint layout with the lift sub-goal's rules, and neither
+     *  Which first nor Together is asked (design revision 30). */
+    val sprint: Boolean = false,
+) {
+    init { require(!sprint || (!cardioFirst && together == null)) }
     enum class Together { SAME_VISIT, SEPARATE_DAYS }
     fun together(days: Int): Together = together ?: if (days >= 4) Together.SEPARATE_DAYS else Together.SAME_VISIT
 }

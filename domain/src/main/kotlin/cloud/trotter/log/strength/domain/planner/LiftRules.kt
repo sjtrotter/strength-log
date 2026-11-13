@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Scheme
@@ -45,6 +46,7 @@ internal fun liftSlot(role: SlotRole, entry: ExerciseEntry, answers: SetupAnswer
         if (main && answers.goal != LiftGoal.GENERAL && !experienced) 3 else 0,
         if (answers.experience == LiftExperience.NEW) 2 else 0,
         if (answers.olderAdult) 3 else 0,
+        if (role == SlotRole.PLYO) Effort.EASY.rir else 0,
     )
     val rule = defaults.copy(
         target = target,

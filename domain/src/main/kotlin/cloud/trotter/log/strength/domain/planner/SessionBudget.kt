@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -16,14 +17,16 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 
 /** Design §3.1 invariant 1: "5 min warm-up, then per set 45 s plus its rest; a superset counts once".
  *  A cardio block counts its planned time. The rest is the timer's own resolver with no user overrides, so the
- *  estimate and the timer agree. */
+ *  estimate and the timer agree. A block that opens with its own WARMUP set (a sprint day's 10 min build-up,
+ *  §3.1.3) is the day's warm-up. */
 object SessionBudget {
     const val WARM_UP_SECONDS = 300
     const val SET_SECONDS = 45
 
     fun seconds(day: ProgramDay, goal: LiftGoal): Int {
         if (day.kind == ProgramDayKind.REST) return 0
-        return WARM_UP_SECONDS + day.exercises.sumOf { slot ->
+        val warmUp = if (day.cardioBlock?.sets?.first()?.role == CardioRole.WARMUP) 0 else WARM_UP_SECONDS
+        return warmUp + day.exercises.sumOf { slot ->
             val tracking = ExerciseLibrary.find(slot.exerciseId)?.tracking ?: TrackingType.WEIGHTED
             setKinds(slot).sumOf { kind ->
                 SET_SECONDS + RestPolicy.effectiveRestSeconds(kind, tracking, emptyMap(), slot.rule, goal)

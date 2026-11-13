@@ -32,6 +32,8 @@ internal fun runBlock(
 ): CardioBlock {
     fun single(end: Measure) = CardioBlock(run.activity, listOf(CardioSetSpec(CardioRole.WORK, end)))
     return when (session) {
+        RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE, RunSession.SPRINT_TEMPO ->
+            error("Sprint blocks come from sprintBlock")
         RunSession.LADDER -> RunWalkLadder.block(ladderLevel, run.activity)
         RunSession.EASY -> single(Measure.Time(easySeconds))
         RunSession.LONG -> {

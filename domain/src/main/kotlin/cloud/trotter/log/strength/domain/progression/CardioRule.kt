@@ -4,7 +4,8 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 
 /** A cardio day's progression state, the cardio twin of [SlotRule], kept on [ProgramDay.cardioRule] and changed
  *  only by [Progression.cardioAfterSession]. The planner sets the ladder level, the session kind, the alternation
- *  and the long-run target; ranges step in [Progression.cardioAfterSession]; sprint volume comes in PR 5. */
+ *  and the long-run target; ranges step in [Progression.cardioAfterSession]; a sprint day's opening step is set
+ *  at creation, its progression in PR 5c. */
 data class CardioRule(
     /** The run/walk ladder level, 1 to [RunWalkLadder.TOP]; null when the day is not on the ladder. */
     val ladderLevel: Int?,

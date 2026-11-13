@@ -75,6 +75,7 @@ import cloud.trotter.log.strength.domain.progression.EffortScale
 import androidx.compose.material3.TextButton
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -128,6 +129,12 @@ fun SetupScreen(
     }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     var showDistanceUnitDialog by rememberSaveable { mutableStateOf(false) }
+    var showKeepScreenDialog by rememberSaveable { mutableStateOf(false) }
+    val keepScreenChoices = listOf(
+        KeepScreenOn.OFF to stringResource(R.string.settings_keep_screen_off),
+        KeepScreenOn.WHILE_TIMER to stringResource(R.string.settings_keep_screen_timer),
+        KeepScreenOn.DURING_WORKOUTS to stringResource(R.string.settings_keep_screen_workouts),
+    )
     var showEffortScaleDialog by rememberSaveable { mutableStateOf(false) }
     val effortScales = listOf(
         EffortScale.WORDS to stringResource(R.string.settings_effort_words),
@@ -246,15 +253,12 @@ fun SetupScreen(
                                 }
                             },
                         )
-                        "keep_screen_on" -> {
-                            val label = stringResource(R.string.setup_keep_screen_on)
-                            ListItem(
-                                headlineContent = { Text(label) },
-                                trailingContent = { Switch(state.keepScreenOn, onCheckedChange = null) },
-                                modifier = Modifier.fillMaxWidth().toggleable(value = state.keepScreenOn,
-                                    role = Role.Switch, onValueChange = actions.onKeepScreenOnChange),
-                            )
-                        }
+                        "keep_screen_on" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.setup_keep_screen_on)) },
+                            supportingContent = { Text(keepScreenChoices.first { it.first == state.keepScreenOn }.second) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                .clickable { showKeepScreenDialog = true },
+                        )
                         "warm_up", "cool_down" -> {
                             val warm = row == "warm_up"
                             val checked = if (warm) state.warmUp else state.coolDown
@@ -280,6 +284,13 @@ fun SetupScreen(
                 }
             }
         }
+    }
+    if (showKeepScreenDialog) {
+        RadioChoiceDialog(
+            title = stringResource(R.string.setup_keep_screen_on), detail = null,
+            choices = keepScreenChoices, selected = state.keepScreenOn,
+            onPick = actions.onKeepScreenOnChange, onDismiss = { showKeepScreenDialog = false },
+        )
     }
     if (showEffortScaleDialog) {
         RadioChoiceDialog(

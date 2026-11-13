@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -728,24 +729,16 @@ class BackupCodecTest {
         assertEquals(setOf(RestCategory.TOP), restored.restSettings.overrides.keys)
     }
 
-    // --- keep-screen-on (schema v4) -----------------------------------------
-
     @Test
-    fun `keep-screen-on survives a full export-import cycle`() {
-        val on = restSnapshot(RestSettings()).copy(keepScreenOn = true)
-
-        val restored = codec.decode(codec.encode(on.toDocument())).toSnapshot()
-
-        assertTrue(restored.keepScreenOn)
-    }
-
-    @Test
-    fun `keep-screen-on off round-trips as off`() {
-        val off = restSnapshot(RestSettings())
-
-        val restored = codec.decode(codec.encode(off.toDocument())).toSnapshot()
-
-        assertFalse(restored.keepScreenOn)
+    fun `all keep-screen modes round-trip at v27 with a legacy boolean projection`() {
+        for (mode in KeepScreenOn.entries) {
+            val snapshot = restSnapshot(RestSettings()).copy(keepScreenOn = mode)
+            val document = codec.decode(codec.encode(snapshot.toDocument()))
+            assertEquals(27, document.schemaVersion)
+            assertEquals(mode.name, document.settings.keepScreen)
+            assertEquals(mode == KeepScreenOn.DURING_WORKOUTS, document.settings.keepScreenOn)
+            assertEquals(mode, document.toSnapshot().keepScreenOn)
+        }
     }
 
     @Test

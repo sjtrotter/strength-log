@@ -299,6 +299,7 @@ class DayRouteNavigationTest {
             else assertNull(alarm.deadline)
         }
 
+        val deadlineBeforeBack = rule.runOnIdle { alarm.deadline }
         if (systemBack) rule.runOnUiThread { backDispatcher.onBackPressed() }
         else rule.onNodeWithContentDescription("Back").performClick()
         rule.waitForIdle()
@@ -306,7 +307,7 @@ class DayRouteNavigationTest {
         rule.runOnIdle {
             assertEquals(Routes.TODAY, navController.currentDestination?.route)
             assertFalse(view.keepScreenOn)
-            assertNull(alarm.deadline)
+            assertEquals(deadlineBeforeBack, alarm.deadline)
         }
     }
 

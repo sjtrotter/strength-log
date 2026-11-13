@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -59,7 +60,7 @@ class EffortScaleSettingsTest {
 
     private suspend fun restore(scale: EffortScale) {
         settings.restore(GlobalLifter(), WeightUnit.LB, true, restSettings = RestSettings(),
-            keepScreenOn = false, effortScale = scale)
+            keepScreenOn = KeepScreenOn.WHILE_TIMER, effortScale = scale)
     }
 
     @Test fun `a fresh store reads WORDS`() = runTest {

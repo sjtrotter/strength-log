@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -97,7 +98,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         settings.setRestTimerEnabled(false)
         settings.setRestOverride(RestCategory.TOP, 210)
         settings.setRestOverride(RestCategory.LIGHT, 30)
-        settings.setKeepScreenOn(true)
+        settings.setKeepScreenOn(KeepScreenOn.DURING_WORKOUTS)
 
         val customId = repository.catalog.addCustomExercise(
             name = "Cable Hack Squat",
@@ -186,8 +187,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         // the tuned buckets must fall back to RestPolicy's defaults, not linger.
         assertEquals(RestSettings(), settings.restSettingsFlow.first())
         // Same story for keep-screen-on: the empty backup carries no key, so the
-        // restore must land on the absent-means-off default.
-        assertEquals(false, settings.keepScreenOnFlow.first())
+        // restore must land on the absent preference default.
+        assertEquals(KeepScreenOn.WHILE_TIMER, settings.keepScreenOnFlow.first())
 
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
@@ -206,7 +207,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         // Spot-check a couple of load-bearing details beyond structural equality.
         assertEquals("C", repository.plans.suggestedDayFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
-        assertEquals(true, settings.keepScreenOnFlow.first())
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, settings.keepScreenOnFlow.first())
         val squatLog = db.programDao().allLogs().first { it.planId == PlanEntity.LEGACY_ID && it.programExerciseId == squatId }
         assertEquals(listOf(LoggedSet(250.0, 5, SetKind.TOP)), SetJson.decodeSets(squatLog.setsJson))
     }
@@ -225,7 +226,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         val wizardComplete: Boolean,
         val suggestedDay: String?,
         val restSettings: RestSettings,
-        val keepScreenOn: Boolean,
+        val keepScreenOn: KeepScreenOn,
     )
 
     private suspend fun captureState(): State {

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,7 +43,7 @@ class BackupV4RestoreTest {
         val snapshot = codec.decode(v4Json()).toSnapshot()
         assertEquals(235.0, snapshot.answers.config.bodyweightLb)
         assertEquals("A", snapshot.suggestedDay)
-        assertTrue(snapshot.keepScreenOn)
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, snapshot.keepScreenOn)
         assertEquals(1500L, snapshot.sessions.first { it.id == 1L }.startedAt)
         assertEquals(2, snapshot.sessionSets.size)
     }

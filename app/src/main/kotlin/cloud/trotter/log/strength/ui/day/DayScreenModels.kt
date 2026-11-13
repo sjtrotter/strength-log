@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -88,7 +89,7 @@ data class DayUiState(
     val executionBusy: Boolean = false,
     val executionBlockedReason: WorkoutBlockedReason? = null,
     val cardioRunning: Boolean = false,
-    val keepScreenOn: Boolean = false,
+    val keepScreenOn: KeepScreenOn = KeepScreenOn.WHILE_TIMER,
     val rest: RestUiState? = null,
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
@@ -105,7 +106,8 @@ data class DayUiState(
     val coolDown: RoutineSheetState? = null,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
-    val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
+    val executionKeepsScreenOn: Boolean =
+        keepScreenOn.holds(workoutOpen = false, timerRunning = timedRepRunning || cardioRunning)
 
     val doneSets: Int = runSetCounts?.done
         ?: (exercises.sumOf { card ->

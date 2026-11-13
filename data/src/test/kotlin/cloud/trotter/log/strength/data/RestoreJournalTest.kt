@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -136,7 +137,7 @@ class RestoreJournalTest {
         suggestedDay = "R",
         selectedPlanId = PlanEntity.LEGACY_ID,
         restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
-        keepScreenOn = true,
+        keepScreenOn = KeepScreenOn.DURING_WORKOUTS,
         customExercises = emptyList(),
         days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "R", 0, "Restored", "from a backup", null)),
         exercises = listOf(
@@ -159,7 +160,7 @@ class RestoreJournalTest {
             RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
             settings.restSettingsFlow.first(),
         )
-        assertTrue(settings.keepScreenOnFlow.first())
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, settings.keepScreenOnFlow.first())
     }
 
     private suspend fun assertSettingsUntouched() {
@@ -695,7 +696,7 @@ class RestoreJournalTest {
             snapshot.restSettings.overrides.forEach { (category, seconds) ->
                 prefs[intPreferencesKey("rest_${category.name.lowercase()}_seconds")] = seconds
             }
-            prefs[booleanPreferencesKey("keep_screen_on")] = snapshot.keepScreenOn
+            prefs[booleanPreferencesKey("keep_screen_on")] = snapshot.keepScreenOn == KeepScreenOn.DURING_WORKOUTS
             prefs[booleanPreferencesKey("top_set_helper_seen")] = snapshot.topSetHelperSeen
             prefs[booleanPreferencesKey("superset_helper_seen")] = snapshot.supersetHelperSeen
             prefs[stringPreferencesKey("theme")] = snapshot.themePreference.name

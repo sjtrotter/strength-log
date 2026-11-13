@@ -5,9 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
+import cloud.trotter.log.strength.ui.components.AppHaptics
 import cloud.trotter.log.strength.domain.cardio.Clocks
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -45,11 +43,13 @@ interface CardioAlarm {
 
 /**
  * Phone twin of the wear exact-alarm adapter. `OnAlarmListener` needs no exact-alarm permission.
- * Delivery holds while the day screen is live, and with the screen off while the run's GPS service runs.
+ * Delivery holds while the process lives: screen on or off, on any screen, until the set ends
+ * or the ViewModel that armed it clears. With the screen off the top app is never frozen,
+ * so delivery is on time. A cached app can be frozen after switching to another app.
+ * The buzz uses alarm usage because API 33+ drops a background vibration without it.
  * The alarm is exact, and light Doze, which applies while the phone moves, doesn't defer it.
  * Deep Doze needs the phone still for a long time; it can defer an alarm to its next maintenance window.
- * Reconcile uses exact deadlines, so only the buzz is late, never the data. Without the GPS service,
- * backgrounding cancels the listener, and returning arms only the next future boundary.
+ * Process death loses the buzz, never the data: reconcile uses exact deadlines.
  */
 @Singleton
 class AndroidCardioAlarm @Inject constructor(
@@ -98,18 +98,9 @@ class AndroidCardioAlarm @Inject constructor(
 
     override fun buzz() = vibrate()
 
-    private fun vibrate() {
-        val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            (appContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            appContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
-        vibrator?.vibrate(VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE))
-    }
+    private fun vibrate() = AppHaptics.timerEnd(appContext, alarm = true)
 
     private companion object {
         const val ALARM_TAG = "strengthlog:cardio-boundary"
-        const val BUZZ_MILLIS = 400L
     }
 }

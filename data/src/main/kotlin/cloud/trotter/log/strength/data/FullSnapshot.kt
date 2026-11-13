@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
@@ -43,9 +44,8 @@ data class FullSnapshot(
     val suggestedDay: String?,
     val selectedPlanId: Long? = null,
     val restSettings: RestSettings,
-    /** The keep-screen-on preference. Defaulted off so the many fixtures that
-     *  predate it still read as the setting's absent-means-off meaning. */
-    val keepScreenOn: Boolean = false,
+    /** Defaults to the absent preference's meaning: hold the screen only while a timer runs. */
+    val keepScreenOn: KeepScreenOn = KeepScreenOn.WHILE_TIMER,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
     val themePreference: ThemePreference = ThemePreference.SYSTEM,

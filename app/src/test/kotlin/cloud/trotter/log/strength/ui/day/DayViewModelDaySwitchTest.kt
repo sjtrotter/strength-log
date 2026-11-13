@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -204,14 +205,14 @@ class DayViewModelDaySwitchTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
-        // Gated: if the switch flowed through the day pipeline, the branch would
+        // Gated: if the setting flowed through the day pipeline, the branch would
         // restart and stall on this read instead of staying on day A.
         historyGate = CompletableDeferred()
-        vm.setKeepScreenOn(true)
+        settings.setKeepScreenOn(KeepScreenOn.DURING_WORKOUTS)
         advanceUntilIdle()
 
         val state = vm.uiState.value
-        assertTrue(state.keepScreenOn)
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, state.keepScreenOn)
         assertFalse(state.loading)
         assertEquals("A", state.viewDayId)
         assertTrue(state.exercises.isNotEmpty())

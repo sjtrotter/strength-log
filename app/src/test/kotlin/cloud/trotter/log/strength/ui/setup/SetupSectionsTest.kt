@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.setup
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -60,7 +63,7 @@ class SetupSectionsTest {
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        listOf("Units", "Distance", "Theme", "Keep screen on during workouts", "Suggested warm-up", "Suggested cool-down", "Rest timer",
+        listOf("Units", "Distance", "Theme", "Keep screen on", "Suggested warm-up", "Suggested cool-down", "Rest timer",
             "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup and export", "Licenses").forEach { label ->
             list.performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
@@ -188,14 +191,25 @@ class SetupSectionsTest {
     }
 
     @Test
-    fun keepScreenOnSwitchUsesExistingPreferenceCallback() {
-        var enabled: Boolean? = null
+    fun keepScreenRowShowsCurrentChoiceAndForwardsEachOption() {
+        val mode = mutableStateOf(KeepScreenOn.WHILE_TIMER)
+        val choices = mutableListOf<KeepScreenOn>()
         composeTestRule.setContent { AppTheme {
-            SetupScreen(SetupUiState(), setupActions().copy(onKeepScreenOnChange = { enabled = it }))
+            SetupScreen(SetupUiState(keepScreenOn = mode.value), setupActions().copy(onKeepScreenOnChange = {
+                choices += it
+                mode.value = it
+            }))
         } }
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep screen on during workouts"))
-        composeTestRule.onNodeWithText("Keep screen on during workouts").performClick()
-        composeTestRule.runOnIdle { assertEquals(true, enabled) }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep screen on"))
+        composeTestRule.onNode(hasText("Keep screen on") and hasText("While a timer runs")).assertIsDisplayed().performClick()
+        composeTestRule.onNode(hasText("While a timer runs") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeTestRule.onNode(hasText("Off") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNode(hasText("Keep screen on") and hasText("Off")).assertIsDisplayed().performClick()
+        composeTestRule.onNode(hasText("During workouts") and hasAnyAncestor(isDialog())).performClick()
+        composeTestRule.onNode(isDialog()).assertDoesNotExist()
+        composeTestRule.onNode(hasText("Keep screen on") and hasText("During workouts")).assertHeightIsAtLeast(48.dp)
+        composeTestRule.runOnIdle { assertEquals(listOf(KeepScreenOn.OFF, KeepScreenOn.DURING_WORKOUTS), choices) }
     }
 
     @Test

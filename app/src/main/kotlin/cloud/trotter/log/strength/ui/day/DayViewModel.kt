@@ -133,7 +133,7 @@ import kotlinx.coroutines.sync.withLock
  *
  * Cardio runs persist their frozen prescriptions, per-set outcomes and clock anchors
  * as one saved value. Logged distance drafts have separate saved state and never
- * retain execution ownership. Foreground alarms are shared with timed reps.
+ * retain execution ownership. Set-end alarms are shared with timed reps.
  * Outdoor runs measure distance through [GpsDistance]; its stamps have their own saved key.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -1492,17 +1492,12 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** Called by the day-screen lifecycle; background screens never retain a boundary alarm. */
+    /** Screen lifecycle controls presentation and GPS warm-up. A running set keeps
+     *  its boundary armed until it ends or this ViewModel clears. */
     fun setCardioScreenLive(live: Boolean) {
         cardioScreenLive = live
         if (!live) {
-            timedRepAlertAnchor = null
-            val run = cardioRun.value
-            if (run != null && run.running && gps.state.value == GpsState.Tracking(run.runId)) armCardioBoundary(run)
-            else {
-                cardioAlertAnchor = null
-                cardioAlarm.cancel()
-            }
+            cardioRun.value?.takeIf { it.running }?.let(::armCardioBoundary)
             cardioRun.value?.takeIf { !it.running && it.block.activity.usesGps }?.let { gps.end(it.runId) }
         } else {
             cardioRun.value?.takeIf { it.running && it.block.activity.usesGps && gpsEnabled.value && gps.meter(it.runId) == null }
@@ -1630,7 +1625,7 @@ class DayViewModel @Inject constructor(
     override fun onCleared() {
         cardioRun.value?.takeIf { it.block.activity.usesGps }?.let { gps.end(it.runId) }
         coolDownGps()
-        cardioAlarm.cancel()
+        if (timedRepEvent.value?.awaitingCount == false || cardioRun.value?.running == true) cardioAlarm.cancel()
         super.onCleared()
     }
 
@@ -2126,13 +2121,6 @@ class DayViewModel @Inject constructor(
         savedState[KEY_OPEN_SHEET] = null
     }
 
-    /** Writes the keep-screen-on preference. It lives in DataStore, not
-     *  [SavedStateHandle], so it outlives the process the way every other thing
-     *  the user chose does — and the activity, not this screen, applies it. */
-    fun setKeepScreenOn(on: Boolean) {
-        viewModelScope.launch { settings.setKeepScreenOn(on) }
-    }
-
     fun clearTodayChecks() {
         val state = uiState.value
         val runId = state.takeIf { it.viewDayId == currentDay() && it.runOpen }?.runId ?: return
@@ -2496,17 +2484,23 @@ class DayViewModel @Inject constructor(
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         val remainingMillis = (event.durationSeconds * 1_000L - elapsed).coerceAtLeast(0L)
         if (remainingMillis == 0L) {
-            finishTimedRep(event, buzz = cardioScreenLive && timedRepAlertAnchor == event.wallStart)
+            finishTimedRep(event, buzz = timedRepAlertAnchor == event.wallStart)
             return TimedRepState(event.copy(awaitingCount = true), 0)
         }
         if (cardioScreenLive) {
             timedRepAlertAnchor = event.wallStart
-            cardioAlarm.arm(
+            cardioAlarm.armQuiet(
                 cardioClock.elapsedRealtimeMillis() + remainingMillis,
                 "timed-reps:${event.programExerciseId}:${event.setIndex}:${event.wallStart}",
-            ) { finishTimedRep(event, buzz = false) }
+            ) { onTimedRepDeadline(event) }
         }
         return TimedRepState(event, ((remainingMillis + 999L) / 1_000L).toInt())
+    }
+
+    private fun onTimedRepDeadline(event: TimedRepEvent) {
+        if (timedRepEvent.value != event) return
+        val state = dayState.value
+        if (!state.loading && !timedRepMatches(state, event)) clearTimedRep() else finishTimedRep(event, buzz = true)
     }
 
     private fun finishTimedRep(event: TimedRepEvent, buzz: Boolean) {
@@ -2645,8 +2639,7 @@ class DayViewModel @Inject constructor(
     private fun armCardioBoundary(run: CardioRun) {
         if (timedRepEvent.value?.awaitingCount != false) {
             val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
-            if (run.running && end != null && !run.block.openEnded &&
-                (cardioScreenLive || gps.state.value == GpsState.Tracking(run.runId))) {
+            if (run.running && end != null && !run.block.openEnded) {
                 val remaining = end.seconds * 1000L - run.elapsedMillis(cardioClock)
                 val identity = cardioAlarmIdentity(run)
                 if (remaining <= 0 && cardioAlertAnchor == identity) return

@@ -6,10 +6,14 @@ import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -610,7 +614,48 @@ class DayViewModelTimedRepExecutionTest {
     }
 
     @Test
-    fun backgroundCancelsAndReturnRearmsOnlyFutureDeadlineWithoutMissedBuzz() = test {
+    fun screenOffKeepsTheAlarmAndItBuzzesOnceAtTheDeadline() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.start()
+        runCurrent()
+        val deadline = clock.elapsed + 120_000
+        vm.setCardioScreenLive(false)
+        assertEquals(deadline, alarm.deadline)
+        clock.advance(120_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertTrue(vm.uiState.value.timedRep!!.event.awaitingCount)
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        assertTrue(vm.uiState.value.timedRep!!.requestsSheet)
+        assertEquals(1, alarm.buzzes)
+        assertNull(alarm.deadline)
+    }
+
+    @Test
+    fun returnBeforeTheDeadlineKeepsOneAlarm() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.start()
+        runCurrent()
+        val deadline = alarm.deadline
+        vm.setCardioScreenLive(false)
+        tick(20_000)
+        assertEquals(deadline, alarm.deadline)
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        assertEquals(deadline, alarm.deadline)
+        assertEquals(0, alarm.buzzes)
+    }
+
+    @Test
+    fun tickerWinningJustAfterScreenOffStillBuzzesOnce() = test {
         prepare()
         val vm = readyVm()
         vm.startWorkout()
@@ -618,19 +663,86 @@ class DayViewModelTimedRepExecutionTest {
         vm.start()
         runCurrent()
         vm.setCardioScreenLive(false)
+        tick(120_000)
+        assertEquals(1, alarm.buzzes)
         assertNull(alarm.deadline)
-        tick(20_000)
-        assertNull(alarm.deadline)
-        vm.setCardioScreenLive(true)
+        alarm.fire()
+        assertEquals(1, alarm.buzzes)
+    }
+
+    @Test
+    fun stopWithTheScreenOffNeverBuzzes() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
         runCurrent()
-        assertEquals(clock.elapsed + 100_000, alarm.deadline)
+        vm.start()
+        runCurrent()
         vm.setCardioScreenLive(false)
-        clock.advance(110_000)
-        vm.setCardioScreenLive(true)
-        runCurrent()
-        assertTrue(vm.uiState.value.timedRep!!.requestsSheet)
+        vm.stopTimedRep()
         assertNull(alarm.deadline)
+        tick(120_000)
+        alarm.fire()
         assertEquals(0, alarm.buzzes)
+    }
+
+    @Test
+    fun aSetLoggedElsewhereBeforeTheDeadlineNeverBuzzes() = test {
+        prepare()
+        val vm = vm()
+        val collect = backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        vm.setCardioScreenLive(true)
+        vm.startWorkout()
+        runCurrent()
+        vm.start()
+        runCurrent()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        vm.setCardioScreenLive(false)
+        collect.cancel()
+        advanceTimeBy(5_001)
+        runCurrent()
+        repo.applyToRun(requireNotNull(state.runId), requireNotNull(state.planId), "A", listOf(
+            TrackEdit(id, Slot.MAIN) { rows -> rows.mapIndexed { index, row ->
+                if (index == 0) row.copy(done = true) else row
+            } },
+        ))
+        runCurrent()
+        assertNotNull(alarm.deadline)
+        clock.advance(120_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(0, alarm.buzzes)
+        assertNull(alarm.deadline)
+        val returned = backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        assertNull(vm.uiState.value.timedRep)
+        returned.cancel()
+    }
+
+    @Test
+    fun clearingTheViewModelCancelsARunningSetsAlarm() = test {
+        prepare()
+        val store = ViewModelStore()
+        try {
+            val factory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = modelClass.cast(vm())
+            }
+            val vm = ViewModelProvider(store, factory)[DayViewModel::class.java]
+            backgroundScope.launch { vm.uiState.collect {} }
+            runCurrent()
+            vm.setCardioScreenLive(true)
+            vm.startWorkout()
+            runCurrent()
+            vm.start()
+            runCurrent()
+            assertNotNull(alarm.deadline)
+            store.clear()
+            assertNull(alarm.deadline)
+        } finally {
+            store.clear()
+        }
     }
 
     @Test
@@ -802,20 +914,28 @@ class DayViewModelTimedRepExecutionTest {
 
     private class FakeCardioAlarm : CardioAlarm {
         var deadline: Long? = null
+        var identity: String? = null
         var callback: (() -> Unit)? = null
         var buzzes = 0
-        override fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
-            deadline = deadlineElapsedMillis
-            callback = onBoundary
-        }
-        override fun cancel() { deadline = null; callback = null }
+        var quiet = false
         override fun buzz() { buzzes++ }
         fun fire() {
             val boundary = callback ?: return
             cancel()
-            buzz()
+            if (!quiet) buzz()
             boundary()
         }
+        override fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
+            this.deadline = deadlineElapsedMillis
+            this.identity = identity
+            callback = onBoundary
+            quiet = false
+        }
+        override fun armQuiet(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) {
+            arm(deadlineElapsedMillis, identity, onBoundary)
+            quiet = true
+        }
+        override fun cancel() { deadline = null; identity = null; callback = null }
     }
 
     private class FakeRestRuntime : RestRuntime {

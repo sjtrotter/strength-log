@@ -65,13 +65,13 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         completedDeadline = armedDeadline
         cancel()
         if (foreground) {
-            AppHaptics.restComplete(context)
+            AppHaptics.timerEnd(context)
         } else if (Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         ) {
             NotificationManagerCompat.from(context).notify(OVER_ID, overNotification())
         } else {
-            AppHaptics.restComplete(context, alarm = true)
+            AppHaptics.timerEnd(context, alarm = true)
         }
         return true
     }

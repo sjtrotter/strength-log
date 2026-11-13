@@ -31,6 +31,7 @@ import kotlinx.serialization.Serializable
  * v25 carries each plan's optional cardio goal.
  * v26 carries lift note timestamps and run track notes.
  * v27 carries draft runs, slot, partner and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, the effort scale, and optional saved routes.
+ * Optional v27 additions carry the three-way keep-screen choice.
  */
 const val CURRENT_SCHEMA_VERSION: Int = 27
 
@@ -158,10 +159,9 @@ data class SettingsBackup(
     val restBackoffSeconds: Int? = null,
     val restWorkSeconds: Int? = null,
     val restLightSeconds: Int? = null,
-    /** Keep-screen-on (v4). Defaulted to the same absent-means-off meaning the
-     *  DataStore key has, so a v1-v3 document — written when this was a
-     *  session-only flag that no backup could carry — restores with the screen
-     *  behaving exactly as it does on a fresh install. */
+    /** Legacy keep-screen boolean (v4). Written as keepScreen == DURING_WORKOUTS for
+     *  older readers, like bodyweightLb beside bodyweightLbPrecise. Readers prefer
+     *  a valid keepScreen name and otherwise fall back to this boolean. */
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
@@ -175,6 +175,8 @@ data class SettingsBackup(
     /** Older backups always restored their lifter values as answers. */
     val hasLifterAnswers: Boolean = true,
     val effortScale: String = "WORDS",
+    /** Optional v27 addition; absence and unknown names use the legacy boolean. */
+    val keepScreen: String? = null,
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking

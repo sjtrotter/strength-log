@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
 import dagger.hilt.android.AndroidEntryPoint
+import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -34,6 +35,8 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settings: SettingsStore
 
+    @Inject lateinit var tracker: TrackerRepository
+
     @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
     @Inject lateinit var phoneRest: PhoneRestController
 
@@ -51,12 +54,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Held on the window, not per screen: a per-screen effect drops the
-        // wake when the user navigates mid-workout. FLAG_KEEP_SCREEN_ON only
-        // applies while this window is visible.
+        // The window holds the workout leg: a per-screen effect drops the wake
+        // on navigation (#138). DayScreen's view holds the timer leg; Android ORs the two.
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                settings.keepScreenOnFlow.collect { on ->
+                keepScreenOnWindowFlow(settings.keepScreenOnFlow, tracker.openRunFlow).collect { on ->
                     if (on) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {

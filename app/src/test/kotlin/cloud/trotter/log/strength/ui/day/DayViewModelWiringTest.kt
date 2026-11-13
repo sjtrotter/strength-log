@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.keepToPlanFixture
 import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.convertTestPlans
@@ -2875,35 +2876,17 @@ class DayViewModelWiringTest {
     // --- keep-screen-on preference --------------------------------------------
 
     @Test
-    fun theKeepScreenOnToggleReachesDataStore() = runVmTest {
-        insertProgram()
-        val vm = newViewModel()
-        advanceUntilIdle()
-        assertFalse("absent means off", settings.keepScreenOnFlow.first())
-
-        vm.setKeepScreenOn(true)
-        advanceUntilIdle()
-
-        assertTrue(settings.keepScreenOnFlow.first())
-
-        vm.setKeepScreenOn(false)
-        advanceUntilIdle()
-
-        assertFalse(settings.keepScreenOnFlow.first())
-    }
-
-    @Test
-    fun theSwitchInTheUiStateReadsThePersistedPreference() = runVmTest {
+    fun theUiStateReadsThePersistedKeepScreenPreference() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        assertFalse(vm.uiState.value.keepScreenOn)
+        assertEquals(KeepScreenOn.WHILE_TIMER, vm.uiState.value.keepScreenOn)
 
-        vm.setKeepScreenOn(true)
+        settings.setKeepScreenOn(KeepScreenOn.DURING_WORKOUTS)
         advanceUntilIdle()
 
-        assertTrue(vm.uiState.value.keepScreenOn)
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, vm.uiState.value.keepScreenOn)
         collect.cancel()
     }
 
@@ -2911,19 +2894,20 @@ class DayViewModelWiringTest {
      * The flag must outlive one screen's visit: a cold launch — or simply
      * walking to the Log and back, which builds this ViewModel afresh — must
      * preserve it while the lifter is mid-workout. A new ViewModel with an empty
-     * handle must still see ON.
+     * handle must still see DURING_WORKOUTS.
      */
     @Test
     fun keepScreenOnOutlivesTheViewModelThatSetIt() = runVmTest {
         insertProgram()
-        newViewModel().setKeepScreenOn(true)
+        newViewModel()
+        settings.setKeepScreenOn(KeepScreenOn.DURING_WORKOUTS)
         advanceUntilIdle()
 
         val reborn = newViewModel(handle = SavedStateHandle())
         val collect = launch { reborn.uiState.collect {} }
         advanceUntilIdle()
 
-        assertTrue(reborn.uiState.value.keepScreenOn)
+        assertEquals(KeepScreenOn.DURING_WORKOUTS, reborn.uiState.value.keepScreenOn)
         collect.cancel()
     }
 

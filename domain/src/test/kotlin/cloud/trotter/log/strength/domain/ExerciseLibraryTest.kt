@@ -73,9 +73,9 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `every non-CARDIO movement pattern has at least 2 entries`() {
+    fun `every movement pattern except CARDIO and BALANCE has at least 2 entries`() {
         for (pattern in MovementPattern.entries) {
-            if (pattern == MovementPattern.CARDIO) continue
+            if (pattern == MovementPattern.CARDIO || pattern == MovementPattern.BALANCE) continue
             assertTrue(
                 ExerciseLibrary.byPattern(pattern).size >= 2,
                 "$pattern has fewer than 2 entries",
@@ -103,12 +103,12 @@ class ExerciseLibraryTest {
     // --- Tracking types (catalog classification + variant pairs) ------------
 
     @Test
-    fun `catalog totals are 186 entries, 149 weighted, 28 reps, 9 timed`() {
+    fun `catalog totals are 192 entries, 149 weighted, 33 reps, 10 timed`() {
         val byType = ExerciseLibrary.entries.groupingBy { it.tracking }.eachCount()
-        assertEquals(186, ExerciseLibrary.entries.size)
+        assertEquals(192, ExerciseLibrary.entries.size)
         assertEquals(149, byType[TrackingType.WEIGHTED] ?: 0)
-        assertEquals(28, byType[TrackingType.REPS] ?: 0)
-        assertEquals(9, byType[TrackingType.TIMED] ?: 0)
+        assertEquals(33, byType[TrackingType.REPS] ?: 0)
+        assertEquals(10, byType[TrackingType.TIMED] ?: 0)
     }
 
     @Test
@@ -119,6 +119,7 @@ class ExerciseLibraryTest {
             "neutral_pullup", "bench_dip", "diamond_pushup", "bw_calf_raise", "ab_wheel", "dead_bug",
             "body_saw", "hanging_raise", "decline_situp", "reverse_crunch", "v_up", "knee_raise",
             "bw_dip", "hanging_knee_raise",
+            "pogo_hop", "a_skip", "bound", "box_jump", "sit_to_stand",
         )
         val actual = ExerciseLibrary.entries.filter { it.tracking == TrackingType.REPS }.map { it.id }.toSet()
         assertEquals(expected, actual)
@@ -128,7 +129,7 @@ class ExerciseLibraryTest {
     fun `exact set of TIMED entries`() {
         val expected = setOf(
             "plank", "hollow_hold", "weighted_plank", "suitcase_carry", "dead_hang", "farmers_carry", "wall_sit",
-            "high_plank", "side_plank",
+            "high_plank", "side_plank", "single_leg_stance",
         )
         val actual = ExerciseLibrary.entries.filter { it.tracking == TrackingType.TIMED }.map { it.id }.toSet()
         assertEquals(expected, actual)
@@ -268,6 +269,7 @@ class ExerciseLibraryTest {
             "back_ext" to "back_ext_45",
             "plank" to "weighted_plank",
             "bw_calf_raise" to "db_calf",
+            "sit_to_stand" to "goblet_squat",
         )
         assertEquals(pairs, ExerciseLibrary.entries.mapNotNull { e -> e.weightedPairId?.let { e.id to it } }.toMap())
         for ((sourceId, targetId) in pairs) {
@@ -562,11 +564,11 @@ class ExerciseLibraryTest {
     )
 
     @Test
-    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 186`() {
+    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 192`() {
         assertEquals(175, preExistingRanks.size)
         val currentIds = ExerciseLibrary.entries.map { it.id }.toSet()
         assertTrue(preExistingRanks.keys.all { it in currentIds })
-        assertEquals(186, currentIds.size)
+        assertEquals(192, currentIds.size)
     }
 
     @Test

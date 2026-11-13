@@ -120,6 +120,8 @@ class UiTextMappingTest {
             MovementPattern.CORE_ANTI_ROT to "Core: anti-rotation",
             MovementPattern.CORE_FLEX to "Core: flexion",
             MovementPattern.CARDIO to "Cardio",
+            MovementPattern.PLYOMETRIC to "Plyometric",
+            MovementPattern.BALANCE to "Balance",
         )
         assertEquals(MovementPattern.entries.toSet(), expected.keys)
         lateinit var actual: List<String>

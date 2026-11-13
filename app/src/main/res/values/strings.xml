@@ -421,6 +421,8 @@
 <string name="movement_pattern_core_anti_rotation">Core: anti-rotation</string>
 <string name="movement_pattern_core_flexion">Core: flexion</string>
 <string name="movement_pattern_cardio">Cardio</string>
+<string name="movement_pattern_plyometric">Plyometric</string>
+<string name="movement_pattern_balance">Balance</string>
 
 <!-- Session receipt -->
 <string name="receipt_title_done">%1$s, done.</string>

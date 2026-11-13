@@ -45,7 +45,7 @@ data class SlotRule(
     /** 0 means misses never lower the load. */
     val dropPct: Double = 0.05,
     val scheme: Scheme,
-    /** Set only by a user edit in Lift options. */
+    /** Set by a user edit in Lift options, or by the planner for the 65+ main rest, ladder step 5 and an entry's dose. */
     val restSeconds: Int? = null,
     /** Null follows the plan. */
     val nextTime: NextTimeMode? = null,

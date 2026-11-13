@@ -30,4 +30,6 @@ internal fun MovementPattern.labelResource(): Int = when (this) {
     MovementPattern.CORE_ANTI_ROT -> R.string.movement_pattern_core_anti_rotation
     MovementPattern.CORE_FLEX -> R.string.movement_pattern_core_flexion
     MovementPattern.CARDIO -> R.string.movement_pattern_cardio
+    MovementPattern.PLYOMETRIC -> R.string.movement_pattern_plyometric
+    MovementPattern.BALANCE -> R.string.movement_pattern_balance
 }

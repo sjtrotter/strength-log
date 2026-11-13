@@ -19,7 +19,7 @@ enum class MovementPattern {
     SIDE_DELT, REAR_DELT, BICEPS, TRICEPS,
     CALF_GASTROC, CALF_SOLEUS,
     CORE_ANTI_EXT, CORE_ANTI_ROT, CORE_FLEX,
-    CARDIO
+    CARDIO, PLYOMETRIC, BALANCE
 }
 
 enum class Equipment {

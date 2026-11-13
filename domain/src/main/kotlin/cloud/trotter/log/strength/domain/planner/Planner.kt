@@ -58,7 +58,9 @@ object Planner {
         return when (answers.branch) {
             PlanBranch.LIFT -> liftDraft(answers, known)
             PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, LiftGoal.STRENGTH)
-            PlanBranch.BOTH -> bothDraft(answers, known, todayEpochDay)
+            PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.goal)
+                else bothDraft(answers, known, todayEpochDay)
+            PlanBranch.SPRINT -> sprintDraft(answers, known, LiftGoal.STRENGTH)
         }
     }
 

@@ -77,10 +77,15 @@ internal fun strengthBlock(k: Int, answers: SetupAnswers, mains: List<ExerciseEn
     add(pick(MovementPattern.SINGLE_LEG))
     val calves = listOf(MovementPattern.CALF_GASTROC, MovementPattern.CALF_SOLEUS)
     add(pick(calves[k]) ?: pick(calves[1 - k]))
-    val knee = accessoryCandidates(MovementPattern.KNEE_FLEXION, answers, result).filter { it.id !in chosen }
-    add(knee.firstOrNull { it.id == "nordic" } ?: knee.firstOrNull())
+    add(nordicPick(answers, result, chosen))
     add(pick(listOf(MovementPattern.CORE_ANTI_EXT, MovementPattern.CORE_ANTI_ROT, MovementPattern.CORE_FLEX)[k]))
     return result
+}
+
+/** Nordic, else the first other knee-flexion accessory not on [onDay] and not a chosen main. */
+internal fun nordicPick(answers: SetupAnswers, onDay: List<ProgramExercise>, chosen: Set<String>): ExerciseEntry? {
+    val knee = accessoryCandidates(MovementPattern.KNEE_FLEXION, answers, onDay).filter { it.id !in chosen }
+    return knee.firstOrNull { it.id == "nordic" } ?: knee.firstOrNull()
 }
 
 internal fun runDraft(

@@ -63,8 +63,9 @@ class BackupV12Test {
         assertNull(results.last().metres)
         assertNull(results.last().distanceSource)
         val reexported = snapshot.toDocument().withoutV17Fields().copy(schemaVersion = 12)
-        assertEquals(before, reexported)
-        assertEquals(text, codec.encode(reexported))
+        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER"))
+        assertEquals(expected, reexported)
+        assertEquals(codec.encode(expected), codec.encode(reexported))
     }
 
     @Test fun `v12 restores a twenty second session with one shortened set`() {

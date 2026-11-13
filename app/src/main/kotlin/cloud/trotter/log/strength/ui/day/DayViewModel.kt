@@ -213,8 +213,8 @@ class DayViewModel @Inject constructor(
     private val cardioTick = MutableStateFlow(0L)
     private var cardioScreenLive = false
     private val timedRepEvent = savedState.getStateFlow<TimedRepEvent?>(KEY_TIMED_REP_EVENT, null)
-    // Only a clock observed running in this foreground session may buzz. Restores
-    // and returns after a missed deadline present entry silently.
+    // An alarm armed in this process owes this clock one buzz. A return after a
+    // missed or frozen alarm buzzes once through the ticker.
     private var timedRepAlertAnchor: Long? = null
 
     /** Keeps UI side effects ordered with their repository writes. */

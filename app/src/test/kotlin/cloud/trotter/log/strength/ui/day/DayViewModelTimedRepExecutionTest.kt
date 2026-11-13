@@ -722,6 +722,38 @@ class DayViewModelTimedRepExecutionTest {
     }
 
     @Test
+    fun clearingAnIdleViewModelKeepsTheRunningSetsAlarm() = test {
+        prepare()
+        val running = readyVm()
+        running.startWorkout()
+        runCurrent()
+        running.start()
+        runCurrent()
+        running.setCardioScreenLive(false)
+        val deadline = requireNotNull(alarm.deadline)
+        val store = ViewModelStore()
+        try {
+            val factory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = modelClass.cast(vm())
+            }
+            val idle = ViewModelProvider(store, factory)[DayViewModel::class.java]
+            backgroundScope.launch { idle.uiState.collect {} }
+            runCurrent()
+            assertNull(idle.uiState.value.timedRep)
+            assertEquals(deadline, alarm.deadline)
+            store.clear()
+            assertEquals(deadline, alarm.deadline)
+            clock.advance(120_000)
+            alarm.fire()
+            runCurrent()
+            assertEquals(1, alarm.buzzes)
+            assertTrue(requireNotNull(running.uiState.value.timedRep).event.awaitingCount)
+        } finally {
+            store.clear()
+        }
+    }
+
+    @Test
     fun clearingTheViewModelCancelsARunningSetsAlarm() = test {
         prepare()
         val store = ViewModelStore()

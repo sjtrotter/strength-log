@@ -690,13 +690,13 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun stopCardioWithTheScreenOffCancelsTheAlarm() = test {
-        prepareBlock(time(CardioRole.WORK))
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.RECOVERY))
         val vm = readyVm()
         vm.startCardio()
         runCurrent()
         val run = requireNotNull(vm.uiState.value.cardio?.run)
         vm.setCardioScreenLive(false)
-        assertNotNull(alarm.deadline)
+        assertEquals(clock.elapsed + 10_000, alarm.deadline)
         vm.stopCardio(run.action())
         runCurrent()
         assertNull(alarm.deadline)

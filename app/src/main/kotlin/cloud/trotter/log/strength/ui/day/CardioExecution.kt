@@ -37,7 +37,7 @@ interface CardioAlarm {
     /** Same as [arm] without the buzz: a pocketed run's wait for its boundary to settle. */
     fun armQuiet(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit) = arm(deadlineElapsedMillis, identity, onBoundary)
     fun cancel()
-    /** Same end-boundary feedback when the foreground ticker wins the alarm race. */
+    /** Set-end feedback for a timed-rep deadline or when the foreground ticker wins the alarm race. */
     fun buzz() = Unit
 }
 

@@ -124,6 +124,7 @@ jobs:
         run: printf '%s' "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
 
       - name: Build signed bundles (phone even code, wear odd)
+        id: build
         env:
           ORG_GRADLE_PROJECT_STRENGTHLOG_RELEASE_STORE_FILE: ${{ runner.temp }}/upload.jks
           ORG_GRADLE_PROJECT_STRENGTHLOG_RELEASE_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
@@ -157,6 +158,23 @@ jobs:
       - name: Scrub the keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/upload.jks"
+
+      # Play refuses an upload when a Console declaration is missing (the first
+      # foreground service did, 2026-11-12), and the form may only appear after a
+      # bundle arrives. Keep the bundles for a manual Console upload. The repo is
+      # public and the build is paid, so they live one day and are deleted as soon
+      # as they are fetched; they carry the upload signature, never the key.
+      - name: Keep the bundles for a manual upload
+        if: failure() && steps.build.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bundles-${{ steps.version.outputs.name }}
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            wear/build/outputs/bundle/release/wear-release.aab
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
 
   # Keep release write permission out of the job that holds signing material.
   release:

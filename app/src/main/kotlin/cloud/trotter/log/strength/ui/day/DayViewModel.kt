@@ -787,7 +787,6 @@ class DayViewModel @Inject constructor(
     private fun beginCardioGps(run: CardioRun) {
         if (!run.block.activity.usesGps || !gpsEnabled.value || !cardioScreenLive) return
         val access = gps.access()
-        if (access == LocationAccess.UNAVAILABLE) return
         if (access != LocationAccess.PRECISE && access != LocationAccess.LOCATION_OFF && gpsAsk.value == null) {
             savedState[KEY_GPS_ASK] = run.runId
         }

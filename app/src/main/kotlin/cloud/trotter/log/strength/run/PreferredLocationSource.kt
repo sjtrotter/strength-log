@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.cardio.Fix
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
@@ -21,6 +22,6 @@ class PreferredLocationSource @Inject constructor(
     override fun access(): LocationAccess = platform.access()
 
     override fun updates(): Flow<Fix> = flow {
-        emitAll(if (playServices.available()) fused.updates() else platform.updates())
+        emitAll(if (playServices.available()) fused.updates().catch { emitAll(platform.updates()) } else platform.updates())
     }
 }

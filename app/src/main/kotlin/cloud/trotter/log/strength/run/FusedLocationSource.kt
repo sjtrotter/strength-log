@@ -33,7 +33,7 @@ open class FusedLocationSource @Inject constructor(
                     .setMinUpdateIntervalMillis(1_000L)
                     .setMinUpdateDistanceMeters(0f).build(),
                 ContextCompat.getMainExecutor(context), listener,
-            )
+            ).addOnFailureListener { close(it) }
         } catch (_: SecurityException) {
             close()
         }

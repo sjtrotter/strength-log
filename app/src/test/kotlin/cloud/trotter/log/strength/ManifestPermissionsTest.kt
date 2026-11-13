@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -19,6 +20,7 @@ class ManifestPermissionsTest {
         @Suppress("DEPRECATION")
         val permissions = app.packageManager.getPackageInfo(app.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions
         assertNotNull(permissions)
+        assertTrue(permissions.orEmpty().contains(Manifest.permission.ACCESS_FINE_LOCATION))
         assertFalse(permissions.orEmpty().contains(Manifest.permission.INTERNET))
     }
 }

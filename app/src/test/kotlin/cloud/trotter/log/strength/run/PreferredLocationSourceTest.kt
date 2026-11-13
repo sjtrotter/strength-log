@@ -56,6 +56,21 @@ class PreferredLocationSourceTest {
         assertEquals(1, checks)
     }
 
+    @Test fun `a fused failure continues with platform fixes for the collection`() = runTest {
+        val failingFused = object : FusedLocationSource(app) {
+            override fun updates(): Flow<Fix> = flow {
+                fusedCollections++
+                emit(fusedFixes.first())
+                throw IllegalStateException("Fused location unavailable")
+            }
+        }
+        val fallbackSource = PreferredLocationSource(platform, failingFused, PlayServicesCheck { checks++; available })
+        assertEquals(listOf(fusedFixes.first(), platformFix), fallbackSource.updates().toList())
+        assertEquals(1, fusedCollections)
+        assertEquals(1, platformCollections)
+        assertEquals(1, checks)
+    }
+
     @Test fun `provider choice is lazy and stays fixed until the next collection`() = runTest {
         val updates = source.updates()
         assertEquals(0, checks)

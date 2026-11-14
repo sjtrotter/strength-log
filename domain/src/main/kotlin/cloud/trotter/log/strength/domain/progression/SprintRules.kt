@@ -22,67 +22,62 @@ internal fun sprintBlock(
     return if (SprintRules.maximal(session)) block.copy(sets = listOf(BUILD_UP) + block.sets) else block
 }
 
-/** Plan-wide sprint history and exposure, supplied by the caller at Start and Finish. */
+/** Plan-wide sprint history, supplied by the caller at Start and Finish. */
 data class SprintContext(
-    /** Latest finished acceleration, max-velocity or sprint-endurance session in this plan. */
-    val lastEpochDay: Long?,
-    /** Stored maximal WORK meters on the plan's other sprint days, excluding tempo. */
-    val otherMetres: Int,
+    val layoff: Boolean,
     /** An admitted trial's distance on Sprint A. */
-    val timeTrialMetres: Int?,
-    /** Sum of every maximal sprint day's stored-step WORK meters. */
-    val plannedWeekMetres: Int,
-    /** Planned meters before this rotation's Finish increases. */
-    val rotationStartMetres: Int = plannedWeekMetres,
+    val timeTrialMetres: Int? = null,
     val cyclesCompleted: Int = 0,
-    /** Longest wait among other maximal sprint days with a step credit. */
-    val otherWait: Int = 0,
-    /** Sprint B runs tempo in an admitted 200 or 400 m trial rotation. */
+    /** Sprint B runs tempo after A actually ran a 200 or 400 m trial this rotation. */
     val tempo: Boolean = false,
 ) {
     init {
-        require(otherMetres >= 0 && plannedWeekMetres >= 0 && rotationStartMetres >= 0)
-        require(cyclesCompleted >= 0 && otherWait >= 0)
+        require(cyclesCompleted >= 0)
         require(timeTrialMetres == null || timeTrialMetres > 0)
     }
 
     companion object {
-        /** [lastEpochDays] contains dates of finished maximal sprint cardio sessions only, by program day,
-         *  before this session: no plyometrics, lifts or tempo. [program] includes earlier Finish updates.
-         *  [cyclesCompleted] is the count before the rotation wraps. */
+        /** [maximalEpochDays] contains dates by program day of sessions with at least one finished WORK rep
+         *  of a maximal block: normal blocks, restarts and trials. Pain counts; all-skipped sessions do not.
+         *  Only sessions before this session belong in the history. Tempo, including B's trial substitute,
+         *  never counts. [maximalDaysThisCycle] contains the IDs of
+         *  those days already run in this rotation. [program] includes earlier Finish updates.
+         *  [cyclesCompleted] is the count before the rotation wraps. B checks layoff before trial substitution. */
         fun of(
             program: Program,
             dayId: String,
-            lastEpochDays: Map<String, Long>,
+            maximalEpochDays: Map<String, List<Long>>,
             cyclesCompleted: Int,
             goal: PlanGoal?,
+            todayEpochDay: Long,
+            maximalDaysThisCycle: Set<String>,
         ): SprintContext {
             val maximalDays = program.days.filter { day -> day.cardioRule?.session?.let(SprintRules::maximal) == true }
+            val dates = maximalDays.flatMap { maximalEpochDays[it.id].orEmpty() }.distinct().sorted()
+            val ownLast = maximalEpochDays[dayId]?.maxOrNull()
+            val sinceLast = dates.filter { ownLast == null || it >= ownLast } + todayEpochDay
+            val layoff = maximalDays.any { it.id == dayId } && sinceLast.zipWithNext().any { (before, after) ->
+                SprintRules.layoff(before, after)
+            }
+            val first = maximalDays.firstOrNull()
+            val second = maximalDays.getOrNull(1)
+            val a = first?.cardioRule
+            val event = (goal as? PlanGoal.Sprint)?.metres
+            val longTrial = event == 200 || event == 400
             val normal = maximalDays.associate { day ->
                 val rule = requireNotNull(day.cardioRule)
                 day.id to SprintRules.workMetres(sprintBlock(requireNotNull(rule.session), rule.steps))
             }
-            val first = maximalDays.firstOrNull()
-            val trial = (goal as? PlanGoal.Sprint)?.metres?.takeIf {
-                first?.cardioRule?.intro == 0 && (cyclesCompleted + 1) % SprintRules.TIME_TRIAL_EVERY == 0
+            val trial = event?.takeIf {
+                dayId == first?.id && a?.intro == 0 && a.sprintTrialCycle != cyclesCompleted && !layoff &&
+                    (cyclesCompleted + 1) % SprintRules.TIME_TRIAL_EVERY == 0 &&
+                    !(longTrial && second?.id in maximalDaysThisCycle)
             }
-            val planned = normal.values.sum()
-            val second = maximalDays.getOrNull(1)
-            val longTrial = trial == 200 || trial == 400
             val trialTotal = trial?.let { SprintRules.workMetres(SprintRules.timeTrial(it, CardioActivity.TRACK_RUN)) }
-            val trialWeek = normal.filterKeys { it != first?.id && !(longTrial && it == second?.id) }.values.sum()
-            val admitted = trialTotal != null && SprintRules.withinRise(planned, trialWeek + trialTotal)
-            val rise = maximalDays.sumOf { day ->
-                val rule = requireNotNull(day.cardioRule)
-                if (rule.sprintStepCycle == cyclesCompleted) normal.getValue(day.id) -
-                    SprintRules.workMetres(sprintBlock(requireNotNull(rule.session), rule.sprintStepFrom)) else 0
-            }
-            val otherWait = maximalDays.filter { it.id != dayId }.mapNotNull { it.cardioRule }
-                .filter { it.credits > 0 }.maxOfOrNull { it.sprintWait } ?: 0
-            val last = maximalDays.mapNotNull { lastEpochDays[it.id] }.maxOrNull()
-            return SprintContext(last, normal.filterKeys { it != dayId }.values.sum(),
-                trial.takeIf { admitted && dayId == first?.id }, planned, planned - rise,
-                cyclesCompleted, otherWait, tempo = admitted && longTrial && dayId == second?.id)
+            val other = normal.filterKeys { it != first?.id && !(longTrial && it == second?.id) }.values.sum()
+            val admitted = trialTotal != null && SprintRules.withinRise(normal.values.sum(), other + trialTotal)
+            return SprintContext(layoff, trial.takeIf { admitted }, cyclesCompleted,
+                tempo = longTrial && dayId == second?.id && a?.sprintTrialCycle == cyclesCompleted)
         }
     }
 }
@@ -91,10 +86,11 @@ data class SprintContext(
 internal object SprintRules {
     /** "the first three sprint weeks run the low end of every range": three counted sessions per sprint day. */
     const val INTRO_SESSIONS = 3
-    /** Practice: reset 14 days after the plan's last finished maximal sprint of any kind (audit row 8). */
+    /** Practice: restart after more than 14 days without a maximal sprint. */
     const val GAP_DAYS = 14
-    /** Practice: at most 15% more planned maximal WORK meters per rotation (audit row 5). */
-    const val WEEKLY_RISE = 1.15
+    /** Practice: the trial rotation's allowance over planned maximal WORK meters. */
+    const val RISE_PERCENT = 15
+    const val RISE_FLOOR_METRES = 20
     /** "Time trial every fifth cycle". */
     const val TIME_TRIAL_EVERY = 5
 
@@ -103,10 +99,10 @@ internal object SprintRules {
     fun workMetres(block: CardioBlock): Int = block.sets.filter { it.role == CardioRole.WORK }
         .sumOf { (it.end as? Measure.Distance)?.metres ?: 0 }
 
-    fun gap(sprint: SprintContext, todayEpochDay: Long): Boolean =
-        sprint.lastEpochDay?.let { todayEpochDay - it >= GAP_DAYS } == true
+    fun layoff(beforeEpochDay: Long, afterEpochDay: Long): Boolean = afterEpochDay - beforeEpochDay > GAP_DAYS
 
-    fun withinRise(before: Int, after: Int): Boolean = after <= before * WEEKLY_RISE + 1e-9
+    fun withinRise(before: Int, after: Int): Boolean =
+        (after - before).toLong() * 100 <= maxOf(before.toLong() * RISE_PERCENT, RISE_FLOOR_METRES * 100L)
 
     /** Practice: best of two at 40 yd and 60 m, one rep at longer events (audit row 9). */
     fun timeTrial(metres: Int, activity: CardioActivity): CardioBlock = CardioBlock(activity, buildList {
@@ -123,10 +119,10 @@ internal object SprintRules {
     private fun trial(rule: CardioRule, sprint: SprintContext, activity: CardioActivity): CardioBlock? =
         sprint.timeTrialMetres?.takeIf { rule.intro == 0 }?.let { timeTrial(it, activity) }
 
-    fun opening(block: CardioBlock, rule: CardioRule, session: RunSession, sprint: SprintContext, todayEpochDay: Long): CardioBlock =
+    fun opening(block: CardioBlock, rule: CardioRule, session: RunSession, sprint: SprintContext): CardioBlock =
         when {
+            maximal(session) && sprint.layoff -> sprintBlock(session, 0, block.activity)
             sprint.tempo -> sprintBlock(RunSession.SPRINT_TEMPO, 0, block.activity)
-            maximal(session) && gap(sprint, todayEpochDay) -> sprintBlock(session, 0, block.activity)
             else -> trial(rule, sprint, block.activity) ?: sprintBlock(session, rule.steps, block.activity)
         }
 
@@ -138,38 +134,26 @@ internal object SprintRules {
         effort: CardioEffort?,
         pain: Boolean,
         sprint: SprintContext,
-        todayEpochDay: Long,
     ): CardioOutcome {
-        val maximal = maximal(session)
-        val gap = maximal && gap(sprint, todayEpochDay)
+        val restart = maximal(session) && sprint.layoff
         fun outcome(next: CardioRule, change: CardioChange) =
             CardioOutcome(sprintBlock(session, next.steps, block.activity), next, change)
-        if (sprint.tempo || (!gap && trial(rule, sprint, block.activity) != null)) return outcome(rule, CardioChange.Repeat)
-        val start = if (gap) rule.copy(steps = 0, credits = 0, intro = INTRO_SESSIONS,
-            sprintWait = 0, sprintStepCycle = null, sprintStepFrom = 0) else rule
-        val same = if (gap) CardioChange.Restart else CardioChange.Repeat
+        if (!restart && sprint.tempo) return outcome(rule, CardioChange.Repeat)
+        if (!restart && trial(rule, sprint, block.activity) != null) {
+            return outcome(rule.copy(sprintTrialCycle = sprint.cyclesCompleted), CardioChange.Repeat)
+        }
+        val start = if (restart) rule.copy(steps = 0, credits = 0, intro = INTRO_SESSIONS) else rule
+        val same = if (restart) CardioChange.Restart else CardioChange.Repeat
         val range = requireNotNull(RunRange.of(session))
         val counted = CardioMeasures.fullSuccess(block, results) && !pain && !(range.goodBand && effort == CardioEffort.HARD)
-        fun metres(steps: Int) = workMetres(sprintBlock(session, steps))
-        val proposed = range.nextStep(start.steps)
-        fun fits(steps: Int): Boolean {
-            val after = sprint.otherMetres + metres(steps)
-            return withinRise(sprint.otherMetres + metres(start.steps), after) &&
-                withinRise(sprint.rotationStartMetres, after)
-        }
-        val next = if (!maximal || fits(proposed)) proposed else start.steps + 1
-        fun wait() = outcome(start.copy(sprintWait = start.sprintWait + 1), same)
         return when {
             !counted -> outcome(start, same)
             start.intro > 0 -> outcome(start.copy(intro = start.intro - 1), same)
             start.steps == range.top -> outcome(start, same)
             start.credits == 0 -> outcome(start.copy(credits = 1), same)
-            maximal && (sprint.otherWait > start.sprintWait || !fits(next)) -> wait()
-            else -> outcome(start.copy(steps = next, credits = 0, sprintWait = 0,
-                sprintStepCycle = if (maximal) sprint.cyclesCompleted else null,
-                sprintStepFrom = if (maximal) {
-                    if (start.sprintStepCycle == sprint.cyclesCompleted) start.sprintStepFrom else start.steps
-                } else 0), CardioChange.Step)
+            start.sprintStepCycle == sprint.cyclesCompleted -> outcome(start, same)
+            else -> outcome(start.copy(steps = start.steps + 1, credits = 0,
+                sprintStepCycle = sprint.cyclesCompleted), CardioChange.Step)
         }
     }
 }

@@ -268,10 +268,10 @@ class PlannerSprintTest {
 
     @Test fun `sprint ranges and blocks`() {
         val sessions = listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE, RunSession.SPRINT_TEMPO)
-        assertEquals(listOf(20, 7, 21, 2), sessions.map { requireNotNull(RunRange.of(it)).top })
+        assertEquals(listOf(20, 7, 15, 12), sessions.map { requireNotNull(RunRange.of(it)).top })
         assertEquals(listOf(false, false, false, true), sessions.map { requireNotNull(RunRange.of(it)).goodBand })
         assertEquals(intervals(8, 30, 180), sprintBlock(RunSession.ACCELERATION, 20))
-        assertEquals(intervals(6, 300, 60, warmup = false, hard = false), sprintBlock(RunSession.SPRINT_TEMPO, 2))
+        assertEquals(intervals(6, 300, 60, warmup = false, hard = false), sprintBlock(RunSession.SPRINT_TEMPO, 12))
         assertEquals(listOf(acc0, acc5, maxv0, se0, tempo0), listOf(
             sprintBlock(RunSession.ACCELERATION, 0), sprintBlock(RunSession.ACCELERATION, 12),
             sprintBlock(RunSession.MAX_VELOCITY, 0), sprintBlock(RunSession.SPRINT_ENDURANCE, 0),

@@ -24,8 +24,8 @@ private data class SprintEntry(
     val upper: Boolean = false, val nordic: Boolean = false,
 )
 
-/** Acceleration without the intro opens at 100 to 200 m of WORK (§3.1.3, revision 30). */
-private const val OPENING_METRES = 100
+/** Acceleration without the intro opens at 160 m of WORK (§3.1.3, revision 32). */
+private const val OPENING_METRES = 160
 /** 65 contacts, inside 40 to 80 (revision 30). */
 private val OPENING_PLYOS = listOf("pogo_hop" to 3, "a_skip" to 1)
 /** Nordic 2 × 4 to 6 (§3.1.3). */
@@ -55,9 +55,7 @@ private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
 private fun openingSteps(session: RunSession, intro: Boolean): Int {
     if (intro || session != RunSession.ACCELERATION) return 0
     val range = requireNotNull(RunRange.of(session))
-    var steps = 0
-    while (SprintRules.workMetres(sprintBlock(session, steps)) < OPENING_METRES) steps = range.nextStep(steps)
-    return steps
+    return (0..range.top).first { SprintRules.workMetres(sprintBlock(session, it)) >= OPENING_METRES }
 }
 
 private fun lowerLifts(

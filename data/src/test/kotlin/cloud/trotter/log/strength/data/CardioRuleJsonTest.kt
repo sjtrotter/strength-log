@@ -88,26 +88,44 @@ class CardioRuleJsonTest {
         }
     }
 
-    @Test fun `sprint wait and rotation allowance round trip`() {
-        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 5, credits = 1,
-            sprintWait = 3, sprintStepCycle = 4, sprintStepFrom = 4)
-        val json = """{"session":"ACCELERATION","steps":5,"credits":1,"sprintWait":3,"sprintStepCycle":4,"sprintStepFrom":4}"""
-        assertEquals(json, CardioRuleJson.encode(rule))
-        assertEquals(rule, CardioRuleJson.decode(json))
-        CardioRuleJson.validate(json)
-        val first = CardioRule(null, RunSession.MAX_VELOCITY, steps = 1, sprintStepCycle = 0)
-        assertEquals(first, CardioRuleJson.decode(CardioRuleJson.encode(first)))
+    @Test fun `sprint step and trial cycles round trip and remain absent at default`() {
+        for ((rule, json) in listOf(
+            CardioRule(null, RunSession.ACCELERATION, steps = 5, credits = 1, sprintStepCycle = 4, sprintTrialCycle = 9) to
+                """{"session":"ACCELERATION","steps":5,"credits":1,"sprintStepCycle":4,"sprintTrialCycle":9}""",
+            CardioRule(null, RunSession.MAX_VELOCITY, sprintTrialCycle = 0) to
+                """{"session":"MAX_VELOCITY","sprintTrialCycle":0}""",
+            CardioRule(null, RunSession.MAX_VELOCITY, steps = 1, sprintStepCycle = 0) to
+                """{"session":"MAX_VELOCITY","steps":1,"sprintStepCycle":0}""",
+            CardioRule(null, RunSession.SPRINT_TEMPO, steps = 1, sprintStepCycle = 0) to
+                """{"session":"SPRINT_TEMPO","steps":1,"sprintStepCycle":0}""",
+            CardioRule(null, RunSession.ACCELERATION) to """{"session":"ACCELERATION"}""",
+        )) {
+            assertEquals(json, CardioRuleJson.encode(rule))
+            assertEquals(rule, CardioRuleJson.decode(json))
+            CardioRuleJson.validate(json)
+        }
         for (invalid in listOf(
-            """{"session":"ACCELERATION","sprintWait":1}""",
-            """{"session":"SPRINT_TEMPO","credits":1,"sprintWait":1}""",
-            """{"session":"ACCELERATION","credits":1,"sprintWait":-1}""",
             """{"session":"THRESHOLD","sprintStepCycle":0}""",
             """{"session":"ACCELERATION","sprintStepCycle":-1}""",
-            """{"session":"ACCELERATION","steps":1,"sprintStepFrom":1}""",
-            """{"session":"ACCELERATION","sprintStepCycle":0,"sprintStepFrom":1}""",
+            """{"session":"ACCELERATION","sprintTrialCycle":-1}""",
+            """{"session":"SPRINT_ENDURANCE","sprintTrialCycle":0}""",
+            """{"session":"SPRINT_TEMPO","sprintTrialCycle":0}""",
+            """{"session":"THRESHOLD","sprintTrialCycle":0}""",
         )) {
             assertNull(CardioRuleJson.decode(invalid))
             assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
         }
+    }
+
+    @Test fun `v0_11 rules decode and re-encode byte-identical`() {
+        for (json in listOf(
+            "{}",
+            """{"ladderLevel":3}""",
+            """{"session":"EASY"}""",
+            """{"session":"THRESHOLD","steps":4,"credits":1,"alternate":"VO2MAX"}""",
+            """{"session":"SHARPENING","steps":3}""",
+            """{"session":"LONG","longMetres":40000,"longSeconds":12600}""",
+            """{"session":"LONG","longSeconds":5400}""",
+        )) assertEquals(json, CardioRuleJson.encode(requireNotNull(CardioRuleJson.decode(json))))
     }
 }

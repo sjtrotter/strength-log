@@ -246,7 +246,7 @@ object Progression {
         if (rule?.ladderLevel != null) return block
         val session = rule?.session
         if (rule != null && session != null && session.sprint) {
-            return SprintRules.opening(block, rule, session, requireNotNull(ctx.sprint), ctx.todayEpochDay)
+            return SprintRules.opening(block, rule, session, requireNotNull(ctx.sprint))
         }
         val tapered = Taper.factor(goal, ctx.todayEpochDay)?.let { Taper.applied(block, it) } ?: block
         return if (ctx.runCap) RunCap.capped(tapered, RunCap.anchor(recent, ctx.todayEpochDay), recent.secondsPerMetre) else tapered
@@ -256,7 +256,7 @@ object Progression {
      *  and [pain]; any other day takes A16's increase on full success, capped against [recent] and this session.
      *  A ruled day: an easy run repeats, a long run takes A16's increase up to its target, and a quality session adds
      *  one unit of its range every two counted sessions (design §3.1); a sprint day steps every two counted sessions
-     *  under the weekly 15% ([SprintRules]). */
+     *  at most once per rotation ([SprintRules]). */
     fun cardioAfterSession(
         block: CardioBlock,
         rule: CardioRule?,
@@ -288,7 +288,7 @@ object Progression {
                 longStopped(it, block, rule, recent.secondsPerMetre)
             }
             session.sprint -> SprintRules.afterSession(block, rule, session, results, effort, pain,
-                requireNotNull(ctx.sprint), ctx.todayEpochDay)
+                requireNotNull(ctx.sprint))
             else -> ranged(block, rule, session, results, effort, recent, ctx)
         }
     }

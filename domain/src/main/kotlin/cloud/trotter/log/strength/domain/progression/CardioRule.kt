@@ -22,11 +22,10 @@ data class CardioRule(
     val longSeconds: Int? = null,
     /** Counted sessions left at the range's low end (design §3.1.3 Intro); sprint days only. */
     val intro: Int = 0,
-    /** Counted sessions that kept an existing maximal sprint credit without stepping. */
-    val sprintWait: Int = 0,
-    /** Rotation and stored step before its increase; keeps all days inside one rotation's allowance. */
+    /** Rotation of this sprint day's last step, including tempo. */
     val sprintStepCycle: Int? = null,
-    val sprintStepFrom: Int = 0,
+    /** Rotation of Sprint A's last trial. */
+    val sprintTrialCycle: Int? = null,
 ) {
     init {
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
@@ -46,10 +45,8 @@ data class CardioRule(
         require(intro == 0 || session?.sprint == true)
         require(intro == 0 || (steps == 0 && credits == 0))
         require(alternate == null || (session?.sprint != true && !alternate.sprint))
-        require(sprintWait >= 0)
-        require(sprintWait == 0 || (session?.let(SprintRules::maximal) == true && credits == 1))
-        require(sprintStepCycle == null || (sprintStepCycle >= 0 && session?.let(SprintRules::maximal) == true))
-        require(sprintStepFrom in 0..steps)
-        require(sprintStepCycle != null || sprintStepFrom == 0)
+        require(sprintStepCycle == null || (sprintStepCycle >= 0 && session?.sprint == true))
+        require(sprintTrialCycle == null || (sprintTrialCycle >= 0 &&
+            session in listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY)))
     }
 }

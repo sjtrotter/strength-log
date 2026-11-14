@@ -20,4 +20,10 @@ class EstimateTest {
         assertEquals(277.5, estimate, 1e-9)
         assertEquals(198.21, Estimate.loadFor(estimate, 10, 2), 1e-2)
     }
+
+    @Test
+    fun `rirAt predicts reserve for experienced and New squat doubles`() {
+        assertEquals(2.631578947368421, Estimate.rirAt(357.5, 285.0, 5), 1e-9)
+        assertEquals(0.2857142857142857, Estimate.rirAt(123.5, 105.0, 5), 1e-9)
+    }
 }

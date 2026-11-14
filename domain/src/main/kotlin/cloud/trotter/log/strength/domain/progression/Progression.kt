@@ -439,7 +439,13 @@ object Progression {
                     val easy = done.all { effectiveRir(it, rule) >= Effort.EASY.rir }
                     val single = maxOf(1L, Math.round(anchor * rule.incrementPct / step))
                     val cap = maxOf(1L, floor(0.10 * anchor / step + 1e-9).toLong())
-                    val steps = if (coarse) 1L else minOf(if (easy) 2 * single else single, cap)
+                    val doubled = anchor + minOf(2 * single, cap) * step
+                    val doubleAllowed = easy && !coarse && done.maxBy { it.weightLb }.let { set ->
+                        Estimate.e1rm(set.weightLb, set.reps, Effort.EASY.rir)?.let {
+                            Estimate.rirAt(it, doubled, target.reps) >= rule.rir
+                        } == true
+                    }
+                    val steps = if (coarse) 1L else minOf(if (doubleAllowed) 2 * single else single, cap)
                     val load = anchor + steps * step
                     rows = WorkingRows.withWorkingWeight(base, load, ctx.unit, ctx.equipment, rule.scheme)
                     if (target is RepTarget.Range) {
@@ -447,7 +453,7 @@ object Progression {
                         rows = withReps(rows, target.lo)
                     }
                     change = Change.Increase(anchor, load)
-                    reason = if (easy) Reason.EasySession else Reason.AllMade
+                    reason = if (doubleAllowed) Reason.EasySession else Reason.AllMade
                 }
             }
         }
@@ -475,6 +481,7 @@ object Progression {
         return rows.mapIndexed { i, row -> if (i in anchors) row.copy(reps = reps) else row }
     }
 
+    /** Easy is read as exactly 4 left so Epley preserves the slot's target RIR, subject to the one-step floor. */
     private fun calibration(rule: SlotRule, anchors: List<LoggedSet>, ctx: Context): Pair<Double, Boolean>? {
         val first = anchors.firstOrNull { effectiveRir(it, rule) < Effort.EASY.rir }
         if (first != null) {
@@ -487,9 +494,9 @@ object Progression {
             return load to true
         }
         val last = anchors.lastOrNull() ?: return null
-        return maxOf(
-            ctx.steps.up(last.weightLb * 1.25, ctx.equipment, ctx.unit),
-            last.weightLb + 2 * ctx.steps.stepLb(ctx.equipment),
-        ) to false
+        val floor = last.weightLb + ctx.steps.stepLb(ctx.equipment)
+        val estimate = Estimate.e1rm(last.weightLb, last.reps, Effort.EASY.rir) ?: return floor to false
+        val bound = Estimate.loadFor(estimate, rule.target.reps, rule.rir)
+        return maxOf(ctx.steps.down(bound, ctx.equipment, ctx.unit), floor) to false
     }
 }

@@ -13,16 +13,15 @@ import kotlinx.serialization.Serializable
     val longMetres: Int? = null,
     val longSeconds: Int? = null,
     val intro: Int = 0,
-    val held: Int = 0,
 ) {
     fun toDomain(): CardioRule = CardioRule(ladderLevel, session?.let(RunSession::valueOf), steps, credits,
-        alternate?.let(RunSession::valueOf), longMetres, longSeconds, intro = intro, held = held)
+        alternate?.let(RunSession::valueOf), longMetres, longSeconds, intro = intro)
 }
 
 object CardioRuleJson {
     fun encode(rule: CardioRule): String {
         val dto = CardioRuleDto(rule.ladderLevel, rule.session?.name, rule.steps, rule.credits, rule.alternate?.name,
-            rule.longMetres, rule.longSeconds, intro = rule.intro, held = rule.held)
+            rule.longMetres, rule.longSeconds, intro = rule.intro)
         dto.toDomain()
         return SetJson.encode(CardioRuleDto.serializer(), dto)
     }

@@ -10,4 +10,7 @@ object Estimate {
 
     /** The unrounded load for [reps] at [rir] reps in reserve. */
     fun loadFor(e1rmLb: Double, reps: Int, rir: Int): Double = e1rmLb / (1 + (reps + rir) / 30.0)
+
+    /** The predicted reps in reserve at [load] for [reps] repetitions. */
+    fun rirAt(e1rm: Double, load: Double, reps: Int): Double = 30 * (e1rm / load - 1) - reps
 }

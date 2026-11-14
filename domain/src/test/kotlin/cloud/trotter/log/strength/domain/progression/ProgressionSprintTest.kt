@@ -19,8 +19,8 @@ import kotlin.test.assertTrue
 
 class ProgressionSprintTest {
     private val history = CardioHistory()
-    private fun ctx(today: Long = 1_000, last: Long? = 993, other: Int = 30, trial: Int? = null) =
-        Progression.CardioContext(today, ProgressMeasure.DISTANCE, 5, sprint = SprintContext(last, other, trial))
+    private fun ctx(today: Long = 1_000, last: Long? = 993, other: Int = 30, trial: Int? = null, previous: Int = other + 40) =
+        Progression.CardioContext(today, ProgressMeasure.DISTANCE, 5, sprint = SprintContext(last, other, trial, previous))
     private fun acc(steps: Int) = sprintBlock(RunSession.ACCELERATION, steps)
     private fun maxv(steps: Int) = sprintBlock(RunSession.MAX_VELOCITY, steps)
     private fun se(steps: Int) = sprintBlock(RunSession.SPRINT_ENDURANCE, steps)
@@ -72,9 +72,9 @@ class ProgressionSprintTest {
     }
 
     @Test fun `the top repeats without credit`() {
-        val rule = CardioRule(null, RunSession.MAX_VELOCITY, steps = 3)
-        assertEquals(intervals(5, 20, 240), maxv(3))
-        repeat(2) { assertEquals(CardioOutcome(maxv(3), rule, CardioChange.Repeat), finish(maxv(3), rule)) }
+        val rule = CardioRule(null, RunSession.MAX_VELOCITY, steps = 7)
+        assertEquals(intervals(5, 20, 240), maxv(7))
+        repeat(2) { assertEquals(CardioOutcome(maxv(7), rule, CardioChange.Repeat), finish(maxv(7), rule, context = ctx(previous = 130))) }
     }
 
     @Test fun `the intro holds the low end for three counted sessions`() {
@@ -82,7 +82,7 @@ class ProgressionSprintTest {
             var rule = CardioRule(null, session, intro = 3)
             val block = sprintBlock(session, 0)
             val effort = if (session == RunSession.SPRINT_TEMPO) CardioEffort.GOOD else CardioEffort.HARD
-            val context = ctx(other = 1_000)
+            val context = ctx(other = 1_000, previous = 2_000)
             for (intro in 2 downTo 0) {
                 val next = finish(block, rule, effort, context)
                 rule = CardioRule(null, session, intro = intro)
@@ -108,71 +108,61 @@ class ProgressionSprintTest {
         assertEquals(CardioOutcome(tempo(0), tempoRule, CardioChange.Repeat), finish(tempo(0), tempoRule))
     }
 
-    @Test fun `a step past the weekly 15% waits and each wait adds 15%`() {
-        for ((session, expected) in listOf(
-            RunSession.ACCELERATION to listOf(40, 50, 60, 70, 80, 160, 240),
-            RunSession.MAX_VELOCITY to listOf(30, 40, 50, 100),
-            RunSession.SPRINT_ENDURANCE to listOf(300, 400, 440, 480, 520, 560, 600),
-            RunSession.SPRINT_TEMPO to listOf(600, 1_200, 1_800),
-        )) {
-            assertEquals(expected, (0..requireNotNull(RunRange.of(session)).top).map {
-                SprintRules.workMetres(sprintBlock(session, it))
-            }, session.name)
+    @Test fun `the weekly cap never compounds and a waiting step keeps its credit`() {
+        for ((before, after) in listOf(70 to 80, 100 to 115, 130 to 140)) {
+            assertTrue(SprintRules.withinRise(before, after), "$before -> $after")
         }
-        for ((before, after, held) in listOf(Triple(70, 80, 0), Triple(100, 115, 0), Triple(130, 210, 3), Triple(400, 500, 1))) {
-            assertTrue(SprintRules.withinRise(before, after, held), "$before -> $after held $held")
-        }
-        for ((before, after, held) in listOf(Triple(100, 116, 0), Triple(130, 210, 2), Triple(400, 500, 0), Triple(40, 50, 0))) {
-            assertFalse(SprintRules.withinRise(before, after, held), "$before -> $after held $held")
+        for ((before, after) in listOf(100 to 116, 130 to 210, 400 to 500, 40 to 50)) {
+            assertFalse(SprintRules.withinRise(before, after), "$before -> $after")
         }
         val ready = CardioRule(null, RunSession.ACCELERATION, credits = 1)
-        val held = finish(acc(0), ready, context = ctx(other = 0))
-        assertEquals(CardioOutcome(acc(0), ready.copy(held = 1), CardioChange.Repeat), held)
-        assertEquals(CardioOutcome(acc(1), CardioRule(null, RunSession.ACCELERATION, steps = 1), CardioChange.Step),
-            finish(held.block, assertNotNull(held.rule), context = ctx(other = 0)))
-        var rule = CardioRule(null, RunSession.ACCELERATION, steps = 4, credits = 1)
-        for (wait in 1..3) {
-            val next = finish(acc(4), rule, context = ctx(other = 50))
-            rule = rule.copy(held = wait)
-            assertEquals(CardioOutcome(acc(4), rule, CardioChange.Repeat), next)
+        repeat(16) {
+            assertEquals(CardioOutcome(acc(0), ready, CardioChange.Repeat),
+                finish(acc(0), ready, context = ctx(other = 0)))
         }
-        assertEquals(intervals(8, 20, 120), acc(5))
-        assertEquals(CardioOutcome(acc(5), CardioRule(null, RunSession.ACCELERATION, steps = 5), CardioChange.Step),
-            finish(acc(4), rule, context = ctx(other = 50)))
         val endurance = CardioRule(null, RunSession.SPRINT_ENDURANCE, credits = 1)
-        val wait = finish(se(0), endurance, context = ctx(other = 100))
-        assertEquals(CardioOutcome(se(0), endurance.copy(held = 1), CardioChange.Repeat), wait)
-        assertEquals(intervals(4, 100, 480), se(1))
-        assertEquals(CardioOutcome(se(1), CardioRule(null, RunSession.SPRINT_ENDURANCE, steps = 1), CardioChange.Step),
-            finish(se(0), assertNotNull(wait.rule), context = ctx(other = 100)))
+        assertEquals(CardioOutcome(se(0), endurance, CardioChange.Repeat),
+            finish(se(0), endurance, context = ctx(other = 100, previous = 400)))
         assertEquals(CardioOutcome(tempo(1), CardioRule(null, RunSession.SPRINT_TEMPO, steps = 1), CardioChange.Step),
             finish(tempo(0), CardioRule(null, RunSession.SPRINT_TEMPO, credits = 1), CardioEffort.GOOD, ctx(other = 0)))
     }
 
-    @Test fun `a layoff opens the intro block and Finish restarts the intro`() {
-        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 5)
-        assertEquals(acc(0), opening(acc(5), rule, ctx(1_021, 1_000)))
-        for (last in listOf(1_001L, 1_007L, null)) assertEquals(acc(5), opening(acc(5), rule, ctx(1_021, last)))
-        val ready = rule.copy(credits = 1, held = 2)
+    @Test fun `a capped distance step lengthens one rep by 10 meters`() {
+        val ready = CardioRule(null, RunSession.ACCELERATION, steps = 4, credits = 1)
+        val next = finish(acc(4), ready, context = ctx(other = 50, previous = 130))
+        assertEquals(CardioOutcome(acc(5), ready.copy(steps = 5, credits = 0), CardioChange.Step), next)
+        assertEquals(listOf(20) + List(7) { 10 }, next.block.sets.filter { it.role == CardioRole.WORK }
+            .map { (it.end as Measure.Distance).metres })
+        assertEquals(Measure.Time(120), next.block.sets[2].end)
+        assertEquals(Measure.Time(60), next.block.sets[4].end)
+        assertEquals(intervals(8, 20, 120), acc(12))
+        assertEquals(intervals(8, 30, 180), acc(20))
+        assertEquals(CardioOutcome(acc(4), ready, CardioChange.Repeat),
+            finish(acc(4), ready, context = ctx(other = 0, previous = 70)))
+    }
+
+    @Test fun `13 days since the last maximal session holds and 14 resets`() {
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 12, credits = 1)
+        val before = ctx(1_014, 1_001, previous = 190)
+        val gap = ctx(1_014, 1_000, previous = 190)
+        assertEquals(acc(12), opening(acc(12), rule, before))
+        assertEquals(acc(0), opening(acc(12), rule, gap))
         assertEquals(CardioOutcome(acc(0), CardioRule(null, RunSession.ACCELERATION, intro = 2), CardioChange.Restart),
-            finish(acc(0), ready, context = ctx(1_021, 1_000)))
+            finish(acc(0), rule, context = gap))
         assertEquals(CardioOutcome(acc(0), CardioRule(null, RunSession.ACCELERATION, intro = 3), CardioChange.Restart),
-            finish(acc(0), ready, context = ctx(1_021, 1_000), pain = true))
-        assertEquals(intervals(8, 30, 180), acc(6))
-        assertEquals(CardioOutcome(acc(6), CardioRule(null, RunSession.ACCELERATION, steps = 6), CardioChange.Step),
-            finish(acc(5), ready, context = ctx(1_021, 1_001)))
-        assertEquals(CardioOutcome(maxv(0), CardioRule(null, RunSession.MAX_VELOCITY, intro = 2), CardioChange.Restart),
-            finish(maxv(0), CardioRule(null, RunSession.MAX_VELOCITY), context = ctx(1_021, 1_000)))
+            finish(acc(0), rule, context = gap, pain = true))
+        assertEquals(CardioChange.Step, finish(acc(12), rule, context = before).change)
+        assertEquals(acc(12), opening(acc(12), rule, before.copy(sprint = SprintContext(null, 30, null, 190))))
     }
 
     @Test fun `sprint days skip the run cap and require their context`() {
         val recent = CardioHistory(longest = RecentMaxima(100, 30))
         for (session in RunSession.entries.filter { it.sprint }) {
-            val steps = if (session == RunSession.ACCELERATION) 5 else 0
+            val steps = if (session == RunSession.ACCELERATION) 12 else 0
             val block = sprintBlock(session, steps)
             val rule = CardioRule(null, session, steps = steps)
             for (runCap in listOf(true, false)) {
-                assertEquals(block, Progression.cardioAtStart(block, rule, recent, PlanGoal.Sprint(100), ctx().copy(runCap = runCap)))
+                assertEquals(block, Progression.cardioAtStart(block, rule, recent, PlanGoal.Sprint(100), ctx(previous = 1_000).copy(runCap = runCap)))
             }
             val missing = Progression.CardioContext(1_000, null, 0)
             assertFailsWith<IllegalArgumentException> { opening(block, rule, missing) }
@@ -180,26 +170,41 @@ class ProgressionSprintTest {
         }
     }
 
-    @Test fun `every fifth rotation's Sprint A runs the time trial and changes nothing`() {
-        for (metres in listOf(37, 60, 100, 200, 400)) {
-            val trial = CardioBlock(CardioActivity.TRACK_RUN, listOf(
-                CardioSetSpec(CardioRole.WARMUP, Measure.Time(600)),
-                CardioSetSpec(CardioRole.WORK, Measure.Distance(metres), hard = true),
-            ))
-            assertEquals(trial, SprintRules.timeTrial(metres, CardioActivity.TRACK_RUN))
+    @Test fun `short time trials have two reps with full acceleration recovery`() {
+        for ((metres, recovery) in listOf(37 to 240, 60 to 360)) {
+            assertEquals(intervals(2, metres, recovery), SprintRules.timeTrial(metres, CardioActivity.TRACK_RUN))
         }
+        for (metres in listOf(100, 200, 400)) {
+            assertEquals(intervals(1, metres, 0), SprintRules.timeTrial(metres, CardioActivity.TRACK_RUN))
+        }
+    }
+
+    @Test fun `an admitted trial changes no progression state and gap takes priority`() {
         val trial = SprintRules.timeTrial(100, CardioActivity.TRACK_RUN)
-        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 2, credits = 1)
-        assertEquals(trial, opening(acc(2), rule, ctx(trial = 100)))
-        assertEquals(acc(0), opening(acc(0), CardioRule(null, RunSession.ACCELERATION, intro = 1), ctx(trial = 100)))
-        assertEquals(acc(0), opening(acc(2), rule, ctx(1_021, 1_000, trial = 100)))
-        assertEquals(CardioOutcome(acc(2), rule, CardioChange.Repeat), finish(trial, rule, context = ctx(trial = 100)))
-        assertEquals(CardioOutcome(acc(2), rule, CardioChange.Repeat),
-            finish(trial, rule, context = ctx(trial = 100), pain = true))
-        val waiting = rule.copy(held = 2)
-        assertEquals(CardioOutcome(acc(2), waiting, CardioChange.Repeat), finish(trial, waiting, context = ctx(trial = 100)))
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 12, credits = 1)
+        val context = ctx(trial = 100, previous = 190)
+        assertEquals(trial, opening(acc(12), rule, context))
+        assertEquals(acc(0), opening(acc(0), CardioRule(null, RunSession.ACCELERATION, intro = 1), context))
+        assertEquals(CardioOutcome(acc(12), rule, CardioChange.Repeat), finish(trial, rule, context = context))
+        assertEquals(CardioOutcome(acc(12), rule, CardioChange.Repeat), finish(trial, rule, context = context, pain = true))
+        val gap = ctx(1_014, 1_000, trial = 100, previous = 190)
+        assertEquals(acc(0), opening(acc(12), rule, gap))
         assertEquals(CardioOutcome(acc(0), CardioRule(null, RunSession.ACCELERATION, intro = 2), CardioChange.Restart),
-            finish(acc(0), rule, context = ctx(1_021, 1_000, trial = 100)))
+            finish(acc(0), rule, context = gap))
+    }
+
+    @Test fun `both short trial reps count against the weekly cap`() {
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 4)
+        assertEquals(acc(4), opening(acc(4), rule, ctx(other = 0, trial = 60, previous = 80)))
+        assertEquals(intervals(2, 60, 360), opening(acc(4), rule, ctx(other = 0, trial = 60, previous = 110)))
+    }
+
+    @Test fun `a normal block after a shorter trial also observes the weekly cap`() {
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 12)
+        val context = ctx(previous = 130)
+        assertEquals(acc(7), opening(acc(12), rule, context))
+        assertEquals(CardioOutcome(acc(7), rule.copy(steps = 7, credits = 1), CardioChange.Repeat),
+            finish(acc(7), rule, context = context))
     }
 
     @Test fun `rules hold sprint state only where it means something`() {
@@ -208,17 +213,13 @@ class ProgressionSprintTest {
             { CardioRule(null, RunSession.ACCELERATION, intro = -1) },
             { CardioRule(null, RunSession.ACCELERATION, steps = 1, intro = 1) },
             { CardioRule(null, RunSession.ACCELERATION, credits = 1, intro = 1) },
-            { CardioRule(null, RunSession.ACCELERATION, held = 1) },
-            { CardioRule(null, RunSession.ACCELERATION, credits = 1, held = -1) },
             { CardioRule(null, RunSession.THRESHOLD, intro = 1) },
-            { CardioRule(null, RunSession.EASY, held = 1) },
             { CardioRule(3, intro = 1) },
             { CardioRule(null, RunSession.ACCELERATION, alternate = RunSession.MAX_VELOCITY) },
             { CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.ACCELERATION) },
         )
         for (make in invalid) assertFailsWith<IllegalArgumentException> { make() }
         assertEquals(3, CardioRule(null, RunSession.SPRINT_TEMPO, intro = 3).intro)
-        assertEquals(5, CardioRule(null, RunSession.ACCELERATION, credits = 1, held = 5).held)
     }
 
     @Test fun `sprint kinds are not quality`() {

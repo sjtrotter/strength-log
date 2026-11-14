@@ -132,8 +132,9 @@ class ProgressionLayoffTest {
         val logged = actual(opened.rows, done = false).map { if (it.kind == SetKind.TOP) it.copy(done = true, rir = 4) else it }
         val out = finish(opened, input, logged)
         assertTrue(out.rule.state.calibrating)
-        assertEquals(260.0, top(out.rows), 1e-9)
-        assertEquals(Change.Increase(205.0, 260.0), out.change)
+        // audit 2026-11-13: Easy is read as 4 left: 205 × 5 → e1RM 266.5 → 5 reps at 2 RIR = 216.1 → 215
+        assertEquals(215.0, top(out.rows), 1e-9)
+        assertEquals(Change.Increase(205.0, 215.0), out.change)
         assertEquals(Reason.Calibrating, out.reason)
     }
 

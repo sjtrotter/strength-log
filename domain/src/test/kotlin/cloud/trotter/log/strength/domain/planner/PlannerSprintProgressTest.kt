@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
@@ -24,12 +24,11 @@ import cloud.trotter.log.strength.domain.progression.Reason
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SprintContext
 import cloud.trotter.log.strength.domain.progression.SprintRules
-import cloud.trotter.log.strength.domain.progression.sprintBlock
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PlannerSprintProgressTest {
     private val history = CardioHistory()
@@ -50,72 +49,109 @@ class PlannerSprintProgressTest {
         val recent = Planner.plan(sprint(days = 5, answers = SprintAnswers(sprintedRecently = true))).program
         for ((id, session) in listOf("A" to RunSession.ACCELERATION, "D" to RunSession.MAX_VELOCITY, "F" to RunSession.SPRINT_TEMPO)) {
             assertEquals(CardioRule(null, session, intro = 3), rule(intro, id))
-            assertEquals(CardioRule(null, session, steps = if (id == "A") 5 else 0), rule(recent, id))
+            assertEquals(CardioRule(null, session, steps = if (id == "A") 12 else 0), rule(recent, id))
         }
     }
 
-    @Test fun `SprintContext reads the plan`() {
-        val program = Planner.plan(sprint(days = 2)).program
+    @Test fun `SprintContext reads only maximal session dates and includes trial exposure`() {
+        val program = Planner.plan(sprint(days = 2, answers = SprintAnswers(sprintedRecently = true))).program
+        val dates = mapOf("A" to 970L, "B" to 999L, "C" to 993L)
         val goal = PlanGoal.Sprint(100)
-        assertEquals(SprintContext(993, 30, 100), SprintContext.of(program, "A", 993, 4, goal))
-        assertEquals(SprintContext(null, 40, null), SprintContext.of(program, "C", null, 4, goal))
-        assertNull(SprintContext.of(program, "A", null, 3, goal).timeTrialMetres)
-        assertEquals(100, SprintContext.of(program, "A", null, 9, goal).timeTrialMetres)
-        assertNull(SprintContext.of(program, "A", null, 4, null).timeTrialMetres)
+        assertEquals(SprintContext(993, 30, 100, 190), SprintContext.of(program, "A", dates, 4, goal, 190))
+        assertEquals(SprintContext(993, 100, null, 190), SprintContext.of(program, "C", dates, 4, goal, 190))
+        assertNull(SprintContext.of(program, "A", dates, 3, goal, 190).timeTrialMetres)
+        assertEquals(100, SprintContext.of(program, "A", dates, 9, goal, 190).timeTrialMetres)
+        assertNull(SprintContext.of(program, "A", dates, 4, null, 190).timeTrialMetres)
         val five = Planner.plan(sprint(days = 5)).program
-        assertEquals(SprintContext(null, 30, 100), SprintContext.of(five, "A", null, 4, goal))
-        assertEquals(SprintContext(null, 70, null), SprintContext.of(five, "F", null, 4, goal))
-        val recent = Planner.plan(sprint(days = 2, answers = SprintAnswers(sprintedRecently = true))).program
-        assertEquals(160, SprintContext.of(recent, "C", null, 4, goal).otherMetres)
-        val longEvent = Planner.plan(sprint(SprintEvent.M200, days = 2)).program
-        assertEquals(SprintContext(null, 300, 200), SprintContext.of(longEvent, "A", null, 4, PlanGoal.Sprint(200)))
+        assertEquals(993L, SprintContext.of(five, "A", mapOf("D" to 993L, "F" to 999L), 4, goal, 70).lastEpochDay)
+        assertEquals(40, SprintContext.of(five, "D", emptyMap(), 4, goal, 70).otherMetres)
+        val endurance = Planner.plan(sprint(SprintEvent.M400, days = 2)).program
+        assertEquals(993L, SprintContext.of(endurance, "A", mapOf("A" to 970L, "C" to 993L),
+            3, PlanGoal.Sprint(400), 330).lastEpochDay)
     }
 
-    @Test fun `a 100 m plan's first twelve weeks`() {
-        var program = Planner.plan(sprint(days = 2)).program
+    @Test fun `skipping A does not reset while B finished within 14 days`() {
+        val program = Planner.plan(sprint(days = 2, answers = SprintAnswers(sprintedRecently = true))).program
+        val block = requireNotNull(day(program, "A").cardioBlock)
+        val context = Progression.CardioContext(1_000, null, 0,
+            sprint = SprintContext.of(program, "A", mapOf("A" to 970L, "C" to 987L), 3, PlanGoal.Sprint(100), 190))
+        assertEquals(block, Progression.cardioAtStart(block, rule(program, "A"), history, PlanGoal.Sprint(100), context))
+        assertEquals(CardioChange.Repeat, Progression.cardioAfterSession(block, rule(program, "A"), finished(block),
+            CardioEffort.HARD, history, context).change)
+    }
+
+    @Test fun `a 400 m fifth rotation keeps its 30 meter flying block`() {
+        val program = Planner.plan(sprint(SprintEvent.M400, days = 1,
+            answers = SprintAnswers(SprintEvent.M400, sprintedRecently = true))).program
+        val block = requireNotNull(day(program, "A").cardioBlock)
+        val context = Progression.CardioContext(1_000, null, 0,
+            sprint = SprintContext.of(program, "A", mapOf("A" to 993L), 4, PlanGoal.Sprint(400), 30))
+        assertEquals(30, SprintRules.workMetres(block))
+        assertEquals(block, Progression.cardioAtStart(block, rule(program, "A"), history, PlanGoal.Sprint(400), context))
+        assertEquals(CardioOutcome(block, rule(program, "A").copy(credits = 1), CardioChange.Repeat),
+            Progression.cardioAfterSession(block, rule(program, "A"), finished(block), CardioEffort.HARD, history, context))
+    }
+
+    private fun openingSequence(recent: Boolean): List<Pair<List<Int>, List<Int>>> {
+        var program = Planner.plan(sprint(days = 2, answers = SprintAnswers(sprintedRecently = recent))).program
         val goal = PlanGoal.Sprint(100)
-        fun context(program: Program, id: String, week: Int, last: Long?): Progression.CardioContext {
-            val today = 1_000L + 7 * (week - 1) + if (id == "A") 0 else 3
-            return Progression.CardioContext(today, null, 0, sprint = SprintContext.of(program, id, last, week - 1, goal))
+        val dates = mutableMapOf<String, Long>()
+        var previous = program.days.mapNotNull { it.cardioBlock }.sumOf(SprintRules::workMetres)
+        return (1..16).map { week ->
+            val blocks = listOf("A", "C").map { id ->
+                val today = 1_000L + 7 * (week - 1) + if (id == "A") 0 else 3
+                val context = Progression.CardioContext(today, null, 0,
+                    sprint = SprintContext.of(program, id, dates, week - 1, goal, previous))
+                val block = Progression.cardioAtStart(requireNotNull(day(program, id).cardioBlock),
+                    rule(program, id), history, goal, context)
+                val out = Progression.cardioAfterSession(block, rule(program, id), finished(block),
+                    CardioEffort.HARD, history, context)
+                program = program.copy(days = program.days.map {
+                    if (it.id == id) it.copy(cardioBlock = out.block, cardioRule = out.rule) else it
+                })
+                dates[id] = today
+                block.sets.filter { it.role == CardioRole.WORK }.map { (it.end as Measure.Distance).metres }
+            }
+            val total = blocks.sumOf { it.sum() }
+            assertTrue(total <= previous * 1.15 + 1e-9, "week $week recent=$recent: $previous -> $total")
+            previous = total
+            blocks[0] to blocks[1]
         }
-        fun opening(program: Program, id: String, ctx: Progression.CardioContext) =
-            Progression.cardioAtStart(requireNotNull(day(program, id).cardioBlock), rule(program, id), history, goal, ctx)
-        fun finish(program: Program, id: String, ctx: Progression.CardioContext): CardioOutcome {
-            val block = opening(program, id, ctx)
-            return Progression.cardioAfterSession(block, rule(program, id), finished(block), CardioEffort.HARD, history, ctx)
-        }
-        fun write(program: Program, id: String, out: CardioOutcome) = program.copy(days = program.days.map {
-            if (it.id == id) it.copy(cardioBlock = out.block, cardioRule = out.rule) else it
-        })
-        for (week in 1..12) for (id in listOf("A", "C")) {
-            val today = 1_000L + 7 * (week - 1) + if (id == "A") 0 else 3
-            val ctx = context(program, id, week, if (week == 1) null else today - 7)
-            val block = opening(program, id, ctx)
-            if (id == "A" && week in listOf(5, 10)) {
-                assertEquals(SprintRules.timeTrial(100, CardioActivity.TRACK_RUN), block, "week $week A trial")
-            } else assertEquals(day(program, id).cardioBlock, block, "week $week $id opening")
-            val out = finish(program, id, ctx)
-            val steps = if (id == "A") listOf(6, 8, 11) else listOf(5, 7, 11)
-            assertEquals(if (week in steps) CardioChange.Step else CardioChange.Repeat, out.change, "week $week $id change")
-            program = write(program, id, out)
-            if (week == 10 && id == "C") assertEquals(2, rule(program, id).held)
-        }
-        assertEquals(CardioRule(null, RunSession.ACCELERATION, steps = 3, credits = 1), rule(program, "A"))
-        assertEquals(sprintBlock(RunSession.ACCELERATION, 3), day(program, "A").cardioBlock)
-        assertEquals(CardioRule(null, RunSession.MAX_VELOCITY, steps = 3), rule(program, "C"))
-        assertEquals(sprintBlock(RunSession.MAX_VELOCITY, 3), day(program, "C").cardioBlock)
-        val week14 = context(program, "A", 14, 1_077)
-        assertEquals(sprintBlock(RunSession.ACCELERATION, 3), opening(program, "A", week14))
-        assertNotEquals(CardioChange.Restart, finish(program, "A", week14).change)
-        for (week in 13..14) {
-            val today = 1_003L + 7 * (week - 1)
-            program = write(program, "C", finish(program, "C", context(program, "C", week, today - 7)))
-        }
-        val week15 = context(program, "A", 15, 1_077)
-        assertEquals(1_098L, week15.todayEpochDay)
-        assertEquals(sprintBlock(RunSession.ACCELERATION, 0), opening(program, "A", week15))
-        assertEquals(CardioOutcome(sprintBlock(RunSession.ACCELERATION, 0),
-            CardioRule(null, RunSession.ACCELERATION, intro = 2), CardioChange.Restart), finish(program, "A", week15))
+    }
+
+    @Test fun `a two-day 100 m intro pins 16 weekly openings under 15 percent`() {
+        val a40 = List(4) { 10 }
+        val a50 = List(5) { 10 }
+        val a60 = List(6) { 10 }
+        val a70 = List(7) { 10 }
+        val a80 = List(8) { 10 }
+        val a90 = listOf(20) + List(7) { 10 }
+        val b30 = List(3) { 10 }
+        assertEquals(listOf(a40, a40, a40, a40, a40, a50, a50, a60, a60, a70, a70, a80, a80, a90,
+            listOf(100), a90).map { it to b30 }, openingSequence(recent = false))
+    }
+
+    @Test fun `a two-day 100 m non-intro pins 16 weekly openings under 15 percent`() {
+        fun a(long: Int) = List(long) { 20 } + List(8 - long) { 10 }
+        fun b(long: Int) = List(long) { 20 } + List(5 - long) { 10 }
+        assertEquals(listOf(
+            List(8) { 20 } to List(3) { 10 },
+            List(8) { 20 } to List(3) { 10 },
+            (listOf(30) + List(7) { 20 }) to List(4) { 10 },
+            (listOf(30) + List(7) { 20 }) to List(4) { 10 },
+            listOf(100) to b(0),
+            a(4) to b(0),
+            a(4) to b(0),
+            a(5) to b(1),
+            a(5) to b(1),
+            listOf(100) to b(2),
+            a(4) to b(2),
+            a(4) to b(2),
+            a(5) to b(3),
+            a(5) to b(3),
+            listOf(100) to b(3),
+            a(2) to b(5),
+        ), openingSequence(recent = true))
     }
 
     @Test fun `plyometric contacts grow to the 80 cap through the lift rules`() {

@@ -54,9 +54,10 @@ private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
 
 private fun openingSteps(session: RunSession, intro: Boolean): Int {
     if (intro || session != RunSession.ACCELERATION) return 0
-    return (0..requireNotNull(RunRange.of(session)).top).first {
-        SprintRules.workMetres(sprintBlock(session, it)) >= OPENING_METRES
-    }
+    val range = requireNotNull(RunRange.of(session))
+    var steps = 0
+    while (SprintRules.workMetres(sprintBlock(session, steps)) < OPENING_METRES) steps = range.nextStep(steps)
+    return steps
 }
 
 private fun lowerLifts(

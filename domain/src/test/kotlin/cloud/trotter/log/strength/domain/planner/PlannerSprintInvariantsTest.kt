@@ -76,7 +76,7 @@ class PlannerSprintInvariantsTest {
                 if (session != RunSession.SPRINT_TEMPO) {
                     assertEquals(CardioSetSpec(CardioRole.WARMUP, Measure.Time(600)), planned.sets.first(), "$label build-up")
                 } else assertTrue(planned.sets.none { it.role == CardioRole.WARMUP }, "$label tempo warm-up")
-                val steps = if (session == RunSession.ACCELERATION && !answers.sprint.intro) 5 else 0
+                val steps = if (session == RunSession.ACCELERATION && !answers.sprint.intro) 12 else 0
                 assertEquals(CardioRule(null, session, steps = steps, intro = if (answers.sprint.intro) 3 else 0), day.cardioRule, "$label rule")
             }
             if (day.kind != rest) {

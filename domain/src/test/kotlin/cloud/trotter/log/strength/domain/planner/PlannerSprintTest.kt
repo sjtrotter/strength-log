@@ -165,7 +165,7 @@ class PlannerSprintTest {
         val draft = Planner.plan(sprint(answers = recent))
         val a = day(draft, "A")
         assertEquals(acc5, a.cardioBlock)
-        assertEquals(CardioRule(null, RunSession.ACCELERATION, steps = 5), a.cardioRule)
+        assertEquals(CardioRule(null, RunSession.ACCELERATION, steps = 12), a.cardioRule)
         assertEquals(160, requireNotNull(a.cardioBlock).sets.filter { it.role == CardioRole.WORK }
             .sumOf { (it.end as Measure.Distance).metres })
         assertEquals(1918, SessionBudget.seconds(a, LiftGoal.STRENGTH))
@@ -268,16 +268,16 @@ class PlannerSprintTest {
 
     @Test fun `sprint ranges and blocks`() {
         val sessions = listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE, RunSession.SPRINT_TEMPO)
-        assertEquals(listOf(6, 3, 6, 2), sessions.map { requireNotNull(RunRange.of(it)).top })
+        assertEquals(listOf(20, 7, 21, 2), sessions.map { requireNotNull(RunRange.of(it)).top })
         assertEquals(listOf(false, false, false, true), sessions.map { requireNotNull(RunRange.of(it)).goodBand })
-        assertEquals(intervals(8, 30, 180), sprintBlock(RunSession.ACCELERATION, 6))
+        assertEquals(intervals(8, 30, 180), sprintBlock(RunSession.ACCELERATION, 20))
         assertEquals(intervals(6, 300, 60, warmup = false, hard = false), sprintBlock(RunSession.SPRINT_TEMPO, 2))
         assertEquals(listOf(acc0, acc5, maxv0, se0, tempo0), listOf(
-            sprintBlock(RunSession.ACCELERATION, 0), sprintBlock(RunSession.ACCELERATION, 5),
+            sprintBlock(RunSession.ACCELERATION, 0), sprintBlock(RunSession.ACCELERATION, 12),
             sprintBlock(RunSession.MAX_VELOCITY, 0), sprintBlock(RunSession.SPRINT_ENDURANCE, 0),
             sprintBlock(RunSession.SPRINT_TEMPO, 0)))
         assertEquals(listOf(794, 1498, 1091, 1668, 516), listOf(acc0, acc5, maxv0, se0, tempo0).map(::plannedSeconds))
-        assertEquals(6, CardioRule(null, RunSession.ACCELERATION, steps = 6).steps)
-        assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.ACCELERATION, steps = 7) }
+        assertEquals(20, CardioRule(null, RunSession.ACCELERATION, steps = 20).steps)
+        assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.ACCELERATION, steps = 21) }
     }
 }

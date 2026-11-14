@@ -22,8 +22,6 @@ data class CardioRule(
     val longSeconds: Int? = null,
     /** Counted sessions left at the range's low end (design §3.1.3 Intro); sprint days only. */
     val intro: Int = 0,
-    /** Counted sessions a ready sprint step has waited on the weekly 15%; each adds another 15% ([SprintRules.withinRise]). */
-    val held: Int = 0,
 ) {
     init {
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
@@ -39,10 +37,9 @@ data class CardioRule(
         require(session != RunSession.LONG || longMetres != null || longSeconds != null)
         require(longMetres == null || longMetres in 1..200_000)
         require(longSeconds == null || longSeconds in 1..86_400)
-        require(intro in 0..SprintRules.INTRO_SESSIONS && held >= 0)
-        require((intro == 0 && held == 0) || session?.sprint == true)
+        require(intro in 0..SprintRules.INTRO_SESSIONS)
+        require(intro == 0 || session?.sprint == true)
         require(intro == 0 || (steps == 0 && credits == 0))
-        require(held == 0 || credits == 1)
         require(alternate == null || (session?.sprint != true && !alternate.sprint))
     }
 }

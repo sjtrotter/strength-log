@@ -493,6 +493,7 @@ internal fun DayRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val receipt by viewModel.finisher.receipt.collectAsStateWithLifecycle()
+    val receiptBackoffLabels by viewModel.finisher.backoffLabels.collectAsStateWithLifecycle()
     val receiptSetCounts by viewModel.finisher.receiptSetCounts.collectAsStateWithLifecycle()
     val receiptProgress by viewModel.finisher.progressState.collectAsStateWithLifecycle()
     val receiptMutation by viewModel.finisher.mutation.collectAsStateWithLifecycle()
@@ -661,6 +662,7 @@ internal fun DayRoute(
         dayEditActions = dayEditActions,
         receipt = receipt,
         receiptSetCounts = receiptSetCounts,
+        receiptBackoffLabels = receiptBackoffLabels,
         receiptProgress = receiptProgress, receiptMutation = receiptMutation,
         onReceiptMutationHandled = viewModel.finisher::mutationHandled,
         onUndoChanges = viewModel.finisher::undoChanges, onRoughDay = viewModel.finisher::setRoughDay,

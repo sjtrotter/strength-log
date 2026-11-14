@@ -5,11 +5,18 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.core.content.FileProvider
-import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.ui.day.cardioActivityNameRes
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
+import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -33,11 +40,7 @@ class ShareCardService @Inject constructor(
 
     /** Null if [sessionId] no longer resolves to a session — nothing to share. */
     suspend fun buildShareIntent(sessionId: Long): Intent? = withContext(Dispatchers.IO) {
-        val session = repo.session(sessionId) ?: return@withContext null
-        val sets = repo.sessionSets(sessionId)
-        val unit = settings.unitFlow.first()
-
-        val content = ShareCardContentBuilder.build(session, sets, unit)
+        val content = buildContent(sessionId) ?: return@withContext null
         val bitmap = ShareCardPainter.render(context, content)
         val file = writePng(sessionId, bitmap)
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -49,6 +52,29 @@ class ShareCardService @Inject constructor(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         Intent.createChooser(sendIntent, "Share workout")
+    }
+
+    internal suspend fun buildContent(sessionId: Long): ShareCardContent? {
+        val session = repo.session(sessionId) ?: return null
+        val sets = repo.sessionSets(sessionId)
+        val unit = settings.unitFlow.first()
+        val distanceUnit = settings.distanceUnitFlow.first()
+        val zone = ZoneId.systemDefault()
+        val date = Instant.ofEpochMilli(session.completedAt).atZone(zone).toLocalDate()
+        val cardio = repo.cardioSessionsFlow.first().filter { entry ->
+            val sameDay = Instant.ofEpochMilli(entry.completedAt).atZone(zone).toLocalDate() == date
+            val duringRun = session.startedAt?.let { entry.completedAt in it..session.completedAt } == true
+            session.planId != null && entry.planId == session.planId && entry.dayId == session.dayId && (sameDay || duringRun)
+        }.sortedWith(compareBy({ it.completedAt }, { it.id })).map { entry ->
+            val activity = CardioActivity.entries.firstOrNull { it.name == entry.activity }
+                ?: entry.decodedCardioMode()?.let(CardioBlocks::activityOf)
+            val name = activity?.let { context.getString(cardioActivityNameRes(it)) } ?: entry.label
+            val performed = repo.cardioSetsFor(entry.id).filter { it.status != CardioSetStatus.SKIPPED }
+            val metres = performed.takeIf { it.isNotEmpty() && it.all { result -> result.metres != null } }
+                ?.sumOf { requireNotNull(it.metres) }
+            ShareCardioBlock(name, entry.seconds, metres)
+        }
+        return ShareCardContentBuilder.build(session, sets, unit, zone, cardio, distanceUnit)
     }
 
     /** One render lives at a time: every file already in `cache/shares/` is

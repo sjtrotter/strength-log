@@ -98,6 +98,22 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun `back-off labels require every set on a later top-set line to be BACKOFF`() {
+        val top = work(275.0, 5, kind = SetKind.TOP)
+        val backoff = work(250.0, 5, kind = SetKind.BACKOFF)
+        fun labels(sets: List<LoggedSet>): ReceiptBackoffLabels {
+            val groups = ReceiptBuilder.strengthWithTracks(listOf(track(sets)),
+                listOf(slot(structure = SetStructure.RAMP_TOP_BACKOFF)), { it }, emptyMap())
+            return receiptBackoffLabels(42, groups)
+        }
+        assertEquals(ReceiptBackoffLabels(42, listOf(ReceiptBackoffLine(0, 0, 1))), labels(listOf(top, backoff, backoff)))
+        assertEquals(emptyList<ReceiptBackoffLine>(), labels(listOf(top)).lines)
+        assertEquals(emptyList<ReceiptBackoffLine>(), labels(listOf(top, backoff.copy(kind = SetKind.WORK))).lines)
+        assertEquals(emptyList<ReceiptBackoffLine>(), labels(listOf(top, backoff, backoff.copy(kind = SetKind.WORK))).lines)
+        assertEquals(emptyList<ReceiptBackoffLine>(), labels(listOf(backoff, backoff)).lines)
+    }
+
+    @Test
     fun `extra sets at the top weight join the second line`() {
         val track = squat(topWeight = 95.0).let { track ->
             track.copy(sets = track.sets.map { if (it.kind == SetKind.BACKOFF) it.copy(weightLb = 95.0, reps = 5) else it })

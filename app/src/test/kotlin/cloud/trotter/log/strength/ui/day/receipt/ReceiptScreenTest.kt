@@ -116,15 +116,35 @@ class ReceiptScreenTest {
     }
 
     @Test
-    fun `a ramped row shows its back-off line`() {
+    fun `a top-set row labels and speaks its two back-offs`() {
         val top = receiptFixture().groups.first().rows.single()
-        val row = top.copy(sets = top.sets + ReceiptSet(185.0, 8, 0),
-            lines = top.lines + ValueLine(185.0, listOf(1)))
-        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+        val row = top.copy(sets = listOf(ReceiptSet(275.0, 5, 0), ReceiptSet(250.0, 5, 0), ReceiptSet(250.0, 5, 0)),
+            lines = listOf(ValueLine(275.0, listOf(0)), ValueLine(250.0, listOf(1, 2))), record = null)
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        setReceipt(receipt, backoffLabels = ReceiptBackoffLabels(receipt.sessionId, listOf(ReceiptBackoffLine(0, 0, 1))))
 
         rule.onAllNodesWithText("Top set", useUnmergedTree = true).assertCountEquals(1)
-        rule.onNodeWithText("185 lb × 8", useUnmergedTree = true).assertIsDisplayed()
-        rule.onAllNodesWithText("240 lb × 5", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithText("Back-offs", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("250 lb × 5, 5", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 275 pounds for 5 reps. Back-offs, 250 pounds: 5 and 5 reps.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
+    fun `a top-set row without back-offs is unchanged`() {
+        setReceipt(receiptFixture().copy(groups = receiptFixture().groups.take(1)))
+        rule.onAllNodesWithText("Back-offs", useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. Weight record, up from 240 pounds for 5 reps.")
+            .assertHasNoClickAction()
+    }
+
+    @Test
+    fun `back-off labels for another session are ignored`() {
+        val top = receiptFixture().groups.first().rows.single()
+        val row = top.copy(sets = top.sets + ReceiptSet(185.0, 8, 0), lines = top.lines + ValueLine(185.0, listOf(1)))
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        setReceipt(receipt, backoffLabels = ReceiptBackoffLabels(receipt.sessionId + 1, listOf(ReceiptBackoffLine(0, 0, 1))))
+        rule.onAllNodesWithText("Back-offs", useUnmergedTree = true).assertCountEquals(0)
         rule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. 185 pounds: 8 reps. Weight record, up from 240 pounds for 5 reps.")
             .assertHasNoClickAction()
     }
@@ -935,11 +955,12 @@ class ReceiptScreenTest {
         setCounts: ReceiptSetCounts? = null,
         distanceUnit: DistanceUnit = DistanceUnit.MI,
         nextTimes: ReceiptNextTimes? = null,
+        backoffLabels: ReceiptBackoffLabels? = null,
     ) {
         rule.setContent {
             backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
             CompositionLocalProvider(LocalDistanceUnit provides distanceUnit) {
-                AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts,
+                AppTheme { SessionReceiptScreen(receipt, onShare, onFinish, setCounts = setCounts, backoffLabels = backoffLabels,
                     progress = ReceiptProgressState(lifts = nextTimes?.takeIf { it.sessionId == receipt.sessionId }?.rows.orEmpty().map { next ->
                         val line = ReceiptLiftLine(next.offerLb ?: next.openingLb, null, null,
                             next.offerLb?.let { it - next.openingLb }, false, "ALL_MADE", 1, next.offerLb != null)

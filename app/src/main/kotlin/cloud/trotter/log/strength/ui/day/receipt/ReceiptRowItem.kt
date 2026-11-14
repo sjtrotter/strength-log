@@ -230,17 +230,22 @@ internal fun StrengthReceiptRow(
     roll: () -> Float,
     gutter: String? = null,
     nextTime: ReceiptLiftLine? = null,
+    backoffLines: Set<Int> = emptySet(),
 ) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime), row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, backoffLines), row.shape == ReceiptRow.Shape.STRAIGHT,
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (row.shape) {
-                        ReceiptRow.Shape.TOP_SET -> if (lineIndex == 0) ValueLabel(stringResource(R.string.receipt_top_set), Modifier.alignByBaseline())
+                        ReceiptRow.Shape.TOP_SET -> when {
+                            lineIndex == 0 -> ValueLabel(stringResource(R.string.receipt_top_set), Modifier.alignByBaseline())
+                            lineIndex in backoffLines -> ValueLabel(stringResource(R.string.receipt_backoffs), Modifier.alignByBaseline())
+                            else -> Unit
+                        }
                         ReceiptRow.Shape.HEAVIEST_NO_TOP -> ValueLabel(stringResource(R.string.receipt_heaviest), Modifier.alignByBaseline())
                         else -> Unit
                     }

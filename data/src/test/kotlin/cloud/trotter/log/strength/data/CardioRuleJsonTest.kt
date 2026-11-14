@@ -87,4 +87,27 @@ class CardioRuleJsonTest {
             assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(json) }
         }
     }
+
+    @Test fun `sprint wait and rotation allowance round trip`() {
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 5, credits = 1,
+            sprintWait = 3, sprintStepCycle = 4, sprintStepFrom = 4)
+        val json = """{"session":"ACCELERATION","steps":5,"credits":1,"sprintWait":3,"sprintStepCycle":4,"sprintStepFrom":4}"""
+        assertEquals(json, CardioRuleJson.encode(rule))
+        assertEquals(rule, CardioRuleJson.decode(json))
+        CardioRuleJson.validate(json)
+        val first = CardioRule(null, RunSession.MAX_VELOCITY, steps = 1, sprintStepCycle = 0)
+        assertEquals(first, CardioRuleJson.decode(CardioRuleJson.encode(first)))
+        for (invalid in listOf(
+            """{"session":"ACCELERATION","sprintWait":1}""",
+            """{"session":"SPRINT_TEMPO","credits":1,"sprintWait":1}""",
+            """{"session":"ACCELERATION","credits":1,"sprintWait":-1}""",
+            """{"session":"THRESHOLD","sprintStepCycle":0}""",
+            """{"session":"ACCELERATION","sprintStepCycle":-1}""",
+            """{"session":"ACCELERATION","steps":1,"sprintStepFrom":1}""",
+            """{"session":"ACCELERATION","sprintStepCycle":0,"sprintStepFrom":1}""",
+        )) {
+            assertNull(CardioRuleJson.decode(invalid))
+            assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
+        }
+    }
 }

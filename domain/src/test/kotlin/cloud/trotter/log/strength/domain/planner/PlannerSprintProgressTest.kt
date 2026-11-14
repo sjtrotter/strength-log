@@ -264,7 +264,8 @@ class PlannerSprintProgressTest {
             val out = Progression.cardioAfterSession(block, rule(program, "C"), finished(block), CardioEffort.HARD, history, context)
             assertEquals(if (gap == 15) CardioChange.Restart else CardioChange.Repeat, out.change)
             assertEquals(if (gap == 15) 2 else 0, requireNotNull(out.rule).intro)
-            val neverRun = SprintContext.of(program, "C", mapOf("A" to dates.getValue("A")), 3, null, 1_003L + gap, setOf("A"))
+            val neverRun = SprintContext.of(program, "C", mapOf("A" to listOf(1_000L, 1_000L + gap)),
+                3, null, 1_003L + gap, setOf("A"))
             assertEquals(gap == 15, neverRun.layoff)
         }
         val ongoing = mapOf("A" to listOf(982L), "C" to listOf(996L))
@@ -302,6 +303,24 @@ class PlannerSprintProgressTest {
         assertEquals(listOf(Opened("A", "reset", 30), Opened("C", "reset", 300)), run.rotations[19].blocks)
         assertEquals(2, run.restarts)
         assertEquals(2, rule(run.program, "A").intro)
+        assertEquals(2, rule(run.program, "C").intro)
+    }
+
+    @Test fun `200 m trial waits while B restart is pending after A finishes restart intro`() {
+        val run = simulate(SprintEvent.M200, rotations = 5) { cycle ->
+            (if (cycle == 1) 21 else 0) to
+                if (cycle in 1..3) listOf("A" to 0) else listOf("A" to 0, "C" to 3)
+        }
+        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "normal", 300)), run.rotations[0].blocks)
+        assertEquals(listOf(Opened("A", "reset", 30)), run.rotations[1].blocks)
+        for (cycle in 2..3) assertEquals(listOf(Opened("A", "normal", 30)), run.rotations[cycle].blocks)
+        val trialRotation = run.rotations[4]
+        assertEquals(330, trialRotation.planned)
+        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "reset", 300)), trialRotation.blocks)
+        assertTrue(SprintRules.withinRise(trialRotation.planned, trialRotation.blocks.sumOf { it.metres }))
+        assertEquals(0, run.trials)
+        assertEquals(2, run.restarts)
+        assertEquals(0, rule(run.program, "A").intro)
         assertEquals(2, rule(run.program, "C").intro)
     }
 

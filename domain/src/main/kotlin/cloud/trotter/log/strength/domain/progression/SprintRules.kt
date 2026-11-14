@@ -54,11 +54,14 @@ data class SprintContext(
         ): SprintContext {
             val maximalDays = program.days.filter { day -> day.cardioRule?.session?.let(SprintRules::maximal) == true }
             val dates = maximalDays.flatMap { maximalEpochDays[it.id].orEmpty() }.distinct().sorted()
-            val ownLast = maximalEpochDays[dayId]?.maxOrNull()
-            val sinceLast = dates.filter { ownLast == null || it >= ownLast } + todayEpochDay
-            val layoff = maximalDays.any { it.id == dayId } && sinceLast.zipWithNext().any { (before, after) ->
-                SprintRules.layoff(before, after)
+            fun hasLayoff(id: String): Boolean {
+                val ownLast = maximalEpochDays[id]?.maxOrNull()
+                val sinceLast = dates.filter { ownLast == null || it >= ownLast } + todayEpochDay
+                return maximalDays.any { it.id == id } && sinceLast.zipWithNext().any { (before, after) ->
+                    SprintRules.layoff(before, after)
+                }
             }
+            val layoff = hasLayoff(dayId)
             val first = maximalDays.firstOrNull()
             val second = maximalDays.getOrNull(1)
             val a = first?.cardioRule
@@ -71,7 +74,8 @@ data class SprintContext(
             val trial = event?.takeIf {
                 dayId == first?.id && a?.intro == 0 && a.sprintTrialCycle != cyclesCompleted && !layoff &&
                     (cyclesCompleted + 1) % SprintRules.TIME_TRIAL_EVERY == 0 &&
-                    !(longTrial && second?.id in maximalDaysThisCycle)
+                    !(longTrial && second != null &&
+                        (second.id in maximalDaysThisCycle || hasLayoff(second.id)))
             }
             val trialTotal = trial?.let { SprintRules.workMetres(SprintRules.timeTrial(it, CardioActivity.TRACK_RUN)) }
             val other = normal.filterKeys { it != first?.id && !(longTrial && it == second?.id) }.values.sum()

@@ -73,9 +73,28 @@ class ProgressionTest {
         val squat = finish(rRule().copy(everyExposures = 1), ramp(), actual(ramp(), rir = 4))
         assertEquals(Change.Increase(275.0, 285.0), squat.change)
         assertEquals(Reason.EasySession, squat.reason)
+        // audit 2026-11-13: a double that would spend the target's reserve falls back to the single step
         val light = finish(rule(pct = 0.05), work(95.0), actual(work(95.0), rir = 4))
         assertEquals(Change.Increase(95.0, 100.0), light.change)
-        assertEquals(Reason.EasySession, light.reason)
+        assertEquals(Reason.AllMade, light.reason)
+    }
+
+    @Test
+    fun `New squat Easy sessions use a single increment when the double spends target reserve`() {
+        for (weight in listOf(95.0, 100.0)) {
+            val rows = work(weight)
+            val out = finish(rule(pct = 0.05), rows, actual(rows, rir = 4))
+            assertEquals(Change.Increase(weight, weight + 5.0), out.change)
+            assertEquals(Reason.AllMade, out.reason)
+        }
+    }
+
+    @Test
+    fun `Easy session without a trusted estimate uses a single increment`() {
+        val rows = work(100.0, 10)
+        val out = finish(rule(10, 2, pct = 0.05), rows, actual(rows, rir = 4))
+        assertEquals(Change.Increase(100.0, 105.0), out.change)
+        assertEquals(Reason.AllMade, out.reason)
     }
 
     @Test
@@ -137,22 +156,51 @@ class ProgressionTest {
 
     @Test
     fun `case 12 next set calibration climbs until the first non Easy anchor`() {
+        // audit 2026-11-13: Easy is read as 4 left
         val input = rule(rir = 2, state = SlotState(calibrating = true))
         val rows = work(45.0, count = 4)
         fun logged(weight: Double, rir: Int) = LoggedSet(weight, 5, SetKind.WORK, done = true, rir = rir)
         val first = listOf(logged(45.0, 4))
-        assertEquals(60.0, Progression.nextSet(input, first, rows[1], ctx()).weightLb, 1e-9)
-        val second = first + logged(60.0, 4)
-        assertEquals(75.0, Progression.nextSet(input, second, rows[2], ctx()).weightLb, 1e-9)
-        assertEquals(75.0, Progression.nextSet(input, second + logged(75.0, 2), rows[3], ctx()).weightLb, 1e-9)
-        assertEquals(70.0, Progression.nextSet(input, second + logged(75.0, 0), rows[3], ctx()).weightLb, 1e-9)
-        val completed = (second + logged(75.0, 2) + logged(75.0, 2)).mapIndexed { i, row -> row.copy(plannedIndex = i) }
+        assertEquals(50.0, Progression.nextSet(input, first, rows[1], ctx()).weightLb, 1e-9)
+        val second = first + logged(50.0, 4)
+        assertEquals(55.0, Progression.nextSet(input, second, rows[2], ctx()).weightLb, 1e-9)
+        val third = second + logged(55.0, 4)
+        assertEquals(60.0, Progression.nextSet(input, third, rows[3], ctx()).weightLb, 1e-9)
+        assertEquals(60.0, Progression.nextSet(input, third + logged(60.0, 2), rows[3], ctx()).weightLb, 1e-9)
+        assertEquals(55.0, Progression.nextSet(input, third + logged(60.0, 0), rows[3], ctx()).weightLb, 1e-9)
+        val completed = (third + logged(60.0, 2)).mapIndexed { i, row -> row.copy(plannedIndex = i) }
         val out = finish(input, rows, completed)
-        assertEquals(Change.Calibrated(75.0), out.change)
+        assertEquals(Change.Calibrated(60.0), out.change)
         assertEquals(Reason.Calibrated, out.reason)
-        assertEquals(work(75.0, count = 4), out.rows)
+        assertEquals(work(60.0, count = 4), out.rows)
         assertFalse(out.rule.state.calibrating)
         assertStreaks(out, 0, 0, 0)
+    }
+
+    @Test
+    fun `Easy calibration at ten pounds adds one dumbbell step`() {
+        val input = rule(10, 2, state = SlotState(calibrating = true))
+        val rows = work(10.0, 10)
+        val logged = actual(rows.take(1), rir = 4)
+        assertEquals(15.0, Progression.nextSet(input, logged, rows[1], ctx(db)).weightLb, 1e-9)
+    }
+
+    @Test
+    fun `Easy calibration beyond the estimate rep limit adds one step`() {
+        val input = rule(12, 2, state = SlotState(calibrating = true))
+        val rows = work(45.0, 12)
+        val logged = actual(rows.take(1), rir = 4)
+        assertEquals(50.0, Progression.nextSet(input, logged, rows[1], ctx()).weightLb, 1e-9)
+    }
+
+    @Test
+    fun `Easy calibration rounds the bound down and reads Easy as exactly four left`() {
+        val input = rule(rir = 2, state = SlotState(calibrating = true))
+        val rows = work(100.0)
+        for (rir in listOf(4, 5)) {
+            val logged = actual(rows.take(1), rir = rir)
+            assertEquals(105.0, Progression.nextSet(input, logged, rows[1], ctx()).weightLb, 1e-9)
+        }
     }
 
     @Test
@@ -422,7 +470,8 @@ class ProgressionTest {
         val input = rule(rir = 2, state = SlotState(calibrating = true, successStreak = 2, repMissStreak = 1, effortMissStreak = 1))
         val rows = work(45.0)
         val out = finish(input, rows, actual(rows, rir = 4))
-        assertEquals(Change.Increase(45.0, 60.0), out.change)
+        // audit 2026-11-13: Easy is read as 4 left, so the calibration step is one plate step
+        assertEquals(Change.Increase(45.0, 50.0), out.change)
         assertEquals(Reason.Calibrating, out.reason)
         assertTrue(out.rule.state.calibrating)
         assertStreaks(out, 0, 0, 0)

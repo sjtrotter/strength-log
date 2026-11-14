@@ -39,6 +39,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptBackoffLine
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTime
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
@@ -904,6 +905,8 @@ class DayViewModelReceiptTest {
 
         val counts = vm.finisher.receiptSetCounts.value
         assertNotNull(counts)
+        val backoffs = requireNotNull(vm.finisher.backoffLabels.value)
+        assertEquals(listOf(ReceiptBackoffLine(0, 0, 1)), backoffs.lines)
         val readsAtFinish = finishBaselineReads
         val restored = newViewModel(restoredHandle)
         advanceUntilIdle()
@@ -911,8 +914,10 @@ class DayViewModelReceiptTest {
         assertEquals(receipt, restored.finisher.receipt.value)
         assertEquals(receipt, restoredHandle.get<WorkoutReceipt>("day_workout_receipt"))
         assertEquals(counts, restored.finisher.receiptSetCounts.value)
+        assertEquals(backoffs, restored.finisher.backoffLabels.value)
         restored.finisher.dismissReceipt()
         assertNull(restored.finisher.receiptSetCounts.value)
+        assertNull(restored.finisher.backoffLabels.value)
     }
 
     @Test

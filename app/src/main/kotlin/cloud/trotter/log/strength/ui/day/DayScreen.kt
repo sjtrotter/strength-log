@@ -57,6 +57,7 @@ import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
@@ -84,6 +85,7 @@ fun DayScreen(
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
+    receiptBackoffLabels: ReceiptBackoffLabels? = null,
     receiptProgress: ReceiptProgressState = ReceiptProgressState(),
     receiptMutation: ReceiptMutation? = null,
     onReceiptMutationHandled: () -> Unit = {},
@@ -104,6 +106,7 @@ fun DayScreen(
         SessionReceiptScreen(
             receipt = receipt,
             setCounts = receiptSetCounts,
+            backoffLabels = receiptBackoffLabels,
             progress = receiptProgress, mutation = receiptMutation,
             onMutationHandled = onReceiptMutationHandled, onUndo = onUndoChanges,
             onRoughDay = onRoughDay, onCardioEffort = onCardioEffort,

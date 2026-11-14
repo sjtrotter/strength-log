@@ -19,8 +19,7 @@ import cloud.trotter.log.strength.ui.theme.accentBright
 
 /**
  * Deterministic `android.graphics` rendering of a [ShareCardContent] onto a
- * 1080×1350 (4:5) canvas (docs/briefs/session-share.md §2) — no off-screen
- * Compose. Dumb by design: every string, line count and color decision was
+ * 1080-wide canvas at least 1350 pixels tall — no off-screen Compose. Dumb by design: every string, line count and color decision was
  * already made by [ShareCardContentBuilder]; this only lays glyphs out top
  * to bottom. Fonts load through [ResourcesCompat] and colors come straight
  * from the app's Compose tokens ([Background], [Border], the text/accent
@@ -34,7 +33,7 @@ object ShareCardPainter {
     )
 
     const val WIDTH = 1080
-    const val HEIGHT = 1350
+    const val MIN_HEIGHT = 1350
 
     private const val MARGIN = 88f
     private const val BORDER_INSET = 40f
@@ -44,16 +43,13 @@ object ShareCardPainter {
     private const val DAY_SIZE = 64f
     private const val LIFT_NAME_SIZE = 32f
     private const val LIFT_VALUE_SIZE = 48f
-    private const val OVERFLOW_SIZE = 30f
     private const val FOOTER_SIZE = 34f
     private const val WORDMARK_SIZE = 26f
 
     private const val DATE_Y = 170f
     private const val DAY_Y = 256f
     private const val LIFTS_START_Y = 386f
-    private const val LIFT_ROW_PITCH = 100f
-    private const val WORDMARK_Y = HEIGHT - 70f
-    private const val FOOTER_Y = WORDMARK_Y - 60f
+    private const val LIFT_ROW_PITCH = 100
 
     /** Space reserved for a lift's value column, right-aligned — the name
      *  column ellipsizes rather than run into it. */
@@ -67,9 +63,12 @@ object ShareCardPainter {
         accent = accentBright(dayIndex).toArgb(),
     )
 
+    internal fun heightFor(lineCount: Int): Int = MIN_HEIGHT + (lineCount - 6).coerceAtLeast(0) * LIFT_ROW_PITCH
+
     fun render(context: Context, content: ShareCardContent): Bitmap {
         val colors = colorInput(content.dayIndex)
-        val bitmap = createBitmap(WIDTH, HEIGHT)
+        val height = heightFor(content.exerciseLines.size)
+        val bitmap = createBitmap(WIDTH, height)
         val canvas = Canvas(bitmap)
         canvas.drawColor(colors.background)
 
@@ -77,7 +76,7 @@ object ShareCardPainter {
         val semibold = font(context, R.font.barlow_condensed_semibold, Typeface.NORMAL)
         val bold = font(context, R.font.barlow_condensed_bold, Typeface.BOLD)
 
-        drawBorder(canvas)
+        drawBorder(canvas, height)
 
         val left = MARGIN
         val right = WIDTH - MARGIN
@@ -91,31 +90,28 @@ object ShareCardPainter {
         val valuePaint = textPaint(bold, LIFT_VALUE_SIZE, DarkTextPrimary.toArgb()).apply { textAlign = Paint.Align.RIGHT }
         val nameMaxWidth = (right - left) - VALUE_COLUMN_WIDTH - NAME_VALUE_GAP
 
-        content.liftLines.forEachIndexed { i, lift ->
+        content.exerciseLines.forEachIndexed { i, exercise ->
             val y = LIFTS_START_Y + i * LIFT_ROW_PITCH
-            val name = TextUtils.ellipsize(lift.name, namePaint, nameMaxWidth, TextUtils.TruncateAt.END).toString()
+            val name = TextUtils.ellipsize(exercise.name, namePaint, nameMaxWidth, TextUtils.TruncateAt.END).toString()
             canvas.drawText(name, left, y, namePaint)
-            canvas.drawText(lift.value, right, y, valuePaint)
+            canvas.drawText(exercise.value, right, y, valuePaint)
         }
 
-        content.overflowLine?.let { overflow ->
-            val y = LIFTS_START_Y + content.liftLines.size * LIFT_ROW_PITCH
-            canvas.drawText(overflow, left, y, textPaint(medium, OVERFLOW_SIZE, DarkTextSecondary.toArgb()))
-        }
-
-        canvas.drawText(content.footerLine, left, FOOTER_Y, textPaint(semibold, FOOTER_SIZE, DarkTextSecondary.toArgb()))
-        canvas.drawText(context.getString(R.string.app_name), left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextSecondary.toArgb()))
+        val wordmarkY = height - 70f
+        val footerY = wordmarkY - 60f
+        canvas.drawText(content.footerLine, left, footerY, textPaint(semibold, FOOTER_SIZE, DarkTextSecondary.toArgb()))
+        canvas.drawText(context.getString(R.string.app_name), left, wordmarkY, textPaint(medium, WORDMARK_SIZE, DarkTextSecondary.toArgb()))
 
         return bitmap
     }
 
-    private fun drawBorder(canvas: Canvas) {
+    private fun drawBorder(canvas: Canvas, height: Int) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = DarkBorder.toArgb()
             style = Paint.Style.STROKE
             strokeWidth = BORDER_STROKE
         }
-        canvas.drawRect(BORDER_INSET, BORDER_INSET, WIDTH - BORDER_INSET, HEIGHT - BORDER_INSET, paint)
+        canvas.drawRect(BORDER_INSET, BORDER_INSET, WIDTH - BORDER_INSET, height - BORDER_INSET, paint)
     }
 
     /** Every drawn string is already in its intended case — dates/day/footer

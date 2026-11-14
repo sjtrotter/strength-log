@@ -103,14 +103,17 @@ private fun spokenRecords(mark: RecordMark): String {
 }
 
 @Composable
-internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftLine? = null): String {
+internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftLine? = null, backoffLines: Set<Int> = emptySet()): String {
     if (row.shape == ReceiptRow.Shape.SKIPPED) return stringResource(R.string.receipt_say_skipped, row.name)
     val work = when (row.shape) {
         ReceiptRow.Shape.TOP_SET -> row.lines.mapIndexed { index, line ->
             if (index == 0) stringResource(R.string.receipt_say_top_set,
                 spokenSet(row.sets[line.setIndices.first()], row.tracking, unit))
-            else stringResource(R.string.receipt_say_weight_group, spokenWeight(requireNotNull(line.weightLb), unit),
-                spokenList(line.setIndices.map { row.sets[it].reps.toString() }))
+            else {
+                val value = stringResource(R.string.receipt_say_weight_group, spokenWeight(requireNotNull(line.weightLb), unit),
+                    spokenList(line.setIndices.map { row.sets[it].reps.toString() }))
+                if (index in backoffLines) stringResource(R.string.receipt_say_backoffs, value) else value
+            }
         }.joinToString(" ") + if (row.lighterSets > 0) {
             " " + pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets) + "."
         } else ""

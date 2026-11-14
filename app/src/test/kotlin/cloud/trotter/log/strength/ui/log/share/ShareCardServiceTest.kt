@@ -7,18 +7,25 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.ImportedCardioSession
 import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.cardio.ManualCardio
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import cloud.trotter.log.strength.ui.theme.DarkBackground
 import java.io.File
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -104,8 +111,8 @@ class ShareCardServiceTest {
 
     /** importSessionHistory doesn't hand back the id it assigned, so read it
      *  back — safe here because each call inserts exactly one new session. */
-    private suspend fun seedSession(dayId: String): Long {
-        repo.importSessionHistory(listOf(ImportedSession(session(dayId), listOf(set()))), newCustomExercises = emptyList())
+    private suspend fun seedSession(dayId: String, sets: List<SessionSetEntity> = listOf(set())): Long {
+        repo.importSessionHistory(listOf(ImportedSession(session(dayId), sets)), newCustomExercises = emptyList())
         return db.sessionDao().allSessions().last().id
     }
 
@@ -147,11 +154,81 @@ class ShareCardServiceTest {
 
         // A second render (a different session) clears the first's file —
         // one render lives in cache/shares/ at a time (§3).
-        val secondId = seedSession("B")
+        val secondId = seedSession("B", nineExerciseShareSets())
         service.buildShareIntent(secondId)
         val secondFile = File(sharesDir, "share-$secondId.png")
 
         assertFalse("the previous session's render should be cleared", firstFile.exists())
         assertTrue(secondFile.exists())
+        val secondBitmap = BitmapFactory.decodeFile(secondFile.absolutePath)
+        assertEquals(1080, secondBitmap.width)
+        assertEquals(1650, secondBitmap.height)
     }
+
+    @Test
+    fun heightKeepsTheMinimumThroughSixLinesAndAddsOneRowPerExtraLine() {
+        for (count in 0..6) assertEquals(1350, ShareCardPainter.heightFor(count))
+        for (count in 7..20) assertEquals(1350 + (count - 6) * 100, ShareCardPainter.heightFor(count))
+    }
+
+    @Test
+    fun includesEveryCardioBlockFromTheRunOrDayAndUsesDistancePreference() = runBlocking {
+        settings.setDistanceUnit(DistanceUnit.KM)
+        val workout = session("A").copy(planId = 1, startedAt = 1_783_500_000_000L)
+        val cardio = cardioSession(workout.completedAt - 1)
+        val results = listOf(ManualCardio.result(600, 2000), ManualCardio.result(900, 3000),
+            ManualCardio.result(300, 9000).copy(status = CardioSetStatus.SKIPPED))
+        repo.importSessionHistory(listOf(ImportedSession(workout, listOf(set()))), newCustomExercises = emptyList(),
+            cardioSessions = listOf(
+                ImportedCardioSession(cardio, results),
+                ImportedCardioSession(cardio.copy(completedAt = workout.completedAt, seconds = 300),
+                    listOf(ManualCardio.result(300, null))),
+                ImportedCardioSession(cardio.copy(planId = 2), results),
+                ImportedCardioSession(cardio.copy(dayId = "B"), results),
+                ImportedCardioSession(cardio.copy(completedAt = requireNotNull(workout.startedAt) - 1), results),
+                ImportedCardioSession(cardio.copy(completedAt = workout.completedAt - 86_400_000), results),
+                ImportedCardioSession(cardio.copy(completedAt = workout.completedAt + 86_400_000), results),
+            ))
+        val id = db.sessionDao().allSessions().single().id
+        val content = requireNotNull(service.buildContent(id))
+        assertEquals(listOf(
+            ShareExerciseLine("ROAD RUN", "5 KM · 25:00"),
+            ShareExerciseLine("ROAD RUN", "5 KM · 25:00"),
+            ShareExerciseLine("ROAD RUN", "5:00"),
+        ), content.exerciseLines.drop(1))
+    }
+
+    @Test
+    fun sessionsWithoutAStartMatchCardioOnTheSameCivilDayAndKnownPlan() = runBlocking {
+        val workout = session("A").copy(planId = 1)
+        val cardio = cardioSession(workout.completedAt)
+        repo.importSessionHistory(listOf(ImportedSession(workout, listOf(set()))), newCustomExercises = emptyList(),
+            cardioSessions = listOf(
+                ImportedCardioSession(cardio.copy(activity = null), listOf(ManualCardio.result(1500, 5000))),
+                ImportedCardioSession(cardio.copy(completedAt = workout.completedAt - 86_400_000), emptyList()),
+            ))
+        val id = db.sessionDao().allSessions().single().id
+        assertEquals(listOf(ShareExerciseLine("ROAD RUN", "3.11 MI · 25:00")),
+            requireNotNull(service.buildContent(id)).exerciseLines.drop(1))
+        val unknownPlanId = seedSession("A")
+        assertEquals(1, requireNotNull(service.buildContent(unknownPlanId)).exerciseLines.size)
+    }
+
+    @Test
+    fun cardioWithinAnOvernightRunIsIncludedFromThePreviousCivilDay() = runBlocking {
+        val completedAt = LocalDate.of(2026, 11, 13).atTime(0, 15).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val workout = session("A").copy(planId = 1, startedAt = completedAt - 1_800_000, completedAt = completedAt)
+        repo.importSessionHistory(listOf(ImportedSession(workout, listOf(set()))), newCustomExercises = emptyList(),
+            cardioSessions = listOf(ImportedCardioSession(cardioSession(completedAt - 1_200_000),
+                listOf(ManualCardio.result(1500, 5000)))))
+        val id = db.sessionDao().allSessions().single().id
+        assertEquals(listOf(ShareExerciseLine("ROAD RUN", "3.11 MI · 25:00")),
+            requireNotNull(service.buildContent(id)).exerciseLines.drop(1))
+    }
+
+    private fun cardioSession(completedAt: Long) = CardioSessionEntity(
+        dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Easy run",
+        startedAt = completedAt - 1_500_000, completedAt = completedAt, seconds = 1500,
+        stepsCompleted = 1, planId = 1, activity = "ROAD_RUN",
+    )
 }

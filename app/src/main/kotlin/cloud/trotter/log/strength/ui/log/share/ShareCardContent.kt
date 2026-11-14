@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
@@ -29,28 +30,22 @@ data class ShareCardContent(
     val dateLine: String,
     val dayIndex: Int,
     val dayLine: String,
-    val liftLines: List<ShareLiftLine>,
-    /** "+2 MORE", present only when [liftLines] was capped short of the full list (§2). */
-    val overflowLine: String?,
+    val exerciseLines: List<ShareExerciseLine>,
     val footerLine: String,
 )
 
-/** One lift's row on the card: its name and its best qualifying set's value, already formatted. */
-data class ShareLiftLine(val name: String, val value: String)
+/** One exercise's row on the card, already formatted. */
+data class ShareExerciseLine(val name: String, val value: String)
+
+data class ShareCardioBlock(val name: String, val seconds: Int, val metres: Int?)
 
 /**
  * Builds [ShareCardContent] from a completed session — a pure function of the
  * session, its logged sets and the display unit, so every shape (weighted/
- * timed/reps lifts, overflow, volume/duration formatting) is unit-testable on
+ * timed/reps lifts, cardio, volume/duration formatting) is unit-testable on
  * the JVM without touching [ShareCardPainter]'s Canvas.
  */
 object ShareCardContentBuilder {
-
-    /** Lift lines shown before overflow kicks in (§2: "cap at 6 lines"). */
-    private const val MAX_LIFT_LINES = 6
-
-    /** Real lift lines shown once overflow applies — one line is spent on "+N MORE". */
-    private const val MAX_LIFT_LINES_WITH_OVERFLOW = MAX_LIFT_LINES - 1
 
     private val WEEKDAY_FORMAT = DateTimeFormatter.ofPattern("EEEE", Locale.US)
     private val MONTH_DAY_FORMAT = DateTimeFormatter.ofPattern("MMM d", Locale.US)
@@ -60,16 +55,21 @@ object ShareCardContentBuilder {
         sets: List<SessionSetEntity>,
         unit: WeightUnit,
         zone: ZoneId = ZoneId.systemDefault(),
+        cardioBlocks: List<ShareCardioBlock> = emptyList(),
+        distanceUnit: DistanceUnit = DistanceUnit.suggestedFor(unit),
     ): ShareCardContent {
         val doneSets = sets.filter { it.done }
-        val lifts = liftLines(doneSets, unit)
+        val exercises = liftLines(doneSets, unit) + cardioBlocks.map { block ->
+            ShareExerciseLine(block.name.uppercase(Locale.US), listOfNotNull(
+                block.metres?.let { distanceUnit.format(it) }, ClockText.minutesSeconds(block.seconds),
+            ).joinToString(" · ").uppercase(Locale.US))
+        }
 
         return ShareCardContent(
             dateLine = dateLine(session.completedAt, zone),
             dayIndex = Program.accentIndex(session.dayId),
             dayLine = "DAY ${session.dayId} · ${session.dayTitle}".uppercase(Locale.US),
-            liftLines = lifts.take(if (lifts.size > MAX_LIFT_LINES) MAX_LIFT_LINES_WITH_OVERFLOW else MAX_LIFT_LINES),
-            overflowLine = if (lifts.size > MAX_LIFT_LINES) "+${lifts.size - MAX_LIFT_LINES_WITH_OVERFLOW} MORE" else null,
+            exerciseLines = exercises,
             footerLine = footerLine(session, doneSets, unit),
         )
     }
@@ -86,13 +86,13 @@ object ShareCardContentBuilder {
      * only — an exercise without a qualifying set has no best
      * to show and is left off the card entirely.
      */
-    private fun liftLines(doneSets: List<SessionSetEntity>, unit: WeightUnit): List<ShareLiftLine> {
+    private fun liftLines(doneSets: List<SessionSetEntity>, unit: WeightUnit): List<ShareExerciseLine> {
         val byExercise = LinkedHashMap<String, MutableList<SessionSetEntity>>()
         for (set in doneSets) byExercise.getOrPut(set.exerciseId) { mutableListOf() }.add(set)
 
         return byExercise.values.mapNotNull { group ->
             val value = bestSetDisplay(group, unit) ?: return@mapNotNull null
-            ShareLiftLine(group.first().exerciseName.uppercase(Locale.US), value)
+            ShareExerciseLine(group.first().exerciseName.uppercase(Locale.US), value)
         }
     }
 

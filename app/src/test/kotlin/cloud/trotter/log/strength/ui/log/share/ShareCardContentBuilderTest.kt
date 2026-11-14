@@ -4,17 +4,17 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 
 /**
  * The share card's content model (docs/briefs/session-share.md §2): a pure
  * function of a session/its sets/the display unit, so every shape the card can
- * draw — weighted/timed/reps lifts, 6+ lift overflow, volume/duration
+ * draw — weighted/timed/reps lifts, every exercise, volume/duration
  * formatting, and above all §2's "never bodyweight" allowlist — is pinned here
  * on the JVM, with no [ShareCardPainter] Canvas involved.
  */
@@ -82,7 +82,7 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_back_squat", "Barbell Back Squat", 175.0, 8),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(listOf(ShareLiftLine("BARBELL BACK SQUAT", "235 × 5")), content.liftLines)
+        assertEquals(listOf(ShareExerciseLine("BARBELL BACK SQUAT", "235 × 5")), content.exerciseLines)
     }
 
     @Test
@@ -91,7 +91,7 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_back_squat", "Barbell Back Squat", 250.0, 1).copy(kind = SetKind.RAMP.name),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(emptyList(), content.liftLines)
+        assertEquals(emptyList(), content.exerciseLines)
     }
 
     @Test
@@ -101,7 +101,7 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_back_squat", "Barbell Back Squat", 245.0, 5).copy(kind = SetKind.TOP.name),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(listOf(ShareLiftLine("BARBELL BACK SQUAT", "245 × 5")), content.liftLines)
+        assertEquals(listOf(ShareExerciseLine("BARBELL BACK SQUAT", "245 × 5")), content.exerciseLines)
     }
 
     @Test
@@ -112,7 +112,7 @@ class ShareCardContentBuilderTest {
             timedSet("plank", "Plank", 90),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("1:30", content.liftLines.single().value)
+        assertEquals("1:30", content.exerciseLines.single().value)
     }
 
     @Test
@@ -122,28 +122,28 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_bench", "Barbell Bench Press", 185.0, 8),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("185 × 8", content.liftLines.single().value)
+        assertEquals("185 × 8", content.exerciseLines.single().value)
     }
 
     @Test
     fun aTimedLiftAlwaysShowsMinutesColonSeconds() {
         val sets = listOf(timedSet("plank", "Plank", 45), timedSet("plank", "Plank", 30))
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("0:45", content.liftLines.single().value)
+        assertEquals("0:45", content.exerciseLines.single().value)
     }
 
     @Test
     fun aTimedLiftPastAMinuteStillReadsMinutesColonSeconds() {
         val sets = listOf(timedSet("farmers_carry", "Farmer's Carry", 90))
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("1:30", content.liftLines.single().value)
+        assertEquals("1:30", content.exerciseLines.single().value)
     }
 
     @Test
     fun aRepsOnlyLiftShowsTimesReps() {
         val sets = listOf(repsSet("pushup", "Push-Up", 12), repsSet("pushup", "Push-Up", 15))
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("×15", content.liftLines.single().value)
+        assertEquals("×15", content.exerciseLines.single().value)
     }
 
     @Test
@@ -153,42 +153,55 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_deadlift", "Barbell Deadlift", 315.0, 5, done = false),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(listOf("BARBELL BACK SQUAT"), content.liftLines.map { it.name })
+        assertEquals(listOf("BARBELL BACK SQUAT"), content.exerciseLines.map { it.name })
     }
 
     @Test
-    fun liftLinesConvertToTheDisplayUnit() {
+    fun exerciseLinesConvertToTheDisplayUnit() {
         // 220.46226218 canonical lb is exactly 100 kg (WeightUnit's own lb-per-kg
         // constant), so the formatted value is unambiguous.
         val sets = listOf(weightedSet("bb_back_squat", "Barbell Back Squat", 220.46226218, 5))
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.KG, ZoneOffset.UTC)
-        assertEquals("100 × 5", content.liftLines.single().value)
-    }
-
-    // --- overflow ------------------------------------------------------------
-
-    @Test
-    fun sixOrFewerLiftsShowAllOfThemWithNoOverflowLine() {
-        val sets = (1..6).map { weightedSet("ex$it", "Exercise $it", 100.0, 5) }
-        val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(6, content.liftLines.size)
-        assertNull(content.overflowLine)
+        assertEquals("100 × 5", content.exerciseLines.single().value)
     }
 
     @Test
-    fun sevenLiftsCapAtFiveRealLinesPlusAnOverflowLine() {
-        val sets = (1..7).map { weightedSet("ex$it", "Exercise $it", 100.0, 5) }
-        val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals(5, content.liftLines.size)
-        assertEquals(listOf("EXERCISE 1", "EXERCISE 2", "EXERCISE 3", "EXERCISE 4", "EXERCISE 5"), content.liftLines.map { it.name })
-        assertEquals("+2 MORE", content.overflowLine)
+    fun sixOrFewerLiftsShowAllOfThem() {
+        for (count in 0..6) {
+            val sets = (1..count).map { weightedSet("ex$it", "Exercise $it", 100.0, 5) }
+            val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
+            assertEquals(count, content.exerciseLines.size)
+        }
     }
 
     @Test
-    fun eightLiftsOverflowCountsAllOfTheRest() {
-        val sets = (1..8).map { weightedSet("ex$it", "Exercise $it", 100.0, 5) }
+    fun nineLiftsShowEveryExercisePerOwnerReport20261113() {
+        val sets = (1..9).map { weightedSet("ex$it", "Exercise $it", 100.0, 5) }
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("+3 MORE", content.overflowLine)
+        assertEquals((1..9).map { ShareExerciseLine("EXERCISE $it", "100 × 5") }, content.exerciseLines)
+    }
+
+    @Test
+    fun cardioBlocksFollowLiftsWithTheUsersDistanceUnitAndClockDuration() {
+        val sets = listOf(weightedSet("squat", "Squat", 235.0, 5))
+        val blocks = listOf(ShareCardioBlock("Road run", 1500, 5000), ShareCardioBlock("Outdoor walk", 601, 1000))
+        val miles = ShareCardContentBuilder.build(session(), sets, WeightUnit.KG, ZoneOffset.UTC,
+            cardioBlocks = blocks, distanceUnit = DistanceUnit.MI)
+        assertEquals(listOf(
+            ShareExerciseLine("ROAD RUN", "3.11 MI · 25:00"),
+            ShareExerciseLine("OUTDOOR WALK", "0.62 MI · 10:01"),
+        ), miles.exerciseLines.drop(1))
+        assertEquals(3, miles.exerciseLines.size)
+        val kilometers = ShareCardContentBuilder.build(session(), emptyList(), WeightUnit.LB, ZoneOffset.UTC,
+            cardioBlocks = blocks, distanceUnit = DistanceUnit.KM)
+        assertEquals("5 KM · 25:00", kilometers.exerciseLines.first().value)
+    }
+
+    @Test
+    fun cardioWithoutDistanceShowsOnlyItsRecordedDuration() {
+        val content = ShareCardContentBuilder.build(session(), emptyList(), WeightUnit.LB,
+            cardioBlocks = listOf(ShareCardioBlock("Stationary bike", 3605, null)))
+        assertEquals(listOf(ShareExerciseLine("STATIONARY BIKE", "60:05")), content.exerciseLines)
     }
 
     // --- footer: sets / duration / volume ------------------------------------
@@ -245,8 +258,7 @@ class ShareCardContentBuilderTest {
         val content = ShareCardContentBuilder.build(session(bodyweightLb = 999.0), sets, WeightUnit.LB, ZoneOffset.UTC)
 
         val allText = listOf(content.dateLine, content.dayLine, content.footerLine) +
-            content.liftLines.flatMap { listOf(it.name, it.value) } +
-            listOfNotNull(content.overflowLine)
+            content.exerciseLines.flatMap { listOf(it.name, it.value) }
 
         for (line in allText) {
             assertFalse(line.contains("999"), "bodyweight leaked into: $line")

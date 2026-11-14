@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.store
 
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +16,9 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -57,6 +61,9 @@ import cloud.trotter.log.strength.ui.log.LogUiState
 import cloud.trotter.log.strength.ui.log.SessionListItem
 import cloud.trotter.log.strength.ui.log.TrajectoryCard
 import cloud.trotter.log.strength.ui.log.TrajectoryPoint
+import cloud.trotter.log.strength.ui.log.share.ShareCardContentBuilder
+import cloud.trotter.log.strength.ui.log.share.ShareCardPainter
+import cloud.trotter.log.strength.ui.log.share.nineExerciseShareSets
 import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.preview.PreviewActions
@@ -77,6 +84,8 @@ import java.time.Instant
 import java.util.Locale
 import java.util.TimeZone
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -123,6 +132,26 @@ class StoreScreenshotsTest {
     fun restoreLocaleAndTimeZone() {
         Locale.setDefault(originalLocale)
         TimeZone.setDefault(originalTimeZone)
+    }
+
+    @Test
+    fun nineExerciseShareCardPreview() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val session = WorkoutSessionEntity(1, "A", "Full body", null,
+            Instant.parse("2026-11-13T18:00:00Z").toEpochMilli(), null)
+        val content = ShareCardContentBuilder.build(session, nineExerciseShareSets(), WeightUnit.LB)
+        val bitmap = ShareCardPainter.render(context, content)
+        try {
+            assertEquals(1080, bitmap.width)
+            assertEquals(1650, bitmap.height)
+            if (System.getProperty("roborazzi.test.record") == "true") {
+                val file = File(System.getProperty("previewShots.dir"), "share-card-nine-exercises.png")
+                file.parentFile.mkdirs()
+                file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            }
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     @Test

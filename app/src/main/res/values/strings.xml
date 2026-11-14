@@ -430,6 +430,7 @@
 <string name="receipt_next_time">Next time: %1$s</string>
 <string name="next_time_reps">%1$d reps</string>
 <string name="receipt_top_set">Top set</string>
+<string name="receipt_backoffs">Back-offs</string>
 <string name="receipt_heaviest">Heaviest</string>
 <string name="receipt_top_set_not_logged">top set not logged</string>
 <string name="receipt_planned_at">Planned %1$d × %2$s at %3$s</string>
@@ -460,6 +461,7 @@
 <string name="receipt_say_with_added">" with %1$s added"</string>
 <string name="receipt_say_and">%1$s and %2$s</string>
 <string name="receipt_say_top_set">Top set, %1$s.</string>
+<string name="receipt_say_backoffs">Back-offs, %1$s</string>
 <string name="receipt_say_top_set_not_logged">Top set not logged.</string>
 <string name="receipt_say_heaviest">Heaviest set, %1$s.</string>
 <string name="receipt_say_heaviest_lighter">Heaviest set, %1$s, %2$s.</string>

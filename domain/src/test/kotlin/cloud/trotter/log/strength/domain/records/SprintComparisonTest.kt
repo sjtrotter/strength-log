@@ -104,6 +104,16 @@ class SprintComparisonTest {
             listOf(rep(30, 452, TimingMethod.HAND), first, tied), 7_000).single().time)
     }
 
+    @Test fun `short trials aggregate the best of two even inside hand timing noise`() {
+        for (metres in listOf(37, 60)) {
+            val slower = rep(metres, 800, TimingMethod.HAND)
+            val faster = rep(metres, 795, TimingMethod.HAND)
+            for (reps in listOf(listOf(slower, faster), listOf(faster, slower))) {
+                assertSame(faster.timing, SprintComparison.attempts(PlanGoal.Sprint(metres), reps, 7_000).single().time)
+            }
+        }
+    }
+
     @Test fun `cardio records skip timed reps`() {
         val timed = rep(30, 452, TimingMethod.PHONE)
         assertFalse(CardioBests.counts(timed))

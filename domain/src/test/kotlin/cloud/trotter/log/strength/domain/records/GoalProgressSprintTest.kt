@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.domain.records
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.SprintAttempt
 import cloud.trotter.log.strength.domain.model.SprintTime
@@ -65,5 +71,17 @@ class GoalProgressSprintTest {
         }
         assertEquals(360_000, SprintTime(360_000, TimingMethod.PHONE, StartProtocol.THREE_POINT).centis)
         assertEquals(1_000, PlanGoal.Sprint(1_000).metres)
+    }
+
+    @Test fun `timed sprint reps leave the Timed goal's best`() {
+        fun rep(metres: Int, centis: Int, method: TimingMethod) = CardioSetResult(
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(metres), hard = true),
+            CardioSetStatus.FINISHED, (centis + 99) / 100,
+            timing = SprintTime(centis, method, StartProtocol.THREE_POINT),
+        )
+        val goal = PlanGoal.Timed(CardioActivity.TRACK_RUN, 100, 20)
+        val timed = rep(100, 1_250, TimingMethod.PHONE)
+        assertNull(GoalProgress.bestTimed(goal, listOf(CardioActivity.TRACK_RUN to listOf(timed))))
+        assertEquals(13, GoalProgress.bestTimed(goal, listOf(CardioActivity.TRACK_RUN to listOf(timed.copy(timing = null)))))
     }
 }

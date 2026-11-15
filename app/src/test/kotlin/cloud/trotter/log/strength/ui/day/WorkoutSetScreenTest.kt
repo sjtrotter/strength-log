@@ -167,7 +167,8 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("End rest").assertIsNotEnabled().assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Mark effort first"))
         rule.onNodeWithTag("workout-effort-row").assertExists()
-        rule.onNodeWithTag("workout-action-gate").performTouchInput { click() }
+        rule.onNodeWithTag("workout-effort-row-highlighted").assertDoesNotExist()
+        rule.onNodeWithText("End rest").performTouchInput { click() }
         rule.onNodeWithTag("workout-effort-row-highlighted").assertExists()
         rule.onNodeWithText("Mark effort first").assertDoesNotExist()
         rule.runOnIdle { assertEquals(0, continues) }
@@ -178,9 +179,17 @@ class WorkoutSetScreenTest {
         show(workoutSetLoggedFixture(rir = 2), workoutActions().copy(onContinueWorkout = { continues++ }))
         rule.onNodeWithTag("workout-effort-GOOD").assertIsSelected()
         val action = rule.onNodeWithTag("workout-action-tonal").assert(hasText("End rest")).assertIsEnabled()
-        action.performClick()
-        action.performClick()
+        action.performTouchInput { click() }
+        action.performTouchInput { click() }
+        rule.onNodeWithTag("workout-effort-row-highlighted").assertDoesNotExist()
         rule.runOnIdle { assertEquals(1, continues) }
+    }
+
+    @Test fun gatedReviewOmitsTheRunningTimerBlockedReason() {
+        show(workoutSetLoggedFixture().copy(timedRep = workoutSetTimedRepRunningFixture().timedRep))
+        rule.onNodeWithText("End rest").assertIsNotEnabled()
+        rule.onNodeWithTag("workout-effort-row").assertExists()
+        rule.onNodeWithText("Stop the timer to continue.").assertDoesNotExist()
     }
 
     @Test fun restOverReadsNextSetFilled() {

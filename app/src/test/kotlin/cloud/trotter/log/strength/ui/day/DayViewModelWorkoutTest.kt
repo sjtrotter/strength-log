@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -205,6 +206,27 @@ class DayViewModelWorkoutTest {
         runCurrent()
         assertFalse(track(vm, id)[1].done)
         assertEquals(record, settings.workoutRecordFlow.first())
+    }
+
+    @Test fun `★ a button log never exposes the next set without its review`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val emissions = mutableListOf<DayUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { emissions += it }
+        }
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(emissions.any { it.workout?.review != null })
+        assertFalse(emissions.any {
+            it.workout?.let { workout ->
+                workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null
+            } == true
+        })
+        assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
     }
 
     @Test fun `★ continue waits for effort, then ends rest and the review`() = test {
@@ -361,6 +383,27 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.workout?.review)
         assertNull(track(vm, id)[0].rir)
         assertEquals(WorkoutSelection.Shown.Group(key, false), vm.uiState.value.workout?.shown)
+    }
+
+    @Test fun `★ picking the reviewed lift keeps its card after its last set`() = test {
+        prepare(listOf(bench(sets = 1), ProgramExercise("plank")))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        val record = requireNotNull(settings.workoutRecordFlow.first())
+        val key = "exercise:$id"
+        assertFalse(record.selectedKey == key)
+        vm.selectWorkoutLift(key)
+        runCurrent()
+        assertEquals(review, vm.uiState.value.workout?.review)
+        assertEquals(record.review, settings.workoutRecordFlow.first()?.review)
+        assertEquals(record.undo, settings.workoutRecordFlow.first()?.undo)
+        assertEquals(WorkoutSelection.Shown.Group(key, true), vm.uiState.value.workout?.shown)
+        assertNull(track(vm, id)[0].rir)
     }
 
     @Test fun `★ editing the reviewed set keeps the card`() = test {
@@ -1066,7 +1109,7 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
-    fun `★ rest and +15 s leave the offer alone; continue ends the rest`() = test {
+    fun `★ rest and +15 s leave the offer alone and continue ends the rest`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()
         vm.startWorkout()

@@ -1783,7 +1783,9 @@ class DayViewModel @Inject constructor(
             } else {
                 val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
                     ?: WorkoutRecord(requireNotNull(runId), selectedPage.value)
-                settings.setWorkoutRecord(record.copy(selectedKey = selection(projected, record.selectedKey), review = null))
+                val selected = selection(projected, record.selectedKey)
+                settings.setWorkoutRecord(record.copy(selectedKey = selected,
+                    review = record.review?.takeIf { selected == "exercise:${it.programExerciseId}" }))
             }
         }
     }
@@ -1854,6 +1856,25 @@ class DayViewModel @Inject constructor(
         val loggedAt = clock.millis()
         var writtenBefore: LoggedSet? = null
         var writtenAfter: LoggedSet? = null
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+        if (checked && (actionLog || countEvent != null) && card != null) {
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            val current = tracks.tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == slot
+            }?.sets?.getOrNull(index)
+            val otherSlot = if (slot == Slot.MAIN) Slot.SS else Slot.MAIN
+            val completesRound = !card.isSuperset || tracks.tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == otherSlot
+            }?.sets?.getOrNull(index)?.done == true
+            if (tracks.runOpen && tracks.runId == runId && current != null && !current.done &&
+                showsEffort(current.kind, card.tracking(slot)) && completesRound
+            ) {
+                val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
+                    ?: WorkoutRecord(runId, selectedPage.value)
+                // The target stays inert until Room commits the completed row.
+                settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, loggedAt)))
+            }
+        }
         val result = repo.applyToRun(runId, planId, day, listOf(
             TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                 val current = rows.getOrNull(index)
@@ -1876,7 +1897,6 @@ class DayViewModel @Inject constructor(
         val row = writtenBefore ?: return true
         val logged = writtenAfter ?: return true
         if (countEvent != null) clearTimedRep()
-        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
         val planSlots = plans.slotsFor(planId, day).first()
         val workoutSlots = repo.dayTracksFlow(planId, day).first().let {
             planSlots.forRun(it.droppedPartners, it.skippedLifts)

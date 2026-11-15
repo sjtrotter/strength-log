@@ -121,12 +121,14 @@ import cloud.trotter.log.strength.ui.theme.WorkoutRestShape
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.TextUnit
@@ -366,7 +368,7 @@ private fun WorkoutSetContent(
                             onBlockedTap = action.onBlockedTap, blockedDescription = action.blockedDescription, tapAllowed = {
                                 !allLogged || workout.lastCompletionMillis?.let { nowMillis() - it >= 3_000L } != false
                             })
-                        if (!action.enabled) WorkoutBlockedReasonText(when {
+                        if (!action.enabled && (review == null || allLogged)) WorkoutBlockedReasonText(when {
                             allLogged -> state.finishBlockedReason
                             cardioShown -> state.cardioStartBlockedReason
                             state.timedRepRunning || state.cardioRunning -> WorkoutBlockedReason.TIMER_RUNNING
@@ -1178,7 +1180,6 @@ private fun WorkoutAction(
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        val latestBlocked by rememberUpdatedState(!enabled && blockedDescription != null)
         val latestOnBlockedTap by rememberUpdatedState(onBlockedTap)
         val modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
             .testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
@@ -1197,9 +1198,24 @@ private fun WorkoutAction(
                 )
             }
         }
-        Box(Modifier.weight(1f).testTag("workout-action-gate").pointerInput(Unit) {
-            detectTapGestures { if (latestBlocked) latestOnBlockedTap?.invoke() }
-        }) {
+        Box(Modifier.weight(1f).testTag("workout-action-gate").then(
+            if (!enabled && blockedDescription != null) Modifier.pointerInput(Unit) {
+                // Disabled M3 buttons consume events in Main; observe Initial without consuming.
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    var tapped = down.position.x in 0f..size.width.toFloat() &&
+                        down.position.y in 0f..size.height.toFloat()
+                    do {
+                        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+                            ?: return@awaitEachGesture
+                        tapped = tapped && change.position.x in 0f..size.width.toFloat() &&
+                            change.position.y in 0f..size.height.toFloat() &&
+                            (change.position - down.position).getDistance() <= viewConfiguration.touchSlop
+                    } while (change.pressed)
+                    if (tapped) latestOnBlockedTap?.invoke()
+                }
+            } else Modifier,
+        )) {
             if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
             else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
         }

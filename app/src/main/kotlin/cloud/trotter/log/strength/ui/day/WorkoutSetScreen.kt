@@ -795,7 +795,7 @@ private fun WorkoutReviewContent(
         liveRegion = LiveRegionMode.Polite
         contentDescription = announcement
         if (card.isSuperset) { isTraversalGroup = true; traversalIndex = 0f }
-    }, verticalArrangement = Arrangement.spacedBy(if (card.isSuperset) 8.dp else 16.dp)) {
+    }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (card.isSuperset) {
             Text(stringResource(R.string.workout_superset_round, review.index + 1, card.rows.size),
                 style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -823,7 +823,7 @@ private fun WorkoutNextCard(state: DayUiState, review: WorkoutReview) {
     } ?: return
     Card(Modifier.fillMaxWidth().testTag("workout-next-card"), colors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.day_next_exercise, title), style = MaterialTheme.typography.titleMedium)
             if (card != null && !card.isSuperset && focus != null) card.rows.getOrNull(focus.index)?.values(focus.slot)?.let {
                 Text(workoutValue(it, card.tracking(focus.slot), state.unit), style = MaterialTheme.typography.displaySmall)
@@ -1106,29 +1106,32 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions) {
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
             contentDescription = announcement
         }) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            val view = LocalView.current
-            LaunchedEffect(rest.rest) {
-                // Equal-duration rests need separate events even when their descriptions match.
-                @Suppress("DEPRECATION")
-                view.announceForAccessibility(formatRestAnnouncement(resources, rest.remainingSeconds))
-            }
-            // A fresh live region leaves each start announcement to the identity-keyed event.
-            key(rest.rest) {
-                val announcedSeconds = remember((rest.remainingSeconds - 1) / 60) { rest.remainingSeconds }
-                val minuteAnnouncement = formatRestAnnouncement(resources, announcedSeconds)
-                Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("workout-rest-announcement").semantics {
-                        liveRegion = LiveRegionMode.Polite
-                        contentDescription = minuteAnnouncement
-                    })
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
-                    modifier = Modifier.clearAndSetSemantics { })
-                LinearProgressIndicator(progress = { rest.remainingFraction }, modifier = Modifier.weight(1f).clearAndSetSemantics { },
-                    color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                val view = LocalView.current
+                LaunchedEffect(rest.rest) {
+                    // Equal-duration rests need separate events even when their descriptions match.
+                    @Suppress("DEPRECATION")
+                    view.announceForAccessibility(formatRestAnnouncement(resources, rest.remainingSeconds))
+                }
+                // A fresh live region leaves each start announcement to the identity-keyed event.
+                key(rest.rest) {
+                    val announcedSeconds = remember((rest.remainingSeconds - 1) / 60) { rest.remainingSeconds }
+                    val minuteAnnouncement = formatRestAnnouncement(resources, announcedSeconds)
+                    Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("workout-rest-announcement").semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = minuteAnnouncement
+                        })
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
+                        modifier = Modifier.clearAndSetSemantics { })
+                    LinearProgressIndicator(progress = { rest.remainingFraction }, modifier = Modifier.weight(1f).clearAndSetSemantics { },
+                        color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
             TextButton(onClick = { actions.onAdjustRest(15) }, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) {
                 Text(stringResource(R.string.rest_notification_add))
@@ -1252,20 +1255,29 @@ private fun workoutValue(
 internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String,
                        entries: List<Effort> = Effort.entries, label: String = stringResource(R.string.effort), highlight: Color? = null) {
     val colors = SegmentedButtonDefaults.colors()
-    Row(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = highlight ?: LocalContentColor.current)
-        SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
-            entries.forEachIndexed { index, effort ->
-                SegmentedButton(
-                    selected = effort == selected,
-                    onClick = { onPick(if (effort == selected) null else effort) },
-                    shape = SegmentedButtonDefaults.itemShape(index, entries.size),
-                    border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
-                        if (effort == selected) colors.activeBorderColor else colors.inactiveBorderColor),
-                    label = { EffortText(effort) },
-                    modifier = Modifier.testTag("$tagPrefix-${effort.name}"),
-                )
+    val density = LocalDensity.current
+    val largeFont = density.fontScale >= 1.5f
+    val segmentHeight = with(density) { MaterialTheme.typography.labelLarge.lineHeight.toDp() } + 16.dp
+    FlowRow(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, modifier = Modifier.align(Alignment.CenterVertically),
+            style = MaterialTheme.typography.labelLarge, color = highlight ?: LocalContentColor.current)
+        Column((if (largeFont) Modifier.fillMaxWidth() else Modifier.weight(1f)).align(Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (row in entries.chunked(if (largeFont) 2 else entries.size)) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    row.forEachIndexed { index, effort ->
+                        SegmentedButton(
+                            selected = effort == selected,
+                            onClick = { onPick(if (effort == selected) null else effort) },
+                            shape = SegmentedButtonDefaults.itemShape(index, row.size),
+                            border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
+                                if (effort == selected) colors.activeBorderColor else colors.inactiveBorderColor),
+                            label = { EffortText(effort) },
+                            modifier = Modifier.testTag("$tagPrefix-${effort.name}").heightIn(min = segmentHeight),
+                        )
+                    }
+                }
             }
         }
     }

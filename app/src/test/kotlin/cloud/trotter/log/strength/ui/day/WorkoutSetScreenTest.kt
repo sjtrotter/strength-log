@@ -127,6 +127,46 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(listOf(1L, Slot.MAIN, 1, null), picked) }
     }
 
+    @Test
+    @Config(qualifiers = "w360dp-h720dp-xxhdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun loggedEffortWordsFitAtFontScaleTwoWithPinnedAction() {
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(workoutSetLoggedFixture()) }
+            }
+        }
+        val actionBounds = rule.onNodeWithTag("workout-action-tonal").assertIsDisplayed()
+            .assertHeightIsAtLeast(64.dp).fetchSemanticsNode().boundsInRoot
+        rule.onNodeWithTag("workout-effort-row").performScrollTo().assertIsDisplayed()
+        val labelBounds = rule.onNodeWithText("Effort").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        for ((effort, word) in Effort.entries.zip(listOf("Easy", "Good", "Hard", "Max"))) {
+            rule.onNodeWithTag("workout-effort-${effort.name}").assertIsDisplayed().assertIsNotSelected()
+            val results = mutableListOf<TextLayoutResult>()
+            val bounds = rule.onNodeWithText(word, useUnmergedTree = true).assertIsDisplayed()
+                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                .fetchSemanticsNode().boundsInRoot
+            val layout = results.single()
+            assertEquals(word, layout.layoutInput.text.text)
+            assertEquals(1, layout.lineCount)
+            assertFalse(layout.hasVisualOverflow)
+            assertFalse(layout.isLineEllipsized(0))
+            assertTrue("$word must show its full line height", bounds.height + 1f >= layout.getLineBottom(0) - layout.getLineTop(0))
+            assertTrue("$word must show its full text bounds", bounds.height + 1f >= layout.size.height)
+            assertTrue(labelBounds.bottom <= bounds.top)
+            val cardBounds = rule.onNodeWithTag("workout-set-card").fetchSemanticsNode().boundsInRoot
+            assertTrue(bounds.bottom <= cardBounds.bottom)
+        }
+        val firstRow = rule.onNodeWithTag("workout-effort-EASY").fetchSemanticsNode().boundsInRoot
+        val secondRow = rule.onNodeWithTag("workout-effort-HARD").fetchSemanticsNode().boundsInRoot
+        assertTrue(secondRow.top >= firstRow.bottom)
+        rule.onNodeWithTag("workout-next-card").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Next: Set 3 of 6").assertIsDisplayed()
+        rule.onNodeWithText("190 lb × 5").assertIsDisplayed()
+        assertEquals(actionBounds, rule.onNodeWithTag("workout-action-tonal").assertIsDisplayed().fetchSemanticsNode().boundsInRoot)
+    }
+
     @Test fun effortIsAbsentForRampUndoneAndTimedUndoOffers() {
         val base = workoutSetLoggedFixture()
         val card = base.exercises.single()
@@ -148,7 +188,10 @@ class WorkoutSetScreenTest {
         }
     }
 
-    @Test fun loggedCardShowsCheckEffortAndNextSet() {
+    @Test
+    @Config(qualifiers = "w360dp-h720dp-xxhdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun loggedCardShowsCheckEffortAndNextSet() {
         show(workoutSetLoggedFixture())
         rule.onNodeWithTag("workout-set-card").assertExists()
         rule.onNodeWithTag("workout-set-done", useUnmergedTree = true).assertExists()

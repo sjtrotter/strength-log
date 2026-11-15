@@ -149,9 +149,7 @@ class WorkoutSetScreenTest {
                 .fetchSemanticsNode().boundsInRoot
             val layout = results.single()
             assertEquals(word, layout.layoutInput.text.text)
-            assertEquals(1, layout.lineCount)
-            assertFalse(layout.overflowReport(word), layout.hasVisualOverflow)
-            assertFalse(layout.isLineEllipsized(0))
+            layout.assertFitsOneLine(word, bounds)
             assertTrue("$word must show its full line height", bounds.height + 1f >= layout.getLineBottom(0) - layout.getLineTop(0))
             assertTrue("$word must show its full text bounds", bounds.height + 1f >= layout.size.height)
             assertTrue(labelBounds.bottom <= bounds.top)

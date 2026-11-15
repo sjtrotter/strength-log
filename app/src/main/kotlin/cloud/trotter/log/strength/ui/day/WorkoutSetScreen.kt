@@ -66,7 +66,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -1256,46 +1255,30 @@ private fun workoutValue(
 internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String,
                        entries: List<Effort> = Effort.entries, label: String = stringResource(R.string.effort), highlight: Color? = null) {
     val colors = SegmentedButtonDefaults.colors()
-    val largeFont = LocalDensity.current.fontScale >= 1.5f
-    val perRow = if (largeFont) 2 else entries.size
-    Column(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"),
-        verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label,
+    val density = LocalDensity.current
+    val largeFont = density.fontScale >= 1.5f
+    val segmentHeight = with(density) { MaterialTheme.typography.labelLarge.lineHeight.toDp() } + 16.dp
+    FlowRow(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, modifier = Modifier.align(Alignment.CenterVertically),
             style = MaterialTheme.typography.labelLarge, color = highlight ?: LocalContentColor.current)
-        EffortSegmentedButtonRow(perRow) {
-            for (row in entries.chunked(perRow)) {
-                row.forEachIndexed { index, effort ->
-                    SegmentedButton(
-                        selected = effort == selected,
-                        onClick = { onPick(if (effort == selected) null else effort) },
-                        shape = SegmentedButtonDefaults.itemShape(index, row.size),
-                        border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
-                            if (effort == selected) colors.activeBorderColor else colors.inactiveBorderColor),
-                        label = { EffortText(effort) },
-                        modifier = Modifier.testTag("$tagPrefix-${effort.name}").heightIn(min = 48.dp),
-                    )
+        Column((if (largeFont) Modifier.fillMaxWidth() else Modifier.weight(1f)).align(Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (row in entries.chunked(if (largeFont) 2 else entries.size)) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    row.forEachIndexed { index, effort ->
+                        SegmentedButton(
+                            selected = effort == selected,
+                            onClick = { onPick(if (effort == selected) null else effort) },
+                            shape = SegmentedButtonDefaults.itemShape(index, row.size),
+                            border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
+                                if (effort == selected) colors.activeBorderColor else colors.inactiveBorderColor),
+                            label = { EffortText(effort) },
+                            modifier = Modifier.testTag("$tagPrefix-${effort.name}").heightIn(min = segmentHeight),
+                        )
+                    }
                 }
             }
-        }
-    }
-}
-
-/**
- * M3's segmented row has no wrapping API. An inner FlowRow keeps wrapped M3 buttons
- * in one selection group and overlaps adjacent borders by the M3 border width.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EffortSegmentedButtonRow(
-    perRow: Int,
-    content: @Composable SingleChoiceSegmentedButtonRowScope.() -> Unit,
-) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        val rowScope = this
-        FlowRow(Modifier.weight(1f), maxItemsInEachRow = perRow,
-            horizontalArrangement = Arrangement.spacedBy(-SegmentedButtonDefaults.BorderWidth),
-            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            rowScope.content()
         }
     }
 }
@@ -1339,16 +1322,18 @@ internal fun SetEffortRow(rir: Int?, scale: EffortScale, onWord: (Effort?) -> Un
                 color = highlight ?: LocalContentColor.current)
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val perRow = if (maxWidth / 6 / LocalDensity.current.fontScale < 48.dp) 3 else 6
-                EffortSegmentedButtonRow(perRow) {
+                Column(Modifier.fillMaxWidth()) {
                     (0..5).toList().chunked(perRow).forEach { values ->
-                        values.forEachIndexed { index, value ->
-                            SegmentedButton(selected = rir == value,
-                                onClick = { onRepsLeft(if (rir == value) null else value) },
-                                shape = SegmentedButtonDefaults.itemShape(index, values.size),
-                                border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
-                                    if (rir == value) colors.activeBorderColor else colors.inactiveBorderColor),
-                                label = { Text(value.toString()) }, icon = {},
-                                modifier = Modifier.testTag("$tagPrefix-$value").heightIn(min = 48.dp))
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            values.forEachIndexed { index, value ->
+                                SegmentedButton(selected = rir == value,
+                                    onClick = { onRepsLeft(if (rir == value) null else value) },
+                                    shape = SegmentedButtonDefaults.itemShape(index, values.size),
+                                    border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
+                                        if (rir == value) colors.activeBorderColor else colors.inactiveBorderColor),
+                                    label = { Text(value.toString()) }, icon = {},
+                                    modifier = Modifier.testTag("$tagPrefix-$value").heightIn(min = 48.dp))
+                            }
                         }
                     }
                 }

@@ -75,10 +75,10 @@ class DoseLadderTest {
         assertEquals(listOf(30, 30), short.working.getValue(SlotKey("A", 0)).map { it.seconds })
         assertEquals(listOf(20, 20), short.working.getValue(SlotKey("A", 1)).map { it.seconds })
         val longer = Planner.plan(answers(minutes = 45, older = true))
-        // audit 2026-11-13, row 13: step 1=300+400+5*2*153+2*120=2470 <= 2700;
-        // all five mains retain two straight sets and core stays.
-        assertEquals(listOf(PlanReason.ShortSession("A", 1)), longer.reasons)
-        assertEquals(2470, SessionBudget.seconds(longer.program.strengthDays.single(), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: before the ladder, 300+400+5*2*153+2*99+2*120=2668 <= 2700.
+        // The ladder leaves the day alone; the remaining 32 seconds cannot fit a set toward a weekly floor.
+        assertEquals(listOf(PlanReason.ShortSession("A", 0)), longer.reasons)
+        assertEquals(2668, SessionBudget.seconds(longer.program.strengthDays.single(), LiftGoal.STRENGTH))
         val four = Planner.plan(answers(older = true).copy(mains = referenceAnswers().mains!! - "bb_row"))
         // audit 2026-11-13, row 13: 300+400+4*267=1768; with core 1768+240=2008 > 1800, step 6 fits.
         assertEquals(listOf(PlanReason.ShortSession("A", 6)), four.reasons)

@@ -80,8 +80,8 @@ class PlannerSprintTest {
         assertEquals(mapOf("A" to RunSession.ACCELERATION, "D" to RunSession.MAX_VELOCITY), draft.sessions)
         assertEquals(acc0, day(draft, "A").cardioBlock)
         assertEquals(maxv0, day(draft, "D").cardioBlock)
-        // audit 2026-11-13, row 13: A=794+495=1289; C=540+3*210+6*129+2*87=2118.
-        assertEquals(listOf(1289, 0, 2118, 1091, 0), seconds(draft))
+        // audit 2026-11-13, row 13: A=794+495=1289; C=300+3*210+6*129+2*87=1878.
+        assertEquals(listOf(1289, 0, 1878, 1091, 0), seconds(draft))
         assertTrue(draft.reasons.isEmpty())
     }
 
@@ -92,8 +92,8 @@ class PlannerSprintTest {
             ProgramDayKind.CARDIO, ProgramDayKind.STRENGTH), draft.program.days.map { it.kind })
         assertEquals(listOf("bb_back_squat", "rdl", "bss"), ids(draft, "B"))
         assertEquals(listOf("trap_dl", "rdl", "bss", "nordic"), ids(draft, "E"))
-        // audit 2026-11-13, row 13: A=794+495=1289; B=540+3*210+6*129=1944; E=B+2*87=2118.
-        assertEquals(listOf(1289, 1944, 0, 1091, 2118), seconds(draft))
+        // audit 2026-11-13, row 13: A=794+495=1289; B=300+3*210+6*129=1704; E=B+2*87=1878.
+        assertEquals(listOf(1289, 1704, 0, 1091, 1878), seconds(draft))
         assertTrue(draft.reasons.isEmpty())
     }
 
@@ -162,8 +162,8 @@ class PlannerSprintTest {
         assertEquals("Upper", upper.title)
         assertEquals(listOf("bb_bench", "ohp", "bb_row"), ids(six, "G"))
         assertEquals(List(3) { SlotRole.MAIN }, roles(six, "G"))
-        // audit 2026-11-13, row 13: 300+240+9*(15+5*3+180)=2430.
-        assertEquals(2430, SessionBudget.seconds(upper, LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 300+9*(15+5*3+180)=2190.
+        assertEquals(2190, SessionBudget.seconds(upper, LiftGoal.STRENGTH))
         assertTrue(five.reasons.isEmpty())
         assertTrue(six.reasons.isEmpty())
     }
@@ -222,7 +222,7 @@ class PlannerSprintTest {
         // audit 2026-11-13, row 13: step 1 keeps squat only: 794+3*(15+5*3+180)=1424.
         assertEquals(1424, SessionBudget.seconds(day(one, "A"), LiftGoal.STRENGTH))
         val recent = Planner.plan(sprint(minutes = 30, answers = SprintAnswers(sprintedRecently = true)))
-        // audit 2026-11-13, row 13: A=1498+495=1993; excess=193. C step 1=540+3*210=1170.
+        // audit 2026-11-13, row 13: A=1498+495=1993; excess=193. C full=1878 > 1800; step 1=300+3*210=930.
         assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 193),
             PlanReason.ShortSession("C", 1)), recent.reasons)
         assertEquals(listOf("pogo_hop", "a_skip"), ids(recent, "A"))

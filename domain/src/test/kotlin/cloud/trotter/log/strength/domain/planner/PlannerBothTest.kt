@@ -99,21 +99,18 @@ class PlannerBothTest {
         }
     }
 
-    @Test fun `D15 thirty minutes attaches a run only with room after the cool-down`() {
+    @Test fun `D15 thirty minutes attaches a run with room after the workout`() {
         val answers = answers(days = 1, minutes = 30).copy(mains = emptyList(),
             excluded = ExerciseLibrary.entries.filter { it.id != "plank" }.map { it.id }.toSet())
         val draft = plan(answers)
         val lift = plan(answers.copy(branch = PlanBranch.LIFT))
-        // audit 2026-11-13, row 13: 300+240+2*(15+45+60)=780; remaining 1020 < 1200, so no run.
-        assertEquals(780, SessionBudget.seconds(lift.program.days.single(), answers.goal))
-        assertTrue(draft.program.days.all { it.cardioBlock == null })
-        assertTrue(draft.sessions.isEmpty())
-        assertEquals(lift.program, draft.program)
-        val offAnswers = answers.copy(coolDown = false)
-        val off = plan(offAnswers)
-        // audit 2026-11-13, row 13: without cool-down, lift=540; floor((1800-540)/60)*60=1260 run seconds.
-        assertEquals(block(1260), off.program.days.single().cardioBlock)
-        assertEquals(1800, SessionBudget.seconds(off.program.days.single(), answers.goal, coolDown = false))
+        // audit 2026-11-13, row 13: lift=300+2*(15+45+60)=540;
+        // floor((1800-540)/60)*60=1260 run seconds, total 540+1260=1800.
+        assertEquals(540, SessionBudget.seconds(lift.program.days.single(), answers.goal))
+        assertEquals(block(1260), draft.program.days.single().cardioBlock)
+        assertEquals(mapOf("A" to RunSession.EASY), draft.sessions)
+        assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null, cardioRule = null))
+        assertEquals(1800, SessionBudget.seconds(draft.program.days.single(), answers.goal))
     }
 
     @Test fun `D15 recomputes the full budget excess after adding a run`() {

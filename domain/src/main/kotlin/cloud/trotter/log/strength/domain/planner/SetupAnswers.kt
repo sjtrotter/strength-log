@@ -42,7 +42,6 @@ data class SetupAnswers(
     val run: RunAnswers = RunAnswers(),
     val both: BothAnswers = BothAnswers(),
     val sprint: SprintAnswers = SprintAnswers(),
-    val coolDown: Boolean = true,
 ) {
     init {
         require(days in 1..6)

@@ -122,7 +122,7 @@ internal fun sprintDraft(answers: SetupAnswers, known: KnownLoads, liftGoal: Lif
             reasons += dayReasons
             day = fittedDay
         } else {
-            val excess = SessionBudget.seconds(day, liftGoal, answers.coolDown) - answers.minutes * 60
+            val excess = SessionBudget.seconds(day, liftGoal) - answers.minutes * 60
             if (excess > 0) reasons += PlanReason.OverBudget(id, excess)
         }
         day

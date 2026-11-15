@@ -80,7 +80,7 @@ internal object VolumeBalance {
                 fun accept(dayIndex: Int, day: ProgramDay, slot: ProgramExercise): Boolean {
                     val credit = SetCount.weekly(Program(listOf(day.copy(exercises = listOf(slot.copy(targetSets = 1))))))
                     if (credit.any { (credited, sets) -> weekly.getOrDefault(credited, 0.0) + sets > CAP }) return false
-                    if (SessionBudget.seconds(day, answers.goal, answers.coolDown) > budgetSeconds) {
+                    if (SessionBudget.seconds(day, answers.goal) > budgetSeconds) {
                         minutesBlocked += day.id
                         return false
                     }
@@ -105,7 +105,7 @@ internal object VolumeBalance {
                 }
                 if (grew) continue
 
-                val hosts = eligible.sortedBy { SessionBudget.seconds(current[it], answers.goal, answers.coolDown) }
+                val hosts = eligible.sortedBy { SessionBudget.seconds(current[it], answers.goal) }
                 fun addSlot(): Boolean {
                     for (reuseChosen in listOf(false, true)) for (pattern in patterns.getValue(muscle)) for (dayIndex in hosts) {
                         val day = current[dayIndex]

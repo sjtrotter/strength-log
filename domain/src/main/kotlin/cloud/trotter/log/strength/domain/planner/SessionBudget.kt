@@ -20,19 +20,17 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 /** Audit 2026-11-13, row 13: 15 s setup plus reps × 3 s (Wilk 2021: volitional tempo 2–5 s/rep),
  *  or the planned seconds for a timed set. Only the reps or hold double for eachSide. A superset includes
  *  both lifts' work with one rest from the timer's resolver. Setup is practice: transitions are unmeasured.
- *  Strength days include a 240 s cool-down when enabled (practice: the middle of #574's 3–5 minutes).
+ *  The optional cool-down (#574) is outside the session minutes.
  *  Cardio counts its planned time. The 300 s warm-up stays, unless the block opens with its own WARMUP. */
 object SessionBudget {
     const val WARM_UP_SECONDS = 300
     const val SET_SETUP_SECONDS = 15
     const val SECONDS_PER_REP = 3
-    const val COOL_DOWN_SECONDS = 240
 
-    fun seconds(day: ProgramDay, goal: LiftGoal, coolDown: Boolean = true): Int {
+    fun seconds(day: ProgramDay, goal: LiftGoal): Int {
         if (day.kind == ProgramDayKind.REST) return 0
         val warmUp = if (day.cardioBlock?.sets?.first()?.role == CardioRole.WARMUP) 0 else WARM_UP_SECONDS
-        val coolDownSeconds = if (coolDown && day.kind == ProgramDayKind.STRENGTH) COOL_DOWN_SECONDS else 0
-        return warmUp + coolDownSeconds + day.exercises.sumOf { slot ->
+        return warmUp + day.exercises.sumOf { slot ->
             val tracking = ExerciseLibrary.find(slot.exerciseId)?.tracking ?: TrackingType.WEIGHTED
             val work = workSeconds(slot)
             val partner = slot.superset?.let { workSeconds(ProgramExercise(it.exerciseId, targetSets = 1, rule = it.rule)).single() } ?: 0
@@ -43,6 +41,7 @@ object SessionBudget {
     }
 
     private fun workSeconds(slot: ProgramExercise): List<Int> {
+        val kinds = setKinds(slot)
         val entry = ExerciseLibrary.find(slot.exerciseId)
         val sides = if (entry?.eachSide == true || slot.prescription?.eachSide == true) 2 else 1
         fun timed(seconds: Int) = SET_SETUP_SECONDS + seconds * sides
@@ -54,16 +53,17 @@ object SessionBudget {
                 is PrescribedTarget.Hold -> timed(target.seconds)
                 is PrescribedTarget.RepsInTime -> timed(target.seconds)
             }
-            return List(slot.targetSets) { seconds }
+            return kinds.map { seconds }
         }
-        (entry?.goal as? GoalSource.Time)?.let { time -> return List(slot.targetSets) { timed(time.targetSeconds) } }
+        (entry?.goal as? GoalSource.Time)?.let { time -> return kinds.map { timed(time.targetSeconds) } }
         val target = slot.rule?.target?.reps ?: (entry?.goal as? GoalSource.Reps)?.targetReps ?: 10
         val scheme = slot.rule?.scheme ?: Scheme.PROTOTYPE
-        return when (slot.structure) {
-            SetStructure.STRAIGHT -> List(slot.targetSets) { reps(target) }
-            SetStructure.RAMP_TOP -> scheme.ramps.map { reps(it.reps) } + reps(target)
-            SetStructure.RAMP_TOP_BACKOFF -> scheme.ramps.map { reps(it.reps) } + reps(target) +
-                List(scheme.backoffs) { reps(scheme.backoffReps) }
+        return kinds.mapIndexed { index, kind ->
+            reps(when (kind) {
+                SetKind.RAMP -> scheme.ramps[index].reps
+                SetKind.BACKOFF -> scheme.backoffReps
+                else -> target
+            })
         }
     }
 }

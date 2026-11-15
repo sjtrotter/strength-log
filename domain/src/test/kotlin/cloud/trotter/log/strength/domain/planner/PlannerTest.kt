@@ -67,21 +67,21 @@ class PlannerTest {
             ids(SlotRole.SECONDARY))
         assertEquals(referenceAnswers().mains!!.toSet(), ids(SlotRole.MAIN).flatten().toSet())
         assertEquals(5, ids(SlotRole.MAIN).flatten().size)
-        // audit 2026-11-13, row 13: base 540; ramped main 744, secondary set 150,
-        // accessory set 129 (pullup 123), isolation 99, arm pair 138, plank 120.
-        // A = 540+744+300+387+297+297+240 = 2805; B step 1 = 540+1488+300+198 = 2526.
-        // C = 540+744+300+387+297+297+198 = 2763; E = 540+744+450+300+369+297+414+240 = 3354.
-        assertEquals(listOf(2805, 2526, 2763, 3354),
+        // audit 2026-11-13, row 13: base 300; ramped main 744, secondary set 150,
+        // accessory 129 (pullup 123), isolation 99, arm pair 138, plank 120.
+        // A=300+744+2*150+3*129+6*99+2*120=2565;
+        // B=300+2*744+2*150+3*123+5*99+3*138=3366 <= 3600, so its accessories stay.
+        // C=300+744+2*150+3*129+8*99=2523; E=300+744+5*150+3*123+3*99+3*138+2*120=3114.
+        assertEquals(listOf(2565, 3366, 2523, 3114),
             draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
         assertEquals(3, slot(draft, "E", "bb_bench").targetSets)
         assertEquals(2, slot(draft, "E", "bb_row").targetSets)
         val weekly = SetCount.weekly(draft.program)
         assertEquals(6.0, weekly[Muscle.CHEST])
         assertEquals(8.0, weekly[Muscle.FRONT_DELT])
-        // audit 2026-11-13, row 13: bench 6/2 + press 5/2 + E arm partner 3 = 8.5; B loses arms.
-        assertEquals(8.5, weekly[Muscle.TRICEPS])
-        // audit 2026-11-13, row 13: B starts at 3606 > 3600; step 1 leaves 2526.
-        assertEquals(listOf(PlanReason.ShortSession("B", 1)), draft.reasons)
+        // Bench 6/2 + press 5/2 + both arm partners 2*3 = 11.5 triceps sets.
+        assertEquals(11.5, weekly[Muscle.TRICEPS])
+        assertTrue(draft.reasons.isEmpty())
         assertEquals(6, draft.deloadEveryCycles)
         for (day in draft.program.strengthDays) for (slot in day.exercises) {
             assertTrue(slot.rule != null)

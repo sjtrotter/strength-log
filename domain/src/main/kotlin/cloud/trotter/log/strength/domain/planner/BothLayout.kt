@@ -59,7 +59,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
     val mapped = lift.program.days.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
         day.id to entries[index % entries.size]
     }.toMap()
-    fun fits(day: ProgramDay, block: CardioBlock) = SessionBudget.seconds(day.copy(cardioBlock = block), answers.goal, answers.coolDown) <= budget
+    fun fits(day: ProgramDay, block: CardioBlock) = SessionBudget.seconds(day.copy(cardioBlock = block), answers.goal) <= budget
     val long = lift.program.days.firstNotNullOfOrNull { day ->
         if (mapped[day.id] != RunSession.LONG) null
         else capped(template(RunSession.LONG)).takeIf { fits(day, it) }
@@ -74,7 +74,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         if (block == null || !fits(day, block)) {
             if ((reservesRun && session != RunSession.LADDER) || session == RunSession.EASY) {
                 session = RunSession.EASY
-                val remaining = (budget - SessionBudget.seconds(day, answers.goal, answers.coolDown)) / 60 * 60
+                val remaining = (budget - SessionBudget.seconds(day, answers.goal)) / 60 * 60
                 if (reservesRun || remaining >= 1_200) {
                     original = template(session, minOf(if (reservesRun) 1_200 else remaining, easyLimit(long) ?: Int.MAX_VALUE))
                     block = capped(original)
@@ -87,7 +87,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         }
         val combined = day.copy(cardioBlock = block,
             cardioRule = block?.let { runRule(session, run, phase, level, it, lone) })
-        val excess = SessionBudget.seconds(combined, answers.goal, answers.coolDown) - budget
+        val excess = SessionBudget.seconds(combined, answers.goal) - budget
         if (excess > 0) reasons += PlanReason.OverBudget(day.id, excess)
         combined
     }

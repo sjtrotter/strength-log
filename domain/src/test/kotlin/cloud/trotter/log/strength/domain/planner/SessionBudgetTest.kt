@@ -19,7 +19,6 @@ import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class SessionBudgetTest {
     private fun rule(target: RepTarget) = SlotRule(SlotRole.ISOLATION, target, 2, 0.025, 1,
@@ -28,52 +27,61 @@ class SessionBudgetTest {
     private fun repSlot(reps: Int) = ProgramExercise("ez_curl", targetSets = 1, rule = rule(RepTarget.Fixed(reps)))
 
     @Test fun `five and twelve reps include setup and rep time`() {
-        assertEquals(300 + 30, SessionBudget.seconds(day(repSlot(5)), LiftGoal.STRENGTH, coolDown = false))
-        assertEquals(300 + 51, SessionBudget.seconds(day(repSlot(12)), LiftGoal.STRENGTH, coolDown = false))
+        // Work: 15+5*3=30 and 15+12*3=51; zero rest, plus the 300-second warm-up.
+        assertEquals(300 + 30, SessionBudget.seconds(day(repSlot(5)), LiftGoal.STRENGTH))
+        assertEquals(300 + 51, SessionBudget.seconds(day(repSlot(12)), LiftGoal.STRENGTH))
     }
 
     @Test fun `eachSide doubles eight reps but not setup`() {
         val slot = repSlot(8).copy(prescription = Prescription(PrescribedTarget.Reps(8), eachSide = true))
-        assertEquals(300 + 63, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH, coolDown = false))
+        // Work: 15+8*3*2=63, with setup counted once.
+        assertEquals(300 + 63, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH))
     }
 
     @Test fun `a thirty second eachSide hold doubles time but not setup`() {
         val slot = ProgramExercise("single_leg_stance", targetSets = 1, rule = rule(RepTarget.Fixed(8)))
-        assertEquals(300 + 75, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH, coolDown = false))
+        // Catalog eachSide hold: 15+30*2=75, with zero fixture rest.
+        assertEquals(300 + 75, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH))
     }
 
     @Test fun `a superset counts both ten rep lifts once and one rest`() {
         val slot = repSlot(10).copy(rule = rule(RepTarget.Fixed(10)).copy(restSeconds = 60),
             superset = SupersetPartner("rope_pushdown", rule(RepTarget.Fixed(10)).copy(restSeconds = 120)))
-        assertEquals(300 + 45 + 45 + 60, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH, coolDown = false))
+        // Each lift: 15+10*3=45; one primary rest of 60, ignoring the partner's 120.
+        assertEquals(300 + 45 + 45 + 60, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH))
     }
 
     @Test fun `a range uses its current target and ramps and backoffs use their own reps`() {
         val slot = repSlot(8).copy(rule = rule(RepTarget.Range(8, 12, 11)))
-        assertEquals(300 + 48, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH, coolDown = false))
+        // Current target: 15+11*3=48; scheme work is 30/24/30/30/30, rest 90/90/0/120/120.
+        assertEquals(300 + 48, SessionBudget.seconds(day(slot), LiftGoal.STRENGTH))
         val ramped = repSlot(5).copy(structure = SetStructure.RAMP_TOP_BACKOFF)
         assertEquals(300 + (30 + 90) + (24 + 90) + 30 + 2 * (30 + 120),
-            SessionBudget.seconds(day(ramped), LiftGoal.STRENGTH, coolDown = false))
+            SessionBudget.seconds(day(ramped), LiftGoal.STRENGTH))
     }
 
-    @Test fun `cool-down adds four minutes to strength days and keeps cardio planned time`() {
+    @Test fun `strength and cardio include planned time and an opening warmup replaces the allowance`() {
         val strength = day(repSlot(5))
-        assertTrue(SetupAnswers().coolDown)
-        assertEquals(240, SessionBudget.seconds(strength, LiftGoal.STRENGTH) -
-            SessionBudget.seconds(strength, LiftGoal.STRENGTH, coolDown = false))
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
-        assertEquals(300 + 240 + 30 + 1200, SessionBudget.seconds(strength.copy(cardioBlock = block), LiftGoal.STRENGTH))
+        // 300 warm-up + (15+5*3) work + 1200 run = 1530; optional cool-down is outside the budget.
+        assertEquals(1530, SessionBudget.seconds(strength.copy(cardioBlock = block), LiftGoal.STRENGTH))
         val cardio = strength.copy(kind = ProgramDayKind.CARDIO, exercises = emptyList<ProgramExercise>(), cardioBlock = block)
-        assertEquals(1500, SessionBudget.seconds(cardio, LiftGoal.STRENGTH))
-        assertEquals(1500, SessionBudget.seconds(cardio, LiftGoal.STRENGTH, coolDown = false))
+        assertEquals(300 + 1200, SessionBudget.seconds(cardio, LiftGoal.STRENGTH))
+        val warmed = block.copy(sets = listOf(CardioSetSpec(CardioRole.WARMUP, Measure.Time(600))) + block.sets)
+        assertEquals(600 + 1200, SessionBudget.seconds(cardio.copy(cardioBlock = warmed), LiftGoal.STRENGTH))
     }
 
-    @Test fun `cool-down answer reaches the dose ladder`() {
-        val answers = referenceAnswers().copy(days = 1, minutes = 30)
-        val on = Planner.plan(answers)
-        val off = Planner.plan(answers.copy(coolDown = false))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 60)), on.reasons)
-        assertEquals(listOf(PlanReason.ShortSession("A", 6)), off.reasons)
-        assertEquals(1620, SessionBudget.seconds(off.program.strengthDays.single(), answers.goal, coolDown = false))
+    @Test fun `ramped prescriptions count the scheme sets when targetSets differs`() {
+        val slot = repSlot(5).copy(structure = SetStructure.RAMP_TOP_BACKOFF,
+            prescription = Prescription(PrescribedTarget.Reps(5)))
+        // targetSets is 1; the Strength scheme has five sets. Prescription work is 15+5*3 on each.
+        assertEquals(300 + (30 + 90) + (30 + 90) + 30 + 2 * (30 + 120),
+            SessionBudget.seconds(day(slot), LiftGoal.STRENGTH))
+        val timed = slot.copy(prescription = Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        // Each prescribed hold is 15+30*2=75; rests are 90+90+0+120+120=420.
+        assertEquals(300 + 5 * 75 + 420, SessionBudget.seconds(day(timed), LiftGoal.STRENGTH))
+        val catalogTimed = slot.copy(exerciseId = "plank", prescription = null)
+        // Catalog holds use all five scheme sets too: 15+45=60 seconds each.
+        assertEquals(300 + 5 * 60 + 420, SessionBudget.seconds(day(catalogTimed), LiftGoal.STRENGTH))
     }
 }

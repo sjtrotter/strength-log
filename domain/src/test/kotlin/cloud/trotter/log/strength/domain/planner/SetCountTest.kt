@@ -48,16 +48,16 @@ class SetCountTest {
 
     @Test fun `estimate shares ramp kinds and counts a superset only once`() {
         val squat = ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF)
-        // audit 2026-11-13, row 13: base 540; prototype ramps 5/5/5/3, default top 10, backoff 8.
-        // 540 + 3*(15+15+90) + (15+9+90) + (15+30+180) + (15+24+120) = 1398.
-        assertEquals(1398, SessionBudget.seconds(day(listOf(squat)), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: base 300; prototype ramps 5/5/5/3, default top 10, backoff 8.
+        // 300 + 3*(15+15+90) + (15+9+90) + (15+30+180) + (15+24+120) = 1158.
+        assertEquals(1158, SessionBudget.seconds(day(listOf(squat)), LiftGoal.STRENGTH))
         val curl = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
         // audit 2026-11-13, row 13: 3 partner sets × (15+10*3) = 135 added, with one rest per pair.
         assertEquals(SessionBudget.seconds(day(listOf(curl.copy(superset = null))), LiftGoal.MUSCLE) + 135,
             SessionBudget.seconds(day(listOf(curl)), LiftGoal.MUSCLE))
         assertEquals(0, SessionBudget.seconds(day(listOf(squat), ProgramDayKind.REST), LiftGoal.STRENGTH))
-        // audit 2026-11-13, row 13: 300+240 + 3*(15+10*3+90) = 945.
-        assertEquals(945, SessionBudget.seconds(day(listOf(ProgramExercise("unknown"))), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 300 + 3*(15+10*3+90) = 705.
+        assertEquals(705, SessionBudget.seconds(day(listOf(ProgramExercise("unknown"))), LiftGoal.STRENGTH))
     }
 
     @Test fun `reference rotation exposes compounds twice and core four times`() {

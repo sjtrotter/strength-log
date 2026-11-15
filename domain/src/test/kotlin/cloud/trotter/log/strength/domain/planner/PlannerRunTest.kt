@@ -68,7 +68,7 @@ class PlannerRunTest {
         assertEquals(block(time(1200, hard = true)), day(draft, "B").cardioBlock)
         assertEquals(block(distance(13_200)), day(draft, "D").cardioBlock)
         assertEquals(13_200, RunCap.limit(12_000, 100))
-        // audit 2026-11-13, row 13: cardio days keep their planned time; no strength-day cool-down.
+        // audit 2026-11-13, row 13: cardio days keep their planned time; the optional cool-down is extra time.
         // A=300+1800+2*(150+129+99+93+120)=3282; C replaces plank120 with pallof99: 3240.
         assertEquals(listOf(3282, 1500, 3240), draft.program.days.take(3).map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
         for ((id, main, calf, core) in listOf(

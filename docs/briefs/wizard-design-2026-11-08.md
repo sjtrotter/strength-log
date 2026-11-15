@@ -1221,3 +1221,10 @@ Unchanged pins were reviewed by reading their fixtures: the remaining planner te
 ### Beyond the spec
 
 No additional behavior changes. To preserve existing coverage after the 60-minute fill fixture stopped being blocked, the step-zero assertions use a separate reserved-budget fixture. The General rest fixture reserves 150 seconds so it still reaches step 5. The live caller's named-argument update remains required to distinguish age from New status; no Room, backup, app or wire changes were made. No network calls, subagents, builds or tests were used. Compilation and test execution remain for CI under the task's hard rules. The known `AppCrashesTest > mainLooperFailureFailsTheStep` playtest ClassCastException is unchanged and remains a follow-up. No files were staged, committed or pushed.
+
+## 44. Revision 35 (every set is a card, 2026-11-15)
+
+The effort row moved from the rest band into the set's card (#583). A set
+that shows an effort row must be rated before End rest or Next set; ramps, timed holds and watch
+sets are never asked. Null still counts as on target at Finish (a set left by picking another lift,
+or logged on the watch).

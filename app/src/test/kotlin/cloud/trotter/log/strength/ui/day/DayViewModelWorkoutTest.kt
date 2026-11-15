@@ -179,6 +179,232 @@ class DayViewModelWorkoutTest {
         return id
     }
 
+    private fun TestScope.rateAndContinue(vm: DayViewModel) {
+        vm.uiState.value.workout?.review?.let { review ->
+            for (slot in review.unrated) {
+                vm.setEffort(review.programExerciseId, slot, review.index, Effort.GOOD)
+                runCurrent()
+            }
+        }
+        vm.continueWorkout()
+        runCurrent()
+    }
+
+    @Test fun `★ a button log holds the set for effort and refuses a second log`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startWorkout()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+        assertEquals(190_000L, settings.phoneRestFlow.first()?.deadlineEpochMillis)
+        val record = settings.workoutRecordFlow.first()
+        vm.logFocusedSet()
+        runCurrent()
+        assertFalse(track(vm, id)[1].done)
+        assertEquals(record, settings.workoutRecordFlow.first())
+    }
+
+    @Test fun `★ continue waits for effort, then ends rest and the review`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        val rest = settings.phoneRestFlow.first()
+        val cancellations = runtime.cancellations
+        vm.continueWorkout()
+        runCurrent()
+        assertEquals(review, vm.uiState.value.workout?.review)
+        assertEquals(rest, settings.phoneRestFlow.first())
+        assertEquals(cancellations, runtime.cancellations)
+        vm.setEffort(review.programExerciseId, Slot.MAIN, 0, Effort.GOOD)
+        runCurrent()
+        vm.continueWorkout()
+        runCurrent()
+        assertNull(settings.phoneRestFlow.first())
+        assertEquals(cancellations + 1, runtime.cancellations)
+        assertNull(vm.uiState.value.workout?.review)
+        assertNotNull(vm.uiState.value.workout?.undo)
+        assertEquals(WorkoutFocus(review.programExerciseId, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+    }
+
+    @Test fun `★ with the timer off the logged set still waits for effort`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.review)
+        assertNull(settings.phoneRestFlow.first())
+        vm.continueWorkout()
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.review)
+        rateAndContinue(vm)
+        assertNull(vm.uiState.value.workout?.review)
+    }
+
+    @Test fun `★ ramp and timed sets move on without a card`() = test {
+        for (timed in listOf(true, false)) {
+            prepare(if (timed) listOf(ProgramExercise("plank", targetSets = 2)) else listOf(bench()))
+            val vm = readyVm()
+            vm.startWorkout()
+            runCurrent()
+            val id = vm.uiState.value.exercises.single().programExerciseId
+            if (!timed) {
+                repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
+                    track(vm, id).mapIndexed { index, set -> if (index == 0) set.copy(kind = SetKind.RAMP) else set })
+                runCurrent()
+            }
+            vm.logFocusedSet()
+            runCurrent()
+            assertNull(vm.uiState.value.workout?.review)
+            assertNotNull(vm.uiState.value.workout?.undo)
+            assertEquals(WorkoutFocus(id, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+            vm.viewModelScope.cancel()
+            repo.discardRun(requireNotNull(vm.uiState.value.runId))
+        }
+    }
+
+    @Test fun `★ the logged card survives a new ViewModel`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        val review = vm.uiState.value.workout?.review
+        vm.viewModelScope.cancel()
+        val restored = readyVm()
+        assertNotNull(review)
+        assertEquals(review, restored.uiState.value.workout?.review)
+        assertNotNull(settings.phoneRestFlow.first())
+        rateAndContinue(restored)
+        assertNull(restored.uiState.value.workout?.review)
+    }
+
+    @Test fun `★ undo from the moved-on offer reverts the set and returns to it`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        rateAndContinue(vm)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(track(vm, id)[0].done)
+        assertNull(track(vm, id)[0].rir)
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        assertNull(vm.uiState.value.workout?.review)
+        assertNull(settings.workoutRecordFlow.first()?.undo)
+    }
+
+    @Test fun `★ the moved-on offer has no time limit and dismissing clears it`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        rateAndContinue(vm)
+        at(1_000_000)
+        assertNotNull(vm.uiState.value.workout?.undo)
+        vm.dismissLogUndo(100_001L)
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.undo)
+        vm.dismissLogUndo(100_000L)
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.undo)
+        vm.undoLastLog()
+        runCurrent()
+        assertTrue(track(vm, id)[0].done)
+    }
+
+    @Test fun `★ a later watch completion ends the review unrated`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.review)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1, done = true,
+            editedAtMillis = 100_002, completedAtMillis = 100_002, planId = state.planId, runId = state.runId, exerciseId = "db_bench")))
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+        assertNull(track(vm, id)[0].rir)
+    }
+
+    @Test fun `★ picking another lift ends the review and leaves the set unrated`() = test {
+        prepare(listOf(bench(), ProgramExercise("plank")))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.first().programExerciseId
+        val key = "exercise:${vm.uiState.value.exercises.last().programExerciseId}"
+        vm.logFocusedSet()
+        runCurrent()
+        vm.selectWorkoutLift(key)
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+        assertNull(track(vm, id)[0].rir)
+        assertEquals(WorkoutSelection.Shown.Group(key, false), vm.uiState.value.workout?.shown)
+    }
+
+    @Test fun `★ editing the reviewed set keeps the card`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
+            track(vm, id).mapIndexed { index, set -> if (index == 0) set.copy(reps = set.reps + 1) else set })
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.review)
+        assertNull(vm.uiState.value.workout?.undo)
+    }
+
+    @Test fun `★ a superset round reviews both lifts and waits for both`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = roundTwo(vm)
+        vm.logFocusedSet()
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+        assertNotNull(vm.uiState.value.workout?.undo)
+        clock.now++
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN, Slot.SS), listOf(Slot.MAIN, Slot.SS)), vm.uiState.value.workout?.review)
+        vm.setEffort(id, Slot.MAIN, 1, Effort.GOOD)
+        runCurrent()
+        assertEquals(listOf(Slot.SS), vm.uiState.value.workout?.review?.unrated)
+        vm.continueWorkout()
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout?.review)
+        vm.setEffort(id, Slot.SS, 1, Effort.GOOD)
+        runCurrent()
+        vm.continueWorkout()
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+    }
+
     private suspend fun markLegacyRowsDone(vm: DayViewModel) {
         val planId = requireNotNull(vm.uiState.value.planId)
         db.programDao().logsForDay(planId, "A").forEach { log ->
@@ -840,7 +1066,7 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
-    fun `★ live rest extends undo and skipping retires it at later times`() = test {
+    fun `★ rest and +15 s leave the offer alone; continue ends the rest`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()
         vm.startWorkout()
@@ -855,37 +1081,11 @@ class DayViewModelWorkoutTest {
         assertEquals(205_000L, settings.phoneRestFlow.first()!!.deadlineEpochMillis)
         at(204_999)
         assertNotNull(vm.uiState.value.workout!!.undo)
-        vm.skipRest()
-        runCurrent()
-        assertNull(vm.uiState.value.workout!!.undo)
-        at(300_000)
-        assertNull(vm.uiState.value.workout!!.undo)
-        vm.undoLastLog()
-        runCurrent()
-        assertTrue(vm.uiState.value.exercises.single().rows[0].done)
-    }
-
-    @Test
-    fun `★ without rest undo expires at exactly ten seconds`() = test {
-        prepare()
-        val vm = readyVm()
-        vm.startWorkout()
-        runCurrent()
-        vm.logFocusedSet()
-        runCurrent()
-        val reads = clock.reads
-        at(109_999)
+        rateAndContinue(vm)
+        assertNull(settings.phoneRestFlow.first())
         assertNotNull(vm.uiState.value.workout!!.undo)
-        assertEquals(reads, clock.reads)
-        at(110_000)
-        assertNull(vm.uiState.value.workout!!.undo)
-        val readsAtExpiry = clock.reads
-        assertTrue(readsAtExpiry > reads)
-        at(170_000)
-        assertEquals(readsAtExpiry, clock.reads)
-        vm.undoLastLog()
-        runCurrent()
-        assertTrue(vm.uiState.value.exercises.single().rows[0].done)
+        at(300_000)
+        assertNotNull(vm.uiState.value.workout!!.undo)
     }
 
     @Test
@@ -1241,6 +1441,7 @@ class DayViewModelWorkoutTest {
         vm.logFocusedSet()
         runCurrent()
         val record = requireNotNull(settings.workoutRecordFlow.first())
+        assertNotNull(record.review)
         val restored = SettingsStore(preferences)
         assertEquals(record, restored.workoutRecordFlow.first())
         for (encoded in listOf("{", "{}", "null", "{\"runId\":null}")) {
@@ -1251,6 +1452,11 @@ class DayViewModelWorkoutTest {
         }
         settings.setWorkoutRecord(record)
         assertEquals(record, restored.workoutRecordFlow.first())
+        val legacy = """{"runId":"${record.runId}","selectedKey":"exercise:legacy","undo":{"programExerciseId":1,"slot":"MAIN","index":0,"before":{"weightLb":80.0,"reps":10,"kind":"WORK","done":false},"after":{"weightLb":80.0,"reps":10,"kind":"WORK","done":true},"loggedAtMillis":100000,"restStarted":true}}"""
+        preferences.edit { it[stringPreferencesKey("workout_record")] = legacy }
+        runCurrent()
+        assertEquals("exercise:legacy", restored.workoutRecordFlow.first()?.selectedKey)
+        assertNotNull(restored.workoutRecordFlow.first()?.undo)
         settings.setWorkoutRecord(null)
         assertNull(restored.workoutRecordFlow.first())
         assertFalse(preferences.data.first().contains(stringPreferencesKey("workout_record")))
@@ -1388,8 +1594,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         assertEquals(1, runtime.armed.size)
         assertNotNull(settings.phoneRestFlow.first())
-        vm.skipRest()
-        runCurrent()
+        rateAndContinue(vm)
         vm.logFocusedSet()
         runCurrent()
         assertEquals(2, runtime.armed.size)

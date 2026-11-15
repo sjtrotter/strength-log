@@ -38,6 +38,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
@@ -104,11 +106,8 @@ class WorkoutSetScreenTest {
     }
 
     @Test fun loggedWorkingSetOffersFourUnselectedEffortWords() {
-        val base = workoutSetSingleFixture()
-        val undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
-            LoggedSet(185.0, 5, SetKind.WORK, done = true), TrackingType.WEIGHTED, WeightUnit.LB, null)
         var picked: List<Any?>? = null
-        show(base.copy(workout = base.workout?.copy(undo = undo)), workoutActions().copy(
+        show(workoutSetLoggedFixture(), workoutActions().copy(
             onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
         ))
         rule.onNodeWithText("Effort").assertIsDisplayed()
@@ -120,11 +119,8 @@ class WorkoutSetScreenTest {
     }
 
     @Test fun selectedEffortCanBeCleared() {
-        val base = workoutSetSingleFixture()
-        val undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
-            LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 4), TrackingType.WEIGHTED, WeightUnit.LB, null)
         var picked: List<Any?>? = null
-        show(base.copy(workout = base.workout?.copy(undo = undo)), workoutActions().copy(
+        show(workoutSetLoggedFixture(rir = 4), workoutActions().copy(
             onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
         ))
         rule.onNodeWithTag("workout-effort-EASY").assertIsSelected().performClick()
@@ -132,21 +128,117 @@ class WorkoutSetScreenTest {
     }
 
     @Test fun effortIsAbsentForRampUndoneAndTimedUndoOffers() {
-        val base = workoutSetSingleFixture()
-        val eligible = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
-            LoggedSet(185.0, 5, SetKind.WORK, done = true), TrackingType.WEIGHTED, WeightUnit.LB, null)
-        val offers = listOf(
-            eligible.copy(set = eligible.set.copy(kind = SetKind.RAMP)),
-            eligible.copy(set = eligible.set.copy(done = false)),
-            eligible.copy(tracking = TrackingType.TIMED),
-            null,
+        val base = workoutSetLoggedFixture()
+        val card = base.exercises.single()
+        val variants = listOf(
+            card.copy(rows = card.rows.map { it.copy(kind = SetKind.RAMP) }),
+            card.copy(rows = card.rows.map { it.copy(done = false) }),
+            card.copy(tracking = TrackingType.TIMED),
         )
-        var undo by mutableStateOf(offers.first())
-        rule.setContent { AppTheme { WorkoutSetHost(base.copy(workout = base.workout?.copy(undo = undo))) } }
-        for (offer in offers) {
-            rule.runOnIdle { undo = offer }
+        var state by mutableStateOf(base)
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        for (variant in variants) {
+            val row = variant.rows[1]
+            rule.runOnIdle {
+                state = base.copy(exercises = listOf(variant), workout = base.workout?.copy(
+                    review = base.workout.review?.copy(effortSlots = if (row.done && showsEffort(row.kind, variant.tracking)) listOf(Slot.MAIN) else emptyList(),
+                        unrated = emptyList())))
+            }
             for (effort in Effort.entries) rule.onNodeWithTag("workout-effort-${effort.name}").assertDoesNotExist()
         }
+    }
+
+    @Test fun loggedCardShowsCheckEffortAndNextSet() {
+        show(workoutSetLoggedFixture())
+        rule.onNodeWithTag("workout-set-card").assertExists()
+        rule.onNodeWithTag("workout-set-done", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("workout-hero", useUnmergedTree = true).assert(hasText("185", substring = true))
+        for (effort in Effort.entries) rule.onNodeWithTag("workout-effort-${effort.name}").assertIsNotSelected()
+        rule.onNodeWithTag("workout-next-card").assertExists()
+        rule.onNodeWithText("Next: Set 3 of 6").assertIsDisplayed()
+        rule.onNodeWithText("190 lb × 5").assertIsDisplayed()
+        rule.onNodeWithText("Log 190 lb × 5").assertDoesNotExist()
+        rule.onNodeWithContentDescription("One fewer rep").assertDoesNotExist()
+    }
+
+    @Test fun gatedEndRestIsDisabledAndTapOutlinesTheRow() {
+        var continues = 0
+        show(workoutSetLoggedFixture(), workoutActions().copy(onContinueWorkout = { continues++ }))
+        rule.onNodeWithText("End rest").assertIsNotEnabled().assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Mark effort first"))
+        rule.onNodeWithTag("workout-effort-row").assertExists()
+        rule.onNodeWithTag("workout-action-gate").performTouchInput { click() }
+        rule.onNodeWithTag("workout-effort-row-highlighted").assertExists()
+        rule.onNodeWithText("Mark effort first").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(0, continues) }
+    }
+
+    @Test fun ratedEndRestEndsRestOnce() {
+        var continues = 0
+        show(workoutSetLoggedFixture(rir = 2), workoutActions().copy(onContinueWorkout = { continues++ }))
+        rule.onNodeWithTag("workout-effort-GOOD").assertIsSelected()
+        val action = rule.onNodeWithTag("workout-action-tonal").assert(hasText("End rest")).assertIsEnabled()
+        action.performClick()
+        action.performClick()
+        rule.runOnIdle { assertEquals(1, continues) }
+    }
+
+    @Test fun restOverReadsNextSetFilled() {
+        show(workoutSetLoggedFixture(rir = 2, resting = false))
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Next set")).assertIsEnabled()
+        rule.onNodeWithTag("workout-rest").assertDoesNotExist()
+    }
+
+    @Test fun restOffNextSetWaitsForEffort() {
+        show(workoutSetLoggedFixture(resting = false))
+        rule.onNodeWithText("Next set").assertIsNotEnabled()
+    }
+
+    @Test fun nextCardNamesTheNextLift() {
+        show(workoutSetNextLiftFixture())
+        rule.onNodeWithText("Next: Romanian Deadlift").assertIsDisplayed()
+        rule.onNodeWithText("205 lb × 6").assertIsDisplayed()
+    }
+
+    @Test fun lastSetFinishWaitsForEffort() {
+        var state by mutableStateOf(workoutSetLastSetFixture())
+        var finishes = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onDone = { finishes++ })) } }
+        rule.onNodeWithText("Finish day A").assertIsNotEnabled()
+        rule.runOnIdle { state = workoutSetLastSetFixture(rir = 2) }
+        rule.onNodeWithText("Finish day A").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
+    }
+
+    @Test fun supersetReviewOutlinesOnlyTheUnratedLift() {
+        var state by mutableStateOf(workoutSetSupersetLoggedFixture(mainRir = 2, partnerRir = null))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("Next: Round 3 of 3").assertIsDisplayed()
+        rule.onNodeWithTag("workout-action-gate").performTouchInput { click() }
+        rule.onNodeWithTag("workout-effort-ss-row-highlighted").assertExists()
+        rule.onNodeWithTag("workout-effort-row-highlighted").assertDoesNotExist()
+        rule.runOnIdle { state = workoutSetSupersetLoggedFixture(mainRir = 2, partnerRir = 1) }
+        rule.onNodeWithTag("workout-effort-ss-row-highlighted").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").assertIsEnabled()
+    }
+
+    @Test fun movedOnSetShowsInSnackbarWithUndo() {
+        var state by mutableStateOf(workoutSetMovedOnFixture())
+        var undos = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onUndoLastLog = { undos++ })) } }
+        rule.onNodeWithText("✓ Set 2 · 185 × 5 · Good").assertIsDisplayed()
+        rule.onNodeWithText("Undo").performClick()
+        rule.runOnIdle { assertEquals(1, undos); state = workoutSetLoggedFixture(rir = 2) }
+        rule.onNodeWithText("✓ Set 2 · 185 × 5 · Good").assertDoesNotExist()
+        rule.onNodeWithText("Undo").assertDoesNotExist()
+    }
+
+    @Test fun snackbarTimeoutDismissesWithItsStamp() {
+        var stamp: Long? = null
+        show(workoutSetMovedOnFixture(), workoutActions().copy(onDismissLogUndo = { stamp = it }))
+        rule.onNodeWithText("✓ Set 2 · 185 × 5 · Good").assertIsDisplayed()
+        rule.mainClock.advanceTimeBy(11_000L)
+        rule.runOnIdle { assertEquals(100_000L, stamp) }
     }
 
     @Test fun cardioRepeatHasNoChipAndStartedRunsHideOffers() {
@@ -558,7 +650,7 @@ class WorkoutSetScreenTest {
 
     @Test fun supersetTalkBackTraversesContentThenBandAndLog() {
         val base = workoutSetSupersetFixture()
-        show(base.copy(exercises = base.exercises.map { card -> card.copy(
+        show(base.copy(rest = workoutRest(), exercises = base.exercises.map { card -> card.copy(
             headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = "Red band"),
             rows = card.rows.map { row ->
                 if (row.index == 1) row.copy(partner = row.partner?.copy(done = true)) else row
@@ -588,7 +680,7 @@ class WorkoutSetScreenTest {
         assertOrder(actions,
             rule.onNodeWithTag("workout-rest").fetchSemanticsNode(),
             rule.onNode(hasClickAction() and hasAnyAncestor(hasTestTag("workout-rest"))).fetchSemanticsNode(),
-            rule.onNodeWithTag("workout-action-filled").fetchSemanticsNode(),
+            rule.onNodeWithTag("workout-action-tonal").fetchSemanticsNode(),
         )
     }
 
@@ -756,39 +848,23 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertDoesNotExist()
     }
 
-    @Test fun liveRestOffersUndoAdjustmentAndSkipAndKeepsLogTonal() {
-        var undos = 0
+    @Test fun restWithoutReviewReadsEndRestAndNeverLogs() {
         var adjustment = 0
-        var skips = 0
+        var continues = 0
         var logs = 0
-        show(workoutSetSingleFixture().copy(rest = workoutRest(), workout = workoutSetSingleFixture().workout?.copy(undo = undo())), workoutActions().copy(
-            onUndoLastLog = { undos++ }, onAdjustRest = { adjustment = it }, onSkipRest = { skips++ },
-            onLogFocusedSet = { logs++ },
+        show(workoutSetSingleFixture().copy(rest = workoutRest()), workoutActions().copy(
+            onAdjustRest = { adjustment = it }, onContinueWorkout = { continues++ }, onLogFocusedSet = { logs++ },
         ))
         rule.onNodeWithText("Rest").assertIsDisplayed()
-        rule.onNodeWithText("Undo 165 × 5").performClick()
         rule.onNodeWithText("+15 s").performClick()
-        rule.onNodeWithText("Skip rest").performClick()
-        rule.onNodeWithTag("workout-action-tonal").assertIsEnabled().performClick()
-        rule.runOnIdle {
-            assertEquals(1, undos)
-            assertEquals(15, adjustment)
-            assertEquals(1, skips)
-            assertEquals(1, logs)
-        }
-    }
-
-    @Test fun restOffBandHoldsOnlyUndo() {
-        var undos = 0
-        show(workoutSetSingleFixture().copy(workout = workoutSetSingleFixture().workout?.copy(undo = undo())), workoutActions().copy(onUndoLastLog = { undos++ }))
-        rule.onNodeWithText("Undo 165 × 5").assertIsDisplayed().performClick()
-        rule.onNodeWithText("Rest").assertDoesNotExist()
-        rule.onNodeWithText("+15 s").assertDoesNotExist()
         rule.onNodeWithText("Skip rest").assertDoesNotExist()
-        rule.onAllNodes(hasAnyAncestor(hasTestTag("workout-rest")) and hasText("Undo 165 × 5")).fetchSemanticsNodes().let {
-            assertEquals(1, it.size)
+        rule.onNodeWithText("Undo").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").assert(hasText("End rest")).assertIsEnabled().performClick()
+        rule.runOnIdle {
+            assertEquals(15, adjustment)
+            assertEquals(1, continues)
+            assertEquals(0, logs)
         }
-        rule.runOnIdle { assertEquals(1, undos) }
     }
 
     @Test fun undoForAnotherLiftCarriesItsCatalogShortName() {
@@ -796,7 +872,7 @@ class WorkoutSetScreenTest {
         val offer = undo().copy(programExerciseId = 9L, set = LoggedSet(175.0, 8, SetKind.BACKOFF))
         show(state.copy(exercises = state.exercises + state.exercises.single().copy(programExerciseId = 9L),
             workout = state.workout?.copy(undo = offer)))
-        rule.onNodeWithText("Undo Squat 175 × 8").assertIsDisplayed()
+        rule.onNodeWithText("✓ Squat set 2 · 175 × 8").assertIsDisplayed()
     }
 
     @Test fun completedViewShowsSummaryAndSelectsNextWithoutLogging() {
@@ -877,8 +953,9 @@ class WorkoutSetScreenTest {
             undo = undo().copy(title = "DB Bench Press", set = LoggedSet(80.0, 10, SetKind.WORK))))
             .withWorkoutRestHint(true, emptyMap())
         assertSupersetFitsAtLargeFont(ss, "Seated Cable Row", "DB Bench Press", "120 lb × 10", "80 lb × 10")
-        rule.onNodeWithTag("workout-rest").assertIsDisplayed()
-        rule.onNodeWithText("Undo DB Bench Press 80 × 10").assertIsDisplayed().assertIsEnabled()
+        rule.onNodeWithTag("workout-rest").assertDoesNotExist()
+        rule.onNodeWithText("✓ DB Bench Press set 2 · 80 × 10").assertIsDisplayed()
+        rule.onNodeWithText("Undo").assertIsDisplayed().assertIsEnabled()
     }
 
     private fun assertSupersetFitsAtLargeFont(state: DayUiState, nowTitle: String, partnerTitle: String, nowValue: String, partnerValue: String) {
@@ -1009,7 +1086,7 @@ class WorkoutSetScreenTest {
             workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1), undo = offer)),
             dayEditState = DayEditUiState(catalog = catalog)) } }
         rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertIsDisplayed()
-        rule.onNodeWithText("Undo Bench Press 165 × 5").assertIsDisplayed()
+        rule.onNodeWithText("✓ Bench Press set 2 · 165 × 5").assertIsDisplayed()
     }
 
     @Test fun restStartAnnouncesExactMinutesAndSeconds() {
@@ -1627,7 +1704,7 @@ class WorkoutSetScreenTest {
         rule.setContent { AppTheme { WorkoutSetHost(state, actions, DayEditUiState(), workoutEditActions()) } }
     }
 
-    private fun undo() = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null)
+    private fun undo() = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB)
     @Test fun `beforeStartShowsStartTodayOnlyAndEditPlan`() {
         var starts = 0
         var edits = 0

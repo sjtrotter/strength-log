@@ -197,7 +197,6 @@ data class UndoOffer(
     val set: LoggedSet,
     val tracking: TrackingType,
     val unit: WeightUnit,
-    val expiresAtMillis: Long?,
 )
 
 data class WorkoutState(
@@ -206,7 +205,14 @@ data class WorkoutState(
     val completedView: Boolean,
     val undo: UndoOffer?,
     val lastCompletionMillis: Long?,
+    val review: WorkoutReview? = null,
 )
+
+/** The logged row on the card; effortSlots show an effort row, unrated lack a rating and hold the big button. */
+data class WorkoutReview(val programExerciseId: Long, val index: Int, val effortSlots: List<String>, val unrated: List<String>)
+
+/** Finish never judges warm-up ramps or timed holds, so the phone never asks for their effort. */
+internal fun showsEffort(kind: SetKind, tracking: TrackingType): Boolean = kind != SetKind.RAMP && tracking != TrackingType.TIMED
 
 /** Saved as one value; DayUiState exposes only an identity resolved against its day. */
 @Parcelize

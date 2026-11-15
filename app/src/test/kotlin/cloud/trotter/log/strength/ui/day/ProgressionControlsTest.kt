@@ -26,7 +26,6 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -176,12 +175,10 @@ class ProgressionControlsTest {
     }
 
     @Test fun repsLeftBandForwardsTheNumberAndSetIdentity() {
-        val base = workoutSetSingleFixture()
-        val undo = UndoOffer(1, Slot.MAIN, 1, "Squat", LoggedSet(185.0, 5, SetKind.WORK, done = true),
-            TrackingType.WEIGHTED, WeightUnit.LB, null)
+        val base = workoutSetLoggedFixture()
         var picked: List<Any?>? = null
         rule.setContent { AppTheme {
-            WorkoutSetHost(base.copy(effortScale = EffortScale.REPS_LEFT, workout = base.workout?.copy(undo = undo)),
+            WorkoutSetHost(base.copy(effortScale = EffortScale.REPS_LEFT),
                 workoutActions().copy(onSetRepsLeft = { id, half, index, rir -> picked = listOf(id, half, index, rir) }))
         } }
         for (value in 0..5) rule.onNodeWithTag("workout-effort-$value").assertExists()

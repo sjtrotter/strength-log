@@ -53,23 +53,19 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.theme.ThemePreference
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.CardioIncrease
 import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.LiftOptionsState
 import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
 import cloud.trotter.log.strength.ui.day.SlotOptionsScreen
-import cloud.trotter.log.strength.ui.day.UndoOffer
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.receipt.PlannedSets
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptGroup
@@ -83,7 +79,7 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptSlotRef
 import cloud.trotter.log.strength.ui.day.receipt.ValueLine
 import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.timeTargetFixture
-import cloud.trotter.log.strength.ui.day.workoutRest
+import cloud.trotter.log.strength.ui.day.workoutSetLoggedFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
 import cloud.trotter.log.strength.ui.plan.PlanActions
 import cloud.trotter.log.strength.ui.plan.PlanDay
@@ -305,11 +301,7 @@ class ProgressionPreviewShotsTest {
     }
 
     private fun repsLeft(name: String, fontScale: Float) {
-        val base = workoutSetSingleFixture()
-        val state = base.copy(effortScale = EffortScale.REPS_LEFT,
-            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
-            workout = base.workout?.copy(undo = UndoOffer(1, Slot.MAIN, 1, "Barbell Back Squat",
-                LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 3), TrackingType.WEIGHTED, WeightUnit.LB, null)))
+        val state = workoutSetLoggedFixture(rir = 3).copy(effortScale = EffortScale.REPS_LEFT)
         render(fontScale) { WorkoutSetHost(state, nowMillis = { rule.mainClock.currentTime }) }
         capture(name)
     }

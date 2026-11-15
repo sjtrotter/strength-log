@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.runtime.Composable
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.PhoneRest
@@ -33,6 +35,53 @@ internal fun workoutSetSingleFixture(): DayUiState {
     return DayUiState(hasProgram = true, viewDayId = "A", exercises = listOf(card), workout = WorkoutState(
         WorkoutSelection.Shown.Group("exercise:1", false), WorkoutFocus(1L, Slot.MAIN, 2), false, null, null,
     ))
+}
+
+internal fun workoutSetLoggedFixture(rir: Int? = null, resting: Boolean = true): DayUiState {
+    val state = workoutSetSingleFixture()
+    return state.copy(exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
+        row.copy(kind = SetKind.WORK, kindLabel = "", rampIndex = 0,
+            weightDisplay = if (row.index < 2) 185.0 else 190.0, rir = if (row.index == 1) rir else null)
+    }) }, rest = if (resting) workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f) else null,
+        workout = state.workout?.copy(
+            review = WorkoutReview(1L, 1, listOf(Slot.MAIN), if (rir == null) listOf(Slot.MAIN) else emptyList()),
+            undo = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat",
+                LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = rir, completedAtMillis = 100_000L),
+                TrackingType.WEIGHTED, WeightUnit.LB)))
+}
+
+internal fun workoutSetNextLiftFixture(rir: Int? = 2): DayUiState {
+    val state = workoutSetLoggedFixture(rir)
+    val card = state.exercises.single().copy(allDone = true, rows = state.exercises.single().rows.map {
+        it.copy(done = true, rir = if (it.index == 5) rir else 2)
+    })
+    val next = card.copy(programExerciseId = 2L, position = 1, exerciseId = "bb_rdl", title = "Romanian Deadlift",
+        allDone = false, rows = List(3) { SetRowState(it, "", false, 205.0, 6, false) })
+    return state.copy(exercises = listOf(card, next), workout = state.workout?.copy(
+        shown = WorkoutSelection.Shown.Group("exercise:2", false), focus = WorkoutFocus(2L, Slot.MAIN, 0),
+        review = state.workout.review?.copy(index = 5), undo = state.workout.undo?.copy(index = 5)))
+}
+
+internal fun workoutSetLastSetFixture(rir: Int? = null): DayUiState {
+    val state = workoutSetNextLiftFixture(rir)
+    return state.copy(exercises = state.exercises.take(1), rest = null, workout = state.workout?.copy(
+        shown = WorkoutSelection.Shown.AllLogged, focus = null))
+}
+
+internal fun workoutSetMovedOnFixture(): DayUiState {
+    val state = workoutSetLoggedFixture(rir = 2, resting = false)
+    return state.copy(workout = state.workout?.copy(review = null))
+}
+
+internal fun workoutSetSupersetLoggedFixture(mainRir: Int?, partnerRir: Int?): DayUiState {
+    val state = workoutSetSupersetFixture()
+    return state.copy(exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
+        row.copy(done = row.index < 2, rir = if (row.index == 1) mainRir else null,
+            partner = row.partner?.copy(done = row.index < 2, rir = if (row.index == 1) partnerRir else null))
+    }) }, rest = workoutRest().copy(remainingSeconds = 91, remainingFraction = 91f / 120f),
+        workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2),
+            review = WorkoutReview(1L, 1, listOf(Slot.MAIN, Slot.SS), listOfNotNull(
+                Slot.MAIN.takeIf { mainRir == null }, Slot.SS.takeIf { partnerRir == null }))))
 }
 
 internal fun workoutSetSupersetFixture(): DayUiState {

@@ -8,6 +8,7 @@ data class WorkoutRecord(
     val runId: String,
     val selectedKey: String? = null,
     val undo: UndoTarget? = null,
+    val review: ReviewTarget? = null,
 )
 
 @Serializable
@@ -18,5 +19,8 @@ data class UndoTarget(
     val before: SetDto,
     val after: SetDto,
     val loggedAtMillis: Long,
-    val restStarted: Boolean,
 )
+
+/** The logged row the set screen still shows; loggedAtMillis is the completing log's stamp. */
+@Serializable
+data class ReviewTarget(val programExerciseId: Long, val index: Int, val loggedAtMillis: Long)

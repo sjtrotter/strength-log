@@ -51,7 +51,7 @@ internal object RoutineSheets {
         }
         val runId = state.runId ?: return null
         if (state.runOpen && !state.beforeStart && prefs.coolDownClosedRun != runId &&
-            state.workoutAllLogged && state.canFinish) {
+            state.workoutAllLogged && state.canFinish && state.workout?.review?.unrated.isNullOrEmpty()) {
             return sheet(runId, state.coolDownMoves, progress, runId, warmUp = false)
         }
         return null

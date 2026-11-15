@@ -64,29 +64,38 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         if (mapped[day.id] != RunSession.LONG) null
         else capped(template(RunSession.LONG)).takeIf { fits(day, it) }
     }
+    fun select(day: ProgramDay, session: RunSession): Pair<RunSession, CardioBlock>? {
+        if (session != RunSession.EASY) {
+            val original = template(session)
+            val block = if (session == RunSession.LADDER) original else capped(original)
+            if (fits(day, block) || (reservesRun && session == RunSession.LADDER)) return session to original
+            if (!reservesRun) return null
+        }
+        val remaining = (budget - SessionBudget.seconds(day, answers.goal)) / 60 * 60
+        if (!reservesRun && remaining < 1_200) return null
+        return RunSession.EASY to template(RunSession.EASY,
+            minOf(if (reservesRun) 1_200 else remaining, easyLimit(long) ?: Int.MAX_VALUE))
+    }
+    val candidates = lift.program.days.mapNotNull { day ->
+        val session = mapped[day.id] ?: return@mapNotNull null
+        select(day, session)?.let { day.id to it }
+    }.toMap()
+    val qualityLimit = if (candidates.size <= 3 || run.experience == RunExperience.NEW) 1 else 2
+    var quality = 0
     val reasons = lift.reasons.filterNot { it is PlanReason.OverBudget }.toMutableList()
     val sessions = mutableMapOf<String, RunSession>()
     val days = lift.program.days.map { day ->
-        val mappedSession = mapped[day.id] ?: return@map day
-        var session = mappedSession
-        var original: CardioBlock? = if (session == RunSession.EASY) null else template(session)
-        var block = original?.let { if (session == RunSession.LADDER) it else capped(it) }
-        if (block == null || !fits(day, block)) {
-            if ((reservesRun && session != RunSession.LADDER) || session == RunSession.EASY) {
-                session = RunSession.EASY
-                val remaining = (budget - SessionBudget.seconds(day, answers.goal)) / 60 * 60
-                if (reservesRun || remaining >= 1_200) {
-                    original = template(session, minOf(if (reservesRun) 1_200 else remaining, easyLimit(long) ?: Int.MAX_VALUE))
-                    block = capped(original)
-                } else block = null
-            } else if (!reservesRun) block = null
-        }
+        var selection = candidates[day.id]
+        if (selection?.first?.quality == true && quality++ >= qualityLimit) selection = select(day, RunSession.EASY)
+        val session = selection?.first
+        val original = selection?.second
+        val block = original?.let { if (session == RunSession.LADDER) it else capped(it) }
         if (block != null) {
-            sessions[day.id] = session
+            sessions[day.id] = requireNotNull(session)
             if (block != original) reasons += PlanReason.RunCapped(day.id)
         }
         val combined = day.copy(cardioBlock = block,
-            cardioRule = block?.let { runRule(session, run, phase, level, it, lone) })
+            cardioRule = block?.let { runRule(requireNotNull(session), run, phase, level, it, lone) })
         val excess = SessionBudget.seconds(combined, answers.goal) - budget
         if (excess > 0) reasons += PlanReason.OverBudget(day.id, excess)
         combined

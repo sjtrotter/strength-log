@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.Muscle
 import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -32,7 +31,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
-import cloud.trotter.log.strength.domain.units.GeneratedLoad
+import cloud.trotter.log.strength.domain.progression.SlotSeeding
 
 private enum class Shape(val title: String) {
     FB("Full Body"), UPPER("Upper"), LOWER("Lower"), PUSH("Push"), PULL("Pull"), LEGS("Legs");
@@ -198,9 +197,9 @@ internal fun balanceBlock(answers: SetupAnswers): List<ProgramExercise> {
         if (stance.availableWith(answers.equipment, answers.excluded)) result += liftSlot(SlotRole.BALANCE, stance, answers)
         val carry = ExerciseLibrary.get("farmers_carry")
         if (carry.availableWith(answers.equipment, answers.excluded)) {
-            val load = (carry.goal as GoalSource.Time).addedWeightLb
+            val load = SlotSeeding.floor(carry.equipment, answers.unit)
             result += liftSlot(SlotRole.BALANCE, carry, answers).copy(
-                prescription = Prescription(PrescribedTarget.Hold(20, GeneratedLoad.snap(load, answers.unit))),
+                prescription = Prescription(PrescribedTarget.Hold(20, load)),
             )
         }
     }

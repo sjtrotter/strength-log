@@ -1108,3 +1108,116 @@ While calibrating, an Easy set estimates e1RM as load × (1 + (reps + 4) / 30). 
 An Easy session doubles the rounded single increment only when every working set was Easy and the session's heaviest working set, read at 4 RIR, supports the doubled load at the slot's target RIR. Predicted RIR is `30 × (e1RM / doubledLoad − 1) − targetReps`. A missing estimate or a prediction below the slot's RIR uses the single increment with `Reason.AllMade`; `Reason.EasySession` applies only when the double is allowed. Coarse steps and the existing 10% cap keep their behavior. Case 7's 275 × 5 TOP estimates 357.5 lb; at 285 × 5, predicted RIR is 2.63, so the double remains allowed for its 2-RIR target.
 
 Case 12 is re-pinned at its fixture's target of 5 reps and 2 RIR, using a 45 lb bar and 5 lb steps: 45 × 5 Easy estimates 58.5 lb and bounds the next load at 58.5 / (1 + 7/30) = 47.43 lb, so the one-step floor gives 50. Then 50 × 5 Easy estimates 65 lb, bound 52.70, next 55; 55 × 5 Easy estimates 71.5 lb, bound 57.97, next 60. A 60 × 5 Good set estimates 74 lb and calibrates to 74 / (1 + 7/30) = 60 lb. A 60 × 5 Max set instead estimates 70 lb, giving 56.76 lb and calibrating to the nearest step, 55 lb.
+
+## 43. Revision 34 (lift audit fixes, 2026-11-14)
+
+This revision implements [audit 2026-11-13, rows 10, 11 and 13](wizard-evidence-audit-2026-11-13/decisions.md), superseding the session estimates and older-adult restart rules above. The following is also the implementation report. Values were derived by reading the planner and its fixtures; no builds, Gradle commands or tests were run. CI must verify these expectations.
+
+**Session estimate (row 13, G02/W05).** Each lift takes 15 seconds of setup plus reps × 3 seconds. The 3 seconds is evidence-informed by Wilk 2021's 2–5 seconds per repetition at volitional tempo; the setup allowance is practice because transitions are unmeasured. Only the repetition time doubles for an entry or prescription marked `eachSide`. A timed set takes its planned seconds, doubled for `eachSide`, plus 15 seconds of setup. A superset includes both lifts' work once per pair, with one rest from the existing resolver. A rep range uses its current target; ramps and back-offs use their scheme's own reps. Unruled weighted slots without a rep target use 10 reps. The five-minute warm-up and cardio block's planned time remain; a block's own opening WARMUP replaces the five-minute allowance.
+
+Session minutes cover the workout; the optional cool-down (#574) is extra time, outside the estimate (audit W05). There is no cool-down allowance or `SetupAnswers` switch. Counting 240 seconds caused the dose ladder to cut whole blocks over a few seconds: the four-day 60-minute reference B reached 3606 seconds and lost pullups, laterals and its arm superset; the 30-minute plank-only Both fixture lost its run. Excluding the optional cool-down keeps those blocks and states what the minutes cover. See the [session timing and warm-up audit notes](wizard-evidence-audit-2026-11-13/notes/concurrent-timing-warmup.md). Work and rest both derive their set counts from `setKinds(slot)`, including a ramped prescription whose `targetSets` differs from its scheme.
+
+**65+ carry (row 10, O09).** The balance block opens the farmer's carry at 2 × 20 seconds, at the shared `SlotSeeding` dumbbell floor: 10 lb per hand, or 5 kg per hand stored in pounds. This opening is practice. Timed holds do not support load calibration: seeding preserves their rule, `nextSet` skips timed rows, and `usesLoadCalibration` rejects them. The carry therefore opens without calibrating. The catalog remains `time(40, 50.0)`, `perHand = true`, `eachSide = false`; per hand describes the load, not two timed sides. The catalog default is also used by ordinary timed seeding and authored slots, so changing it would affect non-65+ users. Only the 65+ balance prescription overrides it.
+
+**65+ layoff (row 11, O10).** Measure extra days after expected recurrence. Under 16 slot exposures, 65+ keeps the prior rule: past 14 extra days, ×0.75 and load recalibration when supported. From 16 exposures, the adult bands apply: 0–3 normal, 4–7 hold, 8–14 ×0.95, 15–42 ×0.85 with ceil(2/3) working sets, and past 42 ×0.75 with recalibration. Sixteen exposures approximates eight weeks at twice a week; that threshold, factors and set reduction are practice informed by Lemmer 2000 and Yang 2022's history-dependent findings. New lifters below 65 retain recalibration past 14 days regardless of exposure count. `atStart` now takes separate `olderAdult` and `newLifter` flags; the live repository call passes its existing age flag as `olderAdult`. No stored state or Room behavior changes. See [O10 and the older-adult evidence](wizard-evidence-audit-2026-11-13/report.md).
+
+### Changed pinned expectations and arithmetic
+
+All session changes below cite audit 2026-11-13, row 13 in their tests. Seconds include the last set's rest, as before. The unchanged planner ladder and volume rules determine all shape changes.
+
+Arithmetic key (work plus rest unless stated otherwise):
+
+- Session base `B = 300`; Rest = 0. An opening cardio WARMUP replaces B.
+- Ramped Strength main `R = (15+5×3+90) + (15+3×3+90) + (15+5×3+180) + 2×(15+5×3+120) = 744`.
+- Five-rep main set `M = 15+5×3+180 = 210`; secondary set `S = 15+5×3+120 = 150`.
+- Eight-rep accessory `A = 15+8×3+90 = 129`; catalog six-rep pullup `U = 15+6×3+90 = 123`.
+- Eight-rep isolation/core `I = 15+8×3+60 = 99`; arm pair `P = 2×(15+8×3)+60 = 138`.
+- Plank `H = 15+45+60 = 120`; short ramp `Q = 15+3×3+90 = 114`.
+- Older main set `O = 15+6×3+120 = 153`; short older main `Q+O = 267`.
+- Balance block `V = 2×(15+30×2+30) + 2×(15+20+60) = 400`; `B+V = 700`.
+- Sprint plyometrics `Y = 3×(15+15×3+60) + (15+20×3+60) = 495`; four-rep Nordic set `N = 15+4×3+60 = 87`.
+
+The first value is before this PR, the middle value is the reviewed round-1 head with cool-down, and the last is the corrected expectation. Repeated values identify expectations that did not change again.
+
+| Test and pinned value | Before PR → round-1 head → final | Final arithmetic and shape |
+|---|---|---|
+| PlannerTest case 1, A/B/C/E seconds | [2700, 3525, 2700, 3195] → [2805, 2526, 2763, 3354] → [2565, 3366, 2523, 3114] | A=B+R+2S+3A+6I+2H; B=B+2R+2S+3U+5I+3P; C=B+R+2S+3A+8I; E=B+R+5S+3U+3I+3P+2H. |
+| PlannerTest case 1, reasons | [] → [ShortSession(B, 1)] → [] | B=3366 ≤ 3600; pullups, laterals and arms stay. The 3606-second cliff disappears. |
+| PlannerTest case 1, weekly triceps | 11.5 → 8.5 → 11.5 | Bench 6/2 + press 5/2 + both arm partners 2×3 = 11.5. |
+| DoseLadderTest case 25, one day | 1800 → 1860 → 1620; excess none → 60 → none | B+5×(Q+150)=1620. With core, 1620+2H=1860 > 1800; step 6 still drops core. |
+| DoseLadderTest case 25, two days | [1590, 1410] → [1752, 1578] → [1800, 1338]; steps [4,3] → [4,3] → [3,3] | A=B+6M+2H=1800; B=B+4M+2I=1338. A now fits two straight sets per main at step 3, before the short ramp. |
+| DoseLadderTest case 36, five mains at 30 minutes | 2160 → 2275 → 2035; excess 360 → 475 → 235; rounded excess minutes 6 → 8 → 4 | B+V+5×267=2035; 2035−1800=235; ceil(235/60)=4. Step 6 and main shapes stay. |
+| DoseLadderTest case 36, five mains at 45 minutes | 2520 → 2515 → 2470; step 1 → 4 → 1 | Step 1=B+V+10O+2H=2470 ≤ 2700. Two straight sets per main and core stay; the short-ramp change disappears. |
+| DoseLadderTest case 36, four mains at 30 minutes | 1860 → 2008 → 1768; excess 60 → 208 → none | B+V+4×267=1768; with core, 2008 > 1800. Step 6 fits with no excess. |
+| DoseLadderTest case 36, three mains at 30 minutes | 1770 → 1741 → 1741; step 4 → 6 → 4 | Step 3=B+V+6O+2H=1858 > 1800; step 4=B+V+3×267+2H=1741. Core returns. |
+| DoseLadderTest, General rest through step 5 | 1800-second fixture → same → 1650-second reserved budget | Step 4 with core=B+5×(Q+129)+2H=1755; step 5 preserves 90-second main rest; step 6=B+5×243=1515 fits. A 150-second reserve keeps the test exercising step 5 after removing the cool-down. |
+| DoseLadderTest, two 75-minute days | [3960, 4215] → [3909, 4236] → [3669, 3996] | A=B+3R+4S+3I+2H; B=B+2R+8S+3P+6I. Four curls still land on B: after bench/row growth B=3600 < A=3669. |
+| VolumeBalanceTest, six-day reference A/B/C/D/E/F/G | [2640, 3105, 2565, 0, 3105, 2010, 3105] → [2763, 3249, 2634, 0, 3291, 2148, 3249] → [2523, 3009, 2394, 0, 3051, 1908, 3009] | A=B+R+5A+6I+2H; B/G=B+R+2S+3A+3U+5I+3P; C=B+R+2S+2A+8I; E=3009−2I+2H; F=B+2S+4A+8I. Trim shapes stay. |
+| VolumeBalanceTest, six older days A/B/C/D/E/F/G | [2160, 2430, 2055, 0, 2325, 1995, 2325] → [2398, 2680, 2257, 0, 2602, 2209, 2581] → [2158, 2440, 2017, 0, 2362, 1969, 2341] | A=700+2O+4A+4I+2H; B=700+2O+4A+2U+4I+2P; C=700+2O+4A+5I; E=2440−2I+H; F=700+6A+5I; G=2440−I. Core trimming and two-set carries stay. |
+| VolumeBalanceTest, 60-minute fill seconds and reasons | [3510, 3600] → [3567, 3585] → [3525, 3570]; [A0,B0] → [A0,B0] → [] | A starts B+9M+4S+3I+2H=3327. B starts B+6M+6S+3P+2I=3072; bench and row each grow by S, reaching 3372. A takes two curls: 3327+2I=3525; the third would reach 3624. B takes two: 3372+2I=3570. All floors fit. Reset B's reasons also become empty. |
+| VolumeBalanceTest, 60-minute B row sets | 3 → 2 → 3 | B after chest fill=3072+S=3222; row growth=3222+S=3372 ≤ 3600. |
+| VolumeBalanceTest, 60-minute added slots/role/tail | B seated_curl / ISOLATION / [seated_curl,pallof] → B pullup / ACCESSORY / [pullup,pallof] → A and B seated_curl / ISOLATION, B tail [seated_curl,pallof] | Curl sets on B: 1 → 1 pullup → 2 curls; A gains two curls. I=99 and both final totals fit. |
+| VolumeBalanceTest, 60-minute hamstring credit | 3.5 → 2.5 → 6.5 | Trap main 3/2 + trap secondary 2/2 + four curls = 6.5. |
+| VolumeBalanceTest, 75-minute fill | [3510, 3915] → expected [3567, 4008], CI [3963, 3612] → [3723, 3372] | A=3327+4I=3723; B=3372. The four-curl assertion moves B → A. Host order, not day labeling, was wrong in the previous expectation. |
+| SetCountTest, prototype squat estimate | 1230 → 1398 → 1158 | B+3×(15+5×3+90)+(15+3×3+90)+(15+10×3+180)+(15+8×3+120)=1158. Unruled prototype uses ten top reps. |
+| SetCountTest, superset difference | 0 → +135 → +135 | Three partner sets × (15+10×3)=135; one rest per pair. Single curl 705 → 945 → 705; pair 705 → 1080 → 840. |
+| SetCountTest, unknown-slot estimate | 705 → 945 → 705 | B+3×(15+10×3+90)=705. |
+| PlannerRunTest, half at four 60-minute days A/B/C | [3330, 1500, 3330] → [3282, 1500, 3240] → same | A=B+1800+2×(150+129+99+93+120); C replaces plank 120 with pallof 99. Nordic uses six catalog reps: 15+6×3+60=93. |
+| PlannerRunTest D14, A/C seconds | [5070, 5070] → [5022, 4980] → same | A=B+3540+1182; C=B+3540+1140. Cardio and strength shapes stay. |
+| PlannerBothTest D15, 30-minute plank-only lift and run | lift 510/run present → lift 780/no run → lift 540/run present | B+2H=540; run floor((1800−540)/60)×60=1260; combined=1800. Same EASY session returns; the cool-down-off comparison is removed with the switch. |
+| SessionBudgetTest, strength with attached run | new 1770 → 1530 | B+(15+5×3)+1200=1530. Pure cardio stays B+1200=1500; its own opening 600-second WARMUP gives 600+1200=1800. Cool-down delta and switch tests are replaced. |
+| PlannerSprintTest, 100 m at two days A/B/C | [2699, 0, 3326] → [2693, 0, 3155] → same | A=794+Y+3M+6A; C=1091+9M+2N. Cardio days and shapes stay. |
+| PlannerSprintTest, 100 m at three days A/B/C/D/E | [1214, 0, 1995, 1091, 0] → [1289, 0, 2118, 1091, 0] → [1289, 0, 1878, 1091, 0] | A=794+Y; C=B+3M+6A+2N. Shapes stay. |
+| PlannerSprintTest, 100 m at four days A/B/C/D/E | [1214, 1785, 0, 1091, 1995] → [1289, 1944, 0, 1091, 2118] → [1289, 1704, 0, 1091, 1878] | A=794+Y; B=B+3M+6A; E=1704+2N. Shapes stay. |
+| PlannerSprintTest, 200/400 m at two days, 75-minute reference | [2996, 0, 3903] → [2990, 0, 3732] → same | A=1091+Y+3M+6A; C=1668+9M+2N. |
+| PlannerSprintTest, 200/400 m at two days, 60-minute fitted | [2996, 0, 3018] → [2990, 0, 3558] → same; C step 3 → 1 → 1; sets [2,2,2] → [3,3,3] → same | Step 1 drops Nordic: 1668+9M=3558 ≤ 3600. All three upper mains keep three sets. |
+| PlannerSprintTest, five/six days upper G | 2325 → 2430 → 2190 | B+9M=2190. Shape stays; pure tempo remains B+516=816. |
+| PlannerSprintTest, recent acceleration with plyometrics | 1918 → 1993 → same | 1498+Y=1993. Shape stays. |
+| PlannerSprintTest, 30-minute one-day fitted A | 1469 → 1424 → same | 794+3M=1424 after step 1. Shape stays. |
+| PlannerSprintTest, recent 30-minute A excess | 118 → 193 → same | 1498+Y−1800=193. Steps A6/C1 stay; C full=1878 > 1800, after step 1=B+3M=930 (was 1170). |
+| ProgressionOlderLayoffTest case 23, trained older opening (row 11) | Recalibrate / 205 lb / calibrating → Scaled(0.85) / 235 lb / no override → same | Fixture uses the trained boundary at 16 exposures: 1025−1000−7=18 extra days; 275×0.85=233.75 → nearest 5 lb=235, versus 275×0.75=206.25 → 205. ceil(3×2/3)=2 working sets rather than 3. |
+
+**Volume-fill failure trace.** On the reviewed head, the unfilled novice days were A=3567 and B=3312. Chest growth took B to 3462; lat growth took it to 3612. A was then shorter, so the four curls landed on A: 3567+4×99=3963, leaving B=3612. The old [3567,4008] expectation assigned the same 396 seconds of curls to B without following the host sort. Removing the cool-down gives the pre-fill pair [3327,3072]; after chest and lat growth it is [3327,3372]. The 75-minute result is [3723,3372]. At 60 minutes the third curl on A is blocked, so fill adds and grows a second curl slot on B, giving [3525,3570]. The old step-zero fixture now reaches every floor; a separate 3500-second reserved-budget fixture pins [3426,3471] and step-zero reasons on both blocked days, then only B when A is ineligible.
+
+**Remaining shape changes relative to before the PR.** The two-day 30-minute Strength A stops at step 3 with two straight sets per main instead of step 4's short ramp/top. The novice 60-minute volume-fill fixture has two curls on each day instead of one curl on B; B's row retains its original three sets; at 75 minutes the four curls move from B to A. The fitted 200/400 m upper day stops at step 1 with three sets per main instead of step 3 with two. The 65+ carry opens at 2×20 seconds at the dumbbell floor, and trained older layoffs use the history-aware bands above. The reference B accessory loss, the Both run loss, the older 45-minute short ramps and the older three-main core loss all disappear. No ladder, volume-fill or cardio-layout rule was changed to force a shape.
+
+Unchanged pins were reviewed by reading their fixtures: the remaining planner tests, Run/RunProgress, Both, Sprint/SprintProgress, and their invariant grids. Pure cardio estimates and fitted interval blocks retain their planned seconds. The kettlebell volume tests retain their pinned slot shapes; no planner rule was changed to preserve an earlier shape. The existing low-exposure planner case 23 and older-layoff boundary test retain recalibration past 14 days. Spec §11 goal, prototype seed and TOP-cascade code and expectations were left intact.
+
+### Tests added
+
+`SessionBudgetTest`:
+
+- `five and twelve reps include setup and rep time`: work 15+5×3 = 30 and 15+12×3 = 51 seconds.
+- `eachSide doubles eight reps but not setup`: 15+8×3×2 = 63 seconds.
+- `a thirty second eachSide hold doubles time but not setup`: 15+30×2 = 75 seconds.
+- `a superset counts both ten rep lifts once and one rest`: 300+45+45+60 = 450 seconds.
+- `a range uses its current target and ramps and backoffs use their own reps`: range current 11 gives 15+11×3 = 48; ramped fixture totals 300+120+114+30+2×150 = 864.
+- `strength and cardio include planned time and an opening warmup replaces the allowance`: strength with attached run 300+30+1200=1530, pure cardio 300+1200=1500, own warm-up 600+1200=1800.
+- `ramped prescriptions count the scheme sets when targetSets differs`: one `targetSets` but five scheme sets; prescribed reps 300+5×30+420=870, prescribed per-side holds 300+5×75+420=1095, catalog holds 300+5×60+420=1020.
+
+`VolumeBalanceTest`:
+
+- `fill stops at the reserved budget and reports step zero on only the blocked days`: 3500-second budget; 3327+99=3426 and 3372+99=3471; another 99 seconds fits neither day. Repeating with A ineligible reports only B.
+
+`PlannerTest`:
+
+- `older carries open at the dumbbell floor per hand in either unit`: 2 × 20 seconds, 10 lb / 5 kg per hand, no calibration; catalog stays 40 seconds / 50 lb per hand.
+
+`ProgressionOlderLayoffTest`:
+
+- `fifteen versus sixteen older exposures at twenty days past recurrence`: gap 27−7 = 20; at 15 exposures, 275×0.75 → 205 lb, 3 working sets and recalibration; at 16, 275×0.85 → 235 lb, ceil(3×2/3) = 2 working sets, no override.
+- `trained older layoff bands use the recurrence clock through forty three days`: boundaries 3/4/7/8/14/15/42/43; at 43, 275×0.75 → 205 lb with recalibration at either 15 or 16 exposures.
+- `New lifters below sixty five keep recalibration regardless of exposures`: at both 15 and 16 exposures, 20 extra days still uses 275×0.75 → 205 lb and recalibration.
+
+### Files changed
+
+- `domain/src/main/kotlin/cloud/trotter/log/strength/domain/planner/`: `SessionBudget.kt`, `SetupAnswers.kt`, `DayLayout.kt`, `DoseLadder.kt`, `VolumeBalance.kt`, `BothLayout.kt`, `RunLayout.kt`, `SprintLayout.kt`.
+- `domain/src/main/kotlin/cloud/trotter/log/strength/domain/progression/`: `Progression.kt`, `SlotSeeding.kt` (floor shared within the module).
+- `data/src/main/kotlin/cloud/trotter/log/strength/data/TrackerRepository.kt`: one named argument follows the separated age flag; no transaction, schema or storage changes.
+- `domain/src/test/kotlin/cloud/trotter/log/strength/domain/planner/`: new `SessionBudgetTest.kt`; updated `PlannerTest.kt`, `DoseLadderTest.kt`, `VolumeBalanceTest.kt`, `SetCountTest.kt`, `PlannerRunTest.kt`, `PlannerBothTest.kt`, `PlannerSprintTest.kt`.
+- `domain/src/test/kotlin/cloud/trotter/log/strength/domain/progression/ProgressionOlderLayoffTest.kt`.
+- `docs/briefs/wizard-design-2026-11-08.md`: this revision and report.
+
+### Beyond the spec
+
+No additional behavior changes. To preserve existing coverage after the 60-minute fill fixture stopped being blocked, the step-zero assertions use a separate reserved-budget fixture. The General rest fixture reserves 150 seconds so it still reaches step 5. The live caller's named-argument update remains required to distinguish age from New status; no Room, backup, app or wire changes were made. No network calls, subagents, builds or tests were used. Compilation and test execution remain for CI under the task's hard rules. The known `AppCrashesTest > mainLooperFailureFailsTheStep` playtest ClassCastException is unchanged and remains a follow-up. No files were staged, committed or pushed.

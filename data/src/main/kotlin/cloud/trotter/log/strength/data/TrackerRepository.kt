@@ -1703,7 +1703,7 @@ class TrackerRepository(
             val expected = Progression.expectedRecurrenceDays(maxOf(1, training.size), daysPerWeek, appearances)
             val ctx = Progression.Context(unit, catalog.find(track.exerciseId)?.equipment.orEmpty().toSet(), steps, today, light = light)
             val opening = try {
-                Progression.atStart(rule, WorkingRows.cleared(SetJson.decodeSets(track.plannedJson)), last, expected, ctx, olderOrNew = olderAdult)
+                Progression.atStart(rule, WorkingRows.cleared(SetJson.decodeSets(track.plannedJson)), last, expected, ctx, olderAdult = olderAdult)
             } catch (_: RuntimeException) {
                 // A malformed row must never block Start; the track opens as stored.
                 null

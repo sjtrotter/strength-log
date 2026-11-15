@@ -99,23 +99,55 @@ class PlannerBothTest {
         }
     }
 
-    @Test fun `D15 thirty minutes uses the full lift budget and only attaches runs that fit`() {
+    @Test fun `D15 thirty minutes attaches a run with room after the workout`() {
         val answers = answers(days = 1, minutes = 30).copy(mains = emptyList(),
             excluded = ExerciseLibrary.entries.filter { it.id != "plank" }.map { it.id }.toSet())
         val draft = plan(answers)
         val lift = plan(answers.copy(branch = PlanBranch.LIFT))
-        assertTrue(lift.program.days.any { SessionBudget.seconds(it, answers.goal) <= 600 })
-        assertTrue(draft.program.days.any { it.cardioBlock != null })
-        for ((index, day) in draft.program.days.withIndex()) {
-            assertEquals(lift.program.days[index], day.copy(cardioBlock = null, cardioRule = null))
-            if (day.cardioBlock != null) {
-                assertTrue(SessionBudget.seconds(day, answers.goal) <= 1800)
-                if (draft.sessions[day.id] == RunSession.EASY) {
-                    val seconds = (day.cardioBlock.sets.single().end as Measure.Time).seconds
-                    assertTrue(seconds >= 1200 && seconds % 60 == 0)
+        // audit 2026-11-13, row 13: lift=300+2*(15+45+60)=540;
+        // floor((1800-540)/60)*60=1260 run seconds, total 540+1260=1800.
+        assertEquals(540, SessionBudget.seconds(lift.program.days.single(), answers.goal))
+        assertEquals(block(1260), draft.program.days.single().cardioBlock)
+        assertEquals(mapOf("A" to RunSession.EASY), draft.sessions)
+        assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null, cardioRule = null))
+        assertEquals(1800, SessionBudget.seconds(draft.program.days.single(), answers.goal))
+    }
+
+    @Test fun `D15 thirty minutes limits quality to the runs that fit`() {
+        for (test in FitnessTest.entries) for (days in listOf(5, 6)) {
+            for (experience in listOf(RunExperience.SOME, RunExperience.RACING)) {
+                for (history in listOf(KnownLoads.NONE, known(32_000, 12_000))) {
+                    val answers = answers(days = days, minutes = 30).copy(
+                        run = RunAnswers(RunGoal.FITNESS_TEST, experience, test = test))
+                    val draft = plan(answers, history)
+                    // A/B/C/E/F lifts = 798/768/1788/798/768 s; G = 300+4*135+6*105+2*123=1716 s.
+                    // B's 4*400*0.36+3*120=924 s fits: 768+924=1692 <= 1800.
+                    // E's 900 s tempo fits at 1698, but two runs allow one quality session.
+                    // Its EASY replacement needs 1200 s; 798+1200=1998 > 1800, so E has no run.
+                    assertEquals(mapOf("B" to RunSession.TEST_INTERVALS), draft.sessions)
+                    val estimates = listOf(798, 1704, 1788, 0, 798, 768) + if (days == 6) listOf(1716) else emptyList()
+                    assertEquals(estimates, draft.program.days.map { SessionBudget.seconds(it, answers.goal) })
+                    val tempoDay = draft.program.days.single { it.id == "E" }
+                    assertNull(tempoDay.cardioBlock)
+                    assertNull(tempoDay.cardioRule)
+                    assertFalse(draft.reasons.any { it is PlanReason.OverBudget || it is PlanReason.RunCapped })
                 }
             }
         }
+    }
+
+    @Test fun `D15 thirty minutes keeps two quality sessions when five runs fit`() {
+        val answers = answers(days = 5, minutes = 30).copy(mains = emptyList(),
+            excluded = ExerciseLibrary.entries.filter { it.id !in setOf("plank", "pallof", "cable_crunch") }.map { it.id }.toSet(),
+            run = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME))
+        val draft = plan(answers, KnownLoads.NONE)
+        // Core-only lifts = 540/510/510/540/510 s. EASY runs take 1260 s;
+        // test intervals take 924 s and tempo takes 900 s, so all five runs fit.
+        assertEquals(mapOf("A" to RunSession.EASY, "B" to RunSession.TEST_INTERVALS, "C" to RunSession.EASY,
+            "E" to RunSession.TEMPO, "F" to RunSession.EASY), draft.sessions)
+        assertEquals(listOf(1800, 1446, 1770, 0, 1440, 1770),
+            draft.program.days.map { SessionBudget.seconds(it, answers.goal) })
+        assertTrue(draft.reasons.isEmpty())
     }
 
     @Test fun `D15 recomputes the full budget excess after adding a run`() {

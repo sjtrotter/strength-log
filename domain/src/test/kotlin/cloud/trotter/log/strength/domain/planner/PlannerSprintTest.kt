@@ -63,7 +63,9 @@ class PlannerSprintTest {
         assertTrue(draft.reasons.isEmpty())
         assertEquals(PlanGoal.Sprint(100), draft.goal)
         assertNull(draft.phase)
-        assertEquals(listOf(2699, 0, 3326), seconds(draft))
+        // audit 2026-11-13, row 13: plyos=3*(15+15*3+60)+(15+20*3+60)=495.
+        // A=794+495+3*210+6*129=2693; C=1091+9*210+2*(15+4*3+60)=3155.
+        assertEquals(listOf(2693, 0, 3155), seconds(draft))
     }
 
     @Test fun `a 100 m plan at three days matches the table`() {
@@ -78,7 +80,8 @@ class PlannerSprintTest {
         assertEquals(mapOf("A" to RunSession.ACCELERATION, "D" to RunSession.MAX_VELOCITY), draft.sessions)
         assertEquals(acc0, day(draft, "A").cardioBlock)
         assertEquals(maxv0, day(draft, "D").cardioBlock)
-        assertEquals(listOf(1214, 0, 1995, 1091, 0), seconds(draft))
+        // audit 2026-11-13, row 13: A=794+495=1289; C=300+3*210+6*129+2*87=1878.
+        assertEquals(listOf(1289, 0, 1878, 1091, 0), seconds(draft))
         assertTrue(draft.reasons.isEmpty())
     }
 
@@ -89,7 +92,8 @@ class PlannerSprintTest {
             ProgramDayKind.CARDIO, ProgramDayKind.STRENGTH), draft.program.days.map { it.kind })
         assertEquals(listOf("bb_back_squat", "rdl", "bss"), ids(draft, "B"))
         assertEquals(listOf("trap_dl", "rdl", "bss", "nordic"), ids(draft, "E"))
-        assertEquals(listOf(1214, 1785, 0, 1091, 1995), seconds(draft))
+        // audit 2026-11-13, row 13: A=794+495=1289; B=300+3*210+6*129=1704; E=B+2*87=1878.
+        assertEquals(listOf(1289, 1704, 0, 1091, 1878), seconds(draft))
         assertTrue(draft.reasons.isEmpty())
     }
 
@@ -118,20 +122,23 @@ class PlannerSprintTest {
         assertEquals(37, SprintEvent.YD40.metres)
     }
 
-    @Test fun `200 and 400 m at two days fit sixty minutes at ladder step three`() {
+    @Test fun `200 and 400 m at two days fit sixty minutes at ladder step one`() {
         for (event in listOf(SprintEvent.M200, SprintEvent.M400)) {
             val reference = Planner.plan(sprint(event, days = 2, minutes = 75))
             val draft = Planner.plan(sprint(event, days = 2, minutes = 60))
             assertTrue(reference.reasons.isEmpty(), "$event reference reasons")
-            assertEquals(listOf(2996, 0, 3903), seconds(reference), "$event reference seconds")
-            assertEquals(listOf(PlanReason.ShortSession("C", 3)), draft.reasons, "$event reasons")
-            assertEquals(listOf(2996, 0, 3018), seconds(draft), "$event seconds")
+            // audit 2026-11-13, row 13: A=1091+495+3*210+6*129=2990;
+            // C=1668+9*210+2*87=3732. Step 1 drops Nordic: 1668+9*210=3558 <= 3600.
+            assertEquals(listOf(2990, 0, 3732), seconds(reference), "$event reference seconds")
+            assertEquals(listOf(PlanReason.ShortSession("C", 1)), draft.reasons, "$event reasons")
+            assertEquals(listOf(2990, 0, 3558), seconds(draft), "$event seconds")
             for (id in listOf("A", "B")) {
                 assertEquals(day(reference, id), day(draft, id), "$event $id unchanged")
             }
             assertEquals(listOf("bb_bench", "ohp", "bb_row"), ids(draft, "C"), "$event C lifts")
             assertEquals(List(3) { SlotRole.MAIN }, roles(draft, "C"), "$event C roles")
-            assertEquals(listOf(2, 2, 2), day(draft, "C").exercises.map { it.targetSets }, "$event C sets")
+            // audit 2026-11-13, row 13: 1668+9*210=3558 fits before step 3; all three mains keep three sets.
+            assertEquals(listOf(3, 3, 3), day(draft, "C").exercises.map { it.targetSets }, "$event C sets")
             assertEquals(day(reference, "C").cardioBlock, day(draft, "C").cardioBlock, "$event C block")
             assertEquals(day(reference, "C").cardioRule, day(draft, "C").cardioRule, "$event C rule")
             assertEquals(reference.sessions, draft.sessions, "$event sessions")
@@ -155,7 +162,8 @@ class PlannerSprintTest {
         assertEquals("Upper", upper.title)
         assertEquals(listOf("bb_bench", "ohp", "bb_row"), ids(six, "G"))
         assertEquals(List(3) { SlotRole.MAIN }, roles(six, "G"))
-        assertEquals(2325, SessionBudget.seconds(upper, LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 300+9*(15+5*3+180)=2190.
+        assertEquals(2190, SessionBudget.seconds(upper, LiftGoal.STRENGTH))
         assertTrue(five.reasons.isEmpty())
         assertTrue(six.reasons.isEmpty())
     }
@@ -168,7 +176,8 @@ class PlannerSprintTest {
         assertEquals(CardioRule(null, RunSession.ACCELERATION, steps = 12), a.cardioRule)
         assertEquals(160, requireNotNull(a.cardioBlock).sets.filter { it.role == CardioRole.WORK }
             .sumOf { (it.end as Measure.Distance).metres })
-        assertEquals(1918, SessionBudget.seconds(a, LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 1498 planned sprint seconds + 495 plyometric seconds = 1993.
+        assertEquals(1993, SessionBudget.seconds(a, LiftGoal.STRENGTH))
         assertEquals(maxv0, day(draft, "D").cardioBlock)
         assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), day(draft, "D").cardioRule)
         val strain = Planner.plan(sprint(answers = recent.copy(hamstringStrain = true)))
@@ -210,9 +219,11 @@ class PlannerSprintTest {
         val one = Planner.plan(sprint(days = 1, minutes = 30))
         assertEquals(listOf(PlanReason.ShortSession("A", 1)), one.reasons)
         assertEquals(listOf("bb_back_squat"), ids(one, "A"))
-        assertEquals(1469, SessionBudget.seconds(day(one, "A"), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: step 1 keeps squat only: 794+3*(15+5*3+180)=1424.
+        assertEquals(1424, SessionBudget.seconds(day(one, "A"), LiftGoal.STRENGTH))
         val recent = Planner.plan(sprint(minutes = 30, answers = SprintAnswers(sprintedRecently = true)))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 118),
+        // audit 2026-11-13, row 13: A=1498+495=1993; excess=193. C full=1878 > 1800; step 1=300+3*210=930.
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 193),
             PlanReason.ShortSession("C", 1)), recent.reasons)
         assertEquals(listOf("pogo_hop", "a_skip"), ids(recent, "A"))
     }

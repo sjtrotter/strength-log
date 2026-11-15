@@ -82,7 +82,7 @@ object SlotSeeding {
         )
     }
 
-    private fun floor(equipment: Collection<Equipment>, unit: WeightUnit): Double = when {
+    internal fun floor(equipment: Collection<Equipment>, unit: WeightUnit): Double = when {
         Equipment.BARBELL in equipment || Equipment.TRAP_BAR in equipment -> unit.toLb(PlateMath.barWeight(unit))
         Equipment.EZ_BAR in equipment || Equipment.MACHINE in equipment || Equipment.CABLE in equipment ->
             if (unit == WeightUnit.LB) 20.0 else unit.toLb(10.0)

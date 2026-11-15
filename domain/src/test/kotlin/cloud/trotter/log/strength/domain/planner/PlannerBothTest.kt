@@ -99,23 +99,21 @@ class PlannerBothTest {
         }
     }
 
-    @Test fun `D15 thirty minutes uses the full lift budget and only attaches runs that fit`() {
+    @Test fun `D15 thirty minutes attaches a run only with room after the cool-down`() {
         val answers = answers(days = 1, minutes = 30).copy(mains = emptyList(),
             excluded = ExerciseLibrary.entries.filter { it.id != "plank" }.map { it.id }.toSet())
         val draft = plan(answers)
         val lift = plan(answers.copy(branch = PlanBranch.LIFT))
-        assertTrue(lift.program.days.any { SessionBudget.seconds(it, answers.goal) <= 600 })
-        assertTrue(draft.program.days.any { it.cardioBlock != null })
-        for ((index, day) in draft.program.days.withIndex()) {
-            assertEquals(lift.program.days[index], day.copy(cardioBlock = null, cardioRule = null))
-            if (day.cardioBlock != null) {
-                assertTrue(SessionBudget.seconds(day, answers.goal) <= 1800)
-                if (draft.sessions[day.id] == RunSession.EASY) {
-                    val seconds = (day.cardioBlock.sets.single().end as Measure.Time).seconds
-                    assertTrue(seconds >= 1200 && seconds % 60 == 0)
-                }
-            }
-        }
+        // audit 2026-11-13, row 13: 300+240+2*(15+45+60)=780; remaining 1020 < 1200, so no run.
+        assertEquals(780, SessionBudget.seconds(lift.program.days.single(), answers.goal))
+        assertTrue(draft.program.days.all { it.cardioBlock == null })
+        assertTrue(draft.sessions.isEmpty())
+        assertEquals(lift.program, draft.program)
+        val offAnswers = answers.copy(coolDown = false)
+        val off = plan(offAnswers)
+        // audit 2026-11-13, row 13: without cool-down, lift=540; floor((1800-540)/60)*60=1260 run seconds.
+        assertEquals(block(1260), off.program.days.single().cardioBlock)
+        assertEquals(1800, SessionBudget.seconds(off.program.days.single(), answers.goal, coolDown = false))
     }
 
     @Test fun `D15 recomputes the full budget excess after adding a run`() {

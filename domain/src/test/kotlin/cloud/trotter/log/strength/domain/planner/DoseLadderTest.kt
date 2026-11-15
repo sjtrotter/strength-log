@@ -31,8 +31,10 @@ class DoseLadderTest {
             assertEquals(0, slot.rule!!.scheme.backoffs)
             assertEquals(120, slot.rule!!.restSeconds)
         }
-        assertEquals(1800, SessionBudget.seconds(day, LiftGoal.STRENGTH))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6)), draft.reasons)
+        // audit 2026-11-13, row 13: 540 + 5*((15+3*3+90)+(15+5*3+120)) = 1860.
+        assertEquals(1860, SessionBudget.seconds(day, LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 1860-1800 = 60 seconds over after core drops at step 6.
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 60)), draft.reasons)
         assertEquals(listOf(SetKind.RAMP, SetKind.TOP), draft.working.getValue(SlotKey("A", 0)).map { it.kind })
     }
 
@@ -52,7 +54,9 @@ class DoseLadderTest {
             assertEquals(1, day.exercises.count { it.rule?.role == SlotRole.CORE })
             assertEquals(2, day.exercises.single { it.rule?.role == SlotRole.CORE }.targetSets)
             assertEquals(mains.size + 1, day.exercises.size)
-            assertEquals(if (index == 0) 1590 else 1410, SessionBudget.seconds(day, LiftGoal.STRENGTH))
+            // audit 2026-11-13, row 13: A = 540+3*(114+210)+2*120 = 1752;
+            // B = 540+2*2*210+2*99 = 1578. Steps 4 and 3 stay.
+            assertEquals(if (index == 0) 1752 else 1578, SessionBudget.seconds(day, LiftGoal.STRENGTH))
         }
         assertEquals(listOf(PlanReason.ShortSession("A", 4), PlanReason.ShortSession("B", 3)), draft.reasons)
     }
@@ -63,20 +67,26 @@ class DoseLadderTest {
         assertEquals(listOf("single_leg_stance", "farmers_carry"), day.exercises.take(2).map { it.exerciseId })
         assertEquals(referenceAnswers().mains, day.exercises.filter { it.rule?.role == SlotRole.MAIN }.map { it.exerciseId })
         assertFalse(day.exercises.any { it.rule?.role == SlotRole.CORE })
-        assertEquals(2160, SessionBudget.seconds(day, LiftGoal.STRENGTH))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 360)), short.reasons)
-        assertEquals(6, ceil(short.reasons.filterIsInstance<PlanReason.OverBudget>().single().seconds / 60.0).toInt())
+        // audit 2026-11-13, row 13: balance = 2*(15+30*2+30)+2*(15+20+60) = 400;
+        // 540+400+5*((15+3*3+90)+(15+6*3+120)) = 2275, excess 475, ceil(475/60) = 8.
+        assertEquals(2275, SessionBudget.seconds(day, LiftGoal.STRENGTH))
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 475)), short.reasons)
+        assertEquals(8, ceil(short.reasons.filterIsInstance<PlanReason.OverBudget>().single().seconds / 60.0).toInt())
         assertEquals(listOf(30, 30), short.working.getValue(SlotKey("A", 0)).map { it.seconds })
         assertEquals(listOf(20, 20), short.working.getValue(SlotKey("A", 1)).map { it.seconds })
         val longer = Planner.plan(answers(minutes = 45, older = true))
-        assertEquals(listOf(PlanReason.ShortSession("A", 1)), longer.reasons)
-        assertEquals(2520, SessionBudget.seconds(longer.program.strengthDays.single(), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: step 1 = 540+400+5*2*153+240 = 2710 > 2700;
+        // step 4 = 540+400+5*267+240 = 2515, retaining core.
+        assertEquals(listOf(PlanReason.ShortSession("A", 4)), longer.reasons)
+        assertEquals(2515, SessionBudget.seconds(longer.program.strengthDays.single(), LiftGoal.STRENGTH))
         val four = Planner.plan(answers(older = true).copy(mains = referenceAnswers().mains!! - "bb_row"))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 60)), four.reasons)
-        assertEquals(1860, SessionBudget.seconds(four.program.strengthDays.single(), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: 540+400+4*267 = 2008; excess 2008-1800 = 208.
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 208)), four.reasons)
+        assertEquals(2008, SessionBudget.seconds(four.program.strengthDays.single(), LiftGoal.STRENGTH))
         val three = Planner.plan(answers(older = true).copy(mains = referenceAnswers().mains!! - setOf("bb_row", "ohp")))
-        assertEquals(listOf(PlanReason.ShortSession("A", 4)), three.reasons)
-        assertEquals(1770, SessionBudget.seconds(three.program.strengthDays.single(), LiftGoal.STRENGTH))
+        // audit 2026-11-13, row 13: step 4 = 540+400+3*267+240 = 1981; step 6 drops core: 1741.
+        assertEquals(listOf(PlanReason.ShortSession("A", 6)), three.reasons)
+        assertEquals(1741, SessionBudget.seconds(three.program.strengthDays.single(), LiftGoal.STRENGTH))
     }
 
     @Test fun `General mains retain the resolved ninety second rest through step five`() {
@@ -92,7 +102,9 @@ class DoseLadderTest {
     @Test fun `two seventy five minute days need no ladder`() {
         val draft = Planner.plan(answers(days = 2, minutes = 75))
         assertTrue(draft.reasons.isEmpty())
-        assertEquals(listOf(3960, 4215), draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
+        // audit 2026-11-13, row 13: A = 540+3*744+4*150+3*99+2*120 = 3909;
+        // B = 540+2*744+8*150+3*138+4*99+2*99 = 4236. No ladder or slot change.
+        assertEquals(listOf(3909, 4236), draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
         val last = draft.program.strengthDays.last().exercises
         assertEquals(listOf("ez_curl", "seated_curl", "pallof"), last.takeLast(3).map { it.exerciseId })
         val curl = last.single { it.exerciseId == "seated_curl" }

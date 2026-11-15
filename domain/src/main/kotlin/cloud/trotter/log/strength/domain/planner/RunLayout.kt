@@ -124,7 +124,7 @@ internal fun runDraft(
         if (session != RunSession.LONG) {
             if (session != RunSession.LADDER) {
                 while (block.sets.count { it.role == CardioRole.WORK } > 1 &&
-                    SessionBudget.seconds(day.copy(exercises = emptyList()), strengthGoal) > answers.minutes * 60) {
+                    SessionBudget.seconds(day.copy(exercises = emptyList()), strengthGoal, answers.coolDown) > answers.minutes * 60) {
                     block = block.withoutLastRound()
                     day = day.copy(cardioBlock = block)
                 }
@@ -134,7 +134,7 @@ internal fun runDraft(
                 reasons += dayReasons
                 day = fittedDay
             } else {
-                val excess = SessionBudget.seconds(day, strengthGoal) - answers.minutes * 60
+                val excess = SessionBudget.seconds(day, strengthGoal, answers.coolDown) - answers.minutes * 60
                 if (excess > 0) reasons += PlanReason.OverBudget(id, excess)
             }
         }

@@ -51,7 +51,7 @@ class PlannerTest {
                      overrides: Map<RestCategory, Int> = emptyMap()) =
         RestPolicy.effectiveRestSeconds(kind, TrackingType.WEIGHTED, overrides, rule, goal)
 
-    @Test fun `case 1 reference rotation keeps every main and second exposure without reducing dose`() {
+    @Test fun `case 1 reference rotation keeps every main and second exposure with the audited session estimate`() {
         val draft = Planner.plan(referenceAnswers())
         assertEquals(listOf("A" to "Lower", "B" to "Upper", "C" to "Lower", "D" to "Rest", "E" to "Upper"),
             draft.program.days.map { it.id to it.title })
@@ -67,15 +67,21 @@ class PlannerTest {
             ids(SlotRole.SECONDARY))
         assertEquals(referenceAnswers().mains!!.toSet(), ids(SlotRole.MAIN).flatten().toSet())
         assertEquals(5, ids(SlotRole.MAIN).flatten().size)
-        assertEquals(listOf(2700, 3525, 2700, 3195),
+        // audit 2026-11-13, row 13: base 540; ramped main 744, secondary set 150,
+        // accessory set 129 (pullup 123), isolation 99, arm pair 138, plank 120.
+        // A = 540+744+300+387+297+297+240 = 2805; B step 1 = 540+1488+300+198 = 2526.
+        // C = 540+744+300+387+297+297+198 = 2763; E = 540+744+450+300+369+297+414+240 = 3354.
+        assertEquals(listOf(2805, 2526, 2763, 3354),
             draft.program.strengthDays.map { SessionBudget.seconds(it, LiftGoal.STRENGTH) })
         assertEquals(3, slot(draft, "E", "bb_bench").targetSets)
         assertEquals(2, slot(draft, "E", "bb_row").targetSets)
         val weekly = SetCount.weekly(draft.program)
         assertEquals(6.0, weekly[Muscle.CHEST])
         assertEquals(8.0, weekly[Muscle.FRONT_DELT])
-        assertEquals(11.5, weekly[Muscle.TRICEPS])
-        assertTrue(draft.reasons.isEmpty())
+        // audit 2026-11-13, row 13: bench 6/2 + press 5/2 + E arm partner 3 = 8.5; B loses arms.
+        assertEquals(8.5, weekly[Muscle.TRICEPS])
+        // audit 2026-11-13, row 13: B starts at 3606 > 3600; step 1 leaves 2526.
+        assertEquals(listOf(PlanReason.ShortSession("B", 1)), draft.reasons)
         assertEquals(6, draft.deloadEveryCycles)
         for (day in draft.program.strengthDays) for (slot in day.exercises) {
             assertTrue(slot.rule != null)
@@ -134,6 +140,22 @@ class PlannerTest {
                 scheme = slot(draft, "A", "bb_back_squat").rule!!.scheme).map { it.weightLb })
     }
 
+    @Test fun `older carries open at the dumbbell floor per hand in either unit`() {
+        for (unit in WeightUnit.entries) {
+            val draft = Planner.plan(SetupAnswers(olderAdult = true, unit = unit, minutes = 90))
+            for (day in draft.program.strengthDays) {
+                val carry = day.exercises.single { it.exerciseId == "farmers_carry" }
+                assertEquals(2, carry.targetSets)
+                assertFalse(carry.rule!!.state.calibrating)
+                assertTrue(ExerciseLibrary.get(carry.exerciseId).perHand)
+                val expectedLb = if (unit == WeightUnit.LB) 10.0 else unit.toLb(5.0)
+                assertEquals(List(2) { LoggedSet(expectedLb, 0, SetKind.WORK, seconds = 20) },
+                    rows(draft, day.id, carry.exerciseId))
+            }
+        }
+        assertEquals(GoalSource.Time(40, 50.0), ExerciseLibrary.get("farmers_carry").goal)
+    }
+
     @Test fun `case 23 older plans keep balance first and one squat track for layoff recurrence`() {
         for (goal in LiftGoal.entries) for (experience in LiftExperience.entries) {
             val answers = referenceAnswers().copy(goal = goal, experience = experience, olderAdult = true, days = 2)
@@ -157,7 +179,7 @@ class PlannerTest {
             val working = rows(draft, "A", "bb_back_squat")
             fun opening(day: Long) = Progression.atStart(rule, working, 1000, recurrence,
                 Progression.Context(WeightUnit.LB, ExerciseLibrary.get("bb_back_squat").equipment.toSet(),
-                    LoadSteps.defaults(WeightUnit.LB), day), olderOrNew = true)
+                    LoadSteps.defaults(WeightUnit.LB), day), olderAdult = true)
             assertEquals(LayoffKind.None, opening(1010).layoff)
             assertEquals(working, opening(1010).rows)
             val recalibrated = opening(1025)

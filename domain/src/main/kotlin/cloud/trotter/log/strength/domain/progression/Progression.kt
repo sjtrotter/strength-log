@@ -47,21 +47,26 @@ object Progression {
 
     /** Rows a run opens with: layoff scaling and the light cycle applied as a view. Nothing is written back.
      *  [lastTrainedEpochDay] is the exercise's last session anywhere in the plan; [expectedRecurrenceDays] comes from the plan.
-     *  [olderOrNew] is the 65+ path or a New lifter with under six months in the log: a layoff over 14 days recalibrates. */
+     *  [newLifter] (New with under six months in the log) keeps recalibration past 14 days.
+     *  On the [olderAdult] path, under 16 slot exposures does too;
+     *  from 16 exposures, 15–42 days uses ×0.85 and ceil(2/3) working sets, then recalibrates past 42.
+     *  The 16-exposure threshold (about eight weeks at twice a week) and restart doses are practice,
+     *  informed by Lemmer 2000 and Yang 2022 (audit 2026-11-13, row 11). */
     fun atStart(
         rule: SlotRule,
         working: List<LoggedSet>,
         lastTrainedEpochDay: Long?,
         expectedRecurrenceDays: Int,
         ctx: Context,
-        olderOrNew: Boolean = false,
+        olderAdult: Boolean = false,
+        newLifter: Boolean = false,
     ): Opening {
         val layoffDays = lastTrainedEpochDay?.let { ctx.todayEpochDay - it - expectedRecurrenceDays } ?: 0L
         val layoff = when {
             layoffDays <= 3 -> LayoffKind.None
             layoffDays <= 7 -> LayoffKind.Hold
             layoffDays <= 14 -> LayoffKind.Scaled(0.95)
-            olderOrNew -> LayoffKind.Recalibrate
+            (if (olderAdult) rule.state.exposures < 16 else newLifter) -> LayoffKind.Recalibrate
             layoffDays <= 42 -> LayoffKind.Scaled(0.85)
             else -> LayoffKind.Recalibrate
         }

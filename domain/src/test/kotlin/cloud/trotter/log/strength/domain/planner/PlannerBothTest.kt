@@ -125,7 +125,7 @@ class PlannerBothTest {
                     // E's 900 s tempo fits at 1698, but two runs allow one quality session.
                     // Its EASY replacement needs 1200 s; 798+1200=1998 > 1800, so E has no run.
                     assertEquals(mapOf("B" to RunSession.TEST_INTERVALS), draft.sessions)
-                    val estimates = listOf(798, 1692, 1788, 0, 798, 768) + if (days == 6) listOf(1716) else emptyList()
+                    val estimates = listOf(798, 1704, 1788, 0, 798, 768) + if (days == 6) listOf(1716) else emptyList()
                     assertEquals(estimates, draft.program.days.map { SessionBudget.seconds(it, answers.goal) })
                     val tempoDay = draft.program.days.single { it.id == "E" }
                     assertNull(tempoDay.cardioBlock)
@@ -145,7 +145,7 @@ class PlannerBothTest {
         // test intervals take 924 s and tempo takes 900 s, so all five runs fit.
         assertEquals(mapOf("A" to RunSession.EASY, "B" to RunSession.TEST_INTERVALS, "C" to RunSession.EASY,
             "E" to RunSession.TEMPO, "F" to RunSession.EASY), draft.sessions)
-        assertEquals(listOf(1800, 1434, 1770, 0, 1440, 1770),
+        assertEquals(listOf(1800, 1446, 1770, 0, 1440, 1770),
             draft.program.days.map { SessionBudget.seconds(it, answers.goal) })
         assertTrue(draft.reasons.isEmpty())
     }

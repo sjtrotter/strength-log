@@ -9,6 +9,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -48,6 +49,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -90,6 +92,8 @@ class DayViewModelWorkoutTest {
     private lateinit var storeScope: CoroutineScope
     private lateinit var syncStore: WearSyncStore
     private lateinit var preferences: DataStore<Preferences>
+    private var restWriteGate: CompletableDeferred<Unit>? = null
+    private var restWriteReady: CompletableDeferred<Unit>? = null
 
     @Before
     fun setUp() {
@@ -101,7 +105,18 @@ class DayViewModelWorkoutTest {
         preferences = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("workout-vm", ".preferences_pb")
         }
-        settings = SettingsStore(preferences)
+        settings = SettingsStore(object : DataStore<Preferences> by preferences {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                preferences.updateData { current ->
+                    val updated = transform(current)
+                    val deadline = longPreferencesKey("phone_rest_deadline")
+                    if (updated[deadline] != null && updated[deadline] != current[deadline]) {
+                        restWriteReady?.complete(Unit)
+                        restWriteGate?.await()
+                    }
+                    updated
+                }
+        })
         repo = TrackerRepository(
             db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, clock,
         )
@@ -218,7 +233,19 @@ class DayViewModelWorkoutTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             vm.uiState.collect { emissions += it }
         }
+        val gate = CompletableDeferred<Unit>()
+        val ready = CompletableDeferred<Unit>()
+        restWriteGate = gate
+        restWriteReady = ready
         vm.logFocusedSet()
+        runCurrent()
+        assertTrue(ready.isCompleted)
+        assertTrue(track(vm, id)[0].done)
+        assertNotNull(settings.workoutRecordFlow.first()?.review)
+        assertNull(settings.phoneRestFlow.first())
+        gate.complete(Unit)
+        restWriteGate = null
+        restWriteReady = null
         runCurrent()
         assertTrue(emissions.any { it.workout?.review != null })
         assertFalse(emissions.any {
@@ -226,7 +253,101 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null
             } == true
         })
+        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
         assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+    }
+
+    @Test fun `★ a timed partner log never exposes the next round without its review`() = test {
+        prepare(listOf(bench(superset = true).copy(superset = SupersetPartner("plank"))), restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = roundTwo(vm)
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(WorkoutFocus(id, Slot.SS, 1), vm.uiState.value.workout?.focus)
+        assertNull(vm.uiState.value.workout?.review)
+        clock.now++
+        val emissions = mutableListOf<DayUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { emissions += it }
+        }
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(emissions.any { it.workout?.review != null })
+        assertFalse(emissions.any {
+            it.workout?.let { workout ->
+                workout.focus == WorkoutFocus(id, Slot.MAIN, 2) && workout.review == null
+            } == true
+        })
+        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
+        assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+    }
+
+    @Test fun `★ Log then Start never exposes the next set without its review`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val runId = requireNotNull(vm.uiState.value.runId)
+        val emissions = mutableListOf<DayUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { emissions += it }
+        }
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(repo.openRunFlow.first())
+        assertNull(settings.workoutRecordFlow.first())
+        vm.confirmStart()
+        runCurrent()
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+        assertTrue(emissions.any { it.workout?.review != null })
+        assertFalse(emissions.any {
+            it.workout?.let { workout ->
+                workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null
+            } == true
+        })
+        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
+        assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+    }
+
+    @Test fun `★ Log then Start restores the review after commit before rest starts`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val runId = requireNotNull(vm.uiState.value.runId)
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        val gate = CompletableDeferred<Unit>()
+        val ready = CompletableDeferred<Unit>()
+        restWriteGate = gate
+        restWriteReady = ready
+        vm.confirmStart()
+        runCurrent()
+        assertTrue(ready.isCompleted)
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+        assertTrue(track(vm, id)[0].done)
+        assertEquals(clock.now, track(vm, id)[0].completedAtMillis)
+        val record = requireNotNull(settings.workoutRecordFlow.first())
+        assertEquals(runId, record.runId)
+        val target = requireNotNull(record.review)
+        assertEquals(id, target.programExerciseId)
+        assertEquals(0, target.index)
+        assertEquals(clock.now, target.loggedAtMillis)
+        assertNull(record.undo)
+        assertNull(settings.phoneRestFlow.first())
+        assertTrue(runtime.armed.isEmpty())
+        vm.viewModelScope.cancel()
+        gate.complete(Unit)
+        restWriteGate = null
+        restWriteReady = null
+        runCurrent()
+        assertEquals(record, SettingsStore(preferences).workoutRecordFlow.first())
+        val restored = readyVm()
+        assertNull(settings.phoneRestFlow.first())
+        assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), restored.uiState.value.workout?.review)
+        assertFalse(track(restored, id)[1].done)
     }
 
     @Test fun `★ continue waits for effort, then ends rest and the review`() = test {

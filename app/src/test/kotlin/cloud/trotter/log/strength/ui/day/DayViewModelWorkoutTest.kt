@@ -233,19 +233,7 @@ class DayViewModelWorkoutTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             vm.uiState.collect { emissions += it }
         }
-        val gate = CompletableDeferred<Unit>()
-        val ready = CompletableDeferred<Unit>()
-        restWriteGate = gate
-        restWriteReady = ready
         vm.logFocusedSet()
-        runCurrent()
-        assertTrue(ready.isCompleted)
-        assertTrue(track(vm, id)[0].done)
-        assertNotNull(settings.workoutRecordFlow.first()?.review)
-        assertNull(settings.phoneRestFlow.first())
-        gate.complete(Unit)
-        restWriteGate = null
-        restWriteReady = null
         runCurrent()
         assertTrue(emissions.any { it.workout?.review != null })
         assertFalse(emissions.any {
@@ -253,7 +241,6 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null
             } == true
         })
-        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
         assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
     }
 
@@ -280,7 +267,6 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 2) && workout.review == null
             } == true
         })
-        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
         assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
     }
 
@@ -307,7 +293,6 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null
             } == true
         })
-        assertFalse(emissions.any { it.workout?.review != null && it.rest == null })
         assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
     }
 

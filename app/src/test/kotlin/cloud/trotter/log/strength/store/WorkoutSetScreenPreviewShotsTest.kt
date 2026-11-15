@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.ui.day.overflowReport
 import cloud.trotter.log.strength.ui.day.workoutSetTimedRepFixture
 import cloud.trotter.log.strength.ui.day.workoutSetTimedRepRunningFixture
 import cloud.trotter.log.strength.ui.day.workoutSetCardioFixture
@@ -271,7 +272,7 @@ class WorkoutSetScreenPreviewShotsTest {
             val bounds = rule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
                 .fetchSemanticsNode().boundsInRoot
-            assertFalse(results.single().hasVisualOverflow)
+            assertFalse(results.single().overflowReport(text), results.single().hasVisualOverflow)
             assertTrue("$text must be fully visible during rest", bounds.height + 1f >= results.single().size.height)
             assertTrue(bounds.bottom <= restBounds.top)
         }

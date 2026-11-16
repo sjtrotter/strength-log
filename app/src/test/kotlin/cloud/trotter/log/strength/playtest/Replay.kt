@@ -222,12 +222,10 @@ internal class Replay(
     private fun act(step: Step, deadline: StepDeadline) {
         val selector = requireNotNull(step.selector)
         val typing = step.action == "type"
-        val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true))
+        val touch = step.action == "tap" || step.action == "longPress"
+        val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true, requireVisible = touch))
         val target = resolved.interaction
         val node = resolved.node
-        if (step.action == "tap" || step.action == "longPress") {
-            requireAction(node.visibleForTouch(), "not-visible", "Node has empty or off-screen bounds; use scrollTo first")
-        }
         if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText) && !node.dropdownAnchor()) {
             throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
         }

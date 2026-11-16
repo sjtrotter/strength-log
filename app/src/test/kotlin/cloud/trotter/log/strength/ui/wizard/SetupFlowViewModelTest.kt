@@ -287,13 +287,23 @@ class SetupFlowViewModelTest {
         val vm = newViewModel(); advanceUntilIdle()
         vm.setSubGoal(LiftGoal.STRENGTH); vm.setExperience(LiftExperience.A_YEAR_OR_MORE); vm.setOlderAdult(true); vm.setDays(1); vm.setMinutes(30)
         advanceUntilIdle(); plan(vm); assertTrue(ready(vm).over); assertTrue(db.planDao().allPlans().isEmpty())
+        assertEquals(4, ready(vm).rows.single().overMinutes)
+        assertEquals(Planner.defaultMains(answers(vm).equipment), ready(vm).droppable)
         assertEquals(5, repo.plans.previewPlan(answers(vm)).program.days.single().exercises.count { it.rule?.role == SlotRole.MAIN })
         vm.dropLift("bb_row"); advanceUntilIdle(); assertEquals(4, answers(vm).mains!!.size)
+        assertFalse(ready(vm).over)
         assertEquals(4, repo.plans.previewPlan(answers(vm)).program.days.single().exercises.count { it.rule?.role == SlotRole.MAIN })
         val fresh = newViewModel(); advanceUntilIdle()
         fresh.setSubGoal(LiftGoal.STRENGTH); fresh.setExperience(LiftExperience.A_YEAR_OR_MORE); fresh.setOlderAdult(true); fresh.setDays(1); fresh.setMinutes(30)
         advanceUntilIdle(); plan(fresh); fresh.longerSessions(); advanceUntilIdle(); assertEquals(45, answers(fresh).minutes)
-        fresh.setMinutes(30); advanceUntilIdle(); fresh.onNext(); advanceUntilIdle()
+        assertFalse(ready(fresh).over)
+        fresh.setMinutes(30)
+        val preview = fresh.uiState.first { it.draft.minutes == 30 && it.plan is PlanPreviewUi.Ready }
+        assertTrue(preview.canStart); assertTrue((preview.plan as PlanPreviewUi.Ready).over)
+        fresh.onNext()
+        val completed = fresh.uiState.first { it.isComplete || it.finishError != null }
+        assertNull(completed.finishError); assertTrue(completed.isComplete)
+        assertEquals(1, db.planDao().allPlans().size)
         assertEquals(5, repo.plans.programFlow.first().days.single().exercises.count { it.rule?.role == SlotRole.MAIN })
     }
     @Test fun `the balance offer adds and removes days`() = runVmTest {

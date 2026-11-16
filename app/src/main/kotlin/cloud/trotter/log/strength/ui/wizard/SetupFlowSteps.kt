@@ -128,7 +128,7 @@ internal fun EquipmentStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     }
     SetupLabel(stringResource(R.string.settings_units))
     val focus = LocalFocusManager.current
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
         WeightUnit.entries.forEachIndexed { index, unit ->
             SegmentedButton(selected = unit == state.draft.unit, onClick = { focus.clearFocus(); actions.onUnit(unit) },
                 shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size), modifier = Modifier.heightIn(min = 48.dp)) {
@@ -143,7 +143,7 @@ internal fun EquipmentStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             StepRow.DUMBBELL -> R.string.setup_flow_step_dumbbell
             StepRow.STACK -> R.string.setup_flow_step_stack
         }))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
             row.optionsLb.forEachIndexed { index, lb ->
                 SegmentedButton(selected = row.selected == index, onClick = { actions.onStepOption(row.row, index) },
                     shape = SegmentedButtonDefaults.itemShape(index, row.optionsLb.size), modifier = Modifier.heightIn(min = 48.dp)) {

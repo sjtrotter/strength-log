@@ -54,12 +54,15 @@ class CardioOpeningTest {
 
     @Test fun `case 19 tapers from the plan goal`() {
         val day = day(18000)
-        assertEquals(block(12600), opening(day, plan = plan.copy(goalJson = PlanGoalJson.encode(half))))
-        assertEquals(block(9000), opening(day, plan = plan.copy(goalJson = PlanGoalJson.encode(half.copy(byEpochDay = TODAY + 5)))))
+        // audit 2026-11-13, row 15: 12 days out: 18000 × 0.6 = 10800.
+        assertEquals(block(10800), opening(day, plan = plan.copy(goalJson = PlanGoalJson.encode(half))))
+        // audit 2026-11-13, row 15: 5 days out: 18000 × 0.45 = 8100.
+        assertEquals(block(8100), opening(day, plan = plan.copy(goalJson = PlanGoalJson.encode(half.copy(byEpochDay = TODAY + 5)))))
         assertEquals(block(18000), opening(day, plan = plan.copy(goalJson = PlanGoalJson.encode(half.copy(byEpochDay = TODAY + 15)))))
         assertEquals(block(18000), opening(day, plan = plan.copy(goalJson = null)))
         val rower = day.copy(cardioBlock = block(18000).copy(activity = CardioActivity.ROWER))
-        assertEquals(block(12600).copy(activity = CardioActivity.ROWER),
+        // audit 2026-11-13, row 15: 12 days out: 18000 × 0.6 = 10800.
+        assertEquals(block(10800).copy(activity = CardioActivity.ROWER),
             opening(rower, plan = plan.copy(goalJson = PlanGoalJson.encode(half))))
     }
 

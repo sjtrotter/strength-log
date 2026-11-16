@@ -105,6 +105,12 @@ class PlannerRunTest {
         assertNull(RunCap.anchor(history, TODAY + 30))
     }
 
+    @Test fun `the easy stop follows the current long run`() {
+        assertEquals(1440, easyRunSeconds(60, true, block(time(1980))))
+        assertEquals(1500, easyRunSeconds(60, true, block(time(2079))))
+        assertEquals(3300, easyRunSeconds(60, false, null))
+    }
+
     @Test fun `case 19 stored long run opens through the existing taper`() {
         val draft = plan(half().copy(goalSeconds = 6300, dateEpochDay = TODAY + 12), known(17_000, 6000))
         assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, 6300, TODAY + 12), draft.goal)
@@ -113,8 +119,10 @@ class PlannerRunTest {
         assertTrue(PlanReason.DateTooClose in draft.reasons)
         fun opening(id: String, today: Long) = Progression.cardioAtStart(requireNotNull(day(draft, id).cardioBlock), null,
             CardioHistory(), draft.goal, Progression.CardioContext(today, null, 0))
-        assertEquals(block(distance(12_600)), opening("D", TODAY))
-        assertEquals(block(distance(9000)), opening("D", TODAY + 7))
+        // audit 2026-11-13, row 15: 12 days out, 18000 × 0.6 = 10800.
+        assertEquals(block(distance(10_800)), opening("D", TODAY))
+        // audit 2026-11-13, row 15: 5 days out, 18000 × 0.45 = 8100.
+        assertEquals(block(distance(8100)), opening("D", TODAY + 7))
         assertTrue(opening("B", TODAY).sets.single().hard)
     }
 

@@ -115,7 +115,7 @@ internal fun runDraft(
         val session = entry.session
         if (session == null) return@mapIndexed ProgramDay(id, "Rest", "", emptyList(), kind = ProgramDayKind.REST)
         sessions[id] = session
-        val template = template(session, easySeconds(answers.minutes, entry.strength, long))
+        val template = template(session, easyRunSeconds(answers.minutes, entry.strength, long))
         var block = if (session == RunSession.LADDER) template else RunCap.capped(template, anchor, pace)
         if (block != template) reasons += PlanReason.RunCapped(id)
         val exercises = if (entry.strength) strengthBlock(strength++, blockAnswers, mains) else emptyList()

@@ -90,13 +90,13 @@ class CardioRuleJsonTest {
 
     @Test fun `sprint step and trial cycles round trip and remain absent at default`() {
         for ((rule, json) in listOf(
-            CardioRule(null, RunSession.ACCELERATION, steps = 5, credits = 1, sprintStepCycle = 4, sprintTrialCycle = 9) to
+            CardioRule(null, RunSession.ACCELERATION, steps = 5, credits = 1, stepCycle = 4, sprintTrialCycle = 9) to
                 """{"session":"ACCELERATION","steps":5,"credits":1,"sprintStepCycle":4,"sprintTrialCycle":9}""",
             CardioRule(null, RunSession.MAX_VELOCITY, sprintTrialCycle = 0) to
                 """{"session":"MAX_VELOCITY","sprintTrialCycle":0}""",
-            CardioRule(null, RunSession.MAX_VELOCITY, steps = 1, sprintStepCycle = 0) to
+            CardioRule(null, RunSession.MAX_VELOCITY, steps = 1, stepCycle = 0) to
                 """{"session":"MAX_VELOCITY","steps":1,"sprintStepCycle":0}""",
-            CardioRule(null, RunSession.SPRINT_TEMPO, steps = 1, sprintStepCycle = 0) to
+            CardioRule(null, RunSession.SPRINT_TEMPO, steps = 1, stepCycle = 0) to
                 """{"session":"SPRINT_TEMPO","steps":1,"sprintStepCycle":0}""",
             CardioRule(null, RunSession.ACCELERATION) to """{"session":"ACCELERATION"}""",
         )) {
@@ -115,6 +115,17 @@ class CardioRuleJsonTest {
             assertNull(CardioRuleJson.decode(invalid))
             assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
         }
+    }
+
+    @Test fun `easy run step cycle keeps the existing JSON key`() {
+        val json = """{"session":"EASY","sprintStepCycle":3}"""
+        val rule = CardioRule(null, RunSession.EASY, stepCycle = 3)
+        assertEquals(rule, CardioRuleJson.decode(json))
+        assertEquals(json, CardioRuleJson.encode(rule))
+        CardioRuleJson.validate(json)
+        val invalid = """{"session":"THRESHOLD","sprintStepCycle":0}"""
+        assertNull(CardioRuleJson.decode(invalid))
+        assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
     }
 
     @Test fun `v0_11 rules decode and re-encode byte-identical`() {

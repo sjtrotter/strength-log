@@ -239,13 +239,15 @@ object Progression {
     }
 
     /** [measure] and [percent] are the day's resolved A16 settings ([CardioMeasures.resolve], the day's or plan's
-     *  percent); [runCap] is the plan's Run cap setting, on by default. [sprint] is read on sprint days, which require it. */
+     *  percent); [runCap] is the plan's Run cap setting, on by default. [sprint] is read on sprint days, which require it;
+     *  [easy] opts an easy run into growth up to its session stop, once per rotation. */
     data class CardioContext(
         val todayEpochDay: Long,
         val measure: ProgressMeasure?,
         val percent: Int,
         val runCap: Boolean = true,
         val sprint: SprintContext? = null,
+        val easy: EasyRunContext? = null,
     )
 
     /** The block a cardio day opens with, as a view: the taper from [goal]'s date, then the run cap against [recent].
@@ -261,10 +263,12 @@ object Progression {
         return if (ctx.runCap) RunCap.capped(tapered, RunCap.anchor(recent, ctx.todayEpochDay), recent.secondsPerMetre) else tapered
     }
 
-    /** After Finish: next time's block and rule. A ladder day moves by [effort] (null reads as Easy, the ladder's band)
-     *  and [pain]; any other day takes A16's increase on full success, capped against [recent] and this session.
-     *  A ruled day: an easy run repeats, a long run takes A16's increase up to its target, and a quality session adds
-     *  one unit of its range every two counted sessions (design §3.1); a sprint day steps every two counted sessions
+    /** After Finish: next time's block and rule. A ladder day advances only on a finished session rated Easy;
+     *  Good or no word repeats; Hard or Pain drops one (audit 2026-11-13 row 3).
+     *  Other days take A16's increase on full success, capped against [recent] and this session.
+     *  A ruled easy run with [CardioContext.easy] grows up to its stop once per rotation; Hard or Pain holds
+     *  as practice (audit 2026-11-13 row 4). A long run grows up to its target; a quality session adds one unit
+     *  of its range every two counted sessions (design §3.1). A sprint day steps every two counted sessions
      *  at most once per rotation ([SprintRules]). */
     fun cardioAfterSession(
         block: CardioBlock,
@@ -279,10 +283,9 @@ object Progression {
         val level = rule?.ladderLevel
         if (rule != null && level != null) {
             val finished = CardioMeasures.fullSuccess(block, results)
-            val word = effort ?: CardioEffort.EASY
             val next = when {
-                pain || word == CardioEffort.HARD -> maxOf(1, level - 1)
-                !finished || word == CardioEffort.GOOD -> level
+                pain || effort == CardioEffort.HARD -> maxOf(1, level - 1)
+                !finished || effort != CardioEffort.EASY -> level
                 level == RunWalkLadder.TOP -> return CardioOutcome(block, rule.copy(ladderLevel = null), CardioChange.LadderDone)
                 else -> level + 1
             }
@@ -291,10 +294,16 @@ object Progression {
         }
         val session = rule?.session
         return when {
-            rule == null || session == null -> grown(block, rule, results, recent, ctx) { it }
-            session == RunSession.EASY -> repeat()
+            rule == null || session == null -> grown(block, rule, results, recent, ctx) { null }
+            session == RunSession.EASY -> {
+                val easy = ctx.easy
+                if (easy == null || pain || effort == CardioEffort.HARD || rule.stepCycle == easy.cyclesCompleted ||
+                    block.sets.any { it.role == CardioRole.WORK && it.end !is Measure.Time }) return repeat()
+                val next = grown(block, rule, results, recent, ctx) { easyStopped(it, easy) }
+                if (next.change is CardioChange.Increase) next.copy(rule = rule.copy(stepCycle = easy.cyclesCompleted)) else next
+            }
             session == RunSession.LONG -> grown(block, rule, results, recent, ctx) {
-                longStopped(it, block, rule, recent.secondsPerMetre)
+                longStopped(it, rule, recent.secondsPerMetre)
             }
             session.sprint -> SprintRules.afterSession(block, rule, session, results, effort, pain,
                 requireNotNull(ctx.sprint))
@@ -308,18 +317,27 @@ object Progression {
         results: List<CardioSetResult>,
         recent: CardioHistory,
         ctx: CardioContext,
-        stop: (CardioBlock) -> CardioBlock,
+        stop: (CardioSetSpec) -> Int?,
     ): CardioOutcome {
         fun repeat() = CardioOutcome(block, rule, CardioChange.Repeat)
         val measure = ctx.measure ?: return repeat()
         if (!CardioMeasures.fullSuccess(block, results)) return repeat()
-        val increased = stop(CardioMeasures.increased(block, measure, ctx.percent))
-        if (increased == block) return repeat()
+        val increased = CardioMeasures.increased(block, measure, ctx.percent)
+        val stopped = increased.copy(sets = increased.sets.mapIndexed { index, set ->
+            if (set.role != CardioRole.WORK) return@mapIndexed set
+            val limit = stop(set) ?: return@mapIndexed set
+            when {
+                limit <= block.sets[index].endValue() -> block.sets[index]
+                set.endValue() <= limit -> set
+                else -> set.withEndValue(limit)
+            }
+        })
+        if (stopped == block) return repeat()
         val next = if (ctx.runCap) {
-            RunCap.capped(increased, capAnchor(recent, results), recent.secondsPerMetre)
-        } else increased
+            RunCap.capped(stopped, capAnchor(recent, results), recent.secondsPerMetre)
+        } else stopped
         return if (next == block) repeat()
-        else CardioOutcome(next, rule, CardioChange.Increase(measure, capped = next != increased))
+        else CardioOutcome(next, rule, CardioChange.Increase(measure, capped = next != stopped))
     }
 
     private fun capAnchor(recent: CardioHistory, results: List<CardioSetResult>): RecentMaxima? {
@@ -327,24 +345,17 @@ object Progression {
         return if (session == null) recent.longest else recent.longest?.max(session) ?: session
     }
 
-    private fun longStopped(increased: CardioBlock, block: CardioBlock, rule: CardioRule, secondsPerMetre: Double?): CardioBlock =
-        increased.copy(sets = increased.sets.mapIndexed { index, set ->
-            if (set.role != CardioRole.WORK) return@mapIndexed set
-            val stop = when (set.end) {
-                is Measure.Time -> rule.longSeconds
-                is Measure.Distance -> listOfNotNull(rule.longMetres, rule.longSeconds?.let { seconds ->
-                    secondsPerMetre?.let { ceil(seconds / it - 1e-9).toInt() }
-                }).minOrNull()
-            }
-            val old = block.sets[index].endValue()
-            val new = set.endValue()
-            when {
-                stop == null -> set
-                stop <= old -> block.sets[index]
-                new <= stop -> set
-                else -> set.withEndValue(stop)
-            }
-        })
+    private fun easyStopped(set: CardioSetSpec, easy: EasyRunContext): Int? = when (set.end) {
+        is Measure.Time -> easy.stopSeconds
+        is Measure.Distance -> null
+    }
+
+    private fun longStopped(set: CardioSetSpec, rule: CardioRule, secondsPerMetre: Double?): Int? = when (set.end) {
+        is Measure.Time -> rule.longSeconds
+        is Measure.Distance -> listOfNotNull(rule.longMetres, rule.longSeconds?.let { seconds ->
+            secondsPerMetre?.let { ceil(seconds / it - 1e-9).toInt() }
+        }).minOrNull()
+    }
 
     private fun ranged(
         block: CardioBlock,

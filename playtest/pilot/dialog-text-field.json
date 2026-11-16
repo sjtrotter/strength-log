@@ -4,8 +4,15 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
+        "text": "Next"
+      }
+    },
+    {
+      "note": "Setup: Strength, six days, kilograms, a year or more."
+    },
+    {
+      "tap": {
+        "text": "Strength"
       }
     },
     {
@@ -14,24 +21,8 @@
       }
     },
     {
-      "note": "Wizard. No skip button, no 'build my own'. Closest answers it is."
-    },
-    {
       "tap": {
-        "text": "Strength-leaning",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Days per week",
-        "value": "6",
-        "ime": "done"
+        "text": "6"
       }
     },
     {
@@ -43,50 +34,8 @@
       }
     },
     {
-      "checkpoint": "split-for-6"
-    },
-    {
       "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat / Bench / Deadlift / Row (Big 4)",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Conventional",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bike / elliptical",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Finishers after lifting",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "KG",
+        "text": "kg",
         "role": "RadioButton"
       }
     },
@@ -94,23 +43,13 @@
       "checkpoint": "kg-picked"
     },
     {
-      "type": {
-        "text": "Bodyweight (kg)",
-        "value": "95.5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "41",
-        "ime": "done"
+      "tap": {
+        "text": "Next"
       }
     },
     {
       "tap": {
-        "text": "Advanced",
-        "role": "RadioButton"
+        "text": "A year or more"
       }
     },
     {
@@ -122,9 +61,7 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
+      "checkpoint": "your-lifts"
     },
     {
       "tap": {
@@ -132,7 +69,15 @@
       }
     },
     {
-      "checkpoint": "rotation-6-day"
+      "checkpoint": "recent-numbers"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "plan-6-day"
     },
     {
       "tap": {
@@ -187,7 +132,7 @@
     },
     {
       "tap": {
-        "textContains": "push/pull/legs"
+        "textContains": "Strength, 6 days"
       }
     },
     {
@@ -271,7 +216,7 @@
     },
     {
       "tap": {
-        "textContains": "push/pull/legs"
+        "textContains": "Strength, 6 days"
       }
     },
     {

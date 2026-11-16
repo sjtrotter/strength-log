@@ -9,12 +9,6 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
         "text": "Next"
       }
     },
@@ -39,49 +33,8 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "None",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "None",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "185",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
+      "expect": {
+        "text": "Your plan"
       }
     },
     {
@@ -133,7 +86,7 @@
       }
     },
     {
-      "note": "Complete squat before opening the next page and its set editor."
+      "note": "Complete the squat's second set before opening the next page and its set editor."
     },
     {
       "tap": {
@@ -151,46 +104,6 @@
       }
     },
     {
-      "scrollTo": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
       "back": true
     },
     {
@@ -202,7 +115,7 @@
     },
     {
       "tap": {
-        "text": "Next: DB Bench Press"
+        "text": "Next: Overhead Press (Barbell)"
       }
     },
     {

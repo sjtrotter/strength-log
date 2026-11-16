@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.planner.Planner
@@ -94,6 +95,10 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -730,6 +735,16 @@ class TrackerRepository(
         settings.setLegacyTimedFixupDone()
     }
 
+    /** A setup plan's own 65+ answer wins over profile age; 6c keeps this rule. */
+    private fun olderAdult(plan: PlanEntity?, global: GlobalLifter): Boolean {
+        val recipe = plan?.recipeJson
+        if (recipe == null || !SetupRecipeJson.isV2(recipe)) return global.age >= Progression.OLDER_ADULT_AGE
+        return runCatching {
+            val value = (Json.parseToJsonElement(recipe) as? JsonObject)?.get("olderAdult") as? JsonPrimitive
+            value?.booleanOrNull ?: false
+        }.getOrDefault(false)
+    }
+
     // --- live logs -----------------------------------------------------------
 
     /** Pure read: seeding and writes remain the caller's responsibility. A seed also reads other days' rows,
@@ -738,8 +753,12 @@ class TrackerRepository(
      *  Before Start it also shows each track's opening ([initialRunTracks]), still without writing. */
     fun observeDay(planId: Long, dayId: String): Flow<PerformedDay> = combine(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
-        plans.wizardAnswersFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges(), settings.globalLifterFlow) { catalog, _, global ->
-            catalog to (global.age >= Progression.OLDER_ADULT_AGE)
+        plans.wizardAnswersFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges(),
+            combine(settings.globalLifterFlow, planDao.observePlan(planId)) { global, plan ->
+                olderAdult(plan, global)
+            }.distinctUntilChanged(),
+        ) { catalog, _, olderAdult ->
+            catalog to olderAdult
         },
     ) { program, slots, tracks, answers, (catalog, olderAdult) ->
         val seeds = plans.seeds(planId, slots.forRun(tracks.droppedPartners, tracks.skippedLifts),
@@ -1031,9 +1050,10 @@ class TrackerRepository(
     suspend fun startRun(planId: Long, dayId: String, lighter: Boolean = false): RunStartResult {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
-        val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
-            val config = answersForPlan(planDao.plan(planId), global).config
+            val plan = planDao.plan(planId)
+            val olderAdult = olderAdult(plan, global)
+            val config = answersForPlan(plan, global).config
             val catalog = this.catalog.snapshot()
             startRun(planId, dayId, config.weightUnit, catalog, olderAdult, lighter)
         }
@@ -1071,9 +1091,10 @@ class TrackerRepository(
     ): ExerciseSwapResult {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
-        val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
-            val config = answersForPlan(planDao.plan(planId), global).config
+            val plan = planDao.plan(planId)
+            val olderAdult = olderAdult(plan, global)
+            val config = answersForPlan(plan, global).config
             val catalog = this.catalog.snapshot()
             val row = programDao.exercise(programExerciseId)
                 ?.takeIf { it.planId == planId && it.dayId == dayId }
@@ -1127,9 +1148,10 @@ class TrackerRepository(
         if (keep != Slot.MAIN && keep != Slot.SS) return RunWriteResult.Rejected
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
-        val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
-            val config = answersForPlan(planDao.plan(planId), global).config
+            val plan = planDao.plan(planId)
+            val olderAdult = olderAdult(plan, global)
+            val config = answersForPlan(plan, global).config
             val catalog = this.catalog.snapshot()
             val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
             val row = programDao.exercise(programExerciseId)
@@ -1243,10 +1265,11 @@ class TrackerRepository(
     ): Boolean {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
-        val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
-            val config = answersForPlan(planDao.plan(row.planId), global).config
+            val plan = planDao.plan(row.planId)
+            val olderAdult = olderAdult(plan, global)
+            val config = answersForPlan(plan, global).config
             val catalog = this.catalog.snapshot()
             swapInDraftOrRun(runId, programExerciseId, slot, newExerciseId, config.weightUnit, catalog, olderAdult, expectedExerciseId)
         }
@@ -1354,11 +1377,12 @@ class TrackerRepository(
     ): RunWriteResult {
         plans.ensurePlanSettingsMigrated()
         val global = settings.globalLifterFlow.first()
-        val olderAdult = global.age >= Progression.OLDER_ADULT_AGE
         return db.withTransaction {
             if (runId.isBlank() || edits.isEmpty()) return@withTransaction RunWriteResult.Rejected
             val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
-            val config = answersForPlan(planDao.plan(planId), global).config
+            val plan = planDao.plan(planId)
+            val olderAdult = olderAdult(plan, global)
+            val config = answersForPlan(plan, global).config
             val catalog = this.catalog.snapshot()
             val open = runDao.openRun()
             if (open != null) {

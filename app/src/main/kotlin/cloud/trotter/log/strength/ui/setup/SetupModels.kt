@@ -31,7 +31,7 @@ data class SetupUiState(
     val coolDown: Boolean = true,
 )
 
-/** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
+/** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.SetupFlowActions]. */
 data class SetupActions(
     val onUnitToggle: (WeightUnit) -> Unit,
     val onDistanceUnitChange: (DistanceUnit) -> Unit = {},

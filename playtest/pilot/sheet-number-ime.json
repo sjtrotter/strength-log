@@ -4,12 +4,6 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
         "text": "Next"
       }
     },
@@ -24,19 +18,12 @@
     },
     {
       "tap": {
-        "text": "Strength-leaning"
-      }
-    },
-    {
-      "tap": {
         "text": "Next"
       }
     },
     {
-      "type": {
-        "text": "Days per week",
-        "value": "2",
-        "ime": "done"
+      "tap": {
+        "text": "2"
       }
     },
     {
@@ -48,103 +35,29 @@
       }
     },
     {
-      "checkpoint": "split-for-2"
-    },
-    {
       "tap": {
-        "text": "Full-body rotation"
+        "text": "Choose exactly"
       }
     },
     {
       "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat / Bench / Deadlift / Row (Big 4)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Outdoor run"
-      }
-    },
-    {
-      "tap": {
-        "text": "Separate days"
+        "tag": "setup-equipment-MACHINE"
       }
     },
     {
       "swipe": {
-        "text": "Placement",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "cardio-5k-switch"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "LB"
-      }
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "150",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "29",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Intermediate"
-      }
-    },
-    {
-      "checkpoint": "about-you"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Machine"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Cable",
+        "tag": "setup-equipment-CABLE",
         "direction": "up"
       }
     },
     {
       "scrollTo": {
-        "text": "Ez Bar"
+        "tag": "setup-equipment-EZ_BAR"
       }
     },
     {
       "tap": {
-        "text": "Ez Bar"
+        "tag": "setup-equipment-EZ_BAR"
       }
     },
     {
@@ -161,16 +74,16 @@
       }
     },
     {
-      "checkpoint": "rotation-2day"
+      "checkpoint": "plan-2day"
     },
     {
       "swipe": {
-        "text": "Day B",
+        "desc": "Day B",
         "direction": "up"
       }
     },
     {
-      "checkpoint": "rotation-2day-bottom"
+      "checkpoint": "plan-2day-bottom"
     },
     {
       "tap": {
@@ -185,7 +98,7 @@
     },
     {
       "tap": {
-        "textContains": "full body"
+        "textContains": "General fitness"
       }
     },
     {

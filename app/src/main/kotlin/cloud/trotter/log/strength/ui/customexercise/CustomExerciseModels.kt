@@ -39,7 +39,7 @@ data class CustomExerciseUiState(
 }
 
 /** Callbacks the screen forwards to [CustomExerciseViewModel] — mirrors
- *  [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
+ *  [cloud.trotter.log.strength.ui.wizard.SetupFlowActions]. */
 data class CustomExerciseActions(
     val onNameChange: (String) -> Unit,
     val onPatternChange: (MovementPattern) -> Unit,

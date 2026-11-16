@@ -208,7 +208,7 @@ internal fun balanceBlock(answers: SetupAnswers): List<ProgramExercise> {
 }
 
 /** Days a week WHO 2020 advises balance work for adults 65 and older (audit 2026-11-13 decision 12). */
-internal const val BALANCE_DAYS_A_WEEK = 3
+const val BALANCE_DAYS_A_WEEK = 3
 
 /** Decision 12: an older lifter on fewer than [BALANCE_DAYS_A_WEEK] lifting days is offered balance-only entries
  *  and, once [SetupAnswers.balanceDays] accepts them, gets them after the first lifting day, each the

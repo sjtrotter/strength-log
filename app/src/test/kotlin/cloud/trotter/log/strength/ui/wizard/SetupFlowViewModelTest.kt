@@ -56,7 +56,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,9 +66,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -96,7 +95,7 @@ class SetupFlowViewModelTest {
     private var failCompletion = false
     private var failPublication = false
     private var failPreview = false
-    private var previewGate: CompletableDeferred<Unit>? = null
+    private var beforePreviewRead: (() -> Unit)? = null
     private val completeKey = booleanPreferencesKey("wizard_complete")
 
     @Before fun setUp() {
@@ -138,7 +137,10 @@ class SetupFlowViewModelTest {
         }
         val sessionDao = object : SessionDao by db.sessionDao() {
             override suspend fun lastWorkingSet(exerciseId: String): SessionSetEntity? {
-                previewGate?.await()
+                // A suspended fake DAO would hold Room's transaction while collectLatest cancels it.
+                val beforeRead = beforePreviewRead
+                beforePreviewRead = null
+                beforeRead?.invoke()
                 if (failPreview) { failPreview = false; throw IOException("preview failed") }
                 return db.sessionDao().lastWorkingSet(exerciseId)
             }
@@ -246,17 +248,32 @@ class SetupFlowViewModelTest {
         assertEquals(SetupDraft(), vm.uiState.value.draft)
     }
     @Test fun `entering Your plan previews the current answers`() = runVmTest {
-        val vm = newViewModel(); advanceUntilIdle(); previewGate = CompletableDeferred()
-        repeat(5) { vm.onNext() }; runCurrent()
-        assertEquals(PlanPreviewUi.Loading, vm.uiState.value.plan); assertFalse(vm.uiState.value.canStart)
-        previewGate!!.complete(Unit); previewGate = null; advanceUntilIdle()
+        val vm = newViewModel(); advanceUntilIdle()
+        var previewRead = false
+        beforePreviewRead = {
+            previewRead = true
+            assertEquals(PlanPreviewUi.Loading, vm.uiState.value.plan); assertFalse(vm.uiState.value.canStart)
+        }
+        repeat(5) { vm.onNext() }; advanceUntilIdle()
+        assertTrue(previewRead)
         assertEquals(repo.plans.previewPlan(answers(vm)).program.days.map { it.id }, ready(vm).rows.map { it.dayId })
     }
     @Test fun `a changed answer previews again and the newest wins`() = runVmTest {
         val vm = newViewModel(); advanceUntilIdle(); plan(vm)
-        previewGate = CompletableDeferred(); vm.longerSessions(); runCurrent(); vm.longerSessions()
-        previewGate!!.complete(Unit); previewGate = null; advanceUntilIdle()
+        val states = mutableListOf<SetupFlowUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect { states += it } }
+        states.clear()
+        beforePreviewRead = { vm.longerSessions() }
+        vm.longerSessions(); advanceUntilIdle()
         assertEquals(90, answers(vm).minutes)
+        assertTrue(states.any { it.plan == PlanPreviewUi.Loading && !it.canStart })
+        states.forEach { state ->
+            val preview = state.plan as? PlanPreviewUi.Ready
+            if (preview != null) {
+                assertEquals(90, state.draft.minutes)
+                assertFalse(preview.longerAvailable)
+            }
+        }
         val expected = SetupFlowStateBuilder.planPreview(repo.plans.previewPlan(answers(vm)), answers(vm)) as PlanPreviewUi.Ready
         assertEquals(expected.rows, ready(vm).rows)
     }

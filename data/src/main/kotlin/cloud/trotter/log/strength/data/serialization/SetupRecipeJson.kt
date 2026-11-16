@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 
 @Serializable internal data class SetupRecipeDto(
@@ -40,10 +41,25 @@ object SetupRecipeJson {
         ))
     }
 
-    fun isV2(json: String): Boolean = runCatching {
-        val version = (Json.parseToJsonElement(json) as? JsonObject)?.get("v") as? JsonPrimitive
-        version != null && !version.isString && version.intOrNull == VERSION
-    }.getOrDefault(false)
+    private fun v2Object(json: String): JsonObject? = runCatching {
+        (Json.parseToJsonElement(json) as? JsonObject)?.takeIf {
+            val version = it["v"] as? JsonPrimitive
+            version != null && !version.isString && version.intOrNull == VERSION
+        }
+    }.getOrNull()
+
+    fun isV2(json: String): Boolean = v2Object(json) != null
+
+    /** The recipe's 65+ answer: null unless [json] is a v2 recipe; false when the field is absent or unreadable. */
+    fun olderAdult(json: String): Boolean? = v2Object(json)?.let {
+        (it["olderAdult"] as? JsonPrimitive)?.booleanOrNull ?: false
+    }
+
+    /** The recipe's lifting experience: null unless [json] is a v2 recipe whose field names a [LiftExperience]. */
+    fun experience(json: String): LiftExperience? = v2Object(json)?.let {
+        val name = (it["experience"] as? JsonPrimitive)?.content
+        LiftExperience.entries.firstOrNull { experience -> experience.name == name }
+    }
 
     fun decode(json: String, settings: PlanSettings, unit: WeightUnit): SetupAnswers? {
         if (!isV2(json)) return null

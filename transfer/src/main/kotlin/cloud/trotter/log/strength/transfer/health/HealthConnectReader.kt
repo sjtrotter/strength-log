@@ -11,7 +11,7 @@ import java.time.temporal.ChronoUnit
 
 /**
  * The Health Connect read path: other apps' strength sessions for the Log
- * screen, the latest bodyweight for the "update your GOALs?" prompt, and the
+ * screen, the latest bodyweight for the profile update prompt, and the
  * Log section's connection status. Reads are permission-gated and every
  * provider call is wrapped so a denial or a provider error degrades to "nothing
  * to show" rather than an error — the app stays fully functional when Health
@@ -102,7 +102,7 @@ open class HealthConnectReader(
      * at all fails — the whole body, including acquiring the client, is inside
      * the swallow so nothing reaches the UI (A3).
      */
-    suspend fun latestBodyweightLb(): Double? = runCatching {
+    open suspend fun latestBodyweightLb(): Double? = runCatching {
         val client = client() ?: return@runCatching null
         if (HealthConnectPermissions.READ_WEIGHT !in grantedPermissions()) return@runCatching null
         val response = client.readRecords(

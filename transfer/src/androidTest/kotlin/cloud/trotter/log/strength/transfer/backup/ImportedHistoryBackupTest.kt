@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.TrackEdit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -40,7 +41,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     private suspend fun seedOneLoggedSession() {
         settings.setUnit(WeightUnit.LB)
         // A session records bodyweight only once the lifter has answered About you.
-        settings.updateGlobalLifter { it }
+        settings.setLifterProfile(LifterProfile(235.0, 40))
         val day = ProgramDay(
             id = "A",
             title = "Day A",

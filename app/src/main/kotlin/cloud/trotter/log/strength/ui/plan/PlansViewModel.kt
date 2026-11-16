@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,18 +44,13 @@ class PlansViewModel @Inject constructor(
     private val existingState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
         PlansUiState(plans, menu, rename, draft)
     }
-    private val you = combine(repo.configFlow, settings.unitFlow, settings.hasLifterAnswersFlow) { config, unit, hasAnswers ->
-        if (!hasAnswers) return@combine null
-        val levelLabel = when (config.level) {
-            ExperienceLevel.NOVICE -> R.string.setup_level_novice
-            ExperienceLevel.INTERMEDIATE -> R.string.setup_level_intermediate
-            ExperienceLevel.ADVANCED -> R.string.setup_level_advanced
+    private val you = combine(settings.lifterProfileFlow, settings.unitFlow) { profile, unit ->
+        profile.bodyweightLb?.let { lb ->
+            YouSummary(
+                "${WeightStepper.format(SetupStateBuilder.bodyweightDisplay(lb, unit))} ${unit.name.lowercase(Locale.ROOT)}",
+                profile.age,
+            )
         }
-        YouSummary(
-            "${WeightStepper.format(SetupStateBuilder.bodyweightDisplay(config, unit))} ${unit.name.lowercase(Locale.ROOT)}",
-            config.age,
-            context.getString(levelLabel).lowercase(Locale.ROOT),
-        )
     }
     val uiState = combine(existingState, newPlanState, you) { state, new, summary ->
         state.copy(newPlanPage = new.first, newPlanName = new.second, creating = new.third, you = summary)

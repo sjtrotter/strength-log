@@ -140,12 +140,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // added cardio sessions, v7 added program-day kinds, and v8 added
             // plans and their live-log/selection pointers; v9 added each plan's
             // recipe and rotation; v10 added authored prescriptions; v28 added recipe v2 and plan settings'
-            // equipment and goals; v29 added plan settings' legacyMains. Older documents decode
+            // equipment and goals; v29 added plan settings' legacyMains; v30 made the profile optional. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -474,7 +474,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
      * reference an id that no longer resolves.
      */
     private fun validate(doc: BackupDocument) {
-        validateSettings(doc.settings)
+        validateSettings(doc.settings, doc.schemaVersion)
         val customIds = validateCustomExercises(doc.customExercises)
         val slotIds = HashSet<Long>()
         if (doc.schemaVersion >= 8) {
@@ -693,18 +693,21 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
     }
 
-    private fun validateSettings(settings: SettingsBackup) {
+    private fun validateSettings(settings: SettingsBackup, version: Int) {
+        if (version < 30 && (settings.bodyweightLb == null || settings.age == null)) {
+            throw BackupError.Inconsistent("bodyweightLb and age are required before schema v30")
+        }
         if (settings.distanceUnit != null && settings.distanceUnit !in listOf("MI", "KM")) {
             throw BackupError.Inconsistent("unknown distance unit '${settings.distanceUnit}'")
         }
         if (settings.daysPerWeek != null && settings.daysPerWeek !in 2..6) {
             throw BackupError.Inconsistent("daysPerWeek out of range: ${settings.daysPerWeek}")
         }
-        if (settings.bodyweightLb <= 0) {
+        if (settings.bodyweightLb != null && settings.bodyweightLb <= 0) {
             throw BackupError.Inconsistent("bodyweightLb must be positive: ${settings.bodyweightLb}")
         }
         validatePreciseBodyweight(settings.bodyweightLbPrecise)
-        if (settings.age < 0) throw BackupError.Inconsistent("age must not be negative: ${settings.age}")
+        if (settings.age != null && settings.age < 0) throw BackupError.Inconsistent("age must not be negative: ${settings.age}")
         settings.restOverrides().forEach { (category, seconds) ->
             if (seconds !in 0..RestPolicy.MAX_REST_SECONDS) {
                 throw BackupError.Inconsistent("rest override for $category out of range: $seconds")

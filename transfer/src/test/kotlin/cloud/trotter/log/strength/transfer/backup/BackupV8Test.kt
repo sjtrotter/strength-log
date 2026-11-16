@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.data.serialization.V1Recipe
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -35,7 +35,7 @@ class BackupV8Test {
     private val codec = BackupCodec()
 
     private fun snapshot() = FullSnapshot(
-        global = GlobalLifter(),
+        profile = LifterProfile(235.0, 40),
         legacyRecipe = V1Recipe(),
         unit = WeightUnit.LB,
         wizardComplete = true,

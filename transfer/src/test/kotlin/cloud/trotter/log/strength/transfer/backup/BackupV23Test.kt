@@ -41,6 +41,7 @@ class BackupV23Test {
     fun `v23 preserves cardio notes and absent lifter answers with cardio first recipes`() {
         val base = document()
         val source = base.copy(
+            schemaVersion = 29,
             settings = base.settings.copy(hasLifterAnswers = false),
             cardioSessions = listOf(CardioSessionBackup(
                 id = 7, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Trail run",
@@ -49,13 +50,14 @@ class BackupV23Test {
             )),
         )
         val decoded = codec.decode(codec.encode(source))
-        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
+        assertEquals(29, decoded.schemaVersion)
         assertFalse(decoded.settings.hasLifterAnswers)
         assertEquals("Easy", decoded.cardioSessions.single().note)
         val snapshot = decoded.toSnapshot()
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
-        assertFalse(exported.settings.hasLifterAnswers)
+        assertEquals(null, exported.settings.bodyweightLb)
+        assertEquals(null, exported.settings.age)
         assertEquals("Easy", exported.cardioSessions.single().note)
         assertEquals(base.plans.single().recipeJson, exported.plans.single().recipeJson)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
@@ -82,8 +84,8 @@ class BackupV23Test {
             )
             val text = codec.encode(legacy).replace(",\"hasLifterAnswers\":true", "")
             val snapshot = codec.decode(text).toSnapshot()
-            assertTrue(snapshot.hasLifterAnswers, "v$version")
-            assertTrue(snapshot.toDocument().settings.hasLifterAnswers, "v$version")
+            assertTrue(snapshot.profile.bodyweightLb != null, "v$version")
+            assertEquals(180, snapshot.toDocument().settings.bodyweightLb, "v$version")
         }
     }
 

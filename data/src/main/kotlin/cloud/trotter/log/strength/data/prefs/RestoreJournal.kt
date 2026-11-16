@@ -15,8 +15,7 @@ import kotlinx.coroutines.flow.first
  * A restore writes two stores that share no transaction: Room (program, live
  * logs, history, custom exercises) and the settings DataStore. An interruption
  * between them leaves the restored training data paired with the device's
- * pre-restore bodyweight/age/level — and because every GOAL derives live from
- * that config, the result is a screen full of plausible, wrong numbers. This
+ * pre-restore bodyweight and age, so restored sessions would be paired with the wrong profile. This
  * journal is what makes that state repairable: it holds the settings half until
  * it lands, and [reconcile] finishes the job at the next launch.
  *
@@ -61,8 +60,7 @@ class RestoreJournal(
      *  journal held. Must complete before the destructive Room transaction. */
     suspend fun stage(snapshot: FullSnapshot, nonce: String) {
         staged.restore(
-            global = snapshot.global,
-            hasLifterAnswers = snapshot.hasLifterAnswers,
+            profile = snapshot.profile,
             unit = snapshot.unit,
             wizardComplete = snapshot.wizardComplete,
             selectedPlanId = snapshot.selectedPlanId,
@@ -101,7 +99,7 @@ class RestoreJournal(
      * which is writing the very payload this reads.
      *
      * [applyLegacyPlanSettings] writes an older build's staged plan facts and
-     * rotation to Room before the global settings land, returning the selected
+     * rotation to Room before the profile settings land, returning the selected
      * plan id. New-format payloads carry no plan settings and skip this callback.
      */
     suspend fun reconcile(
@@ -124,8 +122,7 @@ class RestoreJournal(
         }
         applyLegacySessionNotes(staged.legacySessionNotesFlow.first())
         settings.restore(
-            global = staged.globalLifterFlow.first(),
-            hasLifterAnswers = staged.hasLifterAnswersFlow.first(),
+            profile = staged.lifterProfileFlow.first(),
             unit = staged.unitFlow.first(),
             wizardComplete = staged.wizardCompleteFlow.first(),
             selectedPlanId = selectedPlanId,

@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.setup
 
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -13,9 +12,9 @@ import cloud.trotter.log.strength.ui.components.BodyweightInput
 /** Formats bodyweight and rest preferences and assembles Settings state. */
 object SetupStateBuilder {
 
-    /** [cfg]'s canonical-lb bodyweight converted to [unit] for the stepper's display value. */
-    fun bodyweightDisplay(cfg: LifterConfig, unit: WeightUnit): Double =
-        BodyweightInput.display(cfg.bodyweightLb, unit)
+    /** Canonical-lb bodyweight converted to [unit] for display. */
+    fun bodyweightDisplay(bodyweightLb: Double, unit: WeightUnit): Double =
+        BodyweightInput.display(bodyweightLb, unit)
 
     fun bodyweightLb(displayValue: Double, unit: WeightUnit): Double =
         BodyweightInput.canonicalLb(displayValue, unit)

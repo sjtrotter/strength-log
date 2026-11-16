@@ -132,7 +132,7 @@ class TypedCardioMigrationTest {
     @Test
     fun `programFor converts a recipe-less plan with outdoor fiveK defaults on its first collection`() = runTest {
         seed()
-        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185.0, age = 52))
+        settings.setLifterProfile(LifterProfile(bodyweightLb = 185.0, age = 52))
         val expected = CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN)
 
         assertEquals(expected, repo.plans.programFor(1).first().days.single().cardioBlock)
@@ -215,11 +215,11 @@ class TypedCardioMigrationTest {
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
         }, settings)
-        assertFalse(snapshot.hasLifterAnswers)
+        assertFalse(snapshot.profile.bodyweightLb != null)
 
         backupRepository.importSnapshot(snapshot, journal)
 
-        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
             repo.plans.programFor(1).first().days.single().cardioBlock)
@@ -273,13 +273,12 @@ class TypedCardioMigrationTest {
         val failingRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings)
         val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history)
         val exported = failingBackup.exportSnapshot()
-        assertFalse(exported.hasLifterAnswers)
+        assertFalse(exported.profile.bodyweightLb != null)
         val snapshot = exported.copy(
             days = listOf(legacyDay),
             plans = exported.plans.map { it.copy(recipeJson = PlanRecipeJson.encode(WizardAnswers(
                 cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)))) },
-            hasLifterAnswers = true,
-            global = exported.global.copy(bodyweightLb = 190.0, age = 28),
+            profile = exported.profile.copy(bodyweightLb = 190.0, age = 28),
         )
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")
@@ -292,8 +291,8 @@ class TypedCardioMigrationTest {
         // Coroutine stack-trace recovery may copy the exception, nesting the original under it.
         assertTrue(generateSequence(failure) { it.cause }.any { it === readFailure })
         assertNull(db.restoreMarkerDao().nonce())
-        assertTrue(settings.hasLifterAnswersFlow.first())
-        assertEquals(snapshot.global, settings.globalLifterFlow.first())
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
+        assertEquals(snapshot.profile, settings.lifterProfileFlow.first())
         assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
             failingRepo.plans.programFor(1).first().days.single().cardioBlock)

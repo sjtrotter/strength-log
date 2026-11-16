@@ -132,10 +132,9 @@ class RestoreJournalTest {
         storeScope.cancel()
     }
 
-    /** A backup from another device: a program Room can hold, and settings that
-     *  differ from this device's in every value a GOAL is derived from. */
+    /** A backup from another device with a different program and profile. */
     private fun snapshot() = FullSnapshot(
-        global = GlobalLifter(bodyweightLb = 190.0, age = 28, weightUnit = WeightUnit.KG),
+        profile = LifterProfile(bodyweightLb = 190.0, age = 28),
         legacyRecipe = V1Recipe(),
         unit = WeightUnit.KG,
         wizardComplete = true,
@@ -154,9 +153,9 @@ class RestoreJournalTest {
     )
 
     private suspend fun assertSettingsRestored() {
-        assertTrue(settings.hasLifterAnswersFlow.first())
-        assertEquals(190.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
-        assertEquals(28, settings.globalLifterFlow.first().age)
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
+        assertEquals(28, settings.lifterProfileFlow.first().age)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue("the wizard flag is what keeps setup from reopening", settings.wizardCompleteFlow.first())
         assertEquals("R", repo.plans.suggestedDayFlow.first())
@@ -169,7 +168,7 @@ class RestoreJournalTest {
     }
 
     private suspend fun assertSettingsUntouched() {
-        assertEquals(LifterConfig().bodyweightLb, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(LifterProfile(), settings.lifterProfileFlow.first())
         assertFalse(settings.wizardCompleteFlow.first())
         assertNull(settings.legacySuggestedDayFlow.first())
         assertNull(settings.selectedPlanIdFlow.first())
@@ -186,21 +185,21 @@ class RestoreJournalTest {
     )
 
     @Test fun stagedAbsentLifterAnswersClearExistingAnswers() = runTest {
-        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185.0, age = 35))
-        val restored = snapshot().copy(global = GlobalLifter(), hasLifterAnswers = false)
+        settings.setLifterProfile(LifterProfile(bodyweightLb = 185.0, age = 35))
+        val restored = snapshot().copy(profile = LifterProfile())
         journal.stage(restored, "lifter-answers-absent")
         commitPreviousBuildRoomHalf(restored, "lifter-answers-absent")
-        assertTrue(settings.hasLifterAnswersFlow.first())
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         assertTrue(backupRepository.reconcilePendingRestore(journal))
 
-        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
         assertNull(settingsStore.data.first()[longPreferencesKey("bodyweight_tenths_lb")])
         assertNull(settingsStore.data.first()[intPreferencesKey("age")])
-        assertFalse(backupRepository.exportSnapshot().hasLifterAnswers)
+        assertFalse(backupRepository.exportSnapshot().profile.bodyweightLb != null)
         assertTrue(settings.wizardCompleteFlow.first())
-        settings.updateGlobalLifter { it.copy(bodyweightLb = 190.0, age = 36) }
-        assertTrue(settings.hasLifterAnswersFlow.first())
+        settings.updateLifterProfile { it.copy(bodyweightLb = 190.0, age = 36) }
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
     }
 
     @Test fun stagedDistanceChoiceCommits() = runTest {
@@ -367,7 +366,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournal_appliesPlanSettingsInTheSameStartupPass() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(weightUnit = WeightUnit.KG),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             suggestedDay = "B",
         )
@@ -393,7 +392,7 @@ class RestoreJournalTest {
     @Test
     fun setterBeforeReconcile_isOverwrittenByPreviousBuildJournal() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(weightUnit = WeightUnit.KG),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(equipment = setOf(Equipment.DUMBBELL, Equipment.BODYWEIGHT),
                 cardioMode = CardioMode.TREADMILL, fiveKGoal = false),
             suggestedDay = "B",
@@ -415,7 +414,7 @@ class RestoreJournalTest {
         assertNull(plan.recipeJson)
         assertEquals(restored.legacyRecipe!!.equipment, plan.planSettings.equipment)
         assertEquals("B", plan.suggestedDayId)
-        assertEquals(restored.global, settings.globalLifterFlow.first())
+        assertEquals(restored.profile, settings.lifterProfileFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertNull(db.restoreMarkerDao().nonce())
@@ -424,7 +423,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournalWithNoPlan_createsAndSelectsLegacyPlan() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(weightUnit = WeightUnit.KG),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             suggestedDay = "B",
             selectedPlanId = null,
@@ -448,7 +447,7 @@ class RestoreJournalTest {
         assertTrue(db.programDao().daysForPlan(plan.id).isEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
         assertEquals(plan.id, repo.plans.selectedPlanIdFlow.first())
-        assertEquals(restored.global, settings.globalLifterFlow.first())
+        assertEquals(restored.profile, settings.lifterProfileFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertNull(db.restoreMarkerDao().nonce())
@@ -457,7 +456,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournal_overwritesEveryGeneratedRecipeAndSelectedRotation() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(weightUnit = WeightUnit.KG),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             suggestedDay = "B",
         )
@@ -483,9 +482,9 @@ class RestoreJournalTest {
     }
 
     @Test
-    fun configReadBeforeReconcile_doesNotCopyThisDevicesLegacyPlanSettings() = runTest {
+    fun profileReadBeforeReconcile_doesNotCopyThisDevicesLegacyPlanSettings() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(weightUnit = WeightUnit.KG),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             suggestedDay = "B",
         )
@@ -497,7 +496,7 @@ class RestoreJournalTest {
         stagePreviousBuild(restored, nonce)
         commitPreviousBuildRoomHalf(restored, nonce)
 
-        repo.plans.configFlow.first()
+        settings.lifterProfileFlow.first()
 
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.suggestedDayId)
@@ -511,7 +510,7 @@ class RestoreJournalTest {
         assertNull(plan.recipeJson)
         assertEquals(restored.legacyRecipe!!.equipment, plan.planSettings.equipment)
         assertEquals("B", plan.suggestedDayId)
-        assertEquals(restored.global.toConfig(), repo.plans.configFlow.first())
+        assertEquals(restored.profile, settings.lifterProfileFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertNull(settingsStore.data.first()[stringPreferencesKey("emphasis")])
         assertNull(settingsStore.data.first()[stringPreferencesKey("suggested_day")])
@@ -521,7 +520,7 @@ class RestoreJournalTest {
     @Test
     fun currentBuildJournal_stagesGlobalFactsAndLeavesRoomPlanSettingsUntouched() = runTest {
         val restored = snapshot().copy(
-            global = GlobalLifter(bodyweightLb = 205.0),
+            profile = LifterProfile(bodyweightLb = 205.0),
             legacyRecipe = null,
             suggestedDay = "B",
         )
@@ -547,7 +546,7 @@ class RestoreJournalTest {
         val keys = journalStore.data.first().asMap().keys.map { it.name }.toSet()
         assertTrue(keys.intersect(LEGACY_PLAN_KEYS).isEmpty())
         assertTrue(backupRepository.reconcilePendingRestore(journal))
-        assertEquals(205.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(205.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertEquals(plans, db.planDao().allPlans())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertTrue(settings.planSettingsFixupDoneFlow.first())
@@ -665,7 +664,7 @@ class RestoreJournalTest {
     fun aSecondRestoreReplacesTheFirstsBookkeeping() = runTest {
         backupRepository.importSnapshot(snapshot(), journal)
         val second = snapshot().copy(
-            global = GlobalLifter(bodyweightLb = 205.0, age = 31),
+            profile = LifterProfile(bodyweightLb = 205.0, age = 31),
             legacyRecipe = V1Recipe(),
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "S", 0, "Second", "from a later backup", null)),
             exercises = listOf(
@@ -677,7 +676,7 @@ class RestoreJournalTest {
         backupRepository.importSnapshot(second, journal)
 
         assertEquals(listOf("S"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(205.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(205.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(backupRepository.reconcilePendingRestore(journal))
     }
@@ -689,10 +688,10 @@ class RestoreJournalTest {
         journalStore.edit { prefs ->
             prefs.clear()
             val recipe = snapshot.legacyRecipe ?: V1Recipe()
-            val global = snapshot.global
-            prefs[intPreferencesKey("bodyweight")] = global.bodyweightLb.toInt()
-            prefs[intPreferencesKey("age")] = global.age
-            prefs[stringPreferencesKey("level")] = global.level.name
+            val profile = snapshot.profile
+            prefs[intPreferencesKey("bodyweight")] = profile.bodyweightLb!!.toInt()
+            prefs[intPreferencesKey("age")] = profile.age!!
+            prefs[stringPreferencesKey("level")] = "INTERMEDIATE"
             prefs[stringPreferencesKey("emphasis")] = GoalEmphasis.BALANCED.name
             prefs[stringPreferencesKey("cardio_mode")] = recipe.cardioMode.name
             prefs[stringPreferencesKey("cardio_placement")] = CardioPlacement.FINISHERS.name

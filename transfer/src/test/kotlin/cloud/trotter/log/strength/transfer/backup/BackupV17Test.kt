@@ -40,7 +40,7 @@ class BackupV17Test {
         assertEquals(211, exported.settings.bodyweightLb)
         assertEquals(210.5, exported.settings.bodyweightLbPrecise)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
-        assertEquals(210.5, restored.global.bodyweightLb)
+        assertEquals(210.5, restored.profile.bodyweightLb)
         assertEquals(210.5, restored.sessions.first().bodyweightLb)
         assertNull(restored.sessions.last().bodyweightLb)
         assertEquals(snapshot, restored)
@@ -54,7 +54,7 @@ class BackupV17Test {
         ) }
         val encoded = codec.encode(legacy).replace(",\"bodyweightLbPrecise\":null", "")
         val snapshot = codec.decode(encoded).toSnapshot()
-        assertEquals(185.0, snapshot.global.bodyweightLb)
+        assertEquals(185.0, snapshot.profile.bodyweightLb)
         assertEquals(211.0, snapshot.sessions.first().bodyweightLb)
         assertNull(snapshot.sessions.last().bodyweightLb)
     }
@@ -74,7 +74,7 @@ class BackupV17Test {
                 assertNull(decoded.settings.bodyweightLbPrecise)
                 decoded.sessions.forEach { assertNull(it.bodyweightLbPrecise) }
                 val snapshot = decoded.toSnapshot()
-                assertEquals(185.0, snapshot.global.bodyweightLb, "schema v$version")
+                assertEquals(185.0, snapshot.profile.bodyweightLb, "schema v$version")
                 assertEquals(listOf(211.0, null), snapshot.sessions.map { it.bodyweightLb }, "schema v$version")
 
                 val exported = snapshot.toDocument()
@@ -84,7 +84,7 @@ class BackupV17Test {
                 assertEquals(listOf(211, null), exported.sessions.map { it.bodyweightLb })
                 assertEquals(listOf(211.0, null), exported.sessions.map { it.bodyweightLbPrecise })
                 val restored = codec.decode(codec.encode(exported)).toSnapshot()
-                assertEquals(snapshot.global.bodyweightLb, restored.global.bodyweightLb)
+                assertEquals(snapshot.profile.bodyweightLb, restored.profile.bodyweightLb)
                 assertEquals(snapshot.sessions, restored.sessions, "schema v$version")
             }
         }
@@ -104,7 +104,7 @@ class BackupV17Test {
     @Test fun `older versions ignore malformed future precision fields`() {
         val legacy = codec.encode(document().copy(schemaVersion = 16))
             .replace("\"bodyweightLbPrecise\":210.5", "\"bodyweightLbPrecise\":{}")
-        assertEquals(211.0, codec.decode(legacy).toSnapshot().global.bodyweightLb)
+        assertEquals(211.0, codec.decode(legacy).toSnapshot().profile.bodyweightLb)
     }
 
     @Test fun `invalid precise bodyweight is rejected before restore`() {

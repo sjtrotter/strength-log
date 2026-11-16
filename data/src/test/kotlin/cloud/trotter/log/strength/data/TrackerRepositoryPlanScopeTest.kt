@@ -277,13 +277,14 @@ class TrackerRepositoryPlanScopeTest {
 
     @Test
     fun `seed writes under the slot plan despite another selection and never overwrites`() = runTest {
+        settings.setLifterProfile(LifterProfile(235.0, 40))
         insertTwoProgramsAndSelectPlanTwo()
 
         repo.ensureSeeded(1, "A")
         val seeded = db.programDao().allLogs()
         val main = SetJson.decodeSets(seeded.single().setsJson)
-        // A heavier lifter would seed a different squat goal; the stored track must not follow it.
-        settings.updateGlobalLifter { it.copy(bodyweightLb = it.bodyweightLb + 60) }
+        // Profile edits must not overwrite stored working rows.
+        settings.updateLifterProfile { it.copy(bodyweightLb = it.bodyweightLb!! + 60) }
         repo.ensureSeeded(1, "A")
 
         assertEquals(seeded, db.programDao().allLogs())
@@ -486,7 +487,7 @@ class TrackerRepositoryPlanScopeTest {
         val created = repo.plans.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(GlobalLifter.of(oldAnswers.config), settings.globalLifterFlow.first())
+        assertEquals(LifterProfile(oldAnswers.config.bodyweightLb, oldAnswers.config.age), settings.lifterProfileFlow.first())
         repo.plans.publishCreatedPlan(created, answers)
         repo.plans.publishCreatedPlan(created, answers)
 
@@ -496,7 +497,7 @@ class TrackerRepositoryPlanScopeTest {
         assertNull(db.planDao().plan(created)!!.recipeJson)
         assertEquals(answers.equipment, db.planDao().plan(created)!!.planSettings.equipmentOrAll)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
-        assertEquals(210.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(210.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         val createdProgram = repo.plans.programFlow.first()
         assertTrue(createdProgram.days.flatMap { it.exercises }.all { it.rule != null })
         assertEquals(program("New", "bb_bench"), createdProgram.copy(days = createdProgram.days.map { day ->
@@ -528,7 +529,7 @@ class TrackerRepositoryPlanScopeTest {
 
         assertTrue(creator.plans.planHasDays(created))
         assertEquals(null, unpublishedSettings.selectedPlanIdFlow.first())
-        assertEquals(GlobalLifter(), unpublishedSettings.globalLifterFlow.first())
+        assertEquals(LifterProfile(), unpublishedSettings.lifterProfileFlow.first())
         assertFalse(unpublishedSettings.planSettingsFixupDoneFlow.first())
     }
 
@@ -541,7 +542,7 @@ class TrackerRepositoryPlanScopeTest {
         repeat(2) { repo.plans.publishCreatedPlan(Long.MAX_VALUE, answers) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
         assertEquals(plans, db.planDao().allPlans())
     }
 
@@ -556,7 +557,7 @@ class TrackerRepositoryPlanScopeTest {
         repeat(2) { repo.plans.publishCreatedPlan(2, answers) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
         assertEquals(plans, db.planDao().allPlans())
     }
 
@@ -564,7 +565,7 @@ class TrackerRepositoryPlanScopeTest {
     fun `generated plan fills a selected settings-only plan`() = runTest {
         repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
         val id = repo.plans.selectedPlanIdFlow.first()!!
-        val global = settings.globalLifterFlow.first()
+        val profile = settings.lifterProfileFlow.first()
         val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
 
         assertEquals(id, repo.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
@@ -574,9 +575,9 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(id)!!.recipeJson)
         assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
         assertEquals(listOf("First"), db.programDao().daysForPlan(id).map { it.title })
-        assertEquals(global, settings.globalLifterFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
         repo.plans.publishCreatedPlan(id, answers)
-        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
         assertEquals(id, settings.selectedPlanIdFlow.first())
     }
 

@@ -141,10 +141,10 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `create and publish an empty authored plan preserve the global lifter and existing selection`() = runTest {
+    fun `create and publish an empty authored plan preserve the profile and existing selection`() = runTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
-        repo.plans.updateLifter { it.copy(bodyweightLb = 193.0, age = 47) }
-        val global = settings.globalLifterFlow.first()
+        settings.updateLifterProfile { it.copy(bodyweightLb = 193.0, age = 47) }
+        val profile = settings.lifterProfileFlow.first()
         val selected = settings.selectedPlanIdFlow.first()
         val id = repo.plans.createAuthoredPlan("  Physio  ", "Day A")
         val plan = db.planDao().plan(id)!!
@@ -162,7 +162,7 @@ class TrackerRepositoryAuthoredPlanTest {
         repo.plans.publishCreatedAuthoredPlan(id)
 
         assertEquals(id, settings.selectedPlanIdFlow.first())
-        assertEquals(global, settings.globalLifterFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
     }
 
     @Test

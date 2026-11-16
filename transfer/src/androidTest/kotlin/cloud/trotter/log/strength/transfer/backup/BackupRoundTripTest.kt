@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.planSettings
@@ -80,12 +80,12 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         service.import(emptyBackupJson())
         assertTrue(db.planDao().allPlans().isEmpty())
-        assertEquals(GlobalLifter(), settings.globalLifterFlow.first())
+        assertEquals(LifterProfile(235.0, 40), settings.lifterProfileFlow.first())
 
         service.import(backup)
 
         assertEquals(answers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
-        assertEquals(GlobalLifter.of(answers.config), backupRepository.exportSnapshot().global)
+        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), backupRepository.exportSnapshot().profile)
         assertNull(db.planDao().allPlans().single().recipeJson)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertFalse(settings.wizardCompleteFlow.first())
@@ -229,7 +229,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         val sessionSets: Map<Long, List<Any>>,
         val catalog: List<Any>,
         val planSettings: PlanSettings,
-        val global: GlobalLifter,
+        val profile: LifterProfile,
         val unit: WeightUnit,
         val wizardComplete: Boolean,
         val suggestedDay: String?,
@@ -255,7 +255,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
             catalog = repository.catalog.catalogFlow.first().entries,
             planSettings = repository.plans.selectedPlanFlow.first()!!.planSettings,
-            global = settings.globalLifterFlow.first(),
+            profile = settings.lifterProfileFlow.first(),
             unit = settings.unitFlow.first(),
             wizardComplete = settings.wizardCompleteFlow.first(),
             suggestedDay = repository.plans.suggestedDayFlow.first(),

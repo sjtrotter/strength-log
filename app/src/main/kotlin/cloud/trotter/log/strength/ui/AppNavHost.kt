@@ -697,7 +697,6 @@ private fun YouRoute(onBack: () -> Unit, viewModel: YouViewModel = hiltViewModel
     YouScreen(state, YouActions(
         onBodyweightChange = viewModel::setBodyweight,
         onAgeChange = viewModel::setAge,
-        onLevelChange = viewModel::setLevel,
         onBack = onBack,
     ))
 }

@@ -476,7 +476,7 @@ class TrackerRepositoryRunEditsTest {
         settings.setUnit(WeightUnit.KG)
         val plan = generated()
         repo.ensureSeeded(plan, "A")
-        val config = repo.plans.configFlow.first()
+        val config = LifterConfig(weightUnit = settings.unitFlow.first())
         assertEquals(105.0, WeightUnit.KG.fromLb(GoalCalculator.goalForMain(
             StandardLift.SQUAT, false, config,
         )), 1e-9)
@@ -1211,20 +1211,20 @@ class TrackerRepositoryRunEditsTest {
     }
 
     @Test fun `bodyweight change while a kept to plan original is swapped out preserves its restored rows`() = runTest {
+        settings.setLifterProfile(LifterProfile(235.0, 40))
         val plan = generated()
         val id = slot(plan)
         repo.keepToPlanFixture(db, id)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
         assertEquals(RunStartResult.Started(runId), repo.startRun(plan, "A"))
         val original = db.runDao().tracks(runId).single()
-        val entry = repo.catalog.catalogFlow.first().get(original.exerciseId)
-        val oldGoal = GoalCalculator.targetFor(entry, repo.plans.configFlow.first())
+        val oldBodyweight = settings.lifterProfileFlow.first().bodyweightLb
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val substituted = db.runDao().tracks(runId)
 
-        repo.plans.updateLifter { it.copy(bodyweightLb = it.bodyweightLb + 100) }
+        settings.updateLifterProfile { it.copy(bodyweightLb = it.bodyweightLb!! + 100) }
 
-        assertFalse(oldGoal == GoalCalculator.targetFor(entry, repo.plans.configFlow.first()))
+        assertFalse(oldBodyweight == settings.lifterProfileFlow.first().bodyweightLb)
         assertEquals(substituted, db.runDao().tracks(runId))
         assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
         assertEquals(original, db.runDao().tracks(runId).single { !it.retired })

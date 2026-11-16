@@ -46,10 +46,10 @@ class PlansScreenTest {
     fun youRowShowsTheLifterAndOpensYou() {
         var opened = 0
         composeTestRule.setContent { AppTheme {
-            PlansScreen(PlansUiState(you = YouSummary("235 lb", 40, "intermediate")),
+            PlansScreen(PlansUiState(you = YouSummary("235 lb", 40)),
                 actions().copy(onOpenYou = { opened++ }))
         } }
-        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertExists()
+        composeTestRule.onNodeWithText("235 lb, age 40").assertExists()
         composeTestRule.onNodeWithText("You").performClick()
         assertEquals(1, opened)
     }
@@ -61,7 +61,7 @@ class PlansScreenTest {
             PlansScreen(PlansUiState(you = null), actions().copy(onOpenYou = { opened++ }))
         } }
         composeTestRule.onNodeWithText("Not set").assertExists()
-        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertDoesNotExist()
+        composeTestRule.onNodeWithText("235 lb, age 40").assertDoesNotExist()
         composeTestRule.onNodeWithText("You").performClick()
         assertEquals(1, opened)
     }
@@ -75,7 +75,7 @@ class PlansScreenTest {
             ), you = null), actions().copy(onOpenYou = { opened++ }))
         } }
         composeTestRule.onNodeWithText("Not set").assertExists()
-        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertDoesNotExist()
+        composeTestRule.onNodeWithText("235 lb, age 40").assertDoesNotExist()
         composeTestRule.onNodeWithText("You").performClick()
         assertEquals(1, opened)
     }
@@ -173,5 +173,12 @@ class PlansScreenTest {
 
         row.performClick()
         assertEquals(listOf(1L), selected)
+    }
+    @Test
+    fun `a summary without an age shows the bodyweight alone`() {
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(you = YouSummary("180 lb", null)), actions())
+        } }
+        composeTestRule.onNodeWithText("180 lb").assertExists()
     }
 }

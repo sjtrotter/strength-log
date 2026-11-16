@@ -90,6 +90,10 @@ data class PlanLastSessionRow(val planId: Long, val completedAt: Long)
 /** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
+    /** The first finished lifting session anywhere in the log (the New lifter's six months, design §3.2 Layoff). */
+    @Query("SELECT MIN(completedAt) FROM workout_session")
+    suspend fun firstSessionAt(): Long?
+
     /** Emits on every write to `workout_session` or `session_set` (Room invalidates by table, even when the count
      *  is unchanged), so a reader can re-derive what it reads from history. The value itself means nothing. */
     @Query("SELECT COUNT(*) FROM session_set ss INNER JOIN workout_session ws ON ws.id = ss.sessionId")

@@ -9,14 +9,13 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -33,22 +32,17 @@ import kotlinx.serialization.json.Json
 
 /**
  * Global app preferences, plus legacy plan settings retained until the one-shot
- * plan-settings fixup moves them to Room. Bodyweight, age and level share one
- * source of truth through [globalLifterFlow].
+ * plan-settings fixup moves them to Room. Bodyweight and age share one source of truth through [lifterProfileFlow].
  *
- * Unknown or missing values fall back to the domain defaults, so a partially
- * written store (or a value from a newer build) never crashes a read.
+ * Profile numbers stay null when absent; other unknown or missing preferences use their defaults.
  */
 class SettingsStore(private val dataStore: DataStore<Preferences>) {
-
-    val hasLifterAnswersFlow: Flow<Boolean> = dataStore.data.map {
-        it[Keys.BODYWEIGHT_TENTHS_LB] != null || it[Keys.BODYWEIGHT] != null || it[Keys.AGE] != null
-    }
 
     private object Keys {
         val BODYWEIGHT = intPreferencesKey("bodyweight")
         val BODYWEIGHT_TENTHS_LB = longPreferencesKey("bodyweight_tenths_lb")
         val AGE = intPreferencesKey("age")
+        /** Retired in 6c; removed on every profile write. */
         val LEVEL = stringPreferencesKey("level")
         // Pre-plan storage, read only by the plan-settings fixup.
         val EMPHASIS = stringPreferencesKey("emphasis")
@@ -145,7 +139,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- reads ---------------------------------------------------------------
 
-    val globalLifterFlow: Flow<GlobalLifter> = dataStore.data.map { it.readGlobalLifter() }
+    val lifterProfileFlow: Flow<LifterProfile> = dataStore.data.map { it.readProfile() }
 
     val legacyRecipeFlow: Flow<V1Recipe?> = dataStore.data.map { prefs ->
         if (legacyPlanKeys.none { it in prefs }) return@map null
@@ -265,12 +259,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- writes --------------------------------------------------------------
 
-    suspend fun setGlobalLifter(global: GlobalLifter) {
-        dataStore.edit { it.writeGlobalLifter(global) }
+    suspend fun setLifterProfile(profile: LifterProfile) {
+        dataStore.edit { it.writeProfile(profile) }
     }
 
-    suspend fun updateGlobalLifter(transform: (GlobalLifter) -> GlobalLifter) = dataStore.edit { prefs ->
-        prefs.writeGlobalLifter(transform(prefs.readGlobalLifter()))
+    suspend fun updateLifterProfile(transform: (LifterProfile) -> LifterProfile) = dataStore.edit { prefs ->
+        prefs.writeProfile(transform(prefs.readProfile()))
     }
 
     suspend fun setOnTodayFixupDone() {
@@ -479,7 +473,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * Clears the plan-settings fixup flag along with all other restorable keys.
      */
     suspend fun restore(
-        global: GlobalLifter,
+        profile: LifterProfile,
         unit: WeightUnit,
         wizardComplete: Boolean,
         selectedPlanId: Long? = null,
@@ -490,7 +484,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         themePreference: ThemePreference = ThemePreference.SYSTEM,
         distanceUnit: DistanceUnit? = null,
         onTodayFixupDone: Boolean = false,
-        hasLifterAnswers: Boolean = true,
         effortScale: EffortScale = EffortScale.WORDS,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
@@ -504,7 +497,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val autoFailed = prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED]
         val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
-        if (hasLifterAnswers) prefs.writeGlobalLifter(global)
+        prefs.writeProfile(profile)
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId
@@ -537,19 +530,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     private fun Preferences.readDistanceUnit(): DistanceUnit? =
         DistanceUnit.entries.firstOrNull { it != DistanceUnit.M && it.name == this[Keys.DISTANCE_UNIT] }
 
-    private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
-        bodyweightLb = this[Keys.BODYWEIGHT_TENTHS_LB]?.div(10.0)
-            ?: this[Keys.BODYWEIGHT]?.toDouble() ?: DEFAULT_CONFIG.bodyweightLb,
-        age = this[Keys.AGE] ?: DEFAULT_CONFIG.age,
-        level = enum(Keys.LEVEL, DEFAULT_CONFIG.level),
-        weightUnit = enum(Keys.WEIGHT_UNIT, WeightUnit.LB),
+    private fun Preferences.readProfile(): LifterProfile = LifterProfile(
+        bodyweightLb = this[Keys.BODYWEIGHT_TENTHS_LB]?.div(10.0) ?: this[Keys.BODYWEIGHT]?.toDouble(),
+        age = this[Keys.AGE],
     )
 
-    private fun androidx.datastore.preferences.core.MutablePreferences.writeGlobalLifter(global: GlobalLifter) {
-        this[Keys.BODYWEIGHT_TENTHS_LB] = Math.round(global.bodyweightLb * 10.0)
+    private fun androidx.datastore.preferences.core.MutablePreferences.writeProfile(profile: LifterProfile) {
+        if (profile.bodyweightLb == null) remove(Keys.BODYWEIGHT_TENTHS_LB)
+        else this[Keys.BODYWEIGHT_TENTHS_LB] = Math.round(profile.bodyweightLb * 10.0)
         remove(Keys.BODYWEIGHT)
-        this[Keys.AGE] = global.age
-        this[Keys.LEVEL] = global.level.name
+        if (profile.age == null) remove(Keys.AGE) else this[Keys.AGE] = profile.age
+        remove(Keys.LEVEL)
     }
 
     private fun Preferences.readEquipment(): Set<Equipment> =
@@ -572,7 +563,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             Keys.DAYS_PER_WEEK, Keys.SPLIT, Keys.ANCHOR_SCHEME, Keys.DEADLIFT_VARIANT,
             Keys.EQUIPMENT, Keys.SUGGESTED_DAY,
         )
-        val DEFAULT_CONFIG = LifterConfig()
     }
 }
 

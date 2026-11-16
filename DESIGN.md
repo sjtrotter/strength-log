@@ -58,10 +58,10 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show every lift's work and any record |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
-| Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit lifter facts |
+| Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit the profile |
 | Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals, which open for editing |
 | Settings | `ui/setup/SetupScreen.kt` | Rarely | App preferences: units, theme, keep screen on, warm-up, cool-down and rest timer; open custom exercises, backup and licenses |
-| You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight, age and experience level, which generated plans use for goals |
+| You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight and age: bodyweight is stamped on each session, and age 65 or more turns on the older-adult restart rule for plans whose setup did not ask |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |
 | Custom exercise | `ui/customexercise/` | Catalog lacks a movement | Add one exercise |
 | Setup | `ui/wizard/SetupFlowScreen.kt` | First run, or a new plan | Turn a few answers into a plan the lifter accepts |
@@ -289,6 +289,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-11-15, #583 | Every set is a card; a logged set stays on its card with an effort row; the big button reads End rest during rest, never logs, and waits for the effort; the logged set leaves in a snackbar with Undo; supersets log as one round (583b) | Owner after a gym session: the effort row was easy to skip, a rating tap once logged the next set, and supersets did not read as one round |
 | 2026-11-15, wizard rebuild 6b | Setup by goal replaces the wizard: one question per screen with a Why sheet, Lift only until PR 7, a preview of the exact plan Start writes, over-budget and 65+ balance choices on Your plan | Owner decisions 2026-11-08 and 2026-11-15; the old wizard asked bodyweight and age for a formula that is gone |
 | 2026-11-16, wizard rebuild 6c-i | Old plans convert: Emphasis leaves the Plan screen and Reset day leaves old-wizard plans; History unchanged | Design §4.4; both edited only the old generator's template |
+| 2026-11-16, wizard rebuild 6c-ii | You edits two optional numbers; Level is gone; the Plans row reads Not set until a bodyweight exists | Design §4.2 and #527; nothing reads level since 6c-i |
 
 ### Watch
 

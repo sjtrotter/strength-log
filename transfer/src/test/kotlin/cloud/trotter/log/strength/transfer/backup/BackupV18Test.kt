@@ -43,7 +43,7 @@ class BackupV18Test {
 
         assertEquals(parked, restored.exercises.single().parkedLogsJson)
         assertEquals(snapshot, restored)
-        assertEquals(210.5, restored.global.bodyweightLb)
+        assertEquals(210.5, restored.profile.bodyweightLb)
         assertEquals(210.5, restored.sessions.single().bodyweightLb)
     }
 
@@ -52,7 +52,7 @@ class BackupV18Test {
         val encoded = codec.encode(legacy).replace(",\"parkedLogsJson\":null", "")
         val snapshot = codec.decode(encoded).toSnapshot()
         assertNull(snapshot.exercises.single().parkedLogsJson)
-        assertEquals(210.5, snapshot.global.bodyweightLb)
+        assertEquals(210.5, snapshot.profile.bodyweightLb)
         assertEquals(210.5, snapshot.sessions.single().bodyweightLb)
         val exported = snapshot.toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)

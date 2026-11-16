@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -33,7 +33,7 @@ class BackupV10Test {
     )
 
     private fun snapshot() = FullSnapshot(
-        global = GlobalLifter(),
+        profile = LifterProfile(235.0, 40),
         legacyRecipe = null,
         unit = WeightUnit.LB,
         wizardComplete = true,

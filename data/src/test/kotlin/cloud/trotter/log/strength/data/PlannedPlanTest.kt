@@ -144,7 +144,7 @@ class PlannedPlanTest {
     }
 
     @Test fun `publishing selects the plan and puts it on Today`() = runTest {
-        val global = settings.globalLifterFlow.first()
+        val profile = settings.lifterProfileFlow.first()
         val id = plans.createPlannedPlan("Strength", answers)
         plans.publishPlannedPlan(id)
         assertEquals(id, settings.selectedPlanIdFlow.first())
@@ -154,7 +154,7 @@ class PlannedPlanTest {
         plans.publishPlannedPlan(archived)
         assertEquals(id, settings.selectedPlanIdFlow.first())
         assertFalse(assertNotNull(db.planDao().plan(archived)).onToday)
-        assertEquals(global, settings.globalLifterFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
     }
 
     @Test fun `preview matches what Start writes`() = runTest {

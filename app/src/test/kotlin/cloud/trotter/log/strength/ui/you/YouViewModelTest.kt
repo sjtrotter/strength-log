@@ -13,9 +13,9 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +100,7 @@ class YouViewModelTest {
     }
 
     private fun newViewModel(): YouViewModel =
-        YouViewModel(repo.plans, settings = settings).also { vm ->
+        YouViewModel(settings = settings).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -127,8 +127,8 @@ class YouViewModelTest {
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
         val restarted = newViewModel()
         advanceUntilIdle()
-        assertEquals(expectedLb, restarted.uiState.value.config.bodyweightLb.toDouble(), 0.0)
-        assertEquals(value, restarted.uiState.value.bodyweightDisplay, 0.0)
+        assertEquals(expectedLb, restarted.uiState.value.profile.bodyweightLb!!, 0.0)
+        assertEquals(value, SetupStateBuilder.bodyweightDisplay(restarted.uiState.value.profile.bodyweightLb!!, unit), 0.0)
     }
 
     @Test
@@ -142,18 +142,16 @@ class YouViewModelTest {
         advanceUntilIdle()
 
         val expectedLb = Math.round(WeightUnit.KG.toLb(100.0) * 10.0) / 10.0
-        assertEquals(expectedLb, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(expectedLb, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
     }
 
     @Test
-    fun ageIsClampedAndLevelCommitsImmediately() = runVmTest {
+    fun ageIsClampedAndCommitsImmediately() = runVmTest {
         val vm = newViewModel()
         vm.setAge(0)
-        vm.setLevel(ExperienceLevel.ADVANCED)
         advanceUntilIdle()
-        assertEquals(1, repo.plans.configFlow.first().age)
-        assertEquals(ExperienceLevel.ADVANCED, repo.plans.configFlow.first().level)
-        assertEquals(1, vm.uiState.value.config.age)
+        assertEquals(1, settings.lifterProfileFlow.first().age)
+        assertEquals(1, vm.uiState.value.profile.age)
     }
 
     @Test
@@ -164,10 +162,10 @@ class YouViewModelTest {
         vm.setBodyweight(245.0)
         vm.setAge(41)
         advanceUntilIdle()
-        assertEquals(245.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
-        assertEquals(41, repo.plans.configFlow.first().age)
+        assertEquals(245.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
+        assertEquals(41, settings.lifterProfileFlow.first().age)
         assertEquals(listOf(2400L, 2450L, 2450L), writtenBodyweights)
-        assertEquals(listOf(40, 40, 41), writtenAges)
+        assertEquals(listOf(null, null, 41), writtenAges)
     }
 
     @Test
@@ -182,16 +180,4 @@ class YouViewModelTest {
         assertEquals(planBefore, repo.plans.selectedPlanFlow.first())
     }
 
-    @Test
-    fun levelChangesKeepTheSelectedPlanSettings() = runVmTest {
-        repo.plans.setWizardAnswers(WizardAnswers())
-        val selected = repo.plans.selectedPlanFlow.first()!!
-        val vm = newViewModel()
-
-        vm.setLevel(ExperienceLevel.ADVANCED)
-        advanceUntilIdle()
-
-        assertEquals(ExperienceLevel.ADVANCED, repo.plans.configFlow.first().level)
-        assertEquals(selected, repo.plans.selectedPlanFlow.first())
-    }
 }

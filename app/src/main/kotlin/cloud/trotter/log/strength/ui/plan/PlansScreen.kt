@@ -167,8 +167,8 @@ private fun YouRow(you: YouSummary?, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(stringResource(R.string.you_title)) },
         supportingContent = {
-            Text(you?.let {
-                stringResource(R.string.plans_you_summary, it.bodyweightDisplay, it.age, it.level)
+            Text(you?.let { s ->
+                s.age?.let { stringResource(R.string.plans_you_summary, s.bodyweightDisplay, it) } ?: s.bodyweightDisplay
             } ?: stringResource(R.string.plans_you_not_set))
         },
         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },

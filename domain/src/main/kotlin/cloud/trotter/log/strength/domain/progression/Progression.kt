@@ -19,8 +19,12 @@ import kotlin.math.floor
 /** The log to next targets for a lift slot or a cardio day. Pure: callers pass the slot's stored rows and rule and write back
  *  [Outcome.rows] and [Outcome.rule] together; cardio callers pass the day's block and rule and write back [CardioOutcome]. */
 object Progression {
-    /** The 65+ path's age; PR 6's setup answer replaces the age read. */
+    /** The 65+ path's age, read from the profile for plans whose setup did not ask; a setup plan's own answer wins. */
     const val OLDER_ADULT_AGE = 65
+
+    /** A New lifter keeps recalibration past 14 days while the first logged session is under this many days old
+     *  (six months; design §3.2 Layoff). */
+    const val NEW_LIFTER_LOG_DAYS = 182
 
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(

@@ -34,8 +34,9 @@ import kotlinx.serialization.Serializable
  * Optional v27 additions carry the three-way keep-screen choice.
  * v28 adds recipe v2 and plan settings' equipment and goals.
  * v29 adds plan settings' legacyMains.
+ * v30 makes the profile's bodyweight and age optional and drops level and hasLifterAnswers from new documents.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 29
+const val CURRENT_SCHEMA_VERSION: Int = 30
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -130,9 +131,12 @@ data class CardioSetResultBackup(
  */
 @Serializable
 data class SettingsBackup(
-    val bodyweightLb: Int,
-    val age: Int,
-    val level: String,
+    val bodyweightLb: Int?,
+    val age: Int?,
+    /** Before v30 only; nothing reads it. */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val level: String? = null,
     val emphasis: String? = null,
     val cardioMode: String? = null,
     val cardioPlacement: String? = null,
@@ -174,7 +178,9 @@ data class SettingsBackup(
     val theme: String = "SYSTEM",
     val distanceUnit: String? = null,
     val bodyweightLbPrecise: Double? = null,
-    /** Older backups always restored their lifter values as answers. */
+    /** Before v30 only: false meant the lifter values were not answers. */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
     val hasLifterAnswers: Boolean = true,
     val effortScale: String = "WORDS",
     /** Optional v27 addition; absence and unknown names use the legacy boolean. */

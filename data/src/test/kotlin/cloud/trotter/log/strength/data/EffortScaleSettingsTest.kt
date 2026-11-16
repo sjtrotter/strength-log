@@ -59,7 +59,7 @@ class EffortScaleSettingsTest {
     @After fun tearDown() { db.close(); scope.cancel() }
 
     private suspend fun restore(scale: EffortScale) {
-        settings.restore(GlobalLifter(), WeightUnit.LB, true, restSettings = RestSettings(),
+        settings.restore(LifterProfile(), WeightUnit.LB, true, restSettings = RestSettings(),
             keepScreenOn = KeepScreenOn.WHILE_TIMER, effortScale = scale)
     }
 

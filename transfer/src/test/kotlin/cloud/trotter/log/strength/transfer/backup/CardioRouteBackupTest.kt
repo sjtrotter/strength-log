@@ -49,7 +49,7 @@ class CardioRouteBackupTest {
     }
 
     @Test fun `a v0_10_0 v27 document without a route restores no routes`() {
-        val root = Json.parseToJsonElement(codec.encode(document())).jsonObject
+        val root = Json.parseToJsonElement(codec.encode(document().copy(schemaVersion = 27))).jsonObject
         val sessions = root.getValue("cardioSessions").jsonArray
         val legacy = JsonObject(root + ("cardioSessions" to JsonArray(sessions.map { session ->
             val fields = session.jsonObject

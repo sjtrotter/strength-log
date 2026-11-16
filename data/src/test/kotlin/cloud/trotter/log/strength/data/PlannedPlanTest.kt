@@ -169,13 +169,18 @@ class PlannedPlanTest {
     @Test fun `a New lifter on dumbbells gets three full-body days at the floor, calibrating`() = runTest {
         val a = SetupAnswers(goal = LiftGoal.GENERAL, days = 3, minutes = 45,
             equipment = EquipmentPreset.DUMBBELLS.equipment, experience = LiftExperience.NEW)
+        val preview = plans.previewPlan(a)
         val id = plans.createPlannedPlan("General", a)
+        assertDraft(id, preview)
+        assertEquals(a, assertNotNull(db.planDao().plan(id)).setupAnswers(WeightUnit.LB))
         val program = plans.programFor(id).first()
         assertEquals(List(3) { ProgramDayKind.STRENGTH }, program.days.map { it.kind })
         assertEquals(List(3) { "Full Body" }, program.days.map { it.title })
         val mains = program.days.flatMap { day -> db.programDao().exercisesForDay(id, day.id) }
             .filter { SlotRuleJson.decode(it.ruleJson)?.role == SlotRole.MAIN }
-        assertTrue(mains.isNotEmpty())
+        // Revision 27's General floor is 4: bench credits 1 front-delt set, so shoulder press needs 3.
+        val mainSets = mapOf("goblet_squat" to 2, "db_shoulder" to 3, "db_rdl" to 2, "db_row" to 2, "db_bench" to 2)
+        assertEquals(mainSets.keys, mains.map { it.exerciseId }.toSet())
         var checkedCalibration = false
         for (slot in mains) {
             val rule = assertNotNull(SlotRuleJson.decode(slot.ruleJson))
@@ -183,7 +188,7 @@ class PlannedPlanTest {
             val log = assertNotNull(db.programDao().logForSlot(id, slot.dayId, slot.id, Slot.MAIN))
             val rows = SetJson.decodeSets(log.setsJson)
             assertEquals(SetStructure.STRAIGHT.name, slot.structure)
-            assertEquals(2, rows.size)
+            assertEquals(mainSets.getValue(slot.exerciseId), rows.size)
             assertEquals(RepTarget.Range(8, 15, 8), rule.target)
             assertTrue(rule.state.calibrating)
             if (entry.tracking == TrackingType.WEIGHTED && Equipment.DUMBBELL in entry.equipment) {

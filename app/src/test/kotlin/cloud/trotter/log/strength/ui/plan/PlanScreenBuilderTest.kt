@@ -168,7 +168,7 @@ class PlanScreenBuilderTest {
             val state = PlanScreenBuilder.buildUiState(plan, ruledProgram(answers), answers, catalog, unit)
             val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
             assertEquals(200.0, requireNotNull(squat.goalLb), 0.0)
-            assertEquals(if (unit == WeightUnit.LB) "200" else "90.7", squat.display)
+            assertEquals(if (unit == WeightUnit.LB) "200" else "90.72", squat.display)
             assertNull(state.goals.single { it.exerciseId == "bb_bench" }.display)
         }
     }

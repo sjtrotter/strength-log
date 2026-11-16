@@ -730,11 +730,11 @@ class BackupCodecTest {
     }
 
     @Test
-    fun `all keep-screen modes round-trip at v27 with a legacy boolean projection`() {
+    fun `all keep-screen modes round-trip at the current schema with a legacy boolean projection`() {
         for (mode in KeepScreenOn.entries) {
             val snapshot = restSnapshot(RestSettings()).copy(keepScreenOn = mode)
             val document = codec.decode(codec.encode(snapshot.toDocument()))
-            assertEquals(27, document.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, document.schemaVersion)
             assertEquals(mode.name, document.settings.keepScreen)
             assertEquals(mode == KeepScreenOn.DURING_WORKOUTS, document.settings.keepScreenOn)
             assertEquals(mode, document.toSnapshot().keepScreenOn)

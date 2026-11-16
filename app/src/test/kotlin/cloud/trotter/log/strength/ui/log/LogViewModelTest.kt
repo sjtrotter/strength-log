@@ -1006,7 +1006,9 @@ class LogViewModelTest {
                         id = "A",
                         title = "Lower",
                         emphasisLine = "",
-                        exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6)),
+                        exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF,
+                            targetSets = 6, rule = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH,
+                                SetStructure.RAMP_TOP_BACKOFF, 5, ExerciseLibrary.get("bb_back_squat").pattern))),
                     ),
                 ),
             ),
@@ -1078,6 +1080,7 @@ class LogViewModelTest {
         val trajectory = journal.trajectories.single()
         assertEquals("Barbell Back Squat", trajectory.exerciseName)
         assertEquals(listOf(225f, 235f), trajectory.points.map { it.value })
+        assertEquals(235f, trajectory.goalValue)
         assertTrue("235 is the pinned squat GOAL", trajectory.goalMet)
 
         val volume = journal.volume

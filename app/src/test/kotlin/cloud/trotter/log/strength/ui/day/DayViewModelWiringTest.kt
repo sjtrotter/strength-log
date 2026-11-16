@@ -940,7 +940,8 @@ class DayViewModelWiringTest {
         assertTrue(vm.dayEditState.value.canResetToTemplate)
         vm.selectDay(DaySelection(plan, "D"))
         advanceUntilIdle()
-        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        assertEquals("E", vm.dayEditState.value.dayId)
+        assertTrue(vm.dayEditState.value.canResetToTemplate)
         db.planDao().updateRecipe(plan,
             """{"v":2,"branch":"LIFT","goal":"POWER","days":4,"minutes":60,"experience":"NEW"}""")
         vm.selectDay(DaySelection(plan, "A"))

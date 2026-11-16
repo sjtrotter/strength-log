@@ -25,6 +25,7 @@ import org.robolectric.annotation.Config
 class ReadingSourceBackupTest {
     private val codec = BackupCodec()
     private fun document() = BackupDocument(
+        schemaVersion = 27,
         settings = SettingsBackup(200, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true),
         cardioSessions = listOf(CardioSessionBackup(12, "A", "OUTDOOR_RUN", false, "Run", 1000, 1691000, 1690, 1,
             activity = "ROAD_RUN", sets = listOf(CardioSetResultBackup(13,
@@ -44,7 +45,7 @@ class ReadingSourceBackupTest {
         assertEquals(5050 to 1500, row.metresAtEnd to row.secondsAtEnd)
 
         val exported = snapshot.toDocument()
-        assertEquals(27, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(source.cardioSessions, exported.cardioSessions)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }
@@ -64,7 +65,7 @@ class ReadingSourceBackupTest {
         assertEquals(5050 to 1500, row.metresAtEnd to row.secondsAtEnd)
 
         val exported = snapshot.toDocument()
-        assertEquals(27, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(source.cardioSessions, exported.cardioSessions)
         assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())
     }

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import kotlin.test.assertEquals
@@ -17,9 +18,21 @@ import org.robolectric.annotation.Config
 class PlanSettingsJsonTest {
     @Test fun `defaults and unknown keys use the default settings`() {
         assertEquals(PlanSettings(), PlanSettingsJson.decode("{}"))
-        assertEquals(PlanSettings(), PlanSettingsJson.decode("""{"equipment":["BARBELL"]}"""))
+        assertEquals(PlanSettings(), PlanSettingsJson.decode("""{"futureSetting":["BARBELL"]}"""))
         assertNull(PlanSettingsJson.decode(null))
         assertNull(PlanSettingsJson.decode("junk"))
+    }
+
+    @Test fun `absent equipment stays null alongside known and unknown keys`() {
+        assertEquals(PlanSettings(defaultsFor = LiftGoal.MUSCLE), PlanSettingsJson.decode(
+            """{"defaultsFor":"MUSCLE","futureSetting":["BARBELL"]}""",
+        ))
+    }
+
+    @Test fun `known equipment decodes alongside unknown keys`() {
+        assertEquals(PlanSettings(equipment = setOf(Equipment.BARBELL)), PlanSettingsJson.decode(
+            """{"equipment":["BARBELL"],"futureSetting":true}""",
+        ))
     }
 
     @Test fun `released settings without runCap default on and false round trips`() {

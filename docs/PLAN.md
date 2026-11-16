@@ -369,9 +369,11 @@ the equipment, training experience, the lifts and recent numbers; the planner (`
 and progression (`domain/progression`) moves every target from the log. No load comes from a bodyweight formula:
 a lift opens from the lifter's numbers, its history, or the equipment floor with calibration.
 
-- Supersedes spec §4 (goal math and seeding), §6 (setup wizard and generator), §8.3's Reset day to template
+- Supersedes spec §1 (load and goal principles), §2 (onboarding and setup), §4 (goal math and seeding),
+  §6 (setup wizard and generator), §8.3's Reset day to template
   (setup plans have Reset day to plan; other plans have no reset), §8.4 (Setup screen) and the formula types in
-  §3. Spec §5's GOAL source column now only says how an entry is logged: by load, by reps or by time.
+  §3. Spec §5's Tracking column records Weighted, Reps or Time; starting loads come from the planner and
+  the log (design §3).
 - Replaces A14 and the recent-lifts A15 (#499); absorbs A16 and A13's cardio-first paragraph; extends A18 (a
   timed goal may have no time, sprint goals, the goal date drives the taper).
 - Retires A13's "§11 numbers do not move". Spec §11.1's formula numbers went with the formula; spec §11.2 is the

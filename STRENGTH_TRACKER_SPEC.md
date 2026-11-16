@@ -37,9 +37,9 @@ they can own, balanced development, and honest logging of what actually happened
 3. **Top set is the anchor.** Main lifts use a Madcow-style ramp → top set →
    back-off. Changing the top-set weight recalculates the ramp and back-off.
    Editing any other set changes only that set.
-4. **Maintenance math.** Targets are derived from bodyweight-ratio strength
-   standards, then deliberately scaled *below* max-effort territory and
-   age-adjusted. "Own it, don't grind it."
+4. **Conservative loads.** A lift starts from Recent numbers or history, or the
+   equipment floor while calibrating, and progresses conservatively from the log.
+   Goals are what the lifter types.
 5. **Every tap is cheap.** Steppers, not keyboards. Checkmarks, not forms.
    Cards collapse when done.
 6. **Lift first, cardio after.** Cardio is planned around the lifting, never
@@ -52,11 +52,11 @@ they can own, balanced development, and honest logging of what actually happened
 
 | Area | Feature |
 |---|---|
-| Onboarding | Setup wizard: goal emphasis → days/week → split (sane default) → anchors → cardio prefs → bodyweight/age/level |
+| Onboarding | Setup: Goal → Sub-goal → Your week → Equipment → About your training → Your lifts → Recent numbers → Your plan; see [design §2](docs/briefs/wizard-design-2026-11-08.md#2-the-flow) |
 | Program | Generated editable program stored locally; per-day edit (swap/add/remove exercises) with ranked same-pattern substitutions |
 | Workout | Day screen: ramped mains with cascade, per-set weight+reps steppers, add/remove sets, supersets with paired sub-rows, per-set checkmarks, collapsible cards, optional cardio finisher card |
 | Rotation | Auto-suggested next day, manual override, DONE advances cycle |
-| Setup page | Bodyweight / age / level anytime; live GOAL preview; re-run wizard |
+| Setup page | Re-run the setup flow; Your plan previews the rotation before creation; see [design §2](docs/briefs/wizard-design-2026-11-08.md#2-the-flow) |
 | Wear | Glanceable per-set logging synced to phone |
 
 Deliberately **not** in v1: history/charts, cloud sync, accounts, plate calculator,
@@ -153,8 +153,8 @@ row changes only that row (manual tweaks stick). Editing reps never cascades. Pi
 ## 5. Exercise library & substitution engine
 
 The library is a static, in-code catalog. Each entry: id, display name, pattern,
-equipment list, `perHand` flag, and GOAL source (either a `std` StandardLift for
-mains, a `fracOfStd` pair, or a `flatGoal` starting weight). `subRank` orders
+equipment list, `perHand` flag, and tracking type. Starting loads come from the
+planner and the log (design §3, PLAN.md A19). `subRank` orders
 substitution candidates *within a pattern* (1 = first suggestion).
 
 **Substitution rule:** replacements for exercise X = all library entries with the
@@ -163,72 +163,72 @@ filtering is a v1.1 option — ship without it; the ranked list is enough.)
 If a pattern has no alternatives (rare), fall back to the adjacent pattern noted
 in the table.
 
-| id | Name | Pattern | Equip | GOAL source | subRank | Notes |
+| id | Name | Pattern | Equip | Tracking | subRank | Notes |
 |---|---|---|---|---|---|---|
-| bb_back_squat | Barbell Back Squat | SQUAT_BILATERAL | BARBELL,RACK | std SQUAT | 1 | main-capable |
-| hack_squat | Hack Squat | SQUAT_BILATERAL | MACHINE | flat 180 | 2 | closest leg-press sub |
-| leg_press | Leg Press | SQUAT_BILATERAL | MACHINE | frac 1.4 × SQUAT | 3 | spine-unloaded volume |
-| goblet_squat | Goblet Squat | SQUAT_BILATERAL | DUMBBELL | flat 70 | 4 | simplest fallback |
-| front_squat | Front Squat | SQUAT_BILATERAL | BARBELL,RACK | frac 0.8 × SQUAT | 5 | quad bias |
-| smith_squat | Smith Machine Squat | SQUAT_BILATERAL | MACHINE | frac 0.9 × SQUAT | 6 | |
-| bss | Bulgarian Split Squat | SINGLE_LEG | DUMBBELL,BENCH | flat 35 (perHand) | 1 | |
-| walking_lunge | Walking Lunge | SINGLE_LEG | DUMBBELL | flat 30 (perHand) | 2 | time-cheap BSS sub |
-| reverse_lunge | Reverse Lunge | SINGLE_LEG | DUMBBELL | flat 30 (perHand) | 3 | knee-friendlier lunge |
-| step_up | Step-Up | SINGLE_LEG | DUMBBELL,BENCH | flat 25 (perHand) | 4 | |
-| trap_dl | Trap-Bar Deadlift | HINGE | TRAP_BAR | std DEADLIFT | 1 | main-capable; least lumbar strain |
-| conv_dl | Conventional Deadlift | HINGE | BARBELL | std DEADLIFT ×1.0 tune | 2 | main-capable; most posterior chain, most back demand |
-| sumo_dl | Sumo Deadlift | HINGE | BARBELL | std DEADLIFT | 3 | main-capable; quad-biased pull |
-| rdl | Romanian Deadlift | HINGE | BARBELL | frac 0.72 × SQUAT | 4 | stretch-biased hamstrings |
-| stiff_dl | Stiff-Leg Deadlift | HINGE | BARBELL | frac 0.65 × SQUAT | 5 | deeper stretch than RDL |
-| good_morning | Good Morning | HINGE | BARBELL,RACK | frac 0.45 × SQUAT | 6 | |
-| back_ext | Back Extension | HINGE | BODYWEIGHT | flat 0 | 7 | |
-| seated_curl | Seated Leg Curl | KNEE_FLEXION | MACHINE | flat 90 | 1 | stretched-position curl (preferred) |
-| lying_curl | Lying Leg Curl | KNEE_FLEXION | MACHINE | flat 90 | 2 | short-head/lower-ham bias |
-| ball_curl | Swiss Ball Leg Curl | KNEE_FLEXION | BODYWEIGHT | flat 0 | 3 | no-machine fallback |
-| nordic | Nordic Curl (assisted) | KNEE_FLEXION | BODYWEIGHT | flat 0 | 4 | eccentric emphasis |
-| leg_ext | Leg Extension | KNEE_EXTENSION | MACHINE | flat 90 | 1 | optional; knee-health ROM work; fallback pattern → SQUAT_BILATERAL |
-| bb_bench | Barbell Bench Press | H_PUSH | BARBELL,BENCH,RACK | std BENCH | 1 | main-capable |
-| db_bench | DB Bench Press | H_PUSH | DUMBBELL,BENCH | frac 0.4 × BENCH (perHand) | 2 | |
-| incline_db | Incline DB Press | H_PUSH | DUMBBELL,BENCH | std INCLINE (perHand) | 3 | main-capable; upper-chest bias |
-| incline_bb | Incline Barbell Press | H_PUSH | BARBELL,BENCH,RACK | frac 0.8 × BENCH | 4 | |
-| machine_chest | Machine Chest Press | H_PUSH | MACHINE | flat 100 | 5 | |
-| pec_deck | Pec Deck / Cable Press | H_PUSH | MACHINE,CABLE | flat 100 | 6 | pump finisher |
-| dips | Weighted Dip | H_PUSH | BODYWEIGHT | flat 0 | 7 | |
-| ohp | Overhead Press (Barbell) | V_PUSH | BARBELL,RACK | std OHP | 1 | main-capable (5/3/1-style anchors) |
-| db_shoulder | Seated DB Shoulder Press | V_PUSH | DUMBBELL,BENCH | flat 55 (perHand) | 2 | |
-| machine_shoulder | Machine Shoulder Press | V_PUSH | MACHINE | flat 90 | 3 | |
-| landmine_press | Landmine Press | V_PUSH | BARBELL | flat 60 | 4 | shoulder-friendly angle |
-| bb_row | Barbell Row | H_PULL | BARBELL | std ROW | 1 | main-capable (Big-4 anchors) |
-| cs_row | Chest-Supported Row | H_PULL | MACHINE,BENCH,DUMBBELL | frac 0.8 × BENCH | 2 | lower-back-free |
-| cable_row | Seated Cable Row | H_PULL | CABLE | flat 120 | 3 | |
-| db_row | One-Arm DB Row | H_PULL | DUMBBELL,BENCH | flat 60 (perHand) | 4 | |
-| pullup | Pull-Up / Chin-Up | V_PULL | PULLUP_BAR | flat 0 | 1 | |
-| lat_pd_wide | Lat Pulldown (wide) | V_PULL | CABLE | flat 130 | 2 | |
-| lat_pd_neutral | Lat Pulldown (neutral) | V_PULL | CABLE | flat 125 | 3 | joint-friendly grip |
-| assisted_pullup | Assisted Pull-Up | V_PULL | MACHINE | flat 0 | 4 | |
-| cable_lateral | Cable Lateral Raise | SIDE_DELT | CABLE | flat 15 | 1 | constant tension |
-| db_lateral | DB Lateral Raise | SIDE_DELT | DUMBBELL | flat 15 (perHand) | 2 | |
-| face_pull | Face Pull | REAR_DELT | CABLE | flat 40 | 1 | shoulder health |
-| reverse_pec | Reverse Pec Deck | REAR_DELT | MACHINE | flat 70 | 2 | |
-| ez_curl | EZ-Bar Curl | BICEPS | EZ_BAR | flat 60 | 1 | |
-| incline_curl | Incline DB Curl | BICEPS | DUMBBELL,BENCH | flat 30 (perHand) | 2 | stretch-biased |
-| hammer_curl | Hammer Curl | BICEPS | DUMBBELL | flat 30 (perHand) | 3 | |
-| cable_curl | Cable Curl | BICEPS | CABLE | flat 50 | 4 | |
-| rope_pushdown | Rope Pushdown | TRICEPS | CABLE | flat 50 | 1 | |
-| oh_tri_ext | Overhead Triceps Extension | TRICEPS | CABLE,DUMBBELL | flat 50 | 2 | long-head bias |
-| skullcrusher | Skull Crusher | TRICEPS | EZ_BAR,BENCH | flat 55 | 3 | |
-| standing_calf | Standing Calf Raise | CALF_GASTROC | MACHINE,BODYWEIGHT | flat 90 | 1 | knee straight |
-| legpress_calf | Leg-Press Calf Raise | CALF_GASTROC | MACHINE | flat 180 | 2 | |
-| seated_calf | Seated Calf Raise | CALF_SOLEUS | MACHINE | flat 90 | 1 | knee bent — different head |
-| plank | Plank | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 1 | |
-| ab_wheel | Ab Wheel Rollout | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 2 | |
-| dead_bug | Dead Bug | CORE_ANTI_EXT | BODYWEIGHT | flat 0 | 3 | |
-| high_plank | High Plank | CORE_ANTI_EXT | BODYWEIGHT | time 45 | 7 | |
-| pallof | Pallof Press | CORE_ANTI_ROT | CABLE | flat 25 | 1 | |
-| suitcase_carry | Suitcase Carry | CORE_ANTI_ROT | DUMBBELL | flat 50 (perHand) | 2 | |
-| side_plank | Side Plank | CORE_ANTI_ROT | BODYWEIGHT | time 30 | 8 | |
-| cable_crunch | Cable Crunch | CORE_FLEX | CABLE | flat 90 | 1 | |
-| hanging_raise | Hanging Leg Raise | CORE_FLEX | PULLUP_BAR | flat 0 | 2 | |
+| bb_back_squat | Barbell Back Squat | SQUAT_BILATERAL | BARBELL,RACK | Weighted | 1 | main-capable |
+| hack_squat | Hack Squat | SQUAT_BILATERAL | MACHINE | Weighted | 2 | closest leg-press sub |
+| leg_press | Leg Press | SQUAT_BILATERAL | MACHINE | Weighted | 3 | spine-unloaded volume |
+| goblet_squat | Goblet Squat | SQUAT_BILATERAL | DUMBBELL | Weighted | 4 | simplest fallback |
+| front_squat | Front Squat | SQUAT_BILATERAL | BARBELL,RACK | Weighted | 5 | quad bias |
+| smith_squat | Smith Machine Squat | SQUAT_BILATERAL | MACHINE | Weighted | 6 | |
+| bss | Bulgarian Split Squat | SINGLE_LEG | DUMBBELL,BENCH | Weighted | 1 | |
+| walking_lunge | Walking Lunge | SINGLE_LEG | DUMBBELL | Weighted | 2 | time-cheap BSS sub |
+| reverse_lunge | Reverse Lunge | SINGLE_LEG | DUMBBELL | Weighted | 3 | knee-friendlier lunge |
+| step_up | Step-Up | SINGLE_LEG | DUMBBELL,BENCH | Weighted | 4 | |
+| trap_dl | Trap-Bar Deadlift | HINGE | TRAP_BAR | Weighted | 1 | main-capable; least lumbar strain |
+| conv_dl | Conventional Deadlift | HINGE | BARBELL | Weighted | 2 | main-capable; most posterior chain, most back demand |
+| sumo_dl | Sumo Deadlift | HINGE | BARBELL | Weighted | 3 | main-capable; quad-biased pull |
+| rdl | Romanian Deadlift | HINGE | BARBELL | Weighted | 4 | stretch-biased hamstrings |
+| stiff_dl | Stiff-Leg Deadlift | HINGE | BARBELL | Weighted | 5 | deeper stretch than RDL |
+| good_morning | Good Morning | HINGE | BARBELL,RACK | Weighted | 6 | |
+| back_ext | Back Extension | HINGE | BODYWEIGHT | Reps | 7 | |
+| seated_curl | Seated Leg Curl | KNEE_FLEXION | MACHINE | Weighted | 1 | stretched-position curl (preferred) |
+| lying_curl | Lying Leg Curl | KNEE_FLEXION | MACHINE | Weighted | 2 | short-head/lower-ham bias |
+| ball_curl | Swiss Ball Leg Curl | KNEE_FLEXION | BODYWEIGHT | Reps | 3 | no-machine fallback |
+| nordic | Nordic Curl (assisted) | KNEE_FLEXION | BODYWEIGHT | Reps | 4 | eccentric emphasis |
+| leg_ext | Leg Extension | KNEE_EXTENSION | MACHINE | Weighted | 1 | optional; knee-health ROM work; fallback pattern → SQUAT_BILATERAL |
+| bb_bench | Barbell Bench Press | H_PUSH | BARBELL,BENCH,RACK | Weighted | 1 | main-capable |
+| db_bench | DB Bench Press | H_PUSH | DUMBBELL,BENCH | Weighted | 2 | |
+| incline_db | Incline DB Press | H_PUSH | DUMBBELL,BENCH | Weighted | 3 | main-capable; upper-chest bias |
+| incline_bb | Incline Barbell Press | H_PUSH | BARBELL,BENCH,RACK | Weighted | 4 | |
+| machine_chest | Machine Chest Press | H_PUSH | MACHINE | Weighted | 5 | |
+| pec_deck | Pec Deck / Cable Press | H_PUSH | MACHINE,CABLE | Weighted | 6 | pump finisher |
+| dips | Weighted Dip | H_PUSH | BODYWEIGHT | Weighted | 7 | |
+| ohp | Overhead Press (Barbell) | V_PUSH | BARBELL,RACK | Weighted | 1 | main-capable (5/3/1-style anchors) |
+| db_shoulder | Seated DB Shoulder Press | V_PUSH | DUMBBELL,BENCH | Weighted | 2 | |
+| machine_shoulder | Machine Shoulder Press | V_PUSH | MACHINE | Weighted | 3 | |
+| landmine_press | Landmine Press | V_PUSH | BARBELL | Weighted | 4 | shoulder-friendly angle |
+| bb_row | Barbell Row | H_PULL | BARBELL | Weighted | 1 | main-capable (Big-4 anchors) |
+| cs_row | Chest-Supported Row | H_PULL | MACHINE,BENCH,DUMBBELL | Weighted | 2 | lower-back-free |
+| cable_row | Seated Cable Row | H_PULL | CABLE | Weighted | 3 | |
+| db_row | One-Arm DB Row | H_PULL | DUMBBELL,BENCH | Weighted | 4 | |
+| pullup | Pull-Up / Chin-Up | V_PULL | PULLUP_BAR | Reps | 1 | |
+| lat_pd_wide | Lat Pulldown (wide) | V_PULL | CABLE | Weighted | 2 | |
+| lat_pd_neutral | Lat Pulldown (neutral) | V_PULL | CABLE | Weighted | 3 | joint-friendly grip |
+| assisted_pullup | Assisted Pull-Up | V_PULL | MACHINE | Weighted | 4 | |
+| cable_lateral | Cable Lateral Raise | SIDE_DELT | CABLE | Weighted | 1 | constant tension |
+| db_lateral | DB Lateral Raise | SIDE_DELT | DUMBBELL | Weighted | 2 | |
+| face_pull | Face Pull | REAR_DELT | CABLE | Weighted | 1 | shoulder health |
+| reverse_pec | Reverse Pec Deck | REAR_DELT | MACHINE | Weighted | 2 | |
+| ez_curl | EZ-Bar Curl | BICEPS | EZ_BAR | Weighted | 1 | |
+| incline_curl | Incline DB Curl | BICEPS | DUMBBELL,BENCH | Weighted | 2 | stretch-biased |
+| hammer_curl | Hammer Curl | BICEPS | DUMBBELL | Weighted | 3 | |
+| cable_curl | Cable Curl | BICEPS | CABLE | Weighted | 4 | |
+| rope_pushdown | Rope Pushdown | TRICEPS | CABLE | Weighted | 1 | |
+| oh_tri_ext | Overhead Triceps Extension | TRICEPS | CABLE,DUMBBELL | Weighted | 2 | long-head bias |
+| skullcrusher | Skull Crusher | TRICEPS | EZ_BAR,BENCH | Weighted | 3 | |
+| standing_calf | Standing Calf Raise | CALF_GASTROC | MACHINE,BODYWEIGHT | Weighted | 1 | knee straight |
+| legpress_calf | Leg-Press Calf Raise | CALF_GASTROC | MACHINE | Weighted | 2 | |
+| seated_calf | Seated Calf Raise | CALF_SOLEUS | MACHINE | Weighted | 1 | knee bent — different head |
+| plank | Plank | CORE_ANTI_EXT | BODYWEIGHT | Time | 1 | |
+| ab_wheel | Ab Wheel Rollout | CORE_ANTI_EXT | BODYWEIGHT | Reps | 2 | |
+| dead_bug | Dead Bug | CORE_ANTI_EXT | BODYWEIGHT | Reps | 3 | |
+| high_plank | High Plank | CORE_ANTI_EXT | BODYWEIGHT | Time | 7 | |
+| pallof | Pallof Press | CORE_ANTI_ROT | CABLE | Weighted | 1 | |
+| suitcase_carry | Suitcase Carry | CORE_ANTI_ROT | DUMBBELL | Time | 2 | |
+| side_plank | Side Plank | CORE_ANTI_ROT | BODYWEIGHT | Time | 8 | |
+| cable_crunch | Cable Crunch | CORE_FLEX | CABLE | Weighted | 1 | |
+| hanging_raise | Hanging Leg Raise | CORE_FLEX | PULLUP_BAR | Reps | 2 | |
 
 Weight-stepper increment: 2.5 lb when the working weight is ≤ 20 lb (light
 isolation), otherwise 5 lb. Reps stepper is always ±1.
@@ -276,6 +276,7 @@ clears today's checks for the completed day.
 
 **DataStore (Preferences):** `bodyweight`, `age`, `level`, `emphasis`,
 `cardio_mode`, `cardio_placement`, `five_k`, `suggested_day`, `wizard_complete`.
+The `level`, `emphasis` and `cardio_placement` keys are superseded by PLAN.md A19.
 
 **Persistence lessons from the prototype (hard-won):**
 - Write on every mutation, commit immediately (Room transactions), never hold
@@ -286,7 +287,7 @@ clears today's checks for the completed day.
   per-key writes to a rate-limited KV store. Room has no such limit.)
 
 `TrackerRepository` surface: `configFlow`, `setConfig`, `programFlow`,
-`replaceProgram(Program)` (wizard output), `swapExercise(dayId, position, newId)`,
+`replaceProgram(Program)` (wizard output; superseded by PLAN.md A19), `swapExercise(dayId, position, newId)`,
 `addExercise`, `removeExercise`, `resetDayToTemplate(dayId)`,
 `logFlow(dayId)`, `updateSets(dayId, peId, slot, sets)`, `suggestedDayFlow`,
 `advanceDay()`, `overrideViewDay()` is UI-local (not persisted).
@@ -296,7 +297,7 @@ clears today's checks for the completed day.
 ## 8. Phone UI (Jetpack Compose, MVVM, Hilt, single activity)
 
 ### 8.1 Screens & navigation
-`WizardScreen` (first run / re-run) → `DayScreen` (home) ⇄ `SetupScreen` (⚙ tab)
+`WizardScreen` (first run / re-run; superseded by PLAN.md A19) → `DayScreen` (home) ⇄ `SetupScreen` (⚙ tab)
 ⇄ `DayEditSheet` (gear on DayScreen).
 
 ### 8.2 Day screen — behavioral contract (all prototype-proven; replicate exactly)

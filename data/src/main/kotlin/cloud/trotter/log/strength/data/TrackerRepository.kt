@@ -432,10 +432,8 @@ class TrackerRepository(
                 clearSlotSkipState(row.planId, dayId, row.id)
                 val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == dayId }
                     ?: return@withTransaction true
-
                 return@withTransaction swapInRun(run.id, row.id, Slot.MAIN, newExerciseId, unit, catalog)
             }
-
             swapInPlan(row.planId, row.dayId, row.id, newExerciseId, unit, catalog)
             true
         }
@@ -501,7 +499,6 @@ class TrackerRepository(
             if (programDao.day(planId, dayId) == null) return@withTransaction
             val id = programDao.insertExercise(exercise.toEntity(planId, dayId, position))
             val row = programDao.exercise(id) ?: return@withTransaction
-
             plans.ruleSlot(row, unit, catalog)
             if (exercise.superset != null) plans.rulePartner(row, liveMainRows(row), unit, catalog)
         }
@@ -811,7 +808,6 @@ class TrackerRepository(
         val unit = settings.unitFlow.first()
         db.withTransaction {
             val day = programDao.day(planId, dayId) ?: return@withTransaction
-
             val catalog = this.catalog.snapshot()
             val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId == dayId }
             if (run == null) {
@@ -1029,7 +1025,6 @@ class TrackerRepository(
         return db.withTransaction {
             val plan = planDao.plan(planId)
             val olderAdult = olderAdult(plan, global)
-
             val catalog = this.catalog.snapshot()
             startRun(planId, dayId, unit, catalog, olderAdult, lighter)
         }
@@ -1071,7 +1066,6 @@ class TrackerRepository(
         return db.withTransaction {
             val plan = planDao.plan(planId)
             val olderAdult = olderAdult(plan, global)
-
             val catalog = this.catalog.snapshot()
             val row = programDao.exercise(programExerciseId)
                 ?.takeIf { it.planId == planId && it.dayId == dayId }
@@ -1129,7 +1123,6 @@ class TrackerRepository(
         return db.withTransaction {
             val plan = planDao.plan(planId)
             val olderAdult = olderAdult(plan, global)
-
             val catalog = this.catalog.snapshot()
             val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
             val row = programDao.exercise(programExerciseId)
@@ -1186,7 +1179,6 @@ class TrackerRepository(
                 ?: return@withTransaction RunWriteResult.Rejected
             val day = programDao.day(row.planId, row.dayId) ?: return@withTransaction RunWriteResult.Rejected
             if (!runDao.tracks(runId).slotSkipped(row.id, Slot.MAIN)) return@withTransaction RunWriteResult.Rejected
-
             val catalog = this.catalog.snapshot()
             clearSlotSkipState(row.planId, row.dayId, row.id)
             seedRunTracks(day, runDao.tracks(runId), unit, catalog, restoringLift = row.id)
@@ -1220,7 +1212,6 @@ class TrackerRepository(
                 if (droppedMain != null) return@withTransaction RunWriteResult.Rejected
                 main
             }
-
             val aligned = alignRunTracks(row, restoredMain, partner, unit, catalog.snapshot())
                 ?: return@withTransaction RunWriteResult.Rejected
             if (main.id != restoredMain.id) {
@@ -1248,7 +1239,6 @@ class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
             val plan = planDao.plan(row.planId)
             val olderAdult = olderAdult(plan, global)
-
             val catalog = this.catalog.snapshot()
             swapInDraftOrRun(runId, programExerciseId, slot, newExerciseId, unit, catalog, olderAdult, expectedExerciseId)
         }
@@ -1362,7 +1352,6 @@ class TrackerRepository(
             val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
             val plan = planDao.plan(planId)
             val olderAdult = olderAdult(plan, global)
-
             val catalog = this.catalog.snapshot()
             val open = runDao.openRun()
             if (open != null) {

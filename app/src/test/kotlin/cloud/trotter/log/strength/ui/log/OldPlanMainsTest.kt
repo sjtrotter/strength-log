@@ -4,6 +4,15 @@ import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.plan.PlanScreenBuilder
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -24,6 +33,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -49,6 +60,39 @@ class OldPlanMainsTest {
     }
 
     @After fun tearDown() { db.close(); storeScope.cancel() }
+
+    @Test fun `an old wizard main switched to straight keeps its History card and Plan goal`() = runTest {
+        for (level in listOf(ExperienceLevel.NOVICE, ExperienceLevel.INTERMEDIATE)) {
+            val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
+                config = LifterConfig(level = level, goalsLb = mapOf("goblet_squat" to 80.0)))
+            val id = plans.createGeneratedPlan("Dumbbells", answers, ProgramGenerator.generate(answers))
+            val squats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
+            assertTrue(squats.isNotEmpty())
+            // Before #514 a structure edit cleared the prescription and replanned the accessory rule.
+            for (slot in squats) {
+                db.programDao().replaceExercise(slot.id, slot.exerciseId, SetStructure.STRAIGHT.name, 3)
+                db.programDao().setRule(slot.id, SlotRuleJson.encode(SlotRule.defaults(SlotRole.ACCESSORY,
+                    LiftGoal.STRENGTH, SetStructure.STRAIGHT, null, MovementPattern.SQUAT_BILATERAL)))
+            }
+            val before = db.programDao().exercisesForPlan(id)
+            plans.publishCreatedPlan(id, answers)
+            val stored = plans.programFor(id).first()
+            val planSettings = plans.planSettingsFor(id).first()
+            val mains = JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY,
+                planSettings.goalsLb, planSettings.legacyMains)
+            assertEquals(JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, answers.config.goalsLb,
+                ProgramGenerator.mainLiftIds(answers).toSet()), mains)
+            val card = JournalBuilder.trajectories(mains,
+                listOf(TopSetRow(1, 1000, "goblet_squat", 60.0)), WeightUnit.LB).single()
+            assertEquals("goblet_squat", card.exerciseId)
+            assertEquals(listOf(60f), card.points.map { it.value })
+            assertEquals(80f, card.goalValue)
+            val state = PlanScreenBuilder.buildUiState(assertNotNull(db.planDao().plan(id)), stored,
+                ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+            assertEquals("80", state.goals.single { it.exerciseId == "goblet_squat" }.display)
+            assertEquals(before, db.programDao().exercisesForPlan(id))
+        }
+    }
 
     @Test fun `old plan History mains are unchanged by conversion`() = runTest {
         val combinations = buildList {

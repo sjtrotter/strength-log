@@ -8,6 +8,10 @@ import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import org.junit.Assert.assertEquals
@@ -46,11 +50,11 @@ class PlanRecipeJsonTest {
         """.trimIndent()
 
         assertEquals(
-            V1Recipe(equipment = setOf(Equipment.BARBELL)),
+            V1Recipe(equipment = setOf(Equipment.BARBELL), daysPerWeek = 2),
             PlanRecipeJson.read(json),
         )
         assertEquals(
-            V1Recipe(equipment = emptySet()),
+            V1Recipe(equipment = emptySet(), daysPerWeek = 6),
             PlanRecipeJson.read(json.replace("1,", "7,").replace("\"BARBELL\",", "")),
         )
     }
@@ -104,5 +108,24 @@ class PlanRecipeJsonTest {
         assertNull(PlanRecipeJson.read(SetupRecipeJson.encode(SetupAnswers())))
         assertNull(PlanRecipeJson.read("{}"))
         assertNull(PlanRecipeJson.read("not json"))
+    }
+
+    @Test fun `read keeps the recipe inputs that select old mains`() {
+        for ((split, days) in listOf(SplitTemplate.FULL_BODY to 3, SplitTemplate.UPPER_LOWER to 4,
+            SplitTemplate.PPL to 6)) {
+            for (scheme in AnchorScheme.entries) {
+                for (variant in DeadliftVariant.entries) {
+                    val answers = WizardAnswers(daysPerWeek = days, split = split,
+                        anchorScheme = scheme, deadliftVariant = variant,
+                        equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT))
+                    val recipe = requireNotNull(PlanRecipeJson.read(PlanRecipeJson.encode(answers)))
+                    assertEquals(days, recipe.daysPerWeek)
+                    assertEquals(split, recipe.split)
+                    assertEquals(scheme, recipe.anchorScheme)
+                    assertEquals(variant, recipe.deadliftVariant)
+                    assertEquals(ProgramGenerator.mainLiftIds(answers).toSet(), recipe.mainLiftIds())
+                }
+            }
+        }
     }
 }

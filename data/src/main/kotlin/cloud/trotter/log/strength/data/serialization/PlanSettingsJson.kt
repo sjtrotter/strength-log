@@ -8,8 +8,8 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 
 /** A plan's own settings (`plan.settingsJson`, design §4.1). An absent column or field means the default: Strength,
  *  and the steps of the lifter's current unit ([LoadSteps.defaults]). Null equipment reads as every piece of
- *  equipment. [goalsLb] holds typed lift goals in lb. [legacyMains] holds the old wizard's mains (top-set or
- *  LoadReps-prescribed slots at conversion), which History and the Plan screen's goals count beside MAIN-role slots;
+ *  equipment. [goalsLb] holds typed lift goals in lb. [legacyMains] holds recipe mains still present in the plan
+ *  plus top-set or LoadReps-prescribed slots, which History and the Plan screen's goals count beside MAIN-role slots;
  *  written only by the v1 conversion. */
 data class PlanSettings(
     val defaultsFor: LiftGoal = LiftGoal.STRENGTH,

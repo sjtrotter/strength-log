@@ -18,6 +18,12 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +104,54 @@ class BackupV29Test {
             assertEquals(expected, restored.planSettings)
             assertEquals(source.exercises, db.programDao().allExercises())
             assertEquals(source.plans.single().planSettings.legacyMains, restored.planSettings.legacyMains)
+        } finally {
+            db.close()
+            scope.cancel()
+        }
+    }
+
+    @Test fun `a v18 straightened wizard main restores with the same membership`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
+                File.createTempFile("v18-restore", ".preferences_pb")
+            })
+            val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
+                File.createTempFile("v18-journal", ".preferences_pb")
+            }, settings)
+            val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+            val backup = BackupRepository(db, settings, repo.plans, repo.history)
+            val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
+                config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
+            val id = repo.plans.createGeneratedPlan("Dumbbells", answers, ProgramGenerator.generate(answers))
+            val squats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
+            assertTrue(squats.isNotEmpty())
+            for (slot in squats) {
+                db.programDao().replaceExercise(slot.id, slot.exerciseId, SetStructure.STRAIGHT.name, 3)
+                db.programDao().setRule(slot.id, SlotRuleJson.encode(SlotRule.defaults(SlotRole.ACCESSORY,
+                    LiftGoal.STRENGTH, SetStructure.STRAIGHT, null, MovementPattern.SQUAT_BILATERAL)))
+            }
+            repo.plans.publishCreatedPlan(id, answers)
+            val source = backup.exportSnapshot()
+            val decoded = codec.decode(codec.encode(source.toDocument()))
+            val old = decoded.copy(schemaVersion = 18, plans = decoded.plans.map { plan -> plan.copy(
+                recipeJson = PlanRecipeJson.encode(answers), settingsJson = null,
+                days = plan.days.map { day -> day.copy(exercises = day.exercises.map {
+                    it.copy(ruleJson = null, partnerRuleJson = null)
+                }) },
+            ) })
+            BackupService(backup, journal).import(codec.encode(old))
+            val restored = assertNotNull(db.planDao().plan(id))
+            assertNull(restored.recipeJson)
+            assertEquals(source.plans.single().planSettings, restored.planSettings)
+            assertEquals(ProgramGenerator.mainLiftIds(answers).toSet(), restored.planSettings.legacyMains)
+            assertEquals(80.0, restored.planSettings.goalsLb["goblet_squat"])
+            val restoredSquats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
+            assertEquals(squats.map { it.id }, restoredSquats.map { it.id })
+            assertTrue(restoredSquats.all { it.structure == SetStructure.STRAIGHT.name && it.prescriptionJson == null &&
+                SlotRuleJson.decode(it.ruleJson)?.role == SlotRole.ACCESSORY })
         } finally {
             db.close()
             scope.cancel()

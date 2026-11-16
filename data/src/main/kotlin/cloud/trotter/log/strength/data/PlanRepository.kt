@@ -57,6 +57,7 @@ import java.time.LocalDate
 import java.time.Clock
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -560,7 +561,10 @@ class PlanRepository(
             if (!legacyCardioConverted) {
                 legacyCardioConverted = db.withTransaction {
                     if (restoreMarkerDao.nonce() != null) return@withTransaction false
-                    convertLegacyCardio(programDao.daysWithLegacyCardio(), V1Recipe())
+                    val pendingV1 = planDao.allPlans().filter {
+                        it.recipeJson != null && !SetupRecipeJson.isV2(it.recipeJson)
+                    }.map { it.id }.toSet()
+                    convertLegacyCardio(programDao.daysWithLegacyCardio().filter { it.planId !in pendingV1 }, V1Recipe())
                     true
                 }
                 if (!legacyCardioConverted) return@withLock
@@ -805,8 +809,11 @@ class PlanRepository(
     internal suspend fun applyV1Recipe(planId: Long, recipe: V1Recipe?) {
         val plan = planDao.plan(planId) ?: return
         val current = plan.planSettings
-        val mains = programDao.exercisesForPlan(planId).map { it.toDomain() }
-            .filter { it.structure.hasTopSet || it.prescription?.target is PrescribedTarget.LoadReps }
+        val exercises = programDao.exercisesForPlan(planId).map { it.toDomain() }
+        val recipeMains = recipe?.mainLiftIds().orEmpty()
+        val mains = exercises.filter {
+            it.exerciseId in recipeMains || it.structure.hasTopSet || it.prescription?.target is PrescribedTarget.LoadReps
+        }
             .map { it.exerciseId }.toSet()
         val converted = if (recipe == null) current.copy(legacyMains = mains) else current.copy(
             equipment = recipe.equipment, goalsLb = recipe.goalsLb + current.goalsLb, legacyMains = mains)
@@ -823,16 +830,26 @@ class PlanRepository(
         }
     }
 
-    /** Converts all old wizard recipes in one transaction. False while a restore is pending;
-     *  plans without a recipe or with a v2 recipe are skipped, so a rerun changes nothing. */
-    private suspend fun convertV1Recipes(): Boolean = db.withTransaction {
-        if (restoreMarkerDao.nonce() != null) return@withTransaction false
+    /** Each old wizard plan commits separately so a failed conversion leaves that plan readable and intact.
+     *  False while a restore is pending; plans without a recipe or with a v2 recipe are skipped. */
+    private suspend fun convertV1Recipes(): Boolean {
+        if (restoreMarkerDao.nonce() != null) return false
         for (plan in planDao.allPlans()) {
-            val recipe = plan.recipeJson ?: continue
-            if (SetupRecipeJson.isV2(recipe)) continue
-            applyV1Recipe(plan.id, PlanRecipeJson.read(recipe))
+            try {
+                val converted = db.withTransaction {
+                    if (restoreMarkerDao.nonce() != null) return@withTransaction false
+                    val recipe = planDao.plan(plan.id)?.recipeJson ?: return@withTransaction true
+                    if (!SetupRecipeJson.isV2(recipe)) applyV1Recipe(plan.id, PlanRecipeJson.read(recipe))
+                    true
+                }
+                if (!converted) return false
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Keep this plan's v1 recipe after rollback; the remaining plans and gated readers can proceed.
+            }
         }
-        true
+        return true
     }
 
     internal suspend fun invalidatePlanFixups() {

@@ -175,7 +175,7 @@ class PlanConversionTest {
         val plan = db.planDao().plan(1)!!
         assertNull(plan.recipeJson)
         assertEquals(PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb,
-            legacyMains = setOf("bb_back_squat", "bb_row")), plan.planSettings)
+            legacyMains = setOf("bb_back_squat", "bb_bench", "bb_row")), plan.planSettings)
         assertEquals(squatRows, db.programDao().logForSlot(1, "A", 7, Slot.MAIN)!!.setsJson)
     }
 

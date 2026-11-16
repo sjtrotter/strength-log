@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.FullSnapshot
@@ -94,6 +97,17 @@ class BackupV8Test {
     }
 
     private fun document() = snapshot().toV8Document()
+
+    @Test fun `v8 restore keeps the inputs that select legacy mains`() {
+        val source = document()
+        val old = source.copy(settings = source.settings.copy(daysPerWeek = 6, split = "PPL",
+            anchorScheme = "BIG_4", deadliftVariant = "SUMO"))
+        val recipe = checkNotNull(codec.decode(codec.encode(old)).toSnapshot().legacyRecipe)
+        assertEquals(6, recipe.daysPerWeek)
+        assertEquals(SplitTemplate.PPL, recipe.split)
+        assertEquals(AnchorScheme.BIG_4, recipe.anchorScheme)
+        assertEquals(DeadliftVariant.SUMO, recipe.deadliftVariant)
+    }
 
     private fun decode(document: BackupDocument) = codec.decode(codec.encode(document))
 

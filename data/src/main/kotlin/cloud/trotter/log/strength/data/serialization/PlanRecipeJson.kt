@@ -1,6 +1,10 @@
 package cloud.trotter.log.strength.data.serialization
 
 import cloud.trotter.log.strength.domain.generator.CardioFirst
+import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -34,14 +38,24 @@ internal data class CardioFirstDto(
     val restDays: Int = 0,
 )
 
-/** What an old wizard (v1) recipe still means after conversion (design §4.4): its equipment and typed goals, and
- *  the cardio answers a day that still holds legacy cardio needs. The defaults are the old wizard's. */
+/** The old wizard facts needed to convert plan settings, main membership and legacy cardio (design §4.4).
+ *  The defaults are the old wizard's. */
 data class V1Recipe(
     val equipment: Set<Equipment> = Equipment.entries.toSet(),
     val goalsLb: Map<String, Double> = emptyMap(),
     val cardioMode: CardioMode = CardioMode.OUTDOOR_RUN,
     val fiveKGoal: Boolean = true,
-)
+    val daysPerWeek: Int = 4,
+    val split: SplitTemplate = SplitTemplate.FULL_BODY,
+    val anchorScheme: AnchorScheme = AnchorScheme.PROTOTYPE,
+    val deadliftVariant: DeadliftVariant = DeadliftVariant.TRAP_BAR,
+) {
+    /** 6d must keep this derivation as a frozen legacy table when it deletes the generator; restored old backups still convert. */
+    fun mainLiftIds(): Set<String> = ProgramGenerator.mainLiftIds(WizardAnswers(
+        daysPerWeek = daysPerWeek, split = split, anchorScheme = anchorScheme,
+        deadliftVariant = deadliftVariant, equipment = equipment,
+    )).toSet()
+}
 
 object PlanRecipeJson {
     const val MAX_GOAL_LB = 2000.0
@@ -96,6 +110,10 @@ object PlanRecipeJson {
                 },
                 cardioMode = CardioMode.entries.firstOrNull { it.name == recipe.cardioMode } ?: CardioMode.OUTDOOR_RUN,
                 fiveKGoal = recipe.fiveKGoal,
+                daysPerWeek = recipe.daysPerWeek.coerceIn(2, 6),
+                split = SplitTemplate.entries.firstOrNull { it.name == recipe.split } ?: SplitTemplate.FULL_BODY,
+                anchorScheme = AnchorScheme.entries.firstOrNull { it.name == recipe.anchorScheme } ?: AnchorScheme.PROTOTYPE,
+                deadliftVariant = DeadliftVariant.entries.firstOrNull { it.name == recipe.deadliftVariant } ?: DeadliftVariant.TRAP_BAR,
             )
         }.getOrNull()
     }

@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
-import android.database.sqlite.SQLiteException
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -29,6 +28,7 @@ import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -134,26 +134,54 @@ class OldPlanConversionTest {
         assertEquals(before, db.planDao().allPlans())
     }
 
-    @Test fun `a failed conversion leaves every old plan as it was`() = runTest {
-        create()
-        create()
+    @Test fun `a failed conversion leaves its plan intact while other plans convert and the gate completes`() = runTest {
+        val failedId = create()
+        val goodId = create()
+        val day = db.programDao().daysForPlan(failedId).first()
+        db.programDao().upsertDay(day.copy(cardioJson =
+            """{"label":"Intervals","detail":"Run hard, recover easy.","hard":true}""", cardioBlockJson = null))
         settings.setPlanSettingsFixupDone()
         settings.setOnTodayFixupDone()
-        val before = db.planDao().allPlans()
-        var writes = 0
+        val before = assertNotNull(db.planDao().plan(failedId))
+        val daysBefore = db.programDao().daysForPlan(failedId)
+        var attempts = 0
         val crashing = PlanRepository(db, settings, planDao = object : PlanDao by db.planDao() {
             override suspend fun updatePlan(plan: PlanEntity) {
-                if (++writes == 2) throw SQLiteException("killed")
+                if (plan.id == failedId) {
+                    attempts++
+                    throw IllegalArgumentException("Bad plan")
+                }
                 db.planDao().updatePlan(plan)
             }
         })
-        assertFailsWith<SQLiteException> { crashing.ensurePlanSettingsMigrated() }
-        assertEquals(before, db.planDao().allPlans())
-        PlanRepository(db, settings).ensurePlanSettingsMigrated()
-        for (plan in db.planDao().allPlans()) {
-            assertNull(plan.recipeJson)
-            assertEquals(expected(novice), plan.planSettings)
-        }
+        assertEquals(2, crashing.planSummariesFlow.first().size)
+        assertEquals(before, db.planDao().plan(failedId))
+        assertEquals(daysBefore, db.programDao().daysForPlan(failedId))
+        assertNull(before.planSettings.equipment)
+        assertEquals(Equipment.entries.toSet(), before.planSettings.equipmentOrAll)
+        assertEquals(emptySet(), before.planSettings.legacyMains)
+        val converted = assertNotNull(db.planDao().plan(goodId))
+        assertNull(converted.recipeJson)
+        assertEquals(expected(novice), converted.planSettings)
+        assertEquals(2, crashing.planSummariesFlow.first().size)
+        assertEquals(1, attempts)
+    }
+
+    @Test fun `v1 conversion cancellation escapes the gate and rolls back its plan`() = runTest {
+        val id = create()
+        settings.setPlanSettingsFixupDone()
+        settings.setOnTodayFixupDone()
+        val before = assertNotNull(db.planDao().plan(id))
+        val cancellation = CancellationException("Canceled conversion")
+        val canceling = PlanRepository(db, settings, planDao = object : PlanDao by db.planDao() {
+            override suspend fun updatePlan(plan: PlanEntity) {
+                if (plan.id == id) throw cancellation
+                db.planDao().updatePlan(plan)
+            }
+        })
+        val thrown = assertFailsWith<CancellationException> { canceling.planSummariesFlow.first() }
+        assertEquals(cancellation.message, thrown.message)
+        assertEquals(before, db.planDao().plan(id))
     }
 
     @Test fun `a goal typed before conversion survives`() = runTest {

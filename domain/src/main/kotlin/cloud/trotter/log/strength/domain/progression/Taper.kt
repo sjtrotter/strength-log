@@ -6,8 +6,10 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import kotlin.math.ceil
 
-/** The taper from the live goal date (design §3.2 Phase and taper; Bosquet 2007): WORK volume scales, hard flags and
- *  pace stay. */
+/** The taper from the live goal date: WORK volume scales, hard flags and pace stay.
+ *  Audit 2026-11-13 row 15 (R32/R33; Bosquet 2007, Wang 2023; weak) targets a 41–60 percent mean cut.
+ *  Whether Bosquet's cut means the taper mean or the final week is unverified; these factors assume the mean.
+ *  The half-marathon split is practice; lengths and intensity are unchanged. */
 object Taper {
     /** Upper edges of the goal-distance bands, in metres: up to 10K (and every test), then up to the half. */
     const val TEN_K_METRES = 10_000
@@ -20,18 +22,18 @@ object Taper {
         if (daysOut < 0) return null
         return when (goal) {
             is PlanGoal.Sprint -> null
-            is PlanGoal.Shuttle -> if (daysOut <= 10) 0.6 else null
+            is PlanGoal.Shuttle -> if (daysOut <= 10) 0.5 else null
             is PlanGoal.Timed -> when {
-                goal.metres <= TEN_K_METRES -> if (daysOut <= 10) 0.6 else null
+                goal.metres <= TEN_K_METRES -> if (daysOut <= 10) 0.5 else null
                 goal.metres <= HALF_METRES -> when {
-                    daysOut <= 7 -> 0.5
-                    daysOut <= 14 -> 0.7
+                    daysOut <= 7 -> 0.45
+                    daysOut <= 14 -> 0.6
                     else -> null
                 }
                 else -> when {
-                    daysOut <= 7 -> 0.5
-                    daysOut <= 14 -> 0.6
-                    daysOut <= 21 -> 0.8
+                    daysOut <= 7 -> 0.4
+                    daysOut <= 14 -> 0.55
+                    daysOut <= 21 -> 0.75
                     else -> null
                 }
             }

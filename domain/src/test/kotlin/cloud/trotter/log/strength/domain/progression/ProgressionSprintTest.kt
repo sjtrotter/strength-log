@@ -42,7 +42,7 @@ class ProgressionSprintTest {
                 val first = finish(rule, effort)
                 assertEquals(rule.copy(credits = 1), first.rule)
                 val second = finish(assertNotNull(first.rule), effort)
-                assertEquals(CardioOutcome(sprintBlock(session, 1), rule.copy(steps = 1, sprintStepCycle = 0), CardioChange.Step), second)
+                assertEquals(CardioOutcome(sprintBlock(session, 1), rule.copy(steps = 1, stepCycle = 0), CardioChange.Step), second)
             }
         }
     }
@@ -79,9 +79,9 @@ class ProgressionSprintTest {
         for (session in RunSession.entries.filter { it.sprint }) {
             var rule = CardioRule(null, session)
             repeat(9) { rule = assertNotNull(finish(rule, CardioEffort.GOOD).rule) }
-            assertEquals(CardioRule(null, session, steps = 1, credits = 1, sprintStepCycle = 0), rule)
+            assertEquals(CardioRule(null, session, steps = 1, credits = 1, stepCycle = 0), rule)
             val next = finish(rule, CardioEffort.GOOD, ctx(cycle = 1))
-            assertEquals(rule.copy(steps = 2, credits = 0, sprintStepCycle = 1), next.rule)
+            assertEquals(rule.copy(steps = 2, credits = 0, stepCycle = 1), next.rule)
         }
     }
 
@@ -116,25 +116,25 @@ class ProgressionSprintTest {
 
     @Test fun `restart precedes trial and B tempo substitution and counts intro session one`() {
         for (session in listOf(RunSession.ACCELERATION, RunSession.SPRINT_ENDURANCE)) {
-            val rule = CardioRule(null, session, steps = 4, credits = 1, sprintStepCycle = 3)
+            val rule = CardioRule(null, session, steps = 4, credits = 1, stepCycle = 3)
             val context = ctx(layoff = true, trial = if (session == RunSession.ACCELERATION) 100 else null,
                 cycle = 4, tempo = session == RunSession.SPRINT_ENDURANCE)
             val low = sprintBlock(session, 0)
             assertEquals(low, opening(rule, context))
-            assertEquals(CardioOutcome(low, CardioRule(null, session, intro = 2, sprintStepCycle = 3), CardioChange.Restart),
+            assertEquals(CardioOutcome(low, CardioRule(null, session, intro = 2, stepCycle = 3), CardioChange.Restart),
                 finish(rule, context = context, block = low))
-            assertEquals(CardioRule(null, session, intro = 3, sprintStepCycle = 3),
+            assertEquals(CardioRule(null, session, intro = 3, stepCycle = 3),
                 finish(rule, context = context, pain = true, block = low).rule)
         }
     }
 
     @Test fun `restart keeps cycle markers when a rotation spans a layoff`() {
-        val old = CardioRule(null, RunSession.ACCELERATION, steps = 12, sprintStepCycle = 4, sprintTrialCycle = 4)
+        val old = CardioRule(null, RunSession.ACCELERATION, steps = 12, stepCycle = 4, sprintTrialCycle = 4)
         val low = sprintBlock(RunSession.ACCELERATION, 0)
         var rule = assertNotNull(finish(old, context = ctx(layoff = true, cycle = 4), block = low).rule)
         repeat(4) { rule = assertNotNull(finish(rule, context = ctx(cycle = 4)).rule) }
         assertEquals(old.copy(steps = 0, credits = 1), rule)
-        assertEquals(rule.copy(steps = 1, credits = 0, sprintStepCycle = 5), finish(rule, context = ctx(cycle = 5)).rule)
+        assertEquals(rule.copy(steps = 1, credits = 0, stepCycle = 5), finish(rule, context = ctx(cycle = 5)).rule)
     }
 
     @Test fun `admitted trial records its rotation and preserves step credit and intro`() {
@@ -162,7 +162,7 @@ class ProgressionSprintTest {
     @Test fun `tempo never restarts and a trial substitute leaves B rule untouched`() {
         val tempo = CardioRule(null, RunSession.SPRINT_TEMPO, steps = 1, credits = 1)
         assertEquals(sprintBlock(RunSession.SPRINT_TEMPO, 1), opening(tempo, ctx(layoff = true)))
-        assertEquals(tempo.copy(steps = 2, credits = 0, sprintStepCycle = 0),
+        assertEquals(tempo.copy(steps = 2, credits = 0, stepCycle = 0),
             finish(tempo, CardioEffort.GOOD, ctx(layoff = true)).rule)
         val b = CardioRule(null, RunSession.SPRINT_ENDURANCE, steps = 4, credits = 1)
         val context = ctx(tempo = true)
@@ -195,15 +195,15 @@ class ProgressionSprintTest {
             { CardioRule(null, RunSession.ACCELERATION, credits = 1, intro = 1) },
             { CardioRule(null, RunSession.THRESHOLD, intro = 1) },
             { CardioRule(3, intro = 1) },
-            { CardioRule(null, RunSession.ACCELERATION, sprintStepCycle = -1) },
-            { CardioRule(null, RunSession.THRESHOLD, sprintStepCycle = 0) },
+            { CardioRule(null, RunSession.ACCELERATION, stepCycle = -1) },
+            { CardioRule(null, RunSession.THRESHOLD, stepCycle = 0) },
             { CardioRule(null, RunSession.ACCELERATION, sprintTrialCycle = -1) },
             { CardioRule(null, RunSession.SPRINT_ENDURANCE, sprintTrialCycle = 0) },
             { CardioRule(null, RunSession.ACCELERATION, alternate = RunSession.MAX_VELOCITY) },
             { CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.ACCELERATION) },
         )
         for (make in invalid) assertFailsWith<IllegalArgumentException> { make() }
-        assertEquals(0, CardioRule(null, RunSession.SPRINT_TEMPO, sprintStepCycle = 0).sprintStepCycle)
+        assertEquals(0, CardioRule(null, RunSession.SPRINT_TEMPO, stepCycle = 0).stepCycle)
     }
 
     @Test fun `sprint kinds are not quality`() {

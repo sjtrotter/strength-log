@@ -56,6 +56,10 @@ class PlannerRunInvariantsTest {
                             "$label ${day.id} time total")
                     }
                 }
+                if (day.kind == ProgramDayKind.CARDIO && session == RunSession.EASY) {
+                    assertTrue(plannedSeconds(block) <= easyRunSeconds(answers.minutes, day.exercises.isNotEmpty(), long),
+                        "$label ${day.id} easy session stop")
+                }
                 if (session == RunSession.EASY && long != null) {
                     assertTrue(plannedSeconds(block) <= maxOf(60, (3 * plannedSeconds(long) / 4) / 60 * 60), "$label easy limit")
                 }

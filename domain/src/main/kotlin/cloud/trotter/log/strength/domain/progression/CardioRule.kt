@@ -22,8 +22,8 @@ data class CardioRule(
     val longSeconds: Int? = null,
     /** Counted sessions left at the range's low end (design §3.1.3 Intro); sprint days only. */
     val intro: Int = 0,
-    /** Rotation of this sprint day's last step, including tempo. */
-    val sprintStepCycle: Int? = null,
+    /** Rotation of this day's last step: sprint days and easy runs. */
+    val stepCycle: Int? = null,
     /** Rotation of Sprint A's last trial. */
     val sprintTrialCycle: Int? = null,
 ) {
@@ -45,7 +45,7 @@ data class CardioRule(
         require(intro == 0 || session?.sprint == true)
         require(intro == 0 || (steps == 0 && credits == 0))
         require(alternate == null || (session?.sprint != true && !alternate.sprint))
-        require(sprintStepCycle == null || (sprintStepCycle >= 0 && session?.sprint == true))
+        require(stepCycle == null || (stepCycle >= 0 && (session?.sprint == true || session == RunSession.EASY)))
         require(sprintTrialCycle == null || (sprintTrialCycle >= 0 &&
             session in listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY)))
     }

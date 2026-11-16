@@ -206,7 +206,7 @@ class PlannerSprintProgressTest {
             0 to if (cycle == 0) (0..8).map { "A" to it } + ("C" to 9) else listOf("A" to 0, "C" to 3)
         }
         assertEquals(listOf(40, 40, 40, 40, 40, 50, 50, 50, 50, 30), run.rotations[0].blocks.map { it.metres })
-        assertEquals(1, rule(run.program, "A").sprintStepCycle)
+        assertEquals(1, rule(run.program, "A").stepCycle)
         assertEquals(2, rule(run.program, "A").steps)
     }
 

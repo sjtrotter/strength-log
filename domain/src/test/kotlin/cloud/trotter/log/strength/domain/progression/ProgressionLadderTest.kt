@@ -69,8 +69,28 @@ class ProgressionLadderTest {
     }
 
     @Test
-    fun `case 34 not reported reads as Easy`() {
-        assertEquals(CardioOutcome(ladder(5), CardioRule(5), CardioChange.LevelTo(5)), finish(4, effort = null))
+    fun `case 34 not reported repeats the level`() {
+        for (level in listOf(4, 12)) {
+            val opening = ladder(level)
+            val next = finish(level, effort = null, opening = opening)
+            // audit 2026-11-13, row 3: no word gives 4 + 0 = 4 and 12 + 0 = 12, with no ladder completion.
+            assertEquals(CardioOutcome(opening, CardioRule(level), CardioChange.Repeat), next)
+            assertSame(opening, next.block)
+        }
+    }
+
+    @Test
+    fun `case 34 a never rated runner stays at the level`() {
+        var opening = ladder(1)
+        var rule = CardioRule(1)
+        repeat(10) {
+            val next = Progression.cardioAfterSession(opening, rule, finished(opening), null, tiny, ctx)
+            assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), next)
+            assertEquals(1, next.rule?.ladderLevel)
+            assertSame(opening, next.block)
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
     }
 
     @Test
@@ -139,6 +159,7 @@ class ProgressionLadderTest {
         assertSame(edited, finish(5, CardioEffort.GOOD, opening = edited).block)
         val trail = ladder(5).copy(activity = CardioActivity.TRAIL_RUN)
         assertEquals(RunWalkLadder.block(6, CardioActivity.TRAIL_RUN), finish(5, opening = trail).block)
-        assertEquals(CardioChange.LadderDone, finish(12, effort = null).change)
+        // audit 2026-11-13, row 3: finished Easy at 12 completes; no word now gives 12 + 0 = 12 above.
+        assertEquals(CardioChange.LadderDone, finish(12).change)
     }
 }

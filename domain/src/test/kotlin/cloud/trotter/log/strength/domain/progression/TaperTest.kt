@@ -26,21 +26,26 @@ class TaperTest {
 
     @Test
     fun `case 19 half marathon`() {
-        for ((day, expected) in listOf(988L to 0.7, 995L to 0.5, 986L to 0.7, 993L to 0.5)) {
+        // audit 2026-11-13, row 15: 1000 minus 988, 995, 986, 993 = 12, 5, 14, 7 days; half factors 0.6, 0.45, 0.6, 0.45.
+        for ((day, expected) in listOf(988L to 0.6, 995L to 0.45, 986L to 0.6, 993L to 0.45)) {
             assertEquals(expected, Taper.factor(half, day))
         }
         assertNull(Taper.factor(half, 985))
         assertNull(Taper.factor(half, 1001))
-        assertEquals(block(distance(12600)), Taper.applied(block(distance(18000)), 0.7))
-        assertEquals(block(distance(9000)), Taper.applied(block(distance(18000)), 0.5))
+        // audit 2026-11-13, row 15: 18000 × 0.6 = 10800.
+        assertEquals(block(distance(10800)), Taper.applied(block(distance(18000)), 0.6))
+        // audit 2026-11-13, row 15: 18000 × 0.45 = 8100.
+        assertEquals(block(distance(8100)), Taper.applied(block(distance(18000)), 0.45))
     }
 
     @Test
     fun `case 19 through cardioAtStart`() {
         val opening = block(distance(18000))
         val ctx = Progression.CardioContext(988, ProgressMeasure.DISTANCE, 5)
-        assertEquals(block(distance(12600)), Progression.cardioAtStart(opening, null, CardioHistory(), half, ctx))
-        assertEquals(block(distance(9000)),
+        // audit 2026-11-13, row 15: 12 days out: 18000 × 0.6 = 10800.
+        assertEquals(block(distance(10800)), Progression.cardioAtStart(opening, null, CardioHistory(), half, ctx))
+        // audit 2026-11-13, row 15: 5 days out: 18000 × 0.45 = 8100.
+        assertEquals(block(distance(8100)),
             Progression.cardioAtStart(opening, null, CardioHistory(), half, ctx.copy(todayEpochDay = 995)))
     }
 
@@ -53,7 +58,8 @@ class TaperTest {
                 add(distance(400, 105).copy(hard = true))
             }
         })
-        for ((factor, count) in listOf(0.7 to 5, 0.5 to 3)) {
+        // audit 2026-11-13, row 15: ceil(6 × 0.6) = 4; ceil(6 × 0.45) = 3.
+        for ((factor, count) in listOf(0.6 to 4, 0.45 to 3)) {
             val tapered = Taper.applied(opening, factor)
             assertEquals(opening.copy(sets = opening.sets.take(2 * count)), tapered)
             tapered.sets.forEachIndexed { index, set -> assertSame(opening.sets[index], set) }
@@ -69,14 +75,19 @@ class TaperTest {
     @Test
     fun `case 19 marathon short race and shuttle bands follow the live date`() {
         val marathon = PlanGoal.Timed(CardioActivity.ROAD_RUN, 42_195, 14_400, 1000)
-        assertEquals(0.8, Taper.factor(marathon, 980))
-        assertEquals(0.6, Taper.factor(marathon, 990))
-        assertEquals(0.5, Taper.factor(marathon, 997))
+        // audit 2026-11-13, row 15: 1000 - 980 = 20 days, longer factor 0.75.
+        assertEquals(0.75, Taper.factor(marathon, 980))
+        // audit 2026-11-13, row 15: 1000 - 990 = 10 days, longer factor 0.55.
+        assertEquals(0.55, Taper.factor(marathon, 990))
+        // audit 2026-11-13, row 15: 1000 - 997 = 3 days, longer factor 0.4.
+        assertEquals(0.4, Taper.factor(marathon, 997))
         assertNull(Taper.factor(marathon, 978))
         val fiveK = PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, 1500, 1000)
-        assertEquals(0.6, Taper.factor(fiveK, 990))
+        // audit 2026-11-13, row 15: 1000 - 990 = 10 days, short-race factor 0.5.
+        assertEquals(0.5, Taper.factor(fiveK, 990))
         assertNull(Taper.factor(fiveK, 989))
-        assertEquals(0.6, Taper.factor(PlanGoal.Shuttle("PACER", 60, byEpochDay = 1000), 990))
+        // audit 2026-11-13, row 15: 1000 - 990 = 10 days, shuttle factor 0.5.
+        assertEquals(0.5, Taper.factor(PlanGoal.Shuttle("PACER", 60, byEpochDay = 1000), 990))
         assertNull(Taper.factor(fiveK.copy(byEpochDay = null), 990))
         assertNull(Taper.factor(null, 990))
     }
@@ -112,11 +123,15 @@ class TaperTest {
     @Test
     fun `taper bands include each upper distance and date boundary`() {
         val tenK = PlanGoal.Timed(CardioActivity.ROAD_RUN, Taper.TEN_K_METRES, 3000, 1000)
-        assertEquals(0.6, Taper.factor(tenK, 990))
-        assertEquals(0.7, Taper.factor(tenK.copy(metres = 10001), 986))
-        assertEquals(0.7, Taper.factor(half.copy(metres = Taper.HALF_METRES), 986))
+        // audit 2026-11-13, row 15: 1000 - 990 = 10 days, 10000 metres uses 0.5.
+        assertEquals(0.5, Taper.factor(tenK, 990))
+        // audit 2026-11-13, row 15: 1000 - 986 = 14 days, 10001 metres uses 0.6.
+        assertEquals(0.6, Taper.factor(tenK.copy(metres = 10001), 986))
+        // audit 2026-11-13, row 15: 1000 - 986 = 14 days, 21100 metres uses 0.6.
+        assertEquals(0.6, Taper.factor(half.copy(metres = Taper.HALF_METRES), 986))
         val longer = half.copy(metres = Taper.HALF_METRES + 1)
-        for ((out, expected) in listOf(0L to 0.5, 7L to 0.5, 8L to 0.6, 14L to 0.6, 15L to 0.8, 21L to 0.8)) {
+        // audit 2026-11-13, row 15: longer race at 0 and 7 days uses 0.4; 8 and 14 uses 0.55; 15 and 21 uses 0.75.
+        for ((out, expected) in listOf(0L to 0.4, 7L to 0.4, 8L to 0.55, 14L to 0.55, 15L to 0.75, 21L to 0.75)) {
             assertEquals(expected, Taper.factor(longer, 1000 - out))
         }
         assertNull(Taper.factor(PlanGoal.Shuttle("PACER", 60, byEpochDay = 1000), 989))
@@ -128,7 +143,8 @@ class TaperTest {
         val history = CardioHistory(longest = RecentMaxima(8050, 2900))
         val ctx = Progression.CardioContext(988, ProgressMeasure.DISTANCE, 5)
         assertEquals(block(distance(8800)), Progression.cardioAtStart(opening, null, history, half, ctx))
-        assertEquals(block(distance(12600)),
+        // audit 2026-11-13, row 15: 18000 × 0.6 = 10800 with cap off; cap on still stops at 8800.
+        assertEquals(block(distance(10800)),
             Progression.cardioAtStart(opening, null, history, half, ctx.copy(runCap = false)))
     }
 }

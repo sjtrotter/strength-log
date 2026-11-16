@@ -7,18 +7,21 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.CardioHistory
 import cloud.trotter.log.strength.domain.progression.CardioOutcome
 import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.EasyRunContext
 import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoggedCardio
 import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.RecentMaxima
+import cloud.trotter.log.strength.domain.progression.RunCap
 import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import kotlin.test.Test
@@ -220,6 +223,100 @@ class PlannerRunProgressTest {
         assertEquals(CardioOutcome(last, rule(marathon, "D"), CardioChange.Repeat),
             Progression.cardioAfterSession(last, rule(marathon, "D"), finished(last, 0.36), CardioEffort.EASY,
                 CardioHistory(longest = RecentMaxima(32_000, secs(32_000)), secondsPerMetre = 0.36), ctx))
+    }
+
+    @Test fun `Just cardio easy runs grow a step a rotation to the session minutes`() {
+        val draft = plan(run(RunGoal.CARDIO_FITNESS, days = 3, minutes = 60), known(null, 900))
+        for (id in listOf("A", "B", "C")) assertEquals(Measure.Time(960), end(draft, id))
+        var opening = block(draft, "A")
+        var rule = rule(draft, "A")
+        val expected = listOf(1008, 1058, 1111, 1167, 1225, 1286, 1350, 1418, 1489, 1563, 1641, 1723, 1800)
+        for ((cycle, seconds) in expected.withIndex()) {
+            val previous = plannedSeconds(opening)
+            val context = ctx.copy(measure = ProgressMeasure.TIME, easy = EasyRunContext(easyRunSeconds(60, true, null), cycle))
+            val next = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY,
+                CardioHistory(longest = RecentMaxima(null, previous)), context)
+            assertEquals(Measure.Time(seconds), next.block.sets.single().end)
+            assertEquals(CardioChange.Increase(ProgressMeasure.TIME, false), next.change)
+            assertEquals(rule.copy(stepCycle = cycle), next.rule)
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat),
+            Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY,
+                CardioHistory(longest = RecentMaxima(null, 1800)),
+                ctx.copy(measure = ProgressMeasure.TIME, easy = EasyRunContext(easyRunSeconds(60, true, null), expected.size))))
+        opening = block(draft, "C")
+        rule = rule(draft, "C")
+        var increases = 0
+        for (cycle in 0 until 52) {
+            val next = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY,
+                CardioHistory(longest = RecentMaxima(null, plannedSeconds(opening))),
+                ctx.copy(measure = ProgressMeasure.TIME, easy = EasyRunContext(easyRunSeconds(60, false, null), cycle)))
+            if (next.change is CardioChange.Increase) increases++
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
+        assertEquals(26, increases)
+    }
+
+    @Test fun `easy runs grow within five percent a rotation across the grid`() {
+        for (goal in listOf(RunGoal.CARDIO_FITNESS, RunGoal.FIVE_TO_TEN_K, RunGoal.HALF_MARATHON)) {
+            for (daysPerWeek in 1..6) for (minutes in listOf(30, 60, 90)) {
+                for (experience in RunExperience.entries) for (anchor in listOf(900, 1800, 3600)) {
+                    val draft = plan(run(goal, daysPerWeek, minutes, experience), known(null, anchor))
+                    if (draft.phase == RunPhase.LADDER) continue
+                    var days = draft.program.days
+                    val initial = days.filter { it.cardioRule?.session == RunSession.EASY }
+                        .associate { it.id to plannedSeconds(requireNotNull(it.cardioBlock)) }
+                    val log = mutableListOf<Pair<Int, List<CardioSetResult>>>()
+                    fun easyAndLongSeconds() = days.filter {
+                        it.cardioRule?.session in listOf(RunSession.EASY, RunSession.LONG)
+                    }.sumOf { plannedSeconds(requireNotNull(it.cardioBlock)) }
+                    var previousTotal = easyAndLongSeconds()
+                    for (cycle in 0 until 52) {
+                        log.removeAll { it.first < cycle - 3 }
+                        for (index in days.indices) {
+                            val day = days[index]
+                            if (day.kind != ProgramDayKind.CARDIO) continue
+                            val opening = requireNotNull(day.cardioBlock)
+                            val rule = requireNotNull(day.cardioRule)
+                            val long = days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioBlock
+                            val easy = if (rule.session == RunSession.EASY) {
+                                EasyRunContext(easyRunSeconds(minutes, day.exercises.isNotEmpty(), long), cycle)
+                            } else null
+                            val results = finished(opening)
+                            val history = CardioHistory(longest = RunCap.maxima(log.map { it.second }))
+                            val next = Progression.cardioAfterSession(opening, rule, results, CardioEffort.EASY, history,
+                                ctx.copy(measure = ProgressMeasure.TIME, easy = easy))
+                            val label = "$goal $experience $daysPerWeek days $minutes min anchor=$anchor cycle=$cycle ${day.id}"
+                            if (easy != null) {
+                                val before = plannedSeconds(opening)
+                                val after = plannedSeconds(next.block)
+                                assertTrue(after >= before, "$label never decreases")
+                                assertTrue(after <= maxOf(easy.stopSeconds, before), "$label stop")
+                                assertTrue(after <= before * 1.05 + 1, "$label five percent plus rounding")
+                            }
+                            log += cycle to results
+                            days = days.mapIndexed { position, stored ->
+                                if (position == index) stored.copy(cardioBlock = next.block, cardioRule = next.rule) else stored
+                            }
+                        }
+                        val total = easyAndLongSeconds()
+                        assertTrue(total <= previousTotal * 1.0525,
+                            "$goal $experience $daysPerWeek days $minutes min anchor=$anchor cycle=$cycle total=$total previous=$previousTotal")
+                        previousTotal = total
+                    }
+                    val long = days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioBlock
+                    for (day in days.filter { it.cardioRule?.session == RunSession.EASY }) {
+                        val seconds = plannedSeconds(requireNotNull(day.cardioBlock))
+                        val stop = easyRunSeconds(minutes, day.exercises.isNotEmpty(), long)
+                        assertTrue(seconds >= stop, "$goal $experience $daysPerWeek days $minutes min anchor=$anchor ${day.id} reaches stop")
+                        assertTrue(seconds <= maxOf(stop, initial.getValue(day.id)))
+                    }
+                }
+            }
+        }
     }
 
     @Test fun `only the half build gate reads the thirty kilometre or three hour week`() {

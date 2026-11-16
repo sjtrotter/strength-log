@@ -338,8 +338,10 @@ class DayViewModelCardioExecutionTest {
         val today = Instant.ofEpochMilli(clock.wall).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
         repo.plans.setGoal(plan, PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, 7200, byEpochDay = today + 12))
         val vm = readyVm()
-        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 2520))), vm.uiState.value.cardio?.block)
-        assertEquals("42:00", vm.uiState.value.cardio?.detail)
+        // audit 2026-11-13, row 15: 12 days out, 3600 × 0.6 = 2160 seconds = 36:00.
+        assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 2160))), vm.uiState.value.cardio?.block)
+        // audit 2026-11-13, row 15: 12 days out, 3600 × 0.6 = 2160 seconds = 36:00.
+        assertEquals("36:00", vm.uiState.value.cardio?.detail)
         assertEquals(stored, repo.plans.programFor(plan).first().days.first { it.id == "A" }.cardioToRun)
     }
 

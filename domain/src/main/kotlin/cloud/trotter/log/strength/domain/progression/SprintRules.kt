@@ -155,9 +155,9 @@ internal object SprintRules {
             start.intro > 0 -> outcome(start.copy(intro = start.intro - 1), same)
             start.steps == range.top -> outcome(start, same)
             start.credits == 0 -> outcome(start.copy(credits = 1), same)
-            start.sprintStepCycle == sprint.cyclesCompleted -> outcome(start, same)
+            start.stepCycle == sprint.cyclesCompleted -> outcome(start, same)
             else -> outcome(start.copy(steps = start.steps + 1, credits = 0,
-                sprintStepCycle = sprint.cyclesCompleted), CardioChange.Step)
+                stepCycle = sprint.cyclesCompleted), CardioChange.Step)
         }
     }
 }

@@ -187,7 +187,7 @@ class ProgressionRunRangeTest {
         assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), finish(opening, rule, context = timeContext))
     }
 
-    @Test fun `ruled easy repeats`() {
+    @Test fun `ruled easy repeats without an easy run context`() {
         val rule = CardioRule(null, RunSession.EASY)
         val opening = block(time(1800))
         assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), finish(opening, rule, CardioEffort.EASY))

@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -234,6 +235,7 @@ class RestoreCoordinationTest {
         ))
         val legacy = codec.decode(backupJson("A", 190))
         for (version in listOf(8, 13)) {
+            val expectedEquipment = if (version == 8) setOf(Equipment.BARBELL) else answers.equipment
             val document = BackupDocument(
                 schemaVersion = version,
                 settings = if (version == 8) legacy.settings.copy(
@@ -254,7 +256,7 @@ class RestoreCoordinationTest {
             assertEquals(expected, CardioBlockJson.decode(stored.cardioBlockJson))
             assertEquals(expected, repo.plans.programFor(7).first().cardioDays.single().cardioBlock)
             assertNull(db.planDao().plan(7)!!.recipeJson)
-            assertEquals(answers.equipment, db.planDao().plan(7)!!.planSettings.equipment)
+            assertEquals(expectedEquipment, db.planDao().plan(7)!!.planSettings.equipment)
             assertNull(db.restoreMarkerDao().nonce())
             val exported = codec.decode(codec.encode(backupRepository.exportSnapshot().toDocument()))
             assertTrue(exported.plans.flatMap { it.days }.all { it.cardioJson == null })

@@ -350,7 +350,9 @@ class PlanSettingsTest {
 
     @Test
     fun `failed rotation write rolls back the session and keeps the open run`() = runTest {
-        db.planDao().insertPlan(plan(1, strengthAnswers(), "A"))
+        db.planDao().insertPlan(plan(1, suggestedDay = "A").copy(
+            settingsJson = PlanSettingsJson.encode(facts(strengthAnswers())),
+        ))
         db.programDao().upsertDays(listOf(day(1, "A", 0), day(1, "B", 1)))
         db.programDao().upsertDay(db.programDao().day(1, "A")!!.copy(nextRunId = "run-A"))
         db.runDao().insertRun(cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity(

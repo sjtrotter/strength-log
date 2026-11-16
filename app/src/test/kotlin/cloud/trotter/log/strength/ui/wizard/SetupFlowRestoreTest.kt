@@ -17,6 +17,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.BackupRepository
+import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -26,7 +27,6 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -252,32 +252,32 @@ class SetupFlowRestoreTest {
 
     /** Literal keys preserve the older build's journal format, which carried
      *  plan settings and left no plan in Room when the backup had no program. */
-    private suspend fun stagePreviousBuildWithoutProgram(wizardComplete: Boolean): WizardAnswers {
-        val snapshot = backup(wizardComplete).copy(program = emptyList()).toSnapshot()
+    private suspend fun stagePreviousBuildWithoutProgram(wizardComplete: Boolean): FullSnapshot {
+        val document = backup(wizardComplete).copy(program = emptyList())
+        val snapshot = document.toSnapshot()
         val recipe = requireNotNull(snapshot.legacyRecipe)
-        val answers = WizardAnswers(config = snapshot.global.toConfig(), equipment = recipe.equipment,
-            cardio = CardioPrefs(mode = recipe.cardioMode, fiveKGoal = recipe.fiveKGoal))
+        val legacy = document.settings
         val nonce = "previous-build-restore"
         journalStore.edit { prefs ->
             prefs.clear()
-            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb.toInt()
-            prefs[intPreferencesKey("age")] = answers.config.age
-            prefs[stringPreferencesKey("level")] = answers.config.level.name
-            prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name
-            prefs[stringPreferencesKey("cardio_mode")] = answers.cardio.mode.name
-            prefs[stringPreferencesKey("cardio_placement")] = answers.cardio.placement.name
-            prefs[booleanPreferencesKey("five_k")] = answers.cardio.fiveKGoal
-            prefs[intPreferencesKey("days_per_week")] = answers.daysPerWeek
-            prefs[stringPreferencesKey("split")] = answers.split.name
-            prefs[stringPreferencesKey("anchor_scheme")] = answers.anchorScheme.name
-            prefs[stringPreferencesKey("deadlift_variant")] = answers.deadliftVariant.name
-            prefs[stringSetPreferencesKey("equipment")] = answers.equipment.map { it.name }.toSet()
+            prefs[intPreferencesKey("bodyweight")] = snapshot.global.bodyweightLb.toInt()
+            prefs[intPreferencesKey("age")] = snapshot.global.age
+            prefs[stringPreferencesKey("level")] = snapshot.global.level.name
+            prefs[stringPreferencesKey("emphasis")] = requireNotNull(legacy.emphasis)
+            prefs[stringPreferencesKey("cardio_mode")] = recipe.cardioMode.name
+            prefs[stringPreferencesKey("cardio_placement")] = requireNotNull(legacy.cardioPlacement)
+            prefs[booleanPreferencesKey("five_k")] = recipe.fiveKGoal
+            prefs[intPreferencesKey("days_per_week")] = requireNotNull(legacy.daysPerWeek)
+            prefs[stringPreferencesKey("split")] = requireNotNull(legacy.split)
+            prefs[stringPreferencesKey("anchor_scheme")] = requireNotNull(legacy.anchorScheme)
+            prefs[stringPreferencesKey("deadlift_variant")] = requireNotNull(legacy.deadliftVariant)
+            prefs[stringSetPreferencesKey("equipment")] = recipe.equipment.map { it.name }.toSet()
             prefs[stringPreferencesKey("weight_unit")] = snapshot.unit.name
             prefs[booleanPreferencesKey("wizard_complete")] = snapshot.wizardComplete
             prefs[stringPreferencesKey("restore_nonce")] = nonce
         }
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = nonce))
-        return answers
+        return snapshot
     }
 
     @Test
@@ -467,7 +467,7 @@ class SetupFlowRestoreTest {
 
     @Test
     fun startingBeforeStartupRecoveryStepsAsideForAStagedCompletedSetup() = runBlocking {
-        val stagedAnswers = stagePreviousBuildWithoutProgram(wizardComplete = true)
+        val staged = stagePreviousBuildWithoutProgram(wizardComplete = true)
         assertTrue(db.planDao().allPlans().isEmpty())
         val vm = newViewModel()
         vm.awaitOffered()
@@ -480,8 +480,8 @@ class SetupFlowRestoreTest {
         val restoredPlan = db.planDao().allPlans().single()
         assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
         assertNull(restoredPlan.recipeJson)
-        assertEquals(stagedAnswers.equipment, restoredPlan.planSettings.equipment)
-        assertEquals(stagedAnswers.config, repo.plans.configFlow.first())
+        assertEquals(requireNotNull(staged.legacyRecipe).equipment, restoredPlan.planSettings.equipment)
+        assertEquals(staged.global.toConfig(), repo.plans.configFlow.first())
         assertTrue("wizardComplete must retain the staged value", settings.wizardCompleteFlow.first())
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())

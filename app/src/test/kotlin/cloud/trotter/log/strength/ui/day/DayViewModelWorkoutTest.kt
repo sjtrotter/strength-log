@@ -659,17 +659,13 @@ class DayViewModelWorkoutTest {
         assertEquals(ss, track(vm, id, Slot.SS))
     }
 
-    @Test fun `★ log round after the watch logged one half logs the other`() = test {
+    // The watch completes both halves of a superset index together (SetEditApplier's pairing),
+    // so one half done alone comes from a Lift sheet tick.
+    @Test fun `★ log round after a sheet tick logged one half logs the other`() = test {
         prepare(listOf(bench(superset = true)), restEnabled = true)
         val vm = readyVm()
         val id = roundTwo(vm)
-        val state = vm.uiState.value
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
-        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
-            dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 1,
-            done = true, editedAtMillis = 99_999, completedAtMillis = 99_999,
-            planId = state.planId, runId = state.runId, exerciseId = "cable_row",
-        )))
+        vm.toggleDone(id, 1, true, Slot.SS)
         runCurrent()
         val ss = track(vm, id, Slot.SS)
         vm.logFocusedSet()

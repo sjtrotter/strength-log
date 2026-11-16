@@ -141,7 +141,7 @@ object OldWizardPlans {
             goalsLb = mapOf("goblet_squat" to 80.0)),
         program = Program(listOf(
             oldDay("A", "Full Body", "flat press · horizontal pull · hip-hinge hamstrings · gastroc calves · bilateral quads",
-                noviceMain("goblet_squat", 80.0), accessory("db_bench"), accessory("db_rdl"), accessory("db_row"),
+                noviceMain("goblet_squat", 80.0), accessory("db_bench"), accessory("back_ext"), accessory("db_row"),
                 accessory("db_lateral"), accessory("plank"), cardio = finisher(false)),
             oldDay("B", "Full Body", "incline press · vertical pull · knee-flexion hamstrings · soleus calves · single-leg quads",
                 noviceMain("db_bench", 60.0), accessory("bss"), accessory("ball_curl"), accessory("db_pullover"),
@@ -163,7 +163,7 @@ object OldWizardPlans {
             goalsLb = mapOf("goblet_squat" to 80.0)),
         program = Program(listOf(
             oldDay("A", "Full Body", "flat press · horizontal pull · hip-hinge hamstrings · gastroc calves · bilateral quads",
-                rampMain("goblet_squat"), accessory("db_bench"), accessory("db_rdl"), accessory("db_row"),
+                rampMain("goblet_squat"), accessory("db_bench"), accessory("back_ext"), accessory("db_row"),
                 accessory("db_lateral"), accessory("plank"), cardio = finisher(false)),
             oldDay("B", "Full Body", "incline press · vertical pull · knee-flexion hamstrings · soleus calves · single-leg quads",
                 rampMain("db_bench"), accessory("bss"), accessory("ball_curl"), accessory("db_pullover"),

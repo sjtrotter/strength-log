@@ -5,6 +5,7 @@ import android.os.Looper
 import android.os.Message
 import androidx.compose.ui.test.IdlingResource
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -31,6 +32,7 @@ internal class AppCrashes : AutoCloseable, IdlingResource {
         collectorClass.getMethod("addOnExceptionCallback", Any::class.java, Function1::class.java)
             .invoke(collector, this, callback)
         Thread.setDefaultUncaughtExceptionHandler { _, error -> record(error) }
+        openScopes.incrementAndGet()
     }
 
     fun record(error: Throwable) {
@@ -72,11 +74,22 @@ internal class AppCrashes : AutoCloseable, IdlingResource {
             collectorClass.getMethod("removeOnExceptionCallback", Any::class.java).invoke(collector, this)
         } finally {
             Thread.setDefaultUncaughtExceptionHandler(previousHandler)
+            openScopes.decrementAndGet()
         }
+    }
+
+    companion object {
+        private val openScopes = AtomicInteger()
+
+        /** [PlaytestHandler] runs in every Robolectric test; it reports app crashes only inside a scope. */
+        val isOpen: Boolean get() = openScopes.get() > 0
     }
 }
 
-/** Paused Robolectric loopers rethrow callback failures on the test thread without an uncaught handler. */
+/**
+ * Paused Robolectric loopers rethrow callback failures on the test thread without an uncaught handler.
+ * Bound for every test in robolectric.properties, never per class; the note there says why.
+ */
 @Implements(Handler::class)
 internal class PlaytestHandler {
     @RealObject private lateinit var handler: Handler
@@ -86,7 +99,7 @@ internal class PlaytestHandler {
         try {
             reflector(HandlerReflector::class.java, handler).dispatchMessage(message)
         } catch (error: Throwable) {
-            if (handler.looper == Looper.getMainLooper() && error.playtestError().kind == "crash") {
+            if (AppCrashes.isOpen && handler.looper == Looper.getMainLooper() && error.playtestError().kind == "crash") {
                 throw error.appCrash()
             }
             throw error

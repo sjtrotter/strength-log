@@ -48,6 +48,7 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | Today | `ui/today/TodayScreen.kt` | Launch, at home or walking in; seconds | Say which day is next and start it |
 | Workout set screen | `ui/day/DayScreen.kt`, `WorkoutSetScreen.kt` | Between sets, phone on a bench, 2 to 5 second looks | Log the set in front of you |
 | Rest band and notification | `WorkoutSetScreen.kt` `WorkoutRestBand`, `rest/PhoneRestRuntime.kt` | After a logged set; phone may be pocketed | Say when the next set is due |
+| Set card | `WorkoutSetScreen.kt` `WorkoutSetCard` | Each set, before and after logging | Show the set, then hold it until its effort is marked |
 | Set edit sheet | `ui/day/SetEditSheet.kt` | Mid-workout correction | Change one set's numbers |
 | Lift and Day sheets | `ui/day/LiftSheet.kt`, `DaySheet.kt` | Mid-workout check | Show the lift's sets, or jump to another lift |
 | Timed-rep count and cardio distance | `ui/day/TimedRepCountSheet.kt`, `CardioExecution.kt` | The moment a timer ends | Record the count or distance just done |
@@ -285,6 +286,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-10-12, HANDOFF rule 4 | Retire tracked caps and dot-joined meta; caps only as set notation | Seven caps captions turned Today into a readout. Reverses the July convention |
 | 2026-10-12 evening, pager decision | Workout is Fable's variant B: one lift per page, one set in focus, `Button` "Log 95 lb × 5", next card peeking, R1/TOP/B/O, no day selector, "Day D, done." | Owner: "looks like a pro workout app"; removes the vertical list behind the scroll jank (#260); shares the watch's grammar |
 | 2026-10-12 late, #262 | Segments are indicators, not buttons; the rest pill is a time button with a menu | 48 dp targets do not fit six to eight segments on a 360 dp phone |
+| 2026-11-15, #583 | Every set is a card; a logged set stays on its card with an effort row; the big button reads End rest during rest, never logs, and waits for the effort; the logged set leaves in a snackbar with Undo; supersets log as one round (583b) | Owner after a gym session: the effort row was easy to skip, a rating tap once logged the next set, and supersets did not read as one round |
 
 ### Watch
 

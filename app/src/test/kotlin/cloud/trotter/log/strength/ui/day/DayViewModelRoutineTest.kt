@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.routine.MoveKind
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
@@ -109,7 +110,36 @@ class DayViewModelRoutineTest {
         return vm
     }
     private fun TestScope.start(vm: DayViewModel) { vm.startWorkout(); runCurrent() }
-    private fun TestScope.logAll(vm: DayViewModel) { repeat(3) { vm.logFocusedSet(); runCurrent() } }
+    private fun TestScope.rateAndContinue(vm: DayViewModel) {
+        vm.uiState.value.workout?.review?.let { review ->
+            for (slot in review.unrated) {
+                vm.setEffort(review.programExerciseId, slot, review.index, Effort.GOOD)
+                runCurrent()
+            }
+        }
+        vm.continueWorkout()
+        runCurrent()
+    }
+    private fun TestScope.logAll(vm: DayViewModel) { repeat(3) { vm.logFocusedSet(); runCurrent(); rateAndContinue(vm) } }
+
+    @Test fun `★ the last set holds for effort before the cool-down`() = test {
+        prepare()
+        val vm = readyVm()
+        start(vm)
+        repeat(2) { vm.logFocusedSet(); runCurrent(); rateAndContinue(vm) }
+        vm.logFocusedSet()
+        runCurrent()
+        assertNull(vm.uiState.value.coolDown)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        vm.setEffort(review.programExerciseId, Slot.MAIN, review.index, Effort.GOOD)
+        runCurrent()
+        assertNotNull(vm.uiState.value.coolDown)
+        assertNotNull(vm.uiState.value.workout?.review)
+        vm.closeRoutine(RoutineKind.COOL_DOWN)
+        runCurrent()
+        assertTrue(vm.uiState.value.workout?.review?.unrated.isNullOrEmpty())
+        assertTrue(vm.uiState.value.canFinish)
+    }
 
     // (F)
     @Test fun `Start opens a warmup for the run`() = test {
@@ -271,7 +301,7 @@ class DayViewModelRoutineTest {
         prepare()
         val vm = readyVm()
         start(vm)
-        repeat(2) { vm.logFocusedSet(); runCurrent() }
+        repeat(2) { vm.logFocusedSet(); runCurrent(); rateAndContinue(vm) }
         assertNull(vm.uiState.value.coolDown)
         settings.setCoolDownEnabled(false)
         runCurrent()

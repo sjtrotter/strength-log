@@ -115,7 +115,7 @@ internal fun SetEditSheet(
                 unit = unit,
                 actions = actions,
             )
-            if (row.done && row.kind != SetKind.RAMP && card.tracking != TrackingType.TIMED) {
+            if (row.done && showsEffort(row.kind, card.tracking)) {
                 SetEffortRow(row.rir, effortScale, {
                     actions.onSetEffort(card.programExerciseId, Slot.MAIN, row.index, it)
                 }, { actions.onSetRepsLeft(card.programExerciseId, Slot.MAIN, row.index, it) }, "set-edit-effort-${Slot.MAIN}")
@@ -134,7 +134,7 @@ internal fun SetEditSheet(
                     unit = unit,
                     actions = actions,
                 )
-                if (partner.done && card.tracking(Slot.SS) != TrackingType.TIMED) {
+                if (partner.done && showsEffort(SetKind.WORK, card.tracking(Slot.SS))) {
                     SetEffortRow(partner.rir, effortScale, {
                         actions.onSetEffort(card.programExerciseId, Slot.SS, row.index, it)
                     }, { actions.onSetRepsLeft(card.programExerciseId, Slot.SS, row.index, it) }, "set-edit-effort-${Slot.SS}")

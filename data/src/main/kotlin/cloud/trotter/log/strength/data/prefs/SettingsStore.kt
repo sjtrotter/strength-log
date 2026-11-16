@@ -216,7 +216,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     }
     val workoutRecordFlow: Flow<WorkoutRecord?> = dataStore.data.map { prefs ->
         prefs[Keys.WORKOUT_RECORD]?.let { encoded ->
-            runCatching { Json.decodeFromString<WorkoutRecord>(encoded) }.getOrNull()
+            runCatching { WorkoutRecordJson.decodeFromString<WorkoutRecord>(encoded) }.getOrNull()
         }
     }
     val phoneRestNotificationAskedFlow: Flow<Boolean> =
@@ -359,7 +359,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setWorkoutRecord(record: WorkoutRecord?) {
         dataStore.edit { prefs ->
             if (record == null) prefs.remove(Keys.WORKOUT_RECORD)
-            else prefs[Keys.WORKOUT_RECORD] = Json.encodeToString(WorkoutRecord.serializer(), record)
+            else prefs[Keys.WORKOUT_RECORD] = WorkoutRecordJson.encodeToString(WorkoutRecord.serializer(), record)
         }
     }
 
@@ -585,6 +585,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val DEFAULT_ANSWERS = WizardAnswers()
     }
 }
+
+private val WorkoutRecordJson = Json { ignoreUnknownKeys = true }
 
 private val SessionNotesJson = Json { ignoreUnknownKeys = true }
 private val SessionNotesSerializer = MapSerializer(Long.serializer(), String.serializer())

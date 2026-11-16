@@ -3,10 +3,21 @@ package cloud.trotter.log.strength.store
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.ui.day.assertFitsOneLine
 import cloud.trotter.log.strength.ui.day.workoutSetTimedRepFixture
 import cloud.trotter.log.strength.ui.day.workoutSetTimedRepRunningFixture
 import cloud.trotter.log.strength.ui.day.workoutSetCardioFixture
@@ -33,6 +44,11 @@ import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.WorkoutState
 import cloud.trotter.log.strength.ui.day.workoutRest
 import cloud.trotter.log.strength.ui.day.withWorkoutRestHint
+import cloud.trotter.log.strength.ui.day.workoutSetLoggedFixture
+import cloud.trotter.log.strength.ui.day.workoutSetMovedOnFixture
+import cloud.trotter.log.strength.ui.day.workoutSetNextLiftFixture
+import cloud.trotter.log.strength.ui.day.workoutSetLastSetFixture
+import cloud.trotter.log.strength.ui.day.workoutSetSupersetLoggedFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSupersetFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -41,6 +57,8 @@ import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -80,20 +98,14 @@ class WorkoutSetScreenPreviewShotsTest {
                 if (row.index == 1) row.copy(done = true) else row
             }) },
             workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1), undo = UndoOffer(
-                1L, Slot.MAIN, 1, "DB Bench Press", LoggedSet(80.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB, null,
+                1L, Slot.MAIN, 1, "DB Bench Press", LoggedSet(80.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB,
             )),
         ).withWorkoutRestHint(true, emptyMap()))
     }
 
-    @Test fun rest() {
-        val state = workoutSetSingleFixture()
-        render("04-rest.png", state.copy(
-            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
-            workout = state.workout?.copy(undo = UndoOffer(
-                1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null,
-            )),
-        ))
-    }
+    @Test fun rest() = render("04-rest.png", workoutSetSingleFixture().copy(
+        rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
+    ))
 
     @Test fun completed() {
         val state = workoutSetSingleFixture()
@@ -124,7 +136,7 @@ class WorkoutSetScreenPreviewShotsTest {
             }) },
             rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
             workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2), undo = UndoOffer(
-                1L, Slot.SS, 1, "Seated Cable Row", LoggedSet(120.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB, null,
+                1L, Slot.SS, 1, "Seated Cable Row", LoggedSet(120.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB,
             )),
         ))
     }
@@ -226,20 +238,51 @@ class WorkoutSetScreenPreviewShotsTest {
 
     @Test fun timedRepLargeFont() = render("29-timed-rep-large-font.png", workoutSetTimedRepFixture(), fontScale = 2f)
 
-    @Test fun restEffort() {
-        val state = workoutSetSingleFixture()
-        render("30-rest-effort.png", state.copy(
-            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
-            workout = state.workout?.copy(undo = UndoOffer(
-                1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(185.0, 5, SetKind.WORK, done = true, rir = 2),
-                TrackingType.WEIGHTED, WeightUnit.LB, null,
-            )),
-        ))
+    @Test fun logged() = render("31-logged.png", workoutSetLoggedFixture(), verify = ::assertNextSetVisibleDuringRest)
+
+    @Test fun tappedEarly() = render("32-tapped-early.png", workoutSetLoggedFixture(), act = {
+        rule.onNodeWithTag("workout-action-gate").performTouchInput { click() }
+    }, verify = ::assertNextSetVisibleDuringRest)
+
+    @Test fun rated() = render("33-rated.png", workoutSetLoggedFixture(rir = 2), verify = ::assertNextSetVisibleDuringRest)
+
+    @Test fun restOver() = render("34-rest-over.png", workoutSetLoggedFixture(rir = 2, resting = false))
+
+    @Test fun movedOn() = render("35-moved-on.png", workoutSetMovedOnFixture())
+
+    @Test fun nextLift() = render("36-next-lift.png", workoutSetNextLiftFixture())
+
+    @Test fun supersetOneRated() = render("37-superset-one-rated.png", workoutSetSupersetLoggedFixture(2, null))
+
+    @Test fun supersetBothRated() = render("38-superset-both-rated.png", workoutSetSupersetLoggedFixture(2, 1))
+
+    @Test fun loggedLargeFont() = render("39-logged-large-font.png", workoutSetLoggedFixture(), fontScale = 2f)
+
+    @Test fun loggedLight() = render("40-logged-light.png", workoutSetLoggedFixture(), ThemePreference.LIGHT,
+        verify = ::assertNextSetVisibleDuringRest)
+
+    @Test fun restOffLogged() = render("41-rest-off-logged.png", workoutSetLoggedFixture(resting = false))
+
+    @Test fun lastSet() = render("42-last-set.png", workoutSetLastSetFixture())
+
+    private fun assertNextSetVisibleDuringRest() {
+        val restBounds = rule.onNodeWithTag("workout-rest").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        for (text in listOf("Next: Set 3 of 6", "190 lb × 5")) {
+            val results = mutableListOf<TextLayoutResult>()
+            val bounds = rule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
+                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                .fetchSemanticsNode().boundsInRoot
+            results.single().assertFitsOneLine(text, bounds)
+            assertTrue("$text must be fully visible during rest", bounds.height + 1f >= results.single().size.height)
+            assertTrue(bounds.bottom <= restBounds.top)
+        }
+        rule.onNodeWithTag("workout-action-tonal").assertIsDisplayed().assertHeightIsAtLeast(64.dp)
+        rule.onNodeWithText("End rest").assertIsDisplayed()
     }
 
     private fun render(
         name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,
-        dayEditState: DayEditUiState = DayEditUiState(),
+        dayEditState: DayEditUiState = DayEditUiState(), act: () -> Unit = {}, verify: () -> Unit = {},
     ) {
         rule.setContent {
             val density = LocalDensity.current
@@ -249,8 +292,10 @@ class WorkoutSetScreenPreviewShotsTest {
                 }
             }
         }
+        act()
         rule.mainClock.advanceTimeBy(4_000)
         rule.waitForIdle()
+        verify()
         val root = rule.onAllNodes(isRoot()).onLast()
         root.assertExists()
         if (System.getProperty("roborazzi.test.record") == "true") {

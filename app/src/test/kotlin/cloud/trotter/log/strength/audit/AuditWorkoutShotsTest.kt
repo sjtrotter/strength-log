@@ -124,7 +124,7 @@ class AuditWorkoutShotsTest : UiAuditTest() {
                 state.value = old.copy(
                     exercises = old.exercises.map { card -> card.copy(rows = card.rows.map { row -> if (row.index == 2) row.copy(done = true) else row }) },
                     workout = old.workout?.copy(focus = WorkoutFocus(1, Slot.MAIN, 3), undo = UndoOffer(
-                        1, Slot.MAIN, 2, "Barbell Back Squat", LoggedSet(190.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null,
+                        1, Slot.MAIN, 2, "Barbell Back Squat", LoggedSet(190.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB,
                     )),
                 )
             }))

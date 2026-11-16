@@ -11,7 +11,7 @@ import org.junit.Test
 class WorkoutUndoTest {
     private val before = LoggedSet(50.0, 8, SetKind.WORK, watchEditedAt = 100L)
     private val after = before.copy(done = true, completedAtMillis = 70L)
-    private val target = UndoTarget(1L, "MAIN", 0, SetDto.of(before), SetDto.of(after), 70L, false)
+    private val target = UndoTarget(1L, "MAIN", 0, SetDto.of(before), SetDto.of(after), 70L)
 
     @Test fun `undo restores only the target and keeps the newer watch stamp`() {
         val other = before.copy(reps = 11)

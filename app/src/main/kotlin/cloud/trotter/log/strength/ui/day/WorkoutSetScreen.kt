@@ -121,6 +121,19 @@ import cloud.trotter.log.strength.ui.theme.WorkoutRestShape
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.TextUnit
+import cloud.trotter.log.strength.ui.theme.Done
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import kotlinx.coroutines.delay
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
@@ -153,11 +166,43 @@ fun WorkoutSetScreen(
                 Uri.fromParts("package", context.packageName, null)))
         }
     }
+    val offer = state.workout?.undo?.takeIf { state.workout.review == null }
+    val message = offer?.let { workoutLoggedMessage(state, it, catalog) }
+    val undoLabel = stringResource(R.string.day_undo)
+    val latestActions by rememberUpdatedState(actions)
+    LaunchedEffect(offer?.programExerciseId, offer?.slot, offer?.index, offer?.set?.completedAtMillis) {
+        if (offer != null && message != null) {
+            snackbarHost.currentSnackbarData?.dismiss()
+            val result = snackbarHost.showSnackbar(message, undoLabel, duration = SnackbarDuration.Long)
+            if (result == SnackbarResult.ActionPerformed) latestActions.onUndoLastLog()
+            else offer.set.completedAtMillis?.let(latestActions.onDismissLogUndo)
+        }
+    }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
         primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
     )) {
         WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis, onNote)
     }
+}
+
+@Composable
+private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: ExerciseCatalog): String {
+    val focus = state.workout?.focus
+    val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
+        stringResource(R.string.workout_set_number, undo.index + 1)
+    } else {
+        val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
+        val exerciseId = if (undo.slot == Slot.SS) card?.partnerExerciseId else card?.exerciseId
+        val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
+        stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
+    }
+    val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
+    val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking) }?.let { rir ->
+        if (state.effortScale == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
+        else effortWord(rir)?.let { stringResource(effortResource(it)) }
+    }
+    return if (effort == null) stringResource(R.string.workout_logged, label, summary)
+    else stringResource(R.string.workout_logged_effort, label, summary, effort)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,6 +220,9 @@ private fun WorkoutSetContent(
     onNote: (Long) -> Unit,
 ) {
     val workout = state.workout ?: return
+    val review = workout.review
+    var highlight by rememberSaveable(review?.programExerciseId, review?.index) { mutableStateOf(false) }
+    val highlighted = if (highlight) review?.unrated.orEmpty() else emptyList()
     val nextTitle = state.workoutNextPage?.title
     val allLogged = state.workoutAllLogged
     val reducedMotion = !ValueAnimator.areAnimatorsEnabled()
@@ -229,7 +277,7 @@ private fun WorkoutSetContent(
         bottomBar = {
             Column(
                 Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)
-                    .then(if (state.workoutCard?.isSuperset == true) {
+                    .then(if (state.exercises.firstOrNull { it.programExerciseId == review?.programExerciseId }?.isSuperset == true || state.workoutCard?.isSuperset == true) {
                         Modifier.testTag("workout-superset-actions").semantics {
                             isTraversalGroup = true
                             traversalIndex = 1f
@@ -240,7 +288,7 @@ private fun WorkoutSetContent(
             ) {
                 Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     WorkoutCardioFailedBand(state, actions)
-                    WorkoutRestBand(state, actions, catalog)
+                    WorkoutRestBand(state, actions)
                     val focus = workout.focus
                     val card = state.workoutCard
                     val event = state.timedRep?.takeIf { it.event.programExerciseId == card?.programExerciseId }
@@ -251,6 +299,18 @@ private fun WorkoutSetContent(
                     val cardioShown = (workout.shown as? WorkoutSelection.Shown.Group)?.key == "cardio"
                     val resting = state.rest?.over == false
                     val action = when {
+                        review != null -> WorkoutActionSpec(
+                            stringResource(when {
+                                allLogged -> R.string.day_finish_button
+                                resting -> R.string.workout_end_rest
+                                else -> R.string.workout_next_set
+                            }, state.viewDayId.orEmpty()),
+                            resting && !allLogged, review.unrated.isEmpty() && (!allLogged || state.canFinish),
+                            if (allLogged) onFinish else actions.onContinueWorkout,
+                            guardKey = Triple(review.programExerciseId, review.index, allLogged to resting),
+                            onBlockedTap = { highlight = true },
+                            blockedDescription = if (review.unrated.isNotEmpty()) stringResource(R.string.workout_mark_effort) else null,
+                        )
                         allLogged -> if (state.workoutCardioOnlyDone) null else WorkoutActionSpec(
                             stringResource(R.string.day_finish_button, state.viewDayId.orEmpty()), resting,
                             state.canFinish, onFinish, guardKey = "finish")
@@ -286,12 +346,15 @@ private fun WorkoutSetContent(
                                     actions.onStopTimedRep, guardKey = guardKey)
                                 true -> WorkoutActionSpec(stringResource(R.string.timed_rep_enter_reps), resting, true,
                                     actions.onRequestTimedRepCount, guardKey = guardKey)
-                                null -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), resting,
+                                null -> if (resting) WorkoutActionSpec(stringResource(R.string.workout_end_rest), true, true,
+                                    actions.onContinueWorkout) else WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false,
                                     !state.executionBusy && state.timedRep == null,
                                     { actions.onStartTimedRep(card.programExerciseId, index) })
                             }
                         }
-                        values != null && card != null -> WorkoutActionSpec(
+                        values != null && card != null -> if (resting) WorkoutActionSpec(
+                            stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout,
+                        ) else WorkoutActionSpec(
                             stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
                             actions.onLogFocusedSet,
                             secondary = if (card.tracking(slot) != TrackingType.TIMED) {
@@ -301,10 +364,11 @@ private fun WorkoutSetContent(
                     }
                     if (action != null) {
                         WorkoutAction(action.label, action.tonal, action.enabled, reducedMotion,
-                            action.onClick, action.secondary, action.guardKey, tapAllowed = {
+                            action.onClick, action.secondary, action.guardKey,
+                            onBlockedTap = action.onBlockedTap, blockedDescription = action.blockedDescription, tapAllowed = {
                                 !allLogged || workout.lastCompletionMillis?.let { nowMillis() - it >= 3_000L } != false
                             })
-                        if (!action.enabled) WorkoutBlockedReasonText(when {
+                        if (!action.enabled && (review == null || allLogged)) WorkoutBlockedReasonText(when {
                             allLogged -> state.finishBlockedReason
                             cardioShown -> state.cardioStartBlockedReason
                             state.timedRepRunning || state.cardioRunning -> WorkoutBlockedReason.TIMER_RUNNING
@@ -321,11 +385,11 @@ private fun WorkoutSetContent(
                 val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
                 val scrollModifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
                 if (reducedMotion) {
-                    Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion, onEditDay, onNote) }
+                    Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion, onEditDay, onNote, highlighted) }
                 } else {
                     AnimatedContent(
                         targetState = state,
-                        contentKey = { when (val shown = it.workout?.shown) {
+                        contentKey = { it.workout?.review?.let { review -> "exercise:${review.programExerciseId}" } ?: when (val shown = it.workout?.shown) {
                             is WorkoutSelection.Shown.Group -> shown.key
                             WorkoutSelection.Shown.AllLogged -> "all-logged"
                             else -> "empty"
@@ -339,7 +403,7 @@ private fun WorkoutSetContent(
                         label = "workoutGroup",
                     ) { shown ->
                         Column(Modifier.fillMaxSize().then(scrollModifier)) {
-                            WorkoutLift(shown, actions, catalog, reducedMotion, onEditDay, onNote)
+                            WorkoutLift(shown, actions, catalog, reducedMotion, onEditDay, onNote, highlighted)
                         }
                     }
                 }
@@ -574,8 +638,13 @@ private fun WorkoutLift(
     reducedMotion: Boolean,
     onEditDay: () -> Unit,
     onNote: (Long) -> Unit,
+    highlighted: List<String>,
 ) {
     val workout = state.workout ?: return
+    workout.review?.let {
+        WorkoutReviewContent(state, it, actions, catalog, reducedMotion, onNote, highlighted)
+        return
+    }
     if (state.workoutAllLogged && !state.workoutCardioOnlyDone &&
         (workout.shown as? WorkoutSelection.Shown.Group)?.key != "cardio") {
         Text(stringResource(R.string.workout_all_logged, state.totalSets), style = MaterialTheme.typography.headlineMedium,
@@ -613,22 +682,9 @@ private fun WorkoutLift(
         }),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FlowRow(Modifier.fillMaxWidth().then(if (timed) Modifier.semantics {
+        WorkoutLiftHeader(card, actions, onNote, if (timed) Modifier.semantics {
             liveRegion = LiveRegionMode.Polite; contentDescription = announcement
-        } else Modifier), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(card.title, style = MaterialTheme.typography.headlineMedium)
-                if (card.note.isNotBlank()) Text(card.note,
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
-                        onNote(card.programExerciseId)
-                    })
-            }
-            TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, Slot.MAIN) }, colors = neutralTextButtonColors()) {
-                Text(stringResource(R.string.day_all_sets))
-            }
-        }
+        } else Modifier)
         if (workout.completedView) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Check, null)
@@ -636,37 +692,141 @@ private fun WorkoutLift(
             }
             Text(card.summaryLine, style = MaterialTheme.typography.bodyLarge)
         } else if (row != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WorkoutSetCard(state, card, slot, index, actions, catalog, reducedMotion)
+        }
+    }
+}
+
+@Composable
+private fun WorkoutLiftHeader(card: ExerciseCardState, actions: DayActions, onNote: (Long) -> Unit, modifier: Modifier = Modifier) {
+    FlowRow(Modifier.fillMaxWidth().then(modifier), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(card.title, style = MaterialTheme.typography.headlineMedium)
+            if (card.note.isNotBlank()) Text(card.note,
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
+                    onNote(card.programExerciseId)
+                })
+        }
+        TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, Slot.MAIN) }, colors = neutralTextButtonColors()) {
+            Text(stringResource(R.string.day_all_sets))
+        }
+    }
+}
+
+@Composable
+private fun WorkoutSetCard(
+    state: DayUiState, card: ExerciseCardState, slot: String, index: Int, actions: DayActions,
+    catalog: ExerciseCatalog, reducedMotion: Boolean, logged: Boolean = false, compact: Boolean = false,
+    effortSlots: List<String> = emptyList(), highlighted: List<String> = emptyList(),
+) {
+    val row = card.rows.getOrNull(index) ?: return
+    val values = row.values(slot) ?: return
+    val tracking = card.tracking(slot)
+    Card(Modifier.fillMaxWidth().testTag("workout-set-card"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (compact) {
+                Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title, style = MaterialTheme.typography.titleMedium)
+            } else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
                         stringResource(R.string.workout_set_kind, index + 1, card.rows.size, row.kindLabel)
                     } else stringResource(R.string.day_set_of, index + 1, card.rows.size),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 (if (slot == Slot.SS) card.partnerMarker else card.marker)?.let {
                     Text(stringResource(it.label), style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            val values = row.values(slot)
-            if (values != null) {
+            if (logged) {
+                val editLabel = stringResource(R.string.workout_edit_set, index + 1)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
+                        modifier = Modifier.weight(1f).semantics { contentDescription = editLabel },
+                        colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp), shape = RectangleShape) {
+                        Box(Modifier.fillMaxWidth()) {
+                            WorkoutHero(values, tracking, state.unit, if (compact) 56.sp else SetNumerals.fontSize)
+                        }
+                    }
+                    Icon(Icons.Default.Check, null, tint = Done, modifier = Modifier.size(if (compact) 24.dp else 32.dp).testTag("workout-set-done"))
+                }
+            } else {
+                val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
+                val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
                 if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
                     WorkoutEditableHero(card, slot, index, actions) {
-                        Crossfade(
-                            targetState = values to card.tracking(slot),
-                            animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
-                            label = "workoutHero",
-                        ) { (set, tracking) -> WorkoutHero(set, tracking, state.unit) }
+                        Crossfade(values to tracking,
+                            animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHero") {
+                            (set, type) -> WorkoutHero(set, type, state.unit)
+                        }
                     }
                 }
-                if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
+            }
+            if (!compact) {
+                if (tracking == TrackingType.TIMED && values.weightDisplay > 0.0) {
                     Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
                         style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 workoutDetail(card, slot, index, state.unit, catalog)?.let {
                     Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            if (logged && slot in effortSlots) {
+                SetEffortRow(values.rir, state.effortScale, { actions.onSetEffort(card.programExerciseId, slot, index, it) },
+                    { actions.onSetRepsLeft(card.programExerciseId, slot, index, it) },
+                    if (slot == Slot.SS) "workout-effort-ss" else "workout-effort",
+                    if (slot in highlighted) accentEmphasis(state.dayIndex) else null)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutReviewContent(
+    state: DayUiState, review: WorkoutReview, actions: DayActions, catalog: ExerciseCatalog,
+    reducedMotion: Boolean, onNote: (Long) -> Unit, highlighted: List<String>,
+) {
+    val card = state.exercises.firstOrNull { it.programExerciseId == review.programExerciseId } ?: return
+    val announcement = stringResource(R.string.workout_announce_logged, card.title, review.index + 1, card.rows.size)
+    Column(Modifier.fillMaxWidth().semantics {
+        liveRegion = LiveRegionMode.Polite
+        contentDescription = announcement
+        if (card.isSuperset) { isTraversalGroup = true; traversalIndex = 0f }
+    }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (card.isSuperset) {
+            Text(stringResource(R.string.workout_superset_round, review.index + 1, card.rows.size),
+                style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else WorkoutLiftHeader(card, actions, onNote)
+        val slots = if (card.isSuperset) listOf(Slot.MAIN, Slot.SS) else listOf(Slot.MAIN)
+        for (slot in slots) WorkoutSetCard(state, card, slot, review.index, actions, catalog, reducedMotion,
+            logged = true, compact = card.isSuperset, effortSlots = review.effortSlots, highlighted = highlighted)
+        WorkoutNextCard(state, review)
+    }
+}
+
+@Composable
+private fun WorkoutNextCard(state: DayUiState, review: WorkoutReview) {
+    val workout = state.workout ?: return
+    val focus = workout.focus
+    val card = state.exercises.firstOrNull { it.programExerciseId == focus?.programExerciseId }
+    val title = when {
+        card != null && focus != null -> when {
+            card.programExerciseId != review.programExerciseId -> card.title
+            card.isSuperset -> stringResource(R.string.workout_round_of, focus.index + 1, card.rows.size)
+            else -> stringResource(R.string.day_set_of, focus.index + 1, card.rows.size)
+        }
+        (workout.shown as? WorkoutSelection.Shown.Group)?.key == "cardio" -> state.cardio?.label
+        else -> null
+    } ?: return
+    Card(Modifier.fillMaxWidth().testTag("workout-next-card"), colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.day_next_exercise, title), style = MaterialTheme.typography.titleMedium)
+            if (card != null && !card.isSuperset && focus != null) card.rows.getOrNull(focus.index)?.values(focus.slot)?.let {
+                Text(workoutValue(it, card.tracking(focus.slot), state.unit), style = MaterialTheme.typography.displaySmall)
             }
         }
     }
@@ -871,7 +1031,7 @@ private fun WorkoutEditableHero(
 }
 
 @Composable
-private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit) {
+private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit, maxFontSize: TextUnit = SetNumerals.fontSize) {
     val primary = when (tracking) {
         TrackingType.WEIGHTED -> WeightStepper.format(values.weightDisplay)
         TrackingType.REPS -> values.reps.toString()
@@ -882,11 +1042,11 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: W
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
-    WorkoutHeroText(primary, secondary, Modifier)
+    WorkoutHeroText(primary, secondary, Modifier, maxFontSize)
 }
 
 @Composable
-private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier: Modifier = Modifier.fillMaxWidth()) {
+private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier: Modifier = Modifier.fillMaxWidth(), maxFontSize: TextUnit = SetNumerals.fontSize) {
     BasicText(
         buildAnnotatedString {
             append(primary)
@@ -905,7 +1065,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier
         softWrap = false,
         autoSize = TextAutoSize.StepBased(
             minFontSize = HERO_MIN_SP.sp,
-            maxFontSize = SetNumerals.fontSize,
+            maxFontSize = maxFontSize,
         ),
     )
 }
@@ -938,22 +1098,17 @@ private fun workoutDetail(card: ExerciseCardState, slot: String, index: Int, uni
 }
 
 @Composable
-private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog) {
-    val rest = state.rest?.takeUnless { it.over }
-    val undo = state.workout?.undo
-    if (rest == null && undo == null) return
+private fun WorkoutRestBand(state: DayUiState, actions: DayActions) {
+    val rest = state.rest?.takeUnless { it.over } ?: return
     val resources = LocalResources.current
-    val announcement = rest?.let {
-        formatRestAnnouncement(resources, it.remainingSeconds)
-    }
+    val announcement = formatRestAnnouncement(resources, rest.remainingSeconds)
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
-            if (announcement != null) {
-                contentDescription = announcement
-            }
+            contentDescription = announcement
         }) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (rest != null) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val view = LocalView.current
                 LaunchedEffect(rest.rest) {
                     // Equal-duration rests need separate events even when their descriptions match.
@@ -978,33 +1133,8 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
                         color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
-            if (undo != null && undo.set.done && undo.set.kind != SetKind.RAMP && undo.tracking != TrackingType.TIMED) {
-                SetEffortRow(undo.set.rir, state.effortScale, {
-                    actions.onSetEffort(undo.programExerciseId, undo.slot, undo.index, it)
-                }, { actions.onSetRepsLeft(undo.programExerciseId, undo.slot, undo.index, it) }, "workout-effort")
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (undo != null) {
-                    val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true)
-                    val focus = state.workout.focus
-                    val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
-                        stringResource(R.string.workout_undo, summary)
-                    } else {
-                        val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
-                        val exerciseId = if (undo.slot == Slot.SS) card?.partnerExerciseId else card?.exerciseId
-                        val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
-                        stringResource(R.string.workout_undo_lift, shortName, summary)
-                    }
-                    TextButton(onClick = actions.onUndoLastLog, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) { Text(label) }
-                }
-                if (rest != null) {
-                    TextButton(onClick = { actions.onAdjustRest(15) }, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) {
-                        Text(stringResource(R.string.rest_notification_add))
-                    }
-                    TextButton(onClick = actions.onSkipRest, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) {
-                        Text(stringResource(R.string.rest_notification_skip))
-                    }
-                }
+            TextButton(onClick = { actions.onAdjustRest(15) }, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) {
+                Text(stringResource(R.string.rest_notification_add))
             }
         }
     }
@@ -1022,12 +1152,16 @@ private data class WorkoutActionSpec(
     val onClick: () -> Unit,
     val secondary: WorkoutSecondaryAction? = null,
     val guardKey: Any? = null,
+    val onBlockedTap: (() -> Unit)? = null,
+    val blockedDescription: String? = null,
 )
 
+/** M3 Button has no callback for taps while disabled; the parent catches them to point at what is missing. */
 @Composable
 private fun WorkoutAction(
     label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit,
-    secondary: WorkoutSecondaryAction? = null, guardKey: Any? = null, tapAllowed: () -> Boolean = { true },
+    secondary: WorkoutSecondaryAction? = null, guardKey: Any? = null,
+    onBlockedTap: (() -> Unit)? = null, blockedDescription: String? = null, tapAllowed: () -> Boolean = { true },
 ) {
     var guarded by remember { mutableStateOf(false) }
     var previousKey by remember { mutableStateOf(guardKey) }
@@ -1049,7 +1183,10 @@ private fun WorkoutAction(
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        val modifier = Modifier.weight(1f).heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
+        val latestOnBlockedTap by rememberUpdatedState(onBlockedTap)
+        val modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
+            .testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
+            .then(if (blockedDescription != null && !enabled) Modifier.semantics { stateDescription = blockedDescription } else Modifier)
         val content: @Composable () -> Unit = {
             Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
                 // The action row's height is bounded by the non-scrolling page, so a long label at a
@@ -1064,8 +1201,27 @@ private fun WorkoutAction(
                 )
             }
         }
-        if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
-        else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
+        Box(Modifier.weight(1f).testTag("workout-action-gate").then(
+            if (!enabled && blockedDescription != null) Modifier.pointerInput(Unit) {
+                // Disabled M3 buttons consume events in Main; observe Initial without consuming.
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    var tapped = down.position.x in 0f..size.width.toFloat() &&
+                        down.position.y in 0f..size.height.toFloat()
+                    do {
+                        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+                            ?: return@awaitEachGesture
+                        tapped = tapped && change.position.x in 0f..size.width.toFloat() &&
+                            change.position.y in 0f..size.height.toFloat() &&
+                            (change.position - down.position).getDistance() <= viewConfiguration.touchSlop
+                    } while (change.pressed)
+                    if (tapped) latestOnBlockedTap?.invoke()
+                }
+            } else Modifier,
+        )) {
+            if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
+            else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
+        }
         when (secondary) {
             is WorkoutSecondaryAction.DecrementReps -> {
                 OutlinedIconButton(onClick = secondary.onClick, enabled = enabled && secondary.enabled, modifier = Modifier.size(64.dp)) {
@@ -1097,19 +1253,31 @@ private fun workoutValue(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EffortRow(selected: Effort?, onPick: (Effort?) -> Unit, tagPrefix: String,
-                       entries: List<Effort> = Effort.entries, label: String = stringResource(R.string.effort)) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
-            entries.forEachIndexed { index, effort ->
-                SegmentedButton(
-                    selected = effort == selected,
-                    onClick = { onPick(if (effort == selected) null else effort) },
-                    shape = SegmentedButtonDefaults.itemShape(index, entries.size),
-                    label = { EffortText(effort) },
-                    modifier = Modifier.testTag("$tagPrefix-${effort.name}"),
-                )
+                       entries: List<Effort> = Effort.entries, label: String = stringResource(R.string.effort), highlight: Color? = null) {
+    val colors = SegmentedButtonDefaults.colors()
+    val density = LocalDensity.current
+    val largeFont = density.fontScale >= 1.5f
+    val segmentHeight = with(density) { MaterialTheme.typography.labelLarge.lineHeight.toDp() } + 16.dp
+    FlowRow(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, modifier = Modifier.align(Alignment.CenterVertically),
+            style = MaterialTheme.typography.labelLarge, color = highlight ?: LocalContentColor.current)
+        Column((if (largeFont) Modifier.fillMaxWidth() else Modifier.weight(1f)).align(Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (row in entries.chunked(if (largeFont) 2 else entries.size)) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    row.forEachIndexed { index, effort ->
+                        SegmentedButton(
+                            selected = effort == selected,
+                            onClick = { onPick(if (effort == selected) null else effort) },
+                            shape = SegmentedButtonDefaults.itemShape(index, row.size),
+                            border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
+                                if (effort == selected) colors.activeBorderColor else colors.inactiveBorderColor),
+                            label = { EffortText(effort) },
+                            modifier = Modifier.testTag("$tagPrefix-${effort.name}").heightIn(min = segmentHeight),
+                        )
+                    }
+                }
             }
         }
     }
@@ -1144,12 +1312,14 @@ internal fun SetEffortText(rir: Int, scale: EffortScale) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SetEffortRow(rir: Int?, scale: EffortScale, onWord: (Effort?) -> Unit,
-                          onRepsLeft: (Int?) -> Unit, tagPrefix: String) {
+                          onRepsLeft: (Int?) -> Unit, tagPrefix: String, highlight: Color? = null) {
     if (scale == EffortScale.WORDS) {
-        EffortRow(effortWord(rir), onWord, tagPrefix)
+        EffortRow(effortWord(rir), onWord, tagPrefix, highlight = highlight)
     } else {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.settings_effort_reps_left), style = MaterialTheme.typography.labelLarge)
+        val colors = SegmentedButtonDefaults.colors()
+        Column(Modifier.fillMaxWidth().testTag(if (highlight == null) "$tagPrefix-row" else "$tagPrefix-row-highlighted"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.settings_effort_reps_left), style = MaterialTheme.typography.labelLarge,
+                color = highlight ?: LocalContentColor.current)
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val perRow = if (maxWidth / 6 / LocalDensity.current.fontScale < 48.dp) 3 else 6
                 Column(Modifier.fillMaxWidth()) {
@@ -1159,6 +1329,8 @@ internal fun SetEffortRow(rir: Int?, scale: EffortScale, onWord: (Effort?) -> Un
                                 SegmentedButton(selected = rir == value,
                                     onClick = { onRepsLeft(if (rir == value) null else value) },
                                     shape = SegmentedButtonDefaults.itemShape(index, values.size),
+                                    border = if (highlight != null) SegmentedButtonDefaults.borderStroke(highlight, 2.dp) else SegmentedButtonDefaults.borderStroke(
+                                        if (rir == value) colors.activeBorderColor else colors.inactiveBorderColor),
                                     label = { Text(value.toString()) }, icon = {},
                                     modifier = Modifier.testTag("$tagPrefix-$value").heightIn(min = 48.dp))
                             }

@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.OpeningJson
@@ -103,6 +104,20 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        // Pre-v27 decoding discards settingsJson, so inspect its v28 facts before that version shaping.
+        if (version in 1..26) {
+            (obj["plans"] as? JsonArray)?.forEach { plan ->
+                val fields = plan as? JsonObject
+                val settings = (fields?.get("settingsJson") as? JsonPrimitive)?.content
+                if (settings?.let(PlanSettingsJson::hasPlanFacts) == true) {
+                    throw BackupError.Inconsistent("settingsJson equipment and goals require schema v28")
+                }
+                val recipe = (fields?.get("recipeJson") as? JsonPrimitive)?.content
+                if (recipe?.let(SetupRecipeJson::isV2) == true) {
+                    throw BackupError.Inconsistent("recipe v2 requires schema v28")
+                }
+            }
+        }
         if (version < 23) {
             (obj["plans"] as? JsonArray)?.forEach { plan ->
                 val recipe = ((plan as? JsonObject)?.get("recipeJson") as? JsonPrimitive)?.content
@@ -121,12 +136,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // added keep-screen-on, v5 made a session's bodyweight nullable, v6
             // added cardio sessions, v7 added program-day kinds, and v8 added
             // plans and their live-log/selection pointers; v9 added each plan's
-            // recipe and rotation; v10 added authored prescriptions. Older documents decode
+            // recipe and rotation; v10 added authored prescriptions; v28 added recipe v2 and plan settings'
+            // equipment and goals. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -511,6 +527,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 }
                 if (doc.schemaVersion >= 9) {
                     plan.recipeJson?.let { recipe ->
+                        if (doc.schemaVersion < 28 && SetupRecipeJson.isV2(recipe)) {
+                            throw BackupError.Inconsistent("recipe v2 of plan ${plan.id} requires schema v28")
+                        }
                         decodePayload("recipeJson of plan ${plan.id}") { PlanRecipeJson.validate(recipe) }
                     }
                     validateSuggestedDay(plan.suggestedDay, plan.days)
@@ -560,6 +579,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         checkValue("effortScale in settings") { EffortScale.valueOf(doc.settings.effortScale) }
         for (plan in doc.plans) {
+            if (doc.schemaVersion < 28 && plan.settingsJson?.let(PlanSettingsJson::hasPlanFacts) == true) {
+                throw BackupError.Inconsistent("settingsJson equipment and goals of plan ${plan.id} require schema v28")
+            }
             checkValue("settingsJson of plan ${plan.id}") { plan.settingsJson?.let(PlanSettingsJson::validate) }
             checkValue("progression state of plan ${plan.id}") {
                 require(plan.lightCycleRemaining in 0..99)

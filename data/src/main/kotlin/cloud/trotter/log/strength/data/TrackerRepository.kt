@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
+import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
+import cloud.trotter.log.strength.data.serialization.setupAnswers
+import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
@@ -639,12 +642,33 @@ class TrackerRepository(
         }
     }
 
-    /** Regenerates one day from the stored wizard answers (spec §8.3), leaving the
-     *  other days untouched. No-op if the stored day has no unambiguous template. */
+    /** Rebuilds one day from the plan's setup answers: a v2 recipe through [Planner.day], its rows seeding lazily;
+     *  a v1 recipe through the old template. Other days are untouched; a day the recipe does not produce is left alone. */
     suspend fun resetDayToTemplate(dayId: String, targetPlanId: Long? = null) {
         plans.ensurePlanSettingsMigrated()
         val planId = targetPlanId ?: plans.selectedPlanId() ?: return
-        if (planDao.plan(planId)?.origin != PlanOrigin.GENERATED.name) return
+        val plan = planDao.plan(planId) ?: return
+        if (plan.origin != PlanOrigin.GENERATED.name) return
+        if (plan.hasSetupRecipe) {
+            val unit = settings.unitFlow.first()
+            val day = plan.setupAnswers(unit)?.let { runCatching { Planner.day(it, dayId) }.getOrNull() }
+                ?.day?.takeIf { it.kind != ProgramDayKind.REST } ?: return
+            db.withTransaction {
+                val existing = programDao.day(planId, dayId) ?: return@withTransaction
+                for (slot in programDao.exercisesForDay(planId, dayId)) {
+                    retireActiveTrack(planId, dayId, slot.id, Slot.MAIN)
+                    retireActiveTrack(planId, dayId, slot.id, Slot.SS)
+                }
+                programDao.deleteLogsForDay(planId, dayId)
+                programDao.deleteExercisesForDay(planId, dayId)
+                programDao.upsertDay(day.toEntity(planId).copy(position = existing.position,
+                    nextRunId = existing.nextRunId, closedAt = existing.closedAt))
+                day.exercises.forEachIndexed { pos, exercise ->
+                    programDao.insertExercise(exercise.toEntity(planId, dayId, pos))
+                }
+            }
+            return
+        }
         val answers = plans.wizardAnswersFor(planId).first()
         val catalog = this.catalog.snapshot()
         db.withTransaction {

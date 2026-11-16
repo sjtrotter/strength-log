@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -16,10 +17,13 @@ import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -149,44 +153,45 @@ class PlanScreenBuilderTest {
 
     @Test
     fun generatedPlansShowTheFourPinnedGoalsAndTheirEmphasis() {
-        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = PlanRecipeJson.encode(WizardAnswers()))
         val state = PlanScreenBuilder.buildUiState(
             plan, ProgramGenerator.generate(WizardAnswers()), WizardAnswers(), catalog, WeightUnit.LB,
         )
-        assertEquals(listOf(
-            GoalPreviewItem("Barbell Back Squat", "235", false),
-            GoalPreviewItem("Barbell Bench Press", "195", false),
-            GoalPreviewItem("Trap-Bar Deadlift", "255", false),
-            GoalPreviewItem("Incline DB Press", "75", true),
-        ), state.goals.map { GoalPreviewItem(it.name, it.display, it.perHand) })
-        assertTrue(state.goals.all { it.calculated == null })
+        assertEquals(listOf("Barbell Back Squat", "Barbell Bench Press", "Trap-Bar Deadlift", "Incline DB Press"),
+            state.goals.map { it.name })
+        assertTrue(state.goals.all { it.goalLb == null && it.display == null })
         assertEquals(GoalEmphasis.BALANCED, state.emphasis)
     }
 
-    @Test
-    fun `an edited goal shows its calculated value`() {
+    @Test fun `a typed goal shows its weight in the chosen unit`() {
         val answers = WizardAnswers(config = LifterConfig(goalsLb = mapOf("bb_back_squat" to 200.0)))
-        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
-        val state = PlanScreenBuilder.buildUiState(
-            plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.LB,
-        )
-        val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
-        assertEquals("200", squat.display)
-        assertEquals(200.0, squat.goalLb, 0.0)
-        assertEquals("235", squat.calculated)
-        assertNull(state.goals.single { it.exerciseId == "bb_bench" }.calculated)
-        val kg = PlanScreenBuilder.buildUiState(
-            plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.KG,
-        )
-        assertEquals(WeightUnit.KG, kg.unit)
-        assertEquals(200.0, kg.goals.single { it.exerciseId == "bb_back_squat" }.goalLb, 0.0)
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = PlanRecipeJson.encode(answers))
+        for (unit in WeightUnit.entries) {
+            val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), answers, catalog, unit)
+            val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
+            assertEquals(200.0, requireNotNull(squat.goalLb), 0.0)
+            assertEquals(if (unit == WeightUnit.LB) "200" else "90.72", squat.display)
+            assertNull(state.goals.single { it.exerciseId == "bb_bench" }.display)
+        }
+    }
+
+    @Test fun `a planned plan shows goals but no emphasis`() {
+        val answers = SetupAnswers()
+        val plan = PlanEntity(1, "Planned", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers))
+        val state = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, WizardAnswers(), catalog, WeightUnit.LB)
+        assertTrue(state.goals.isNotEmpty())
+        assertNull(state.emphasis)
     }
 
     @Test
     fun `goals name only lifts the plan has`() {
         val answers = WizardAnswers(equipment = Equipment.entries.toSet() - setOf(Equipment.BARBELL, Equipment.TRAP_BAR))
         val program = ProgramGenerator.generate(answers)
-        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = PlanRecipeJson.encode(answers))
         val state = PlanScreenBuilder.buildUiState(plan, program, answers, catalog, WeightUnit.LB)
         val names = state.goals.map { it.name }
         val plannedNames = program.days.flatMap { day -> day.exercises.map { ExerciseLibrary.get(it.exerciseId).name } }
@@ -227,6 +232,34 @@ class PlanScreenBuilderTest {
         )
         assertTrue(empty.goals.isEmpty())
         assertNull(empty.emphasis)
+    }
+
+    @Test fun `an old wizard dumbbell plan shows its main lift goals`() {
+        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
+            config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
+        val program = ProgramGenerator.generate(answers)
+        val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = PlanRecipeJson.encode(answers))
+
+        val state = PlanScreenBuilder.buildUiState(plan, program, answers, catalog, WeightUnit.LB)
+
+        assertEquals(ProgramGenerator.mainLiftIds(answers), state.goals.map { it.exerciseId })
+        assertEquals("80", state.goals.single { it.exerciseId == "goblet_squat" }.display)
+    }
+
+    @Test fun `v2 and recipe-less plans use role alone for main lift goals`() {
+        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL))
+        val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(
+            ProgramExercise("goblet_squat", rule = SlotRule.defaults(SlotRole.ACCESSORY, LiftGoal.STRENGTH,
+                SetStructure.STRAIGHT, 5, MovementPattern.SQUAT_BILATERAL)),
+            ProgramExercise("db_bench", rule = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH,
+                SetStructure.STRAIGHT, 5, MovementPattern.H_PUSH)),
+        ))))
+        for (recipe in listOf(null, SetupRecipeJson.encode(SetupAnswers()))) {
+            val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0, recipeJson = recipe)
+            val state = PlanScreenBuilder.buildUiState(plan, program, answers, catalog, WeightUnit.LB)
+            assertEquals(listOf("db_bench"), state.goals.map { it.exerciseId })
+        }
     }
 
     private fun day(id: String, title: String, vararg rounds: Int) = ProgramDay(

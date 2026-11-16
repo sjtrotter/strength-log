@@ -19,6 +19,10 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
+import cloud.trotter.log.strength.data.serialization.setupAnswers
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
@@ -98,7 +102,10 @@ internal class DayEditor(
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
-                    day != null && ProgramGenerator.templateFor(answers, day) != null,
+                    day != null && if (plan.hasSetupRecipe)
+                        plan.setupAnswers(unit)?.let { a -> runCatching { Planner.day(a, day.id) }.getOrNull() }?.day?.kind
+                            ?.let { it != ProgramDayKind.REST } == true
+                    else ProgramGenerator.templateFor(answers, day) != null,
             )
         }
     }

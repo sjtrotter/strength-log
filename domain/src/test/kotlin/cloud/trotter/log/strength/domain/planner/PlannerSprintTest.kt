@@ -270,7 +270,7 @@ class PlannerSprintTest {
                     is PlanReason.ShortSession -> it.dayId == day.id
                     is PlanReason.OverBudget -> it.dayId == day.id
                     is PlanReason.RunCapped -> it.dayId == day.id
-                    PlanReason.DateTooClose, is PlanReason.GoalCheck -> false
+                    PlanReason.DateTooClose, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
                 } }, draft.reasons)
             }
             assertNull(Planner.day(answers, "Z"))

@@ -18,7 +18,7 @@ import cloud.trotter.log.strength.ui.plan.PlansScreen
 import cloud.trotter.log.strength.ui.plan.PlansUiState
 import cloud.trotter.log.strength.ui.plan.YouSummary
 import cloud.trotter.log.strength.ui.plan.planScreenFixture
-import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
+import cloud.trotter.log.strength.ui.plan.PlanLiftGoal
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,7 +48,10 @@ class AuditPlanShotsTest : UiAuditTest() {
 
     @Test fun shot04PlanStrength() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("plan/04-plan-strength") { PlanScreen(planScreenFixture(4).let { it.copy(name = "Four-day strength", days = it.days.map { day -> day.copy(liftCount = 4, setCount = 18) }) }, PlanActions({}, {}, {})) }
+        rule.auditShot("plan/04-plan-strength") { PlanScreen(planScreenFixture(4).let { it.copy(name = "Four-day strength", goals = listOf(
+            PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235"),
+            PlanLiftGoal("bb_bench", "Barbell Bench Press", false, null, null),
+        ), days = it.days.map { day -> day.copy(liftCount = 4, setCount = 18) }) }, PlanActions({}, {}, {})) }
     }
 
     @Test fun shot05PlanCardio() {
@@ -126,7 +129,7 @@ class AuditPlanShotsTest : UiAuditTest() {
         rule.auditShot("plan/23-plan-generated-goals", beforeCapture = {
             rule.onNode(hasScrollAction()).performScrollToNode(hasText("Goals"))
         }) { PlanScreen(planScreenFixture().copy(emphasis = GoalEmphasis.BALANCED,
-            goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false))), PlanActions({}, {}, {})) }
+            goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235"))), PlanActions({}, {}, {})) }
     }
 
     private fun plansFixture(count: Int) = PlansUiState(

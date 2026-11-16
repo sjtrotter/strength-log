@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Program
@@ -202,8 +203,12 @@ class LogViewModel @Inject constructor(
         plans.programFlow,
         catalog.catalogFlow,
         plans.wizardAnswersFlow,
-    ) { program, catalog, answers ->
-        JournalBuilder.mainLifts(program, catalog, answers.config, ProgramGenerator.mainLiftIds(answers).toSet())
+        plans.selectedPlanFlow,
+    ) { program, catalog, answers, plan ->
+        val v1Mains = if (plan?.recipeJson != null && !plan.hasSetupRecipe) {
+            ProgramGenerator.mainLiftIds(answers).toSet()
+        } else emptySet()
+        JournalBuilder.mainLifts(program, catalog, answers.config.goalsLb, v1Mains)
     }
 
     private val journalHistory = combine(

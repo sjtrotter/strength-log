@@ -7,20 +7,19 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.records.PersonalBests
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.DayOfWeek
@@ -38,8 +37,7 @@ import java.util.Locale
  * and the month grid. Android-free (java.time is plain JDK) so every rule is a
  * JVM unit test, exactly like [LogScreenBuilder] next door.
  *
- * GOALs are only ever *read* here — [GoalCalculator] stays the SSOT and nothing
- * in the journal recomputes or advances a target.
+ * Goals are the plan's typed goals; nothing here computes one.
  */
 object JournalBuilder {
 
@@ -60,27 +58,27 @@ object JournalBuilder {
     /**
      * The program's main lifts in day order, de-duplicated by exercise (a lift
      * anchored on two days keeps its first day's accent).
-     * Generated membership survives novice mains becoming straight sets.
+     * Membership is the slot's role or a v1 recipe main; goals are the plan's typed goals.
+     * 6c removes [v1Mains] when conversion fixes v1 roles.
      *
      * REPS/TIMED prescriptions have no top-set weight to plot.
      */
     fun mainLifts(
         program: Program,
         catalog: ExerciseCatalog,
-        cfg: LifterConfig,
-        generatedMainIds: Set<String> = emptySet(),
+        goalsLb: Map<String, Double>,
+        v1Mains: Set<String> = emptySet(),
     ): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
         program.days.forEach { day ->
             for (pe in day.exercises) {
                 val entry = catalog.find(pe.exerciseId) ?: continue
-                val isMain = pe.structure.hasTopSet || entry.goal is GoalSource.Std || pe.exerciseId in generatedMainIds
-                if (!isMain || pe.exerciseId in lifts) continue
+                if (pe.rule?.role != SlotRole.MAIN && pe.exerciseId !in v1Mains) continue
+                if (pe.exerciseId in lifts) continue
                 val target = pe.prescription?.target
                 if (target != null && target !is PrescribedTarget.LoadReps) continue
-                val goalLb = (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb
-                if (target == null && goalLb == null) continue
-                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, Program.accentIndex(day.id), goalLb)
+                if (target == null && entry.tracking != TrackingType.WEIGHTED) continue
+                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, Program.accentIndex(day.id), goalsLb[pe.exerciseId])
             }
         }
         return lifts.values.toList()

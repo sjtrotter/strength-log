@@ -71,8 +71,7 @@ class PlanViewModel @Inject constructor(
         program.copy(
             goalDraft = cardio.first, shuttleEntry = cardio.second,
             goalDialog = program.goals.firstOrNull { it.exerciseId == goalId }?.let { row ->
-                PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb,
-                    row.calculated ?: row.display, row.calculated != null)
+                PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb, hasGoal = row.goalLb != null)
             },
             menuDayId = draft.menuDayId, dialog = draft.dialog,
             dialogDayId = draft.dialogDayId, dayTitleDraft = draft.dayTitleDraft,
@@ -146,7 +145,7 @@ class PlanViewModel @Inject constructor(
         }
     }
 
-    fun useCalculatedGoal() {
+    fun removeLiftGoal() {
         val id = goal.value ?: return
         viewModelScope.launch {
             mutationLock.withLock {

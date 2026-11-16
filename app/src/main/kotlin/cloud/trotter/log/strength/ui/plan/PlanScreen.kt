@@ -162,7 +162,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         PlanCardioGoal(goal, actions)
                     }
                 }
-                if (state.emphasis != null) {
+                if (state.goals.isNotEmpty()) {
                     item(key = "goals_header") {
                         Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goals)) }
                     }
@@ -170,16 +170,17 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         ListItem(
                             modifier = Modifier.clickable { actions.onOpenGoal(goal.exerciseId) },
                             headlineContent = { Text(goal.name) },
-                            supportingContent = goal.calculated?.let { calculated ->
-                                { Text(stringResource(R.string.plan_goal_calculated, calculated)) }
-                            },
                             trailingContent = {
                                 val suffix = if (goal.perHand) stringResource(R.string.setup_per_hand_suffix) else ""
-                                Text(goal.display + suffix, style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text(goal.display?.let { it + suffix } ?: stringResource(R.string.plan_goal_not_set),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = if (goal.display != null) MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurfaceVariant)
                             },
                         )
                     }
+                }
+                if (state.emphasis != null) {
                     item(key = "emphasis") {
                         EmphasisSection(state.emphasis, actions.onEmphasisChange)
                     }
@@ -224,7 +225,6 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         decimalInput = true,
                         weightInput = true,
                     )
-                    Text(stringResource(R.string.plan_goal_calculated, dialog.calculated))
                 }
             },
             confirmButton = {
@@ -237,8 +237,8 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
             },
             dismissButton = {
                 Row {
-                    if (dialog.edited) {
-                        TextButton(onClick = actions.onUseCalculatedGoal) { Text(stringResource(R.string.plan_goal_use_calculated)) }
+                    if (dialog.hasGoal) {
+                        TextButton(onClick = actions.onRemoveLiftGoal) { Text(stringResource(R.string.plan_goal_remove)) }
                     }
                     TextButton(onClick = actions.onDismissGoal) { Text(stringResource(R.string.setup_cancel_button)) }
                 }

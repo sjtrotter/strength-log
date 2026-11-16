@@ -9,17 +9,6 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 
-/** One row of the live GOAL preview (spec §8.4) — a main lift's name and its
- *  current GOAL, already formatted for display in the lifter's chosen unit. */
-data class GoalPreviewItem(
-    val name: String,
-    val display: String,
-    val perHand: Boolean,
-    val exerciseId: String = "",
-    val goalLb: Double = 0.0,
-    val calculated: String? = null,
-)
-
 /** One row of the rest-timer editor (W2c) — a [category] and its *effective*
  *  seconds (the user's override, or else [RestPolicy]'s default; see
  *  [SetupStateBuilder.restCategoryRows]). `0` means "no timer". */

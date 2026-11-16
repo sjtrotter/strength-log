@@ -51,7 +51,7 @@ class YouScreenTest {
         } }
         rule.onNodeWithText("235").assertExists()
         rule.onNodeWithText("Intermediate").assertIsSelected()
-        rule.onNodeWithText("Generated plans set their goals from these.").assertExists()
+        rule.onNodeWithText("Generated plans set their goals from these.").assertDoesNotExist()
         rule.onNodeWithText("Advanced").performClick()
         assertEquals(ExperienceLevel.ADVANCED, level)
         rule.onNodeWithText("Bodyweight (lb)").performClick().performTextReplacement("250")

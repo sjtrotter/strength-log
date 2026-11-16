@@ -60,6 +60,7 @@ object PlanRecipeJson {
 
     /** Checks a portable recipe with the stored-payload decoder and the supported day range. */
     fun validate(json: String) {
+        if (SetupRecipeJson.isV2(json)) return SetupRecipeJson.validate(json)
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
         require(recipe.daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was ${recipe.daysPerWeek}" }
         require(recipe.goalsLb.values.all { it.isFinite() && it > 0.0 && it <= MAX_GOAL_LB })
@@ -74,6 +75,7 @@ object PlanRecipeJson {
         }
     }
 
+    /** Reads v1 recipes only; callers check [SetupRecipeJson.isV2] first. */
     fun decode(json: String, global: GlobalLifter): WizardAnswers {
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
         val defaults = WizardAnswers()

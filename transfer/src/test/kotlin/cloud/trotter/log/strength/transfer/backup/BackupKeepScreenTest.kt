@@ -15,7 +15,7 @@ class BackupKeepScreenTest {
     )
 
     private fun legacy(on: Boolean?): String {
-        val root = Json.parseToJsonElement(codec.encode(document())).jsonObject
+        val root = Json.parseToJsonElement(codec.encode(document().copy(schemaVersion = 27))).jsonObject
         val settings = root.getValue("settings").jsonObject - "keepScreen" - "keepScreenOn"
         return JsonObject(root + ("settings" to JsonObject(
             if (on == null) settings else settings + ("keepScreenOn" to JsonPrimitive(on)),
@@ -44,10 +44,9 @@ class BackupKeepScreenTest {
         }
     }
 
-    @Test fun `re-export stays at the current v27 schema`() {
+    @Test fun `re-export uses the current schema`() {
         val exported = codec.decode(legacy(true)).toSnapshot().toDocument()
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
-        assertEquals(27, exported.schemaVersion)
         assertEquals("DURING_WORKOUTS", exported.settings.keepScreen)
     }
 }

@@ -121,13 +121,13 @@ class BackupConversionRestoreTest {
                 SetJson.decodeSets(db.programDao().logForSlot(1, "A", 8, "main")!!.setsJson))
             assertEquals(source.plans.single().recipeJson, db.planDao().plan(1)!!.recipeJson)
             val exported = codec.decode(service.export())
-            assertEquals(27, exported.schemaVersion)
+            assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(source.sessions, exported.sessions)
             assertEquals(source.cardioSessions, exported.cardioSessions)
         }
     }
 
-    @Test fun `a v27 backup of a converted device restores unchanged`() = runTest {
+    @Test fun `a current schema backup of a converted device restores unchanged`() = runTest {
         service.import(codec.encode(document(26)))
         val converted = service.export()
         service.import(converted)

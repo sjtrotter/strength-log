@@ -33,7 +33,9 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
@@ -1004,7 +1006,9 @@ class LogViewModelTest {
                         id = "A",
                         title = "Lower",
                         emphasisLine = "",
-                        exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6)),
+                        exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF,
+                            targetSets = 6, rule = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH,
+                                SetStructure.RAMP_TOP_BACKOFF, 5, ExerciseLibrary.get("bb_back_squat").pattern))),
                     ),
                 ),
             ),
@@ -1036,13 +1040,18 @@ class LogViewModelTest {
             config = LifterConfig(level = ExperienceLevel.NOVICE),
         )
         val program = ProgramGenerator.generate(answers)
+        val mains = ProgramGenerator.mainLiftIds(answers).toSet()
         val planId = repo.plans.createGeneratedPlan("Machines", answers, program)
         repo.plans.publishCreatedPlan(planId, answers)
-        val entry = ExerciseLibrary.get("hack_squat")
+        repo.plans.setPlanGoal(planId, "hack_squat", 150.0)
+        val storedMains = repo.plans.programFor(planId).first().days.flatMap { it.exercises }
+            .filter { it.exerciseId in mains }
+        assertTrue(storedMains.isNotEmpty())
+        assertTrue(storedMains.all { it.rule?.role == SlotRole.ACCESSORY })
         repo.history.importSessionHistory(
             listOf(ImportedSession(
                 session("A", "Lower", 1_783_512_000_000L),
-                listOf(set(entry.id, entry.name)),
+                mains.map { id -> ExerciseLibrary.get(id).let { set(it.id, it.name) } },
             )),
             newCustomExercises = emptyList(),
         )
@@ -1050,10 +1059,13 @@ class LogViewModelTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
-        val card = vm.uiState.value.journal.trajectories.single()
-        assertEquals("hack_squat", card.exerciseId)
+        val cards = vm.uiState.value.journal.trajectories
+        assertEquals(mains, cards.map { it.exerciseId }.toSet())
+        val card = cards.single { it.exerciseId == "hack_squat" }
         assertEquals(listOf(100f), card.points.map { it.value })
-        assertEquals(GoalCalculator.goalFor(entry, answers.config).toFloat(), card.goalValue)
+        assertEquals(150f, card.goalValue)
+        assertEquals("150", card.goalLabel)
+        assertTrue(cards.filter { it.exerciseId != "hack_squat" }.all { it.goalValue == null })
         collect.cancel()
     }
 
@@ -1061,6 +1073,8 @@ class LogViewModelTest {
     fun journalDerivesTrajectoryVolumeAndCalendarFromHistory() = runVmTest {
         insertProgram()
         seedSquatHistory()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setPlanGoal(plan, "bb_back_squat", 235.0)
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -1069,6 +1083,7 @@ class LogViewModelTest {
         val trajectory = journal.trajectories.single()
         assertEquals("Barbell Back Squat", trajectory.exerciseName)
         assertEquals(listOf(225f, 235f), trajectory.points.map { it.value })
+        assertEquals(235f, trajectory.goalValue)
         assertTrue("235 is the pinned squat GOAL", trajectory.goalMet)
 
         val volume = journal.volume

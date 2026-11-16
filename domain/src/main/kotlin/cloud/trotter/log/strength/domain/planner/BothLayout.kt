@@ -105,7 +105,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         phase = phase.takeIf { sessions.isNotEmpty() }, sessions = sessions)
 }
 
-private fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = draft.copy(
+internal fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = draft.copy(
     program = Program(draft.program.days.map { it.copy(id = ids.getValue(it.id)) }),
     working = draft.working.mapKeys { (key, _) -> key.copy(dayId = ids.getValue(key.dayId)) },
     sessions = draft.sessions.mapKeys { (id, _) -> ids.getValue(id) },
@@ -114,7 +114,7 @@ private fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = dra
             is PlanReason.ShortSession -> reason.copy(dayId = ids.getValue(reason.dayId))
             is PlanReason.OverBudget -> reason.copy(dayId = ids.getValue(reason.dayId))
             is PlanReason.RunCapped -> reason.copy(dayId = ids.getValue(reason.dayId))
-            PlanReason.DateTooClose, is PlanReason.GoalCheck -> reason
+            PlanReason.DateTooClose, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> reason
         }
     },
 )

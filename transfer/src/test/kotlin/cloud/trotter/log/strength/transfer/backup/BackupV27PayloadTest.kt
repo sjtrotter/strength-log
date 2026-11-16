@@ -144,7 +144,7 @@ class BackupV27PayloadTest {
         assertEquals(listOf(1, 0, 5, null), db.sessionDao().setsForSession(sessionId).map { it.rir })
         val exported = service.export()
         val decoded = codec.decode(exported)
-        assertEquals(27, decoded.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
         assertEquals(listOf(1, 0, 5, null), decoded.sessions.single { it.id == sessionId }.sets.map { it.rir })
 
         service.import(exported)

@@ -62,6 +62,7 @@ class DoseLadderTest {
     }
 
     @Test fun `case 36 balance stays while an older day reports every excess second`() {
+        // audit 2026-11-13 decision 12: offer only; the pinned arithmetic is unchanged.
         val short = Planner.plan(answers(older = true))
         val day = short.program.strengthDays.single()
         assertEquals(listOf("single_leg_stance", "farmers_carry"), day.exercises.take(2).map { it.exerciseId })
@@ -70,23 +71,23 @@ class DoseLadderTest {
         // audit 2026-11-13, row 13: balance = 2*(15+30*2+30)+2*(15+20+60) = 400;
         // 300+400+5*((15+3*3+90)+(15+6*3+120)) = 2035, excess 235, ceil(235/60) = 4.
         assertEquals(2035, SessionBudget.seconds(day, LiftGoal.STRENGTH))
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 235)), short.reasons)
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 235), PlanReason.BalanceDaysOffered), short.reasons)
         assertEquals(4, ceil(short.reasons.filterIsInstance<PlanReason.OverBudget>().single().seconds / 60.0).toInt())
         assertEquals(listOf(30, 30), short.working.getValue(SlotKey("A", 0)).map { it.seconds })
         assertEquals(listOf(20, 20), short.working.getValue(SlotKey("A", 1)).map { it.seconds })
         val longer = Planner.plan(answers(minutes = 45, older = true))
         // audit 2026-11-13, row 13: before the ladder, 300+400+5*2*153+2*99+2*120=2668 <= 2700.
         // The ladder leaves the day alone; the remaining 32 seconds cannot fit a set toward a weekly floor.
-        assertEquals(listOf(PlanReason.ShortSession("A", 0)), longer.reasons)
+        assertEquals(listOf(PlanReason.ShortSession("A", 0), PlanReason.BalanceDaysOffered), longer.reasons)
         assertEquals(2668, SessionBudget.seconds(longer.program.strengthDays.single(), LiftGoal.STRENGTH))
         val four = Planner.plan(answers(older = true).copy(mains = referenceAnswers().mains!! - "bb_row"))
         // audit 2026-11-13, row 13: 300+400+4*267=1768; with core 1768+240=2008 > 1800, step 6 fits.
-        assertEquals(listOf(PlanReason.ShortSession("A", 6)), four.reasons)
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.BalanceDaysOffered), four.reasons)
         assertEquals(1768, SessionBudget.seconds(four.program.strengthDays.single(), LiftGoal.STRENGTH))
         val three = Planner.plan(answers(older = true).copy(mains = referenceAnswers().mains!! - setOf("bb_row", "ohp")))
         // audit 2026-11-13, row 13: step 3=300+400+6*153+240=1858 > 1800;
         // step 4=300+400+3*267+240=1741, retaining core.
-        assertEquals(listOf(PlanReason.ShortSession("A", 4)), three.reasons)
+        assertEquals(listOf(PlanReason.ShortSession("A", 4), PlanReason.BalanceDaysOffered), three.reasons)
         assertEquals(1741, SessionBudget.seconds(three.program.strengthDays.single(), LiftGoal.STRENGTH))
     }
 

@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DaySelection
-import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 
 @Immutable
 data class PlanUiState(
@@ -21,7 +20,7 @@ data class PlanUiState(
     val dialog: String? = null,
     val dialogDayId: String? = null,
     val dayTitleDraft: String = "",
-    val goals: List<GoalPreviewItem> = emptyList(),
+    val goals: List<PlanLiftGoal> = emptyList(),
     val emphasis: GoalEmphasis? = null,
     val offerStrengthIncreases: Boolean = true,
     val offerCardioIncreases: Boolean = false,
@@ -38,13 +37,16 @@ data class PlanUiState(
 
 data class PlanGoalUi(val goal: PlanGoal, val best: Int?, val met: Boolean)
 
+/** One main lift on the Plan screen's Goals section and its typed goal; [display] is null when it has none. */
+data class PlanLiftGoal(val exerciseId: String, val name: String, val perHand: Boolean, val goalLb: Double?,
+    val display: String?)
+
 data class PlanGoalDialog(
     val exerciseId: String,
     val name: String,
     val perHand: Boolean,
     val draftLb: Double?,
-    val calculated: String,
-    val edited: Boolean,
+    val hasGoal: Boolean,
 )
 
 data class PlanDay(
@@ -78,7 +80,7 @@ data class PlanActions(
     val onOpenGoal: (String) -> Unit = {},
     val onGoalDraft: (Double?) -> Unit = {},
     val onSaveGoal: () -> Unit = {},
-    val onUseCalculatedGoal: () -> Unit = {},
+    val onRemoveLiftGoal: () -> Unit = {},
     val onDismissGoal: () -> Unit = {},
     val onOpenCardioGoal: () -> Unit = {},
     val onCardioGoalDraft: (PlanGoalDraft) -> Unit = {},

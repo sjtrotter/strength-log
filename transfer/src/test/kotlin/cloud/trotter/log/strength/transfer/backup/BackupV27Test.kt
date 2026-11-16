@@ -40,6 +40,7 @@ class BackupV27Test {
     private val rule = SlotRule(SlotRole.MAIN, RepTarget.Fixed(5), 2, 0.025, 1, 0.05, Scheme.PROTOTYPE,
         state = SlotState(calibrating = true, successStreak = 2))
     private fun document() = BackupDocument(
+        schemaVersion = 27,
         settings = SettingsBackup(200, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
             selectedPlanId = 1, bodyweightLbPrecise = 200.0, effortScale = "REPS_LEFT"),
         plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, onToday = true,
@@ -65,7 +66,7 @@ class BackupV27Test {
             it.copy(settingsJson = PlanSettingsJson.encode(PlanSettings(runCap = false)))
         }) }
         val decoded = codec.decode(codec.encode(source)).toSnapshot().toDocument()
-        assertEquals(27, decoded.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
         assertEquals(false, PlanSettingsJson.decode(decoded.plans.single().settingsJson)!!.runCap)
         assertEquals(source.plans, decoded.plans)
     }
@@ -81,7 +82,7 @@ class BackupV27Test {
         assertEquals(EffortScale.REPS_LEFT, snapshot.effortScale)
         assertEquals(rule, SlotRuleJson.decode(snapshot.exercises.single().ruleJson))
         val exported = snapshot.toDocument()
-        assertEquals(27, exported.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals(source.plans, exported.plans)
         assertEquals(source.sessions, exported.sessions)
         assertEquals(source.cardioSessions, exported.cardioSessions)

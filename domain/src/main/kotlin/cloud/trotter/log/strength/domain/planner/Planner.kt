@@ -33,6 +33,12 @@ sealed interface PlanReason {
     data object DateTooClose : PlanReason
     /** Riegel predicts slower than the goal. */
     data class GoalCheck(val predictedSeconds: Int) : PlanReason
+    /** A 65+ lifter with fewer than three lifting days got balance-only entries, so balance work reaches three days
+     *  a week (audit 2026-11-13 decision 12, WHO 2020). Plan-level. */
+    data object BalanceDays : PlanReason
+    /** A 65+ lifter with fewer than three lifting days could add balance-only days to reach three a week; the setup
+     *  screen offers them (audit 2026-11-13 decision 12, WHO 2020). Plan-level. */
+    data object BalanceDaysOffered : PlanReason
 }
 
 data class PlanDraft(
@@ -56,7 +62,7 @@ object Planner {
     fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null): PlanDraft {
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
-            PlanBranch.LIFT -> liftDraft(answers, known)
+            PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known)
             PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, LiftGoal.STRENGTH)
             PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.goal)
                 else bothDraft(answers, known, todayEpochDay)
@@ -74,26 +80,40 @@ object Planner {
                     is PlanReason.ShortSession -> reason.dayId == dayId
                     is PlanReason.OverBudget -> reason.dayId == dayId
                     is PlanReason.RunCapped -> reason.dayId == dayId
-                    PlanReason.DateTooClose, is PlanReason.GoalCheck -> false
+                    PlanReason.DateTooClose, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
                 }
             })
     }
 
-    fun defaultMains(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): List<String> {
-        val defaults = listOf("bb_back_squat", "trap_dl", "bb_bench", "ohp", "bb_row")
-        return mainPatterns.mapIndexedNotNull { row, patterns ->
-            val preferred = ExerciseLibrary.get(defaults[row]).takeIf { it.availableWith(equipment, excluded) }
-            val fallback = patterns.firstNotNullOfOrNull { pattern ->
-                val candidates = ExerciseLibrary.byPattern(pattern).filter {
-                    val bodyweight = ExerciseLibrary.bodyweightPairFor(it.id)?.let(ExerciseLibrary::get)
-                    it.availableWith(equipment, excluded) &&
-                        it.equipment != bodyweight?.equipment
-                }
-                candidates.firstOrNull { it.tracking == TrackingType.WEIGHTED }
-                    ?: candidates.firstOrNull { it.tracking == TrackingType.REPS }
-            }
-            (preferred ?: fallback)?.id
+    fun defaultMains(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): List<String> =
+        mainPatterns.indices.mapNotNull { rowDefault(it, equipment, excluded) }
+
+    /** Your lifts (design §2.2): per main row (squat, hinge, horizontal press, overhead press, pull), every lift the
+     *  planner takes as that row's main with this gear, the row's default first. A row nothing fills is empty. */
+    fun mainChoices(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): List<List<String>> =
+        mainPatterns.indices.map { row ->
+            val default = rowDefault(row, equipment, excluded)
+            val others = mainPatterns[row].flatMap(ExerciseLibrary::byPattern)
+                .filter { mainCandidate(it, equipment, excluded) && it.tracking != TrackingType.TIMED }
+                .sortedBy { if (it.tracking == TrackingType.WEIGHTED) 0 else 1 }
+                .map { it.id }
+            listOfNotNull(default) + (others - setOfNotNull(default))
         }
+
+    private fun rowDefault(row: Int, equipment: Set<Equipment>, excluded: Set<String>): String? {
+        val defaults = listOf("bb_back_squat", "trap_dl", "bb_bench", "ohp", "bb_row")
+        val preferred = ExerciseLibrary.get(defaults[row]).takeIf { it.availableWith(equipment, excluded) }
+        val fallback = mainPatterns[row].firstNotNullOfOrNull { pattern ->
+            val candidates = ExerciseLibrary.byPattern(pattern).filter { mainCandidate(it, equipment, excluded) }
+            candidates.firstOrNull { it.tracking == TrackingType.WEIGHTED }
+                ?: candidates.firstOrNull { it.tracking == TrackingType.REPS }
+        }
+        return (preferred ?: fallback)?.id
+    }
+
+    private fun mainCandidate(entry: ExerciseEntry, equipment: Set<Equipment>, excluded: Set<String>): Boolean {
+        val bodyweight = ExerciseLibrary.bodyweightPairFor(entry.id)?.let(ExerciseLibrary::get)
+        return entry.availableWith(equipment, excluded) && entry.equipment != bodyweight?.equipment
     }
 }
 

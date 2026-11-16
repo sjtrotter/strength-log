@@ -32,8 +32,9 @@ import kotlinx.serialization.Serializable
  * v26 carries lift note timestamps and run track notes.
  * v27 carries draft runs, slot, partner and day rules, plan settings and progression state, set and session effort, at-end and sprint readings, Rough day, the effort scale, and optional saved routes.
  * Optional v27 additions carry the three-way keep-screen choice.
+ * v28 adds recipe v2 and plan settings' equipment and goals.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 27
+const val CURRENT_SCHEMA_VERSION: Int = 28
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */

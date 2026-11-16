@@ -207,7 +207,8 @@ class SetupFlowScreenTest {
         } } }
         rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
         rule.onNodeWithTag("setup-recent-weight-bb_back_squat").requestFocus().performTextReplacement("275")
-        rule.onNodeWithTag("setup-recent-reps-bb_back_squat").requestFocus().performTextReplacement("5").assertIsFocused()
+        rule.onNodeWithTag("setup-recent-reps-bb_back_squat").requestFocus().performTextReplacement("5")
+        rule.onNodeWithTag("setup-recent-reps-bb_back_squat").assertIsFocused()
         rule.runOnIdle {
             val revived = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
             vm.viewModelScope.cancel(); current = factory(revived)

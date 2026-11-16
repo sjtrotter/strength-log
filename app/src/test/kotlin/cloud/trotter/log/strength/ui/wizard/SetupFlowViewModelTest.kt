@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -189,11 +190,11 @@ class SetupFlowViewModelTest {
         val vm = newViewModel(); advanceUntilIdle()
         assertEquals(a, answers(vm)); assertFalse(vm.uiState.value.restore.offered)
     }
-    private suspend fun TestScope.prefillWithInvalidMain(preset: EquipmentPreset, main: String) {
+    private suspend fun TestScope.prefillWithInvalidMain(preset: EquipmentPreset, vararg mains: String) {
         val a = SetupAnswers(goal = LiftGoal.STRENGTH, equipment = preset.equipment,
             experience = LiftExperience.UNDER_A_YEAR)
         val id = repo.plans.createPlannedPlan("Imported", a)
-        db.planDao().updateRecipe(id, SetupRecipeJson.encode(a.copy(mains = Planner.defaultMains(a.equipment).drop(1) + main)))
+        db.planDao().updateRecipe(id, SetupRecipeJson.encode(a.copy(mains = Planner.defaultMains(a.equipment).drop(mains.size) + mains)))
         repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
         val vm = newViewModel(); advanceUntilIdle()
         assertEquals(SetupStep.GOAL, vm.uiState.value.step)
@@ -207,6 +208,9 @@ class SetupFlowViewModelTest {
     }
     @Test fun `an imported unavailable main opens New plan with defaults and a ready preview`() = runVmTest {
         prefillWithInvalidMain(EquipmentPreset.DUMBBELLS, "bb_back_squat")
+    }
+    @Test fun `an imported recipe with two squats opens New plan with defaults and a ready preview`() = runVmTest {
+        prefillWithInvalidMain(EquipmentPreset.FULL_GYM, "bb_back_squat", "goblet_squat")
     }
     @Test fun `a later run over an old wizard plan starts from defaults`() = runVmTest {
         val old = WizardAnswers()
@@ -408,6 +412,42 @@ class SetupFlowViewModelTest {
         assertEquals(1, repo.plans.planSummariesFlow.first().size)
         assertEquals(1, calls.count { it == "createPlannedPlan" })
     }
+    private suspend fun TestScope.retryAfterSettingsChange(change: (SetupFlowViewModel) -> Unit) {
+        val h = SavedStateHandle(); val vm = newViewModel(h); advanceUntilIdle(); failPublication = true; start(vm)
+        assertNotNull(vm.uiState.value.finishError)
+        val old = db.planDao().allPlans().single()
+        assertFalse(old.onToday)
+        val before = answers(vm)
+        change(vm); advanceUntilIdle()
+        val current = answers(vm)
+        assertTrue(before != current)
+        assertEquals(old.recipeJson, SetupRecipeJson.encode(current))
+        val preview = repo.plans.previewPlan(current)
+        vm.onNext(); advanceUntilIdle()
+        assertTrue(vm.uiState.value.isComplete)
+        val id = assertNotNull(h.get<Long>("setup_created_plan_id"))
+        assertTrue(id != old.id)
+        val published = assertNotNull(db.planDao().plan(id))
+        assertTrue(published.onToday)
+        assertEquals(current, published.setupAnswers(current.unit))
+        assertEquals(current.equipment, published.planSettings.equipment)
+        assertEquals(current.steps, published.planSettings.loadSteps)
+        assertEquals(current.unit, settings.unitFlow.first())
+        assertEquals(current.unit.name, h.get<String>("setup_created_plan_unit"))
+        assertEquals(preview.program, repo.plans.programFor(id).first())
+        assertEquals(id, settings.selectedPlanIdFlow.first())
+        assertEquals(old, db.planDao().plan(old.id))
+        assertEquals(2, calls.count { it == "createPlannedPlan" })
+    }
+    @Test fun `changed equipment after failed publication creates and publishes the current plan`() = runVmTest {
+        retryAfterSettingsChange { it.choosePreset(EquipmentPreset.DUMBBELLS) }
+    }
+    @Test fun `a changed load step after failed publication creates and publishes the current plan`() = runVmTest {
+        retryAfterSettingsChange { it.setStepOption(StepRow.BAR, 1) }
+    }
+    @Test fun `a changed unit after failed publication creates and publishes the current plan`() = runVmTest {
+        retryAfterSettingsChange { it.setUnit(WeightUnit.KG) }
+    }
     @Test fun `a changed balance answer after failed publication creates and publishes the current recipe`() = runVmTest {
         val h = SavedStateHandle(); val vm = newViewModel(h); advanceUntilIdle()
         vm.setOlderAdult(true); vm.setDays(1); advanceUntilIdle()
@@ -427,7 +467,7 @@ class SetupFlowViewModelTest {
         assertEquals(2, repo.plans.planSummariesFlow.first().size)
         assertEquals(2, calls.count { it == "createPlannedPlan" })
     }
-    @Test fun `a changed answer after failed completion preserves the published plan and publishes the current recipe`() = runVmTest {
+    @Test fun `a changed answer after failed completion pauses the old plan and publishes the current recipe`() = runVmTest {
         val vm = newViewModel(); advanceUntilIdle(); failCompletion = true; start(vm)
         assertNotNull(vm.uiState.value.finishError)
         val old = db.planDao().allPlans().single()
@@ -436,8 +476,11 @@ class SetupFlowViewModelTest {
         assertTrue(vm.uiState.value.isComplete)
         val id = assertNotNull(settings.selectedPlanIdFlow.first())
         assertTrue(id != old.id)
-        assertEquals(SetupRecipeJson.encode(answers(vm)), assertNotNull(db.planDao().plan(id)).recipeJson)
-        assertEquals(old, db.planDao().plan(old.id))
+        val published = assertNotNull(db.planDao().plan(id))
+        assertEquals(SetupRecipeJson.encode(answers(vm)), published.recipeJson)
+        assertTrue(published.onToday)
+        assertEquals(old.copy(onToday = false), db.planDao().plan(old.id))
+        assertEquals(listOf(id), repo.plans.todayPlans.first().map { it.id })
         assertEquals(2, db.planDao().allPlans().size)
     }
     @Test fun `review answers returns to Equipment with the draft preserved`() = runVmTest {

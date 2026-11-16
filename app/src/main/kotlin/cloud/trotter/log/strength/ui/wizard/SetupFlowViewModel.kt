@@ -9,7 +9,6 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -63,6 +62,7 @@ class SetupFlowViewModel @Inject constructor(
          *  behind its overwrite confirmation. Re-reading completion would also hide restore after a failed Start. */
         const val FIRST_RUN = "setup_first_run"
         const val CREATED_PLAN_ID = "setup_created_plan_id"
+        const val CREATED_PLAN_UNIT = "setup_created_plan_unit"
     }
 
     private val initialized = savedState.getStateFlow(Keys.INITIALIZED, false)
@@ -78,6 +78,11 @@ class SetupFlowViewModel @Inject constructor(
 
     private fun current(): SetupDraft = SetupDraftJson.decode(savedState[Keys.DRAFT]) ?: SetupDraft()
     private fun blocked(): Boolean = !initialized.value || restore.value.inFlight || finish.value.inFlight
+
+    private fun forgetCreatedPlan() {
+        savedState.remove<Long>(Keys.CREATED_PLAN_ID)
+        savedState.remove<String>(Keys.CREATED_PLAN_UNIT)
+    }
 
     // Read the handle synchronously: combined UI flows can lag two mutations made in the same frame.
     private fun update(transform: (SetupDraft) -> SetupDraft) {
@@ -216,9 +221,16 @@ class SetupFlowViewModel @Inject constructor(
                     if (firstRun.value && settings.wizardCompleteFlow.first()) return@withRestoreLock
                     val remembered = savedState.get<Long>(Keys.CREATED_PLAN_ID)
                     val rememberedPlan = repo.plansFlow.first().firstOrNull { it.id == remembered }
-                    val id = if (rememberedPlan != null && rememberedPlan.recipeJson == SetupRecipeJson.encode(answers) &&
+                    // The decoder takes its unit from the caller; plan settings store only steps in lb.
+                    val matches = rememberedPlan?.setupAnswers(answers.unit) == answers &&
+                        savedState.get<String>(Keys.CREATED_PLAN_UNIT) == answers.unit.name
+                    val id = if (rememberedPlan != null && matches &&
                         repo.planHasDays(rememberedPlan.id)) rememberedPlan.id else {
-                        repo.createPlannedPlan(planName(answers), answers).also { savedState[Keys.CREATED_PLAN_ID] = it }
+                        if (rememberedPlan != null && !matches && rememberedPlan.onToday) repo.pause(rememberedPlan.id)
+                        repo.createPlannedPlan(planName(answers), answers).also {
+                            savedState[Keys.CREATED_PLAN_UNIT] = answers.unit.name
+                            savedState[Keys.CREATED_PLAN_ID] = it
+                        }
                     }
                     repo.publishPlannedPlan(id)
                     settings.setUnit(draft.unit)
@@ -258,7 +270,7 @@ class SetupFlowViewModel @Inject constructor(
                     note = TransferErrorMessages.of(e)
                 }
                 // Discard the retry id only once Room has been replaced.
-                savedState.remove<Long>(Keys.CREATED_PLAN_ID)
+                forgetCreatedPlan()
                 if (settings.wizardCompleteFlow.first()) {
                     // Cleanup is retried by startup reconciliation after leaving setup.
                     complete.value = true
@@ -270,7 +282,7 @@ class SetupFlowViewModel @Inject constructor(
                 restore.value = SetupRestoreState(error = TransferErrorMessages.of(e))
             } catch (e: RestoreInterruption) {
                 when (e) {
-                    is RestoreInterruption.SettingsPending, is RestoreInterruption.CleanupPending -> savedState.remove<Long>(Keys.CREATED_PLAN_ID)
+                    is RestoreInterruption.SettingsPending, is RestoreInterruption.CleanupPending -> forgetCreatedPlan()
                     is RestoreInterruption.NotStarted -> Unit
                 }
                 restore.value = SetupRestoreState(error = TransferErrorMessages.of(e))

@@ -226,7 +226,6 @@ class SetupFlowViewModel @Inject constructor(
                         savedState.get<String>(Keys.CREATED_PLAN_UNIT) == answers.unit.name
                     val id = if (rememberedPlan != null && matches &&
                         repo.planHasDays(rememberedPlan.id)) rememberedPlan.id else {
-                        if (rememberedPlan != null && !matches && rememberedPlan.onToday) repo.pause(rememberedPlan.id)
                         repo.createPlannedPlan(planName(answers), answers).also {
                             savedState[Keys.CREATED_PLAN_UNIT] = answers.unit.name
                             savedState[Keys.CREATED_PLAN_ID] = it

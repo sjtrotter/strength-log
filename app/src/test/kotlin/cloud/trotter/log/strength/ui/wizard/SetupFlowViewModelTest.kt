@@ -467,7 +467,7 @@ class SetupFlowViewModelTest {
         assertEquals(2, repo.plans.planSummariesFlow.first().size)
         assertEquals(2, calls.count { it == "createPlannedPlan" })
     }
-    @Test fun `a changed answer after failed completion pauses the old plan and publishes the current recipe`() = runVmTest {
+    @Test fun `a changed answer after failed completion preserves the published plan and publishes the current recipe`() = runVmTest {
         val vm = newViewModel(); advanceUntilIdle(); failCompletion = true; start(vm)
         assertNotNull(vm.uiState.value.finishError)
         val old = db.planDao().allPlans().single()
@@ -476,11 +476,8 @@ class SetupFlowViewModelTest {
         assertTrue(vm.uiState.value.isComplete)
         val id = assertNotNull(settings.selectedPlanIdFlow.first())
         assertTrue(id != old.id)
-        val published = assertNotNull(db.planDao().plan(id))
-        assertEquals(SetupRecipeJson.encode(answers(vm)), published.recipeJson)
-        assertTrue(published.onToday)
-        assertEquals(old.copy(onToday = false), db.planDao().plan(old.id))
-        assertEquals(listOf(id), repo.plans.todayPlans.first().map { it.id })
+        assertEquals(SetupRecipeJson.encode(answers(vm)), assertNotNull(db.planDao().plan(id)).recipeJson)
+        assertEquals(old, db.planDao().plan(old.id))
         assertEquals(2, db.planDao().allPlans().size)
     }
     @Test fun `review answers returns to Equipment with the draft preserved`() = runVmTest {

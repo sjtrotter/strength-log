@@ -297,12 +297,11 @@ class SetupFlowViewModelTest {
         fresh.setSubGoal(LiftGoal.STRENGTH); fresh.setExperience(LiftExperience.A_YEAR_OR_MORE); fresh.setOlderAdult(true); fresh.setDays(1); fresh.setMinutes(30)
         advanceUntilIdle(); plan(fresh); fresh.longerSessions(); advanceUntilIdle(); assertEquals(45, answers(fresh).minutes)
         assertFalse(ready(fresh).over)
-        fresh.setMinutes(30)
-        val preview = fresh.uiState.first { it.draft.minutes == 30 && it.plan is PlanPreviewUi.Ready }
-        assertTrue(preview.canStart); assertTrue((preview.plan as PlanPreviewUi.Ready).over)
-        fresh.onNext()
-        val completed = fresh.uiState.first { it.isComplete || it.finishError != null }
-        assertNull(completed.finishError); assertTrue(completed.isComplete)
+        fresh.setMinutes(30); advanceUntilIdle()
+        assertEquals(30, answers(fresh).minutes)
+        assertTrue(fresh.uiState.value.canStart); assertTrue(ready(fresh).over)
+        fresh.onNext(); advanceUntilIdle()
+        assertNull(fresh.uiState.value.finishError); assertTrue(fresh.uiState.value.isComplete)
         assertEquals(1, db.planDao().allPlans().size)
         assertEquals(5, repo.plans.programFlow.first().days.single().exercises.count { it.rule?.role == SlotRole.MAIN })
     }

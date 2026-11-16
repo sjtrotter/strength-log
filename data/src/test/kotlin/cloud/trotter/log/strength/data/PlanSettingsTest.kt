@@ -25,16 +25,11 @@ import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.model.StandardLift
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
@@ -102,6 +97,7 @@ class PlanSettingsTest {
         storeScope.cancel()
     }
 
+
     @Test
     fun `membership fixup rechecks the marker after an import commits Room`() = runTest {
         db.planDao().insertPlan(plan(1))
@@ -152,6 +148,7 @@ class PlanSettingsTest {
         assertTrue(settings.onTodayFixupDoneFlow.first())
     }
 
+
     @Test
     fun `fixup carries legacy facts once and converts existing recipes from their own facts`() = runTest {
         val legacy = strengthAnswers()
@@ -182,6 +179,7 @@ class PlanSettingsTest {
         assertEquals(prefs, store.data.first())
     }
 
+
     @Test
     fun `fixup retries after Room commit without overwriting written goals or position`() = runTest {
         db.planDao().insertPlan(plan(1))
@@ -206,6 +204,7 @@ class PlanSettingsTest {
         assertLegacyKeysGone()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
     }
+
 
     @Test
     fun `empty legacy store is retired without manufacturing recipes`() = runTest {
@@ -285,6 +284,7 @@ class PlanSettingsTest {
         assertLegacyKeysGone()
     }
 
+
     @Test
     fun `advance moves only the selected rotation inside the session transaction`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, strengthAnswers(), "A"), plan(2, physiqueAnswers(), "C")))
@@ -302,6 +302,7 @@ class PlanSettingsTest {
         assertNull(repo.openRunFlow.first())
         assertLegacyKeysGone()
     }
+
 
     @Test
     fun `failed rotation write rolls back the session and keeps the open run`() = runTest {
@@ -323,17 +324,17 @@ class PlanSettingsTest {
         assertEquals(1_000L, repo.openRunFlow.first()!!.startedAt)
     }
 
+
     @Test
     fun `profile is identical before and after migration for default and custom answers`() = runTest {
         db.planDao().insertPlan(plan(1))
-        val custom = LifterConfig(bodyweightLb = 210, age = 56, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.STRENGTH)
-        for ((recipe, config) in listOf(v1RecipeJson() to LifterConfig(), strengthAnswers() to custom)) {
-            writeLegacy(recipe, "B", config)
+        val custom = LifterProfile(210.0, 56)
+        for ((recipe, profile, level) in listOf(
+            Triple(v1RecipeJson(), LifterProfile(235.0, 40), "INTERMEDIATE"),
+            Triple(strengthAnswers(), custom, "ADVANCED"),
+        )) {
+            writeLegacy(recipe, "B", profile, level)
             val oldProfile = settings.lifterProfileFlow.first()
-            fun legacyConfig(profile: LifterProfile) = config.copy(
-                bodyweightLb = profile.bodyweightLb!!, age = profile.age!!, emphasis = GoalEmphasis.BALANCED,
-            )
-            val expected = GoalCalculator.goalForMain(StandardLift.SQUAT, false, legacyConfig(oldProfile))
             // Recreate the pre-fixup plan and flag for each legacy fixture.
             db.planDao().deleteAllPlans()
             db.planDao().insertPlan(plan(1))
@@ -343,10 +344,10 @@ class PlanSettingsTest {
             repo.plans.runPlanSettingsFixupIfNeeded()
 
             assertEquals(oldProfile, settings.lifterProfileFlow.first())
-            assertEquals(expected, GoalCalculator.goalForMain(StandardLift.SQUAT, false, legacyConfig(settings.lifterProfileFlow.first())), 0.0)
-            if (recipe == v1RecipeJson()) assertEquals(235.0, expected, 0.0)
+            assertEquals(profile, settings.lifterProfileFlow.first())
         }
     }
+
 
     @Test
     fun `snapshot keeps distinct plan facts and rotation and legacy snapshots spread settings`() = runTest {
@@ -391,6 +392,7 @@ class PlanSettingsTest {
         assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
+
     @Test
     fun `mid first run backup gives answers an empty plan that the wizard can fill`() = runTest {
         val answers = strengthAnswers()
@@ -422,6 +424,7 @@ class PlanSettingsTest {
         assertEquals(generated, repo.plans.programFlow.first())
         assertEquals(facts(answers), repo.plans.selectedPlanFlow.first()!!.planSettings)
     }
+
 
     @Test
     fun `restore retires the legacy store before returning`() = runTest {
@@ -458,6 +461,7 @@ class PlanSettingsTest {
         assertEquals(prefs, store.data.first())
     }
 
+
     @Test
     fun `a goal edit leaves stored working values alone`() = runTest {
         val exercise = ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 6)
@@ -485,6 +489,7 @@ class PlanSettingsTest {
         assertEquals(working, db.programDao().logsForPlan(planId).single { it.dayId == "A" })
         assertEquals(tracks, db.runDao().allTracks())
     }
+
 
     @Test
     fun `setPlanGoal stores recipe-less goals ignores missing plans and rejects invalid weights`() = runTest {
@@ -527,11 +532,16 @@ class PlanSettingsTest {
         assertNull(settings.legacySuggestedDayFlow.first())
     }
 
-    private suspend fun writeLegacy(json: String, suggestedDay: String, config: LifterConfig = LifterConfig()) = store.edit { prefs ->
+    private suspend fun writeLegacy(
+        json: String,
+        suggestedDay: String,
+        profile: LifterProfile = LifterProfile(235.0, 40),
+        level: String = "INTERMEDIATE",
+    ) = store.edit { prefs ->
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
-        prefs[intPreferencesKey("bodyweight")] = config.bodyweightLb.toInt()
-        prefs[intPreferencesKey("age")] = config.age
-        prefs[stringPreferencesKey("level")] = config.level.name
+        prefs[intPreferencesKey("bodyweight")] = requireNotNull(profile.bodyweightLb).toInt()
+        prefs[intPreferencesKey("age")] = requireNotNull(profile.age)
+        prefs[stringPreferencesKey("level")] = level
         prefs[stringPreferencesKey("emphasis")] = recipe.emphasis
         prefs[stringPreferencesKey("cardio_mode")] = recipe.cardioMode
         prefs[stringPreferencesKey("cardio_placement")] = recipe.cardioPlacement

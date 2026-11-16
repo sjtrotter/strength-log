@@ -15,7 +15,6 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -28,7 +27,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Instant
@@ -81,13 +80,13 @@ class JournalBuilderTest {
 
     @Test
     fun `a straight-set main lift keeps its card`() {
-        val cfg = LifterConfig()
+        val goalsLb = emptyMap<String, Double>()
         val exercise = mainExercise(
             "bb_back_squat", structure = SetStructure.STRAIGHT, targetSets = 3,
             prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)),
         )
         val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(exercise))))
-        val main = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, cfg.goalsLb).single()
+        val main = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, goalsLb).single()
         assertEquals("bb_back_squat", main.exerciseId)
         assertNull(main.goalLb)
     }
@@ -101,7 +100,7 @@ class JournalBuilderTest {
         val hackSquat = program.days.first().exercises.first()
         assertEquals("hack_squat", hackSquat.exerciseId)
         assertEquals(SetStructure.STRAIGHT, hackSquat.structure)
-        assertTrue(catalog.get(hackSquat.exerciseId).goal is GoalSource.Flat)
+        assertTrue(catalog.get(hackSquat.exerciseId).goal == GoalSource.Weighted)
 
         val mains = JournalBuilder.mainLifts(program, catalog, emptyMap(), mainIds.toSet())
         assertEquals(mainIds, mains.map { it.exerciseId })
@@ -129,8 +128,8 @@ class JournalBuilderTest {
     fun mainLifts_reads_the_generated_program_mains_with_their_read_only_goals() {
         val plan = OldWizardPlans.DEFAULT
         val generated = plan.program
-        val cfg = LifterConfig()
-        val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), cfg.goalsLb,
+        val goalsLb = emptyMap<String, Double>()
+        val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), goalsLb,
             plan.mains.toSet())
 
         assertTrue(mains.isNotEmpty(), "the generated program has main lifts")
@@ -143,16 +142,17 @@ class JournalBuilderTest {
     @Test
     fun editing_starting_weight_changes_working_sets_without_replacing_the_goal() {
         val catalog = ExerciseCatalog.CODE_ONLY
-        val cfg = LifterConfig()
+        val goalsLb = emptyMap<String, Double>()
         for (structure in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
             val exercise = mainExercise("bb_back_squat", structure = structure)
             val day = ProgramDay("A", "Lower", "", listOf(exercise))
-            val before = JournalBuilder.mainLifts(Program(listOf(day)), catalog, cfg.goalsLb).single()
+            val before = JournalBuilder.mainLifts(Program(listOf(day)), catalog, goalsLb).single()
             val edited = exercise.copy(prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
             val program = Program(listOf(day.copy(exercises = listOf(edited))))
 
-            val after = JournalBuilder.mainLifts(program, catalog, cfg.goalsLb).single()
-            val sets = assertNotNull(SlotSeeds.main(edited, catalog.get(edited.exerciseId), cfg))
+            val after = JournalBuilder.mainLifts(program, catalog, goalsLb).single()
+            val sets = assertNotNull(SetSeeder.seedPrescribed(edited.targetSets, requireNotNull(edited.prescription), edited.structure,
+                equipment = catalog.get(edited.exerciseId).equipment))
             val card = JournalBuilder.trajectories(
                 listOf(after), listOf(top(edited.exerciseId, today, 45.0)), WeightUnit.LB, zone,
             ).single()
@@ -168,11 +168,11 @@ class JournalBuilderTest {
 
     @Test
     fun `an edited goal is the history card goal line`() {
-        val cfg = LifterConfig(goalsLb = mapOf("bb_back_squat" to 200.0))
+        val goalsLb = mapOf("bb_back_squat" to 200.0)
         val exercise = mainExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF,
             prescription = Prescription(PrescribedTarget.LoadReps(45.0, 5)))
         val program = Program(listOf(ProgramDay("A", "Lower", "", listOf(exercise))))
-        val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, cfg.goalsLb)
+        val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, goalsLb)
         val card = JournalBuilder.trajectories(mains, listOf(top(exercise.exerciseId, today, 45.0)), WeightUnit.LB, zone).single()
         assertEquals(200.0, mains.single().goalLb)
         assertEquals(200f, card.goalValue)
@@ -183,7 +183,7 @@ class JournalBuilderTest {
     @Test
     fun weighted_prescriptions_keep_trajectories_after_swaps_to_reps_or_time_goals() {
         val catalog = ExerciseCatalog.CODE_ONLY
-        val cfg = LifterConfig()
+        val goalsLb = emptyMap<String, Double>()
         for (structure in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
             val exercise = mainExercise(
                 "weighted_pullup", structure = structure,
@@ -192,8 +192,9 @@ class JournalBuilderTest {
             for (replacementId in listOf("pullup", "dead_hang")) {
                 val swapped = exercise.copy(exerciseId = replacementId)
                 val day = ProgramDay("A", "Pull", "", listOf(swapped))
-                val sets = assertNotNull(SlotSeeds.main(swapped, catalog.get(replacementId), cfg))
-                val mains = JournalBuilder.mainLifts(Program(listOf(day)), catalog, cfg.goalsLb)
+                val sets = assertNotNull(SetSeeder.seedPrescribed(swapped.targetSets, requireNotNull(swapped.prescription), swapped.structure,
+                    equipment = catalog.get(replacementId).equipment))
+                val mains = JournalBuilder.mainLifts(Program(listOf(day)), catalog, goalsLb)
                 val card = JournalBuilder.trajectories(
                     mains,
                     listOf(top(replacementId, today.minusDays(5), 30.0), top(replacementId, today, 35.0)),
@@ -213,7 +214,7 @@ class JournalBuilderTest {
                 assertTrue(card.axisMin > 25f && card.axisMin < 30f)
                 assertTrue(card.axisMax > 35f)
                 assertTrue(JournalBuilder.mainLifts(
-                    Program(listOf(day.copy(exercises = listOf(swapped.copy(prescription = null))))), catalog, cfg.goalsLb,
+                    Program(listOf(day.copy(exercises = listOf(swapped.copy(prescription = null))))), catalog, goalsLb,
                 ).isEmpty())
             }
         }

@@ -48,7 +48,7 @@ class PerformedDayTest {
         assertSame(rows, day.slots[0].main.stored)
         assertSame(rows, day.slots[0].main.sets)
         assertNull(day.slots[0].main.seed)
-        assertEquals(GoalTarget.Weight(60.0, false), day.slots[0].main.goal)
+        assertEquals(GoalTarget(60.0, false), day.slots[0].main.goal)
         val partner = requireNotNull(day.slots[0].partner)
         assertSame(partnerRows, partner.stored)
         assertSame(partnerRows, partner.sets)
@@ -186,7 +186,7 @@ class PerformedDayTest {
                 "bb_bench" to 200.0, "hammer_curl" to 40.0, "pushup" to 30.0, "plank" to 60.0,
             )), catalog, seeds = emptyMap())
 
-        assertEquals(listOf(GoalTarget.Weight(200.0, false), GoalTarget.Weight(40.0, true), null, null, null, null),
+        assertEquals(listOf(GoalTarget(200.0, false), GoalTarget(40.0, true), null, null, null, null),
             day.slots.map { it.main.goal })
         assertEquals(listOf(200.0, 40.0, 0.0, 0.0, 0.0, 0.0), day.slots.map { it.main.loadLb })
     }

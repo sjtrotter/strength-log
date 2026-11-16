@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.sync
 
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.writeTestRows
@@ -127,7 +126,7 @@ class TodaySnapshotSourceRestTest {
         val before = source.snapshots.publishableSnapshots().first()
         val expected = WatchSnapshotBuilder.build(
             repo.plans.programFor(plan).first(), "A", repo.plans.slotsFor(plan, "A").first(), listOf(LoggedSlot(slot, Slot.MAIN, rows)),
-            LifterConfig(), repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
+            emptyMap(), repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
             revision = 0L, planId = plan, planName = before.planName, runId = before.runId,
             restSettings = settings.restSettingsFlow.first(), equipment = repo.plans.planSettingsFor(plan).first().equipmentOrAll,
             processedEditStamps = emptyList(),

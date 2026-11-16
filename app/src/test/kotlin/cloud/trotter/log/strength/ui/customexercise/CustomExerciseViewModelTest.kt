@@ -182,7 +182,8 @@ class CustomExerciseViewModelTest {
         vm.save()
         advanceUntilIdle()
         val exercise = repo.catalogFlow.first().entries.first { it.name == "Committed on Save" }
-        assertEquals(GoalSource.Flat(80.0), exercise.goal)
+        assertEquals(GoalSource.Weighted, exercise.goal)
+        assertEquals(80.0, db.customExerciseDao().getAll().single { it.id == exercise.id }.goalStartLb, 0.0)
     }
 
     // --- tracking-type mapping (WEIGHTED/REPS/TIMED choice) ---------------------
@@ -201,7 +202,8 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         val saved = repo.catalogFlow.first().entries.first { it.name == "Cable Hack Squat" }
-        assertEquals(GoalSource.Flat(80.0), saved.goal)
+        assertEquals(GoalSource.Weighted, saved.goal)
+        assertEquals(80.0, db.customExerciseDao().getAll().single { it.id == saved.id }.goalStartLb, 0.0)
     }
 
     @Test
@@ -300,7 +302,8 @@ class CustomExerciseViewModelTest {
             advanceUntilIdle()
 
             val saved = repo.catalogFlow.first().entries.first { it.name == "Empty bar ${unit.name}" }
-            assertEquals(GoalSource.Flat(unit.toLb(expected)), saved.goal)
+            assertEquals(GoalSource.Weighted, saved.goal)
+            assertEquals(unit.toLb(expected), db.customExerciseDao().getAll().single { it.id == saved.id }.goalStartLb, 0.0)
         }
     }
 
@@ -314,7 +317,8 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         val saved = repo.catalogFlow.first().entries.first { it.name == "Immediate kg bar" }
-        assertEquals(GoalSource.Flat(WeightUnit.KG.toLb(20.0)), saved.goal)
+        assertEquals(GoalSource.Weighted, saved.goal)
+        assertEquals(WeightUnit.KG.toLb(20.0), db.customExerciseDao().getAll().single { it.id == saved.id }.goalStartLb, 0.0)
     }
 
     @Test
@@ -335,7 +339,8 @@ class CustomExerciseViewModelTest {
         advanceUntilIdle()
 
         val saved = repo.catalogFlow.first().entries.first { it.name == "Kg Test" }
-        val storedLb = (saved.goal as cloud.trotter.log.strength.domain.library.GoalSource.Flat).weightLb
+        assertEquals(GoalSource.Weighted, saved.goal)
+        val storedLb = db.customExerciseDao().getAll().single { it.id == saved.id }.goalStartLb
         assertEquals(WeightUnit.KG.toLb(50.0), storedLb, 0.001)
     }
 }

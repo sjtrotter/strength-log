@@ -2790,7 +2790,7 @@ class DayViewModel @Inject constructor(
         val entry = performed.entry
         val name = entry?.name ?: performed.exerciseId
         val goalTarget = slot.main.goal
-            ?: GoalTarget.Weight(0.0, perHand = false)
+            ?: GoalTarget(0.0, perHand = false)
         val tracking = slot.main.tracking
         val main = slot.main.sets
         val partner = slot.partner?.performed

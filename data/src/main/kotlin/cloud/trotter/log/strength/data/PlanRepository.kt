@@ -32,7 +32,6 @@ import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.generator.Rotation
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -272,55 +271,6 @@ class PlanRepository(
             }
             if (changed) settings.setSelectedPlanId(id)
         }
-    }
-
-    /** The old wizard's create, kept only for OldWizardPlansTest to compare the test fixtures with; 6d-ii deletes it.
-     * Removes no day: the rewrite branch fills only a plan with no days, so no run can be open on it. */
-    suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
-        val id = planSelectionLock.withLock {
-            val storedId = settings.selectedPlanIdFlow.first()
-            db.withTransaction {
-                val plans = planDao.allPlans()
-                val selected = preferredPlan(plans, storedId)
-                val recipe = PlanRecipeJson.encode(answers)
-                val nextDay = program.rotationDays.firstOrNull()?.let { Rotation.trainingDayFrom(program, it.id) }
-                val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
-                    planDao.updatePlan(selected.copy(
-                        name = name,
-                        origin = PlanOrigin.GENERATED.name,
-                        recipeJson = recipe,
-                        suggestedDayId = nextDay,
-                        offerCardioIncreases = answers.cardioFirst != null,
-                    ))
-                    selected.id
-                } else {
-                    planDao.insertPlan(PlanEntity(
-                        id = 0,
-                        name = name,
-                        origin = PlanOrigin.GENERATED.name,
-                        position = (planDao.maxPosition() ?: -1) + 1,
-                        createdAt = clock.millis(),
-                        recipeJson = recipe,
-                        suggestedDayId = nextDay,
-                        offerCardioIncreases = answers.cardioFirst != null,
-                    ))
-                }
-                program.days.forEachIndexed { index, day ->
-                    programDao.upsertDay(day.toEntity(planId).copy(position = index).freshRunId(mintRunId))
-                    day.exercises.forEachIndexed { position, exercise ->
-                        programDao.insertExercise(exercise.toEntity(planId, day.id, position))
-                    }
-                }
-                val catalog = readableCatalog(customExerciseDao.getAll())
-                programDao.exercisesForPlan(planId).filter { it.ruleJson == null }
-                    .forEach { ruleSlot(it, answers.config.weightUnit, catalog) }
-                programDao.exercisesForPlan(planId).filter { it.supersetExerciseId != null && it.partnerRuleJson == null }
-                    .forEach { rulePartner(it, null, answers.config.weightUnit, catalog) }
-                planId
-            }
-        }
-        invalidatePlanFixups()
-        return id
     }
 
     /** The shape never depends on loads, so the second pass keeps the first pass's slots. Reads only Room. */

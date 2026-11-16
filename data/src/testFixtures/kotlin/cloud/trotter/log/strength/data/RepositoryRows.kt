@@ -9,12 +9,17 @@ import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /** A rule for slots a test inserts straight into Room. Conversion skips ruled slots, so such a slot keeps today's
  *  lazy seeding: the state a structure change or a prescription edit leaves on this build. */
@@ -99,3 +104,11 @@ suspend fun TrackerRepository.keepToPlanFixture(db: StrengthDatabase, programExe
     db.programDao().deleteLogForSlot(row.planId, row.dayId, row.id, Slot.MAIN)
     db.programDao().deleteLogForSlot(row.planId, row.dayId, row.id, Slot.SS)
 }
+
+fun prototypeSquat(top: Double = 235.0): List<LoggedSet> = SetSeeder.shape(
+    SetStructure.RAMP_TOP_BACKOFF, top, 5, 6, WeightUnit.LB,
+    listOf(Equipment.BARBELL, Equipment.RACK), Scheme.PROTOTYPE,
+)
+
+fun workRows(count: Int, lb: Double, reps: Int = 10): List<LoggedSet> =
+    List(count) { LoggedSet(lb, reps, SetKind.WORK) }

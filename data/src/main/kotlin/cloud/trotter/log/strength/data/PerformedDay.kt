@@ -16,7 +16,7 @@ import cloud.trotter.log.strength.domain.standards.GoalTarget
 
 data class PerformedTrack(
     val performed: PerformedExercise,
-    val goal: GoalTarget.Weight?,
+    val goal: GoalTarget?,
     val stored: List<LoggedSet>?,
     val seed: List<LoggedSet>?,
     val note: String = "",

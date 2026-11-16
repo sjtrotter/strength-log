@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * Standalone stand-in for the real Data Layer client. It seeds one canned day
- * — Squat's pinned seeded ramp (spec §11.1) plus a superset pair — and
+ * with the pinned squat ramp (spec §11.2 case 16) plus a superset pair, and
  * applies edits in memory the same shape the phone will: a delta touches one
  * round of one track, a `done` on the "main" track also flips the aligned
  * "ss" round (one-tick-per-round, spec §8.2), and every applied edit bumps
@@ -79,7 +79,7 @@ class FakeWatchClient : WatchTrackerClient {
     }
 
     private companion object {
-        /** Squat's pinned seeded ramp (spec §11.1) — R130/R165/R190/R210/TOP235/B175. */
+        /** Squat's pinned seeded ramp (spec §11.2 case 16): R130/R165/R190/R210/TOP235/B175. */
         val SQUAT = WatchExercise(
             programExerciseId = 1L,
             slot = "main",

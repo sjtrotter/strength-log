@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Round-trip tests for everything `:data` stores in a text column (spec §11.2). */
+/** Round-trip tests for everything `:data` stores in a text column (spec §11.3). */
 class SetSerializationTest {
 
     /** Null run metadata must preserve the legacy encoding byte for byte. */
@@ -31,7 +31,7 @@ class SetSerializationTest {
 
     @Test
     fun `a seeded main-lift sequence round-trips exactly`() {
-        // The pinned squat sequence (spec §11): ramps, top, back-off, mixed reps.
+        // The pinned squat sequence (spec §11.2 case 16): ramps, top, back-off, mixed reps.
         val sets = listOf(
             LoggedSet(130.0, 5, SetKind.RAMP),
             LoggedSet(165.0, 5, SetKind.RAMP),

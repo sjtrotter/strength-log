@@ -19,21 +19,23 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.workRows
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -47,6 +49,7 @@ import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
+import cloud.trotter.log.strength.ui.day.HeaderTarget
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.PartnerRowState
 import cloud.trotter.log.strength.ui.day.SetRowState
@@ -105,7 +108,8 @@ class StoreScreenshotsTest {
     private lateinit var originalLocale: Locale
     private lateinit var originalTimeZone: TimeZone
     private val catalog = ExerciseCatalog.CODE_ONLY
-    private val config = LifterConfig(bodyweightLb = 235, age = 40)
+    private val loadsLb = mapOf("bb_back_squat" to 235.0, "bb_bench" to 195.0,
+        "bb_row" to 145.0, "db_bench" to 80.0, "cable_row" to 120.0)
     private val exercises = listOf(
         ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF),
         ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF),
@@ -445,13 +449,21 @@ class StoreScreenshotsTest {
         partnerDoneCount: Int,
     ): ExerciseCardState {
         val entry = catalog.get(exercise.exerciseId)
-        val target = GoalCalculator.targetFor(entry, config)
-        val sets = SetSeeder.seed(exercise, target, config).mapIndexed { index, set ->
+        val target = loadsLb[entry.id]?.let { GoalTarget(it, entry.perHand) }
+        val seeded = when (val source = entry.goal) {
+            GoalSource.Weighted -> SetSeeder.shape(exercise.structure, loadsLb.getValue(entry.id),
+                if (exercise.structure.hasTopSet) 5 else 10, exercise.targetSets, equipment = entry.equipment)
+            is GoalSource.Reps -> SetSeeder.seedPrescribed(exercise.targetSets,
+                Prescription(PrescribedTarget.Reps(source.targetReps)))
+            is GoalSource.Time -> SetSeeder.seedPrescribed(exercise.targetSets,
+                Prescription(PrescribedTarget.Hold(source.targetSeconds, source.addedWeightLb)))
+        }
+        val sets = seeded.mapIndexed { index, set ->
             set.copy(done = index < doneCount)
         }
         val partnerEntry = exercise.superset?.let { catalog.get(it.exerciseId) }
         val partnerSets = partnerEntry?.let { partner ->
-            SetSeeder.seedPartner(sets.size, GoalCalculator.targetFor(partner, config)).mapIndexed { index, set ->
+            workRows(sets.size, loadsLb.getValue(partner.id)).mapIndexed { index, set ->
                 set.copy(done = index < partnerDoneCount)
             }
         }
@@ -482,7 +494,8 @@ class StoreScreenshotsTest {
             isSuperset = partnerEntry != null,
             partnerTitle = partnerEntry?.name,
             partnerTracking = partnerEntry?.tracking,
-            headerTarget = DayScreenBuilder.headerTarget(exercise, target, WeightUnit.LB),
+            headerTarget = if (entry.id == "plank") HeaderTarget.Goal("45s")
+                else DayScreenBuilder.headerTarget(exercise, requireNotNull(target), WeightUnit.LB),
             perHand = entry.perHand,
             tracking = entry.tracking,
             equipment = entry.equipment,

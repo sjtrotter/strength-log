@@ -15,8 +15,8 @@ data class PerformedExercise(
 ) {
     val tracking: TrackingType get() = prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
     /** The plan's typed goal for this lift; only a known weighted entry has one. */
-    fun goal(goalsLb: Map<String, Double>): GoalTarget.Weight? = entry?.takeIf { it.tracking == TrackingType.WEIGHTED }
-        ?.let { known -> goalsLb[known.id]?.let { GoalTarget.Weight(it, known.perHand) } }
+    fun goal(goalsLb: Map<String, Double>): GoalTarget? = entry?.takeIf { it.tracking == TrackingType.WEIGHTED }
+        ?.let { known -> goalsLb[known.id]?.let { GoalTarget(it, known.perHand) } }
 }
 
 fun performedExercise(

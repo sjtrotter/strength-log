@@ -69,7 +69,7 @@ object PlanScreenBuilder {
         JournalBuilder.mainLifts(program, catalog, goalsLb, legacyMains).map { lift ->
             val entry = requireNotNull(catalog.find(lift.exerciseId))
             PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb, lift.goalLb?.let {
-                GoalFormatter.label(GoalTarget.Weight(it, entry.perHand), unit)
+                GoalFormatter.label(GoalTarget(it, entry.perHand), unit)
             })
         }
 

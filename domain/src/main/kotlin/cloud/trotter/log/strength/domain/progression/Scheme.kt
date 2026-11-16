@@ -6,7 +6,7 @@ data class Scheme(val ramps: List<Ramp>, val backoffs: Int, val backoffPct: Doub
 
     companion object {
         /** The prototype's numbers. Converted plans keep them, so their stored rows and the TOP cascade
-         *  stay what spec §11 pins. */
+         *  stay what spec §11.2 case 16 pins. */
         val PROTOTYPE = Scheme(
             listOf(Ramp(0.55, 5), Ramp(0.70, 5), Ramp(0.80, 5), Ramp(0.90, 3)),
             backoffs = 1, backoffPct = 0.75, backoffReps = 8,

@@ -385,9 +385,8 @@ class TrackerRepository(
         }
     }
 
-    /** Full replace with the wizard's generated program (spec §7). Also points the
-     *  rotation at the first day. Destructive for the selected plan only: its old
-     *  program and live logs are cleared (history in `workout_session` is untouched). */
+    /** Replaces the selected plan's program and points the rotation at its first training day; its old program
+     *  and live logs are cleared, history is untouched. No production caller: tests use it to seed a program. */
     suspend fun replaceProgram(program: Program) {
         plans.ensurePlanSettingsMigrated()
         val planId = plans.ensureSelectedPlan()

@@ -40,7 +40,8 @@ class ExerciseCatalogTest {
         assertEquals(ExerciseLibrary.entries.size + 1, catalog.entries.size)
         val entry = catalog.get("custom_abc123")
         assertEquals("Cable Hack Squat", entry.name)
-        assertEquals(GoalSource.Flat(80.0), entry.goal)
+        assertEquals(GoalSource.Weighted, entry.goal)
+        assertEquals(80.0, entity.goalStartLb)
         // Catalog entries are still reachable.
         assertEquals("Barbell Back Squat", catalog.get("bb_back_squat").name)
     }
@@ -51,7 +52,7 @@ class ExerciseCatalogTest {
         val entity = custom("custom_squat", "Barbell Back Squat", MovementPattern.SQUAT_BILATERAL)
         val catalog = ExerciseCatalog(listOf(entity.toEntry()))
         assertTrue(catalog.get("custom_squat").id.startsWith(ExerciseCatalog.CUSTOM_ID_PREFIX))
-        assertEquals(GoalSource.Std(cloud.trotter.log.strength.domain.model.StandardLift.SQUAT),
+        assertEquals(GoalSource.Weighted,
             catalog.get("bb_back_squat").goal)
     }
 

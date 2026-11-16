@@ -25,7 +25,7 @@ class WeightedPairIndexTest {
     fun `valid pair builds the reverse index target to source`() {
         val entries = listOf(
             entry("bw_pullup", V_PULL, GoalSource.Reps(6), weightedPairId = "wt_pullup"),
-            entry("wt_pullup", V_PULL, GoalSource.Flat(25.0)),
+            entry("wt_pullup", V_PULL, GoalSource.Weighted),
         )
         val index = buildWeightedPairIndex(entries)
         assertEquals(mapOf("wt_pullup" to "bw_pullup"), index)
@@ -41,7 +41,7 @@ class WeightedPairIndexTest {
     fun `cross-pattern pair fails`() {
         val entries = listOf(
             entry("bw_pushup", H_PUSH, GoalSource.Reps(15), weightedPairId = "wt_pullup"),
-            entry("wt_pullup", V_PULL, GoalSource.Flat(25.0)),
+            entry("wt_pullup", V_PULL, GoalSource.Weighted),
         )
         assertFailsWith<IllegalArgumentException> { buildWeightedPairIndex(entries) }
     }
@@ -51,7 +51,7 @@ class WeightedPairIndexTest {
         val entries = listOf(
             entry("bw_pullup", V_PULL, GoalSource.Reps(6), weightedPairId = "wt_pullup"),
             entry("bw_chinup", V_PULL, GoalSource.Reps(6), weightedPairId = "wt_pullup"),
-            entry("wt_pullup", V_PULL, GoalSource.Flat(25.0)),
+            entry("wt_pullup", V_PULL, GoalSource.Weighted),
         )
         assertFailsWith<IllegalArgumentException> { buildWeightedPairIndex(entries) }
     }
@@ -60,8 +60,8 @@ class WeightedPairIndexTest {
     fun `chain where a target declares its own pair fails acyclicity`() {
         val entries = listOf(
             entry("bw_pullup", V_PULL, GoalSource.Reps(6), weightedPairId = "wt_pullup"),
-            entry("wt_pullup", V_PULL, GoalSource.Flat(25.0), weightedPairId = "wt_pullup_heavy"),
-            entry("wt_pullup_heavy", V_PULL, GoalSource.Flat(45.0)),
+            entry("wt_pullup", V_PULL, GoalSource.Weighted, weightedPairId = "wt_pullup_heavy"),
+            entry("wt_pullup_heavy", V_PULL, GoalSource.Weighted),
         )
         assertFailsWith<IllegalArgumentException> { buildWeightedPairIndex(entries) }
     }

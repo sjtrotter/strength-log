@@ -255,6 +255,7 @@ class PersistenceProcessDeathTest {
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalog.catalogFlow.first().get(customId)
         assertEquals("Cable Hack Squat", customEntry.name)
-        assertEquals(GoalSource.Flat(80.0), customEntry.goal)
+        assertEquals(GoalSource.Weighted, customEntry.goal)
+        assertEquals(80.0, requireNotNull(db.customExerciseDao().getAll().single { it.id == customId }.goalStartLb), 0.0)
     }
 }

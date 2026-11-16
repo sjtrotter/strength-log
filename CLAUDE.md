@@ -34,7 +34,7 @@ read-only brief, and every round checks:
    files/imports validated, dependencies not obviously sketchy.
 3. **The PR solves the issue it was meant to solve** — trace the diff back to
    the task/issue it claims to close.
-4. **No regressions elsewhere** — pinned domain tests (spec §11) still pass;
+4. **No regressions elsewhere** — pinned domain tests (spec §11.2) still pass;
    behaviors the diff touches adjacently still hold.
 
 Rounds follow the sol-loop method:
@@ -111,7 +111,9 @@ pinned spec numbers.
 
 ## Verification
 
-Domain math is pinned. The unit tests encoding spec §11's numbers (squat GOAL
-235, seeded ramp 130/165/190/210, cascade to 245 → 135/170/195/220/185, etc.)
-are the contract — a diff that changes those numbers is wrong unless the spec
-constants themselves were deliberately changed and re-verified.
+Domain math is pinned. The cases in spec §11.2, and the tests named beside each,
+are the contract: for example the reference lifter's squat opens at RAMP 165×5,
+RAMP 220×3, TOP 275×5 and two BACKOFF 250×5 (case 2), and a PROTOTYPE TOP edited
+to 245 cascades to ramps 135/170/195/220 and back-off 185 (case 16). A diff that
+changes a pinned number is wrong unless the same PR deliberately amends that
+§11.2 case and says why.

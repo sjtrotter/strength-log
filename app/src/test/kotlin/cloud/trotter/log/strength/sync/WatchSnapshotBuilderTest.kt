@@ -18,7 +18,6 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -96,7 +95,6 @@ class WatchSnapshotBuilderTest {
     }
 
     private val catalog = ExerciseCatalog.CODE_ONLY
-    private val cfg = LifterConfig() // the pinned §11 lifter (235/40/INTERMEDIATE/BALANCED)
 
     private val program = Program(
         listOf(
@@ -241,12 +239,12 @@ class WatchSnapshotBuilderTest {
         catalog: ExerciseCatalog = this.catalog,
         planId: Long = 1L,
         seeds: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
-        config: LifterConfig = cfg,
+        goalsLb: Map<String, Double> = emptyMap(),
         openings: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
     ): PerformedDay = PerformedDay.of(
         planId, dayId, program, slots,
         DayTracks(null, false, logs, droppedPartners = dropped, skippedLifts = skipped),
-        PlanSettings(goalsLb = config.goalsLb), catalog, seeds, openings,
+        PlanSettings(goalsLb = goalsLb), catalog, seeds, openings,
     )
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
@@ -467,7 +465,7 @@ class WatchSnapshotBuilderTest {
         )
 
         val snapshot = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, logs, config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 235.0))),
+            performedDay(program, "A", slots, logs, goalsLb = mapOf("bb_back_squat" to 235.0)),
             unit = WeightUnit.KG, revision = 3L,
         )!!
 
@@ -505,7 +503,7 @@ class WatchSnapshotBuilderTest {
 
         val goal = WatchSnapshotBuilder.build(
             performedDay(program, "A", slots, emptyList(), seeds = seeds,
-                config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 225.0))), WeightUnit.LB, revision = 1L,
+                goalsLb = mapOf("bb_back_squat" to 225.0)), WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
         assertEquals(225.0, goal.goal)
         assertEquals("225", goal.goalLabel)
@@ -516,7 +514,7 @@ class WatchSnapshotBuilderTest {
     fun `weighted goalLabel equals the number the watch already shows today`() {
         val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val ex = WatchSnapshotBuilder.build(
-            performedDay(program, "A", slots, emptyList(), config = cfg.copy(goalsLb = mapOf("bb_back_squat" to 235.0))),
+            performedDay(program, "A", slots, emptyList(), goalsLb = mapOf("bb_back_squat" to 235.0)),
             unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
         // Watch UI renders WeightStepper.format(unit.fromLb(goal)) == "235"; goalLabel must match.
@@ -852,8 +850,8 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `returns null when there is no suggested day or it is not in the program`() {
-        assertNull(WatchSnapshotBuilder.build(program, null, emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))
-        assertNull(WatchSnapshotBuilder.build(program, "Z", emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))
+        assertNull(WatchSnapshotBuilder.build(program, null, emptyList(), emptyList(), emptyMap(), catalog, WeightUnit.LB, 1L))
+        assertNull(WatchSnapshotBuilder.build(program, "Z", emptyList(), emptyList(), emptyMap(), catalog, WeightUnit.LB, 1L))
     }
 
     @Test fun `substitute snapshot uses performed identity tracking goal and alternates without a prescription`() {

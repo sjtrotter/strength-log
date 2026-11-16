@@ -88,7 +88,7 @@ fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
     )
 
 /** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4).
- *  [CustomExerciseEntity.tracking] selects the GOAL source: WEIGHTED→flat load,
+ *  [CustomExerciseEntity.tracking] selects the GOAL source: WEIGHTED maps to [GoalSource.Weighted],
  *  REPS→rep target, TIMED→time target with [goalStartLb] as any added load. An
  *  unrecognized tracking name (a row from a newer build) falls back to WEIGHTED
  *  rather than crashing the catalog read. */
@@ -102,7 +102,7 @@ fun CustomExerciseEntity.toEntry(): ExerciseEntry =
         goal = when (TrackingType.entries.firstOrNull { it.name == tracking }) {
             TrackingType.REPS -> GoalSource.Reps(targetReps ?: 0)
             TrackingType.TIMED -> GoalSource.Time(targetSeconds ?: 0, goalStartLb)
-            else -> GoalSource.Flat(goalStartLb)
+            else -> GoalSource.Weighted
         },
         subRank = ExerciseCatalog.CUSTOM_SUBRANK,
     )

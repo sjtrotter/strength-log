@@ -10,7 +10,8 @@ import androidx.room.PrimaryKey
  *
  * [tracking] (a [cloud.trotter.log.strength.domain.library.TrackingType] name)
  * decides how the GOAL is read (added in DB v2, DEFAULT 'WEIGHTED'):
- * WEIGHTED uses [goalStartLb], REPS uses [targetReps], TIMED uses [targetSeconds]
+ * WEIGHTED stores [goalStartLb] as typed; the catalog entry is
+ * [cloud.trotter.log.strength.domain.library.GoalSource.Weighted]. REPS uses [targetReps], TIMED uses [targetSeconds]
  * with [goalStartLb] as any added load. [pattern] and [equipmentCsv] hold enum
  * *names* (comma-separated for equipment).
  */

@@ -577,7 +577,7 @@ data class DayActions(
     val onTimedRepDraftChange: (String) -> Unit = {},
     val onLogTimedRepCount: () -> Unit = {},
     val onLogFocusedSet: () -> Unit = {},
-    val onDecrementFocusedReps: () -> Unit = {},
+    val onDecrementFocusedReps: (String) -> Unit = {},
     val onUndoLastLog: () -> Unit = {},
     val onSetEffort: (Long, String, Int, Effort?) -> Unit = { _, _, _, _ -> },
     val onSelectWorkoutLift: (String) -> Unit = {},

@@ -46,7 +46,7 @@ internal data class Selector(val json: JsonObject) {
 
     companion object {
         private val strings = setOf("text", "textContains", "desc", "tag", "role")
-        private val flags = setOf("editable", "inDialog")
+        private val flags = setOf("editable", "inDialog", "enabled")
         private val roles = setOf("Button", "Checkbox", "Switch", "Tab", "RadioButton", "DropdownList", "Image")
 
         fun parse(value: JsonObject): Selector {

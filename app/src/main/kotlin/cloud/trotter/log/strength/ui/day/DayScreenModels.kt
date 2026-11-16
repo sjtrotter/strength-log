@@ -18,8 +18,6 @@ import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.standards.PhoneRest
-import cloud.trotter.log.strength.domain.standards.RestCategory
-import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
@@ -94,8 +92,6 @@ data class DayUiState(
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
     val workout: WorkoutState? = null,
-    /** Derived presentation hint; never controls logging or starts a timer. */
-    val workoutThenRest: Boolean = false,
     /** True while the viewed day has lifts and no started workout: no row, or this day's draft. */
     val beforeStart: Boolean = false,
     val startSheet: Boolean = false,
@@ -197,6 +193,7 @@ data class UndoOffer(
     val set: LoggedSet,
     val tracking: TrackingType,
     val unit: WeightUnit,
+    val partnerSet: LoggedSet? = null,
 )
 
 data class WorkoutState(
@@ -478,25 +475,6 @@ data class WeightSwapAffordance(
 @Immutable
 data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
     val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"
-}
-
-/** Mirrors the existing phone timer's eligibility using the current rows and rest preferences. */
-internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<RestCategory, Int>): DayUiState {
-    val card = workoutCard
-    if (card?.isSuperset != true) return this
-    val focus = workout?.focus
-    val row = card.rows.getOrNull(focus?.index ?: -1)
-    val completesRound = when (focus?.slot) {
-        Slot.MAIN -> row?.done == false && row.partner?.done != false
-        Slot.SS -> row?.done == true && row.partner?.done == false
-        else -> false
-    }
-    val thenRest = enabled && workout?.completedView == false && !workoutAllLogged && row != null &&
-        completesRound && RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides, card.rule, card.liftGoal) > 0 &&
-        exercises.any { other -> other.rows.any {
-            !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus.index)
-        } }
-    return if (workoutThenRest == thenRest) this else copy(workoutThenRest = thenRest)
 }
 
 data class SkippedLift(val programExerciseId: Long, val position: Int, val title: String, val slot: String = Slot.MAIN)

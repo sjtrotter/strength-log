@@ -1,0 +1,250 @@
+{
+  "seat": "set-card-gate",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "None",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "End rest",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "tag": "workout-effort-row",
+        "absent": true
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Log ",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-effort-row"
+      }
+    },
+    {
+      "expect": {
+        "text": "End rest",
+        "role": "Button",
+        "enabled": false
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "expect": {
+        "text": "End rest",
+        "role": "Button",
+        "enabled": true
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "text": "End rest",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Undo",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Undo",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 5 of 6 (TOP)"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-effort-row",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "textContains": "Log ",
+        "role": "Button",
+        "enabled": true
+      }
+    },
+    {
+      "checkpoint": "set-card-gate-undo-pending"
+    }
+  ]
+}

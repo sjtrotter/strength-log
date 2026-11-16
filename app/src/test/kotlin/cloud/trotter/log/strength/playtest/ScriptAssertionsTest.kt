@@ -29,6 +29,16 @@ class ScriptAssertionsTest {
         assertEquals("script", assertFailsWith<PlaytestError> { Script.parse(file) }.kind)
     }
 
+    @Test fun enabledSelectorAcceptsBothStatesAndRejectsNonBooleanValues() {
+        for (enabled in listOf(true, false)) {
+            val step = Step.parse(Json.parseToJsonElement("""{"expect":{"text":"End rest","enabled":$enabled}}"""))
+            assertEquals(enabled, requireNotNull(step.selector).flag("enabled"))
+        }
+        assertFailsWith<PlaytestError> {
+            Step.parse(Json.parseToJsonElement("""{"expect":{"text":"End rest","enabled":"false"}}"""))
+        }
+    }
+
     @Test fun expectedVisibilityFailureAllowsTheNextStep() {
         val step = Step.parse(Json.parseToJsonElement("""{"tap":{"text":"Target"},"expectError":"not-visible"}"""))
         step.assertExpectedError { throw PlaytestError("not-visible", "Use scrollTo first") }

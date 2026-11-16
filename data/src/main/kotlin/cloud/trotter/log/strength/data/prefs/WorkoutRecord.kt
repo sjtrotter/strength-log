@@ -19,7 +19,11 @@ data class UndoTarget(
     val before: SetDto,
     val after: SetDto,
     val loggedAtMillis: Long,
+    val partner: UndoHalf? = null,
 )
+
+@Serializable
+data class UndoHalf(val before: SetDto, val after: SetDto)
 
 /** The logged row the set screen still shows; loggedAtMillis is the completing log's stamp. */
 @Serializable

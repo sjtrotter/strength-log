@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,6 +41,7 @@ import java.io.File
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -62,6 +64,23 @@ class ReplaySafetyTest {
     private lateinit var crashes: AppCrashes
     @get:Rule val compose = createComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val temporary = TemporaryFolder()
+
+    @Test fun enabledSelectorFollowsTheMaterialButtonGate() {
+        val enabled = mutableStateOf(false)
+        compose.setContent { AppTheme {
+            Button(onClick = {}, enabled = enabled.value, modifier = Modifier.testTag("gate")) { Text("End rest") }
+        } }
+        val selectors = Selectors(compose, compose.density.density)
+        fun matches(value: Boolean): Boolean {
+            val step = Step.parse(Json.parseToJsonElement("""{"expect":{"tag":"gate","enabled":$value}}"""))
+            return selectors.matcher(requireNotNull(step.selector)).matches(compose.onNodeWithTag("gate").fetchSemanticsNode())
+        }
+        assertTrue(matches(false))
+        assertFalse(matches(true))
+        compose.runOnIdle { enabled.value = true }
+        assertTrue(matches(true))
+        assertFalse(matches(false))
+    }
 
     @Test fun interactionSettleKeepsTheFakeWallClockAndPausedClockPolicy() {
         compose.mainClock.autoAdvance = false

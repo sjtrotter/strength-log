@@ -31,6 +31,7 @@ import cloud.trotter.log.strength.domain.routine.CreditedExercise
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.routine.Routines
 import cloud.trotter.log.strength.data.prefs.ReviewTarget
+import cloud.trotter.log.strength.data.prefs.UndoHalf
 import cloud.trotter.log.strength.data.prefs.UndoTarget
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -417,14 +418,8 @@ class DayViewModel @Inject constructor(
             ).also(::refreshGpsWarmup)
         }
 
-    private val restHintUiState = combine(
-        baseUiState, settings.phoneRestTimerEnabledFlow, settings.restSettingsFlow,
-    ) { state, phoneEnabled, settings ->
-        state.withWorkoutRestHint(phoneEnabled && phoneRest.available, settings.overrides)
-    }
-
     private val sheetUiState = combine(
-        restHintUiState, selectedPage, openSheet, swapUndo,
+        baseUiState, selectedPage, openSheet, swapUndo,
         // Defer access until the editor is initialized; confirmation reads uiState.
         flow { emitAll(editor.pendingPlanSwap) },
     ) { state, selection, savedSheet, undo, pending ->
@@ -1524,8 +1519,13 @@ class DayViewModel @Inject constructor(
                 return@mutate
             }
             val countEvent = if (pending.timedRep) timedRepEvent.value ?: return@mutate else null
+            val slots = if (pending.actionLog && countEvent == null) {
+                val planId = state.planId ?: return@mutate
+                loggableSlots(repo.dayTracksFlow(planId, pending.dayId).first(),
+                    pending.programExerciseId, pending.index, pending.slot)
+            } else listOf(pending.slot)
             if (tickSetLocked(pending.dayId, runId, pending.programExerciseId, pending.index,
-                    checked = true, slot = pending.slot, countEvent = countEvent, actionLog = pending.actionLog, startOnTick = true)) {
+                    checked = true, slots = slots, countEvent = countEvent, actionLog = pending.actionLog, startOnTick = true)) {
                 dismissStart()
             }
         }
@@ -1693,7 +1693,8 @@ class DayViewModel @Inject constructor(
             if (tracks.runId != runId || currentDay() != day) return@mutate
             if (workoutReview(uiState.value.exercises, tracks, settings.workoutRecordFlow.first()) != null) return@mutate
             val focus = focusedWorkoutSet(tracks) ?: return@mutate
-            tickSetLocked(day, runId, focus.programExerciseId, focus.index, true, focus.slot, actionLog = true)
+            tickSetLocked(day, runId, focus.programExerciseId, focus.index, true,
+                loggableSlots(tracks, focus.programExerciseId, focus.index, focus.slot), actionLog = true)
         }
     }
 
@@ -1713,7 +1714,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    fun decrementFocusedReps() {
+    fun decrementFocusedReps(slot: String = Slot.MAIN) {
         val state = dayState.value
         val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
         val planId = state.planId ?: return
@@ -1723,19 +1724,20 @@ class DayViewModel @Inject constructor(
             if (tracks.runId != runId || currentDay() != day) return@mutate
             val focus = (if (tracks.runOpen) focusedWorkoutSet(tracks) else uiState.value.workout?.focus)
                 ?: return@mutate
+            if (slot != Slot.MAIN && slot != Slot.SS) return@mutate
             val card = uiState.value.exercises.firstOrNull { it.programExerciseId == focus.programExerciseId } ?: return@mutate
-            if (card.tracking(focus.slot) == TrackingType.TIMED ||
-                (focus.slot == Slot.MAIN && (card.timedRepDurationSeconds ?: 0) > 0)
+            if (card.tracking(slot) == TrackingType.TIMED ||
+                (slot == Slot.MAIN && (card.timedRepDurationSeconds ?: 0) > 0)
             ) return@mutate
             val reps = if (tracks.runOpen) {
                 val set = tracks.tracks.firstOrNull {
-                    it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
+                    it.programExerciseId == focus.programExerciseId && it.slot == slot
                 }?.sets?.getOrNull(focus.index) ?: return@mutate
                 if (set.done) return@mutate
                 set.reps
             } else {
                 val row = card.rows.getOrNull(focus.index) ?: return@mutate
-                if (focus.slot == Slot.SS) {
+                if (slot == Slot.SS) {
                     val partner = row.partner ?: return@mutate
                     if (partner.done) return@mutate
                     partner.reps
@@ -1745,7 +1747,16 @@ class DayViewModel @Inject constructor(
                 }
             }
             if (reps <= 1) return@mutate
-            changeRepsLocked(day, runId, planId, focus.programExerciseId, focus.slot, focus.index, reps - 1)
+            changeRepsLocked(day, runId, planId, focus.programExerciseId, slot, focus.index, reps - 1)
+        }
+    }
+
+    private fun loggableSlots(tracks: DayTracks, programExerciseId: Long, index: Int, slot: String): List<String> {
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return emptyList()
+        return (if (card.isSuperset) listOf(Slot.MAIN, Slot.SS) else listOf(slot)).filter { candidate ->
+            !(candidate == Slot.MAIN && (card.timedRepDurationSeconds ?: 0) > 0) && tracks.tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == candidate
+            }?.sets?.getOrNull(index)?.done == false
         }
     }
 
@@ -1801,12 +1812,15 @@ class DayViewModel @Inject constructor(
                 val record = settings.workoutRecordFlow.first()
                 val target = validUndo(tracks, record) ?: return@locked
                 if (tracks.runId != runId || currentDay() != day) return@locked
-                val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
-                val result = repo.applyToRun(runId, planId, day, listOf(
-                    TrackEdit(target.programExerciseId, target.slot) { current ->
-                        WorkoutUndo.revert(current, target, before)
-                    },
-                ))
+                val halves = undoHalves(target)
+                val before = halves.map { half ->
+                    runCatching { half.before.toDomain() }.getOrNull() ?: return@locked
+                }
+                val result = repo.applyToRun(runId, planId, day, halves.mapIndexed { index, half ->
+                    TrackEdit(half.programExerciseId, half.slot) { current ->
+                        WorkoutUndo.revert(current, half, before[index])
+                    }
+                })
                 if (result !is RunWriteResult.InRun) return@locked
                 skip()
                 settings.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
@@ -1823,7 +1837,7 @@ class DayViewModel @Inject constructor(
     ) {
         val day = currentDay() ?: return
         val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
-        mutate { tickSetLocked(day, runId, programExerciseId, index, checked, slot, countEvent) }
+        mutate { tickSetLocked(day, runId, programExerciseId, index, checked, listOf(slot), countEvent) }
     }
 
     private suspend fun tickSetLocked(
@@ -1832,7 +1846,7 @@ class DayViewModel @Inject constructor(
         programExerciseId: Long,
         index: Int,
         checked: Boolean,
-        slot: String,
+        slots: List<String>,
         countEvent: TimedRepEvent? = null,
         actionLog: Boolean = false,
         startOnTick: Boolean = false,
@@ -1851,22 +1865,21 @@ class DayViewModel @Inject constructor(
             val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
             if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return false
         }
-        if (slot != Slot.MAIN && slot != Slot.SS) return false
+        if (slots.isEmpty() || slots.any { it != Slot.MAIN && it != Slot.SS }) return false
         val planId = plans.planIdOfSlot(programExerciseId) ?: return false
         val loggedAt = clock.millis()
-        var writtenBefore: LoggedSet? = null
-        var writtenAfter: LoggedSet? = null
+        val writtenBefore = mutableMapOf<String, LoggedSet>()
+        val writtenAfter = mutableMapOf<String, LoggedSet>()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
         if (checked && (actionLog || countEvent != null) && card != null) {
             val tracks = repo.dayTracksFlow(planId, day).first()
-            val current = tracks.tracks.firstOrNull {
+            fun current(slot: String) = tracks.tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot
             }?.sets?.getOrNull(index)
-            val otherSlot = if (slot == Slot.MAIN) Slot.SS else Slot.MAIN
-            val completesRound = !card.isSuperset || tracks.tracks.firstOrNull {
-                it.programExerciseId == programExerciseId && it.slot == otherSlot
-            }?.sets?.getOrNull(index)?.done == true
-            if ((tracks.runOpen || startOnTick) && tracks.runId == runId && current != null && !current.done &&
+            val completesRound = !card.isSuperset || listOf(Slot.MAIN, Slot.SS).all {
+                it in slots || current(it)?.done == true
+            }
+            if ((tracks.runOpen || startOnTick) && tracks.runId == runId && slots.any { current(it)?.done == false } &&
                 roundEffortSlots(card, tracks, index).isNotEmpty() && completesRound
             ) {
                 val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
@@ -1875,27 +1888,28 @@ class DayViewModel @Inject constructor(
                 settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, loggedAt)))
             }
         }
-        val result = repo.applyToRun(runId, planId, day, listOf(
+        val result = repo.applyToRun(runId, planId, day, slots.map { slot ->
             TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                 val current = rows.getOrNull(index)
                 if (current == null || ((countEvent != null || actionLog || startOnTick) && current.done)) null else {
                     val updated = SetEditor.edit(rows, index, phoneTickEdit(current, checked, loggedAt, countEvent?.count))
-                    writtenBefore = current
-                    writtenAfter = updated[index]
+                    writtenBefore[slot] = current
+                    writtenAfter[slot] = updated[index]
                     updated
                 }
-            },
-        ), startOnTick = startOnTick)
+            }
+        }, startOnTick = startOnTick)
         reportOtherDay(result, planId, day)
         if (result == RunWriteResult.NeedsStart) {
             if (pendingStart.value != null) return false
             closeSheet()
-            savedState[KEY_PENDING_START] = PendingStartTick(day, programExerciseId, slot, index, actionLog, countEvent != null)
+            savedState[KEY_PENDING_START] = PendingStartTick(day, programExerciseId, slots.first(), index, actionLog, countEvent != null)
             return false
         }
         if (result !is RunWriteResult.InRun) return result == RunWriteResult.Unchanged
-        val row = writtenBefore ?: return true
-        val logged = writtenAfter ?: return true
+        val slot = slots.firstOrNull { it in writtenBefore } ?: return true
+        val row = writtenBefore.getValue(slot)
+        val logged = writtenAfter.getValue(slot)
         if (countEvent != null) clearTimedRep()
         val planSlots = plans.slotsFor(planId, day).first()
         val workoutSlots = repo.dayTracksFlow(planId, day).first().let {
@@ -1940,6 +1954,9 @@ class DayViewModel @Inject constructor(
                 }
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
                     programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged), loggedAt,
+                    slots.drop(1).firstOrNull { it in writtenBefore }?.let {
+                        UndoHalf(SetDto.of(writtenBefore.getValue(it)), SetDto.of(writtenAfter.getValue(it)))
+                    },
                 ), review))
             } else if (previous == null) {
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection))
@@ -2366,13 +2383,20 @@ class DayViewModel @Inject constructor(
             effortSlots.filter { rows[slots.indexOf(it)].rir == null })
     }
 
+    private fun undoHalves(target: UndoTarget): List<UndoTarget> = listOfNotNull(target, target.partner?.let {
+        target.copy(slot = if (target.slot == Slot.MAIN) Slot.SS else Slot.MAIN,
+            before = it.before, after = it.after, partner = null)
+    })
+
     private fun validUndo(tracks: DayTracks?, record: WorkoutRecord?): UndoTarget? {
         if (tracks == null || !tracks.runOpen) return null
         val target = record?.takeIf { it.runId == tracks.runId }?.undo ?: return null
-        val row = tracks.tracks.firstOrNull {
-            it.programExerciseId == target.programExerciseId && it.slot == target.slot
-        }?.sets?.getOrNull(target.index) ?: return null
-        if (!WorkoutUndo.matches(row, target)) return null
+        if (undoHalves(target).any { half ->
+                val row = tracks.tracks.firstOrNull {
+                    it.programExerciseId == half.programExerciseId && it.slot == half.slot
+                }?.sets?.getOrNull(half.index)
+                row == null || !WorkoutUndo.matches(row, half)
+            }) return null
         if (runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
         return target
     }
@@ -2396,6 +2420,11 @@ class DayViewModel @Inject constructor(
                     }.sets[target.index],
                     if (target.slot == Slot.SS) card.partnerTracking ?: TrackingType.WEIGHTED else card.tracking,
                     state.unit,
+                    target.partner?.let {
+                        requireNotNull(tracks).tracks.first {
+                            it.programExerciseId == target.programExerciseId && it.slot != target.slot
+                        }.sets[target.index]
+                    },
                 )
             }
         }

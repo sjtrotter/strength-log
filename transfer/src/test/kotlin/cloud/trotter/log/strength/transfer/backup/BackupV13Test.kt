@@ -62,7 +62,8 @@ class BackupV13Test {
         assertEquals(session.plannedJson, snapshot.sessions.single().plannedJson)
         assertEquals(0, snapshot.sessionSets.single().trackPosition)
         assertEquals(0, snapshot.sessionSets.single().plannedIndex)
-        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER"))
+        // v30 exports carry no training level (6c-ii); the rest of the document round-trips.
+        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER", level = null))
         assertEquals(expected, snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13))
         assertEquals(codec.encode(expected), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
     }

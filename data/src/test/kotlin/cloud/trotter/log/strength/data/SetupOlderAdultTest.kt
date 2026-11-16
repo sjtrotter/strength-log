@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.serialization.OpeningJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
@@ -21,7 +22,7 @@ class SetupOlderAdultTest : OpeningFixture() {
         lifter(plan, id(plan, "bb_back_squat"), squat(), squatRule())
         db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(recipeJson = recipe))
         history(plan, 22, eight)
-        settings.setGlobalLifter(GlobalLifter(age = age))
+        settings.setLifterProfile(LifterProfile(age = age))
         return OpeningJson.decode(opened(plan).openingJson)
     }
 
@@ -29,7 +30,7 @@ class SetupOlderAdultTest : OpeningFixture() {
         assertEquals(OpeningDto("RECALIBRATE"), opening(SetupRecipeJson.encode(SetupAnswers(olderAdult = true)), 30))
     }
     @Test fun `a v2 adult answer opens with the adult rule over an older profile`() = runTest {
-        assertEquals(OpeningDto("SCALED", 0.85), opening(SetupRecipeJson.encode(SetupAnswers(olderAdult = false)), 70))
+        assertEquals(OpeningDto("SCALED", 0.85), opening(SetupRecipeJson.encode(SetupAnswers(olderAdult = false, experience = LiftExperience.A_YEAR_OR_MORE)), 70))
     }
     @Test fun `a v1 plan reads profile age`() = runTest {
         assertEquals(OpeningDto("RECALIBRATE"), opening(PlanRecipeJson.encode(WizardAnswers()), 70))

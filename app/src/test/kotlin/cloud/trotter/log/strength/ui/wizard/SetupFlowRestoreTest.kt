@@ -260,9 +260,9 @@ class SetupFlowRestoreTest {
         val nonce = "previous-build-restore"
         journalStore.edit { prefs ->
             prefs.clear()
-            prefs[intPreferencesKey("bodyweight")] = snapshot.global.bodyweightLb.toInt()
-            prefs[intPreferencesKey("age")] = snapshot.global.age
-            prefs[stringPreferencesKey("level")] = snapshot.global.level.name
+            prefs[intPreferencesKey("bodyweight")] = snapshot.profile.bodyweightLb!!.toInt()
+            prefs[intPreferencesKey("age")] = snapshot.profile.age!!
+            prefs[stringPreferencesKey("level")] = "INTERMEDIATE"
             prefs[stringPreferencesKey("emphasis")] = requireNotNull(legacy.emphasis)
             prefs[stringPreferencesKey("cardio_mode")] = recipe.cardioMode.name
             prefs[stringPreferencesKey("cardio_placement")] = requireNotNull(legacy.cardioPlacement)
@@ -291,7 +291,7 @@ class SetupFlowRestoreTest {
         // isComplete is what AppNavHost's SetupFlowRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertEquals(1, repo.plans.programFlow.first().days.size)
     }
 
@@ -350,8 +350,8 @@ class SetupFlowRestoreTest {
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
-        assertEquals(33, repo.plans.configFlow.first().age)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
+        assertEquals(33, settings.lifterProfileFlow.first().age)
         assertFalse(settings.wizardCompleteFlow.first())
     }
 
@@ -369,10 +369,10 @@ class SetupFlowRestoreTest {
         }
         assertFalse(state.isComplete)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertEquals(SetupStep.GOAL, state.step)
         assertEquals(SetupAnswers(unit = WeightUnit.KG), SetupFlowStateBuilder.answers(state.draft))
-        assertEquals(document.toSnapshot().global, settings.globalLifterFlow.first())
+        assertEquals(document.toSnapshot().profile, settings.lifterProfileFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
@@ -385,8 +385,8 @@ class SetupFlowRestoreTest {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertEquals(SetupDraft(unit = WeightUnit.KG), reseeded.draft)
-        assertEquals(document.toSnapshot().global, settings.globalLifterFlow.first())
-        assertEquals(document.toSnapshot().global, backupRepository.exportSnapshot().global)
+        assertEquals(document.toSnapshot().profile, settings.lifterProfileFlow.first())
+        assertEquals(document.toSnapshot().profile, backupRepository.exportSnapshot().profile)
     }
 
     @Test
@@ -481,7 +481,7 @@ class SetupFlowRestoreTest {
         assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
         assertNull(restoredPlan.recipeJson)
         assertEquals(requireNotNull(staged.legacyRecipe).equipment, restoredPlan.planSettings.equipment)
-        assertEquals(staged.global.toConfig(), repo.plans.configFlow.first())
+        assertEquals(staged.profile, settings.lifterProfileFlow.first())
         assertTrue("wizardComplete must retain the staged value", settings.wizardCompleteFlow.first())
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
@@ -541,7 +541,7 @@ class SetupFlowRestoreTest {
         assertNull(completed.restore.error)
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
-        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -583,7 +583,7 @@ class SetupFlowRestoreTest {
             repo.plans.programFlow.first().days.map { it.id },
         )
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
     }
 
     private companion object {

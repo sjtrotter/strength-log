@@ -89,7 +89,7 @@ class KeepScreenOnSettingsTest {
     }
 
     @Test fun `restore writes OFF`() = runTest {
-        settings.restore(GlobalLifter(), WeightUnit.LB, true, restSettings = RestSettings(),
+        settings.restore(LifterProfile(), WeightUnit.LB, true, restSettings = RestSettings(),
             keepScreenOn = KeepScreenOn.OFF)
         assertEquals(KeepScreenOn.OFF, settings.keepScreenOnFlow.first())
     }

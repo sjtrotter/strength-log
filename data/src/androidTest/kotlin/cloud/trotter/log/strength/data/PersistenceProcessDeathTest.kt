@@ -259,8 +259,8 @@ class PersistenceProcessDeathTest {
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
         assertEquals(
-            GlobalLifter.of(wizardAnswers.config).copy(weightUnit = WeightUnit.KG),
-            settings.globalLifterFlow.first(),
+            LifterProfile(wizardAnswers.config.bodyweightLb, wizardAnswers.config.age),
+            settings.lifterProfileFlow.first(),
         )
         assertEquals(wizardAnswers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
         assertTrue(settings.wizardCompleteFlow.first())

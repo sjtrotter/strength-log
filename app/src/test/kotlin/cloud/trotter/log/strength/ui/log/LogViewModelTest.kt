@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -1409,5 +1410,25 @@ class LogViewModelTest {
 
         assertNull(restarted.uiState.value.health.backfill)
         restartedCollect.cancel()
+    }
+    @Test
+    fun `an empty profile gets no bodyweight prompt`() = runTest(dispatcher) {
+        val reader = object : HealthConnectReader("fake") {
+            override fun isAvailable(): Boolean = true
+            override suspend fun latestBodyweightLb(): Double = 180.0
+        }
+        val vm = newViewModel(reader = reader)
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.health.bodyweightPrompt)
+        settings.setLifterProfile(LifterProfile(bodyweightLb = 235.0))
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.health.bodyweightPrompt)
+        vm.applyBodyweightPrompt()
+        advanceUntilIdle()
+        assertEquals(LifterProfile(bodyweightLb = 180.0), settings.lifterProfileFlow.first())
+        assertNull(vm.uiState.value.health.bodyweightPrompt)
+        collect.cancel()
     }
 }

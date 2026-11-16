@@ -63,7 +63,8 @@ class BackupV12Test {
         assertNull(results.last().metres)
         assertNull(results.last().distanceSource)
         val reexported = snapshot.toDocument().withoutV17Fields().copy(schemaVersion = 12)
-        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER"))
+        // v30 exports carry no training level (6c-ii); the rest of the document round-trips.
+        val expected = before.copy(settings = before.settings.copy(keepScreen = "WHILE_TIMER", level = null))
         assertEquals(expected, reexported)
         assertEquals(codec.encode(expected), codec.encode(reexported))
     }

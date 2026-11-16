@@ -134,7 +134,7 @@ class AuditPlanShotsTest : UiAuditTest() {
     private fun plansFixture(count: Int) = PlansUiState(
         plans = List(count) { index -> PlanSummary(index + 1L, "Strength rotation ${index + 1}", "A", "Squat focus",
             index == 0, false, null, onToday = index < 2) },
-        you = YouSummary("185 lb", 35, "intermediate"),
+        you = YouSummary("185 lb", 35),
     )
     private fun plansActions() = PlansActions(onNewPlan = {}, onSelect = {}, onMenu = {}, onRename = {},
         onRenameDraft = {}, onSaveRename = {}, onDismissRename = {}, onDuplicate = {}, onArchive = {}, onRestore = {})

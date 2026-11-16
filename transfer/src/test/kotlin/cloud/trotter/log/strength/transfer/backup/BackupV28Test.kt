@@ -41,7 +41,7 @@ class BackupV28Test {
         assertEquals(source, decoded)
         assertEquals(source.plans.single().recipeJson, decoded.plans.single().recipeJson)
         assertEquals(source.plans.single().settingsJson, decoded.plans.single().settingsJson)
-        assertEquals(29, decoded.toSnapshot().toDocument().schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.toSnapshot().toDocument().schemaVersion)
     }
 
     @Test fun `older documents cannot carry v28 payloads`() {

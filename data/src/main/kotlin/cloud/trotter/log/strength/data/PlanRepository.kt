@@ -33,7 +33,6 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -151,17 +150,6 @@ class PlanRepository(
             .distinctUntilChanged())
     }
 
-    val configFlow: Flow<LifterConfig> = flow {
-        ensurePlanSettingsMigrated()
-        emitAll(settings.globalLifterFlow.map { it.toConfig() }.distinctUntilChanged())
-    }
-
-    /** Lifter edits write the global lifter alone. */
-    suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
-        ensurePlanSettingsMigrated()
-        settings.updateGlobalLifter(transform)
-    }
-
     suspend fun setPlanGoal(planId: Long, exerciseId: String, goalLb: Double?) {
         require(goalLb == null || (goalLb.isFinite() && goalLb > 0.0 && goalLb <= PlanRecipeJson.MAX_GOAL_LB))
         ensurePlanSettingsMigrated()
@@ -177,7 +165,7 @@ class PlanRepository(
     /** Writes an old wizard recipe for test fixtures until 6d. */
     suspend fun setWizardAnswers(answers: WizardAnswers) {
         ensurePlanSettingsMigrated()
-        settings.setGlobalLifter(GlobalLifter.of(answers.config))
+        settings.setLifterProfile(LifterProfile(answers.config.bodyweightLb, answers.config.age))
         val planId = ensureSelectedPlan()
         db.withTransaction {
             planDao.updateRecipe(planId, PlanRecipeJson.encode(answers))
@@ -421,7 +409,7 @@ class PlanRepository(
         planSelectionLock.withLock {
             val active = planDao.plan(id)?.archived == false
             if (active) planDao.updateOnToday(id, true)
-            if (writeLifter) settings.setGlobalLifter(GlobalLifter.of(answers.config))
+            if (writeLifter) settings.setLifterProfile(LifterProfile(answers.config.bodyweightLb, answers.config.age))
             if (active) settings.setSelectedPlanId(id)
         }
     }

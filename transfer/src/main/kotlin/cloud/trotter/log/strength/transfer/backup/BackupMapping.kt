@@ -3,7 +3,7 @@ package cloud.trotter.log.strength.transfer.backup
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -26,7 +26,6 @@ import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -56,13 +55,11 @@ fun FullSnapshot.toDocument(): BackupDocument {
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
         settings = SettingsBackup(
-            bodyweightLb = Math.round(global.bodyweightLb).toInt(),
-            bodyweightLbPrecise = global.bodyweightLb,
-            age = global.age,
-            level = global.level.name,
+            bodyweightLb = profile.bodyweightLb?.let { Math.round(it).toInt() },
+            bodyweightLbPrecise = profile.bodyweightLb,
+            age = profile.age,
             weightUnit = unit.name,
             wizardComplete = wizardComplete,
-            hasLifterAnswers = hasLifterAnswers,
             selectedPlanId = selectedPlanId,
             restTimerEnabled = restSettings.enabled,
             restRampSeconds = restSettings.overrides[RestCategory.RAMP],
@@ -230,11 +227,9 @@ fun FullSnapshot.toDocument(): BackupDocument {
 }
 
 fun BackupDocument.toSnapshot(): FullSnapshot {
-    val global = GlobalLifter(
-        bodyweightLb = settings.bodyweightLbPrecise ?: settings.bodyweightLb.toDouble(),
+    val profile = if (schemaVersion < 30 && !settings.hasLifterAnswers) LifterProfile() else LifterProfile(
+        bodyweightLb = settings.bodyweightLbPrecise ?: settings.bodyweightLb?.toDouble(),
         age = settings.age,
-        level = enumOrDefault(settings.level, ExperienceLevel.INTERMEDIATE),
-        weightUnit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
     )
     val legacyRecipe = if (schemaVersion < 9) V1Recipe(
         equipment = checkNotNull(settings.equipment).mapNotNull { name ->
@@ -373,10 +368,9 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
     } else emptyList()
 
     return FullSnapshot(
-        global = global,
+        profile = profile,
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
-        hasLifterAnswers = settings.hasLifterAnswers,
         suggestedDay = if (schemaVersion >= 9) null else settings.suggestedDay,
         legacyRecipe = legacyRecipe,
         selectedPlanId = settings.selectedPlanId?.let { preferredPlan(restoredPlans, it)?.id },

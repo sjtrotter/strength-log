@@ -13,7 +13,6 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -82,7 +81,7 @@ class TrackerRepositoryPlanSelectionTest {
     }
 
     @Test
-    fun `publishing without lifter answers preserves the global lifter`() = runTest {
+    fun `publishing without lifter answers preserves the profile`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries()
@@ -92,12 +91,12 @@ class TrackerRepositoryPlanSelectionTest {
             val settings = SettingsStore(PausingDataStore())
             val repo = PlanRepository(db, settings)
             repo.runPlanSettingsFixupIfNeeded()
-            val global = GlobalLifter(190.0, 55, ExperienceLevel.ADVANCED)
-            settings.setGlobalLifter(global)
+            val profile = LifterProfile(190.0, 55)
+            settings.setLifterProfile(profile)
             val answers = WizardAnswers(cardioFirst = CardioFirst())
             val id = repo.createGeneratedPlan("Running", answers, ProgramGenerator.generate(answers))
             repo.publishCreatedPlan(id, answers, writeLifter = false)
-            assertEquals(global, settings.globalLifterFlow.first())
+            assertEquals(profile, settings.lifterProfileFlow.first())
             assertEquals(id, settings.selectedPlanIdFlow.first())
             assertTrue(db.planDao().plan(id)!!.onToday)
         } finally {

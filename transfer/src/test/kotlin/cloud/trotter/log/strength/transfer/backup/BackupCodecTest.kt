@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.serialization.V1Recipe
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -629,7 +629,7 @@ class BackupCodecTest {
     @Test
     fun `export import export is byte-identical`() {
         val snapshot = FullSnapshot(
-            global = GlobalLifter(),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             unit = WeightUnit.KG,
             wizardComplete = true,
@@ -666,7 +666,7 @@ class BackupCodecTest {
             seconds = 0, startedAtMillis = 1_700_000_000_000L, completedAtMillis = 1_700_000_045_000L,
         )
         val snapshot = FullSnapshot(
-            global = GlobalLifter(),
+            profile = LifterProfile(235.0, 40),
             legacyRecipe = V1Recipe(),
             unit = WeightUnit.LB,
             wizardComplete = true,
@@ -689,7 +689,7 @@ class BackupCodecTest {
     // --- rest-timer prefs (schema v3) ---------------------------------------
 
     private fun restSnapshot(restSettings: RestSettings) = FullSnapshot(
-        global = GlobalLifter(),
+        profile = LifterProfile(235.0, 40),
         legacyRecipe = V1Recipe(),
         unit = WeightUnit.LB,
         wizardComplete = true,

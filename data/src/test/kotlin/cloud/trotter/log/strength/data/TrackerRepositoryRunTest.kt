@@ -500,8 +500,8 @@ class TrackerRepositoryRunTest {
     @Test fun `finish stores no bodyweight without lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan)
-        assertFalse(settings.hasLifterAnswersFlow.first())
-        assertEquals(235.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
+        assertNull(settings.lifterProfileFlow.first().bodyweightLb)
 
         val sessionId = repo.finishRun(id)!!
 
@@ -511,8 +511,8 @@ class TrackerRepositoryRunTest {
     @Test fun `finish stores config bodyweight with lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan)
-        settings.updateGlobalLifter { it }
-        assertTrue(settings.hasLifterAnswersFlow.first())
+        settings.setLifterProfile(LifterProfile(235.0, 40))
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         val sessionId = repo.finishRun(id)!!
 
@@ -720,7 +720,7 @@ class TrackerRepositoryRunTest {
     @Test fun `removing a day stores no bodyweight without lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan, "B")
-        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         assertTrue(repo.removeDay(plan, "B"))
 
@@ -730,8 +730,8 @@ class TrackerRepositoryRunTest {
     @Test fun `removing a day stores config bodyweight with lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan, "B")
-        settings.updateGlobalLifter { it }
-        assertTrue(settings.hasLifterAnswersFlow.first())
+        settings.setLifterProfile(LifterProfile(235.0, 40))
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         assertTrue(repo.removeDay(plan, "B"))
 
@@ -754,7 +754,7 @@ class TrackerRepositoryRunTest {
     @Test fun `replacing a program stores no bodyweight without lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan)
-        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         repo.replaceProgram(Program(emptyList()))
 
@@ -764,8 +764,8 @@ class TrackerRepositoryRunTest {
     @Test fun `replacing a program stores config bodyweight with lifter answers`() = runTest {
         val plan = authored()
         val id = start(plan)
-        settings.updateGlobalLifter { it }
-        assertTrue(settings.hasLifterAnswersFlow.first())
+        settings.setLifterProfile(LifterProfile(235.0, 40))
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
 
         repo.replaceProgram(Program(emptyList()))
 

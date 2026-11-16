@@ -220,7 +220,7 @@ strength day; the shipped cardio vectors stay pinned.
 - **Plans.** The app holds any number of named plans; one is selected for
   Today and the watch. A plan owns its days, prescriptions, live working
   values, rotation position, equipment and typed lift goals.
-  Bodyweight, age, level and units stay global. The wizard always creates a
+  Bodyweight, age and units stay global. The wizard always creates a
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.
 - **Identity on the wire.** Snapshots carry the run: the open run, or the day's next run ID. Deltas carry the run and the exercise. A delta for a finished or unknown run is rejected. A delta with no run (an old watch) only edits a run the phone opened after that day's last close. `schemaVersion` stays 1; a field's presence is the capability.

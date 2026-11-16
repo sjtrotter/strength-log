@@ -99,4 +99,20 @@ class SetupRecipeJsonTest {
         val accepted = answers.copy(balanceDays = true)
         assertEquals(accepted, SetupRecipeJson.decode(SetupRecipeJson.encode(accepted), settings, WeightUnit.KG))
     }
+    @Test fun `field readers are tolerant`() {
+        assertEquals(true, SetupRecipeJson.olderAdult(SetupRecipeJson.encode(SetupAnswers(olderAdult = true))))
+        assertEquals(false, SetupRecipeJson.olderAdult(SetupRecipeJson.encode(SetupAnswers())))
+        val v1 = PlanRecipeJson.encode(WizardAnswers())
+        assertNull(SetupRecipeJson.olderAdult(v1))
+        assertEquals(LiftExperience.NEW, SetupRecipeJson.experience(SetupRecipeJson.encode(SetupAnswers())))
+        assertNull(SetupRecipeJson.experience("""{"v":2,"experience":"GURU"}"""))
+        assertNull(SetupRecipeJson.experience(v1))
+        assertEquals(true, SetupRecipeJson.olderAdult("""{"v":2,"olderAdult":true,"experience":{}}"""))
+        assertEquals(LiftExperience.NEW, SetupRecipeJson.experience("""{"v":2,"olderAdult":{},"experience":"NEW"}"""))
+        assertEquals(false, SetupRecipeJson.olderAdult("""{"v":2,"olderAdult":{}}"""))
+        for (json in listOf("not json", "[]", """{"v":"2"}""")) {
+            assertNull(SetupRecipeJson.olderAdult(json))
+            assertNull(SetupRecipeJson.experience(json))
+        }
+    }
 }

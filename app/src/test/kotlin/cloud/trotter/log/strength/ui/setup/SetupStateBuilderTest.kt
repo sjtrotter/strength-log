@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.setup
 
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -16,9 +15,8 @@ class SetupStateBuilderTest {
 
     @Test
     fun bodyweightDisplay_delegates_to_WeightUnit_conversion() {
-        val cfg = LifterConfig(bodyweightLb = 220)
-        assertEquals(220.0, SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.LB))
-        assertEquals(99.8, SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.KG))
+        assertEquals(220.0, SetupStateBuilder.bodyweightDisplay(220.0, WeightUnit.LB))
+        assertEquals(99.8, SetupStateBuilder.bodyweightDisplay(220.0, WeightUnit.KG))
     }
 
     @Test

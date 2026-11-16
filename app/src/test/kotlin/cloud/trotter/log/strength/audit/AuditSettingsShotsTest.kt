@@ -41,7 +41,7 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot01You() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/01-you") { YouScreen(YouUiState(), YouActions({}, {}, {}, {})) }
+        rule.auditShot("settings/01-you") { YouScreen(YouUiState(), YouActions({}, {}, {})) }
     }
 
     @Test fun shot02BackupIdle() {
@@ -97,13 +97,13 @@ class AuditSettingsShotsTest : UiAuditTest() {
 
     @Test fun shot11YouLight() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/11-you-light", theme = ThemePreference.LIGHT) { YouScreen(YouUiState(), YouActions({}, {}, {}, {})) }
+        rule.auditShot("settings/11-you-light", theme = ThemePreference.LIGHT) { YouScreen(YouUiState(), YouActions({}, {}, {})) }
     }
 
     @Config(fontScale = 2f)
     @Test fun shot12YouFont2() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("settings/12-you-font2", fontScale = 2f) { YouScreen(YouUiState(), YouActions({}, {}, {}, {})) }
+        rule.auditShot("settings/12-you-font2", fontScale = 2f) { YouScreen(YouUiState(), YouActions({}, {}, {})) }
     }
 
     @Test fun shot13BackupRestoreRunning() {

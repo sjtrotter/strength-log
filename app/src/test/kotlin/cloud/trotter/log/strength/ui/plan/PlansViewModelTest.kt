@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.LifterProfile
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -10,7 +11,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import java.io.File
@@ -82,7 +82,7 @@ class PlansViewModelTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             id = "A", title = "Day A", emphasisLine = "", exercises = emptyList(),
         ))))
-        if (hasLifterAnswers) settings.updateGlobalLifter { it }
+        if (hasLifterAnswers) settings.setLifterProfile(LifterProfile(235.0, 40))
     }
 
     @Test
@@ -92,14 +92,14 @@ class PlansViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, vm.uiState.value.plans.size)
-        assertFalse(settings.hasLifterAnswersFlow.first())
+        assertFalse(settings.lifterProfileFlow.first().bodyweightLb != null)
         assertNull(vm.uiState.value.you)
 
-        repo.plans.updateLifter { it }
+        settings.setLifterProfile(LifterProfile(235.0, 40))
         advanceUntilIdle()
 
-        assertTrue(settings.hasLifterAnswersFlow.first())
-        assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
+        assertTrue(settings.lifterProfileFlow.first().bodyweightLb != null)
+        assertEquals(YouSummary("235 lb", 40), vm.uiState.value.you)
     }
 
     @Test
@@ -108,11 +108,11 @@ class PlansViewModelTest {
         val vm = viewModel()
         assertNull(vm.uiState.value.you)
         advanceUntilIdle()
-        assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
-        repo.plans.updateLifter { it.copy(bodyweightLb = 220.0, age = 41, level = ExperienceLevel.ADVANCED) }
+        assertEquals(YouSummary("235 lb", 40), vm.uiState.value.you)
+        settings.updateLifterProfile { it.copy(bodyweightLb = 220.0, age = 41) }
         settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
-        assertEquals(YouSummary("99.8 kg", 41, "advanced"), vm.uiState.value.you)
+        assertEquals(YouSummary("99.8 kg", 41), vm.uiState.value.you)
     }
 
     @Test
@@ -142,7 +142,7 @@ class PlansViewModelTest {
     @Test
     fun `start empty restores name draft then creates selects and returns once`() = runTest(dispatcher) {
         seed()
-        val global = settings.globalLifterFlow.first()
+        val profile = settings.lifterProfileFlow.first()
         val handle = SavedStateHandle()
         val first = viewModel(handle)
         first.showNewPlan()
@@ -164,7 +164,7 @@ class PlansViewModelTest {
         assertEquals("Physio", created.name)
         assertEquals("AUTHORED", created.origin)
         assertEquals(created.id, settings.selectedPlanIdFlow.first())
-        assertEquals(global, settings.globalLifterFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
         assertTrue(repo.plans.programFor(created.id).first().days.single().exercises.isEmpty())
         assertEquals("Day A", repo.plans.programFor(created.id).first().days.single().title)
         assertNull(restored.uiState.value.newPlanPage)
@@ -266,5 +266,18 @@ class PlansViewModelTest {
         advanceUntilIdle()
         assertNull(restored.uiState.value.renamePlanId)
         assertEquals("Draft after process death", db.planDao().plan(1)!!.name)
+    }
+    @Test
+    fun `the You row reads Not set until a bodyweight exists`() = runTest(dispatcher) {
+        settings.setLifterProfile(LifterProfile(age = 40))
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.you)
+        settings.setLifterProfile(LifterProfile(bodyweightLb = 180.0))
+        advanceUntilIdle()
+        assertEquals(YouSummary("180 lb", null), vm.uiState.value.you)
+        settings.updateLifterProfile { it.copy(age = 40) }
+        advanceUntilIdle()
+        assertEquals(YouSummary("180 lb", 40), vm.uiState.value.you)
     }
 }

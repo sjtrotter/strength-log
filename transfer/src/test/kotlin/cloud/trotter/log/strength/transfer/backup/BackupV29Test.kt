@@ -57,7 +57,7 @@ class BackupV29Test {
         val source = document()
         val decoded = codec.decode(codec.encode(source))
         assertEquals(source.plans.single().settingsJson, decoded.plans.single().settingsJson)
-        assertEquals(29, decoded.toSnapshot().toDocument().schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.toSnapshot().toDocument().schemaVersion)
     }
 
     @Test fun `older documents cannot carry legacy mains`() {

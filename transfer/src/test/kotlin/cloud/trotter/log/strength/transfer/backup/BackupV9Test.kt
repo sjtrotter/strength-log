@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -22,20 +22,20 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
-/** v9 carries the generator inputs and rotation on each plan, with only a global lifter in settings. */
+/** v9 carries the generator inputs and rotation on each plan, with only a profile lifter in settings. */
 class BackupV9Test {
 
     private val codec = BackupCodec()
-    private val global = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, weightUnit = WeightUnit.KG)
-    private val strength = WizardAnswers(daysPerWeek = 3, config = global.copy(emphasis = GoalEmphasis.STRENGTH))
-    private val physique = WizardAnswers(daysPerWeek = 5, config = global.copy(emphasis = GoalEmphasis.PHYSIQUE))
+    private val profile = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, weightUnit = WeightUnit.KG)
+    private val strength = WizardAnswers(daysPerWeek = 3, config = profile.copy(emphasis = GoalEmphasis.STRENGTH))
+    private val physique = WizardAnswers(daysPerWeek = 5, config = profile.copy(emphasis = GoalEmphasis.PHYSIQUE))
     private val recipeFields = listOf(
         "emphasis", "cardioMode", "cardioPlacement", "fiveKGoal", "daysPerWeek",
         "split", "anchorScheme", "deadliftVariant", "equipment", "suggestedDay",
     )
 
     private fun snapshot() = FullSnapshot(
-        global = GlobalLifter.of(strength.config),
+        profile = LifterProfile(strength.config.bodyweightLb, strength.config.age),
         legacyRecipe = null,
         unit = WeightUnit.KG,
         wizardComplete = true,
@@ -79,7 +79,7 @@ class BackupV9Test {
         assertEquals(listOf("B", "C", null), restored.plans.map { it.suggestedDayId })
         assertNull(restored.plans.last().recipeJson)
         assertEquals(42L, restored.selectedPlanId)
-        assertEquals(GlobalLifter.of(global), restored.global)
+        assertEquals(LifterProfile(profile.bodyweightLb, profile.age), restored.profile)
         assertNull(restored.suggestedDay)
         assertNull(restored.legacyRecipe)
 
@@ -131,7 +131,7 @@ class BackupV9Test {
         val decoded = codec.decode(JsonObject(root + ("settings" to stray)).toString())
 
         assertEquals(document, decoded)
-        assertEquals(GlobalLifter.of(global), decoded.toSnapshot().global)
+        assertEquals(LifterProfile(profile.bodyweightLb, profile.age), decoded.toSnapshot().profile)
         assertNull(decoded.toSnapshot().suggestedDay)
     }
 

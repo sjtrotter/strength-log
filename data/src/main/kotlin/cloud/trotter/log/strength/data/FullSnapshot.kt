@@ -33,12 +33,12 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
  * on-disk JSON shape and maps to/from this type at the boundary; `:data` stays out
  * of the serialization business.
  *
- * [global] and [suggestedDay] project the lifter and selected plan's rotation for the
+ * [profile] and [suggestedDay] project the lifter and selected plan's rotation for the
  * legacy portable backup's settings block; [plans] retain each plan's stored recipe
  * and rotation position for an in-memory round trip.
  */
 data class FullSnapshot(
-    val global: GlobalLifter,
+    val profile: LifterProfile,
     val unit: WeightUnit,
     val wizardComplete: Boolean,
     val suggestedDay: String?,
@@ -65,7 +65,6 @@ data class FullSnapshot(
     val runs: List<WorkoutRunEntity> = emptyList(),
     val runTracks: List<RunTrackEntity> = emptyList(),
     val legacyLogs: List<LegacyLog> = emptyList(),
-    val hasLifterAnswers: Boolean = true,
     val effortScale: EffortScale = EffortScale.WORDS,
     val cardioRoutes: List<CardioRouteEntity> = emptyList(),
 )

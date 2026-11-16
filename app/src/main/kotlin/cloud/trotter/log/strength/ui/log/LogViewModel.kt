@@ -239,10 +239,10 @@ class LogViewModel @Inject constructor(
 
     private val healthUi = combine(
         healthData,
-        plans.configFlow,
+        settings.lifterProfileFlow,
         settings.unitFlow,
         bodyweightDismissed,
-    ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
+    ) { health, profile, unit, dismissed -> buildHealthUi(health, profile.bodyweightLb, unit, dismissed) }
 
     private val nextDay = tracker.todayTargetFlow.flatMapLatest { target ->
         if (target is TodayTarget.Day) plans.programFor(target.plan.id).map { it.dayToShow(target.dayId)?.id }
@@ -543,14 +543,12 @@ class LogViewModel @Inject constructor(
         }
     }
 
-    /** Applies the Health Connect bodyweight to the app's config (the user's
-     *  explicit choice — never automatic). Updates config via the repository's
-     *  SettingsStore surface, as the You screen does. */
+    /** Applies the Health Connect bodyweight only on the user's explicit choice. */
     fun applyBodyweightPrompt() {
         viewModelScope.launch {
-            val config = plans.configFlow.first()
-            val data = BodyweightPrompt.evaluate(healthData.value.latestWeightLb, config.bodyweightLb) ?: return@launch
-            plans.updateLifter { it.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)) }
+            val bodyweight = settings.lifterProfileFlow.first().bodyweightLb ?: return@launch
+            val data = BodyweightPrompt.evaluate(healthData.value.latestWeightLb, bodyweight) ?: return@launch
+            settings.updateLifterProfile { it.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)) }
             savedState[KEY_BW_DISMISSED] = true
         }
     }
@@ -561,11 +559,11 @@ class LogViewModel @Inject constructor(
 
     private fun buildHealthUi(
         data: HealthData,
-        configBodyweightLb: Double,
+        configBodyweightLb: Double?,
         unit: WeightUnit,
         dismissed: Boolean,
     ): HealthSectionUi {
-        val promptData = if (dismissed) {
+        val promptData = if (dismissed || configBodyweightLb == null) {
             null
         } else {
             BodyweightPrompt.evaluate(data.latestWeightLb, configBodyweightLb)

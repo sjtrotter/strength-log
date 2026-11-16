@@ -28,7 +28,7 @@ class BodyweightSettingsTest {
 
     @Test fun legacyWholePoundsReadWithoutAFinerKey() = runTest {
         store.edit { it[intPreferencesKey("bodyweight")] = 185 }
-        assertEquals(185.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(185.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
     }
 
     @Test fun finerValueWinsAndAnEditRemovesTheLegacyKey() = runTest {
@@ -36,9 +36,9 @@ class BodyweightSettingsTest {
             it[intPreferencesKey("bodyweight")] = 185
             it[longPreferencesKey("bodyweight_tenths_lb")] = 2105L
         }
-        assertEquals(210.5, settings.globalLifterFlow.first().bodyweightLb, 0.0)
-        settings.setGlobalLifter(GlobalLifter(bodyweightLb = 211.6))
-        assertEquals(211.6, settings.globalLifterFlow.first().bodyweightLb, 0.0)
+        assertEquals(210.5, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
+        settings.setLifterProfile(LifterProfile(bodyweightLb = 211.6))
+        assertEquals(211.6, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertNull(store.data.first()[intPreferencesKey("bodyweight")])
     }
 }

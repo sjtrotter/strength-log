@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -57,7 +56,7 @@ class SettingsRestoreClearsBackfillFlagTest {
         assertTrue(settings.healthBackfillDoneFlow.first())
 
         settings.restore(
-            global = GlobalLifter(bodyweightLb = 210.0, age = 33, level = ExperienceLevel.ADVANCED),
+            profile = LifterProfile(bodyweightLb = 210.0, age = 33),
             unit = WeightUnit.LB,
             wizardComplete = true,
             restSettings = RestSettings(),
@@ -74,7 +73,7 @@ class SettingsRestoreClearsBackfillFlagTest {
         assertTrue(settings.themePreferenceFlow.first() == ThemePreference.DARK)
 
         settings.restore(
-            global = GlobalLifter(),
+            profile = LifterProfile(),
             unit = WeightUnit.LB,
             wizardComplete = true,
             restSettings = RestSettings(),

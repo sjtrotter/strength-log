@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.ui.plan
 
 import cloud.trotter.log.strength.data.PlanSummary
 
-data class YouSummary(val bodyweightDisplay: String, val age: Int, val level: String)
+data class YouSummary(val bodyweightDisplay: String, val age: Int?)
 
 data class PlansUiState(
     val plans: List<PlanSummary> = emptyList(),

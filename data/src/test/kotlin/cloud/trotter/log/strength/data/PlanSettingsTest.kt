@@ -47,7 +47,6 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -131,7 +130,7 @@ class PlanSettingsTest {
         val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
         val importingBackup = BackupRepository(db, gatedSettings, repository.plans, repository.history)
         val snapshot = FullSnapshot(
-            global = GlobalLifter(), unit = WeightUnit.LB, wizardComplete = true,
+            profile = LifterProfile(), unit = WeightUnit.LB, wizardComplete = true,
             suggestedDay = null, selectedPlanId = 2, restSettings = RestSettings(),
             plans = listOf(plan(2)), legacyRecipe = null,
             customExercises = emptyList(), days = emptyList(), exercises = emptyList(),
@@ -166,7 +165,7 @@ class PlanSettingsTest {
         val authored = plan(2).copy(origin = PlanOrigin.AUTHORED.name)
         db.planDao().insertPlans(listOf(plan(1), authored, plan(3), existing))
         writeLegacy(legacy, "B")
-        val before = repo.plans.configFlow.first()
+        val before = settings.lifterProfileFlow.first()
 
         repo.plans.runPlanSettingsFixupIfNeeded()
 
@@ -177,7 +176,7 @@ class PlanSettingsTest {
         assertEquals(authored, db.planDao().plan(2))
         assertEquals(existing.copy(recipeJson = null, settingsJson =
             PlanSettingsJson.encode(facts(physiqueAnswers()))), db.planDao().plan(4))
-        assertEquals(before, repo.plans.configFlow.first())
+        assertEquals(before, settings.lifterProfileFlow.first())
         assertLegacyKeysGone()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         val plans = db.planDao().allPlans()
@@ -227,55 +226,24 @@ class PlanSettingsTest {
 
 
     @Test
-    fun `live config collector never emits defaults across the migration gate`() = runTest {
-        db.planDao().insertPlan(plan(1))
-        writeLegacy(strengthAnswers(), "B")
-        val open = CompletableDeferred<Unit>()
-        store.gateOnUpdate = 2
-        store.gate = open
-        val emissions = mutableListOf<GoalEmphasis>()
-        val observed = Channel<GoalEmphasis>(Channel.UNLIMITED)
-        val collector = backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            repo.plans.configFlow.collect {
-                emissions += it.emphasis
-                observed.send(it.emphasis)
-            }
-        }
-        val startup = launch { repo.plans.runPlanSettingsFixupIfNeeded() }
-        store.gateReached.await()
-        assertTrue(emissions.isEmpty())
-
-        open.complete(Unit)
-
-        assertEquals(GoalEmphasis.BALANCED, observed.receive())
-        startup.join()
-        // A later lifter edit makes the same live collector emit again after
-        // key retirement, rather than stopping at its first value.
-        repo.plans.updateLifter { it.copy(age = 41) }
-        observed.receive()
-        collector.cancelAndJoin()
-        assertTrue(emissions.isNotEmpty())
-        assertTrue(emissions.all { it == GoalEmphasis.BALANCED })
-    }
-
-    @Test
     fun `first wizard write seeds a recipe for either origin`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2).copy(origin = PlanOrigin.AUTHORED.name)))
-        val global = GlobalLifter(bodyweightLb = 205.0, age = 41, level = ExperienceLevel.ADVANCED)
-        settings.setGlobalLifter(global)
+        val profile = LifterProfile(bodyweightLb = 205.0, age = 41)
+        settings.setLifterProfile(profile)
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.plans.setWizardAnswers(WizardAnswers(config = settings.globalLifterFlow.first().toConfig(), cardio = prefs))
+        repo.plans.setWizardAnswers(WizardAnswers(config = LifterConfig(bodyweightLb = profile.bodyweightLb!!, age = profile.age!!), cardio = prefs))
 
         assertEquals(facts(WizardAnswers(cardio = prefs)), answersFor(1))
         settings.setSelectedPlanId(2)
-        repo.plans.setWizardAnswers(WizardAnswers(config = settings.globalLifterFlow.first().toConfig(), cardio = prefs))
+        repo.plans.setWizardAnswers(WizardAnswers(config = LifterConfig(bodyweightLb = profile.bodyweightLb!!, age = profile.age!!), cardio = prefs))
         assertEquals(facts(WizardAnswers(cardio = prefs)), answersFor(2))
-        assertEquals(global.toConfig(), repo.plans.configFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
     }
 
     @Test
-    fun `selection switches plan settings while the global config stays shared`() = runTest {
+    fun `selection switches plan settings while the profile stays shared`() = runTest {
+        settings.setLifterProfile(LifterProfile(193.0, 47))
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one, "B"), plan(2, two, "D")))
@@ -301,14 +269,14 @@ class PlanSettingsTest {
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two), plan(3).copy(origin = PlanOrigin.AUTHORED.name)))
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.plans.setWizardAnswers(one.copy(config = settings.globalLifterFlow.first().toConfig(), cardio = prefs))
+        repo.plans.setWizardAnswers(one.copy(cardio = prefs))
 
         assertEquals(facts(one), repo.plans.planSettingsFor(1).first())
         assertNull(db.planDao().plan(2)!!.recipeJson)
         settings.setSelectedPlanId(3)
-        repo.plans.updateLifter { it.copy(bodyweightLb = 205.0) }
-        repo.plans.setWizardAnswers(WizardAnswers(config = settings.globalLifterFlow.first().toConfig(), cardio = prefs))
-        assertEquals(GlobalLifter.of(one.config).toConfig().copy(bodyweightLb = 205.0), repo.plans.configFlow.first())
+        settings.updateLifterProfile { it.copy(bodyweightLb = 205.0) }
+        repo.plans.setWizardAnswers(WizardAnswers(config = LifterConfig(bodyweightLb = 205.0), cardio = prefs))
+        assertEquals(LifterProfile(one.config.bodyweightLb, one.config.age).copy(bodyweightLb = 205.0), settings.lifterProfileFlow.first())
         assertEquals(facts(WizardAnswers()), answersFor(3))
         repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215.0)))
         assertEquals(facts(two), answersFor(3))
@@ -369,25 +337,28 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `global config is identical before and after migration for default and custom answers`() = runTest {
+    fun `profile is identical before and after migration for default and custom answers`() = runTest {
         db.planDao().insertPlan(plan(1))
         val custom = strengthAnswers().copy(
             config = LifterConfig(bodyweightLb = 210, age = 56, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.STRENGTH),
         )
         for (answers in listOf(WizardAnswers(), custom)) {
             writeLegacy(answers, "B")
-            val oldConfig = settings.globalLifterFlow.first().toConfig()
-            val expected = GoalCalculator.goalForMain(StandardLift.SQUAT, false, oldConfig)
+            val oldProfile = settings.lifterProfileFlow.first()
+            fun legacyConfig(profile: LifterProfile) = answers.config.copy(
+                bodyweightLb = profile.bodyweightLb!!, age = profile.age!!, emphasis = GoalEmphasis.BALANCED,
+            )
+            val expected = GoalCalculator.goalForMain(StandardLift.SQUAT, false, legacyConfig(oldProfile))
             // Recreate the pre-fixup plan and flag for each legacy fixture.
             db.planDao().deleteAllPlans()
             db.planDao().insertPlan(plan(1))
             store.edit { it.remove(booleanPreferencesKey("plan_settings_fixup_done")) }
-            assertEquals(oldConfig, repo.plans.configFlow.first())
+            assertEquals(oldProfile, settings.lifterProfileFlow.first())
 
             repo.plans.runPlanSettingsFixupIfNeeded()
 
-            assertEquals(oldConfig, repo.plans.configFlow.first())
-            assertEquals(expected, GoalCalculator.goalForMain(StandardLift.SQUAT, false, repo.plans.configFlow.first()), 0.0)
+            assertEquals(oldProfile, settings.lifterProfileFlow.first())
+            assertEquals(expected, GoalCalculator.goalForMain(StandardLift.SQUAT, false, legacyConfig(settings.lifterProfileFlow.first())), 0.0)
             if (answers == WizardAnswers()) assertEquals(235.0, expected, 0.0)
         }
     }
@@ -403,7 +374,7 @@ class PlanSettingsTest {
         ))
         settings.setSelectedPlanId(2)
         val snapshot = backupRepository.exportSnapshot()
-        assertEquals(settings.globalLifterFlow.first(), snapshot.global)
+        assertEquals(settings.lifterProfileFlow.first(), snapshot.profile)
         assertEquals("D", snapshot.suggestedDay)
         writeLegacy(one, "old")
         settings.enableAutoBackup("content://tree/folder", "Backups")
@@ -417,7 +388,7 @@ class PlanSettingsTest {
         assertLegacyKeysGone()
         val authored = plan(3).copy(origin = PlanOrigin.AUTHORED.name)
         val legacy = snapshot.copy(
-            global = GlobalLifter.of(one.config),
+            profile = LifterProfile(one.config.bodyweightLb, one.config.age),
             plans = snapshot.plans.map { it.copy(recipeJson = null, suggestedDayId = null) } + authored,
             suggestedDay = "B",
             legacyRecipe = PlanRecipeJson.read(PlanRecipeJson.encode(one)),
@@ -439,7 +410,7 @@ class PlanSettingsTest {
     fun `mid first run backup gives answers an empty plan that the wizard can fill`() = runTest {
         val answers = strengthAnswers()
         val snapshot = FullSnapshot(
-            global = GlobalLifter.of(answers.config),
+            profile = LifterProfile(answers.config.bodyweightLb, answers.config.age),
             legacyRecipe = PlanRecipeJson.read(PlanRecipeJson.encode(answers)),
             unit = WeightUnit.LB,
             wizardComplete = false,
@@ -548,7 +519,7 @@ class PlanSettingsTest {
     }
 
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {
-        assertEquals(settings.globalLifterFlow.first().toConfig(), repo.plans.configFlow.first())
+        assertEquals(LifterProfile(193.0, 47), settings.lifterProfileFlow.first())
         assertEquals(facts(answers), repo.plans.selectedPlanFlow.first()!!.planSettings)
         assertEquals(suggestedDay, repo.plans.suggestedDayFlow.first())
     }

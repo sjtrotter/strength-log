@@ -2430,7 +2430,13 @@ class DayViewModelWiringTest {
         assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
         assertEquals(original.slots.size, reset.slots.size)
         assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })
-        assertTrue(reset.slots.all { it.main.stored == null && it.main.seed?.isNotEmpty() == true })
+        // The active VM persists lazy seeds before observing the replacement slot IDs.
+        reset.slots.forEach { slot ->
+            assertTrue(
+                "Unseeded reset slot: ${slot.slot.exercise.exerciseId}",
+                slot.main.stored?.isNotEmpty() == true,
+            )
+        }
         assertNull(repo.openRunFlow.first())
         val focus = requireNotNull(vm.uiState.value.workout?.focus)
         assertEquals(Slot.MAIN, focus.slot)

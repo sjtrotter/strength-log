@@ -2,30 +2,17 @@ package cloud.trotter.log.strength.domain.library
 
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
-import cloud.trotter.log.strength.domain.model.StandardLift
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 
-/** Where an exercise's read-only GOAL comes from (spec §5). The variant also
- *  decides how the exercise is tracked — see [ExerciseEntry.tracking]. */
+/** How an exercise is logged (spec §5, PLAN.md A19): by load and reps, by reps, or by time. Reps and timed entries
+ *  carry the target conversion, the planner and the opening rows start from. */
 sealed interface GoalSource {
-    /** Main-capable lift derived from a bodyweight-ratio standard.
-     *  [tune] overrides the global [StrengthStandards.liftTune] when non-null
-     *  (e.g. conventional deadlift takes the untrimmed 1.0 vs trap-bar's 0.82). */
-    data class Std(val lift: StandardLift, val tune: Double? = null) : GoalSource
-
-    /** Fraction of a named standard's main goal (e.g. RDL = 0.72 × squat). */
-    data class FracOfStd(val fraction: Double, val lift: StandardLift) : GoalSource
-
-    /** Fixed starting weight in lb (0 = bodyweight). */
-    data class Flat(val weightLb: Double) : GoalSource
-
-    /** Pure bodyweight movement tracked by reps. [targetReps] is the read-only
-     *  "GOAL n reps" anchor the rows seed at. */
+    /** Logged by load and reps; the opening load comes from the lifter's numbers, the log or the equipment floor. */
+    data object Weighted : GoalSource
+    /** Pure bodyweight movement tracked by reps; [targetReps] is where its rows start. */
     data class Reps(val targetReps: Int) : GoalSource
-
-    /** Timed hold/carry tracked by seconds. [addedWeightLb] > 0 surfaces an
-     *  optional load control (e.g. weighted plank). */
+    /** Timed hold or carry tracked by seconds. [addedWeightLb] > 0 surfaces an optional load control. */
     data class Time(val targetSeconds: Int, val addedWeightLb: Double = 0.0) : GoalSource
 }
 
@@ -36,7 +23,7 @@ enum class TrackingType { WEIGHTED, REPS, TIMED }
 /** The tracking type implied by this entry's [goal] (§2.1). */
 val ExerciseEntry.tracking: TrackingType
     get() = when (goal) {
-        is GoalSource.Std, is GoalSource.FracOfStd, is GoalSource.Flat -> TrackingType.WEIGHTED
+        GoalSource.Weighted -> TrackingType.WEIGHTED
         is GoalSource.Reps -> TrackingType.REPS
         is GoalSource.Time -> TrackingType.TIMED
     }

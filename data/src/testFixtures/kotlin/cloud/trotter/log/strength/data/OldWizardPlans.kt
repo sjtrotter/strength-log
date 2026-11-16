@@ -25,7 +25,7 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 import java.util.UUID
 
 /** An old (v1) wizard plan as its build stored it: the recipe text, the program before rules, and the old
- *  generator's mains for it. Frozen at 6d; OldWizardPlansTest proved each against the generator. Never edit. */
+ *  generator's mains for it. Frozen at 6d; proved against the generator in 6d-i (#597). Never edit. */
 data class OldWizardPlan(
     val recipeJson: String,
     val program: Program,
@@ -35,7 +35,7 @@ data class OldWizardPlan(
     val cardioFirst: Boolean = false,
 )
 
-/** The old wizard's recipe text, byte for byte as it wrote it (proved in OldWizardPlansTest). */
+/** The old wizard's recipe text, byte for byte as it wrote it (proved in 6d-i, #597). */
 fun v1RecipeJson(
     daysPerWeek: Int = 4,
     split: String = "FULL_BODY",

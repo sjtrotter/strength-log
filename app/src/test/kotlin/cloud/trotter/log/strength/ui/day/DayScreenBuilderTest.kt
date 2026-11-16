@@ -15,10 +15,10 @@ import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.NextOffer
 import cloud.trotter.log.strength.data.SlotSession
+import cloud.trotter.log.strength.data.prototypeSquat
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -26,8 +26,6 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetEditor
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
@@ -88,7 +86,7 @@ class DayScreenBuilderTest {
         val rows = List(3) { work(80.0, 10) }
         assertEquals("3 × 10 · 80 lb", DayScreenBuilder.workingHeading(rows, TrackingType.WEIGHTED, WeightUnit.LB))
         assertEquals("3 × 10 · 36.29 kg", DayScreenBuilder.workingHeading(rows, TrackingType.WEIGHTED, WeightUnit.KG))
-        val squat = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), 235.0, LifterConfig())
+        val squat = prototypeSquat()
         assertEquals("TOP × 5 · 235 lb", DayScreenBuilder.workingHeading(squat, TrackingType.WEIGHTED, WeightUnit.LB))
         assertEquals("70 × 5, 70 × 5, 70 × 4", DayScreenBuilder.workingHeading(
             listOf(work(70.0, 5), work(70.0, 5), work(70.0, 4)), TrackingType.WEIGHTED, WeightUnit.LB))
@@ -165,7 +163,7 @@ class DayScreenBuilderTest {
     @Test
     fun `generated header retains the exact goal value in either unit`() {
         val exercise = ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)
-        val goal = GoalTarget.Weight(235.0, perHand = false)
+        val goal = GoalTarget(235.0, perHand = false)
         assertEquals(HeaderTarget.Goal("235"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.LB))
         assertEquals(HeaderTarget.Goal("106.59"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.KG))
     }
@@ -188,7 +186,7 @@ class DayScreenBuilderTest {
             for ((unit, display) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
                 assertEquals(
                     HeaderTarget.Prescribed(display, (target as? PrescribedTarget.RepsInTime)?.repAim, true, "Red band"),
-                    DayScreenBuilder.headerTarget(exercise, GoalTarget.Weight(235.0, perHand = false), unit),
+                    DayScreenBuilder.headerTarget(exercise, GoalTarget(235.0, perHand = false), unit),
                 )
             }
         }
@@ -197,7 +195,7 @@ class DayScreenBuilderTest {
     @Test
     fun `prescribed header follows the slot set count and keeps sub-minute clocks`() {
         val exercise = ProgramExercise("unknown", targetSets = 5, prescription = Prescription(PrescribedTarget.Hold(5)))
-        val goal = GoalTarget.Weight(235.0, perHand = false)
+        val goal = GoalTarget(235.0, perHand = false)
         assertEquals(HeaderTarget.Prescribed("5 × 0:05"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.LB))
         assertEquals(HeaderTarget.Prescribed("0:30"), DayScreenBuilder.headerTarget(
             exercise.copy(prescription = Prescription(PrescribedTarget.RepsInTime(30))), goal, WeightUnit.KG,
@@ -283,7 +281,6 @@ class DayScreenBuilderTest {
         assertEquals(listOf(false, true), marked.exercises.single().rows.map { it.justTickedRemotely })
     }
 
-    private val cfg = LifterConfig() // bw 235, age 40, INTERMEDIATE, BALANCED
     private val catalog = ExerciseCatalog.CODE_ONLY
 
     private fun work(w: Double, r: Int, done: Boolean = false, seconds: Int = 0) =
@@ -295,16 +292,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun editing_the_top_row_cascades_to_the_pinned_numbers() {
-        val goal = GoalCalculator.goalForMain(
-            cloud.trotter.log.strength.domain.model.StandardLift.SQUAT,
-            perHand = false,
-            cfg = cfg,
-        )
-        val seeded = SetSeeder.seed(
-            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
-            goal,
-            cfg,
-        )
+        val seeded = prototypeSquat(235.0)
         val topIndex = seeded.indexOfFirst { it.kind == SetKind.TOP }
         val cascaded = SetEditor.editWeight(seeded, topIndex, 245.0)
         // §11: squat TOP 245 → ramps 135/170/195/220, B/O 185.
@@ -315,7 +303,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun kindLabels_number_ramps_and_mark_top_and_backoff() {
-        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6), 235.0, cfg)
+        val main = prototypeSquat()
         assertEquals(listOf("R1", "R2", "R3", "R4", "TOP", "B/O"), DayScreenBuilder.kindLabels(main))
     }
 
@@ -359,7 +347,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun kindLabelsForKinds_matches_kindLabels_over_the_same_sequence() {
-        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6), 235.0, cfg)
+        val main = prototypeSquat()
         assertEquals(DayScreenBuilder.kindLabels(main), DayScreenBuilder.kindLabelsForKinds(main.map { it.kind }))
     }
 

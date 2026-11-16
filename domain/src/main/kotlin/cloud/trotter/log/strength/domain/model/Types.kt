@@ -4,14 +4,7 @@ import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.Serializable
-
-enum class ExperienceLevel { NOVICE, INTERMEDIATE, ADVANCED }
-
-enum class GoalEmphasis { STRENGTH, BALANCED, PHYSIQUE }
-
-enum class StandardLift { SQUAT, BENCH, DEADLIFT, OHP, INCLINE, ROW }
 
 enum class MovementPattern {
     SQUAT_BILATERAL, SINGLE_LEG, HINGE, KNEE_FLEXION, KNEE_EXTENSION,
@@ -143,33 +136,7 @@ data class Program(val days: List<ProgramDay>) {
     }
 }
 
-data class LifterConfig(
-    val bodyweightLb: Double = 235.0,
-    val age: Int = 40,
-    val level: ExperienceLevel = ExperienceLevel.INTERMEDIATE,
-    val emphasis: GoalEmphasis = GoalEmphasis.BALANCED,
-    val weightUnit: WeightUnit = WeightUnit.LB,
-    /** This plan's edited goals by exercise id, in lb. An absent id uses the calculated goal. */
-    val goalsLb: Map<String, Double> = emptyMap(),
-) {
-    constructor(
-        bodyweightLb: Int,
-        age: Int = LifterConfig().age,
-        level: ExperienceLevel = LifterConfig().level,
-        emphasis: GoalEmphasis = LifterConfig().emphasis,
-        weightUnit: WeightUnit = LifterConfig().weightUnit,
-    ) : this(bodyweightLb.toDouble(), age, level, emphasis, weightUnit)
-}
-
 enum class CardioMode { OUTDOOR_RUN, TREADMILL, LOW_IMPACT, NONE }
-
-enum class CardioPlacement { FINISHERS, SEPARATE_DAYS, BOTH, NONE }
-
-data class CardioPrefs(
-    val mode: CardioMode = CardioMode.OUTDOOR_RUN,
-    val placement: CardioPlacement = CardioPlacement.FINISHERS,
-    val fiveKGoal: Boolean = true, // loose target, shapes suggestion copy
-)
 
 @Serializable
 data class CardioSuggestion(

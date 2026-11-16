@@ -28,9 +28,7 @@ import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -488,7 +486,7 @@ class RestoreJournalTest {
         )
         val nonce = "previous-build-restore-before-gate"
         settingsStore.edit { prefs ->
-            prefs[stringPreferencesKey("emphasis")] = GoalEmphasis.PHYSIQUE.name
+            prefs[stringPreferencesKey("emphasis")] = "PHYSIQUE"
             prefs[stringPreferencesKey("suggested_day")] = "A"
         }
         stagePreviousBuild(restored, nonce)
@@ -535,7 +533,7 @@ class RestoreJournalTest {
             db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "current-build"))
         }
         settingsStore.edit { prefs ->
-            prefs[stringPreferencesKey("emphasis")] = GoalEmphasis.PHYSIQUE.name
+            prefs[stringPreferencesKey("emphasis")] = "PHYSIQUE"
             prefs[stringPreferencesKey("suggested_day")] = "C"
         }
 
@@ -690,9 +688,9 @@ class RestoreJournalTest {
             prefs[intPreferencesKey("bodyweight")] = profile.bodyweightLb!!.toInt()
             prefs[intPreferencesKey("age")] = profile.age!!
             prefs[stringPreferencesKey("level")] = "INTERMEDIATE"
-            prefs[stringPreferencesKey("emphasis")] = GoalEmphasis.BALANCED.name
+            prefs[stringPreferencesKey("emphasis")] = "BALANCED"
             prefs[stringPreferencesKey("cardio_mode")] = recipe.cardioMode.name
-            prefs[stringPreferencesKey("cardio_placement")] = CardioPlacement.FINISHERS.name
+            prefs[stringPreferencesKey("cardio_placement")] = "FINISHERS"
             prefs[booleanPreferencesKey("five_k")] = recipe.fiveKGoal
             prefs[intPreferencesKey("days_per_week")] = 3
             prefs[stringPreferencesKey("split")] = V1Split.FULL_BODY.name

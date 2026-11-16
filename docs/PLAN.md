@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A18)
+## Amendments (A1–A19)
 
 ### A1. Session history is now required (biggest change)
 
@@ -285,9 +285,11 @@ strength day; the shipped cardio vectors stay pinned.
   distance sets. Cardio-first plans start with cardio increase offers on. The
   answers are stored in the plan’s recipe as generator inputs; there is still
   no stored plan kind. Backup v23 recipes may carry them.
-- §11 numbers and the shipped cardio vectors do not move.
+- The shipped cardio vectors do not move (A19 retired the §11 formula numbers).
 
 ### A14. Next time carries the plan, not the result (owner council, 2026-11-05, #467)
+
+Superseded by A19.
 
 Next time keeps the prescription's shape and holds the opening working weight.
 A miss never lowers it and never pre-fills a lighter number.
@@ -335,6 +337,8 @@ An added lift, and a lift swapped in for the plan or the workout, arrives as str
 its top-set reps. A plan swap drops the old exercise's prescription.
 ### A15. Plans from the lifter's numbers (#499, owner-approved 2026-11-06)
 
+Superseded by A19.
+
 The wizard's optional recent-lifts step takes a recent working weight and reps
 per main lift. Each entered lift seeds its main as a load × reps prescription.
 Skipped, the plan is generated as before and §11 does not move. Novices start
@@ -358,11 +362,29 @@ the goal distance; intervals never count. Shuttle counts are logged against the
 goal. Official level tables, beep audio and sprint goals (times are whole seconds)
 are out of scope. Room v23 adds `plan.goalJson`; backup v25 carries it.
 
+### A19. Setup by goal, generator from the log (owner, 2026-11-08; wizard rebuild PRs 1 to 6)
+
+Normative design: `docs/briefs/wizard-design-2026-11-08.md`, with its revisions. Setup asks the goal, the week,
+the equipment, training experience, the lifts and recent numbers; the planner (`domain/planner`) builds the plan
+and progression (`domain/progression`) moves every target from the log. No load comes from a bodyweight formula:
+a lift opens from the lifter's numbers, its history, or the equipment floor with calibration.
+
+- Supersedes spec §4 (goal math and seeding), §6 (setup wizard and generator), §8.3's Reset day to template
+  (setup plans have Reset day to plan; other plans have no reset), §8.4 (Setup screen) and the formula types in
+  §3. Spec §5's GOAL source column now only says how an entry is logged: by load, by reps or by time.
+- Replaces A14 and the recent-lifts A15 (#499); absorbs A16 and A13's cardio-first paragraph; extends A18 (a
+  timed goal may have no time, sprint goals, the goal date drives the taper).
+- Retires A13's "§11 numbers do not move". Spec §11.1's formula numbers went with the formula; spec §11.2 is the
+  contract, and a diff that changes one of its numbers must change that case on purpose.
+- Existing plans convert once (design §4.4): every slot gets a rule; equipment, typed goals and the old wizard's
+  mains move into plan settings; the v1 recipe is cleared. Workout history is never rewritten. A restored old
+  backup converts the same way on every later build.
+- The profile is two optional numbers, bodyweight and age (#527). Units stay global.
+
 ## Architecture
 
 ```
-:domain     pure Kotlin — types, catalog seed, goal math, seeding, cascade,
-            generator, rotation. Zero Android deps. (spec §3–§6)
+:domain     pure Kotlin — types, catalog, planner, progression, set shapes and cascade, rotation. Zero Android deps. (spec §3–§6)
 :data       Room (program, live logs, sessions, custom exercises), DataStore,
             TrackerRepository, ExerciseCatalog. (spec §7 + A1/A4)
 :transfer   backup JSON, CSV export/import, Health Connect client. (A2/A3)
@@ -393,9 +415,9 @@ checklist after M3; watch-edit-survives-restart after M5.
 
 ## Risks / watch items
 
-- **Catalog quality at 200 entries** — GOAL sources (`flat`/`frac`) need sane
-  values per entry; Fable reviews the full table before data entry (it's the
-  SSOT for every suggested weight).
+- **Catalog quality at 200 entries** — each entry's pattern, equipment,
+  muscles and tracking type need review; Fable reviews the full table before data
+  entry.
 - **Health Connect availability** varies by device/Android version — feature
   must degrade invisibly.
 - **Wear Data Layer** is the fiddliest platform surface in the plan; it's last

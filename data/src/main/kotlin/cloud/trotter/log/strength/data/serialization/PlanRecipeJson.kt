@@ -1,10 +1,8 @@
 package cloud.trotter.log.strength.data.serialization
 
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.serialization.Serializable
 
 /** Persistence shape of the generator inputs owned by a plan. */
@@ -54,27 +52,6 @@ object PlanRecipeJson {
     private val V1_LIFT_DAYS = setOf(0, 2, 3)
 
     const val MAX_GOAL_LB = 2000.0
-
-    /** Writes an old wizard recipe. Only OldWizardPlansTest calls it, to prove the test fixtures; 6d-ii deletes both. */
-    fun encode(answers: WizardAnswers): String = SetJson.encode(
-        PlanRecipeDto.serializer(),
-        PlanRecipeDto(
-            daysPerWeek = answers.daysPerWeek,
-            split = answers.split.name,
-            anchorScheme = answers.anchorScheme.name,
-            deadliftVariant = answers.deadliftVariant.name,
-            emphasis = answers.config.emphasis.name,
-            cardioMode = answers.cardio.mode.name,
-            cardioPlacement = answers.cardio.placement.name,
-            fiveKGoal = answers.cardio.fiveKGoal,
-            equipment = answers.equipment.map { it.name },
-            goalsLb = answers.config.goalsLb,
-            cardioFirst = answers.cardioFirst?.let {
-                CardioFirstDto(it.activity.name, (it.comfortable as? Measure.Time)?.seconds,
-                    (it.comfortable as? Measure.Distance)?.metres, it.sessions, it.liftDays, it.restDays)
-            },
-        ),
-    )
 
     /** Checks a portable recipe with the stored-payload decoder and the supported day range. */
     fun validate(json: String) {

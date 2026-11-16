@@ -18,7 +18,8 @@ class CatalogRepository(private val customExerciseDao: CustomExerciseDao) {
     /**
      * [tracking] selects which of [goalStartLb]/[targetReps]/[targetSeconds] is
      * the live GOAL (mirrors [cloud.trotter.log.strength.data.mapping.toEntry]):
-     * WEIGHTED reads [goalStartLb] as the flat starting weight; REPS reads
+     * WEIGHTED stores [goalStartLb] as typed; the catalog entry is
+     * [cloud.trotter.log.strength.domain.library.GoalSource.Weighted]; REPS reads
      * [targetReps]; TIMED reads [targetSeconds] plus [goalStartLb] as any
      * optional added load. Defaulted so every pre-tracking-types call site
      * (weighted-only) keeps compiling unchanged.

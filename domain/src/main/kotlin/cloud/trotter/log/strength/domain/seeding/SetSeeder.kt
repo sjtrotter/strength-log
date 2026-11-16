@@ -1,21 +1,16 @@
 package cloud.trotter.log.strength.domain.seeding
 
-import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.Scheme
-import cloud.trotter.log.strength.domain.standards.GoalTarget
-import cloud.trotter.log.strength.domain.standards.StrengthStandards
 import cloud.trotter.log.strength.domain.units.GeneratedLoad
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
-/** Seeds the initial ACTUAL log rows from a GOAL (spec §4). */
+/** Stored rows from an authored prescription or a TOP load and a [Scheme]. */
 object SetSeeder {
 
     /** For reps in time, the window lives in the prescription; the log holds the count. */
@@ -32,48 +27,6 @@ object SetSeeder {
             is PrescribedTarget.Hold -> List(sets) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
             is PrescribedTarget.RepsInTime -> List(sets) { LoggedSet(0.0, 0, SetKind.WORK) }
         }
-
-    private const val ACCESSORY_REPS = 10
-
-    /**
-     * Type-aware seeding routed by the resolved [GoalTarget] (§2.2). WEIGHTED
-     * reuses the exact weighted sequence; REPS/TIMED seed `targetSets` all-WORK
-     * rows at their target, so the TOP-keyed cascade is unreachable for them by
-     * construction.
-     *
-     * @param mainLift A main lift does its top-set reps even as straight sets.
-     */
-    fun seed(
-        pe: ProgramExercise,
-        target: GoalTarget,
-        cfg: LifterConfig,
-        equipment: Collection<Equipment> = ExerciseLibrary.find(pe.exerciseId)?.equipment.orEmpty(),
-        mainLift: Boolean = pe.structure.hasTopSet,
-    ): List<LoggedSet> =
-        when (target) {
-            is GoalTarget.Weight -> seed(pe, target.lb, cfg, equipment, mainLift)
-            is GoalTarget.Reps ->
-                List(pe.targetSets) { LoggedSet(0.0, target.reps, SetKind.WORK) }
-            is GoalTarget.Time ->
-                List(pe.targetSets) { LoggedSet(GeneratedLoad.snap(target.addedLb, cfg.weightUnit), 0, SetKind.WORK, seconds = target.seconds) }
-        }
-
-    /** @param mainLift A main lift does its top-set reps even as straight sets. */
-    fun seed(
-        pe: ProgramExercise,
-        goal: Double,
-        cfg: LifterConfig,
-        equipment: Collection<Equipment> = ExerciseLibrary.find(pe.exerciseId)?.equipment.orEmpty(),
-        mainLift: Boolean = pe.structure.hasTopSet,
-    ): List<LoggedSet> =
-        shape(
-            pe.structure,
-            GeneratedLoad.snap(goal, cfg.weightUnit),
-            if (mainLift) StrengthStandards.topSetReps(cfg.emphasis) else ACCESSORY_REPS,
-            pe.targetSets,
-            cfg.weightUnit,
-            equipment,
-        )
 
     fun shape(
         structure: SetStructure,
@@ -110,24 +63,4 @@ object SetSeeder {
         return ramps + LoggedSet(topLb, topReps, SetKind.TOP)
     }
 
-    /**
-     * Superset partner track: same row count as the primary, seeded from the
-     * partner's own [GoalTarget], all [SetKind.WORK] (spec §4). Type-aware so a
-     * reclassified REPS/TIMED partner never routes through the weighted path.
-     */
-    fun seedPartner(primaryCount: Int, target: GoalTarget, unit: WeightUnit = WeightUnit.LB): List<LoggedSet> =
-        when (target) {
-            is GoalTarget.Weight -> seedPartner(primaryCount, GeneratedLoad.snap(target.lb, unit))
-            is GoalTarget.Reps ->
-                List(primaryCount) { LoggedSet(0.0, target.reps, SetKind.WORK) }
-            is GoalTarget.Time ->
-                List(primaryCount) { LoggedSet(GeneratedLoad.snap(target.addedLb, unit), 0, SetKind.WORK, seconds = target.seconds) }
-        }
-
-    /**
-     * Superset partner track: same row count as the primary, seeded from the
-     * partner's own GOAL, all [SetKind.WORK] (spec §4).
-     */
-    fun seedPartner(primaryCount: Int, partnerGoal: Double): List<LoggedSet> =
-        List(primaryCount) { LoggedSet(partnerGoal, ACCESSORY_REPS, SetKind.WORK) }
 }

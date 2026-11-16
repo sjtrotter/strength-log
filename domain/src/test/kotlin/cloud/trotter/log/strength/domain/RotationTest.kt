@@ -1,10 +1,6 @@
 package cloud.trotter.log.strength.domain
 
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -49,9 +45,7 @@ class RotationTest {
     }
 
     @Test fun generatedPlansKeepTheExistingStrengthRotation() {
-        val program = ProgramGenerator.generate(WizardAnswers(
-            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
-        ))
+        val program = oldProgram(withCardio = true)
         assertEquals(listOf("C1", "C2"), program.cardioDays.map { it.id })
         program.strengthDays.forEachIndexed { index, day ->
             assertEquals(program.strengthDays[(index + 1) % program.strengthDays.size].id,
@@ -74,9 +68,7 @@ class RotationTest {
 
     @Test fun mixedRotationSkipsGeneratedExtrasInPlanOrder() {
         val days = mixedProgram(ProgramDayKind.CARDIO).days
-        val extras = ProgramGenerator.generate(WizardAnswers(
-            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
-        )).cardioDays
+        val extras = oldProgram(withCardio = true).cardioDays
         val program = Program(listOf(extras[0], days[0], days[1], extras[1], days[2]))
 
         assertEquals(listOf("A", "B", "C"), program.rotationDays.map { it.id })
@@ -101,9 +93,7 @@ class RotationTest {
     }
 
     @Test fun liftingOnlyGeneratedPlanKeepsItsRotation() {
-        val program = ProgramGenerator.generate(WizardAnswers(
-            cardio = CardioPrefs(placement = CardioPlacement.NONE),
-        ))
+        val program = oldProgram(withCardio = false)
         assertEquals(listOf("A", "B", "C", "D"), program.rotationDays.map { it.id })
         assertEquals("B", Rotation.nextFor(program, "A"))
         assertEquals("C", Rotation.nextFor(program, "B"))
@@ -166,4 +156,11 @@ class RotationTest {
         assertNull(Rotation.trainingDayFrom(Program(emptyList()), "A"))
     }
 
+    private fun oldProgram(withCardio: Boolean): Program {
+        val strength = listOf("A", "B", "C", "D").map { ProgramDay(it, "Full Body", "", emptyList()) }
+        val extras = if (withCardio) listOf("C1", "C2").map {
+            ProgramDay(it, "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO)
+        } else emptyList()
+        return Program(strength + extras)
+    }
 }

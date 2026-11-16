@@ -84,15 +84,6 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `Std goal source is limited to the original main-capable lift ids`() {
-        val allowedStdIds = setOf(
-            "bb_back_squat", "conv_dl", "trap_dl", "sumo_dl", "bb_bench", "incline_db", "ohp", "bb_row",
-        )
-        val stdIds = ExerciseLibrary.entries.filter { it.goal is GoalSource.Std }.map { it.id }
-        assertTrue(stdIds.toSet().all { it in allowedStdIds })
-    }
-
-    @Test
     fun `weight stepper is 2_5 at or below 20lb else 5`() {
         assertEquals(2.5, WeightStepper.increment(15.0, WeightUnit.LB), 1e-9)
         assertEquals(2.5, WeightStepper.increment(20.0, WeightUnit.LB), 1e-9)
@@ -203,20 +194,15 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `dips is the single sanctioned existing WEIGHTED goal change`() {
-        assertEquals(GoalSource.Flat(45.0), ExerciseLibrary.get("dips").goal)
-    }
-
-    @Test
     fun `new entries exist with their declared GoalSource and subRank`() {
         val weightedPullup = ExerciseLibrary.get("weighted_pullup")
         assertEquals(V_PULL, weightedPullup.pattern)
-        assertEquals(GoalSource.Flat(25.0), weightedPullup.goal)
+        assertEquals(GoalSource.Weighted, weightedPullup.goal)
         assertEquals(10, weightedPullup.subRank)
 
         val weightedNeutralPullup = ExerciseLibrary.get("weighted_neutral_pullup")
         assertEquals(V_PULL, weightedNeutralPullup.pattern)
-        assertEquals(GoalSource.Flat(25.0), weightedNeutralPullup.goal)
+        assertEquals(GoalSource.Weighted, weightedNeutralPullup.goal)
         assertEquals(11, weightedNeutralPullup.subRank)
 
         val deadHang = ExerciseLibrary.get("dead_hang")
@@ -232,7 +218,7 @@ class ExerciseLibraryTest {
 
         val weightedPushup = ExerciseLibrary.get("weighted_pushup")
         assertEquals(H_PUSH, weightedPushup.pattern)
-        assertEquals(GoalSource.Flat(25.0), weightedPushup.goal)
+        assertEquals(GoalSource.Weighted, weightedPushup.goal)
         assertEquals(19, weightedPushup.subRank)
 
         val hangingKneeRaise = ExerciseLibrary.get("hanging_knee_raise")
@@ -243,7 +229,7 @@ class ExerciseLibraryTest {
 
         val weightedKneeRaise = ExerciseLibrary.get("weighted_knee_raise")
         assertEquals(CORE_FLEX, weightedKneeRaise.pattern)
-        assertEquals(GoalSource.Flat(10.0), weightedKneeRaise.goal)
+        assertEquals(GoalSource.Weighted, weightedKneeRaise.goal)
         assertEquals(10, weightedKneeRaise.subRank)
 
         val farmersCarry = ExerciseLibrary.get("farmers_carry")
@@ -294,10 +280,10 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `every Std entry is WEIGHTED`() {
+    fun `every main-capable entry is WEIGHTED`() {
         for (entry in ExerciseLibrary.entries) {
-            if (entry.goal is GoalSource.Std) {
-                assertEquals(TrackingType.WEIGHTED, entry.tracking, "${entry.id} is Std but not WEIGHTED")
+            if (entry.mainCapable) {
+                assertEquals(TrackingType.WEIGHTED, entry.tracking, "${entry.id} is main-capable but not WEIGHTED")
             }
         }
     }

@@ -8,12 +8,8 @@ data class CardioPlan(val steps: List<CardioStep>) {
     val totalSeconds: Int get() = steps.sumOf { it.seconds }
 }
 
-/**
- * Executable plans derived from [CardioPlanner]'s prose, which remains the
- * single source of truth. Easy Zone 2 pins the prose's 20–30 minute band to
- * its 25-minute midpoint. Hard tempo preserves its stated 20 minutes, and hard
- * 5k intervals pin the stated 4–6 repeats to 5.
- */
+/** Executable plans for the old wizard's cardio suggestions, kept for legacy cardio conversion and the watch: easy
+ *  zone 2 pinned to 25 minutes, tempo to 20, and 5K intervals to 5 × 2 min hard / 2 min easy. */
 object CardioIntervals {
 
     fun plan(suggestion: CardioSuggestion, fiveK: Boolean): CardioPlan =

@@ -1,24 +1,22 @@
 package cloud.trotter.log.strength.domain
 
-import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SetEditingTest {
 
-    private val cfg = LifterConfig()
-    private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), 235.0, cfg)
-
     @Test
     fun `non-top weight edit touches only that row`() {
-        val seeded = squat()
+        val seeded = prototypeSquat()
         val edited = SetEditor.editWeight(seeded, 1, 999.0) // a RAMP row, not TOP
         assertEquals(999.0, edited[1].weightLb, 1e-9)
         assertEquals(seeded[0], edited[0])
@@ -28,7 +26,7 @@ class SetEditingTest {
 
     @Test
     fun `reps edit never cascades`() {
-        val seeded = squat()
+        val seeded = prototypeSquat()
         val topIndex = seeded.indexOfFirst { it.kind == SetKind.TOP }
         val edited = SetEditor.editReps(seeded, topIndex, 2)
         assertEquals(2, edited[topIndex].reps)
@@ -37,7 +35,7 @@ class SetEditingTest {
 
     @Test
     fun `add set copies last row as EXTRA`() {
-        val seeded = squat()
+        val seeded = prototypeSquat()
         val added = SetEditor.addSet(seeded)
         assertEquals(seeded.size + 1, added.size)
         val last = added.last()
@@ -56,8 +54,8 @@ class SetEditingTest {
 
     @Test
     fun `superset add and remove keep tracks aligned`() {
-        val primary = SetSeeder.seed(ProgramExercise("ez_curl", targetSets = 3), 60.0, cfg)
-        val partner = SetSeeder.seedPartner(primary.size, 50.0)
+        val primary = List(3) { LoggedSet(60.0, 10, SetKind.WORK) }
+        val partner = List(primary.size) { LoggedSet(50.0, 10, SetKind.WORK) }
         assertEquals(primary.size, partner.size)
 
         val (p2, s2) = SetEditor.addSet(primary) to SetEditor.addSet(partner)
@@ -74,7 +72,7 @@ class SetEditingTest {
     /** [F] */
     @Test
     fun `top cascade keeps completed ramps and their percentage positions`() {
-        val actual = squat().mapIndexed { i, set -> set.copy(done = i < 2) }
+        val actual = prototypeSquat().mapIndexed { i, set -> set.copy(done = i < 2) }
         val result = SetEditor.editWeight(actual, 4, 245.0)
         assertEquals(listOf(130.0, 165.0, 195.0, 220.0, 245.0, 185.0), result.map { it.weightLb })
         assertTrue(result.take(2).all { it.done })
@@ -83,7 +81,7 @@ class SetEditingTest {
     /** The directly edited TOP remains editable after completion. */
     @Test
     fun `an edited completed top still takes its new weight`() {
-        val actual = squat().mapIndexed { i, set -> set.copy(done = i == 4) }
+        val actual = prototypeSquat().mapIndexed { i, set -> set.copy(done = i == 4) }
         val result = SetEditor.editWeight(actual, 4, 245.0)
         assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), result.map { it.weightLb })
         assertTrue(result[4].done)
@@ -103,7 +101,7 @@ class SetEditingTest {
 
     @Test
     fun `insert set undoes a remove exactly`() {
-        val seeded = squat()
+        val seeded = prototypeSquat()
         val ticked = SetEditor.editReps(seeded, 2, 7).mapIndexed { i, s -> if (i == 2) s.copy(done = true) else s }
         val removed = ticked[2]
 
@@ -121,12 +119,17 @@ class SetEditingTest {
 
     @Test
     fun `paired insert undoes a paired remove on both tracks`() {
-        val primary = SetSeeder.seed(ProgramExercise("ez_curl", targetSets = 3), 60.0, cfg)
-        val partner = SetSeeder.seedPartner(primary.size, 50.0)
+        val primary = List(3) { LoggedSet(60.0, 10, SetKind.WORK) }
+        val partner = List(primary.size) { LoggedSet(50.0, 10, SetKind.WORK) }
 
         val (p2, s2) = SetEditor.removeSet(primary, 1) to SetEditor.removeSet(partner, 1)
         val (p3, s3) = SetEditor.insertSet(p2, 1, primary[1]) to SetEditor.insertSet(s2, 1, partner[1])
         assertEquals(primary, p3)
         assertEquals(partner, s3)
     }
+
+    private fun prototypeSquat(top: Double = 235.0): List<LoggedSet> = SetSeeder.shape(
+        SetStructure.RAMP_TOP_BACKOFF, top, 5, 6, WeightUnit.LB,
+        listOf(Equipment.BARBELL, Equipment.RACK), Scheme.PROTOTYPE,
+    )
 }

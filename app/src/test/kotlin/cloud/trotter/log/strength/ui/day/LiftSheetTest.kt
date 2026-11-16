@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -85,7 +85,7 @@ class LiftSheetTest {
                     val header = DayScreenBuilder.headerTarget(
                         ProgramExercise("weighted_plank", targetSets = 3,
                             prescription = Prescription(target, eachSide = true, resistance = "Red band")),
-                        GoalTarget.Weight(235.0, perHand = false), unit,
+                        GoalTarget(235.0, perHand = false), unit,
                     )
                     val sets = List(3) {
                         when (target) {

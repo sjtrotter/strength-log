@@ -162,7 +162,7 @@ object WatchSnapshotBuilder {
                 is PrescribedTarget.RepsInTime -> authored
             })
         }
-        val header = DayScreenBuilder.headerTarget(pe.copy(prescription = labelPrescription), target ?: GoalTarget.Weight(0.0, false), unit)
+        val header = DayScreenBuilder.headerTarget(pe.copy(prescription = labelPrescription), target ?: GoalTarget(0.0, false), unit)
         val repWindow = prescribedTarget as? PrescribedTarget.RepsInTime
         val partner = slot.partner?.performed
         val partnerEntry = partner?.entry

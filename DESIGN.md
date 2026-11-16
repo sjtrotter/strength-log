@@ -94,7 +94,7 @@ clock ring on the disc's rim (stroke 7; rest draining, holds and the undo hold f
 
 These are not design choices. A change to any of them goes to the owner.
 
-- Spec §11's pinned numbers. A design never changes a goal, ramp or cascade value.
+- Spec §11.2's pinned cases. A design never changes a pinned load, ramp, cascade or progression value.
 - Local-first: no INTERNET permission, no account.
 - Data principles (CLAUDE.md): every mutation writes to the database on the tap; state that
   must survive process death goes through `SavedStateHandle` or the database; the lifter can
@@ -308,7 +308,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | Path | Use |
 |---|---|
 | `CLAUDE.md` | Design principles (§5), data principles |
-| `STRENGTH_TRACKER_SPEC.md` | Product principles (§1), day screen (§8.2), visual base (§8.5), watch (§9), pinned numbers (§11) |
+| `STRENGTH_TRACKER_SPEC.md` | Product principles (§1), day screen (§8.2), visual base (§8.5), watch (§9), pinned cases (§11.2) |
 | `docs/PLAN.md` | Amendments A1 to A13; wins over the spec |
 | `docs/briefs/ui-redesign-2026-10-12.md` | Phone redesign record, Round 2, pager decision |
 | `docs/design-handoff/redesign-2026-10-12/HANDOFF.md` | Phone build contract; `fable-mock.html` and `fable-pager.html` are the mocks of record, `before/` the pre-redesign screenshots |

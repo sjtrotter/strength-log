@@ -49,9 +49,9 @@ import java.util.Locale
  * (SSOT via [WeightUnit]/[WeightStepper]); nothing downstream does lb/kg math.
  */
 object DayScreenBuilder {
-    fun headerTarget(exercise: ProgramExercise, generatedGoal: GoalTarget, unit: WeightUnit): HeaderTarget {
+    fun headerTarget(exercise: ProgramExercise, goal: GoalTarget, unit: WeightUnit): HeaderTarget {
         val prescription = exercise.prescription
-            ?: return HeaderTarget.Goal(GoalFormatter.label(generatedGoal, unit))
+            ?: return HeaderTarget.Goal(GoalFormatter.label(goal, unit))
         fun load(lb: Double): String = "${WeightStepper.format(unit.fromLb(lb))} ${unit.name.lowercase(Locale.ROOT)}"
         val display = when (val target = prescription.target) {
             is PrescribedTarget.LoadReps -> "${exercise.targetSets} × ${target.reps} · ${load(target.lb)}"

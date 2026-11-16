@@ -6,8 +6,6 @@ import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
@@ -24,7 +22,7 @@ import kotlinx.serialization.json.jsonObject
 class BackupV9Test {
 
     private val codec = BackupCodec()
-    private val profile = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, weightUnit = WeightUnit.KG)
+    private val profile = LifterProfile(210.0, 33)
     private val strength = v1RecipeJson(daysPerWeek = 3, emphasis = "STRENGTH")
     private val physique = v1RecipeJson(daysPerWeek = 5, emphasis = "PHYSIQUE")
     private val recipeFields = listOf(

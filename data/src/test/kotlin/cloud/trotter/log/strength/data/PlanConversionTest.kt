@@ -61,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import cloud.trotter.log.strength.domain.model.Equipment
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -171,7 +172,7 @@ class PlanConversionTest {
         }
         val plan = db.planDao().plan(1)!!
         assertNull(plan.recipeJson)
-        assertEquals(PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb,
+        assertEquals(PlanSettings(equipment = Equipment.entries.toSet(), goalsLb = mapOf("bb_back_squat" to 315.0),
             legacyMains = setOf("bb_back_squat", "bb_bench", "bb_row")), plan.planSettings)
         assertEquals(squatRows, db.programDao().logForSlot(1, "A", 7, Slot.MAIN)!!.setsJson)
     }

@@ -71,6 +71,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import cloud.trotter.log.strength.domain.model.Equipment
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

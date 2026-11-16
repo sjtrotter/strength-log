@@ -65,7 +65,7 @@ class OldPlanConversionTest {
     private suspend fun create(plan: OldWizardPlan = novice): Long {
         val pending = db.planDao().allPlans().mapNotNull { row -> row.recipeJson?.let { row.id to it } }
         // The fixture writer runs a launch gate; these earlier fixtures must still await the gate under test.
-        pending.forEach { (id, _) -> db.planDao().updateRecipe(id, null) }
+        pending.forEach { (id, _) -> db.planDao().updatePlan(db.planDao().plan(id)!!.copy(recipeJson = null)) }
         val id = try {
             db.insertRuledOldWizardPlan(plan, settings)
         } finally {

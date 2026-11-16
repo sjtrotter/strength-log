@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -17,8 +19,6 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
-import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -200,15 +200,10 @@ class LogViewModel @Inject constructor(
     }
 
     private val mainLifts = combine(
-        plans.programFlow,
-        catalog.catalogFlow,
-        plans.wizardAnswersFlow,
-        plans.selectedPlanFlow,
-    ) { program, catalog, answers, plan ->
-        val v1Mains = if (plan?.recipeJson != null && !plan.hasSetupRecipe) {
-            ProgramGenerator.mainLiftIds(answers).toSet()
-        } else emptySet()
-        JournalBuilder.mainLifts(program, catalog, answers.config.goalsLb, v1Mains)
+        plans.programFlow, catalog.catalogFlow, plans.selectedPlanFlow,
+    ) { program, catalog, plan ->
+        val planSettings = plan?.planSettings ?: PlanSettings()
+        JournalBuilder.mainLifts(program, catalog, planSettings.goalsLb, planSettings.legacyMains)
     }
 
     private val journalHistory = combine(

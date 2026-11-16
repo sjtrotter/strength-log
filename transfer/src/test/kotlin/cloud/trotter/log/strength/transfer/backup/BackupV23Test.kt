@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -11,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BackupV23Test {
@@ -34,9 +32,9 @@ class BackupV23Test {
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
         assertEquals(snapshot, restored)
-        val restoredAnswers = PlanRecipeJson.decode(restored.plans.single().recipeJson!!, GlobalLifter())
-        assertEquals(answers.cardioFirst, restoredAnswers.cardioFirst)
-        assertEquals(goals, restoredAnswers.config.goalsLb)
+        val restoredAnswers = PlanRecipeJson.read(restored.plans.single().recipeJson!!)!!
+        assertEquals(PlanRecipeJson.encode(answers), restored.plans.single().recipeJson)
+        assertEquals(goals, restoredAnswers.goalsLb)
     }
 
     @Test
@@ -110,9 +108,8 @@ class BackupV23Test {
             val restored = decoded.toSnapshot()
             val restoredRecipe = restored.plans.single().recipeJson!!
             assertEquals(recipe, restoredRecipe)
-            val restoredAnswers = PlanRecipeJson.decode(restoredRecipe, GlobalLifter())
-            assertNull(restoredAnswers.cardioFirst)
-            assertEquals(legacyGoals, restoredAnswers.config.goalsLb)
+            val restoredAnswers = PlanRecipeJson.read(restoredRecipe)!!
+            assertEquals(legacyGoals, restoredAnswers.goalsLb)
             val exported = restored.toDocument()
             assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(restored, codec.decode(codec.encode(exported)).toSnapshot())

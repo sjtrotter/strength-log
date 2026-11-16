@@ -13,7 +13,11 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.data.serialization.planSettings
+import org.junit.Assert.assertNull
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -76,13 +80,13 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         service.import(emptyBackupJson())
         assertTrue(db.planDao().allPlans().isEmpty())
-        assertEquals(WizardAnswers(), repository.plans.wizardAnswersFlow.first())
+        assertEquals(GlobalLifter(), settings.globalLifterFlow.first())
 
         service.import(backup)
 
-        assertEquals(answers, repository.plans.wizardAnswersFlow.first())
-        assertEquals(answers, backupRepository.exportSnapshot().answers)
-        assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
+        assertEquals(answers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
+        assertEquals(GlobalLifter.of(answers.config), backupRepository.exportSnapshot().global)
+        assertNull(db.planDao().allPlans().single().recipeJson)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertFalse(settings.wizardCompleteFlow.first())
         assertTrue(repository.plans.programFlow.first().days.isEmpty())
@@ -156,7 +160,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         )
         db.planDao().insertPlan(PlanEntity(
             2, "Test prep", PlanOrigin.GENERATED.name, 1, 2_000,
-            recipeJson = PlanRecipeJson.encode(secondAnswers), suggestedDayId = "C",
+            settingsJson = PlanSettingsJson.encode(PlanSettings(equipment = secondAnswers.equipment,
+                goalsLb = secondAnswers.config.goalsLb, legacyMains = setOf("bb_bench"))), suggestedDayId = "C",
         ))
         db.programDao().upsertDays(listOf(
             ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null, nextRunId = "run-2A"),
@@ -200,8 +205,10 @@ class BackupRoundTripTest : BackupTestHarness() {
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
         assertEquals(2, restored.plans.size)
         assertEquals(2L, restored.selectedPlanId)
-        assertEquals(PlanRecipeJson.encode(wizardAnswers), restored.plans.first().recipeJson)
-        assertEquals(PlanRecipeJson.encode(secondAnswers), restored.plans.last().recipeJson)
+        assertNull(restored.plans.first().recipeJson)
+        assertEquals(wizardAnswers.equipment, restored.plans.first().planSettings.equipmentOrAll)
+        assertNull(restored.plans.last().recipeJson)
+        assertEquals(secondAnswers.equipment, restored.plans.last().planSettings.equipmentOrAll)
         assertEquals(listOf("B", "C"), restored.plans.map { it.suggestedDayId })
 
         // Spot-check a couple of load-bearing details beyond structural equality.
@@ -221,7 +228,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         val sessions: List<Any>,
         val sessionSets: Map<Long, List<Any>>,
         val catalog: List<Any>,
-        val answers: WizardAnswers,
+        val planSettings: PlanSettings,
+        val global: GlobalLifter,
         val unit: WeightUnit,
         val wizardComplete: Boolean,
         val suggestedDay: String?,
@@ -246,7 +254,8 @@ class BackupRoundTripTest : BackupTestHarness() {
             sessions = sessions,
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
             catalog = repository.catalog.catalogFlow.first().entries,
-            answers = repository.plans.wizardAnswersFlow.first(),
+            planSettings = repository.plans.selectedPlanFlow.first()!!.planSettings,
+            global = settings.globalLifterFlow.first(),
             unit = settings.unitFlow.first(),
             wizardComplete = settings.wizardCompleteFlow.first(),
             suggestedDay = repository.plans.suggestedDayFlow.first(),

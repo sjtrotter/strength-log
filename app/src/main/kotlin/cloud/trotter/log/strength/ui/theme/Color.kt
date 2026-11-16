@@ -84,7 +84,7 @@ val FocusRing: Color @Composable get() = LocalAppPalette.current.focusRing
 // accent takes TextPrimary. DayAccentTest pins the ratios for all 7.
 
 /**
- * SSOT for day-accent color: 0-based day index (matches `ProgramGenerator`'s
+ * SSOT for day-accent color: 0-based day index (matches `Program.accentIndex`'s
  * A-Z day ids). Programs beyond 7 days cycle back to A's accent — day index 7
  * reads as A, 8 as B, and so on (domain-side `floorMod`).
  */

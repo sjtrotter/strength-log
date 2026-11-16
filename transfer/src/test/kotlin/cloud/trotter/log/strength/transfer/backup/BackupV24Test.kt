@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -53,7 +52,7 @@ class BackupV24Test {
         val recipe = PlanRecipeJson.encode(answers)
         val doc = document().let { it.copy(plans = listOf(it.plans.single().copy(recipeJson = recipe))) }
         val restored = codec.decode(codec.encode(doc))
-        assertEquals(2, PlanRecipeJson.decode(restored.plans.single().recipeJson!!, GlobalLifter()).cardioFirst?.restDays)
+        assertEquals(PlanRecipeJson.encode(answers), restored.plans.single().recipeJson)
         for (invalid in listOf(-1, 3)) {
             val bad = doc.copy(plans = listOf(doc.plans.single().copy(
                 recipeJson = recipe.replace("\"restDays\":2", "\"restDays\":$invalid"),

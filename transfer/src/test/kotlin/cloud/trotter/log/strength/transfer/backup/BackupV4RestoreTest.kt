@@ -41,7 +41,7 @@ class BackupV4RestoreTest {
     @Test
     fun `everything else in the v4 document is preserved`() {
         val snapshot = codec.decode(v4Json()).toSnapshot()
-        assertEquals(235.0, snapshot.answers.config.bodyweightLb)
+        assertEquals(235.0, snapshot.global.bodyweightLb)
         assertEquals("A", snapshot.suggestedDay)
         assertEquals(KeepScreenOn.DURING_WORKOUTS, snapshot.keepScreenOn)
         assertEquals(1500L, snapshot.sessions.first { it.id == 1L }.startedAt)

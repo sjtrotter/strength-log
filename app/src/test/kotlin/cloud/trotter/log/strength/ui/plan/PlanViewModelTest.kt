@@ -27,7 +27,6 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -241,7 +240,7 @@ class PlanViewModelTest {
     }
 
     @Test
-    fun `emphasis edits and unit changes update the viewed generated plan`() = runTest(dispatcher) {
+    fun `goal edits and unit changes update the viewed generated plan`() = runTest(dispatcher) {
         val answers = WizardAnswers()
         val program = ProgramGenerator.generate(answers)
         val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
@@ -250,11 +249,6 @@ class PlanViewModelTest {
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
         advanceUntilIdle()
         assertNull(vm.uiState.value.goals.first().display)
-        assertEquals(GoalEmphasis.BALANCED, vm.uiState.value.emphasis)
-        vm.setEmphasis(GoalEmphasis.STRENGTH)
-        advanceUntilIdle()
-        assertEquals(GoalEmphasis.STRENGTH, vm.uiState.value.emphasis)
-        assertEquals(GoalEmphasis.BALANCED, repo.plans.wizardAnswersFor(preferred).first().config.emphasis)
         assertEquals(preferred, repo.plans.selectedPlanIdFlow.first())
         repo.plans.setPlanGoal(tapped, "bb_back_squat", 200.0)
         advanceUntilIdle()
@@ -282,8 +276,8 @@ class PlanViewModelTest {
         vm.saveGoal()
         advanceUntilIdle()
 
-        assertEquals(mapOf("bb_back_squat" to 300.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
-        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
+        assertEquals(mapOf("bb_back_squat" to 300.0), repo.plans.planSettingsFor(viewed).first().goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.planSettingsFor(preferred).first().goalsLb)
         assertNull(vm.uiState.value.goalDialog)
         assertEquals("300", vm.uiState.value.goals.first().display)
         vm.openGoal("bb_back_squat")
@@ -291,7 +285,7 @@ class PlanViewModelTest {
         assertEquals(true, vm.uiState.value.goalDialog!!.hasGoal)
         vm.removeLiftGoal()
         advanceUntilIdle()
-        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.planSettingsFor(viewed).first().goalsLb)
         assertNull(vm.uiState.value.goalDialog)
         assertNull(vm.uiState.value.goals.first().display)
     }
@@ -321,12 +315,12 @@ class PlanViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.goalDialog)
         assertEquals("200", vm.uiState.value.goals.first().display)
-        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(viewed).first().config.goalsLb)
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.planSettingsFor(viewed).first().goalsLb)
         assertEquals(false, db.planDao().plan(viewed)!!.offerStrengthIncreases)
         assertEquals(true, db.planDao().plan(viewed)!!.offerCardioIncreases)
         assertEquals(true, db.planDao().plan(preferred)!!.offerStrengthIncreases)
         assertEquals(false, db.planDao().plan(preferred)!!.offerCardioIncreases)
-        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(preferred).first().config.goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.planSettingsFor(preferred).first().goalsLb)
     }
 
     @Test
@@ -349,8 +343,8 @@ class PlanViewModelTest {
             restored.uiState.value.goalDialog)
         restored.saveGoal()
         advanceUntilIdle()
-        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
-        assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(other).first().config.goalsLb)
+        assertEquals(mapOf("bb_back_squat" to 200.0), repo.plans.planSettingsFor(plan).first().goalsLb)
+        assertEquals(emptyMap<String, Double>(), repo.plans.planSettingsFor(other).first().goalsLb)
         assertNull(restored.uiState.value.goalDialog)
         assertNull(restoredHandle.get<String>("plan_goal_exercise"))
         assertNull(restoredHandle.get<Double>("plan_goal_draft_lb"))
@@ -373,7 +367,7 @@ class PlanViewModelTest {
             vm.saveGoal()
             advanceUntilIdle()
             assertEquals("bb_back_squat", vm.uiState.value.goalDialog!!.exerciseId)
-            assertEquals(emptyMap<String, Double>(), repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+            assertEquals(emptyMap<String, Double>(), repo.plans.planSettingsFor(plan).first().goalsLb)
         }
         vm.dismissGoal()
         advanceUntilIdle()
@@ -399,7 +393,7 @@ class PlanViewModelTest {
             vm.saveGoal()
             advanceUntilIdle()
             assertEquals(mapOf("bb_back_squat" to PlanRecipeJson.MAX_GOAL_LB),
-                repo.plans.wizardAnswersFor(plan).first().config.goalsLb)
+                repo.plans.planSettingsFor(plan).first().goalsLb)
             assertNull(vm.uiState.value.goalDialog)
         }
     }

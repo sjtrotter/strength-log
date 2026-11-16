@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -111,7 +112,7 @@ class TodayWidgetContentTest {
         for (day in program.rotationDays) {
             val performed = PerformedDay.of(
                 1L, day.id, program, emptyList(), DayTracks(null, false, emptyList()),
-                answers, ExerciseCatalog.CODE_ONLY, seeds = emptyMap(),
+                PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb), ExerciseCatalog.CODE_ONLY, seeds = emptyMap(),
             )
             val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 0L)
             val content = todayWidgetContent(snapshot)

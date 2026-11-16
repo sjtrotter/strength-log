@@ -21,11 +21,9 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import java.io.File
@@ -145,7 +143,7 @@ class TypedCardioMigrationTest {
     }
 
     @Test
-    fun `programFlow waits for legacy settings to reach the recipe before converting on first collection`() = runTest {
+    fun `programFlow waits for legacy settings before converting on first collection`() = runTest {
         seed()
         val store = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-legacy-settings", ".preferences_pb")
@@ -161,7 +159,7 @@ class TypedCardioMigrationTest {
 
         assertEquals(expected, fresh.plans.programFlow.first().days.single().cardioBlock)
 
-        assertEquals(CardioMode.TREADMILL, fresh.plans.wizardAnswersFor(1).first().cardio.mode)
+        assertNull(db.planDao().plan(1)!!.recipeJson)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
     }
 
@@ -212,7 +210,8 @@ class TypedCardioMigrationTest {
         val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
         seed(answers)
         val legacyDay = requireNotNull(db.programDao().day(1, "A"))
-        val snapshot = backupRepository.exportSnapshot().copy(days = listOf(legacyDay))
+        val snapshot = backupRepository.exportSnapshot().let { snapshot -> snapshot.copy(days = listOf(legacyDay),
+            plans = snapshot.plans.map { it.copy(recipeJson = PlanRecipeJson.encode(answers)) }) }
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
         }, settings)
@@ -277,10 +276,10 @@ class TypedCardioMigrationTest {
         assertFalse(exported.hasLifterAnswers)
         val snapshot = exported.copy(
             days = listOf(legacyDay),
+            plans = exported.plans.map { it.copy(recipeJson = PlanRecipeJson.encode(WizardAnswers(
+                cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)))) },
             hasLifterAnswers = true,
-            answers = exported.answers.copy(
-                config = exported.answers.config.copy(bodyweightLb = 190.0, age = 28),
-            ),
+            global = exported.global.copy(bodyweightLb = 190.0, age = 28),
         )
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")
@@ -294,28 +293,12 @@ class TypedCardioMigrationTest {
         assertTrue(generateSequence(failure) { it.cause }.any { it === readFailure })
         assertNull(db.restoreMarkerDao().nonce())
         assertTrue(settings.hasLifterAnswersFlow.first())
-        assertEquals(GlobalLifter.of(snapshot.answers.config), settings.globalLifterFlow.first())
+        assertEquals(snapshot.global, settings.globalLifterFlow.first())
         assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
             failingRepo.plans.programFor(1).first().days.single().cardioBlock)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
     }
 
-    @Test
-    fun `reset C1 regenerates its block core emphasis and kind from the owning recipe`() = runTest {
-        val answers = WizardAnswers(cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS))
-        repo.plans.setWizardAnswers(answers)
-        val program = ProgramGenerator.generate(answers)
-        repo.replaceProgram(program)
-        val planId = requireNotNull(settings.selectedPlanIdFlow.first())
-        val expected = program.cardioDays.first()
-        assertTrue(repo.setCardioBlock(planId, "C1", expected.cardioBlock!!.copy(activity = CardioActivity.ROWER)))
 
-        repo.resetDayToTemplate("C1")
-
-        val reset = repo.plans.programFor(planId).first().cardioDays.first()
-        assertTrue(reset.exercises.all { it.rule != null })
-        assertEquals(expected, reset.copy(exercises = reset.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) }))
-        assertEquals("A", repo.plans.suggestedDayFlow.first())
-    }
 }

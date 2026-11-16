@@ -99,7 +99,7 @@ class PreStartOpeningTest : OverviewFixture() {
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = syncScope) {
             File.createTempFile("pre-start-opening-acks", ".preferences_pb")
         })
-        applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
     }
 
     @After fun openingTearDown() { syncScope.cancel() }

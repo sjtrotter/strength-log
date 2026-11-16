@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.seeding.SetEdit
@@ -31,6 +32,7 @@ class SetEditApplier(
     private val ackLog: EditAckLog,
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
+    private val settings: SettingsStore,
 ) {
 
     enum class Outcome { APPLIED, STALE, INVALID, REJECTED }
@@ -63,7 +65,7 @@ class SetEditApplier(
 
         val catalog = this.catalog.catalogFlow.first()
         val tracks = dayTracks.tracks
-        val cfg = plans.wizardAnswersFor(planId).first().config
+        val unit = settings.unitFlow.first()
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
         fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(
@@ -92,7 +94,7 @@ class SetEditApplier(
                     startedAtMillis = delta.startedAtMillis,
                     completedAtMillis = delta.completedAtMillis,
                     watchEditedAt = delta.editedAtMillis.takeIf { values },
-                ), cfg.weightUnit, performed.entry?.equipment.orEmpty())
+                ), unit, performed.entry?.equipment.orEmpty())
             }
         }
         edits.add(edit(delta.slot, true))
@@ -161,11 +163,11 @@ class SetEditApplier(
         }?.exerciseId, catalog)
         val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
         val stale = swap.editedAtMillis <= markers.lastApplied(rowKey)
-        val answers = plans.wizardAnswersFor(planId).first()
+        val equipment = plans.planSettingsFor(planId).first().equipmentOrAll
         val declined = when {
             stale -> Outcome.STALE
             swap.exerciseId != slot.exercise.exerciseId && swap.exerciseId != performed.exerciseId &&
-                WatchSnapshotBuilder.alternatesFor(performed.exerciseId, catalog, answers.equipment)
+                WatchSnapshotBuilder.alternatesFor(performed.exerciseId, catalog, equipment)
                     .none { it.exerciseId == swap.exerciseId } -> Outcome.INVALID
             else -> null
         }

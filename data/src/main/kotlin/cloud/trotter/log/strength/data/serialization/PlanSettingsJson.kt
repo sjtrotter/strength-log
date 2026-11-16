@@ -8,13 +8,16 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 
 /** A plan's own settings (`plan.settingsJson`, design §4.1). An absent column or field means the default: Strength,
  *  and the steps of the lifter's current unit ([LoadSteps.defaults]). Null equipment reads as every piece of
- *  equipment. [goalsLb] holds typed lift goals in lb for plans without a v1 recipe (decision 4). */
+ *  equipment. [goalsLb] holds typed lift goals in lb. [legacyMains] holds recipe mains still present in the plan
+ *  plus top-set or LoadReps-prescribed slots, which History and the Plan screen's goals count beside MAIN-role slots;
+ *  written only by the v1 conversion. */
 data class PlanSettings(
     val defaultsFor: LiftGoal = LiftGoal.STRENGTH,
     val loadSteps: LoadSteps? = null,
     val runCap: Boolean = true,
     val equipment: Set<Equipment>? = null,
     val goalsLb: Map<String, Double> = emptyMap(),
+    val legacyMains: Set<String> = emptySet(),
 ) {
     val equipmentOrAll: Set<Equipment> get() = equipment ?: Equipment.entries.toSet()
 }
@@ -25,6 +28,7 @@ data class PlanSettings(
     val runCap: Boolean? = null,
     val equipment: List<String>? = null,
     val goalsLb: Map<String, Double>? = null,
+    val legacyMains: List<String>? = null,
 ) {
     fun toDomain(strict: Boolean = false): PlanSettings = PlanSettings(
         defaultsFor?.let(LiftGoal::valueOf) ?: LiftGoal.STRENGTH,
@@ -43,6 +47,10 @@ data class PlanSettings(
             if (strict) require(valid)
             valid
         },
+        legacyMains.orEmpty().filter { id ->
+            if (strict) require(id.isNotBlank())
+            id.isNotBlank()
+        }.toSet(),
     )
 }
 @Serializable internal data class LoadStepsDto(val barLb: Double, val dumbbellLb: Double, val stackLb: Double)
@@ -53,7 +61,7 @@ object PlanSettingsJson {
             LoadStepsDto(it.barLb, it.dumbbellLb, it.stackLb)
         }, settings.runCap, settings.equipment?.let { equipment ->
             Equipment.entries.filter { it in equipment }.map { it.name }
-        }, settings.goalsLb.takeIf { it.isNotEmpty() })
+        }, settings.goalsLb.takeIf { it.isNotEmpty() }, settings.legacyMains.sorted().takeIf { it.isNotEmpty() })
         dto.toDomain(strict = true)
         return SetJson.encode(PlanSettingsDto.serializer(), dto)
     }
@@ -63,6 +71,9 @@ object PlanSettingsJson {
     fun hasPlanFacts(json: String): Boolean = runCatching {
         val dto = SetJson.decode(PlanSettingsDto.serializer(), json)
         dto.equipment != null || !dto.goalsLb.isNullOrEmpty()
+    }.getOrDefault(false)
+    fun hasLegacyMains(json: String): Boolean = runCatching {
+        !SetJson.decode(PlanSettingsDto.serializer(), json).legacyMains.isNullOrEmpty()
     }.getOrDefault(false)
     private fun read(json: String): PlanSettings = SetJson.decode(PlanSettingsDto.serializer(), json).toDomain()
 }

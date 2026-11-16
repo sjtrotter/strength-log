@@ -126,9 +126,9 @@ class TodaySnapshotSourceRestTest {
         val before = source.snapshots.publishableSnapshots().first()
         val expected = WatchSnapshotBuilder.build(
             repo.plans.programFor(plan).first(), "A", repo.plans.slotsFor(plan, "A").first(), listOf(LoggedSlot(slot, Slot.MAIN, rows)),
-            repo.plans.wizardAnswersFor(plan).first().config, repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
+            repo.plans.configFlow.first(), repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
             revision = 0L, planId = plan, planName = before.planName, runId = before.runId,
-            restSettings = settings.restSettingsFlow.first(), equipment = repo.plans.wizardAnswersFor(plan).first().equipment,
+            restSettings = settings.restSettingsFlow.first(), equipment = repo.plans.planSettingsFor(plan).first().equipmentOrAll,
             processedEditStamps = emptyList(),
         )
         assertEquals(expected, before)
@@ -192,7 +192,7 @@ class TodaySnapshotSourceRestTest {
             slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 100,
             planId = preview.planId, runId = preview.runId, exerciseId = "bb_back_squat",
         )
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER reject_watch_track BEFORE INSERT ON run_track " +
                 "BEGIN SELECT RAISE(ABORT, 'watch track write failed'); END",
@@ -224,7 +224,7 @@ class TodaySnapshotSourceRestTest {
             exerciseId = alternate.exerciseId, exerciseName = alternate.name, editedAtMillis = 100,
             planId = preview.planId, runId = preview.runId,
         )
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER reject_watch_swap BEFORE INSERT ON run_track " +
                 "BEGIN SELECT RAISE(ABORT, 'watch swap write failed'); END",
@@ -254,7 +254,7 @@ class TodaySnapshotSourceRestTest {
         val preview = source.snapshots.publishableSnapshots().first()
         val exercise = preview.day.exercises.single()
         val alternate = exercise.alternates.first()
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         val edit = SetEditDelta(
             dayId = "A", programExerciseId = exercise.programExerciseId,
             slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 100,

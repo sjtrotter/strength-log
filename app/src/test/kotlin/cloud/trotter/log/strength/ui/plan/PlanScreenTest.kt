@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
@@ -7,7 +9,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.isDialog
@@ -30,7 +31,6 @@ import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Program
@@ -133,24 +133,17 @@ class PlanScreenTest {
     }
 
     @Test
-    fun generatedGoalsAndEmphasisAreVisibleAndTheWholeRowSelects() {
-        var emphasis: GoalEmphasis? = null
+    fun generatedGoalsAreVisible() {
         rule.setContent { AppTheme {
             PlanScreen(planScreenFixture().copy(
                 goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235")),
-                emphasis = GoalEmphasis.BALANCED,
-            ), actions().copy(onEmphasisChange = { emphasis = it }))
+            ), actions())
         } }
         val list = rule.onNode(hasScrollAction())
         list.performScrollToNode(hasText("Goals"))
         rule.onNodeWithText("Goals").assertExists()
         rule.onNodeWithText("235").assertExists()
-        list.performScrollToNode(hasText("Physique-leaning"))
-        rule.onNodeWithText("Strength-leaning").assertExists()
-        rule.onNodeWithText("Balanced strength + muscle").assertIsSelected()
-        rule.onNodeWithText("Physique-leaning").assertExists()
-        rule.onNodeWithText("Strength-leaning").performClick()
-        assertEquals(GoalEmphasis.STRENGTH, emphasis)
+
     }
 
     @Test
@@ -159,8 +152,8 @@ class PlanScreenTest {
             config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
         val catalog = ExerciseCatalog.CODE_ONLY
         val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
-            recipeJson = PlanRecipeJson.encode(answers))
-        val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.LB)
+            settingsJson = oldSettings(answers))
+        val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), catalog, WeightUnit.LB)
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
 
         val list = rule.onNode(hasScrollAction())
@@ -179,7 +172,6 @@ class PlanScreenTest {
     fun `tapping a goal opens its editor`() {
         val state = mutableStateOf(planScreenFixture().copy(
             goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235")),
-            emphasis = GoalEmphasis.BALANCED,
         ))
         var opened: String? = null
         var saved = 0
@@ -251,7 +243,6 @@ class PlanScreenTest {
         var reset = 0
         val state = mutableStateOf(planScreenFixture().copy(
             goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 200.0, "200")),
-            emphasis = GoalEmphasis.BALANCED,
         ))
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(
@@ -392,11 +383,11 @@ class PlanScreenTest {
     }
 
     @Test
-    fun generatedCardioOnlyPlanHasNoGoalsOrEmphasis() {
+    fun generatedCardioOnlyPlanHasNoGoals() {
         val answers = WizardAnswers(cardioFirst = CardioFirst())
         val state = PlanScreenBuilder.buildUiState(
             PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0),
-            ProgramGenerator.generate(answers), answers, ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
+            ProgramGenerator.generate(answers), ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
         )
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
         rule.onNodeWithText("Running").assertExists()
@@ -405,16 +396,14 @@ class PlanScreenTest {
         rule.onNodeWithText("Long").assertExists()
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Offer cardio increases"))
         rule.onNodeWithText("Goals").assertDoesNotExist()
-        rule.onNodeWithText("Emphasis").assertDoesNotExist()
         rule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
         rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
     }
 
     @Test
-    fun authoredPlansHaveNoGoalsOrEmphasis() {
+    fun authoredPlansHaveNoGoals() {
         rule.setContent { AppTheme { PlanScreen(planScreenFixture(), actions()) } }
         rule.onNodeWithText("Goals").assertDoesNotExist()
-        rule.onNodeWithText("Emphasis").assertDoesNotExist()
         rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
     }
 
@@ -567,6 +556,9 @@ class PlanScreenTest {
         rule.onNodeWithText("Move down").assertIsEnabled()
     }
 
+    private fun oldSettings(answers: WizardAnswers) = PlanSettingsJson.encode(PlanSettings(
+        equipment = answers.equipment, goalsLb = answers.config.goalsLb,
+        legacyMains = ProgramGenerator.mainLiftIds(answers).toSet()))
 }
 
 /** Robolectric's full-screen frame for wrap-content dialogs can prevent text fields from settling. */

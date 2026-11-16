@@ -13,7 +13,8 @@ data class PlanEntity(
     val position: Int,
     val createdAt: Long,
     val archived: Boolean = false,
-    /** Plan settings serialized as PlanRecipeDto; also used to regenerate generated templates. */
+    /** A setup plan's answers (recipe v2, SetupRecipeJson); null on every other plan once the
+     *  old wizard's v1 recipes convert (design §4.4). */
     val recipeJson: String? = null,
     /** The plan's rotation position. */
     val suggestedDayId: String? = null,

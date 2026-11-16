@@ -3,6 +3,11 @@ package cloud.trotter.log.strength.transfer.backup
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.data.serialization.V1Recipe
+import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
@@ -18,18 +23,10 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.progression.EffortScale
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -59,10 +56,10 @@ fun FullSnapshot.toDocument(): BackupDocument {
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
         settings = SettingsBackup(
-            bodyweightLb = Math.round(answers.config.bodyweightLb).toInt(),
-            bodyweightLbPrecise = answers.config.bodyweightLb,
-            age = answers.config.age,
-            level = answers.config.level.name,
+            bodyweightLb = Math.round(global.bodyweightLb).toInt(),
+            bodyweightLbPrecise = global.bodyweightLb,
+            age = global.age,
+            level = global.level.name,
             weightUnit = unit.name,
             wizardComplete = wizardComplete,
             hasLifterAnswers = hasLifterAnswers,
@@ -233,36 +230,23 @@ fun FullSnapshot.toDocument(): BackupDocument {
 }
 
 fun BackupDocument.toSnapshot(): FullSnapshot {
-    val config = LifterConfig(
+    val global = GlobalLifter(
         bodyweightLb = settings.bodyweightLbPrecise ?: settings.bodyweightLb.toDouble(),
         age = settings.age,
         level = enumOrDefault(settings.level, ExperienceLevel.INTERMEDIATE),
         weightUnit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
-        emphasis = if (schemaVersion >= 9) {
-            WizardAnswers().config.emphasis
-        } else {
-            enumOrDefault(settings.emphasis, GoalEmphasis.BALANCED)
-        },
     )
-    val answers = if (schemaVersion >= 9) {
-        WizardAnswers(config = config)
-    } else {
-        WizardAnswers(
-            daysPerWeek = checkNotNull(settings.daysPerWeek),
-            split = enumOrDefault(settings.split, SplitTemplate.FULL_BODY),
-            anchorScheme = enumOrDefault(settings.anchorScheme, AnchorScheme.PROTOTYPE),
-            deadliftVariant = enumOrDefault(settings.deadliftVariant, DeadliftVariant.TRAP_BAR),
-            cardio = CardioPrefs(
-                mode = enumOrDefault(settings.cardioMode, CardioMode.OUTDOOR_RUN),
-                placement = enumOrDefault(settings.cardioPlacement, CardioPlacement.FINISHERS),
-                fiveKGoal = checkNotNull(settings.fiveKGoal),
-            ),
-            config = config,
-            equipment = checkNotNull(settings.equipment).mapNotNull { name ->
-                Equipment.entries.firstOrNull { it.name == name }
-            }.toSet(),
-        )
-    }
+    val legacyRecipe = if (schemaVersion < 9) V1Recipe(
+        equipment = checkNotNull(settings.equipment).mapNotNull { name ->
+            Equipment.entries.firstOrNull { it.name == name }
+        }.toSet(),
+        cardioMode = enumOrDefault(settings.cardioMode, CardioMode.OUTDOOR_RUN),
+        fiveKGoal = checkNotNull(settings.fiveKGoal),
+        daysPerWeek = checkNotNull(settings.daysPerWeek).coerceIn(2, 6),
+        split = enumOrDefault(settings.split, SplitTemplate.FULL_BODY),
+        anchorScheme = enumOrDefault(settings.anchorScheme, AnchorScheme.PROTOTYPE),
+        deadliftVariant = enumOrDefault(settings.deadliftVariant, DeadliftVariant.TRAP_BAR),
+    ) else null
 
     val programs = if (schemaVersion >= 8) {
         plans.map { it.id to it.days }
@@ -389,12 +373,12 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
     } else emptyList()
 
     return FullSnapshot(
-        answers = answers,
+        global = global,
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
         hasLifterAnswers = settings.hasLifterAnswers,
         suggestedDay = if (schemaVersion >= 9) null else settings.suggestedDay,
-        answersCarryRecipe = schemaVersion < 9,
+        legacyRecipe = legacyRecipe,
         selectedPlanId = settings.selectedPlanId?.let { preferredPlan(restoredPlans, it)?.id },
         restSettings = RestSettings(
             enabled = settings.restTimerEnabled,

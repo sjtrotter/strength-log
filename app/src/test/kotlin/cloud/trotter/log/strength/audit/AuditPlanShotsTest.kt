@@ -5,7 +5,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.PlanSummary
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
@@ -128,7 +127,7 @@ class AuditPlanShotsTest : UiAuditTest() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("plan/23-plan-generated-goals", beforeCapture = {
             rule.onNode(hasScrollAction()).performScrollToNode(hasText("Goals"))
-        }) { PlanScreen(planScreenFixture().copy(emphasis = GoalEmphasis.BALANCED,
+        }) { PlanScreen(planScreenFixture().copy(
             goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235"))), PlanActions({}, {}, {})) }
     }
 

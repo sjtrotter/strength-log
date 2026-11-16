@@ -76,7 +76,6 @@
 <string name="plan_goals">Goals</string>
 <string name="plan_goal_title">%1$s goal</string>
 <string name="plan_goal_weight">Goal (%1$s)</string>
-<string name="plan_emphasis">Emphasis</string>
 <string name="setup_back_description">Back</string>
     <string name="setup_rest_timer_section">Rest timer</string>
 <string name="setup_per_hand_suffix">/hand</string>
@@ -90,12 +89,6 @@
 <string name="setup_level_novice">Novice</string>
 <string name="setup_level_intermediate">Intermediate</string>
 <string name="setup_level_advanced">Advanced</string>
-<string name="setup_emphasis_strength_title">Strength-leaning</string>
-<string name="setup_emphasis_strength_description">Fewer reps, more weight on the mains.</string>
-<string name="setup_emphasis_balanced_title">Balanced strength + muscle</string>
-<string name="setup_emphasis_balanced_description">Even mix of heavy work and volume.</string>
-<string name="setup_emphasis_physique_title">Physique-leaning</string>
-<string name="setup_emphasis_physique_description">More volume and isolation work.</string>
 <string name="setup_theme_label">Theme</string>
 <string name="setup_theme_system_title">System</string>
 <string name="setup_theme_dark_title">Dark</string>

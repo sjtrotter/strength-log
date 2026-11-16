@@ -104,7 +104,7 @@ class SetEditApplierTest {
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-edit-acks", ".preferences_pb")
         })
-        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
     }
 
     @After
@@ -1204,7 +1204,7 @@ class SetEditApplierTest {
         val qLogs = db.programDao().logsForPlan(planQ)
         val otherPLogs = db.programDao().logsForPlan(planP).filter { it.programExerciseId != id }
         val alternate = WatchSnapshotBuilder.alternatesFor(
-            "bb_back_squat", repo.catalog.catalogFlow.first(), repo.plans.wizardAnswersFor(planP).first().equipment,
+            "bb_back_squat", repo.catalog.catalogFlow.first(), repo.plans.planSettingsFor(planP).first().equipmentOrAll,
         ).first()
 
         val outcome = applier.apply(ExerciseSwapDelta(

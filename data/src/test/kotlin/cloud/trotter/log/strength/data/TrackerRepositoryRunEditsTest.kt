@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -474,7 +476,7 @@ class TrackerRepositoryRunEditsTest {
         settings.setUnit(WeightUnit.KG)
         val plan = generated()
         repo.ensureSeeded(plan, "A")
-        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val config = repo.plans.configFlow.first()
         assertEquals(105.0, WeightUnit.KG.fromLb(GoalCalculator.goalForMain(
             StandardLift.SQUAT, false, config,
         )), 1e-9)
@@ -1056,13 +1058,14 @@ class TrackerRepositoryRunEditsTest {
 
     /** [F] */
     @Test fun `reset retires done work drops undone tracks and preserves run identity through finish`() = runTest {
-        val plan = generated()
+        val plan = repo.plans.createPlannedPlan("Strength, 4 days", SetupAnswers(goal = LiftGoal.STRENGTH, days = 4))
+        repo.plans.publishPlannedPlan(plan)
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "ez_curl")
         val runId = start(plan)
         seed(runId)
         val beforeDay = db.programDao().day(plan, "A")!!
-        val before = db.runDao().tracks(runId).single { it.slot == Slot.MAIN }
+        val before = db.runDao().tracks(runId).single { it.slot == Slot.MAIN && it.programExerciseId == slot }
         repo.resetDayToTemplate("A")
         assertEquals(listOf(before.copy(retired = true)), db.runDao().tracks(runId))
         val afterDay = db.programDao().day(plan, "A")!!

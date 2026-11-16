@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.keepToPlanFixture
 import cloud.trotter.log.strength.data.storeTestRows
@@ -13,7 +14,6 @@ import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -40,9 +40,6 @@ import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
@@ -952,58 +949,25 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun resetToTemplateRequiresGeneratedOriginAndADayInTheRecipe() = runVmTest {
-        repo.replaceProgram(Program(listOf(
-            ProgramDay("A", "Day A", "", emptyList()),
-            ProgramDay("G", "Added day", "", emptyList()),
-        )))
-        val generated = repo.plans.selectedPlanIdFlow.first()!!
+    fun `an old wizard plan offers no reset`() = runVmTest {
+        val answers = WizardAnswers()
+        val generated = repo.plans.createGeneratedPlan("Old", answers, ProgramGenerator.generate(answers))
+        repo.plans.publishCreatedPlan(generated, answers)
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
-        advanceUntilIdle()
-        assertTrue(vm.dayEditState.value.canResetToTemplate)
-        vm.selectDay(DaySelection(generated, "G"))
-        advanceUntilIdle()
-        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        for (day in listOf("A", "B")) {
+            vm.selectDay(DaySelection(generated, day))
+            advanceUntilIdle()
+            assertFalse(vm.dayEditState.value.canResetToTemplate)
+        }
         val authored = repo.plans.createAuthoredPlan("Authored", "Day A")
         repo.plans.publishCreatedAuthoredPlan(authored)
-        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
         vm.selectDay(DaySelection(authored, "A"))
         advanceUntilIdle()
         assertFalse(vm.dayEditState.value.canResetToTemplate)
         collectEdit.cancel()
         collectUi.cancel()
-    }
-
-    @Test
-    fun resetToTemplateChecksStoredIdentityAfterDayLettersShift() = runVmTest {
-        val answers = WizardAnswers(
-            daysPerWeek = 3, split = SplitTemplate.PPL, equipment = setOf(Equipment.PULLUP_BAR),
-            cardio = CardioPrefs(mode = CardioMode.NONE),
-        )
-        val repeated = answers.copy(daysPerWeek = 6, split = SplitTemplate.UPPER_LOWER)
-        for ((recipe, dayId, enabled) in listOf(
-            Triple(answers, "B", true),
-            Triple(answers, "C", true),
-            Triple(answers, "A", false),
-            Triple(repeated, "C", false),
-        )) {
-            val legacy = ProgramGenerator.generate(recipe.copy(equipment = Equipment.entries.toSet()))
-            val plan = repo.plans.createGeneratedPlan("Existing", recipe, legacy)
-            repo.plans.publishCreatedPlan(plan, recipe)
-            repo.renameDay(plan, dayId, "Renamed")
-            val vm = newViewModel()
-            val collectUi = launch { vm.uiState.collect {} }
-            val collectEdit = launch { vm.dayEditState.collect {} }
-            vm.selectDay(DaySelection(plan, dayId))
-            advanceUntilIdle()
-
-            assertEquals("${recipe.split} day $dayId", enabled, vm.dayEditState.value.canResetToTemplate)
-
-            collectEdit.cancel()
-            collectUi.cancel()
-        }
     }
 
     @Test
@@ -2426,34 +2390,35 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun resetDayToTemplateRegeneratesFromWizardAnswers() = runVmTest {
-        insertProgram()
+    fun resetDayRebuildsFromTheSetupAnswers() = runVmTest {
+        val answers = SetupAnswers(goal = LiftGoal.STRENGTH, days = 4)
+        val plan = repo.plans.createPlannedPlan("Strength, 4 days", answers)
+        repo.plans.publishPlannedPlan(plan)
+        val first = db.programDao().exercisesForDay(plan, "A").first()
+        repo.swapExerciseById("A", first.id, "hack_squat")
         val vm = newViewModel()
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
-        assertTrue(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
-
+        assertTrue(vm.dayEditState.value.slots.any { it.exerciseId == "hack_squat" })
         vm.editor.resetDayToTemplate()
         advanceUntilIdle()
-
-        // Regenerated from the default wizard answers — the hand-built fixture's
-        // unknown placeholder exercise is gone.
-        assertFalse(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
+        assertEquals(Planner.day(answers, "A")!!.day.exercises.map { it.exerciseId },
+            vm.dayEditState.value.slots.map { it.exerciseId })
         assertTrue(vm.dayEditState.value.slots.isNotEmpty())
         collect.cancel()
     }
 
     @Test
     fun resetDayAlreadyMatchingTemplateReseedsBeforeLoggingAndRemovingSets() = runVmTest {
-        repo.replaceProgram(ProgramGenerator.generate(repo.plans.wizardAnswersFlow.first()))
-        val planId = repo.plans.selectedPlanIdFlow.first()!!
+        val planId = repo.plans.createPlannedPlan("Strength, 4 days", SetupAnswers(goal = LiftGoal.STRENGTH, days = 4))
+        repo.plans.publishPlannedPlan(planId)
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val original = repo.observeDay(planId, "A").first()
         val originalIds = original.slots.map { it.slot.programExerciseId }.toSet()
         assertTrue(original.slots.isNotEmpty())
-        assertTrue(original.slots.all { it.main.stored?.isNotEmpty() == true })
+        assertTrue(original.slots.all { it.main.sets.isNotEmpty() })
         assertNull(repo.openRunFlow.first())
 
         vm.editor.resetDayToTemplate()
@@ -2461,13 +2426,17 @@ class DayViewModelWiringTest {
 
         val reset = repo.observeDay(planId, "A").first()
         assertTrue(reset.slots.all { it.slot.exercise.rule != null })
-        assertEquals(original.program, reset.program.copy(days = reset.program.days.map { day ->
-            day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
-        }))
+        assertEquals(original.program, reset.program)
         assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
         assertEquals(original.slots.size, reset.slots.size)
         assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })
-        assertTrue(reset.slots.all { it.main.stored?.isNotEmpty() == true })
+        // The active VM persists lazy seeds before observing the replacement slot IDs.
+        reset.slots.forEach { slot ->
+            assertTrue(
+                "Unseeded reset slot: ${slot.slot.exercise.exerciseId}",
+                slot.main.stored?.isNotEmpty() == true,
+            )
+        }
         assertNull(repo.openRunFlow.first())
         val focus = requireNotNull(vm.uiState.value.workout?.focus)
         assertEquals(Slot.MAIN, focus.slot)
@@ -3097,7 +3066,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
-        val answers = repo.plans.wizardAnswersFlow.first()
+        val answers = WizardAnswers()
         val selectedPlan = repo.plans.createGeneratedPlan("Other", answers, Program(listOf(
             ProgramDay("A", "Other A", "", listOf(ProgramExercise("plank"))),
         )))
@@ -3673,7 +3642,7 @@ class DayViewModelWiringTest {
     @Test fun workoutSwapStartsBeforeTheFirstSetAndUsesTheSubstitutesGoalAndTracking() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
-        val answers = repo.plans.wizardAnswersFlow.first()
+        val answers = WizardAnswers()
         repo.plans.setWizardAnswers(answers.copy(config = answers.config.copy(goalsLb = mapOf("hack_squat" to 180.0))))
         repo.addExercise("A", ProgramExercise("bb_back_squat", targetSets = 2,
             prescription = Prescription(PrescribedTarget.RepsInTime(90, 30))))

@@ -1,12 +1,12 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -33,8 +33,8 @@ class BackupV10Test {
     )
 
     private fun snapshot() = FullSnapshot(
-        answers = WizardAnswers(),
-        answersCarryRecipe = false,
+        global = GlobalLifter(),
+        legacyRecipe = null,
         unit = WeightUnit.LB,
         wizardComplete = true,
         suggestedDay = null,

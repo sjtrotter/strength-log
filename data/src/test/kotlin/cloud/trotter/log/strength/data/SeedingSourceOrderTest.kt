@@ -19,8 +19,6 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -228,21 +226,6 @@ class SeedingSourceOrderTest {
         assertEquals(tracks, db.runDao().allTracks())
     }
 
-    @Test fun `reset day reads custom exercises the way conversion does`() = runTest {
-        val custom = CustomExerciseEntity("custom_unreadable", "Unreadable", "UNKNOWN", "BARBELL", false, 45.0)
-        db.customExerciseDao().upsert(custom)
-        val answers = WizardAnswers()
-        val gen = repo.plans.createGeneratedPlan("Gen", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(gen, answers)
-        repo.resetDayToTemplate("A", gen)
-        val slots = db.programDao().exercisesForPlan(gen)
-        assertTrue(slots.isNotEmpty())
-        for (slot in slots) {
-            assertNotNull(SlotRuleJson.decode(slot.ruleJson))
-            if (!slot.keepToPlan) assertNotNull(log(slot.id))
-        }
-        assertNull(repo.catalog.snapshot().find(custom.id))
-    }
 
     @Test fun `a planned 245 by 5 top seeds a ten rep straight slot at 215 pounds`() = runTest {
         val source = add("A", ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 6))

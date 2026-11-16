@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -113,7 +114,7 @@ class DayViewModelTimedRepExecutionTest {
     ).also { vms += it }
 
     private suspend fun prepare() {
-        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN)))
+        repo.plans.setWizardAnswers(WizardAnswers().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN)))
         repo.replaceProgram(
             Program(listOf(ProgramDay(
                 "A", "Timed reps", "", listOf(ProgramExercise(

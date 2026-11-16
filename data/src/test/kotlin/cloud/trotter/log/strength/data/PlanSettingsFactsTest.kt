@@ -43,4 +43,26 @@ class PlanSettingsFactsTest {
         assertFalse(PlanSettingsJson.hasPlanFacts("""{"defaultsFor":"STRENGTH"}"""))
         assertFalse(PlanSettingsJson.hasPlanFacts("not json"))
     }
+    @Test fun `legacy mains round trip`() {
+        val settings = PlanSettings(equipment = setOf(Equipment.DUMBBELL),
+            legacyMains = setOf("goblet_squat", "db_bench"))
+        val json = PlanSettingsJson.encode(settings)
+        assertEquals(settings, PlanSettingsJson.decode(json))
+        assertTrue(json.contains("\"legacyMains\":[\"db_bench\",\"goblet_squat\"]"))
+        assertTrue(assertNotNull(PlanSettingsJson.decode("{}")).legacyMains.isEmpty())
+        assertFalse(PlanSettingsJson.encode(PlanSettings()).contains("legacyMains"))
+    }
+
+    @Test fun `blank legacy mains are dropped on read and rejected strictly`() {
+        val json = """{"legacyMains":["", "x"]}"""
+        assertEquals(setOf("x"), assertNotNull(PlanSettingsJson.decode(json)).legacyMains)
+        assertFailsWith<IllegalArgumentException> { PlanSettingsJson.validate(json) }
+    }
+
+    @Test fun `hasLegacyMains`() {
+        assertTrue(PlanSettingsJson.hasLegacyMains("""{"legacyMains":["x"]}"""))
+        assertFalse(PlanSettingsJson.hasLegacyMains("""{"legacyMains":[]}"""))
+        assertFalse(PlanSettingsJson.hasLegacyMains("""{"defaultsFor":"STRENGTH"}"""))
+        assertFalse(PlanSettingsJson.hasLegacyMains("not json"))
+    }
 }

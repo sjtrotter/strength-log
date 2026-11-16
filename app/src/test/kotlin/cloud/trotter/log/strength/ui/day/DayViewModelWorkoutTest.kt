@@ -463,7 +463,7 @@ class DayViewModelWorkoutTest {
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout?.review)
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1, done = true,
             editedAtMillis = 100_002, completedAtMillis = 100_002, planId = state.planId, runId = state.runId, exerciseId = "db_bench")))
@@ -700,7 +700,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         rateAndContinue(vm)
         val state = vm.uiState.value
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 1,
             reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
@@ -1526,7 +1526,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         vm.logFocusedSet()
         runCurrent()
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         val edit = SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -1616,7 +1616,7 @@ class DayViewModelWorkoutTest {
         vm.selectWorkoutLift(selectedKey)
         runCurrent()
         assertNull(repo.openRunFlow.first())
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = firstId, slot = Slot.MAIN, setIndex = 0,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -1688,7 +1688,7 @@ class DayViewModelWorkoutTest {
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
             reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
@@ -1714,7 +1714,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         vm.logFocusedSet()
         runCurrent()
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         val watchTick = SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -1745,7 +1745,7 @@ class DayViewModelWorkoutTest {
         assertNotNull(record?.undo)
         assertNotNull(rest)
         val cancellations = runtime.cancellations
-        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
             reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.you
 
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.core.DataStore
@@ -13,7 +14,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
@@ -171,28 +171,27 @@ class YouViewModelTest {
     }
 
     @Test
-    fun configChangesKeepTheSelectedRecipeAndProgram() = runVmTest {
-        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
-        repo.plans.setPlanEmphasis(repo.plans.selectedPlanFlow.first()!!.id, GoalEmphasis.STRENGTH)
+    fun configChangesKeepTheSelectedPlanAndProgram() = runVmTest {
+        repo.plans.setWizardAnswers(WizardAnswers())
         val vm = newViewModel()
         val programBefore = repo.plans.programFlow.first()
+        val planBefore = repo.plans.selectedPlanFlow.first()
         vm.setAge(50)
         advanceUntilIdle()
-        assertEquals(GoalEmphasis.STRENGTH, repo.plans.configFlow.first().emphasis)
         assertEquals(programBefore, repo.plans.programFlow.first())
+        assertEquals(planBefore, repo.plans.selectedPlanFlow.first())
     }
 
     @Test
-    fun levelChangesKeepTheSelectedPlanEmphasis() = runVmTest {
-        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
-        val selectedPlanId = repo.plans.selectedPlanFlow.first()!!.id
-        repo.plans.setPlanEmphasis(selectedPlanId, GoalEmphasis.STRENGTH)
+    fun levelChangesKeepTheSelectedPlanSettings() = runVmTest {
+        repo.plans.setWizardAnswers(WizardAnswers())
+        val selected = repo.plans.selectedPlanFlow.first()!!
         val vm = newViewModel()
 
         vm.setLevel(ExperienceLevel.ADVANCED)
         advanceUntilIdle()
 
         assertEquals(ExperienceLevel.ADVANCED, repo.plans.configFlow.first().level)
-        assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(selectedPlanId).first().config.emphasis)
+        assertEquals(selected, repo.plans.selectedPlanFlow.first())
     }
 }

@@ -219,7 +219,7 @@ strength day; the shipped cardio vectors stay pinned.
 
 - **Plans.** The app holds any number of named plans; one is selected for
   Today and the watch. A plan owns its days, prescriptions, live working
-  values, rotation position, emphasis, equipment and cardio prefs.
+  values, rotation position, equipment and typed lift goals.
   Bodyweight, age, level and units stay global. The wizard always creates a
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.

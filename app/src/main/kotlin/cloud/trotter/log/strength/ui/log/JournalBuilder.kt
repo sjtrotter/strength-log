@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
@@ -58,8 +59,8 @@ object JournalBuilder {
     /**
      * The program's main lifts in day order, de-duplicated by exercise (a lift
      * anchored on two days keeps its first day's accent).
-     * Membership is the slot's role or a v1 recipe main; goals are the plan's typed goals.
-     * 6c removes [v1Mains] when conversion fixes v1 roles.
+     * Membership is the slot's role, or an old wizard main the plan records in [PlanSettings.legacyMains];
+     * goals are the plan's typed goals.
      *
      * REPS/TIMED prescriptions have no top-set weight to plot.
      */
@@ -67,13 +68,13 @@ object JournalBuilder {
         program: Program,
         catalog: ExerciseCatalog,
         goalsLb: Map<String, Double>,
-        v1Mains: Set<String> = emptySet(),
+        legacyMains: Set<String> = emptySet(),
     ): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
         program.days.forEach { day ->
             for (pe in day.exercises) {
                 val entry = catalog.find(pe.exerciseId) ?: continue
-                if (pe.rule?.role != SlotRole.MAIN && pe.exerciseId !in v1Mains) continue
+                if (pe.rule?.role != SlotRole.MAIN && pe.exerciseId !in legacyMains) continue
                 if (pe.exerciseId in lifts) continue
                 val target = pe.prescription?.target
                 if (target != null && target !is PrescribedTarget.LoadReps) continue

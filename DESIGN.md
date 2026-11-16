@@ -59,7 +59,7 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
 | Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit lifter facts |
-| Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals, which open for editing, and let the lifter set emphasis |
+| Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals, which open for editing |
 | Settings | `ui/setup/SetupScreen.kt` | Rarely | App preferences: units, theme, keep screen on, warm-up, cool-down and rest timer; open custom exercises, backup and licenses |
 | You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight, age and experience level, which generated plans use for goals |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |
@@ -288,6 +288,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-10-12 late, #262 | Segments are indicators, not buttons; the rest pill is a time button with a menu | 48 dp targets do not fit six to eight segments on a 360 dp phone |
 | 2026-11-15, #583 | Every set is a card; a logged set stays on its card with an effort row; the big button reads End rest during rest, never logs, and waits for the effort; the logged set leaves in a snackbar with Undo; supersets log as one round (583b) | Owner after a gym session: the effort row was easy to skip, a rating tap once logged the next set, and supersets did not read as one round |
 | 2026-11-15, wizard rebuild 6b | Setup by goal replaces the wizard: one question per screen with a Why sheet, Lift only until PR 7, a preview of the exact plan Start writes, over-budget and 65+ balance choices on Your plan | Owner decisions 2026-11-08 and 2026-11-15; the old wizard asked bodyweight and age for a formula that is gone |
+| 2026-11-16, wizard rebuild 6c-i | Old plans convert: Emphasis leaves the Plan screen and Reset day leaves old-wizard plans; History unchanged | Design §4.4; both edited only the old generator's template |
 
 ### Watch
 

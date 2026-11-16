@@ -14,7 +14,7 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
 import cloud.trotter.log.strength.data.run.SplitInput
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import java.io.IOException
@@ -75,11 +75,10 @@ class BackupRepository(
         return db.withTransaction {
             // Use this same plan list for the legacy settings projection, too.
             // Separate reads could otherwise straddle a restore's Room commit.
-            val plans = planDao.allPlans()
-            val selectedPlan = preferredPlan(plans, selectedPlanId)
+            val stored = planDao.allPlans()
+            val selectedPlan = preferredPlan(stored, selectedPlanId)
             FullSnapshot(
-                answers = answersForPlan(selectedPlan, global),
-                answersCarryRecipe = false,
+                global = global,
                 hasLifterAnswers = hasLifterAnswers,
                 unit = unit,
                 wizardComplete = wizardComplete,
@@ -92,7 +91,7 @@ class BackupRepository(
                 themePreference = themePreference,
                 distanceUnit = distanceUnit,
                 effortScale = effortScale,
-                plans = plans,
+                plans = stored,
                 customExercises = customExerciseDao.allOrdered(),
                 days = programDao.allDays(),
                 exercises = programDao.allExercises(),
@@ -165,7 +164,7 @@ class BackupRepository(
             ))
         }
         val nonce = UUID.randomUUID().toString()
-        val legacyPlanCreated = snapshot.plans.isEmpty() && snapshot.answersCarryRecipe
+        val legacyPlanCreated = snapshot.plans.isEmpty() && snapshot.legacyRecipe != null
         val restoredSelectedPlanId = snapshot.selectedPlanId
             ?: if (legacyPlanCreated) PlanEntity.LEGACY_ID else null
         val stagedSnapshot = snapshot.copy(selectedPlanId = restoredSelectedPlanId)
@@ -202,20 +201,21 @@ class BackupRepository(
                     ),
                 )
             }
-            if (snapshot.answersCarryRecipe && snapshot.plans.none { it.recipeJson != null }) {
-                val recipe = PlanRecipeJson.encode(snapshot.answers)
-                val plans = planDao.allPlans()
-                plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
-                    .forEach { planDao.updateRecipe(it.id, recipe) }
-                val selectedId = preferredPlan(plans, restoredSelectedPlanId)?.id
-                if (selectedId != null && planDao.plan(selectedId)?.suggestedDayId == null) {
-                    planDao.updateSuggestedDay(selectedId, snapshot.suggestedDay)
-                }
-            }
             customExerciseDao.upsertAll(snapshot.customExercises)
             programDao.upsertDays(days)
             programDao.insertExercises(snapshot.exercises)
             programDao.insertLogs(snapshot.logs)
+            snapshot.legacyRecipe?.let { recipe ->
+                if (snapshot.plans.none { it.recipeJson != null }) {
+                    val stored = planDao.allPlans()
+                    stored.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
+                        .forEach { plans.applyV1Recipe(it.id, recipe) }
+                    val selectedId = preferredPlan(stored, restoredSelectedPlanId)?.id
+                    if (selectedId != null && planDao.plan(selectedId)?.suggestedDayId == null) {
+                        planDao.updateSuggestedDay(selectedId, snapshot.suggestedDay)
+                    }
+                }
+            }
             // Converted legacy rows replace matching working values; run tracks stay attached untouched.
             split?.logs?.forEach { programDao.upsertLog(it) }
             sessionDao.insertSessions(snapshot.sessions)
@@ -240,7 +240,7 @@ class BackupRepository(
         withContext(NonCancellable) {
             try {
                 settings.restore(
-                    global = GlobalLifter.of(snapshot.answers.config),
+                    global = snapshot.global,
                     hasLifterAnswers = snapshot.hasLifterAnswers,
                     unit = snapshot.unit,
                     wizardComplete = snapshot.wizardComplete,
@@ -271,7 +271,7 @@ class BackupRepository(
 
     /**
      * Finishes an interrupted restore at startup, returning whether it replayed
-     * one. Old-format journals overwrite every generated plan's recipe and the
+     * one. Old-format journals overwrite every generated plan's equipment and goals and the
      * selected plan's rotation when staged: the restore replaced Room, so any
      * existing settings came from interim edits. The caller must prevent overlap
      * with a live restore (`:transfer` owns that lock).
@@ -282,11 +282,10 @@ class BackupRepository(
             db.withTransaction {
                 notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(NOTE_MAX_LENGTH)) }
             }
-        }) { answers, suggestedDay, storedId ->
+        }) { recipe, suggestedDay, storedId ->
             db.withTransaction {
-                val recipe = PlanRecipeJson.encode(answers)
-                val plans = planDao.allPlans()
-                if (plans.isEmpty()) {
+                val stored = planDao.allPlans()
+                if (stored.isEmpty()) {
                     planDao.insertPlan(
                         PlanEntity(
                             id = PlanEntity.LEGACY_ID,
@@ -295,15 +294,15 @@ class BackupRepository(
                             origin = PlanOrigin.GENERATED.name,
                             position = 0,
                             createdAt = clock.millis(),
-                            recipeJson = recipe,
                             suggestedDayId = suggestedDay,
                         ),
                     )
+                    plans.applyV1Recipe(PlanEntity.LEGACY_ID, recipe)
                     return@withTransaction PlanEntity.LEGACY_ID
                 }
-                plans.filter { it.origin == PlanOrigin.GENERATED.name }
-                    .forEach { planDao.updateRecipe(it.id, recipe) }
-                val selected = preferredPlan(plans, storedId)
+                stored.filter { it.origin == PlanOrigin.GENERATED.name && !it.hasSetupRecipe }
+                    .forEach { plans.applyV1Recipe(it.id, recipe) }
+                val selected = preferredPlan(stored, storedId)
                 if (selected != null && suggestedDay != null) {
                     planDao.updateSuggestedDay(selected.id, suggestedDay)
                 }

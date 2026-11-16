@@ -21,7 +21,6 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -211,22 +210,16 @@ class PlannedPlanTest {
         val plan = assertNotNull(db.planDao().plan(id))
         assertEquals(mapOf("bb_back_squat" to 300.0), plan.planSettings.goalsLb)
         assertEquals(recipe, plan.recipeJson)
-        assertEquals(plan.planSettings.goalsLb, plans.wizardAnswersFor(id).first().config.goalsLb)
+        assertEquals(plan.planSettings.goalsLb, plans.planSettingsFor(id).first().goalsLb)
         plans.setPlanGoal(id, "bb_back_squat", null)
         assertTrue(assertNotNull(db.planDao().plan(id)).planSettings.goalsLb.isEmpty())
         assertEquals(recipe, assertNotNull(db.planDao().plan(id)).recipeJson)
     }
 
-    @Test fun `emphasis leaves a planned plan alone`() = runTest {
-        val id = plans.createPlannedPlan("Strength", answers)
-        val recipe = assertNotNull(db.planDao().plan(id)).recipeJson
-        plans.setPlanEmphasis(id, GoalEmphasis.PHYSIQUE)
-        assertEquals(recipe, assertNotNull(db.planDao().plan(id)).recipeJson)
-    }
 
     @Test fun `a planned plan's gear comes from settings`() = runTest {
         val a = answers.copy(equipment = EquipmentPreset.DUMBBELLS.equipment, recent = emptyMap())
         val id = plans.createPlannedPlan("Dumbbells", a)
-        assertEquals(a.equipment, plans.wizardAnswersFor(id).first().equipment)
+        assertEquals(a.equipment, plans.planSettingsFor(id).first().equipmentOrAll)
     }
 }

@@ -15,7 +15,6 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -63,9 +62,9 @@ class PlanViewModel @Inject constructor(
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
-            plans.programFor(planId), plans.wizardAnswersFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory,
-        ) { program, answers, catalog, unit, cardio ->
-            PlanScreenBuilder.buildUiState(plan, program, answers, catalog, unit, cardio)
+            plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory,
+        ) { program, catalog, unit, cardio ->
+            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio)
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
@@ -174,10 +173,6 @@ class PlanViewModel @Inject constructor(
 
     fun setOfferCardioIncreases(on: Boolean) {
         viewModelScope.launch { plans.setOfferCardioIncreases(planId, on) }
-    }
-
-    fun setEmphasis(emphasis: GoalEmphasis) {
-        viewModelScope.launch { plans.setPlanEmphasis(planId, emphasis) }
     }
 
     fun openDayMenu(dayId: String?) { savedState[MENU] = dayId }

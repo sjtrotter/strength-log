@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -9,8 +10,6 @@ import cloud.trotter.log.strength.domain.records.GoalProgress
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -23,7 +22,6 @@ import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.ui.log.JournalBuilder
@@ -32,16 +30,13 @@ object PlanScreenBuilder {
     fun buildUiState(
         plan: PlanEntity?,
         program: Program,
-        answers: WizardAnswers,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
-        val v1Mains = if (plan?.recipeJson != null && !plan.hasSetupRecipe) {
-            ProgramGenerator.mainLiftIds(answers).toSet()
-        } else emptySet()
+        val planSettings = plan?.planSettings ?: PlanSettings()
         return PlanUiState(
             goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
                 when (goal) {
@@ -65,14 +60,13 @@ object PlanScreenBuilder {
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
-            goals = if (generated) liftGoals(program, catalog, answers.config.goalsLb, unit, v1Mains) else emptyList(),
-            emphasis = if (generated && plan?.hasSetupRecipe != true) answers.config.emphasis else null,
+            goals = if (generated) liftGoals(program, catalog, planSettings.goalsLb, unit, planSettings.legacyMains) else emptyList(),
         )
     }
 
     private fun liftGoals(program: Program, catalog: ExerciseCatalog, goalsLb: Map<String, Double>,
-                          unit: WeightUnit, v1Mains: Set<String>): List<PlanLiftGoal> =
-        JournalBuilder.mainLifts(program, catalog, goalsLb, v1Mains).map { lift ->
+                          unit: WeightUnit, legacyMains: Set<String>): List<PlanLiftGoal> =
+        JournalBuilder.mainLifts(program, catalog, goalsLb, legacyMains).map { lift ->
             val entry = requireNotNull(catalog.find(lift.exerciseId))
             PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb, lift.goalLb?.let {
                 GoalFormatter.label(GoalTarget.Weight(it, entry.perHand), unit)

@@ -1,13 +1,12 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -26,8 +25,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PerformedDayTest {
-    private val answers = WizardAnswers(equipment = setOf(Equipment.BODYWEIGHT),
-        config = LifterConfig(goalsLb = mapOf("ez_curl" to 60.0)))
+    private val planSettings = PlanSettings(equipment = setOf(Equipment.BODYWEIGHT),
+        goalsLb = mapOf("ez_curl" to 60.0))
     private val catalog = ExerciseCatalog(listOf(
         ExerciseEntry("custom_loaded_hold", "Loaded hold", MovementPattern.CORE_ANTI_EXT,
             listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Time(45, 25.0),
@@ -60,8 +59,7 @@ class PerformedDayTest {
         assertEquals(7L, day.planId)
         assertEquals("A", day.dayId)
         assertSame(day.program.days.single(), day.day)
-        assertEquals(answers.config, day.config)
-        assertEquals(answers.equipment, day.equipment)
+        assertEquals(planSettings.equipmentOrAll, day.equipment)
         assertSame(catalog, day.catalog)
     }
 
@@ -173,7 +171,7 @@ class PerformedDayTest {
     @Test fun `unknown day keeps available slots with no program day`() {
         val slots = listOf(ProgramSlot(1, 0, ProgramExercise("ez_curl")))
         val day = PerformedDay.of(7, "missing", Program(emptyList()), slots,
-            DayTracks(null, false, emptyList()), answers, catalog, seeds = emptyMap())
+            DayTracks(null, false, emptyList()), planSettings, catalog, seeds = emptyMap())
 
         assertNull(day.day)
         assertEquals(slots, day.slots.map { it.slot })
@@ -184,9 +182,9 @@ class PerformedDayTest {
             ProgramSlot(i + 1L, i, ProgramExercise(id))
         }
         val day = PerformedDay.of(7, "A", Program(listOf(ProgramDay("A", "Day A", "", slots.map { it.exercise }))),
-            slots, DayTracks(null, false, emptyList()), WizardAnswers(config = LifterConfig(goalsLb = mapOf(
+            slots, DayTracks(null, false, emptyList()), PlanSettings(goalsLb = mapOf(
                 "bb_bench" to 200.0, "hammer_curl" to 40.0, "pushup" to 30.0, "plank" to 60.0,
-            ))), catalog, seeds = emptyMap())
+            )), catalog, seeds = emptyMap())
 
         assertEquals(listOf(GoalTarget.Weight(200.0, false), GoalTarget.Weight(40.0, true), null, null, null, null),
             day.slots.map { it.main.goal })
@@ -211,5 +209,5 @@ class PerformedDayTest {
         seeds: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
     ): PerformedDay =
         PerformedDay.of(7, "A", Program(listOf(ProgramDay("A", "Arms", "", slots.map { it.exercise }))),
-            slots, tracks, answers, catalog, seeds)
+            slots, tracks, planSettings, catalog, seeds)
 }

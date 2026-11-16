@@ -10,7 +10,8 @@ import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 
-private val shortScheme = Scheme(listOf(Scheme.Ramp(0.80, 3)), backoffs = 0, backoffPct = 0.0, backoffReps = 0)
+// With no back-offs the back-off fields are never read, but the stored rule codec requires valid values.
+private val shortScheme = Scheme.STRENGTH.copy(ramps = listOf(Scheme.Ramp(0.80, 3)), backoffs = 0)
 
 internal fun fitDay(
     day: ProgramDay,

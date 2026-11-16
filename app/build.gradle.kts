@@ -94,6 +94,8 @@ android {
             // Robolectric loads a full android-all jar per SDK level in one JVM; Gradle's default
             // test heap ran out on TodayWidgetViewsTest's SDK 30 case once the suite grew (#571).
             it.maxHeapSize = "2g"
+            // An exhausted heap fails the task at once with its error instead of stalling into the job timeout.
+            it.jvmArgs("-XX:+ExitOnOutOfMemoryError")
             if (playtestScript != null) {
                 it.outputs.dir(playtestDir)
                 it.outputs.upToDateWhen { false }

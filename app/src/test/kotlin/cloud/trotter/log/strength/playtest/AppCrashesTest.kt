@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.playtest
 
+import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +20,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertFailsWith
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], shadows = [PlaytestHandler::class])
+@Config(sdk = [35], application = Application::class)
 class AppCrashesTest {
     @Test fun coroutineFailureFailsTheStepBeforeRunTestReturns() {
         val crash = IllegalStateException("App coroutine failed")

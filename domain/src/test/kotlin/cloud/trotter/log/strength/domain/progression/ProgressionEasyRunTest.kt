@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
+import cloud.trotter.log.strength.domain.model.DistanceSource
 
 class ProgressionEasyRunTest {
     private val rule = CardioRule(null, RunSession.EASY)
@@ -68,7 +69,7 @@ class ProgressionEasyRunTest {
         assertEquals(repeated, finish(opening, storedRule, results = unfinished))
         assertEquals(repeated, finish(opening, storedRule, results = emptyList<CardioSetResult>()))
         val aimed = opening.copy(sets = opening.sets.map { it.copy(aim = Measure.Distance(3000)) })
-        val missedAim = finished(aimed).map { it.copy(metres = 2900) }
+        val missedAim = finished(aimed).map { it.copy(metres = 2900, distanceSource = DistanceSource.MANUAL) }
         assertEquals(CardioOutcome(aimed, storedRule, CardioChange.Repeat), finish(aimed, storedRule, results = missedAim))
     }
 

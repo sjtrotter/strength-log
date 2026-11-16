@@ -81,8 +81,6 @@
 <string name="plan_goals">Goals</string>
 <string name="plan_goal_title">%1$s goal</string>
 <string name="plan_goal_weight">Goal (%1$s)</string>
-<string name="plan_goal_calculated">Calculated %1$s</string>
-<string name="plan_goal_use_calculated">Use calculated</string>
 <string name="plan_emphasis">Emphasis</string>
 <string name="setup_back_description">Back</string>
     <string name="setup_rest_timer_section">Rest timer</string>
@@ -383,7 +381,7 @@
 <string name="day_edit_title">Edit day</string>
 <string name="day_plan_editor_title">Edit day %1$s</string>
 <string name="day_edit_add_exercise_button">+ Add exercise</string>
-<string name="day_edit_reset_button">Reset day to template</string>
+<string name="day_edit_reset_button">Reset day to plan</string>
 <string name="day_edit_superset_with_label">SS with %1$s</string>
 <string name="day_edit_unknown_exercise">unknown exercise</string>
 <string name="day_edit_edit_button">Edit</string>
@@ -398,8 +396,8 @@
 <string name="day_edit_create_exercise_button">+ Create exercise</string>
 <string name="day_edit_back_action">Back</string>
 <string name="day_edit_search_hint">Search exercises</string>
-<string name="day_edit_reset_confirm_title">Reset day to template?</string>
-<string name="day_edit_reset_confirm_body">This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded — logged history is not affected.</string>
+<string name="day_edit_reset_confirm_title">Reset day to plan?</string>
+<string name="day_edit_reset_confirm_body">Rebuilds this day from your setup answers. Swaps, added lifts and removed lifts on this day are dropped. Logged history stays.</string>
 <string name="day_edit_reset_confirm_button">Reset</string>
 <string name="day_edit_cancel_button">Cancel</string>
 <string name="movement_pattern_squat_bilateral">Squat (bilateral)</string>
@@ -1037,6 +1035,7 @@
     <string name="plan_goal_target_time">Target time</string>
     <string name="plan_goal_add_date">Add date</string>
     <string name="plan_goal_remove_date">Remove date</string>
+    <string name="plan_goal_not_set">Not set</string>
     <string name="plan_goal_remove">Remove goal</string>
     <string name="plan_log_attempt">Log attempt</string>
     <string name="plan_goal_shuttles_label">Shuttles</string>

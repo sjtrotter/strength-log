@@ -10,6 +10,8 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -924,6 +926,27 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
         assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
+        collectUi.cancel()
+    }
+
+    @Test fun resetToPlanFollowsTheV2Recipe() = runVmTest {
+        val plan = repo.plans.createPlannedPlan("Strength, 4 days", SetupAnswers(goal = LiftGoal.STRENGTH, days = 4))
+        repo.plans.publishPlannedPlan(plan)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        vm.selectDay(DaySelection(plan, "A"))
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.canResetToTemplate)
+        vm.selectDay(DaySelection(plan, "D"))
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        db.planDao().updateRecipe(plan,
+            """{"v":2,"branch":"LIFT","goal":"POWER","days":4,"minutes":60,"experience":"NEW"}""")
+        vm.selectDay(DaySelection(plan, "A"))
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        collectEdit.cancel()
         collectUi.cancel()
     }
 

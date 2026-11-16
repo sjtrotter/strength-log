@@ -48,6 +48,13 @@ import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.planner.PlanDraft
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.SlotKey
+import java.time.LocalDate
 import java.time.Clock
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -171,6 +178,7 @@ class PlanRepository(
         db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction
             val recipe = plan.recipeJson ?: return@withTransaction
+            if (SetupRecipeJson.isV2(recipe)) return@withTransaction
             val answers = PlanRecipeJson.decode(recipe, global)
             planDao.updateRecipe(
                 planId,
@@ -186,14 +194,21 @@ class PlanRepository(
         val global = settings.globalLifterFlow.first()
         db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction
-            val recipe = plan.recipeJson ?: return@withTransaction
-            val answers = PlanRecipeJson.decode(recipe, global)
-            val goals = if (goalLb == null) answers.config.goalsLb - exerciseId
-                else answers.config.goalsLb + (exerciseId to goalLb)
-            planDao.updateRecipe(
-                planId,
-                PlanRecipeJson.encode(answers.copy(config = answers.config.copy(goalsLb = goals))),
-            )
+            val recipe = plan.recipeJson
+            if (recipe != null && !SetupRecipeJson.isV2(recipe)) {
+                val answers = PlanRecipeJson.decode(recipe, global)
+                val goals = if (goalLb == null) answers.config.goalsLb - exerciseId
+                    else answers.config.goalsLb + (exerciseId to goalLb)
+                planDao.updateRecipe(
+                    planId,
+                    PlanRecipeJson.encode(answers.copy(config = answers.config.copy(goalsLb = goals))),
+                )
+            } else {
+                val planSettings = plan.planSettings
+                val goals = if (goalLb == null) planSettings.goalsLb - exerciseId
+                    else planSettings.goalsLb + (exerciseId to goalLb)
+                planDao.updateSettings(planId, PlanSettingsJson.encode(planSettings.copy(goalsLb = goals)))
+            }
         }
     }
 
@@ -364,6 +379,73 @@ class PlanRepository(
                 programDao.exercisesForPlan(planId).filter { it.supersetExerciseId != null && it.partnerRuleJson == null }
                     .forEach { rulePartner(it, null, answers.config.weightUnit, catalog) }
                 planId
+            }
+        }
+    }
+
+    /** The shape never depends on loads, so the second pass keeps the first pass's slots. Reads only Room. */
+    private suspend fun planned(answers: SetupAnswers): PlanDraft {
+        val today = LocalDate.now(clock).toEpochDay()
+        val first = Planner.plan(answers, KnownLoads.NONE, today)
+        val ids = first.program.days.flatMap { day -> day.exercises.flatMap { slot ->
+            listOfNotNull(slot.exerciseId, slot.superset?.exerciseId)
+        } }.distinct()
+        val known = KnownLoads(ids.mapNotNull { id -> lastWorking(id)?.let { id to it } }.toMap())
+        return Planner.plan(answers, known, today)
+    }
+
+    /** What [createPlannedPlan] would write now; reads only Room. */
+    suspend fun previewPlan(answers: SetupAnswers): PlanDraft = db.withTransaction { planned(answers) }
+
+    /** Writes the plan, rules and opening rows in one transaction, so a crash leaves no half plan.
+     *  A selected plan with no days is filled in place. */
+    suspend fun createPlannedPlan(name: String, answers: SetupAnswers): Long {
+        require(name.trim().length in 1..40)
+        return planSelectionLock.withLock {
+            val storedId = settings.selectedPlanIdFlow.first()
+            db.withTransaction {
+                val draft = planned(answers)
+                val recipe = SetupRecipeJson.encode(answers)
+                val planSettings = PlanSettings(defaultsFor = answers.goal, loadSteps = answers.steps,
+                    equipment = answers.equipment)
+                val nextDay = draft.program.rotationDays.firstOrNull()?.let {
+                    Rotation.trainingDayFrom(draft.program, it.id)
+                }
+                val selected = preferredPlan(planDao.allPlans(), storedId)
+                val entity = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) selected
+                    else PlanEntity(id = 0, name = name.trim(), origin = PlanOrigin.GENERATED.name,
+                        position = (planDao.maxPosition() ?: -1) + 1, createdAt = clock.millis())
+                val plan = entity.copy(
+                    name = name.trim(), origin = PlanOrigin.GENERATED.name, recipeJson = recipe,
+                    settingsJson = PlanSettingsJson.encode(planSettings), autoApply = true,
+                    deloadEveryCycles = draft.deloadEveryCycles, goalJson = draft.goal?.let(PlanGoalJson::encode),
+                    suggestedDayId = nextDay, offerCardioIncreases = draft.program.days.any { it.cardioBlock != null },
+                )
+                val planId = if (entity.id != 0L) {
+                    planDao.updatePlan(plan)
+                    entity.id
+                } else planDao.insertPlan(plan)
+                draft.program.days.forEachIndexed { index, day ->
+                    programDao.upsertDay(day.toEntity(planId).copy(position = index).freshRunId(mintRunId))
+                    day.exercises.forEachIndexed { position, exercise ->
+                        val id = programDao.insertExercise(exercise.toEntity(planId, day.id, position))
+                        val rows = draft.working[SlotKey(day.id, position)]
+                        if (!rows.isNullOrEmpty()) programDao.upsertLog(ExerciseLogEntity(
+                            planId, day.id, id, Slot.MAIN, SetJson.encodeSets(rows), clock.millis(),
+                        ))
+                    }
+                }
+                planId
+            }
+        }
+    }
+
+    suspend fun publishPlannedPlan(id: Long) {
+        ensurePlanSettingsMigrated()
+        planSelectionLock.withLock {
+            if (planDao.plan(id)?.archived == false) {
+                planDao.updateOnToday(id, true)
+                settings.setSelectedPlanId(id)
             }
         }
     }
@@ -589,12 +671,15 @@ class PlanRepository(
     private suspend fun opening(planId: Long, slotId: Long, exercise: ProgramExercise, rule: SlotRule,
                                 unit: WeightUnit, entry: ExerciseEntry?): SlotSeeding.Seeded {
         val id = exercise.exerciseId
-        val last = sessionDao.lastWorkingSet(id)?.let { id to LoggedSet(it.weightLb, it.reps, SetKind.WORK, rir = it.rir) }
+        val last = lastWorking(id)?.let { id to it }
         val planned = planWorkingRow(planId, slotId, id)
         return SlotSeeding.rows(exercise, rule, KnownLoads(listOfNotNull(last).toMap()),
             planSettings(planId).loadSteps ?: LoadSteps.defaults(unit), unit, entry, planned?.weightLb,
             planned?.reps ?: rule.target.reps, planned?.rir ?: Effort.GOOD.rir)
     }
+
+    private suspend fun lastWorking(exerciseId: String): LoggedSet? =
+        sessionDao.lastWorkingSet(exerciseId)?.let { LoggedSet(it.weightLb, it.reps, SetKind.WORK, rir = it.rir) }
 
     /** The plan's main or partner working row on another slot, carrying its reps and source rule's RIR for conversion.
      *  Calibrating tracks are skipped; the latest stored row wins, with prescription-only mains ranked last.
@@ -769,9 +854,14 @@ internal fun ProgramExerciseEntity.swappedTo(exerciseId: String): ProgramExercis
     targetSets = if (toDomain().structure.hasTopSet) 3 else targetSets,
 )
 
-internal fun answersForPlan(plan: PlanEntity?, global: GlobalLifter): WizardAnswers =
-    plan?.recipeJson?.let { PlanRecipeJson.decode(it, global) }
-        ?: WizardAnswers(config = global.toConfig())
+/** V2 and recipe-less plans keep equipment and goals in settings (decision 4). */
+internal fun answersForPlan(plan: PlanEntity?, global: GlobalLifter): WizardAnswers {
+    val recipe = plan?.recipeJson
+    if (recipe != null && !SetupRecipeJson.isV2(recipe)) return PlanRecipeJson.decode(recipe, global)
+    val settings = plan?.planSettings ?: PlanSettings()
+    return WizardAnswers(config = global.toConfig().copy(goalsLb = settings.goalsLb),
+        equipment = settings.equipment ?: Equipment.entries.toSet())
+}
 
 internal fun assemble(
     days: List<ProgramDayEntity>,

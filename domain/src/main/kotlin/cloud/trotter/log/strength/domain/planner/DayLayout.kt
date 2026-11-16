@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
@@ -204,4 +205,29 @@ internal fun balanceBlock(answers: SetupAnswers): List<ProgramExercise> {
         }
     }
     return result
+}
+
+/** Days a week WHO 2020 advises balance work for adults 65 and older (audit 2026-11-13 decision 12). */
+internal const val BALANCE_DAYS_A_WEEK = 3
+
+/** Decision 12: an older lifter on fewer than [BALANCE_DAYS_A_WEEK] lifting days is offered balance-only entries
+ *  and, once [SetupAnswers.balanceDays] accepts them, gets them after the first lifting day, each the
+ *  [balanceBlock]. Lift days, their sets and their reasons stay as fitted. */
+internal fun PlanDraft.withBalanceDays(answers: SetupAnswers, known: KnownLoads): PlanDraft {
+    val lifting = program.days.count { it.kind == ProgramDayKind.STRENGTH }
+    val block = balanceBlock(answers)
+    if (!answers.olderAdult || lifting >= BALANCE_DAYS_A_WEEK || block.isEmpty()) return this
+    if (!answers.balanceDays) return copy(reasons = reasons + PlanReason.BalanceDaysOffered)
+    val (seeded, rows) = seedAll(listOf(ProgramDay("", "Balance", "", block)), answers, known)
+    val order: MutableList<ProgramDay?> = program.days.toMutableList()
+    repeat(BALANCE_DAYS_A_WEEK - lifting) { order.add(1, null) }
+    val ids = order.indices.map { ('A' + it).toString() }
+    val lift = relabel(this, order.zip(ids).mapNotNull { (day, id) -> day?.let { it.id to id } }.toMap())
+    return lift.copy(
+        program = Program(order.zip(ids).map { (day, id) -> day?.copy(id = id) ?: seeded.single().copy(id = id) }),
+        working = lift.working + order.zip(ids).filter { it.first == null }.flatMap { (_, id) ->
+            rows.map { (key, value) -> key.copy(dayId = id) to value }
+        },
+        reasons = lift.reasons + PlanReason.BalanceDays,
+    )
 }

@@ -30,7 +30,6 @@ import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -135,7 +134,7 @@ class PlanScreenTest {
         var emphasis: GoalEmphasis? = null
         rule.setContent { AppTheme {
             PlanScreen(planScreenFixture().copy(
-                goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false)),
+                goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235")),
                 emphasis = GoalEmphasis.BALANCED,
             ), actions().copy(onEmphasisChange = { emphasis = it }))
         } }
@@ -154,7 +153,7 @@ class PlanScreenTest {
     @Test(timeout = 30_000)
     fun `tapping a goal opens its editor`() {
         val state = mutableStateOf(planScreenFixture().copy(
-            goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false, "bb_back_squat", 235.0)),
+            goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235")),
             emphasis = GoalEmphasis.BALANCED,
         ))
         var opened: String? = null
@@ -164,7 +163,7 @@ class PlanScreenTest {
             PlanScreen(state.value, actions().copy(
                 onOpenGoal = { id ->
                     opened = id
-                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 235.0, "235", false))
+                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 235.0, true))
                 },
                 onSaveGoal = { saved++; state.value = state.value.copy(goalDialog = null) },
                 onDismissGoal = { canceled++; state.value = state.value.copy(goalDialog = null) },
@@ -175,8 +174,8 @@ class PlanScreenTest {
         assertEquals("bb_back_squat", opened)
         rule.onNodeWithText("Barbell Back Squat goal").assertExists()
         rule.onNodeWithText("Goal (lb)").assertExists()
-        rule.onNodeWithText("Calculated 235").assertExists()
-        rule.onNodeWithText("Use calculated").assertDoesNotExist()
+        rule.onNodeWithText("Calculated 235").assertDoesNotExist()
+        rule.onNodeWithText("Remove goal").assertExists()
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
         rule.onNode(isDialog()).assertDoesNotExist()
         rule.onNodeWithText("Barbell Back Squat").performClick()
@@ -188,7 +187,7 @@ class PlanScreenTest {
 
     @Test(timeout = 30_000)
     fun `opening and recomposing the goal editor do not emit draft changes`() {
-        val dialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 235.0, "235", false)
+        val dialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 235.0, false)
         val state = mutableStateOf(planScreenFixture().copy(goalDialog = dialog))
         val drafts = mutableListOf<Double?>()
         rule.setContent { AppTheme {
@@ -223,36 +222,53 @@ class PlanScreenTest {
     }
 
     @Test(timeout = 30_000)
-    fun `an edited goal offers use calculated`() {
+    fun `a set goal offers remove`() {
         var reset = 0
         val state = mutableStateOf(planScreenFixture().copy(
-            goals = listOf(GoalPreviewItem("Barbell Back Squat", "200", false, "bb_back_squat", 200.0, "235")),
+            goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 200.0, "200")),
             emphasis = GoalEmphasis.BALANCED,
         ))
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(
                 onOpenGoal = { id ->
-                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 200.0, "235", true))
+                    state.value = state.value.copy(goalDialog = PlanGoalDialog(id, "Barbell Back Squat", false, 200.0, true))
                 },
-                onUseCalculatedGoal = { reset++; state.value = state.value.copy(goalDialog = null) },
+                onRemoveLiftGoal = { reset++; state.value = state.value.copy(goalDialog = null) },
             ))
         } }
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Back Squat"))
-        rule.onNodeWithText("Calculated 235").assertExists()
+        rule.onNodeWithText("Calculated 235").assertDoesNotExist()
         rule.onNodeWithText("200").assertExists()
         rule.onNodeWithText("Barbell Back Squat").performClick()
         rule.onNodeWithText("Barbell Back Squat goal").assertExists()
-        rule.onNode(hasText("Calculated 235") and hasAnyAncestor(isDialog())).assertExists()
-        rule.onNodeWithText("Use calculated").performClick()
+        rule.onNode(hasText("Calculated 235") and hasAnyAncestor(isDialog())).assertDoesNotExist()
+        rule.onNodeWithText("Remove goal").performClick()
         rule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, reset)
+    }
+
+    @Test fun `an unset goal offers no remove`() {
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(
+            goalDialog = PlanGoalDialog("bb_bench", "Barbell Bench Press", false, null, false),
+        ), actions()) } }
+        rule.onNodeWithText("Remove goal").assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNode(hasText("Calculated", substring = true)).assertDoesNotExist()
+    }
+
+    @Test fun `an untyped goal reads Not set`() {
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(
+            goals = listOf(PlanLiftGoal("bb_bench", "Barbell Bench Press", false, null, null)),
+        ), actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Barbell Bench Press"))
+        rule.onNodeWithText("Not set").assertExists()
     }
 
     @Test(timeout = 30_000)
     fun `goal editor converts kg per hand drafts and disables save for an empty draft`() {
         val state = mutableStateOf(planScreenFixture().copy(
             unit = WeightUnit.KG,
-            goalDialog = PlanGoalDialog("incline_db", "Incline DB Press", true, WeightUnit.KG.toLb(30.0), "35", false),
+            goalDialog = PlanGoalDialog("incline_db", "Incline DB Press", true, WeightUnit.KG.toLb(30.0), false),
         ))
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(onGoalDraft = { lb ->
@@ -280,7 +296,7 @@ class PlanScreenTest {
     private fun assertZeroGoalRejected(unit: WeightUnit) {
         val state = mutableStateOf(planScreenFixture().copy(
             unit = unit,
-            goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 200.0, "235", true),
+            goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 200.0, true),
         ))
         val saved = mutableListOf<Double?>()
         rule.setContent { AppTheme {
@@ -319,7 +335,7 @@ class PlanScreenTest {
     private fun assertGoalCeiling(unit: WeightUnit, overLimit: String, roundsToLimit: String) {
         val state = mutableStateOf(planScreenFixture().copy(
             unit = unit,
-            goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 2500.0, "235", true),
+            goalDialog = PlanGoalDialog("bb_back_squat", "Barbell Back Squat", false, 2500.0, true),
         ))
         val saved = mutableListOf<Double?>()
         rule.setContent { AppTheme {

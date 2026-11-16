@@ -33,7 +33,9 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
@@ -1035,7 +1037,12 @@ class LogViewModelTest {
             equipment = setOf(Equipment.MACHINE),
             config = LifterConfig(level = ExperienceLevel.NOVICE),
         )
-        val program = ProgramGenerator.generate(answers)
+        val generated = ProgramGenerator.generate(answers)
+        val mains = ProgramGenerator.mainLiftIds(answers).toSet()
+        val program = generated.copy(days = generated.days.map { day -> day.copy(exercises = day.exercises.map { slot ->
+            slot.copy(rule = SlotRule.defaults(if (slot.exerciseId in mains) SlotRole.MAIN else SlotRole.ACCESSORY,
+                LiftGoal.STRENGTH, slot.structure, 5, ExerciseLibrary.get(slot.exerciseId).pattern))
+        }) })
         val planId = repo.plans.createGeneratedPlan("Machines", answers, program)
         repo.plans.publishCreatedPlan(planId, answers)
         val entry = ExerciseLibrary.get("hack_squat")
@@ -1053,7 +1060,7 @@ class LogViewModelTest {
         val card = vm.uiState.value.journal.trajectories.single()
         assertEquals("hack_squat", card.exerciseId)
         assertEquals(listOf(100f), card.points.map { it.value })
-        assertEquals(GoalCalculator.goalFor(entry, answers.config).toFloat(), card.goalValue)
+        assertNull(card.goalValue)
         collect.cancel()
     }
 
@@ -1061,6 +1068,8 @@ class LogViewModelTest {
     fun journalDerivesTrajectoryVolumeAndCalendarFromHistory() = runVmTest {
         insertProgram()
         seedSquatHistory()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.setPlanGoal(plan, "bb_back_squat", 235.0)
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()

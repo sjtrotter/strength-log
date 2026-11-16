@@ -22,7 +22,10 @@ import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
+import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
+import cloud.trotter.log.strength.domain.standards.GoalFormatter
+import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.ui.log.JournalBuilder
 
 object PlanScreenBuilder {
     fun buildUiState(
@@ -58,10 +61,19 @@ object PlanScreenBuilder {
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
-            goals = if (generated) SetupStateBuilder.goalPreview(answers.config, answers, unit) else emptyList(),
-            emphasis = if (generated) answers.config.emphasis else null,
+            goals = if (generated) liftGoals(program, catalog, answers.config.goalsLb, unit) else emptyList(),
+            emphasis = if (generated && plan?.hasSetupRecipe != true) answers.config.emphasis else null,
         )
     }
+
+    private fun liftGoals(program: Program, catalog: ExerciseCatalog, goalsLb: Map<String, Double>,
+                          unit: WeightUnit): List<PlanLiftGoal> =
+        JournalBuilder.mainLifts(program, catalog, goalsLb).map { lift ->
+            val entry = requireNotNull(catalog.find(lift.exerciseId))
+            PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb, lift.goalLb?.let {
+                GoalFormatter.label(GoalTarget.Weight(it, entry.perHand), unit)
+            })
+        }
 
     fun days(
         program: Program,

@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
@@ -630,17 +631,21 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `setPlanGoal ignores missing plans and null recipes and rejects invalid weights`() = runTest {
+    fun `setPlanGoal stores recipe-less goals ignores missing plans and rejects invalid weights`() = runTest {
         db.planDao().insertPlan(plan(1).copy(origin = PlanOrigin.AUTHORED.name))
         repo.plans.runPlanSettingsFixupIfNeeded()
-        val before = db.planDao().allPlans()
         repo.plans.setPlanGoal(1, "bb_back_squat", 200.0)
         repo.plans.setPlanGoal(2, "bb_back_squat", 200.0)
         for (invalid in listOf(-1.0, 0.0, Double.NaN, Double.POSITIVE_INFINITY,
             PlanRecipeJson.MAX_GOAL_LB + 0.1, 2500.0, WeightUnit.KG.toLb(907.2))) {
             assertTrue(runCatching { repo.plans.setPlanGoal(1, "bb_back_squat", invalid) }.exceptionOrNull() is IllegalArgumentException)
         }
-        assertEquals(before, db.planDao().allPlans())
+        val plan = db.planDao().allPlans().single()
+        assertNull(plan.recipeJson)
+        assertEquals(mapOf("bb_back_squat" to 200.0), plan.planSettings.goalsLb)
+        assertEquals(plan.planSettings.goalsLb, repo.plans.wizardAnswersFor(1).first().config.goalsLb)
+        repo.plans.setPlanGoal(1, "bb_back_squat", null)
+        assertTrue(db.planDao().plan(1)!!.planSettings.goalsLb.isEmpty())
     }
 
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {

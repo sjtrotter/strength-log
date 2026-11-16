@@ -183,15 +183,15 @@ class DayEditSheetTest {
         var exits = 0
         showPlanEditor(canResetToTemplate = true, onResetToTemplate = { resets++ }, onBack = { exits++ })
         composeTestRule.onNodeWithContentDescription("More").performClick()
-        composeTestRule.onNodeWithText("Reset day to template").performClick()
-        composeTestRule.onNodeWithText("Reset day to template?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Reset day to plan").performClick()
+        composeTestRule.onNodeWithText("Reset day to plan?").assertIsDisplayed()
         composeTestRule.runOnIdle { assertEquals(0, resets) }
         composeTestRule.onNodeWithText("Reset").performClick()
         composeTestRule.runOnIdle {
             assertEquals(1, resets)
             assertEquals(0, exits)
         }
-        composeTestRule.onNodeWithText("Reset day to template?").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Reset day to plan?").assertDoesNotExist()
         composeTestRule.onNodeWithText("Add exercise").assertIsDisplayed()
     }
 
@@ -201,7 +201,7 @@ class DayEditSheetTest {
         show(canResetToTemplate = true, edit = false,
             onResetToTemplate = { events += "reset" }, onDismiss = { events += "dismiss" })
         composeTestRule.onNodeWithContentDescription("More").performClick()
-        composeTestRule.onNodeWithText("Reset day to template").performClick()
+        composeTestRule.onNodeWithText("Reset day to plan").performClick()
         composeTestRule.onNodeWithText("Reset").performClick()
         composeTestRule.runOnIdle { assertEquals(listOf("reset", "dismiss"), events) }
     }
@@ -379,14 +379,14 @@ class DayEditSheetTest {
     @Test
     fun authoredDayHidesResetToTemplate() {
         show(edit = false)
-        composeTestRule.onNodeWithText("Reset day to template").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Reset day to plan").assertDoesNotExist()
     }
 
     @Test
     fun generatedDayKeepsResetToTemplate() {
         show(canResetToTemplate = true, edit = false)
         composeTestRule.onNodeWithContentDescription("More").performClick()
-        composeTestRule.onNodeWithText("Reset day to template").assertExists()
+        composeTestRule.onNodeWithText("Reset day to plan").assertExists()
     }
 
     @Test

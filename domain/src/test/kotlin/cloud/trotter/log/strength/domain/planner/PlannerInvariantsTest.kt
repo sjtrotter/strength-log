@@ -30,7 +30,9 @@ class PlannerInvariantsTest {
         val chosen = Planner.defaultMains(answers.equipment, answers.excluded)
         val strength = draft.program.strengthDays
         assertTrue(SetCount.weekly(draft.program).values.all { it <= 20.0 }, "$label weekly cap")
-        assertEquals(answers.days, strength.size, label)
+        // audit 2026-11-13 decision 12: accepted balance entries count as strength days.
+        assertEquals(if (answers.olderAdult && answers.balanceDays) maxOf(answers.days, BALANCE_DAYS_A_WEEK)
+            else answers.days, strength.size, label)
         assertEquals(if (answers.days >= 4) 1 else 0,
             draft.program.days.count { it.kind == ProgramDayKind.REST }, label)
         if (answers.days >= 4) {
@@ -79,25 +81,31 @@ class PlannerInvariantsTest {
         }
     }
 
-    @Test fun `lift invariants hold over all 3240 setup combinations`() {
+    @Test fun `lift invariants hold over all 6480 setup combinations`() {
         var plans = 0
         for (goal in LiftGoal.entries) for (days in 1..6) for (minutes in listOf(30, 45, 60, 75, 90)) {
             for (preset in EquipmentPreset.entries) for (experience in LiftExperience.entries) for (older in listOf(false, true)) {
-                val label = "$goal $days days $minutes min $preset $experience older=$older"
-                check(SetupAnswers(goal = goal, days = days, minutes = minutes, equipment = preset.equipment,
-                    experience = experience, olderAdult = older), label)
-                plans++
+                // audit 2026-11-13 decision 12: exercise both offer and acceptance.
+                for (balanceDays in listOf(false, true)) {
+                    val label = "$goal $days days $minutes min $preset $experience older=$older balanceDays=$balanceDays"
+                    check(SetupAnswers(goal = goal, days = days, minutes = minutes, equipment = preset.equipment,
+                        experience = experience, olderAdult = older, balanceDays = balanceDays), label)
+                    plans++
+                }
             }
         }
-        assertEquals(3240, plans)
+        assertEquals(6480, plans)
     }
 
     @Test fun `excluded mains stay out of every slot and partner across the Full gym grid`() {
         for (goal in LiftGoal.entries) for (days in 1..6) for (minutes in listOf(30, 45, 60, 75, 90)) {
             for (experience in LiftExperience.entries) for (older in listOf(false, true)) {
-                check(SetupAnswers(goal = goal, days = days, minutes = minutes,
-                    experience = experience, olderAdult = older, excluded = setOf("bb_bench", "bb_back_squat")),
-                    "excluded $goal $days days $minutes min $experience older=$older")
+                // audit 2026-11-13 decision 12: exercise both offer and acceptance.
+                for (balanceDays in listOf(false, true)) {
+                    check(SetupAnswers(goal = goal, days = days, minutes = minutes,
+                        experience = experience, olderAdult = older, balanceDays = balanceDays, excluded = setOf("bb_bench", "bb_back_squat")),
+                        "excluded $goal $days days $minutes min $experience older=$older balanceDays=$balanceDays")
+                }
             }
         }
     }

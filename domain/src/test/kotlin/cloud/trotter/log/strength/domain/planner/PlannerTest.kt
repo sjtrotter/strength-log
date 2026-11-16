@@ -251,7 +251,8 @@ class PlannerTest {
             if (goal != LiftGoal.GENERAL && !older) continue
             val draft = Planner.plan(SetupAnswers(goal = goal, days = 2, minutes = 90,
                 equipment = EquipmentPreset.KETTLEBELLS.equipment, olderAdult = older))
-            assertTrue(draft.reasons.isEmpty())
+            // audit 2026-11-13 decision 12: optional balance days are offered to older lifters.
+            assertEquals(if (older) listOf(PlanReason.BalanceDaysOffered) else emptyList(), draft.reasons)
             val pulls = draft.program.strengthDays.flatMap { it.exercises }.filter { it.exerciseId == "kb_row" }
             assertEquals(1, pulls.count { it.rule?.role == SlotRole.MAIN })
             assertEquals(1, pulls.count { it.rule?.role == SlotRole.ACCESSORY })
@@ -295,7 +296,7 @@ class PlannerTest {
                     is PlanReason.ShortSession -> it.dayId == day.id
                     is PlanReason.OverBudget -> it.dayId == day.id
                     is PlanReason.RunCapped -> it.dayId == day.id
-                    PlanReason.DateTooClose, is PlanReason.GoalCheck -> false
+                    PlanReason.DateTooClose, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
                 } }, draft.reasons)
             }
             assertNull(Planner.day(answers, "Z"))

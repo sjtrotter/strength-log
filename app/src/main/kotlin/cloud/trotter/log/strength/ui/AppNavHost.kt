@@ -475,7 +475,7 @@ private fun PlanRoute(
             onOpenGoal = viewModel::openGoal,
             onGoalDraft = viewModel::setGoalDraft,
             onSaveGoal = viewModel::saveGoal,
-            onUseCalculatedGoal = viewModel::useCalculatedGoal,
+            onRemoveLiftGoal = viewModel::removeLiftGoal,
             onDismissGoal = viewModel::dismissGoal,
         ),
     )

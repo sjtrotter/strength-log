@@ -1,13 +1,12 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
@@ -16,8 +15,6 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -97,19 +94,16 @@ class JournalBuilderTest {
 
     @Test
     fun `equipment-substituted novice mains keep their history cards`() {
-        val answers = WizardAnswers(
-            equipment = setOf(Equipment.MACHINE),
-            config = LifterConfig(level = ExperienceLevel.NOVICE),
-        )
-        val program = ProgramGenerator.generate(answers)
+        val plan = OldWizardPlans.MACHINE_NOVICE
+        val program = plan.program
         val catalog = ExerciseCatalog.CODE_ONLY
-        val mainIds = ProgramGenerator.mainLiftIds(answers)
+        val mainIds = plan.mains
         val hackSquat = program.days.first().exercises.first()
         assertEquals("hack_squat", hackSquat.exerciseId)
         assertEquals(SetStructure.STRAIGHT, hackSquat.structure)
         assertTrue(catalog.get(hackSquat.exerciseId).goal is GoalSource.Flat)
 
-        val mains = JournalBuilder.mainLifts(program, catalog, answers.config.goalsLb, mainIds.toSet())
+        val mains = JournalBuilder.mainLifts(program, catalog, emptyMap(), mainIds.toSet())
         assertEquals(mainIds, mains.map { it.exerciseId })
         val history = mainIds.map { top(it, today, 50.0) }
         val cards = JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone)
@@ -133,11 +127,11 @@ class JournalBuilderTest {
 
     @Test
     fun mainLifts_reads_the_generated_program_mains_with_their_read_only_goals() {
-        val answers = WizardAnswers()
-        val generated = ProgramGenerator.generate(answers)
+        val plan = OldWizardPlans.DEFAULT
+        val generated = plan.program
         val cfg = LifterConfig()
         val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), cfg.goalsLb,
-            ProgramGenerator.mainLiftIds(answers).toSet())
+            plan.mains.toSet())
 
         assertTrue(mains.isNotEmpty(), "the generated program has main lifts")
         val squatLift = mains.first { it.exerciseId == "bb_back_squat" }

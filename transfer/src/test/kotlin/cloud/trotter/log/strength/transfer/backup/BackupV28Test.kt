@@ -1,10 +1,9 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -50,7 +49,7 @@ class BackupV28Test {
             val recipe = assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(source)) }
             assertTrue(recipe.message.orEmpty().contains("schema v28"))
             val settingsOnly = source.copy(plans = source.plans.map { it.copy(
-                recipeJson = PlanRecipeJson.encode(WizardAnswers()),
+                recipeJson = v1RecipeJson(),
                 settingsJson = PlanSettingsJson.encode(PlanSettings(equipment = answers.equipment)),
             ) })
             val settings = assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(settingsOnly)) }
@@ -74,7 +73,7 @@ class BackupV28Test {
 
     @Test fun `a v0_11 document still restores`() {
         val source = document().copy(schemaVersion = 27, plans = document().plans.map { it.copy(
-            recipeJson = PlanRecipeJson.encode(WizardAnswers()),
+            recipeJson = v1RecipeJson(),
             settingsJson = PlanSettingsJson.encode(PlanSettings(LiftGoal.STRENGTH, LoadSteps.defaults(answers.unit))),
         ) })
         assertEquals(source, codec.decode(codec.encode(source)))

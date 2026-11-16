@@ -3,9 +3,7 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import java.time.Duration
@@ -58,7 +56,7 @@ class SetupNewLifterTest : OpeningFixture() {
     }
 
     @Test fun `plans without a setup recipe never take the New rule`() = runTest {
-        for (recipe in listOf(null, PlanRecipeJson.encode(WizardAnswers()))) {
+        for (recipe in listOf(null, OldWizardPlans.DEFAULT.recipeJson)) {
             assertEquals(OpeningDto("SCALED", 0.85), opening(recipe))
             repo.openRunFlow.first()?.let { repo.discardRun(it.id) }
         }

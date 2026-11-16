@@ -162,17 +162,6 @@ class PlanRepository(
         }
     }
 
-    /** Writes an old wizard recipe for test fixtures until 6d. */
-    suspend fun setWizardAnswers(answers: WizardAnswers) {
-        ensurePlanSettingsMigrated()
-        settings.setLifterProfile(LifterProfile(answers.config.bodyweightLb, answers.config.age))
-        val planId = ensureSelectedPlan()
-        db.withTransaction {
-            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers))
-        }
-        invalidatePlanFixups()
-    }
-
     internal suspend fun selectedPlanId(): Long? = selectedPlanIdFlow.first()
 
     internal suspend fun ensureSelectedPlan(): Long = selectedPlanId() ?: run {
@@ -285,8 +274,7 @@ class PlanRepository(
         }
     }
 
-    /** Commits a generated plan or fills the selected settings-only plan,
-     * returning its id without writing DataStore.
+    /** The old wizard's create, kept only for OldWizardPlansTest to compare the test fixtures with; 6d-ii deletes it.
      * Removes no day: the rewrite branch fills only a plan with no days, so no run can be open on it. */
     suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
         val id = planSelectionLock.withLock {
@@ -399,18 +387,6 @@ class PlanRepository(
                 planDao.updateOnToday(id, true)
                 settings.setSelectedPlanId(id)
             }
-        }
-    }
-
-    /** Idempotently selects an existing active plan under the selection lock,
-     * optionally writing the global lifter when setup collected those answers. */
-    suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers, writeLifter: Boolean = true) {
-        ensurePlanSettingsMigrated()
-        planSelectionLock.withLock {
-            val active = planDao.plan(id)?.archived == false
-            if (active) planDao.updateOnToday(id, true)
-            if (writeLifter) settings.setLifterProfile(LifterProfile(answers.config.bodyweightLb, answers.config.age))
-            if (active) settings.setSelectedPlanId(id)
         }
     }
 

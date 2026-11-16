@@ -22,10 +22,6 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -166,32 +162,6 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `new plans start at the first cardio training day in mixed and cardio-only programs`() = runTest {
-        val mixed = mixedProgram()
-        val cardioOnly = Program(mixed.days.filter { it.exercises.isEmpty() })
-        for (program in listOf(mixed, cardioOnly)) {
-            val id = repo.plans.createGeneratedPlan("Training", WizardAnswers(), program)
-
-            assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-            val created = repo.plans.programFor(id).first()
-            assertTrue(created.days.flatMap { it.exercises }.all { it.rule != null })
-            assertEquals(program, created.copy(days = created.days.map { day ->
-                day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
-            }))
-        }
-    }
-
-    @Test
-    fun `filling a settings-only plan starts at the first cardio training day`() = runTest {
-        repo.plans.setWizardAnswers(WizardAnswers())
-        val id = settings.selectedPlanIdFlow.first()!!
-
-        assertEquals(id, repo.plans.createGeneratedPlan("Training", WizardAnswers(), mixedProgram()))
-
-        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-    }
-
-    @Test
     fun `replacement starts at the first cardio training day and skips extras`() = runTest {
         repo.replaceProgram(mixedProgram())
         val id = settings.selectedPlanIdFlow.first()!!
@@ -313,9 +283,11 @@ class TrackerRepositoryAuthoredPlanTest {
 
     @Test
     fun `six generated strength days plus two cardio days can add a seventh strength day`() = runTest {
-        val program = ProgramGenerator.generate(WizardAnswers(
-            daysPerWeek = 6, cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
-        ))
+        val program = Program(('A'..'F').map {
+            ProgramDay(it.toString(), "Full Body", "", listOf(ProgramExercise("plank")))
+        } + listOf("C1", "C2").map {
+            ProgramDay(it, "Cardio + Core", "", emptyList(), kind = ProgramDayKind.CARDIO)
+        })
         assertEquals(6, program.strengthDays.size)
         assertEquals(listOf("C1", "C2"), program.cardioDays.map { it.id })
         repo.replaceProgram(program)
@@ -398,9 +370,11 @@ class TrackerRepositoryAuthoredPlanTest {
 
     private fun mixedProgram(): Program {
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
-        val extras = ProgramGenerator.generate(WizardAnswers(
-            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
-        )).cardioDays
+        val extras = listOf("C1", "C2").map {
+            ProgramDay(it, "Cardio + Core", "Lift first, then run. 20–30 min easy, conversational pace.",
+                listOf(ProgramExercise(if (it == "C1") "plank" else "pallof")),
+                kind = ProgramDayKind.CARDIO, cardioBlock = block)
+        }
         return Program(listOf(
             extras[0],
             ProgramDay("A", "Run", "", emptyList(), kind = ProgramDayKind.CARDIO, cardioBlock = block),

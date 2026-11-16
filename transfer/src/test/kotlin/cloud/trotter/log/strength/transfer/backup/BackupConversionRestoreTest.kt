@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -16,13 +17,10 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.planSettings
 import kotlin.test.assertNull
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -82,7 +80,7 @@ class BackupConversionRestoreTest {
             settings = SettingsBackup(200, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true,
                 selectedPlanId = 1, bodyweightLbPrecise = 200.0),
             plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, onToday = true, suggestedDay = "A",
-                recipeJson = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = mapOf("bb_back_squat" to 315.0)))),
+                recipeJson = v1RecipeJson(goalsLb = mapOf("bb_back_squat" to 315.0)),
                 days = listOf(ProgramDayBackup("A", "Day A", "", nextRunId = "next", exercises = listOf(
                     ProgramExerciseBackup(7, "bb_back_squat", "RAMP_TOP_BACKOFF", 6, note = "", keepToPlan = false),
                     ProgramExerciseBackup(8, "hack_squat", "STRAIGHT", 3, note = "", keepToPlan = false),

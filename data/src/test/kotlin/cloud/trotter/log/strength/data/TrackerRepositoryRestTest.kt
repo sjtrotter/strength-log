@@ -7,7 +7,6 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -176,9 +175,9 @@ class TrackerRepositoryRestTest {
 
     @Test fun `initial and removed suggestions resolve to training days`() = runTest {
         val restFirst = Program(listOf(program().days[2], program().days[0], program().days[1]))
-        val id = repo.plans.createGeneratedPlan("Plan", WizardAnswers(), restFirst)
-        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-        repo.plans.publishCreatedPlan(id, WizardAnswers())
+        val id = db.insertGeneratedPlan("Plan", restFirst)
+        repo.plans.invalidatePlanFixups()
+        repo.plans.publishPlannedPlan(id)
         repo.replaceProgram(restFirst)
         assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
         assertTrue(repo.removeDay(id, "A"))

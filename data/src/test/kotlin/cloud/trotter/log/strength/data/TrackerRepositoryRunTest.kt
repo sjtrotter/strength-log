@@ -16,7 +16,6 @@ import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
@@ -790,12 +789,13 @@ class TrackerRepositoryRunTest {
     }
 
     /** [F] */
-    @Test fun `wizard new plan save preserves another plans open run`() = runTest {
+    @Test fun `a new plan's publication preserves another plans open run`() = runTest {
         val source = authored()
         start(source)
         val before = repo.openRunFlow.first()
-        val created = repo.plans.createGeneratedPlan("New generated", WizardAnswers(), generated())
-        repo.plans.publishCreatedPlan(created, WizardAnswers())
+        val created = db.insertGeneratedPlan("New generated", generated())
+        repo.plans.invalidatePlanFixups()
+        repo.plans.publishPlannedPlan(created)
         assertEquals(before, repo.openRunFlow.first())
         assertNotEquals(source, created)
     }

@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.LifterProfile
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -9,15 +13,9 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.planSettings
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -86,17 +84,18 @@ class BackupV29Test {
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v29-journal", ".preferences_pb")
             }, settings)
+            settings.setLifterProfile(LifterProfile(235.0, 40))
             val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
             val backup = BackupRepository(db, settings, repo.plans, repo.history)
-            val novice = WizardAnswers(equipment = setOf(Equipment.MACHINE), config = LifterConfig(
-                level = ExperienceLevel.NOVICE, goalsLb = mapOf("hack_squat" to 150.0)))
-            val id = repo.plans.createGeneratedPlan("Old", novice, ProgramGenerator.generate(novice))
-            repo.plans.publishCreatedPlan(id, novice)
+            val novice = OldWizardPlans.MACHINE_NOVICE
+            val id = db.insertRuledOldWizardPlan(novice, settings)
+            db.runLaunchFixups(settings)
+            repo.plans.publishPlannedPlan(id)
             val source = backup.exportSnapshot()
             val expected = source.plans.single().planSettings
             val decoded = codec.decode(codec.encode(source.toDocument()))
             val old = decoded.copy(schemaVersion = 28, plans = decoded.plans.map { it.copy(
-                recipeJson = PlanRecipeJson.encode(novice), settingsJson = null,
+                recipeJson = novice.recipeJson, settingsJson = null,
             ) })
             BackupService(backup, journal).import(codec.encode(old))
             val restored = assertNotNull(db.planDao().plan(id))
@@ -121,11 +120,11 @@ class BackupV29Test {
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v18-journal", ".preferences_pb")
             }, settings)
+            settings.setLifterProfile(LifterProfile(235.0, 40))
             val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
             val backup = BackupRepository(db, settings, repo.plans, repo.history)
-            val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
-                config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
-            val id = repo.plans.createGeneratedPlan("Dumbbells", answers, ProgramGenerator.generate(answers))
+            val fixture = OldWizardPlans.DUMBBELL_NOVICE
+            val id = db.insertRuledOldWizardPlan(fixture, settings, "Dumbbells")
             val squats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
             assertTrue(squats.isNotEmpty())
             for (slot in squats) {
@@ -133,11 +132,12 @@ class BackupV29Test {
                 db.programDao().setRule(slot.id, SlotRuleJson.encode(SlotRule.defaults(SlotRole.ACCESSORY,
                     LiftGoal.STRENGTH, SetStructure.STRAIGHT, null, MovementPattern.SQUAT_BILATERAL)))
             }
-            repo.plans.publishCreatedPlan(id, answers)
+            db.runLaunchFixups(settings)
+            repo.plans.publishPlannedPlan(id)
             val source = backup.exportSnapshot()
             val decoded = codec.decode(codec.encode(source.toDocument()))
             val old = decoded.copy(schemaVersion = 18, plans = decoded.plans.map { plan -> plan.copy(
-                recipeJson = PlanRecipeJson.encode(answers), settingsJson = null,
+                recipeJson = fixture.recipeJson, settingsJson = null,
                 days = plan.days.map { day -> day.copy(exercises = day.exercises.map {
                     it.copy(ruleJson = null, partnerRuleJson = null)
                 }) },
@@ -146,7 +146,7 @@ class BackupV29Test {
             val restored = assertNotNull(db.planDao().plan(id))
             assertNull(restored.recipeJson)
             assertEquals(source.plans.single().planSettings, restored.planSettings)
-            assertEquals(ProgramGenerator.mainLiftIds(answers).toSet(), restored.planSettings.legacyMains)
+            assertEquals(fixture.mains.toSet(), restored.planSettings.legacyMains)
             assertEquals(80.0, restored.planSettings.goalsLb["goblet_squat"])
             val restoredSquats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
             assertEquals(squats.map { it.id }, restoredSquats.map { it.id })

@@ -5,9 +5,9 @@ import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.serialization.V1Recipe
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.data.serialization.V1Anchors
+import cloud.trotter.log.strength.data.serialization.V1Deadlift
+import cloud.trotter.log.strength.data.serialization.V1Split
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
@@ -238,9 +238,9 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         cardioMode = enumOrDefault(settings.cardioMode, CardioMode.OUTDOOR_RUN),
         fiveKGoal = checkNotNull(settings.fiveKGoal),
         daysPerWeek = checkNotNull(settings.daysPerWeek).coerceIn(2, 6),
-        split = enumOrDefault(settings.split, SplitTemplate.FULL_BODY),
-        anchorScheme = enumOrDefault(settings.anchorScheme, AnchorScheme.PROTOTYPE),
-        deadliftVariant = enumOrDefault(settings.deadliftVariant, DeadliftVariant.TRAP_BAR),
+        split = enumOrDefault(settings.split, V1Split.FULL_BODY),
+        anchorScheme = enumOrDefault(settings.anchorScheme, V1Anchors.PROTOTYPE),
+        deadliftVariant = enumOrDefault(settings.deadliftVariant, V1Deadlift.TRAP_BAR),
     ) else null
 
     val programs = if (schemaVersion >= 8) {

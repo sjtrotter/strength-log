@@ -1,13 +1,12 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,7 +17,7 @@ import kotlin.test.assertTrue
 class BackupV21Test {
     private val codec = BackupCodec()
     private val goals = mapOf("bb_back_squat" to 200.0)
-    private val recipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = goals)))
+    private val recipe = v1RecipeJson(goalsLb = goals)
 
     private fun document(recipeJson: String = recipe) = BackupDocument(
         schemaVersion = 21,
@@ -66,7 +65,7 @@ class BackupV21Test {
 
     @Test
     fun `v18 through v20 restore with no edited goals and re-export at the current version`() {
-        val legacyRecipe = PlanRecipeJson.encode(WizardAnswers())
+        val legacyRecipe = v1RecipeJson()
         assertFalse(legacyRecipe.contains("goalsLb"))
         for (version in 18..20) {
             val legacy = document(legacyRecipe).copy(schemaVersion = version)

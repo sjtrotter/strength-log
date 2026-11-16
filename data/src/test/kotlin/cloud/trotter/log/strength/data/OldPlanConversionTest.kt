@@ -18,13 +18,8 @@ import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.serialization.planSettings
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import java.io.File
@@ -53,8 +48,7 @@ class OldPlanConversionTest {
     private lateinit var settings: SettingsStore
     private lateinit var plans: PlanRepository
     private lateinit var storeScope: CoroutineScope
-    private val novice = WizardAnswers(equipment = setOf(Equipment.MACHINE),
-        config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("hack_squat" to 150.0)))
+    private val novice = OldWizardPlans.MACHINE_NOVICE
 
     @Before fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -68,24 +62,34 @@ class OldPlanConversionTest {
 
     @After fun tearDown() { db.close(); storeScope.cancel() }
 
-    private suspend fun create(answers: WizardAnswers = novice) =
-        plans.createGeneratedPlan("Old", answers, ProgramGenerator.generate(answers))
+    private suspend fun create(plan: OldWizardPlan = novice): Long {
+        val pending = db.planDao().allPlans().mapNotNull { row -> row.recipeJson?.let { row.id to it } }
+        // The fixture writer runs a launch gate; these earlier fixtures must still await the gate under test.
+        pending.forEach { (id, _) -> db.planDao().updatePlan(db.planDao().plan(id)!!.copy(recipeJson = null)) }
+        val id = try {
+            db.insertRuledOldWizardPlan(plan, settings)
+        } finally {
+            pending.forEach { (id, recipe) -> db.planDao().updateRecipe(id, recipe) }
+        }
+        plans.invalidatePlanFixups()
+        return id
+    }
 
-    private fun expected(answers: WizardAnswers) = PlanSettings(equipment = answers.equipment,
-        goalsLb = answers.config.goalsLb, legacyMains = ProgramGenerator.mainLiftIds(answers).toSet())
+    private fun expected(plan: OldWizardPlan) = PlanSettings(equipment = plan.equipment,
+        goalsLb = plan.goalsLb, legacyMains = plan.mains.toSet())
 
     @Test fun `an old wizard plan moves its gear goals and mains into settings`() = runTest {
         val id = create()
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         val plan = assertNotNull(db.planDao().plan(id))
         assertNull(plan.recipeJson)
         assertEquals(expected(novice), plan.planSettings)
     }
 
     @Test fun `a ramped old plan records its ramped mains`() = runTest {
-        val answers = WizardAnswers()
+        val answers = OldWizardPlans.DEFAULT
         val id = create(answers)
-        plans.publishCreatedPlan(id, answers)
+        plans.publishPlannedPlan(id)
         val plan = assertNotNull(db.planDao().plan(id))
         assertNull(plan.recipeJson)
         assertEquals(expected(answers), plan.planSettings)
@@ -108,7 +112,7 @@ class OldPlanConversionTest {
         plans.ensurePlanSettingsMigrated()
         val converted = assertNotNull(db.planDao().plan(id))
         assertEquals(before.copy(recipeJson = converted.recipeJson, settingsJson = converted.settingsJson), converted)
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         assertEquals(days, db.programDao().allDays())
         assertEquals(exercises, db.programDao().allExercises())
         assertEquals(logs, db.programDao().allLogs())
@@ -122,13 +126,13 @@ class OldPlanConversionTest {
         plans.ensurePlanSettingsMigrated()
         val before = db.planDao().allPlans()
         val id = create()
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         assertEquals(before, db.planDao().allPlans().filter { it.id != id })
     }
 
     @Test fun `conversion runs once`() = runTest {
         val id = create()
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         val before = db.planDao().allPlans()
         plans.invalidatePlanFixups()
         plans.ensurePlanSettingsMigrated()
@@ -245,7 +249,7 @@ class OldPlanConversionTest {
         val id = create()
         val goals = mapOf("hack_squat" to 160.0, "leg_press" to 300.0)
         db.planDao().updateSettings(id, PlanSettingsJson.encode(PlanSettings(goalsLb = goals)))
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         assertEquals(goals, assertNotNull(db.planDao().plan(id)).planSettings.goalsLb)
     }
 
@@ -253,7 +257,7 @@ class OldPlanConversionTest {
         val id = create()
         db.planDao().updateRecipe(id, """{"daysPerWeek":"x"}""")
         db.planDao().updateSettings(id, PlanSettingsJson.encode(PlanSettings(goalsLb = mapOf("hack_squat" to 120.0))))
-        plans.publishCreatedPlan(id, novice)
+        plans.publishPlannedPlan(id)
         val plan = assertNotNull(db.planDao().plan(id))
         assertNull(plan.recipeJson)
         assertNull(plan.planSettings.equipment)
@@ -270,12 +274,12 @@ class OldPlanConversionTest {
     }
 
     @Test fun `legacy cardio on an old plan takes its own cardio answers`() = runTest {
-        val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
+        val answers = OldWizardPlans.DEFAULT.copy(recipeJson = v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false))
         val id = create(answers)
         val day = db.programDao().daysForPlan(id).first()
         val json = """{"label":"Intervals","detail":"Run hard, recover easy.","hard":true}"""
         db.programDao().upsertDay(day.copy(cardioJson = json, cardioBlockJson = null))
-        plans.publishCreatedPlan(id, answers)
+        plans.publishPlannedPlan(id)
         val converted = assertNotNull(db.programDao().day(id, day.dayId))
         assertNull(converted.cardioJson)
         assertEquals(CardioBlockJson.encode(assertNotNull(LegacyCardio.toBlock(json,

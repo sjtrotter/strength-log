@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -19,9 +20,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -1198,7 +1197,7 @@ class SetEditApplierTest {
             completedAt = 200L, bodyweightLb = 180.0, planId = planP,
         ))
         val planQ = repo.plans.duplicatePlan(planP, "Running")
-        db.planDao().updateRecipe(planQ, PlanRecipeJson.encode(WizardAnswers(equipment = emptySet())))
+        db.planDao().updateRecipe(planQ, v1RecipeJson(equipment = emptyList()))
         repo.plans.selectPlan(planQ)
         val qSlots = db.programDao().exercisesForPlan(planQ)
         val qLogs = db.programDao().logsForPlan(planQ)

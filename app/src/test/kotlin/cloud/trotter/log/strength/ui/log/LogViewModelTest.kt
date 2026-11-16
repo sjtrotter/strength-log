@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -19,15 +22,10 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -1036,14 +1034,11 @@ class LogViewModelTest {
 
     @Test
     fun equipmentSubstitutedNoviceMainsReachHistoryFromTheStoredRecipe() = runVmTest {
-        val answers = WizardAnswers(
-            equipment = setOf(Equipment.MACHINE),
-            config = LifterConfig(level = ExperienceLevel.NOVICE),
-        )
-        val program = ProgramGenerator.generate(answers)
-        val mains = ProgramGenerator.mainLiftIds(answers).toSet()
-        val planId = repo.plans.createGeneratedPlan("Machines", answers, program)
-        repo.plans.publishCreatedPlan(planId, answers)
+        val plan = OldWizardPlans.MACHINE_NOVICE
+        val mains = plan.mains.toSet()
+        val planId = db.insertRuledOldWizardPlan(plan, settings, "Machines")
+        db.runLaunchFixups(settings)
+        repo.plans.publishPlannedPlan(planId)
         repo.plans.setPlanGoal(planId, "hack_squat", 150.0)
         val storedMains = repo.plans.programFor(planId).first().days.flatMap { it.exercises }
             .filter { it.exerciseId in mains }

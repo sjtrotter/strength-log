@@ -21,6 +21,11 @@ android {
         unitTests.all { it.useJUnitPlatform() }
         unitTests.isIncludeAndroidResources = true // Robolectric
     }
+
+    sourceSets {
+        getByName("test").kotlin.srcDir("../data/src/testFixtures/kotlin")
+        getByName("androidTest").kotlin.srcDir("../data/src/testFixtures/kotlin")
+    }
 }
 
 kotlin {

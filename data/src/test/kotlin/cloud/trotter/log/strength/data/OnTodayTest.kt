@@ -10,7 +10,6 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import java.io.File
@@ -114,9 +113,9 @@ class OnTodayTest {
         settings.setSelectedPlanId(1)
         settings.setPlanSettingsFixupDone()
         val program = Program(listOf(ProgramDay("A", "Day A", "", emptyList())))
-        val generated = repo.plans.createGeneratedPlan("Generated", WizardAnswers(), program)
+        val generated = db.insertGeneratedPlan("Generated", program)
 
-        repo.plans.publishCreatedPlan(generated, WizardAnswers())
+        repo.plans.publishPlannedPlan(generated)
 
         assertEquals(generated, settings.selectedPlanIdFlow.first())
         assertEquals(listOf(1L, generated), db.planDao().allPlans().filter { it.onToday }.map { it.id })
@@ -201,8 +200,8 @@ class OnTodayTest {
         repo.plans.publishCreatedAuthoredPlan(authored)
         assertTrue(db.planDao().plan(authored)!!.onToday)
         assertEquals(authored, settings.selectedPlanIdFlow.first())
-        val generated = repo.plans.createGeneratedPlan("Generated", WizardAnswers(), program)
-        repo.plans.publishCreatedPlan(generated, WizardAnswers())
+        val generated = db.insertGeneratedPlan("Generated", program)
+        repo.plans.publishPlannedPlan(generated)
         assertTrue(db.planDao().plan(generated)!!.onToday)
         assertTrue(db.planDao().plan(authored)!!.onToday)
         assertEquals(generated, settings.selectedPlanIdFlow.first())

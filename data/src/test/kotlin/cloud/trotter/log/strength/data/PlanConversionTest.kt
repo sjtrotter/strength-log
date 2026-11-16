@@ -24,16 +24,13 @@ import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.planSettings
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -64,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import cloud.trotter.log.strength.domain.model.Equipment
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -75,7 +73,7 @@ class PlanConversionTest {
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var before: Map<String, List<List<String?>>>
-    private val answers = WizardAnswers(config = LifterConfig(goalsLb = mapOf("bb_back_squat" to 315.0)))
+    private val answers = v1RecipeJson(goalsLb = mapOf("bb_back_squat" to 315.0))
     private val squatRows = SetJson.encodeSets(listOf(
         LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),
         LoggedSet(190.0, 5, SetKind.RAMP), LoggedSet(210.0, 3, SetKind.RAMP),
@@ -88,7 +86,7 @@ class PlanConversionTest {
     @Before fun setUp() = runBlocking {
         val helper = V24Fixture.create(context, name) { sql ->
             V24Fixture.populate(sql)
-            sql.execSQL("UPDATE plan SET recipeJson = ?", arrayOf(PlanRecipeJson.encode(answers)))
+            sql.execSQL("UPDATE plan SET recipeJson = ?", arrayOf(answers))
             sql.execSQL("UPDATE program_day SET cardioBlockJson = ? WHERE dayId = 'C'",
                 arrayOf(CardioBlockJson.encode(CardioBlock(CardioActivity.ROAD_RUN, listOf(spec)))))
             sql.execSQL("INSERT INTO program_day VALUES (1,'R',2,'Rest','',NULL,'REST',NULL,'rest',NULL,NULL,0,NULL,NULL)")
@@ -174,7 +172,7 @@ class PlanConversionTest {
         }
         val plan = db.planDao().plan(1)!!
         assertNull(plan.recipeJson)
-        assertEquals(PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb,
+        assertEquals(PlanSettings(equipment = Equipment.entries.toSet(), goalsLb = mapOf("bb_back_squat" to 315.0),
             legacyMains = setOf("bb_back_squat", "bb_bench", "bb_row")), plan.planSettings)
         assertEquals(squatRows, db.programDao().logForSlot(1, "A", 7, Slot.MAIN)!!.setsJson)
     }
@@ -296,7 +294,8 @@ class PlanConversionTest {
 
     @Test fun `a plan built by hand inserts Automatic and a generated plan Ask`() = runTest {
         val authored = repo.plans.createAuthoredPlan("My plan", "Day A")
-        val generated = repo.plans.createGeneratedPlan("Generated", answers, Program(emptyList()))
+        val generated = db.insertGeneratedPlan("Generated", Program(emptyList()), answers)
+        repo.plans.invalidatePlanFixups()
         assertTrue(db.planDao().plan(authored)!!.autoApply)
         assertFalse(db.planDao().plan(generated)!!.autoApply)
     }

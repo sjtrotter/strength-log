@@ -1,14 +1,12 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -27,15 +25,15 @@ class BackupV9Test {
 
     private val codec = BackupCodec()
     private val profile = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, weightUnit = WeightUnit.KG)
-    private val strength = WizardAnswers(daysPerWeek = 3, config = profile.copy(emphasis = GoalEmphasis.STRENGTH))
-    private val physique = WizardAnswers(daysPerWeek = 5, config = profile.copy(emphasis = GoalEmphasis.PHYSIQUE))
+    private val strength = v1RecipeJson(daysPerWeek = 3, emphasis = "STRENGTH")
+    private val physique = v1RecipeJson(daysPerWeek = 5, emphasis = "PHYSIQUE")
     private val recipeFields = listOf(
         "emphasis", "cardioMode", "cardioPlacement", "fiveKGoal", "daysPerWeek",
         "split", "anchorScheme", "deadliftVariant", "equipment", "suggestedDay",
     )
 
     private fun snapshot() = FullSnapshot(
-        profile = LifterProfile(strength.config.bodyweightLb, strength.config.age),
+        profile = LifterProfile(profile.bodyweightLb, profile.age),
         legacyRecipe = null,
         unit = WeightUnit.KG,
         wizardComplete = true,
@@ -45,11 +43,11 @@ class BackupV9Test {
         plans = listOf(
             PlanEntity(
                 7, "Strength", PlanOrigin.GENERATED.name, 0, 1_000,
-                recipeJson = PlanRecipeJson.encode(strength), suggestedDayId = "B",
+                recipeJson = strength, suggestedDayId = "B",
             ),
             PlanEntity(
                 42, "Physique", PlanOrigin.GENERATED.name, 1, 2_000,
-                recipeJson = PlanRecipeJson.encode(physique), suggestedDayId = "C",
+                recipeJson = physique, suggestedDayId = "C",
             ),
             PlanEntity(99, "Authored", PlanOrigin.AUTHORED.name, 2, 3_000),
         ),
@@ -114,7 +112,7 @@ class BackupV9Test {
 
         assertEquals(9, decoded.schemaVersion)
         assertEquals(before.plans, restored.plans)
-        assertEquals(PlanRecipeJson.encode(strength), restored.plans.single().recipeJson)
+        assertEquals(strength, restored.plans.single().recipeJson)
         assertTrue(restored.days.isEmpty())
         assertTrue(restored.exercises.isEmpty())
         assertEquals(7L, restored.selectedPlanId)
@@ -151,7 +149,7 @@ class BackupV9Test {
         val document = snapshot().toDocument()
         decode(document)
         val plan = document.plans.first().copy(
-            recipeJson = PlanRecipeJson.encode(strength).replace("\"daysPerWeek\":3", "\"daysPerWeek\":7"),
+            recipeJson = strength.replace("\"daysPerWeek\":3", "\"daysPerWeek\":7"),
         )
         val error = assertFailsWith<BackupError.InvalidPayload> {
             decode(document.copy(plans = listOf(plan) + document.plans.drop(1)))
@@ -163,7 +161,7 @@ class BackupV9Test {
     @Test
     fun `authored plan can carry a recipe`() {
         val document = snapshot().toDocument()
-        val plan = document.plans.last().copy(recipeJson = PlanRecipeJson.encode(strength))
+        val plan = document.plans.last().copy(recipeJson = strength)
         val withRecipe = document.copy(plans = document.plans.dropLast(1) + plan)
         assertEquals(withRecipe, decode(withRecipe))
     }

@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertGeneratedPlan
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.keepToPlanFixture
@@ -13,8 +17,6 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -950,9 +952,8 @@ class DayViewModelWiringTest {
 
     @Test
     fun `an old wizard plan offers no reset`() = runVmTest {
-        val answers = WizardAnswers()
-        val generated = repo.plans.createGeneratedPlan("Old", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(generated, answers)
+        val generated = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings).also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(generated)
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
@@ -3066,11 +3067,11 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
-        val answers = WizardAnswers()
-        val selectedPlan = repo.plans.createGeneratedPlan("Other", answers, Program(listOf(
+        val selectedPlan = db.insertGeneratedPlan("Other", Program(listOf(
             ProgramDay("A", "Other A", "", listOf(ProgramExercise("plank"))),
         )))
-        repo.plans.publishCreatedPlan(selectedPlan, answers)
+        db.runLaunchFixups(settings)
+        repo.plans.publishPlannedPlan(selectedPlan)
         advanceUntilIdle()
         assertEquals(openPlan, vm.uiState.value.planId)
 
@@ -3642,8 +3643,7 @@ class DayViewModelWiringTest {
     @Test fun workoutSwapStartsBeforeTheFirstSetAndUsesTheSubstitutesGoalAndTracking() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
-        val answers = WizardAnswers()
-        repo.plans.setWizardAnswers(answers.copy(config = answers.config.copy(goalsLb = mapOf("hack_squat" to 180.0))))
+        repo.plans.setPlanGoal(plan, "hack_squat", 180.0)
         repo.addExercise("A", ProgramExercise("bb_back_squat", targetSets = 2,
             prescription = Prescription(PrescribedTarget.RepsInTime(90, 30))))
         val vm = newViewModel()

@@ -7,7 +7,6 @@ import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
@@ -47,7 +46,7 @@ class SetupRecipeJsonTest {
 
     @Test fun `isV2`() {
         assertTrue(SetupRecipeJson.isV2(SetupRecipeJson.encode(answers)))
-        for (json in listOf(PlanRecipeJson.encode(WizardAnswers()), "{}", """{"v":"2"}""", "not json", "[]", """{"v":2.0}""")) {
+        for (json in listOf(OldWizardPlans.DEFAULT.recipeJson, "{}", """{"v":"2"}""", "not json", "[]", """{"v":2.0}""")) {
             assertFalse(SetupRecipeJson.isV2(json), json)
         }
     }
@@ -87,7 +86,7 @@ class SetupRecipeJsonTest {
     }
 
     @Test fun `a v1 recipe still validates through PlanRecipeJson`() {
-        PlanRecipeJson.validate(PlanRecipeJson.encode(WizardAnswers()))
+        PlanRecipeJson.validate(OldWizardPlans.DEFAULT.recipeJson)
         PlanRecipeJson.validate(SetupRecipeJson.encode(answers))
         assertFailsWith<IllegalArgumentException> {
             PlanRecipeJson.validate(SetupRecipeJson.encode(answers).replace("MUSCLE", "POWER"))
@@ -102,7 +101,7 @@ class SetupRecipeJsonTest {
     @Test fun `field readers are tolerant`() {
         assertEquals(true, SetupRecipeJson.olderAdult(SetupRecipeJson.encode(SetupAnswers(olderAdult = true))))
         assertEquals(false, SetupRecipeJson.olderAdult(SetupRecipeJson.encode(SetupAnswers())))
-        val v1 = PlanRecipeJson.encode(WizardAnswers())
+        val v1 = OldWizardPlans.DEFAULT.recipeJson
         assertNull(SetupRecipeJson.olderAdult(v1))
         assertEquals(LiftExperience.NEW, SetupRecipeJson.experience(SetupRecipeJson.encode(SetupAnswers())))
         assertNull(SetupRecipeJson.experience("""{"v":2,"experience":"GURU"}"""))

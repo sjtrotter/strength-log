@@ -1,18 +1,13 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.V1Split
+import cloud.trotter.log.strength.data.serialization.V1Anchors
+import cloud.trotter.log.strength.data.serialization.V1Deadlift
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,11 +18,11 @@ import org.junit.Test
 class PlanRecipeJsonTest {
     @Test
     fun `edited goals round-trip and old recipes decode with none`() {
-        val answers = WizardAnswers().let { it.copy(config = it.config.copy(goalsLb = mapOf("bb_bench" to 205.0))) }
-        val encoded = PlanRecipeJson.encode(answers)
+        val goals = mapOf("bb_bench" to 205.0)
+        val encoded = v1RecipeJson(goalsLb = goals)
         PlanRecipeJson.validate(encoded)
-        assertEquals(answers.config.goalsLb, PlanRecipeJson.read(encoded)!!.goalsLb)
-        val legacy = PlanRecipeJson.encode(WizardAnswers())
+        assertEquals(goals, PlanRecipeJson.read(encoded)!!.goalsLb)
+        val legacy = v1RecipeJson()
         assertFalse(legacy.contains("goalsLb"))
         assertEquals(emptyMap<String, Double>(), PlanRecipeJson.read(legacy)!!.goalsLb)
 
@@ -60,7 +55,7 @@ class PlanRecipeJsonTest {
     }
 
 
-    private fun recipe(cardio: String): String = PlanRecipeJson.encode(WizardAnswers()).dropLast(1) + ",\"cardioFirst\":$cardio}"
+    private fun recipe(cardio: String): String = v1RecipeJson().dropLast(1) + ",\"cardioFirst\":$cardio}"
 
     @Test
     fun `validate rejects invalid cardio first answers`() {
@@ -80,7 +75,7 @@ class PlanRecipeJsonTest {
 
 
     @Test fun `rest days validate`() {
-        val encoded = PlanRecipeJson.encode(WizardAnswers(cardioFirst = CardioFirst(restDays = 2)))
+        val encoded = v1RecipeJson(cardioFirst = """{"activity":"ROAD_RUN","seconds":1800,"sessions":3,"liftDays":0,"restDays":2}""")
         PlanRecipeJson.validate(encoded)
         for (invalid in listOf(-1, 3)) {
             assertFailsWith<IllegalArgumentException> {
@@ -90,15 +85,14 @@ class PlanRecipeJsonTest {
     }
 
     @Test fun `read keeps gear goals and cardio answers`() {
-        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL),
-            cardio = CardioPrefs(mode = CardioMode.LOW_IMPACT, fiveKGoal = false),
-            config = LifterConfig(goalsLb = mapOf("db_bench" to 90.0)))
+        val recipe = v1RecipeJson(equipment = listOf(Equipment.DUMBBELL), cardioMode = "LOW_IMPACT",
+            fiveKGoal = false, goalsLb = mapOf("db_bench" to 90.0))
         assertEquals(V1Recipe(setOf(Equipment.DUMBBELL), mapOf("db_bench" to 90.0), CardioMode.LOW_IMPACT, false),
-            PlanRecipeJson.read(PlanRecipeJson.encode(answers)))
+            PlanRecipeJson.read(recipe))
     }
 
     @Test fun `read drops unknown gear and bad goals`() {
-        val json = PlanRecipeJson.encode(WizardAnswers(equipment = setOf(Equipment.DUMBBELL)))
+        val json = v1RecipeJson(equipment = listOf(Equipment.DUMBBELL))
             .replace("[\"DUMBBELL\"]", "[\"DUMBBELL\",\"HOVERBOARD\"]").dropLast(1) +
             ",\"goalsLb\":{\"a\":0,\"b\":2001,\"\":5,\"c\":100}}"
         assertEquals(V1Recipe(setOf(Equipment.DUMBBELL), mapOf("c" to 100.0)), PlanRecipeJson.read(json))
@@ -110,22 +104,13 @@ class PlanRecipeJsonTest {
         assertNull(PlanRecipeJson.read("not json"))
     }
 
-    @Test fun `read keeps the recipe inputs that select old mains`() {
-        for ((split, days) in listOf(SplitTemplate.FULL_BODY to 3, SplitTemplate.UPPER_LOWER to 4,
-            SplitTemplate.PPL to 6)) {
-            for (scheme in AnchorScheme.entries) {
-                for (variant in DeadliftVariant.entries) {
-                    val answers = WizardAnswers(daysPerWeek = days, split = split,
-                        anchorScheme = scheme, deadliftVariant = variant,
-                        equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT))
-                    val recipe = requireNotNull(PlanRecipeJson.read(PlanRecipeJson.encode(answers)))
-                    assertEquals(days, recipe.daysPerWeek)
-                    assertEquals(split, recipe.split)
-                    assertEquals(scheme, recipe.anchorScheme)
-                    assertEquals(variant, recipe.deadliftVariant)
-                    assertEquals(ProgramGenerator.mainLiftIds(answers).toSet(), recipe.mainLiftIds())
-                }
-            }
-        }
+    @Test fun `read keeps the answers that select old mains`() {
+        val recipe = requireNotNull(PlanRecipeJson.read(v1RecipeJson(daysPerWeek = 6, split = "PPL",
+            anchorScheme = "BIG_4", deadliftVariant = "SUMO")))
+        assertEquals(6, recipe.daysPerWeek)
+        assertEquals(V1Split.PPL, recipe.split)
+        assertEquals(V1Anchors.BIG_4, recipe.anchorScheme)
+        assertEquals(V1Deadlift.SUMO, recipe.deadliftVariant)
     }
+
 }

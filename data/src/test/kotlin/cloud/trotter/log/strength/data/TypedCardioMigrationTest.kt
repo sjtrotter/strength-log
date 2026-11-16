@@ -19,12 +19,8 @@ import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import java.io.File
 import java.io.IOException
@@ -77,23 +73,23 @@ class TypedCardioMigrationTest {
         storeScope.cancel()
     }
 
-    private suspend fun seed(answers: WizardAnswers? = null) {
+    private suspend fun seed(recipe: String? = null) {
         db.planDao().insertPlan(PlanEntity(1, "Running", "GENERATED", 0, 1_000,
-            recipeJson = answers?.let(PlanRecipeJson::encode), suggestedDayId = "A"))
+            recipeJson = recipe, suggestedDayId = "A"))
         db.programDao().upsertDay(ProgramDayEntity(1, "A", 0, "Run", "", prose, nextRunId = "open-run"))
         settings.setSelectedPlanId(1)
     }
 
     @Test
     fun `fixup converts all prose atomically keeps existing blocks and is a no-op on retry`() = runTest {
-        val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
+        val answers = v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false)
         seed(answers)
         val expected = CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN)
         val stored = CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROWER)
         val original = requireNotNull(db.programDao().day(1, "A"))
         db.programDao().upsertDay(original.copy(dayId = "B", position = 1, cardioBlockJson = CardioBlockJson.encode(stored)))
         db.planDao().insertPlan(PlanEntity(2, "Disabled", "GENERATED", 1, 1_000,
-            recipeJson = PlanRecipeJson.encode(WizardAnswers(cardio = CardioPrefs(mode = CardioMode.NONE)))))
+            recipeJson = v1RecipeJson(cardioMode = "NONE")))
         db.programDao().upsertDay(original.copy(planId = 2))
         db.programDao().upsertDay(original.copy(planId = 2, dayId = "B", cardioBlockJson = CardioBlockJson.encode(stored)))
         settings.removeLegacyPlanKeys()
@@ -207,11 +203,11 @@ class TypedCardioMigrationTest {
 
     @Test
     fun `restore converts prose again after the cardio gate was already completed`() = runTest {
-        val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
+        val answers = v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false)
         seed(answers)
         val legacyDay = requireNotNull(db.programDao().day(1, "A"))
         val snapshot = backupRepository.exportSnapshot().let { snapshot -> snapshot.copy(days = listOf(legacyDay),
-            plans = snapshot.plans.map { it.copy(recipeJson = PlanRecipeJson.encode(answers)) }) }
+            plans = snapshot.plans.map { it.copy(recipeJson = answers) }) }
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
         }, settings)
@@ -248,7 +244,7 @@ class TypedCardioMigrationTest {
 
     @Test
     fun `post restore conversion settings read failure reports cleanup pending and next reader retries`() = runTest {
-        seed(WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)))
+        seed(v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false))
         val legacyDay = requireNotNull(db.programDao().day(1, "A"))
         var armOnRestore = false
         var failConversionRead = false
@@ -276,8 +272,7 @@ class TypedCardioMigrationTest {
         assertFalse(exported.profile.bodyweightLb != null)
         val snapshot = exported.copy(
             days = listOf(legacyDay),
-            plans = exported.plans.map { it.copy(recipeJson = PlanRecipeJson.encode(WizardAnswers(
-                cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)))) },
+            plans = exported.plans.map { it.copy(recipeJson = v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false)) },
             profile = exported.profile.copy(bodyweightLb = 190.0, age = 28),
         )
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {

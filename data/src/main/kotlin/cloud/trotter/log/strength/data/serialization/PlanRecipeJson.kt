@@ -1,10 +1,5 @@
 package cloud.trotter.log.strength.data.serialization
 
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -46,23 +41,21 @@ data class V1Recipe(
     val cardioMode: CardioMode = CardioMode.OUTDOOR_RUN,
     val fiveKGoal: Boolean = true,
     val daysPerWeek: Int = 4,
-    val split: SplitTemplate = SplitTemplate.FULL_BODY,
-    val anchorScheme: AnchorScheme = AnchorScheme.PROTOTYPE,
-    val deadliftVariant: DeadliftVariant = DeadliftVariant.TRAP_BAR,
+    val split: V1Split = V1Split.FULL_BODY,
+    val anchorScheme: V1Anchors = V1Anchors.PROTOTYPE,
+    val deadliftVariant: V1Deadlift = V1Deadlift.TRAP_BAR,
 ) {
-    /** 6d must keep this derivation as a frozen legacy table when it deletes the generator; restored old backups still convert.
-     *  Uses the non-cardio-first skeleton as 6a did; intersection with the plan's slots keeps that harmless. */
-    fun mainLiftIds(): Set<String> = ProgramGenerator.mainLiftIds(WizardAnswers(
-        daysPerWeek = daysPerWeek, split = split, anchorScheme = anchorScheme,
-        deadliftVariant = deadliftVariant, equipment = equipment,
-    )).toSet()
+    /** The old wizard's mains for these answers ([V1Mains]); conversion keeps those the plan still holds. */
+    fun mainLiftIds(): Set<String> = V1Mains.of(daysPerWeek, split, anchorScheme, deadliftVariant, equipment).toSet()
 }
 
 object PlanRecipeJson {
+    /** The old cardio-first lift-day answers. */
+    private val V1_LIFT_DAYS = setOf(0, 2, 3)
+
     const val MAX_GOAL_LB = 2000.0
 
-    /** Writes an old wizard recipe. Only the test fixtures createGeneratedPlan and setWizardAnswers call it;
-     *  6d deletes it with them. */
+    /** Writes an old wizard recipe. Only OldWizardPlansTest calls it, to prove the test fixtures; 6d-ii deletes both. */
     fun encode(answers: WizardAnswers): String = SetJson.encode(
         PlanRecipeDto.serializer(),
         PlanRecipeDto(
@@ -96,7 +89,7 @@ object PlanRecipeJson {
             require(it.metres == null || it.metres in 1..200_000) { "metres must be 1..200000" }
             require(it.restDays in 0..2) { "restDays must be 0..2" }
             require(it.sessions in 1..6) { "sessions must be 1..6" }
-            require(it.liftDays in CardioFirst.LIFT_DAY_CHOICES) { "liftDays must be 0, 2 or 3" }
+            require(it.liftDays in V1_LIFT_DAYS) { "liftDays must be 0, 2 or 3" }
         }
     }
 
@@ -112,9 +105,9 @@ object PlanRecipeJson {
                 cardioMode = CardioMode.entries.firstOrNull { it.name == recipe.cardioMode } ?: CardioMode.OUTDOOR_RUN,
                 fiveKGoal = recipe.fiveKGoal,
                 daysPerWeek = recipe.daysPerWeek.coerceIn(2, 6),
-                split = SplitTemplate.entries.firstOrNull { it.name == recipe.split } ?: SplitTemplate.FULL_BODY,
-                anchorScheme = AnchorScheme.entries.firstOrNull { it.name == recipe.anchorScheme } ?: AnchorScheme.PROTOTYPE,
-                deadliftVariant = DeadliftVariant.entries.firstOrNull { it.name == recipe.deadliftVariant } ?: DeadliftVariant.TRAP_BAR,
+                split = V1Split.entries.firstOrNull { it.name == recipe.split } ?: V1Split.FULL_BODY,
+                anchorScheme = V1Anchors.entries.firstOrNull { it.name == recipe.anchorScheme } ?: V1Anchors.PROTOTYPE,
+                deadliftVariant = V1Deadlift.entries.firstOrNull { it.name == recipe.deadliftVariant } ?: V1Deadlift.TRAP_BAR,
             )
         }.getOrNull()
     }

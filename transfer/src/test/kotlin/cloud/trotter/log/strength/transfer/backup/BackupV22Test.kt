@@ -1,13 +1,12 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlin.test.Test
@@ -50,7 +49,7 @@ class BackupV22Test {
 
     @Test fun `v22 preserves edited goals together with cardio notes and Next time`() {
         val goals = mapOf("bb_back_squat" to 200.0)
-        val recipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(goalsLb = goals)))
+        val recipe = v1RecipeJson(goalsLb = goals)
         val base = document()
         val source = base.copy(plans = listOf(base.plans.single().copy(
             origin = "GENERATED", recipeJson = recipe,

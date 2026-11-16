@@ -1,11 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -15,11 +12,9 @@ import kotlin.test.assertTrue
 class BackupV23Test {
     private val codec = BackupCodec()
     private val goals = mapOf("bb_back_squat" to 200.0)
-    private val answers = WizardAnswers(
-        config = LifterConfig(goalsLb = goals),
-        cardioFirst = CardioFirst(CardioActivity.TRAIL_RUN, Measure.Distance(4828)),
-    )
-    private fun document(recipe: String = PlanRecipeJson.encode(answers)) = BackupDocument(
+    private val recipeText = v1RecipeJson(goalsLb = goals,
+        cardioFirst = """{"activity":"TRAIL_RUN","metres":4828,"sessions":3,"liftDays":0}""")
+    private fun document(recipe: String = recipeText) = BackupDocument(
         settings = SettingsBackup(180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Running", "GENERATED", 1000, recipeJson = recipe,
             days = listOf(ProgramDayBackup("A", "Easy", "")), offerCardioIncreases = true)),
@@ -33,7 +28,7 @@ class BackupV23Test {
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
         assertEquals(snapshot, restored)
         val restoredAnswers = PlanRecipeJson.read(restored.plans.single().recipeJson!!)!!
-        assertEquals(PlanRecipeJson.encode(answers), restored.plans.single().recipeJson)
+        assertEquals(recipeText, restored.plans.single().recipeJson)
         assertEquals(goals, restoredAnswers.goalsLb)
     }
 
@@ -65,21 +60,20 @@ class BackupV23Test {
 
     @Test
     fun `backups without lifter answer presence retain their answers`() {
-        val answers = WizardAnswers()
         for (version in 1..CURRENT_SCHEMA_VERSION) {
             val legacy = BackupDocument(
                 schemaVersion = version,
                 settings = SettingsBackup(
                     180, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = false,
-                    emphasis = answers.config.emphasis.name,
-                    cardioMode = answers.cardio.mode.name,
-                    cardioPlacement = answers.cardio.placement.name,
-                    fiveKGoal = answers.cardio.fiveKGoal,
-                    daysPerWeek = answers.daysPerWeek,
-                    split = answers.split.name,
-                    anchorScheme = answers.anchorScheme.name,
-                    deadliftVariant = answers.deadliftVariant.name,
-                    equipment = answers.equipment.map { it.name },
+                    emphasis = "BALANCED",
+                    cardioMode = "OUTDOOR_RUN",
+                    cardioPlacement = "FINISHERS",
+                    fiveKGoal = true,
+                    daysPerWeek = 4,
+                    split = "FULL_BODY",
+                    anchorScheme = "PROTOTYPE",
+                    deadliftVariant = "TRAP_BAR",
+                    equipment = Equipment.entries.map { it.name },
                 ),
             )
             val text = codec.encode(legacy).replace(",\"hasLifterAnswers\":true", "")
@@ -102,8 +96,7 @@ class BackupV23Test {
     fun `v18 through v22 lifting recipes restore and re-export as v23`() {
         for (version in 18..22) {
             val legacyGoals = if (version >= 21) goals else emptyMap()
-            val legacyAnswers = WizardAnswers(config = LifterConfig(goalsLb = legacyGoals))
-            val recipe = PlanRecipeJson.encode(legacyAnswers)
+            val recipe = v1RecipeJson(goalsLb = legacyGoals)
             val doc = document(recipe).copy(schemaVersion = version)
             val decoded = codec.decode(codec.encode(doc))
             assertEquals(version, decoded.schemaVersion)
@@ -120,13 +113,13 @@ class BackupV23Test {
 
     @Test
     fun `v23 rejects invalid cardio first recipe payloads`() {
-        val recipe = PlanRecipeJson.encode(answers).replace("\"sessions\":3", "\"sessions\":7")
+        val recipe = recipeText.replace("\"sessions\":3", "\"sessions\":7")
         assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(document(recipe))) }
     }
 
     @Test
     fun `v23 rejects invalid edited goals in cardio first recipes`() {
-        val recipe = PlanRecipeJson.encode(answers).replace("200.0", "2000.1")
+        val recipe = recipeText.replace("200.0", "2000.1")
         assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(document(recipe))) }
     }
 }

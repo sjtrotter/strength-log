@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
@@ -14,11 +15,9 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -169,7 +168,7 @@ class BackupCodecTest {
 
     @Test
     fun `authored plan with a recipe round-trips`() {
-        val recipe = PlanRecipeJson.encode(WizardAnswers())
+        val recipe = v1RecipeJson()
         val base = restSnapshot(RestSettings())
         val snapshot = base.copy(plans = base.plans.map {
             it.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = recipe)

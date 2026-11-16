@@ -300,8 +300,10 @@ class SetupFlowViewModelTest {
         fresh.setMinutes(30); advanceUntilIdle()
         assertEquals(30, answers(fresh).minutes)
         assertTrue(fresh.uiState.value.canStart); assertTrue(ready(fresh).over)
+        runCatching { repo.plans.previewPlan(answers(fresh)) }.exceptionOrNull()?.let { throw AssertionError("preview threw", it) }
         fresh.onNext(); advanceUntilIdle()
         val after = fresh.uiState.value
+        if (!after.isComplete) runCatching { repo.plans.createPlannedPlan("Probe", answers(fresh)) }.exceptionOrNull()?.let { throw AssertionError("create threw", it) }
         assertNull(after.finishError)
         assertTrue(after.isComplete, "not complete: step=${after.step} plan=${after.plan::class.simpleName} canStart=${after.canStart} plans=${db.planDao().allPlans().size}")
         assertEquals(1, db.planDao().allPlans().size)

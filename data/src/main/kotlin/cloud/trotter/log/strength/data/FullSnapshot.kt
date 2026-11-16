@@ -15,7 +15,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.progression.EffortScale
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.units.DistanceUnit
@@ -33,12 +33,12 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
  * on-disk JSON shape and maps to/from this type at the boundary; `:data` stays out
  * of the serialization business.
  *
- * [answers] and [suggestedDay] project the selected plan's settings for the
+ * [global] and [suggestedDay] project the lifter and selected plan's rotation for the
  * legacy portable backup's settings block; [plans] retain each plan's stored recipe
  * and rotation position for an in-memory round trip.
  */
 data class FullSnapshot(
-    val answers: WizardAnswers,
+    val global: GlobalLifter,
     val unit: WeightUnit,
     val wizardComplete: Boolean,
     val suggestedDay: String?,
@@ -50,7 +50,7 @@ data class FullSnapshot(
     val supersetHelperSeen: Boolean = false,
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val distanceUnit: DistanceUnit? = null,
-    /** Empty legacy snapshots become one plan when [answersCarryRecipe] is true. */
+    /** Empty legacy snapshots become one plan when [legacyRecipe] is present. */
     val plans: List<PlanEntity> = emptyList(),
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
@@ -60,8 +60,8 @@ data class FullSnapshot(
     val sessionSets: List<SessionSetEntity>,
     val cardioSessions: List<CardioSessionEntity> = emptyList(),
     val cardioSetResults: List<CardioSetResultEntity> = emptyList(),
-    /** Whether [answers] also carries a legacy recipe to spread onto generated plans. */
-    val answersCarryRecipe: Boolean = true,
+    /** A v1 to v8 document's plan settings, applied to its generated plans on import. */
+    val legacyRecipe: V1Recipe? = null,
     val runs: List<WorkoutRunEntity> = emptyList(),
     val runTracks: List<RunTrackEntity> = emptyList(),
     val legacyLogs: List<LegacyLog> = emptyList(),

@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.data.serialization.V1Recipe
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -9,7 +12,6 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
@@ -30,7 +32,8 @@ class BackupV8Test {
     private val codec = BackupCodec()
 
     private fun snapshot() = FullSnapshot(
-        answers = WizardAnswers(),
+        global = GlobalLifter(),
+        legacyRecipe = V1Recipe(),
         unit = WeightUnit.LB,
         wizardComplete = true,
         suggestedDay = "A",
@@ -70,19 +73,21 @@ class BackupV8Test {
 
     // Keep the fixture at v8 even though production exports write v9.
     private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().withoutV16Fields().let { document ->
+        val recipe = checkNotNull(legacyRecipe)
+        val defaults = WizardAnswers()
         document.copy(
             schemaVersion = 8,
             plans = document.plans.map { it.copy(onToday = null) },
             settings = document.settings.copy(
-                emphasis = answers.config.emphasis.name,
-                cardioMode = answers.cardio.mode.name,
-                cardioPlacement = answers.cardio.placement.name,
-                fiveKGoal = answers.cardio.fiveKGoal,
-                daysPerWeek = answers.daysPerWeek,
-                split = answers.split.name,
-                anchorScheme = answers.anchorScheme.name,
-                deadliftVariant = answers.deadliftVariant.name,
-                equipment = answers.equipment.map { it.name }.sorted(),
+                emphasis = defaults.config.emphasis.name,
+                cardioMode = recipe.cardioMode.name,
+                cardioPlacement = defaults.cardio.placement.name,
+                fiveKGoal = recipe.fiveKGoal,
+                daysPerWeek = defaults.daysPerWeek,
+                split = defaults.split.name,
+                anchorScheme = defaults.anchorScheme.name,
+                deadliftVariant = defaults.deadliftVariant.name,
+                equipment = recipe.equipment.map { it.name }.sorted(),
                 suggestedDay = suggestedDay,
             ),
         )

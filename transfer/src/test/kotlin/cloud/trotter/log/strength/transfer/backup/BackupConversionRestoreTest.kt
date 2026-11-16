@@ -12,6 +12,10 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.planSettings
+import kotlin.test.assertNull
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
@@ -101,7 +105,7 @@ class BackupConversionRestoreTest {
     }
 
     @Test fun `v25 and v26 backups restore with history unchanged, rules on every slot and rows on the never-opened one`() = runTest {
-        for (version in listOf(25, 26)) {
+        for (version in listOf(25, 26, 27, 28)) {
             val source = document(version)
             val decoded = codec.decode(codec.encode(source))
             val expected = decoded.toSnapshot()
@@ -119,7 +123,9 @@ class BackupConversionRestoreTest {
                 state = SlotState(calibrating = true)), SlotRuleJson.decode(db.programDao().exercise(8)!!.ruleJson))
             assertEquals(List(3) { LoggedSet(20.0, 10, SetKind.WORK) },
                 SetJson.decodeSets(db.programDao().logForSlot(1, "A", 8, "main")!!.setsJson))
-            assertEquals(source.plans.single().recipeJson, db.planDao().plan(1)!!.recipeJson)
+            assertNull(db.planDao().plan(1)!!.recipeJson)
+            assertEquals(PlanSettings(equipment = Equipment.entries.toSet(), goalsLb = mapOf("bb_back_squat" to 315.0),
+                legacyMains = setOf("bb_back_squat")), db.planDao().plan(1)!!.planSettings)
             val exported = codec.decode(service.export())
             assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(source.sessions, exported.sessions)

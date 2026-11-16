@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
@@ -60,7 +61,7 @@ class SetupRecipeJsonTest {
             for (recipe in listOf(null, json)) {
                 val plan = PlanEntity(1, "Plan", PlanOrigin.GENERATED.name, 0, 0,
                     recipeJson = recipe, settingsJson = PlanSettingsJson.encode(planSettings))
-                assertEquals(expected, answersForPlan(plan, GlobalLifter()).equipment)
+                assertEquals(expected, plan.planSettings.equipmentOrAll)
             }
         }
     }

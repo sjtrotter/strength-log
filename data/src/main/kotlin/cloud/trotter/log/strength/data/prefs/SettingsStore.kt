@@ -10,8 +10,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import cloud.trotter.log.strength.data.GlobalLifter
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.data.serialization.V1Recipe
+import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -144,17 +144,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val globalLifterFlow: Flow<GlobalLifter> = dataStore.data.map { it.readGlobalLifter() }
 
-    val legacyAnswersFlow: Flow<WizardAnswers?> = dataStore.data.map { prefs ->
+    val legacyRecipeFlow: Flow<V1Recipe?> = dataStore.data.map { prefs ->
         if (legacyPlanKeys.none { it in prefs }) return@map null
-        WizardAnswers(
-            daysPerWeek = prefs[Keys.DAYS_PER_WEEK]?.takeIf { it in 2..6 } ?: DEFAULT_ANSWERS.daysPerWeek,
-            split = prefs.enum(Keys.SPLIT, DEFAULT_ANSWERS.split),
-            anchorScheme = prefs.enum(Keys.ANCHOR_SCHEME, DEFAULT_ANSWERS.anchorScheme),
-            deadliftVariant = prefs.enum(Keys.DEADLIFT_VARIANT, DEFAULT_ANSWERS.deadliftVariant),
-            cardio = prefs.readCardio(),
-            config = prefs.readConfig(),
-            equipment = prefs.readEquipment(),
-        )
+        V1Recipe(equipment = prefs.readEquipment(),
+            cardioMode = prefs.enum(Keys.CARDIO_MODE, CardioMode.OUTDOOR_RUN),
+            fiveKGoal = prefs[Keys.FIVE_K] ?: true)
     }
 
     val legacySuggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }
@@ -544,9 +538,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         weightUnit = enum(Keys.WEIGHT_UNIT, WeightUnit.LB),
     )
 
-    private fun Preferences.readConfig(): LifterConfig =
-        readGlobalLifter().toConfig().copy(emphasis = enum(Keys.EMPHASIS, DEFAULT_CONFIG.emphasis))
-
     private fun androidx.datastore.preferences.core.MutablePreferences.writeGlobalLifter(global: GlobalLifter) {
         this[Keys.BODYWEIGHT_TENTHS_LB] = Math.round(global.bodyweightLb * 10.0)
         remove(Keys.BODYWEIGHT)
@@ -554,17 +545,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         this[Keys.LEVEL] = global.level.name
     }
 
-    private fun Preferences.readCardio(): CardioPrefs = CardioPrefs(
-        mode = enum(Keys.CARDIO_MODE, DEFAULT_CARDIO.mode),
-        placement = enum(Keys.CARDIO_PLACEMENT, DEFAULT_CARDIO.placement),
-        fiveKGoal = this[Keys.FIVE_K] ?: DEFAULT_CARDIO.fiveKGoal,
-    )
-
     private fun Preferences.readEquipment(): Set<Equipment> =
         this[Keys.EQUIPMENT]
             ?.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }
             ?.toSet()
-            ?: DEFAULT_ANSWERS.equipment
+            ?: Equipment.entries.toSet()
 
     private inline fun <reified E : Enum<E>> Preferences.enum(
         key: Preferences.Key<String>,
@@ -581,8 +566,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             Keys.EQUIPMENT, Keys.SUGGESTED_DAY,
         )
         val DEFAULT_CONFIG = LifterConfig()
-        val DEFAULT_CARDIO = CardioPrefs()
-        val DEFAULT_ANSWERS = WizardAnswers()
     }
 }
 

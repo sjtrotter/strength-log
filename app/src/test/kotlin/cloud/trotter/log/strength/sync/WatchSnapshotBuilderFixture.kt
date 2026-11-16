@@ -1,11 +1,11 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
@@ -33,7 +33,7 @@ internal fun WatchSnapshotBuilder.build(
     val day = PerformedDay.of(
         planId, suggestedDayId ?: return null, program, slots,
         DayTracks(runId, false, logs),
-        WizardAnswers(config = cfg, equipment = equipment), catalog, seeds = emptyMap(),
+        PlanSettings(equipment = equipment, goalsLb = cfg.goalsLb), catalog, seeds = emptyMap(),
     )
     return build(
         day = day,

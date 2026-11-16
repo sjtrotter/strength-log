@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -14,7 +15,6 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
@@ -35,8 +35,8 @@ class BackupV9Test {
     )
 
     private fun snapshot() = FullSnapshot(
-        answers = strength,
-        answersCarryRecipe = false,
+        global = GlobalLifter.of(strength.config),
+        legacyRecipe = null,
         unit = WeightUnit.KG,
         wizardComplete = true,
         suggestedDay = "B",
@@ -79,9 +79,9 @@ class BackupV9Test {
         assertEquals(listOf("B", "C", null), restored.plans.map { it.suggestedDayId })
         assertNull(restored.plans.last().recipeJson)
         assertEquals(42L, restored.selectedPlanId)
-        assertEquals(WizardAnswers(config = global), restored.answers)
+        assertEquals(GlobalLifter.of(global), restored.global)
         assertNull(restored.suggestedDay)
-        assertFalse(restored.answersCarryRecipe)
+        assertNull(restored.legacyRecipe)
 
         val settings = Json.parseToJsonElement(encoded).jsonObject.getValue("settings").jsonObject
         recipeFields.forEach { field -> assertEquals(JsonNull, settings.getValue(field), field) }
@@ -131,7 +131,7 @@ class BackupV9Test {
         val decoded = codec.decode(JsonObject(root + ("settings" to stray)).toString())
 
         assertEquals(document, decoded)
-        assertEquals(WizardAnswers(config = global), decoded.toSnapshot().answers)
+        assertEquals(GlobalLifter.of(global), decoded.toSnapshot().global)
         assertNull(decoded.toSnapshot().suggestedDay)
     }
 

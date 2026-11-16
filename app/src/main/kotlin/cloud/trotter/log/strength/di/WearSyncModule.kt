@@ -72,7 +72,8 @@ object WearSyncModule {
         store: WearSyncStore,
         plans: PlanRepository,
         catalog: CatalogRepository,
-    ): SetEditApplier = SetEditApplier(repo, store, store, plans = plans, catalog = catalog)
+        settings: SettingsStore,
+    ): SetEditApplier = SetEditApplier(repo, store, store, plans = plans, catalog = catalog, settings = settings)
 
     @Provides
     @Singleton

@@ -3,11 +3,10 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
@@ -50,7 +49,6 @@ data class PerformedDay(
     val dayId: String,
     val program: Program,
     val day: ProgramDay?,
-    val config: LifterConfig,
     val equipment: Set<Equipment>,
     val catalog: ExerciseCatalog,
     val tracks: DayTracks,
@@ -67,7 +65,7 @@ data class PerformedDay(
             program: Program,
             slots: List<ProgramSlot>,
             tracks: DayTracks,
-            answers: WizardAnswers,
+            settings: PlanSettings,
             catalog: ExerciseCatalog,
             seeds: Map<Pair<Long, String>, List<LoggedSet>>,
             openings: Map<Pair<Long, String>, List<LoggedSet>> = emptyMap(),
@@ -78,12 +76,12 @@ data class PerformedDay(
             fun track(slot: ProgramSlot, trackSlot: String): PerformedTrack {
                 val key = slot.programExerciseId to trackSlot
                 val performed = performedExercise(slot, stored[key]?.exerciseId, catalog, trackSlot)
-                return PerformedTrack(performed, performed.goal(answers.config), stored[key]?.sets, seeds[key],
+                return PerformedTrack(performed, performed.goal(settings.goalsLb), stored[key]?.sets, seeds[key],
                     note = stored[key]?.note.orEmpty(), opening = openings[key], openingInfo = stored[key]?.opening ?: openingInfo[key])
             }
             return PerformedDay(
                 planId, dayId, program, program.days.firstOrNull { it.id == dayId },
-                answers.config, answers.equipment, catalog, tracks,
+                settings.equipmentOrAll, catalog, tracks,
                 workoutSlots.map { slot ->
                     PerformedSlot(slot, track(slot, Slot.MAIN), slot.exercise.superset?.let { track(slot, Slot.SS) })
                 },

@@ -1,11 +1,11 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -246,7 +246,7 @@ class WatchSnapshotBuilderTest {
     ): PerformedDay = PerformedDay.of(
         planId, dayId, program, slots,
         DayTracks(null, false, logs, droppedPartners = dropped, skippedLifts = skipped),
-        WizardAnswers(config = config), catalog, seeds, openings,
+        PlanSettings(goalsLb = config.goalsLb), catalog, seeds, openings,
     )
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =

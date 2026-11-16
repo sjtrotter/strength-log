@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
@@ -454,7 +456,7 @@ class TrackerRepositoryPlanScopeTest {
             days = snapshot.days.filter { it.planId == 1L },
             exercises = snapshot.exercises.filter { it.planId == 1L },
             logs = snapshot.logs.filter { it.planId == 1L },
-            answersCarryRecipe = true,
+            legacyRecipe = V1Recipe(),
         )
         backupRepository.importSnapshot(legacy, journal)
 
@@ -491,7 +493,8 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(listOf(1L, created), db.planDao().allPlans().map { it.id })
         assertEquals(1, db.planDao().plan(created)!!.position)
         assertEquals(created, settings.selectedPlanIdFlow.first())
-        assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(created)!!.recipeJson)
+        assertNull(db.planDao().plan(created)!!.recipeJson)
+        assertEquals(answers.equipment, db.planDao().plan(created)!!.planSettings.equipmentOrAll)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
         assertEquals(210.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         val createdProgram = repo.plans.programFlow.first()
@@ -507,7 +510,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.plans.selectPlan(1)
         assertEquals(before, db.planDao().plan(1))
         assertEquals(createdPlan, db.planDao().plan(created))
-        assertEquals(oldAnswers.daysPerWeek, repo.plans.wizardAnswersFlow.first().daysPerWeek)
+        assertEquals(oldAnswers.equipment, repo.plans.planSettingsFor(1).first().equipmentOrAll)
     }
 
     @Test

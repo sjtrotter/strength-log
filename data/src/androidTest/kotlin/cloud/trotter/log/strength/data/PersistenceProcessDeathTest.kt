@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -258,9 +259,10 @@ class PersistenceProcessDeathTest {
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
         assertEquals(
-            wizardAnswers.copy(config = wizardAnswers.config.copy(weightUnit = WeightUnit.KG)),
-            repository.plans.wizardAnswersFlow.first(),
+            GlobalLifter.of(wizardAnswers.config).copy(weightUnit = WeightUnit.KG),
+            settings.globalLifterFlow.first(),
         )
+        assertEquals(wizardAnswers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalog.catalogFlow.first().get(customId)

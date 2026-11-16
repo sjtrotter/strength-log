@@ -5,7 +5,6 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 
@@ -15,9 +14,9 @@ data class PerformedExercise(
     val prescription: Prescription?,
 ) {
     val tracking: TrackingType get() = prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
-    /** The plan's own goal for this lift (`LifterConfig.goalsLb`); only a known weighted entry has one. */
-    fun goal(config: LifterConfig): GoalTarget.Weight? = entry?.takeIf { it.tracking == TrackingType.WEIGHTED }
-        ?.let { known -> config.goalsLb[known.id]?.let { GoalTarget.Weight(it, known.perHand) } }
+    /** The plan's typed goal for this lift; only a known weighted entry has one. */
+    fun goal(goalsLb: Map<String, Double>): GoalTarget.Weight? = entry?.takeIf { it.tracking == TrackingType.WEIGHTED }
+        ?.let { known -> goalsLb[known.id]?.let { GoalTarget.Weight(it, known.perHand) } }
 }
 
 fun performedExercise(

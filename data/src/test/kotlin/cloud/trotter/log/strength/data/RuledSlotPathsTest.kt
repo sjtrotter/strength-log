@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import android.content.Context
 import android.database.sqlite.SQLiteFullException
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -106,14 +108,17 @@ class RuledSlotPathsTest {
         assertTrue(repo.swapExerciseById("A", id, "bb_back_squat"))
         assertSlot(id, rule(SlotRole.MAIN, 5, 0.025, calibrating = true), work(45.0, 5))
         assertRuledWithRows(plan)
-        val answers = WizardAnswers()
-        val gen = repo.plans.createGeneratedPlan("Gen", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(gen, answers)
+        val answers = SetupAnswers(goal = LiftGoal.STRENGTH, days = 4)
+        val gen = repo.plans.createPlannedPlan("Strength, 4 days", answers)
+        repo.plans.publishPlannedPlan(gen)
         assertRuledWithRows(gen)
         val ids = db.programDao().exercisesForDay(gen, "A").map { it.id }
         repo.resetDayToTemplate("A", gen)
         assertTrue(db.programDao().exercisesForDay(gen, "A").none { it.id in ids })
-        assertRuledWithRows(gen)
+        val resetSlots = repo.plans.slotsFor(gen, "A").first()
+        assertTrue(resetSlots.all { it.exercise.rule != null })
+        val seeds = repo.plans.seeds(gen, resetSlots, emptyMap(), settings.unitFlow.first(), repo.catalog.catalogFlow.first())
+        assertTrue(resetSlots.all { (it.programExerciseId to Slot.MAIN) in seeds })
     }
 
     @Test fun `the old wizard's createGeneratedPlan produces ruled slots`() = runTest {

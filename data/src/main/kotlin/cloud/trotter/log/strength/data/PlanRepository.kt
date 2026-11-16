@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
+import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
@@ -33,7 +34,6 @@ import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -83,6 +83,7 @@ class PlanRepository(
     private val customExerciseDao = db.customExerciseDao()
     private var slotsRuled = false
     private val planSettingsMigrationMutex = Mutex()
+    private var v1RecipesConverted = false
     private var legacyCardioConverted = false
     private val planSelectionLock = Mutex()
 
@@ -142,77 +143,37 @@ class PlanRepository(
         emitAll(selectedPlanStateFlow)
     }
 
-    private val planAnswersFlow: Flow<WizardAnswers> = combine(
-        settings.globalLifterFlow,
-        selectedPlanStateFlow,
-    ) { global, plan -> answersForPlan(plan, global) }.distinctUntilChanged()
-
-    /** A plan's configuration and equipment, including global lifter preferences. */
-    fun wizardAnswersFor(planId: Long): Flow<WizardAnswers> = flow {
+    /** A plan's settings after the legacy fixups; defaults for a missing plan. */
+    fun planSettingsFor(planId: Long): Flow<PlanSettings> = flow {
         ensurePlanSettingsMigrated()
-        emitAll(combine(settings.globalLifterFlow, plansFlow) { global, plans ->
-            answersForPlan(plans.firstOrNull { it.id == planId }, global)
-        }.distinctUntilChanged())
+        emitAll(plansFlow.map { plans -> plans.firstOrNull { it.id == planId }?.planSettings ?: PlanSettings() }
+            .distinctUntilChanged())
     }
 
-    val wizardAnswersFlow: Flow<WizardAnswers> = flow {
-        ensurePlanSettingsMigrated()
-        emitAll(planAnswersFlow)
-    }
     val configFlow: Flow<LifterConfig> = flow {
         ensurePlanSettingsMigrated()
-        emitAll(planAnswersFlow.map { it.config }.distinctUntilChanged())
+        emitAll(settings.globalLifterFlow.map { it.toConfig() }.distinctUntilChanged())
     }
 
-    /** Lifter edits write the global lifter alone; plan settings stay in the recipe. */
+    /** Lifter edits write the global lifter alone. */
     suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
         ensurePlanSettingsMigrated()
         settings.updateGlobalLifter(transform)
     }
 
-    suspend fun setPlanEmphasis(planId: Long, emphasis: GoalEmphasis) {
-        ensurePlanSettingsMigrated()
-        // Read DataStore before the transaction: suspending on it inside one can deadlock.
-        val global = settings.globalLifterFlow.first()
-        db.withTransaction {
-            val plan = planDao.plan(planId) ?: return@withTransaction
-            val recipe = plan.recipeJson ?: return@withTransaction
-            if (SetupRecipeJson.isV2(recipe)) return@withTransaction
-            val answers = PlanRecipeJson.decode(recipe, global)
-            planDao.updateRecipe(
-                planId,
-                PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),
-            )
-        }
-    }
-
     suspend fun setPlanGoal(planId: Long, exerciseId: String, goalLb: Double?) {
         require(goalLb == null || (goalLb.isFinite() && goalLb > 0.0 && goalLb <= PlanRecipeJson.MAX_GOAL_LB))
         ensurePlanSettingsMigrated()
-        // Read DataStore before the transaction: suspending on it inside one can deadlock.
-        val global = settings.globalLifterFlow.first()
         db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction
-            val recipe = plan.recipeJson
-            if (recipe != null && !SetupRecipeJson.isV2(recipe)) {
-                val answers = PlanRecipeJson.decode(recipe, global)
-                val goals = if (goalLb == null) answers.config.goalsLb - exerciseId
-                    else answers.config.goalsLb + (exerciseId to goalLb)
-                planDao.updateRecipe(
-                    planId,
-                    PlanRecipeJson.encode(answers.copy(config = answers.config.copy(goalsLb = goals))),
-                )
-            } else {
-                val planSettings = plan.planSettings
-                val goals = if (goalLb == null) planSettings.goalsLb - exerciseId
-                    else planSettings.goalsLb + (exerciseId to goalLb)
-                planDao.updateSettings(planId, PlanSettingsJson.encode(planSettings.copy(goalsLb = goals)))
-            }
+            val planSettings = plan.planSettings
+            val goals = if (goalLb == null) planSettings.goalsLb - exerciseId
+                else planSettings.goalsLb + (exerciseId to goalLb)
+            planDao.updateSettings(planId, PlanSettingsJson.encode(planSettings.copy(goalsLb = goals)))
         }
     }
 
-    /** Persists the wizard inputs so a single day can later be regenerated
-     *  ([TrackerRepository.resetDayToTemplate]) from the same recipe. */
+    /** Writes an old wizard recipe for test fixtures until 6d. */
     suspend fun setWizardAnswers(answers: WizardAnswers) {
         ensurePlanSettingsMigrated()
         settings.setGlobalLifter(GlobalLifter.of(answers.config))
@@ -220,6 +181,7 @@ class PlanRepository(
         db.withTransaction {
             planDao.updateRecipe(planId, PlanRecipeJson.encode(answers))
         }
+        invalidatePlanFixups()
     }
 
     internal suspend fun selectedPlanId(): Long? = selectedPlanIdFlow.first()
@@ -338,7 +300,7 @@ class PlanRepository(
      * returning its id without writing DataStore.
      * Removes no day: the rewrite branch fills only a plan with no days, so no run can be open on it. */
     suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
-        return planSelectionLock.withLock {
+        val id = planSelectionLock.withLock {
             val storedId = settings.selectedPlanIdFlow.first()
             db.withTransaction {
                 val plans = planDao.allPlans()
@@ -380,6 +342,8 @@ class PlanRepository(
                 planId
             }
         }
+        invalidatePlanFixups()
+        return id
     }
 
     /** The shape never depends on loads, so the second pass keeps the first pass's slots. Reads only Room. */
@@ -551,28 +515,27 @@ class PlanRepository(
     }
 
     /** Moves pre-plan preferences to Room before atomically retiring their keys.
-     *  Also converts legacy cardio to typed blocks.
+     *  Also converts old wizard recipes and legacy cardio to typed blocks.
      *  Recipe-less generated plans make a retry after the Room commit harmless. */
     suspend fun runPlanSettingsFixupIfNeeded() {
         ensurePlanSettingsMigrated()
     }
 
     /** A half-done restore's settings are not this device's to copy; reconcile owns them.
-     *  Also converts legacy cardio to typed blocks.
+     *  Also converts old wizard recipes and legacy cardio to typed blocks.
      *  Last, it gives existing slots their rules ([convertPlans]). */
     internal suspend fun ensurePlanSettingsMigrated(migrateOnToday: Boolean = true) {
         planSettingsMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
             if (!settings.planSettingsFixupDoneFlow.first()) {
-                val legacy = settings.legacyAnswersFlow.first()
+                val legacy = settings.legacyRecipeFlow.first()
                 val suggestedDay = settings.legacySuggestedDayFlow.first()
                 if (legacy != null) {
                     val storedId = settings.selectedPlanIdFlow.first()
                     db.withTransaction {
-                        val recipe = PlanRecipeJson.encode(legacy)
                         val plans = planDao.allPlans()
                         plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
-                            .forEach { planDao.updateRecipe(it.id, recipe) }
+                            .forEach { applyV1Recipe(it.id, legacy) }
                         val selected = preferredPlan(plans, storedId)
                         if (selected != null && selected.suggestedDayId == null) {
                             planDao.updateSuggestedDay(selected.id, suggestedDay)
@@ -590,17 +553,14 @@ class PlanRepository(
                 }
                 if (migrated) settings.setOnTodayFixupDone()
             }
+            if (!v1RecipesConverted) {
+                v1RecipesConverted = convertV1Recipes()
+                if (!v1RecipesConverted) return@withLock
+            }
             if (!legacyCardioConverted) {
-                val global = settings.globalLifterFlow.first()
                 legacyCardioConverted = db.withTransaction {
                     if (restoreMarkerDao.nonce() != null) return@withTransaction false
-                    val plans = planDao.allPlans().associateBy { it.id }
-                    for (day in programDao.daysWithLegacyCardio()) {
-                        val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(
-                            requireNotNull(day.cardioJson), answersForPlan(plans[day.planId], global),
-                        )?.let(CardioBlockJson::encode)
-                        programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
-                    }
+                    convertLegacyCardio(programDao.daysWithLegacyCardio(), V1Recipe())
                     true
                 }
                 if (!legacyCardioConverted) return@withLock
@@ -839,8 +799,45 @@ class PlanRepository(
         }
     }
 
+    /** Moves an old wizard plan onto settings in the caller's transaction (design §4.4).
+     *  Goals already in settings win. Unreadable recipes keep settings facts and use old cardio defaults.
+     *  Reads only Room; slots, rules, working rows and history stay untouched. */
+    internal suspend fun applyV1Recipe(planId: Long, recipe: V1Recipe?) {
+        val plan = planDao.plan(planId) ?: return
+        val current = plan.planSettings
+        val mains = programDao.exercisesForPlan(planId).map { it.toDomain() }
+            .filter { it.structure.hasTopSet || it.prescription?.target is PrescribedTarget.LoadReps }
+            .map { it.exerciseId }.toSet()
+        val converted = if (recipe == null) current.copy(legacyMains = mains) else current.copy(
+            equipment = recipe.equipment, goalsLb = recipe.goalsLb + current.goalsLb, legacyMains = mains)
+        convertLegacyCardio(programDao.daysWithLegacyCardio().filter { it.planId == planId }, recipe ?: V1Recipe())
+        planDao.updatePlan(plan.copy(recipeJson = null,
+            settingsJson = if (converted == current) plan.settingsJson else PlanSettingsJson.encode(converted)))
+    }
+
+    private suspend fun convertLegacyCardio(days: List<ProgramDayEntity>, recipe: V1Recipe) {
+        for (day in days) {
+            val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(requireNotNull(day.cardioJson), recipe)
+                ?.let(CardioBlockJson::encode)
+            programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
+        }
+    }
+
+    /** Converts all old wizard recipes in one transaction. False while a restore is pending;
+     *  plans without a recipe or with a v2 recipe are skipped, so a rerun changes nothing. */
+    private suspend fun convertV1Recipes(): Boolean = db.withTransaction {
+        if (restoreMarkerDao.nonce() != null) return@withTransaction false
+        for (plan in planDao.allPlans()) {
+            val recipe = plan.recipeJson ?: continue
+            if (SetupRecipeJson.isV2(recipe)) continue
+            applyV1Recipe(plan.id, PlanRecipeJson.read(recipe))
+        }
+        true
+    }
+
     internal suspend fun invalidatePlanFixups() {
         planSettingsMigrationMutex.withLock {
+            v1RecipesConverted = false
             legacyCardioConverted = false
             slotsRuled = false
         }
@@ -852,15 +849,6 @@ internal fun ProgramExerciseEntity.swappedTo(exerciseId: String): ProgramExercis
     exerciseId = exerciseId, structure = SetStructure.STRAIGHT.name, prescriptionJson = null,
     targetSets = if (toDomain().structure.hasTopSet) 3 else targetSets,
 )
-
-/** V2 and recipe-less plans keep equipment and goals in settings (decision 4). */
-internal fun answersForPlan(plan: PlanEntity?, global: GlobalLifter): WizardAnswers {
-    val recipe = plan?.recipeJson
-    if (recipe != null && !SetupRecipeJson.isV2(recipe)) return PlanRecipeJson.decode(recipe, global)
-    val settings = plan?.planSettings ?: PlanSettings()
-    return WizardAnswers(config = global.toConfig().copy(goalsLb = settings.goalsLb),
-        equipment = settings.equipmentOrAll)
-}
 
 internal fun assemble(
     days: List<ProgramDayEntity>,

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -21,7 +20,6 @@ data class PlanUiState(
     val dialogDayId: String? = null,
     val dayTitleDraft: String = "",
     val goals: List<PlanLiftGoal> = emptyList(),
-    val emphasis: GoalEmphasis? = null,
     val offerStrengthIncreases: Boolean = true,
     val offerCardioIncreases: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
@@ -67,7 +65,6 @@ data class PlanActions(
     val onSetUpProgram: () -> Unit,
     val onOfferStrengthChange: (Boolean) -> Unit = {},
     val onOfferCardioChange: (Boolean) -> Unit = {},
-    val onEmphasisChange: (GoalEmphasis) -> Unit = {},
     val onAddDay: () -> Unit = {},
     val onAddRest: () -> Unit = {},
     val onMoveDay: (String, Boolean) -> Unit = { _, _ -> },

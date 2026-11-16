@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -79,21 +80,21 @@ class PlanGoalBackupTest {
 
             val backup = service.export()
             val decoded = BackupCodec().decode(backup).toSnapshot()
-            val recipe = decoded.plans.single().recipeJson!!
+            val saved = decoded.plans.single().planSettings
             val expected = mapOf("bb_back_squat" to goalLb)
-            assertEquals(expected, PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first()).config.goalsLb)
+            assertEquals(expected, saved.goalsLb)
             assertEquals(unit, decoded.unit)
 
             repository.plans.setPlanGoal(plan, "bb_back_squat", null)
             service.import(backup)
 
-            assertEquals(expected, repository.plans.wizardAnswersFor(plan).first().config.goalsLb)
+            assertEquals(expected, repository.plans.planSettingsFor(plan).first().goalsLb)
             assertEquals(backup, service.export())
         }
     }
 
     @Test
-    fun `over-limit goal writes leave the saved recipe and backup decodable`() = runTest {
+    fun `over-limit goal writes leave saved settings and backup decodable`() = runTest {
         val plan = createPlan()
         repository.plans.setPlanGoal(plan, "bb_back_squat", 200.0)
         for ((unit, display) in listOf(
@@ -111,9 +112,9 @@ class PlanGoalBackupTest {
 
             val backup = service.export()
             assertEquals(before, backup)
-            val recipe = BackupCodec().decode(backup).toSnapshot().plans.single().recipeJson!!
+            val saved = BackupCodec().decode(backup).toSnapshot().plans.single().planSettings
             assertEquals(mapOf("bb_back_squat" to 200.0),
-                PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first()).config.goalsLb)
+                saved.goalsLb)
         }
     }
 }

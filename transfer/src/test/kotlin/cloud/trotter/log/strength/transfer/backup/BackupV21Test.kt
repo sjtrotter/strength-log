@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -38,7 +37,7 @@ class BackupV21Test {
         val restored = codec.decode(codec.encode(exported)).toSnapshot()
         val restoredRecipe = restored.plans.single().recipeJson!!
         assertEquals(recipe, restoredRecipe)
-        assertEquals(goals, PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb)
+        assertEquals(goals, PlanRecipeJson.read(restoredRecipe)!!.goalsLb)
         assertEquals(snapshot, restored)
     }
 
@@ -76,7 +75,7 @@ class BackupV21Test {
             val snapshot = decoded.toSnapshot()
             val restoredRecipe = snapshot.plans.single().recipeJson!!
             assertEquals(legacyRecipe, restoredRecipe)
-            assertTrue(PlanRecipeJson.decode(restoredRecipe, GlobalLifter()).config.goalsLb.isEmpty())
+            assertTrue(PlanRecipeJson.read(restoredRecipe)!!.goalsLb.isEmpty())
             val exported = snapshot.toDocument()
             assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
             assertEquals(snapshot, codec.decode(codec.encode(exported)).toSnapshot())

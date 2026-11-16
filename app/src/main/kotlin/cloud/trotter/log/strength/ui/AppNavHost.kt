@@ -451,7 +451,6 @@ private fun PlanRoute(
             onOpenDay = onOpenDay,
             onOpenPlans = onOpenPlans,
             onSetUpProgram = onSetUpProgram,
-            onEmphasisChange = viewModel::setEmphasis,
             onAutoApplyChange = viewModel::setAutoApply,
             onDefaultsForChange = viewModel::setDefaultsFor,
             onLightWeekChange = viewModel::setLightWeek,

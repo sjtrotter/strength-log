@@ -49,6 +49,7 @@ class SetEditApplierRunTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
+    private lateinit var settings: SettingsStore
     private lateinit var applier: SetEditApplier
     private lateinit var syncStore: WearSyncStore
 
@@ -72,14 +73,15 @@ class SetEditApplierRunTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-run-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db, programDao = db.programDao(), sessionDao = db.sessionDao(),
-            customExerciseDao = db.customExerciseDao(), settings = SettingsStore(dataStore),
+            customExerciseDao = db.customExerciseDao(), settings = settings,
         )
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-edit-acks", ".preferences_pb")
         })
-        applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
     }
 
     @After
@@ -274,7 +276,7 @@ class SetEditApplierRunTest {
         val planId = authored()
         val runId = phoneStart(planId)
         val id = squatId(planId)
-        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) }, syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) }, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = planId, runId = runId,
@@ -432,6 +434,7 @@ class SetEditApplierRunTest {
         }, syncStore,
             plans = repo.plans,
             catalog = repo.catalog,
+            settings = settings,
         )
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
@@ -466,7 +469,7 @@ class SetEditApplierRunTest {
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
-        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = plan, runId = runId,
@@ -515,7 +518,7 @@ class SetEditApplierRunTest {
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
-        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog)
+        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog, settings = settings)
         assertEquals(SetEditApplier.Outcome.STALE, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "bb_back_squat", exerciseName = "Squat",
             editedAtMillis = 100, planId = plan, runId = runId,

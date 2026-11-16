@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -244,7 +245,7 @@ class RestoreCoordinationTest {
                     suggestedDay = if (version == 13) "C1" else null)),
             )
             val snapshot = codec.decode(codec.encode(document)).toSnapshot()
-            assertEquals(version == 8, snapshot.answersCarryRecipe)
+            assertEquals(version == 8, snapshot.legacyRecipe != null)
 
             backupRepository.importSnapshot(snapshot, journal)
 
@@ -252,9 +253,8 @@ class RestoreCoordinationTest {
             assertNull(stored.cardioJson)
             assertEquals(expected, CardioBlockJson.decode(stored.cardioBlockJson))
             assertEquals(expected, repo.plans.programFor(7).first().cardioDays.single().cardioBlock)
-            assertEquals(snapshot.plans.single().recipeJson
-                ?: PlanRecipeJson.encode(snapshot.answers),
-                db.planDao().plan(7)!!.recipeJson)
+            assertNull(db.planDao().plan(7)!!.recipeJson)
+            assertEquals(answers.equipment, db.planDao().plan(7)!!.planSettings.equipment)
             assertNull(db.restoreMarkerDao().nonce())
             val exported = codec.decode(codec.encode(backupRepository.exportSnapshot().toDocument()))
             assertTrue(exported.plans.flatMap { it.days }.all { it.cardioJson == null })
@@ -447,7 +447,7 @@ class RestoreCoordinationTest {
         assertEquals(33, global.age)
         assertEquals("ADVANCED", global.level.name)
         assertTrue(settings.wizardCompleteFlow.first())
-        assertFalse(backupRepository.exportSnapshot().answersCarryRecipe)
+        assertNull(backupRepository.exportSnapshot().legacyRecipe)
     }
 
     @Test
@@ -463,7 +463,7 @@ class RestoreCoordinationTest {
         service.import(BackupCodec().encode(document))
 
         assertEquals(listOf(PlanEntity(7, "Recipe-less", "GENERATED", 0, 1_000)), db.planDao().allPlans())
-        assertFalse(backupRepository.exportSnapshot().answersCarryRecipe)
+        assertNull(backupRepository.exportSnapshot().legacyRecipe)
     }
 
     @Test
@@ -484,11 +484,12 @@ class RestoreCoordinationTest {
         service.import(codec.encode(document))
 
         val plans = db.planDao().allPlans()
-        assertNotNull(plans[0].recipeJson)
-        assertEquals(plans[0].recipeJson, plans[1].recipeJson)
+        assertNull(plans[0].recipeJson)
+        assertEquals(legacy.toSnapshot().legacyRecipe!!.equipment, plans[0].planSettings.equipment)
+        assertEquals(plans[0].planSettings.equipment, plans[1].planSettings.equipment)
         assertNull(plans[2].recipeJson)
         assertEquals(listOf("A", null, null), plans.map { it.suggestedDayId })
-        assertEquals(legacy.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
+        assertEquals(legacy.toSnapshot().global, settings.globalLifterFlow.first())
         assertEquals(7L, settings.selectedPlanIdFlow.first())
     }
 

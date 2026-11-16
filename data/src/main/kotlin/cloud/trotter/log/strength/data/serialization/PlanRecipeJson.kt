@@ -1,10 +1,9 @@
 package cloud.trotter.log.strength.data.serialization
 
-import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.serialization.Serializable
@@ -35,9 +34,20 @@ internal data class CardioFirstDto(
     val restDays: Int = 0,
 )
 
+/** What an old wizard (v1) recipe still means after conversion (design §4.4): its equipment and typed goals, and
+ *  the cardio answers a day that still holds legacy cardio needs. The defaults are the old wizard's. */
+data class V1Recipe(
+    val equipment: Set<Equipment> = Equipment.entries.toSet(),
+    val goalsLb: Map<String, Double> = emptyMap(),
+    val cardioMode: CardioMode = CardioMode.OUTDOOR_RUN,
+    val fiveKGoal: Boolean = true,
+)
+
 object PlanRecipeJson {
     const val MAX_GOAL_LB = 2000.0
 
+    /** Writes an old wizard recipe. Only the test fixtures createGeneratedPlan and setWizardAnswers call it;
+     *  6d deletes it with them. */
     fun encode(answers: WizardAnswers): String = SetJson.encode(
         PlanRecipeDto.serializer(),
         PlanRecipeDto(
@@ -75,44 +85,18 @@ object PlanRecipeJson {
         }
     }
 
-    /** Reads v1 recipes only; callers check [SetupRecipeJson.isV2] first. */
-    fun decode(json: String, global: GlobalLifter): WizardAnswers {
-        val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
-        val defaults = WizardAnswers()
-        val cardioFirst = recipe.cardioFirst?.let {
-            val cardioDefaults = CardioFirst()
-            CardioFirst(
-                activity = enum(it.activity, cardioDefaults.activity),
-                comfortable = when {
-                    it.seconds != null && it.metres == null && it.seconds in 1..86_400 -> Measure.Time(it.seconds)
-                    it.metres != null && it.seconds == null && it.metres in 1..200_000 -> Measure.Distance(it.metres)
-                    else -> cardioDefaults.comfortable
+    fun read(json: String): V1Recipe? {
+        if (SetupRecipeJson.isV2(json)) return null
+        return runCatching {
+            val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
+            V1Recipe(
+                equipment = recipe.equipment.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
+                goalsLb = recipe.goalsLb.filter { (id, goal) ->
+                    id.isNotBlank() && goal.isFinite() && goal > 0.0 && goal <= MAX_GOAL_LB
                 },
-                restDays = it.restDays.coerceIn(0, 2),
-                sessions = it.sessions.takeIf { n -> n in 1..6 } ?: cardioDefaults.sessions,
-                liftDays = it.liftDays.takeIf { n -> n in CardioFirst.LIFT_DAY_CHOICES } ?: cardioDefaults.liftDays,
-            )
-        }
-        return WizardAnswers(
-            daysPerWeek = cardioFirst?.liftDays?.takeIf { it > 0 }
-                ?: recipe.daysPerWeek.takeIf { it in 2..6 } ?: defaults.daysPerWeek,
-            split = enum(recipe.split, defaults.split),
-            anchorScheme = enum(recipe.anchorScheme, defaults.anchorScheme),
-            deadliftVariant = enum(recipe.deadliftVariant, defaults.deadliftVariant),
-            config = global.toConfig().copy(
-                emphasis = enum(recipe.emphasis, defaults.config.emphasis),
-                goalsLb = recipe.goalsLb,
-            ),
-            cardio = CardioPrefs(
-                mode = enum(recipe.cardioMode, defaults.cardio.mode),
-                placement = enum(recipe.cardioPlacement, defaults.cardio.placement),
+                cardioMode = CardioMode.entries.firstOrNull { it.name == recipe.cardioMode } ?: CardioMode.OUTDOOR_RUN,
                 fiveKGoal = recipe.fiveKGoal,
-            ),
-            cardioFirst = cardioFirst,
-            equipment = recipe.equipment.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(),
-        )
+            )
+        }.getOrNull()
     }
-
-    private inline fun <reified E : Enum<E>> enum(name: String, default: E): E =
-        enumValues<E>().firstOrNull { it.name == name } ?: default
 }

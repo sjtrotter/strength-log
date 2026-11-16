@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -63,7 +62,7 @@ class BackupV22Test {
         assertEquals(CURRENT_SCHEMA_VERSION, exported.schemaVersion)
         assertEquals("Easy", exported.cardioSessions.single().note)
         assertEquals(recipe, exported.plans.single().recipeJson)
-        assertEquals(goals, PlanRecipeJson.decode(exported.plans.single().recipeJson!!, GlobalLifter()).config.goalsLb)
+        assertEquals(goals, PlanRecipeJson.read(exported.plans.single().recipeJson!!)!!.goalsLb)
         assertEquals(day, exported.plans.single().days.single())
         assertEquals(false, exported.plans.single().offerStrengthIncreases)
         assertEquals(true, exported.plans.single().offerCardioIncreases)

@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
@@ -174,7 +176,6 @@ class TrackerRepositoryRunTest {
         assertEquals(earlier, repository.openRunFlow.first()!!.startedAt)
         assertNull(settings.takeLegacySessionStart())
     }
-
 
 
     private fun repository() = TrackerRepository(
@@ -824,9 +825,9 @@ class TrackerRepositoryRunTest {
 
     /** [F] */
     @Test fun `resetting a generated day keeps identity and closed time`() = runTest {
-        val answers = WizardAnswers()
-        val plan = repo.plans.createGeneratedPlan("Generated", answers, generated())
-        repo.plans.publishCreatedPlan(plan, answers)
+        val answers = SetupAnswers(goal = LiftGoal.STRENGTH, days = 4)
+        val plan = repo.plans.createPlannedPlan("Strength, 4 days", answers)
+        repo.plans.publishPlannedPlan(plan)
         db.programDao().closeDay(plan, "A", day(plan).nextRunId, 1000)
         val before = day(plan)
         repo.keepToPlanFixture(db, slot(plan))

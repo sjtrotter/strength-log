@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -27,7 +24,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -50,7 +46,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -178,11 +173,6 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                                         else MaterialTheme.colorScheme.onSurfaceVariant)
                             },
                         )
-                    }
-                }
-                if (state.emphasis != null) {
-                    item(key = "emphasis") {
-                        EmphasisSection(state.emphasis, actions.onEmphasisChange)
                     }
                 }
             }
@@ -333,30 +323,6 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
             trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
     )
-}
-
-@Composable
-private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> Unit) {
-    val options = listOf(
-        GoalEmphasis.STRENGTH to (R.string.setup_emphasis_strength_title to R.string.setup_emphasis_strength_description),
-        GoalEmphasis.BALANCED to (R.string.setup_emphasis_balanced_title to R.string.setup_emphasis_balanced_description),
-        GoalEmphasis.PHYSIQUE to (R.string.setup_emphasis_physique_title to R.string.setup_emphasis_physique_description),
-    )
-    Column(Modifier.selectableGroup()) {
-        Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_emphasis)) }
-        options.forEach { (value, copy) ->
-            ListItem(
-                headlineContent = { Text(stringResource(copy.first)) },
-                supportingContent = { Text(stringResource(copy.second)) },
-                leadingContent = { RadioButton(selected = emphasis == value, onClick = null) },
-                modifier = Modifier.fillMaxWidth().selectable(
-                    selected = emphasis == value,
-                    role = Role.RadioButton,
-                    onClick = { onChange(value) },
-                ),
-            )
-        }
-    }
 }
 
 @Composable

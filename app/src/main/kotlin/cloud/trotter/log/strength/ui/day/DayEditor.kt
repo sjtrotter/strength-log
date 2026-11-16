@@ -23,7 +23,6 @@ import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
@@ -82,7 +81,7 @@ internal class DayEditor(
         val dayId = ctx.dayId
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
-            plans.slotsFor(plan.id, dayId), plans.wizardAnswersFor(plan.id),
+            plans.slotsFor(plan.id, dayId), plans.planSettingsFor(plan.id),
             // Set ticks and edits re-emit the tracks; only the run and performed identities matter here.
             repo.dayTracksFlow(plan.id, dayId).map { tracks ->
                 Pair(tracks.runOpen, tracks.tracks
@@ -90,10 +89,10 @@ internal class DayEditor(
             }.distinctUntilChanged(),
             repo.observePlanRows(plan.id, dayId),
             combine(unitFlow, restSettingsFlow, ::Pair),
-        ) { slots, answers, (runOpen, performed), rows, (unit, rest) ->
+        ) { slots, planSettings, (runOpen, performed), rows, (unit, rest) ->
             val day = ctx.program.days.firstOrNull { it.id == dayId }
             val block = day?.cardioBlock
-            buildEditState(slots, ctx.catalog, answers.equipment, rows, plan, unit, rest).copy(
+            buildEditState(slots, ctx.catalog, planSettings.equipmentOrAll, rows, plan, unit, rest).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
@@ -102,10 +101,9 @@ internal class DayEditor(
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
-                    day != null && if (plan.hasSetupRecipe)
+                    day != null && plan.hasSetupRecipe &&
                         plan.setupAnswers(unit)?.let { a -> runCatching { Planner.day(a, day.id) }.getOrNull() }?.day?.kind
-                            ?.let { it != ProgramDayKind.REST } == true
-                    else ProgramGenerator.templateFor(answers, day) != null,
+                            ?.let { it != ProgramDayKind.REST } == true,
             )
         }
     }
@@ -441,7 +439,7 @@ internal class DayEditor(
     }
 
     /** The reset-day-to-template escape hatch (spec §8.3): regenerates this one
-     *  day from the stored wizard answers; other days are untouched. */
+     *  day from the plan's setup answers; other days are untouched. */
     fun resetDayToTemplate() {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return

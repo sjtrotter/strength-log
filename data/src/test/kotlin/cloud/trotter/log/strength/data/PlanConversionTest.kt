@@ -22,6 +22,8 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
 import cloud.trotter.log.strength.data.serialization.ParkedTrackDto
+import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -157,14 +159,23 @@ class PlanConversionTest {
             SetJson.decodeSets(db.programDao().logForSlot(1, "A", 8, Slot.MAIN)!!.setsJson))
         val after = dump()
         for (table in V24Fixture.tables) {
-            assertEquals(before.getValue(table), after.getValue(table).filterNot { table == "exercise_log" && it[2] == "8" }.map {
-                it.dropLast(V24Fixture.defaults[table].orEmpty().size)
-            }, table)
+            fun preserved(row: List<String?>): List<String?> =
+                if (table == "plan") row.filterIndexed { index, _ -> index != 6 } else row
+            assertEquals(before.getValue(table).map(::preserved),
+                after.getValue(table).filterNot { table == "exercise_log" && it[2] == "8" }.map {
+                    preserved(it.dropLast(V24Fixture.defaults[table].orEmpty().size))
+                }, table)
         }
         for (table in listOf("plan", "program_day")) {
             val defaults = V24Fixture.defaults.getValue(table)
-            assertEquals(after.getValue(table).map { defaults }, after.getValue(table).map { it.takeLast(defaults.size) })
+            val skip = if (table == "plan") 1 else 0 // settingsJson is now the converted plan's facts.
+            assertEquals(after.getValue(table).map { defaults.drop(skip) },
+                after.getValue(table).map { it.takeLast(defaults.size).drop(skip) })
         }
+        val plan = db.planDao().plan(1)!!
+        assertNull(plan.recipeJson)
+        assertEquals(PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb,
+            legacyMains = setOf("bb_back_squat", "bb_row")), plan.planSettings)
         assertEquals(squatRows, db.programDao().logForSlot(1, "A", 7, Slot.MAIN)!!.setsJson)
     }
 

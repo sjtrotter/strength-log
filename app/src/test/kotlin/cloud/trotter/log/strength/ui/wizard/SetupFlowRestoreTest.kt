@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.data.serialization.planSettings
 import android.content.Context
 import android.net.Uri
 import androidx.datastore.core.DataStore
@@ -23,7 +24,6 @@ import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -254,7 +254,9 @@ class SetupFlowRestoreTest {
      *  plan settings and left no plan in Room when the backup had no program. */
     private suspend fun stagePreviousBuildWithoutProgram(wizardComplete: Boolean): WizardAnswers {
         val snapshot = backup(wizardComplete).copy(program = emptyList()).toSnapshot()
-        val answers = snapshot.answers
+        val recipe = requireNotNull(snapshot.legacyRecipe)
+        val answers = WizardAnswers(config = snapshot.global.toConfig(), equipment = recipe.equipment,
+            cardio = CardioPrefs(mode = recipe.cardioMode, fiveKGoal = recipe.fiveKGoal))
         val nonce = "previous-build-restore"
         journalStore.edit { prefs ->
             prefs.clear()
@@ -289,7 +291,7 @@ class SetupFlowRestoreTest {
         // isComplete is what AppNavHost's SetupFlowRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
-        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(1, repo.plans.programFlow.first().days.size)
     }
 
@@ -348,7 +350,7 @@ class SetupFlowRestoreTest {
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(33, repo.plans.configFlow.first().age)
         assertFalse(settings.wizardCompleteFlow.first())
     }
@@ -367,10 +369,10 @@ class SetupFlowRestoreTest {
         }
         assertFalse(state.isComplete)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
+        assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
         assertEquals(SetupStep.GOAL, state.step)
         assertEquals(SetupAnswers(unit = WeightUnit.KG), SetupFlowStateBuilder.answers(state.draft))
-        assertEquals(document.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
+        assertEquals(document.toSnapshot().global, settings.globalLifterFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
@@ -383,8 +385,8 @@ class SetupFlowRestoreTest {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertEquals(SetupDraft(unit = WeightUnit.KG), reseeded.draft)
-        assertEquals(document.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
-        assertEquals(document.toSnapshot().answers, backupRepository.exportSnapshot().answers)
+        assertEquals(document.toSnapshot().global, settings.globalLifterFlow.first())
+        assertEquals(document.toSnapshot().global, backupRepository.exportSnapshot().global)
     }
 
     @Test
@@ -477,8 +479,9 @@ class SetupFlowRestoreTest {
 
         val restoredPlan = db.planDao().allPlans().single()
         assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
-        assertEquals(PlanRecipeJson.encode(stagedAnswers), restoredPlan.recipeJson)
-        assertEquals(stagedAnswers, repo.plans.wizardAnswersFlow.first())
+        assertNull(restoredPlan.recipeJson)
+        assertEquals(stagedAnswers.equipment, restoredPlan.planSettings.equipment)
+        assertEquals(stagedAnswers.config, repo.plans.configFlow.first())
         assertTrue("wizardComplete must retain the staged value", settings.wizardCompleteFlow.first())
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())

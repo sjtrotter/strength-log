@@ -104,11 +104,14 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
-        // Pre-v27 decoding discards settingsJson, so inspect its v28 facts before that version shaping.
+        // Pre-v27 decoding discards settingsJson, so inspect its v28 and v29 facts before that version shaping.
         if (version in 1..26) {
             (obj["plans"] as? JsonArray)?.forEach { plan ->
                 val fields = plan as? JsonObject
                 val settings = (fields?.get("settingsJson") as? JsonPrimitive)?.content
+                if (settings?.let(PlanSettingsJson::hasLegacyMains) == true) {
+                    throw BackupError.Inconsistent("settingsJson legacyMains requires schema v29")
+                }
                 if (settings?.let(PlanSettingsJson::hasPlanFacts) == true) {
                     throw BackupError.Inconsistent("settingsJson equipment and goals require schema v28")
                 }
@@ -137,12 +140,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // added cardio sessions, v7 added program-day kinds, and v8 added
             // plans and their live-log/selection pointers; v9 added each plan's
             // recipe and rotation; v10 added authored prescriptions; v28 added recipe v2 and plan settings'
-            // equipment and goals. Older documents decode
+            // equipment and goals; v29 added plan settings' legacyMains. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -581,6 +584,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         for (plan in doc.plans) {
             if (doc.schemaVersion < 28 && plan.settingsJson?.let(PlanSettingsJson::hasPlanFacts) == true) {
                 throw BackupError.Inconsistent("settingsJson equipment and goals of plan ${plan.id} require schema v28")
+            }
+            if (doc.schemaVersion < 29 && plan.settingsJson?.let(PlanSettingsJson::hasLegacyMains) == true) {
+                throw BackupError.Inconsistent("settingsJson legacyMains of plan ${plan.id} requires schema v29")
             }
             checkValue("settingsJson of plan ${plan.id}") { plan.settingsJson?.let(PlanSettingsJson::validate) }
             checkValue("progression state of plan ${plan.id}") {

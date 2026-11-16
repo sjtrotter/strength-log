@@ -50,7 +50,8 @@ data class V1Recipe(
     val anchorScheme: AnchorScheme = AnchorScheme.PROTOTYPE,
     val deadliftVariant: DeadliftVariant = DeadliftVariant.TRAP_BAR,
 ) {
-    /** 6d must keep this derivation as a frozen legacy table when it deletes the generator; restored old backups still convert. */
+    /** 6d must keep this derivation as a frozen legacy table when it deletes the generator; restored old backups still convert.
+     *  Uses the non-cardio-first skeleton as 6a did; intersection with the plan's slots keeps that harmless. */
     fun mainLiftIds(): Set<String> = ProgramGenerator.mainLiftIds(WizardAnswers(
         daysPerWeek = daysPerWeek, split = split, anchorScheme = anchorScheme,
         deadliftVariant = deadliftVariant, equipment = equipment,

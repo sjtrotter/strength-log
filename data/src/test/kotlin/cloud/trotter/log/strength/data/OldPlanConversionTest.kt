@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
+import android.database.sqlite.SQLiteException
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -165,6 +166,62 @@ class OldPlanConversionTest {
         assertEquals(expected(novice), converted.planSettings)
         assertEquals(2, crashing.planSummariesFlow.first().size)
         assertEquals(1, attempts)
+    }
+
+    @Test fun `a storage failure retries its plan on the next gate while other fixups complete`() = runTest {
+        val failedId = create()
+        val goodId = create()
+        val legacyId = plans.createAuthoredPlan("Legacy", "Day A")
+        val json = """{"label":"Intervals","detail":"Run hard, recover easy.","hard":true}"""
+        val failedDay = db.programDao().daysForPlan(failedId).first().copy(cardioJson = json, cardioBlockJson = null)
+        db.programDao().upsertDay(failedDay)
+        val legacyDay = assertNotNull(db.programDao().day(legacyId, "A"))
+        db.programDao().upsertDay(legacyDay.copy(cardioJson = json))
+        val legacySlot = db.programDao().exercisesForPlan(goodId).first().copy(
+            id = 0, planId = legacyId, dayId = "A", position = 0, ruleJson = null,
+        )
+        val legacySlotId = db.programDao().insertExercise(legacySlot)
+        settings.setPlanSettingsFixupDone()
+        settings.setOnTodayFixupDone()
+        val before = assertNotNull(db.planDao().plan(failedId))
+        val attempts = mutableListOf<Long>()
+        val retrying = PlanRepository(db, settings, planDao = object : PlanDao by db.planDao() {
+            override suspend fun updatePlan(plan: PlanEntity) {
+                attempts += plan.id
+                if (plan.id == failedId && attempts.count { it == failedId } == 1) {
+                    throw SQLiteException("Storage failure")
+                }
+                db.planDao().updatePlan(plan)
+            }
+        })
+
+        assertEquals(3, retrying.planSummariesFlow.first().size)
+
+        assertEquals(listOf(failedId, goodId), attempts)
+        assertEquals(before, db.planDao().plan(failedId))
+        assertEquals(failedDay, db.programDao().day(failedId, failedDay.dayId))
+        val converted = assertNotNull(db.planDao().plan(goodId))
+        assertNull(converted.recipeJson)
+        assertEquals(expected(novice), converted.planSettings)
+        val convertedDay = assertNotNull(db.programDao().day(legacyId, "A"))
+        assertNull(convertedDay.cardioJson)
+        assertEquals(CardioBlockJson.encode(assertNotNull(LegacyCardio.toBlock(json, V1Recipe()))),
+            convertedDay.cardioBlockJson)
+        val ruledSlot = assertNotNull(db.programDao().exercise(legacySlotId))
+        assertNotNull(ruledSlot.ruleJson)
+
+        assertEquals(3, retrying.planSummariesFlow.first().size)
+
+        assertEquals(listOf(failedId, goodId, failedId), attempts)
+        val retried = assertNotNull(db.planDao().plan(failedId))
+        assertNull(retried.recipeJson)
+        assertEquals(expected(novice), retried.planSettings)
+        assertNull(assertNotNull(db.programDao().day(failedId, failedDay.dayId)).cardioJson)
+        assertEquals(converted, db.planDao().plan(goodId))
+        assertEquals(convertedDay, db.programDao().day(legacyId, "A"))
+        assertEquals(ruledSlot, db.programDao().exercise(legacySlotId))
+        assertEquals(3, retrying.planSummariesFlow.first().size)
+        assertEquals(listOf(failedId, goodId, failedId), attempts)
     }
 
     @Test fun `v1 conversion cancellation escapes the gate and rolls back its plan`() = runTest {

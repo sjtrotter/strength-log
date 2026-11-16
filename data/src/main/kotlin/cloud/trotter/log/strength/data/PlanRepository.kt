@@ -556,7 +556,6 @@ class PlanRepository(
             }
             if (!v1RecipesConverted) {
                 v1RecipesConverted = convertV1Recipes()
-                if (!v1RecipesConverted) return@withLock
             }
             if (!legacyCardioConverted) {
                 legacyCardioConverted = db.withTransaction {
@@ -831,9 +830,10 @@ class PlanRepository(
     }
 
     /** Each old wizard plan commits separately so a failed conversion leaves that plan readable and intact.
-     *  False while a restore is pending; plans without a recipe or with a v2 recipe are skipped. */
+     *  False while a restore or storage retry is pending; plans without a recipe or with a v2 recipe are skipped. */
     private suspend fun convertV1Recipes(): Boolean {
         if (restoreMarkerDao.nonce() != null) return false
+        var retry = false
         for (plan in planDao.allPlans()) {
             try {
                 val converted = db.withTransaction {
@@ -845,11 +845,13 @@ class PlanRepository(
                 if (!converted) return false
             } catch (e: CancellationException) {
                 throw e
+            } catch (_: SQLiteException) {
+                retry = true
             } catch (_: Exception) {
                 // Keep this plan's v1 recipe after rollback; the remaining plans and gated readers can proceed.
             }
         }
-        return true
+        return !retry
     }
 
     internal suspend fun invalidatePlanFixups() {

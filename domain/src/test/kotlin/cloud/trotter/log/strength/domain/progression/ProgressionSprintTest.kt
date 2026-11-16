@@ -99,8 +99,26 @@ class ProgressionSprintTest {
         assertFalse(SprintRules.withinRise(70, 91))
     }
 
-    @Test fun `sprint endurance crosses 380 to 400 meters without a volume spike`() {
+    @Test fun `sprint endurance rests ten minutes between reps`() {
+        for (steps in 0..20) {
+            val recovery = sprintBlock(RunSession.SPRINT_ENDURANCE, steps).sets.filter { it.role == CardioRole.RECOVERY }
+            assertTrue(recovery.isNotEmpty())
+            assertTrue(recovery.all { it.end == Measure.Time(600) }, "step $steps")
+        }
+    }
+
+    @Test fun `sprint endurance crosses 280 to 300 meters`() {
         val rule = CardioRule(null, RunSession.SPRINT_ENDURANCE, steps = 4, credits = 1)
+        assertEquals(listOf(140, 140), reps(opening(rule)))
+        val out = finish(rule)
+        assertEquals(CardioChange.Step, out.change)
+        assertEquals(5, requireNotNull(out.rule).steps)
+        assertEquals(listOf(100, 100, 100), reps(out.block))
+    }
+
+    @Test fun `sprint endurance crosses 380 to 400 meters without a volume spike`() {
+        // audit 2026-11-13, row 7: 200+9*20=380 m; next = 200+10*20=400 m.
+        val rule = CardioRule(null, RunSession.SPRINT_ENDURANCE, steps = 9, credits = 1)
         assertEquals(listOf(130, 130, 120), reps(opening(rule)))
         assertEquals(listOf(100, 100, 100, 100), reps(finish(rule).block))
     }

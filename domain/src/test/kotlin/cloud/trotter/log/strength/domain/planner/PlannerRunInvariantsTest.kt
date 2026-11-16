@@ -85,12 +85,13 @@ class PlannerRunInvariantsTest {
         }
         assertEquals(workingKeys, draft.working.keys, "$label working keys")
         assertTrue(draft.program.cardioDays.count { it.exercises.isNotEmpty() } <= run.strengthBlocks, "$label strength blocks")
+        // audit 2026-11-13, row 14: lift-first at two days keeps 2 strength days instead of 1 + 1.
         if (answers.branch == PlanBranch.BOTH) {
             if (!answers.both.cardioFirst && answers.minutes >= 45 &&
-                answers.both.together(answers.days) == BothAnswers.Together.SAME_VISIT) {
+                answers.together() == BothAnswers.Together.SAME_VISIT) {
                 assertTrue(draft.program.strengthDays.all { it.cardioBlock != null }, "$label reserve")
             }
-            if (answers.both.together(answers.days) == BothAnswers.Together.SEPARATE_DAYS && draft.program.strengthDays.isNotEmpty()) {
+            if (answers.together() == BothAnswers.Together.SEPARATE_DAYS && draft.program.strengthDays.isNotEmpty()) {
                 for (main in Planner.defaultMains(answers.equipment, answers.excluded)) {
                     assertTrue(draft.program.strengthDays.any { day ->
                         day.exercises.any { it.exerciseId == main && it.rule?.role == SlotRole.MAIN }

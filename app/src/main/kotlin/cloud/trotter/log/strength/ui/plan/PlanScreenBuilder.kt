@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -38,6 +39,9 @@ object PlanScreenBuilder {
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
+        val v1Mains = if (plan?.recipeJson != null && !plan.hasSetupRecipe) {
+            ProgramGenerator.mainLiftIds(answers).toSet()
+        } else emptySet()
         return PlanUiState(
             goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
                 when (goal) {
@@ -61,14 +65,14 @@ object PlanScreenBuilder {
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
-            goals = if (generated) liftGoals(program, catalog, answers.config.goalsLb, unit) else emptyList(),
+            goals = if (generated) liftGoals(program, catalog, answers.config.goalsLb, unit, v1Mains) else emptyList(),
             emphasis = if (generated && plan?.hasSetupRecipe != true) answers.config.emphasis else null,
         )
     }
 
     private fun liftGoals(program: Program, catalog: ExerciseCatalog, goalsLb: Map<String, Double>,
-                          unit: WeightUnit): List<PlanLiftGoal> =
-        JournalBuilder.mainLifts(program, catalog, goalsLb).map { lift ->
+                          unit: WeightUnit, v1Mains: Set<String>): List<PlanLiftGoal> =
+        JournalBuilder.mainLifts(program, catalog, goalsLb, v1Mains).map { lift ->
             val entry = requireNotNull(catalog.find(lift.exerciseId))
             PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb, lift.goalLb?.let {
                 GoalFormatter.label(GoalTarget.Weight(it, entry.perHand), unit)

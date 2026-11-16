@@ -64,14 +64,6 @@ fun YouScreen(state: YouUiState, actions: YouActions) {
                 item(key = "bodyweight") { BodyweightCard(state.config.bodyweightLb, state.unit, actions.onBodyweightChange) }
                 item(key = "age") { AgeCard(state.config.age, actions.onAgeChange) }
                 item(key = "level") { LevelSection(state.config.level, actions.onLevelChange) }
-                item(key = "goals_note") {
-                    Text(
-                        stringResource(R.string.you_goals_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
             }
         }
     }

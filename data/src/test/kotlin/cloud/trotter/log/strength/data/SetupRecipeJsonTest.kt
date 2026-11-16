@@ -2,8 +2,12 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -19,6 +23,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.Test
@@ -43,6 +48,20 @@ class SetupRecipeJsonTest {
         assertTrue(SetupRecipeJson.isV2(SetupRecipeJson.encode(answers)))
         for (json in listOf(PlanRecipeJson.encode(WizardAnswers()), "{}", """{"v":"2"}""", "not json", "[]", """{"v":2.0}""")) {
             assertFalse(SetupRecipeJson.isV2(json), json)
+        }
+    }
+
+    @Test fun `setup and plan readers agree on absent empty and saved equipment`() {
+        val json = SetupRecipeJson.encode(answers)
+        for (equipment in listOf(null, emptySet(), EquipmentPreset.DUMBBELLS.equipment)) {
+            val planSettings = PlanSettings(equipment = equipment)
+            val expected = equipment ?: Equipment.entries.toSet()
+            assertEquals(expected, assertNotNull(SetupRecipeJson.decode(json, planSettings, WeightUnit.KG)).equipment)
+            for (recipe in listOf(null, json)) {
+                val plan = PlanEntity(1, "Plan", PlanOrigin.GENERATED.name, 0, 0,
+                    recipeJson = recipe, settingsJson = PlanSettingsJson.encode(planSettings))
+                assertEquals(expected, answersForPlan(plan, GlobalLifter()).equipment)
+            }
         }
     }
 

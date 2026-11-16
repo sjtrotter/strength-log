@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.data.serialization
 
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RecentNumber
@@ -53,7 +52,7 @@ object SetupRecipeJson {
             val dto = SetJson.decode(SetupRecipeDto.serializer(), json)
             SetupAnswers(
                 goal = LiftGoal.valueOf(dto.goal), days = dto.days, minutes = dto.minutes,
-                equipment = settings.equipment ?: EquipmentPreset.FULL_GYM.equipment, unit = unit,
+                equipment = settings.equipmentOrAll, unit = unit,
                 steps = settings.loadSteps ?: LoadSteps.defaults(unit), experience = LiftExperience.valueOf(dto.experience),
                 olderAdult = dto.olderAdult, mains = dto.mains,
                 recent = dto.recent.mapValues { (_, number) ->

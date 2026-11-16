@@ -1039,19 +1039,19 @@ class LogViewModelTest {
             equipment = setOf(Equipment.MACHINE),
             config = LifterConfig(level = ExperienceLevel.NOVICE),
         )
-        val generated = ProgramGenerator.generate(answers)
+        val program = ProgramGenerator.generate(answers)
         val mains = ProgramGenerator.mainLiftIds(answers).toSet()
-        val program = generated.copy(days = generated.days.map { day -> day.copy(exercises = day.exercises.map { slot ->
-            slot.copy(rule = SlotRule.defaults(if (slot.exerciseId in mains) SlotRole.MAIN else SlotRole.ACCESSORY,
-                LiftGoal.STRENGTH, slot.structure, 5, ExerciseLibrary.get(slot.exerciseId).pattern))
-        }) })
         val planId = repo.plans.createGeneratedPlan("Machines", answers, program)
         repo.plans.publishCreatedPlan(planId, answers)
-        val entry = ExerciseLibrary.get("hack_squat")
+        repo.plans.setPlanGoal(planId, "hack_squat", 150.0)
+        val storedMains = repo.plans.programFor(planId).first().days.flatMap { it.exercises }
+            .filter { it.exerciseId in mains }
+        assertTrue(storedMains.isNotEmpty())
+        assertTrue(storedMains.all { it.rule?.role == SlotRole.ACCESSORY })
         repo.history.importSessionHistory(
             listOf(ImportedSession(
                 session("A", "Lower", 1_783_512_000_000L),
-                listOf(set(entry.id, entry.name)),
+                mains.map { id -> ExerciseLibrary.get(id).let { set(it.id, it.name) } },
             )),
             newCustomExercises = emptyList(),
         )
@@ -1059,10 +1059,13 @@ class LogViewModelTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
-        val card = vm.uiState.value.journal.trajectories.single()
-        assertEquals("hack_squat", card.exerciseId)
+        val cards = vm.uiState.value.journal.trajectories
+        assertEquals(mains, cards.map { it.exerciseId }.toSet())
+        val card = cards.single { it.exerciseId == "hack_squat" }
         assertEquals(listOf(100f), card.points.map { it.value })
-        assertNull(card.goalValue)
+        assertEquals(150f, card.goalValue)
+        assertEquals("150", card.goalLabel)
+        assertTrue(cards.filter { it.exerciseId != "hack_squat" }.all { it.goalValue == null })
         collect.cancel()
     }
 

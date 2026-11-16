@@ -647,8 +647,8 @@ class TrackerRepository(
     suspend fun resetDayToTemplate(dayId: String, targetPlanId: Long? = null) {
         plans.ensurePlanSettingsMigrated()
         val planId = targetPlanId ?: plans.selectedPlanId() ?: return
-        if (planDao.plan(planId)?.origin != PlanOrigin.GENERATED.name) return
         val plan = planDao.plan(planId) ?: return
+        if (plan.origin != PlanOrigin.GENERATED.name) return
         if (plan.hasSetupRecipe) {
             val unit = settings.unitFlow.first()
             val day = plan.setupAnswers(unit)?.let { runCatching { Planner.day(it, dayId) }.getOrNull() }

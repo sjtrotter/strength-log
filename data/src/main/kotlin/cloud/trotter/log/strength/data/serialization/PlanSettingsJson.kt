@@ -15,7 +15,9 @@ data class PlanSettings(
     val runCap: Boolean = true,
     val equipment: Set<Equipment>? = null,
     val goalsLb: Map<String, Double> = emptyMap(),
-)
+) {
+    val equipmentOrAll: Set<Equipment> get() = equipment ?: Equipment.entries.toSet()
+}
 
 @Serializable internal data class PlanSettingsDto(
     val defaultsFor: String? = null,

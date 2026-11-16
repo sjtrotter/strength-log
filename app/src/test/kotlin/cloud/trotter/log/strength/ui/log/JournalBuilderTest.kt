@@ -101,7 +101,7 @@ class JournalBuilderTest {
             equipment = setOf(Equipment.MACHINE),
             config = LifterConfig(level = ExperienceLevel.NOVICE),
         )
-        val program = ruledProgram(answers)
+        val program = ProgramGenerator.generate(answers)
         val catalog = ExerciseCatalog.CODE_ONLY
         val mainIds = ProgramGenerator.mainLiftIds(answers)
         val hackSquat = program.days.first().exercises.first()
@@ -109,7 +109,7 @@ class JournalBuilderTest {
         assertEquals(SetStructure.STRAIGHT, hackSquat.structure)
         assertTrue(catalog.get(hackSquat.exerciseId).goal is GoalSource.Flat)
 
-        val mains = JournalBuilder.mainLifts(program, catalog, answers.config.goalsLb)
+        val mains = JournalBuilder.mainLifts(program, catalog, answers.config.goalsLb, mainIds.toSet())
         assertEquals(mainIds, mains.map { it.exerciseId })
         val history = mainIds.map { top(it, today, 50.0) }
         val cards = JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone)
@@ -133,9 +133,11 @@ class JournalBuilderTest {
 
     @Test
     fun mainLifts_reads_the_generated_program_mains_with_their_read_only_goals() {
-        val generated = ruledProgram(WizardAnswers())
+        val answers = WizardAnswers()
+        val generated = ProgramGenerator.generate(answers)
         val cfg = LifterConfig()
-        val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), cfg.goalsLb)
+        val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), cfg.goalsLb,
+            ProgramGenerator.mainLiftIds(answers).toSet())
 
         assertTrue(mains.isNotEmpty(), "the generated program has main lifts")
         val squatLift = mains.first { it.exerciseId == "bb_back_squat" }
@@ -273,15 +275,6 @@ class JournalBuilderTest {
                              prescription: Prescription? = null): ProgramExercise =
         ProgramExercise(id, structure, targetSets, prescription = prescription,
             rule = SlotRule.defaults(SlotRole.MAIN, LiftGoal.STRENGTH, structure, 5, ExerciseLibrary.get(id).pattern))
-
-    private fun ruledProgram(answers: WizardAnswers): Program {
-        val mains = ProgramGenerator.mainLiftIds(answers).toSet()
-        val program = ProgramGenerator.generate(answers)
-        return program.copy(days = program.days.map { day -> day.copy(exercises = day.exercises.map { slot ->
-            slot.copy(rule = SlotRule.defaults(if (slot.exerciseId in mains) SlotRole.MAIN else SlotRole.ACCESSORY,
-                LiftGoal.STRENGTH, slot.structure, 5, ExerciseLibrary.get(slot.exerciseId).pattern))
-        }) })
-    }
 
     // --- trajectory -----------------------------------------------------------
 

@@ -28,7 +28,10 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.generator.CardioFirst
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -148,6 +151,28 @@ class PlanScreenTest {
         rule.onNodeWithText("Physique-leaning").assertExists()
         rule.onNodeWithText("Strength-leaning").performClick()
         assertEquals(GoalEmphasis.STRENGTH, emphasis)
+    }
+
+    @Test
+    fun oldWizardDumbbellPlanShowsGoalsForItsMains() {
+        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
+            config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = PlanRecipeJson.encode(answers))
+        val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), answers, catalog, WeightUnit.LB)
+        rule.setContent { AppTheme { PlanScreen(state, actions()) } }
+
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Goals"))
+        rule.onNodeWithText("Goals").assertExists()
+        list.performScrollToNode(hasText("Goblet Squat"))
+        rule.onNodeWithText("80").assertExists()
+        for (id in ProgramGenerator.mainLiftIds(answers)) {
+            val name = catalog.get(id).name
+            list.performScrollToNode(hasText(name))
+            rule.onNodeWithText(name).assertExists()
+        }
     }
 
     @Test(timeout = 30_000)

@@ -49,7 +49,6 @@ import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
-import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.PlanDraft
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
@@ -860,7 +859,7 @@ internal fun answersForPlan(plan: PlanEntity?, global: GlobalLifter): WizardAnsw
     if (recipe != null && !SetupRecipeJson.isV2(recipe)) return PlanRecipeJson.decode(recipe, global)
     val settings = plan?.planSettings ?: PlanSettings()
     return WizardAnswers(config = global.toConfig().copy(goalsLb = settings.goalsLb),
-        equipment = settings.equipment ?: Equipment.entries.toSet())
+        equipment = settings.equipmentOrAll)
 }
 
 internal fun assemble(

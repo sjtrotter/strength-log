@@ -1,8 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.data.v1RecipeJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -48,11 +46,10 @@ class BackupV24Test {
     }
 
     @Test fun `rest days in recipes round trip and invalid values fail`() {
-        val answers = WizardAnswers(cardioFirst = CardioFirst(restDays = 2))
-        val recipe = PlanRecipeJson.encode(answers)
+        val recipe = v1RecipeJson(cardioFirst = """{"activity":"ROAD_RUN","seconds":1800,"sessions":3,"liftDays":0,"restDays":2}""")
         val doc = document().let { it.copy(plans = listOf(it.plans.single().copy(recipeJson = recipe))) }
         val restored = codec.decode(codec.encode(doc))
-        assertEquals(PlanRecipeJson.encode(answers), restored.plans.single().recipeJson)
+        assertEquals(recipe, restored.plans.single().recipeJson)
         for (invalid in listOf(-1, 3)) {
             val bad = doc.copy(plans = listOf(doc.plans.single().copy(
                 recipeJson = recipe.replace("\"restDays\":2", "\"restDays\":$invalid"),

@@ -2,9 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.OpeningJson
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import kotlinx.coroutines.test.runTest
@@ -33,7 +31,7 @@ class SetupOlderAdultTest : OpeningFixture() {
         assertEquals(OpeningDto("SCALED", 0.85), opening(SetupRecipeJson.encode(SetupAnswers(olderAdult = false, experience = LiftExperience.A_YEAR_OR_MORE)), 70))
     }
     @Test fun `a v1 plan reads profile age`() = runTest {
-        assertEquals(OpeningDto("RECALIBRATE"), opening(PlanRecipeJson.encode(WizardAnswers()), 70))
+        assertEquals(OpeningDto("RECALIBRATE"), opening(OldWizardPlans.DEFAULT.recipeJson, 70))
     }
     @Test fun `a plan without a recipe reads profile age`() = runTest {
         assertEquals(OpeningDto("RECALIBRATE"), opening(null, 70))

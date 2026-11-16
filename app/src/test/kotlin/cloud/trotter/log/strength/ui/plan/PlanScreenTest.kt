@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.OldWizardPlan
+import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import androidx.compose.runtime.mutableStateOf
@@ -26,12 +28,6 @@ import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -148,12 +144,11 @@ class PlanScreenTest {
 
     @Test
     fun oldWizardDumbbellPlanShowsGoalsForItsMains() {
-        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
-            config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
+        val answers = OldWizardPlans.DUMBBELL_NOVICE
         val catalog = ExerciseCatalog.CODE_ONLY
         val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
-        val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, WeightUnit.LB)
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
 
         val list = rule.onNode(hasScrollAction())
@@ -161,7 +156,7 @@ class PlanScreenTest {
         rule.onNodeWithText("Goals").assertExists()
         list.performScrollToNode(hasText("Goblet Squat"))
         rule.onNodeWithText("80").assertExists()
-        for (id in ProgramGenerator.mainLiftIds(answers)) {
+        for (id in answers.mains) {
             val name = catalog.get(id).name
             list.performScrollToNode(hasText(name))
             rule.onNodeWithText(name).assertExists()
@@ -384,10 +379,10 @@ class PlanScreenTest {
 
     @Test
     fun generatedCardioOnlyPlanHasNoGoals() {
-        val answers = WizardAnswers(cardioFirst = CardioFirst())
         val state = PlanScreenBuilder.buildUiState(
             PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0),
-            ProgramGenerator.generate(answers), ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
+            Program(OldWizardPlans.CARDIO_FIRST.program.days.filter { it.exercises.isEmpty() }
+            .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) }), ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
         )
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
         rule.onNodeWithText("Running").assertExists()
@@ -556,9 +551,9 @@ class PlanScreenTest {
         rule.onNodeWithText("Move down").assertIsEnabled()
     }
 
-    private fun oldSettings(answers: WizardAnswers) = PlanSettingsJson.encode(PlanSettings(
-        equipment = answers.equipment, goalsLb = answers.config.goalsLb,
-        legacyMains = ProgramGenerator.mainLiftIds(answers).toSet()))
+    private fun oldSettings(answers: OldWizardPlan) = PlanSettingsJson.encode(PlanSettings(
+        equipment = answers.equipment, goalsLb = answers.goalsLb,
+        legacyMains = answers.mains.toSet()))
 }
 
 /** Robolectric's full-screen frame for wrap-content dialogs can prevent text fields from settling. */

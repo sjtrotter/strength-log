@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -33,7 +32,6 @@ import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -633,7 +631,6 @@ class DayViewModelCardioExecutionTest {
     ).also { vms += it }
 
     private suspend fun prepare(fiveK: Boolean = true) {
-        repo.plans.setWizardAnswers(WizardAnswers().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN, fiveKGoal = fiveK)))
         repo.replaceProgram(
             Program(listOf(ProgramDay(
                 "A", "Intervals", "", listOf(ProgramExercise("bb_back_squat")),

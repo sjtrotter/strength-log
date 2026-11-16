@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.OldWizardPlan
+import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
@@ -13,14 +15,9 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
@@ -154,9 +151,9 @@ class PlanScreenBuilderTest {
     @Test
     fun generatedPlansShowTheFourPinnedGoals() {
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
-            settingsJson = oldSettings(WizardAnswers()))
+            settingsJson = oldSettings(OldWizardPlans.DEFAULT))
         val state = PlanScreenBuilder.buildUiState(
-            plan, ProgramGenerator.generate(WizardAnswers()), catalog, WeightUnit.LB,
+            plan, OldWizardPlans.DEFAULT.program, catalog, WeightUnit.LB,
         )
         assertEquals(listOf("Barbell Back Squat", "Barbell Bench Press", "Trap-Bar Deadlift", "Incline DB Press"),
             state.goals.map { it.name })
@@ -164,11 +161,11 @@ class PlanScreenBuilderTest {
     }
 
     @Test fun `a typed goal shows its weight in the chosen unit`() {
-        val answers = WizardAnswers(config = LifterConfig(goalsLb = mapOf("bb_back_squat" to 200.0)))
+        val answers = OldWizardPlans.DEFAULT.copy(goalsLb = mapOf("bb_back_squat" to 200.0))
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
         for (unit in WeightUnit.entries) {
-            val state = PlanScreenBuilder.buildUiState(plan, ProgramGenerator.generate(answers), catalog, unit)
+            val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, unit)
             val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
             assertEquals(200.0, requireNotNull(squat.goalLb), 0.0)
             assertEquals(if (unit == WeightUnit.LB) "200" else "90.72", squat.display)
@@ -186,8 +183,18 @@ class PlanScreenBuilderTest {
 
     @Test
     fun `goals name only lifts the plan has`() {
-        val answers = WizardAnswers(equipment = Equipment.entries.toSet() - setOf(Equipment.BARBELL, Equipment.TRAP_BAR))
-        val program = ProgramGenerator.generate(answers)
+        val replacements = mapOf("bb_back_squat" to "hack_squat", "bb_bench" to "db_bench",
+            "trap_dl" to "db_rdl", "rdl" to "db_rdl")
+        val answers = OldWizardPlans.DEFAULT.copy(
+            equipment = Equipment.entries.toSet() - setOf(Equipment.BARBELL, Equipment.TRAP_BAR),
+            mains = listOf("hack_squat", "db_bench", "db_rdl", "incline_db"),
+            program = Program(OldWizardPlans.DEFAULT.program.days.map { day ->
+                day.copy(exercises = day.exercises.map { slot ->
+                    slot.copy(exerciseId = replacements[slot.exerciseId] ?: slot.exerciseId)
+                })
+            }),
+        )
+        val program = answers.program
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
         val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
@@ -202,8 +209,8 @@ class PlanScreenBuilderTest {
 
     @Test
     fun generatedPlansWithoutLiftsHideGoals() {
-        val answers = WizardAnswers(cardioFirst = CardioFirst())
-        val program = ProgramGenerator.generate(answers)
+        val program = Program(OldWizardPlans.CARDIO_FIRST.program.days.filter { it.exercises.isEmpty() }
+            .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) })
         val plan = PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0)
 
         val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
@@ -228,15 +235,14 @@ class PlanScreenBuilderTest {
     }
 
     @Test fun `an old wizard dumbbell plan shows its main lift goals`() {
-        val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
-            config = LifterConfig(level = ExperienceLevel.NOVICE, goalsLb = mapOf("goblet_squat" to 80.0)))
-        val program = ProgramGenerator.generate(answers)
+        val answers = OldWizardPlans.DUMBBELL_NOVICE
+        val program = answers.program
         val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
 
         val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
 
-        assertEquals(ProgramGenerator.mainLiftIds(answers), state.goals.map { it.exerciseId })
+        assertEquals(answers.mains, state.goals.map { it.exerciseId })
         assertEquals("80", state.goals.single { it.exerciseId == "goblet_squat" }.display)
     }
 
@@ -262,7 +268,7 @@ class PlanScreenBuilderTest {
             ProgramExercise(exerciseId = "exercise-$id-$index", targetSets = count)
         },
     )
-    private fun oldSettings(answers: WizardAnswers) = PlanSettingsJson.encode(PlanSettings(
-        equipment = answers.equipment, goalsLb = answers.config.goalsLb,
-        legacyMains = ProgramGenerator.mainLiftIds(answers).toSet()))
+    private fun oldSettings(answers: OldWizardPlan) = PlanSettingsJson.encode(PlanSettings(
+        equipment = answers.equipment, goalsLb = answers.goalsLb,
+        legacyMains = answers.mains.toSet()))
 }

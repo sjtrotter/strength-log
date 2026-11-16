@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import android.content.Context
 import android.net.Uri
 import androidx.datastore.core.DataStore
@@ -28,8 +31,6 @@ import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.setupAnswers
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -213,8 +214,9 @@ class SetupFlowViewModelTest {
         prefillWithInvalidMain(EquipmentPreset.FULL_GYM, "bb_back_squat", "goblet_squat")
     }
     @Test fun `a later run over an old wizard plan starts from defaults`() = runVmTest {
-        val old = WizardAnswers()
-        repo.plans.publishCreatedPlan(repo.plans.createGeneratedPlan("Old", old, ProgramGenerator.generate(old)), old)
+        val old = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings)
+        db.runLaunchFixups(settings)
+        repo.plans.publishPlannedPlan(old)
         settings.setUnit(WeightUnit.KG); settings.setWizardComplete(true)
         val vm = newViewModel(); advanceUntilIdle()
         assertEquals(SetupAnswers(unit = WeightUnit.KG), answers(vm))

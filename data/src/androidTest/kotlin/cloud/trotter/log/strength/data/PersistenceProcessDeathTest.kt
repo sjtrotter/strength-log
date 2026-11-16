@@ -15,19 +15,9 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Program
@@ -136,20 +126,18 @@ class PersistenceProcessDeathTest {
         dataStoreScope.coroutineContext.job.cancelAndJoin()
     }
 
-    private val wizardAnswers = WizardAnswers(
-        daysPerWeek = 5,
-        split = SplitTemplate.UPPER_LOWER,
-        anchorScheme = AnchorScheme.BIG_4,
-        deadliftVariant = DeadliftVariant.CONVENTIONAL,
-        cardio = CardioPrefs(mode = CardioMode.TREADMILL, placement = CardioPlacement.SEPARATE_DAYS, fiveKGoal = false),
-        config = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.STRENGTH),
-        equipment = setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK),
-    )
+    private val recipe = v1RecipeJson(daysPerWeek = 5, split = "UPPER_LOWER", anchorScheme = "BIG_4",
+        deadliftVariant = "CONVENTIONAL", cardioMode = "TREADMILL", cardioPlacement = "SEPARATE_DAYS",
+        fiveKGoal = false, emphasis = "STRENGTH", equipment = listOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK))
 
     @Test
     fun every_mutation_survives_closing_and_reopening_the_database_and_datastore() = runTest {
         // --- settings: wizard answers, completion flag, display unit ----------
-        repository.plans.setWizardAnswers(wizardAnswers)
+        val selected = db.insertGeneratedPlan(PlanEntity.LEGACY_NAME, Program(emptyList()))
+        settings.setSelectedPlanId(selected)
+        db.planDao().updateRecipe(selected, recipe)
+        settings.setLifterProfile(LifterProfile(210.0, 33))
+        db.runLaunchFixups(settings)
         settings.setWizardComplete(true)
         settings.setUnit(WeightUnit.KG)
 
@@ -259,10 +247,10 @@ class PersistenceProcessDeathTest {
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
         assertEquals(
-            LifterProfile(wizardAnswers.config.bodyweightLb, wizardAnswers.config.age),
+            LifterProfile(210.0, 33),
             settings.lifterProfileFlow.first(),
         )
-        assertEquals(wizardAnswers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
+        assertEquals(setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK), repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalog.catalogFlow.first().get(customId)

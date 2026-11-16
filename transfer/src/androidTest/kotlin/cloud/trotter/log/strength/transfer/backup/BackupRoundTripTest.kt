@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
+import cloud.trotter.log.strength.data.insertGeneratedPlan
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -19,18 +21,8 @@ import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.planSettings
 import org.junit.Assert.assertNull
 import cloud.trotter.log.strength.data.serialization.SetJson
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -59,20 +51,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class BackupRoundTripTest : BackupTestHarness() {
 
-    private val wizardAnswers = WizardAnswers(
-        daysPerWeek = 3,
-        split = SplitTemplate.UPPER_LOWER,
-        anchorScheme = AnchorScheme.BIG_4,
-        deadliftVariant = DeadliftVariant.CONVENTIONAL,
-        cardio = CardioPrefs(CardioMode.TREADMILL, CardioPlacement.SEPARATE_DAYS, fiveKGoal = false),
-        config = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.STRENGTH),
-        equipment = setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK),
-    )
+    private val equipment = setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK)
+    private val recipe = v1RecipeJson(daysPerWeek = 3, split = "UPPER_LOWER", anchorScheme = "BIG_4",
+        deadliftVariant = "CONVENTIONAL", cardioMode = "TREADMILL", cardioPlacement = "SEPARATE_DAYS",
+        fiveKGoal = false, emphasis = "STRENGTH", equipment = equipment)
 
     @Test
     fun mid_setup_answers_without_a_program_survive_export_wipe_import() = runTest {
-        val answers = wizardAnswers.copy(config = wizardAnswers.config.copy(weightUnit = WeightUnit.KG))
-        repository.plans.setWizardAnswers(answers)
+        val selected = db.insertGeneratedPlan(PlanEntity.LEGACY_NAME, Program(emptyList()))
+        settings.setSelectedPlanId(selected)
+        db.planDao().updateRecipe(selected, recipe)
+        settings.setLifterProfile(LifterProfile(210.0, 33))
         settings.setUnit(WeightUnit.KG)
         assertFalse(settings.wizardCompleteFlow.first())
         assertTrue(repository.plans.programFlow.first().days.isEmpty())
@@ -84,8 +73,8 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         service.import(backup)
 
-        assertEquals(answers.equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
-        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), backupRepository.exportSnapshot().profile)
+        assertEquals(equipment, repository.plans.selectedPlanFlow.first()!!.planSettings.equipmentOrAll)
+        assertEquals(LifterProfile(210.0, 33), backupRepository.exportSnapshot().profile)
         assertNull(db.planDao().allPlans().single().recipeJson)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertFalse(settings.wizardCompleteFlow.first())
@@ -96,7 +85,10 @@ class BackupRoundTripTest : BackupTestHarness() {
     @Test
     fun export_wipe_import_reproduces_every_piece_of_state() = runTest {
         // --- build a rich, realistic state -----------------------------------
-        repository.plans.setWizardAnswers(wizardAnswers)
+        val selected = db.insertGeneratedPlan(PlanEntity.LEGACY_NAME, Program(emptyList()))
+        settings.setSelectedPlanId(selected)
+        db.planDao().updateRecipe(selected, recipe)
+        settings.setLifterProfile(LifterProfile(210.0, 33))
         settings.setWizardComplete(true)
         settings.setUnit(WeightUnit.KG)
         settings.setRestTimerEnabled(false)
@@ -154,14 +146,11 @@ class BackupRoundTripTest : BackupTestHarness() {
             PlanEntity.LEGACY_ID, "A", squatId, Slot.MAIN, SetJson.encodeSets(listOf(LoggedSet(250.0, 5, SetKind.TOP))), 3_000,
         ))
 
-        val secondAnswers = wizardAnswers.copy(
-            daysPerWeek = 5,
-            config = wizardAnswers.config.copy(emphasis = GoalEmphasis.PHYSIQUE),
-        )
+        val secondFacts = PlanSettings(equipment = equipment)
         db.planDao().insertPlan(PlanEntity(
             2, "Test prep", PlanOrigin.GENERATED.name, 1, 2_000,
-            settingsJson = PlanSettingsJson.encode(PlanSettings(equipment = secondAnswers.equipment,
-                goalsLb = secondAnswers.config.goalsLb, legacyMains = setOf("bb_bench"))), suggestedDayId = "C",
+            settingsJson = PlanSettingsJson.encode(PlanSettings(equipment = secondFacts.equipment,
+                goalsLb = secondFacts.goalsLb, legacyMains = setOf("bb_bench"))), suggestedDayId = "C",
         ))
         db.programDao().upsertDays(listOf(
             ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null, nextRunId = "run-2A"),
@@ -206,9 +195,9 @@ class BackupRoundTripTest : BackupTestHarness() {
         assertEquals(2, restored.plans.size)
         assertEquals(2L, restored.selectedPlanId)
         assertNull(restored.plans.first().recipeJson)
-        assertEquals(wizardAnswers.equipment, restored.plans.first().planSettings.equipmentOrAll)
+        assertEquals(equipment, restored.plans.first().planSettings.equipmentOrAll)
         assertNull(restored.plans.last().recipeJson)
-        assertEquals(secondAnswers.equipment, restored.plans.last().planSettings.equipmentOrAll)
+        assertEquals(secondFacts.equipment, restored.plans.last().planSettings.equipmentOrAll)
         assertEquals(listOf("B", "C"), restored.plans.map { it.suggestedDayId })
 
         // Spot-check a couple of load-bearing details beyond structural equality.

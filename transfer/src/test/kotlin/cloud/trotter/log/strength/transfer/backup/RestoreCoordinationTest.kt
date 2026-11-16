@@ -1,14 +1,11 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.v1RecipeJson
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import android.content.Context
@@ -222,11 +219,7 @@ class RestoreCoordinationTest {
         val codec = BackupCodec()
         val suggestion = CardioSuggestion("Intervals", "Run hard, recover easy.", true)
         val prose = CardioDto.encode(suggestion)
-        val answers = WizardAnswers(
-            cardio = CardioPrefs(
-                mode = CardioMode.TREADMILL, fiveKGoal = false,
-            ),
-        )
+        val recipe = v1RecipeJson(cardioMode = "TREADMILL", fiveKGoal = false)
         val expected = CardioBlocks.fromLegacy(
             suggestion, false, CardioActivity.TREADMILL_RUN,
         )
@@ -235,7 +228,7 @@ class RestoreCoordinationTest {
         ))
         val legacy = codec.decode(backupJson("A", 190))
         for (version in listOf(8, 13)) {
-            val expectedEquipment = if (version == 8) setOf(Equipment.BARBELL) else answers.equipment
+            val expectedEquipment = if (version == 8) setOf(Equipment.BARBELL) else Equipment.entries.toSet()
             val document = BackupDocument(
                 schemaVersion = version,
                 settings = if (version == 8) legacy.settings.copy(
@@ -243,7 +236,7 @@ class RestoreCoordinationTest {
                     selectedPlanId = 7, suggestedDay = "C1",
                 ) else SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 7),
                 plans = listOf(PlanBackup(7, "Running", "GENERATED", 1_000, days = listOf(day),
-                    recipeJson = if (version == 13) PlanRecipeJson.encode(answers) else null,
+                    recipeJson = if (version == 13) recipe else null,
                     suggestedDay = if (version == 13) "C1" else null)),
             )
             val snapshot = codec.decode(codec.encode(document)).toSnapshot()

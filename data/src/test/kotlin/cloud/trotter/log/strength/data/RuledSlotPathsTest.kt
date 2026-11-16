@@ -16,13 +16,9 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -119,47 +115,6 @@ class RuledSlotPathsTest {
         assertTrue(resetSlots.all { it.exercise.rule != null })
         val seeds = repo.plans.seeds(gen, resetSlots, emptyMap(), settings.unitFlow.first(), repo.catalog.catalogFlow.first())
         assertTrue(resetSlots.all { (it.programExerciseId to Slot.MAIN) in seeds })
-    }
-
-    @Test fun `the old wizard's createGeneratedPlan produces ruled slots`() = runTest {
-        val squat = ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 6)
-        val hack = ProgramExercise("hack_squat")
-        val pull = ProgramExercise("pullup")
-        val bench = ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(135.0, 5)))
-        val gen = repo.plans.createGeneratedPlan("Gen", WizardAnswers(),
-            Program(listOf(ProgramDay("A", "Day A", "", listOf(squat, hack, pull, bench)))))
-        val ids = db.programDao().exercisesForPlan(gen).map { it.id }
-        assertSlot(ids[0], rule(SlotRole.MAIN, 5, 0.025, Scheme.PROTOTYPE, true), listOf(
-            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 5, SetKind.RAMP),
-            LoggedSet(45.0, 5, SetKind.RAMP), LoggedSet(45.0, 3, SetKind.RAMP),
-            LoggedSet(45.0, 5, SetKind.TOP), LoggedSet(45.0, 8, SetKind.BACKOFF)))
-        assertSlot(ids[1], rule(SlotRole.ACCESSORY, 10, 0.025, calibrating = true), work(20.0))
-        assertSlot(ids[2], rule(SlotRole.ACCESSORY, 6, 0.0125), work(0.0, 6))
-        assertSlot(ids[3], rule(SlotRole.MAIN, 5, 0.0125), work(135.0, 5))
-        assertFalse(db.planDao().plan(gen)!!.autoApply)
-        val slots = db.programDao().allExercises()
-        val logs = db.programDao().allLogs()
-        repository().plans.runPlanSettingsFixupIfNeeded()
-        assertEquals(slots, db.programDao().allExercises())
-        assertEquals(logs, db.programDao().allLogs())
-    }
-
-    @Test fun `createGeneratedPlan rolls back the whole plan when a rule write fails`() = runTest {
-        var writes = 0
-        val failing = repository(object : ProgramDao by db.programDao() {
-            override suspend fun setRule(id: Long, json: String) {
-                if (++writes == 3) throw SQLiteFullException("Storage full")
-                db.programDao().setRule(id, json)
-            }
-        })
-        val answers = WizardAnswers()
-        assertFailsWith<SQLiteFullException> {
-            failing.plans.createGeneratedPlan("Gen", answers, ProgramGenerator.generate(answers))
-        }
-        assertTrue(db.planDao().allPlans().isEmpty())
-        assertTrue(db.programDao().allDays().isEmpty())
-        assertTrue(db.programDao().allExercises().isEmpty())
-        assertTrue(db.programDao().allLogs().isEmpty())
     }
 
     @Test fun `a prescription edit re-derives the rule in the same transaction`() = runTest {

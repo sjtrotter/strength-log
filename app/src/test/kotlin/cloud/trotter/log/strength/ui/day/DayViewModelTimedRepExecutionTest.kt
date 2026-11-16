@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.data.convertTestPlans
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
@@ -19,8 +18,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -114,7 +111,6 @@ class DayViewModelTimedRepExecutionTest {
     ).also { vms += it }
 
     private suspend fun prepare() {
-        repo.plans.setWizardAnswers(WizardAnswers().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN)))
         repo.replaceProgram(
             Program(listOf(ProgramDay(
                 "A", "Timed reps", "", listOf(ProgramExercise(

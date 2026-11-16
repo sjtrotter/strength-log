@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.data
 
-import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,11 +24,9 @@ import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -471,8 +469,8 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `generated plan appends selects and preserves the previous plan`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        val oldAnswers = WizardAnswers(daysPerWeek = 3)
-        repo.plans.setWizardAnswers(oldAnswers)
+        db.planDao().updateRecipe(1, v1RecipeJson(daysPerWeek = 3))
+        repo.plans.invalidatePlanFixups()
         db.programDao().upsertDay(ProgramDayEntity(1, "B", 1, "Original next", "", null))
         db.planDao().updateSuggestedDay(1, "B")
         val slot = db.programDao().exercisesForPlan(1).single().id
@@ -482,22 +480,22 @@ class TrackerRepositoryPlanScopeTest {
         val days = db.programDao().daysForPlan(1)
         val exercises = db.programDao().exercisesForPlan(1)
         val logs = db.programDao().logsForPlan(1)
-        val answers = WizardAnswers(config = oldAnswers.config.copy(bodyweightLb = 210.0))
+        val profile = settings.lifterProfileFlow.first()
 
-        val created = repo.plans.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
+        val created = db.insertGeneratedPlan("4-day full body", program("New", "bb_bench"))
+        repo.plans.invalidatePlanFixups()
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(LifterProfile(oldAnswers.config.bodyweightLb, oldAnswers.config.age), settings.lifterProfileFlow.first())
-        repo.plans.publishCreatedPlan(created, answers)
-        repo.plans.publishCreatedPlan(created, answers)
+        assertEquals(profile, settings.lifterProfileFlow.first())
+        repo.plans.publishPlannedPlan(created)
+        repo.plans.publishPlannedPlan(created)
 
         assertEquals(listOf(1L, created), db.planDao().allPlans().map { it.id })
         assertEquals(1, db.planDao().plan(created)!!.position)
         assertEquals(created, settings.selectedPlanIdFlow.first())
         assertNull(db.planDao().plan(created)!!.recipeJson)
-        assertEquals(answers.equipment, db.planDao().plan(created)!!.planSettings.equipmentOrAll)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
-        assertEquals(210.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
+        assertEquals(profile, settings.lifterProfileFlow.first())
         val createdProgram = repo.plans.programFlow.first()
         assertTrue(createdProgram.days.flatMap { it.exercises }.all { it.rule != null })
         assertEquals(program("New", "bb_bench"), createdProgram.copy(days = createdProgram.days.map { day ->
@@ -511,7 +509,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.plans.selectPlan(1)
         assertEquals(before, db.planDao().plan(1))
         assertEquals(createdPlan, db.planDao().plan(created))
-        assertEquals(oldAnswers.equipment, repo.plans.planSettingsFor(1).first().equipmentOrAll)
+        assertEquals(Equipment.entries.toSet(), repo.plans.planSettingsFor(1).first().equipmentOrAll)
     }
 
     @Test
@@ -523,9 +521,7 @@ class TrackerRepositoryPlanScopeTest {
         val creator = TrackerRepository(
             db, db.programDao(), db.sessionDao(), db.customExerciseDao(), unpublishedSettings,
         )
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
-
-        val created = creator.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench"))
+        val created = creator.plans.createPlannedPlan("Full body", SetupAnswers())
 
         assertTrue(creator.plans.planHasDays(created))
         assertEquals(null, unpublishedSettings.selectedPlanIdFlow.first())
@@ -537,12 +533,12 @@ class TrackerRepositoryPlanScopeTest {
     fun `publication does not select a missing plan`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
         val plans = db.planDao().allPlans()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
+        val profile = settings.lifterProfileFlow.first()
 
-        repeat(2) { repo.plans.publishCreatedPlan(Long.MAX_VALUE, answers) }
+        repeat(2) { repo.plans.publishPlannedPlan(Long.MAX_VALUE) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
+        assertEquals(profile, settings.lifterProfileFlow.first())
         assertEquals(plans, db.planDao().allPlans())
     }
 
@@ -552,39 +548,20 @@ class TrackerRepositoryPlanScopeTest {
         insertPlanTwo()
         assertTrue(repo.plans.archivePlan(2))
         val plans = db.planDao().allPlans()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
+        val profile = settings.lifterProfileFlow.first()
 
-        repeat(2) { repo.plans.publishCreatedPlan(2, answers) }
+        repeat(2) { repo.plans.publishPlannedPlan(2) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
-        assertEquals(plans, db.planDao().allPlans())
-    }
-
-    @Test
-    fun `generated plan fills a selected settings-only plan`() = runTest {
-        repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
-        val id = repo.plans.selectedPlanIdFlow.first()!!
-        val profile = settings.lifterProfileFlow.first()
-        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210.0))
-
-        assertEquals(id, repo.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
-
-        assertEquals(1, db.planDao().allPlans().size)
-        assertEquals("Full body", db.planDao().plan(id)!!.name)
-        assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(id)!!.recipeJson)
-        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
-        assertEquals(listOf("First"), db.programDao().daysForPlan(id).map { it.title })
         assertEquals(profile, settings.lifterProfileFlow.first())
-        repo.plans.publishCreatedPlan(id, answers)
-        assertEquals(LifterProfile(answers.config.bodyweightLb, answers.config.age), settings.lifterProfileFlow.first())
-        assertEquals(id, settings.selectedPlanIdFlow.first())
+        assertEquals(plans, db.planDao().allPlans())
     }
 
     @Test
     fun `duplicate rekeys both log tracks inserts after source and leaves selection and history alone`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        db.planDao().updateRecipe(1, v1RecipeJson(daysPerWeek = 3))
+        repo.plans.invalidatePlanFixups()
         val source = db.planDao().plan(1)!!
         val slot = db.programDao().exercisesForPlan(1).single()
         db.programDao().setSupersetExerciseId(slot.id, "bb_bench")

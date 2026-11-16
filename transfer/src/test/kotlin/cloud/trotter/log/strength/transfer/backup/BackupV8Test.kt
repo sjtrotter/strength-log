@@ -1,9 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.data.serialization.V1Anchors
+import cloud.trotter.log.strength.data.serialization.V1Deadlift
+import cloud.trotter.log.strength.data.serialization.V1Split
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.FullSnapshot
@@ -77,19 +76,18 @@ class BackupV8Test {
     // Keep the fixture at v8 even though production exports write v9.
     private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().withoutV16Fields().let { document ->
         val recipe = checkNotNull(legacyRecipe)
-        val defaults = WizardAnswers()
         document.copy(
             schemaVersion = 8,
             plans = document.plans.map { it.copy(onToday = null) },
             settings = document.settings.copy(
-                emphasis = defaults.config.emphasis.name,
+                emphasis = "BALANCED",
                 cardioMode = recipe.cardioMode.name,
-                cardioPlacement = defaults.cardio.placement.name,
+                cardioPlacement = "FINISHERS",
                 fiveKGoal = recipe.fiveKGoal,
-                daysPerWeek = defaults.daysPerWeek,
-                split = defaults.split.name,
-                anchorScheme = defaults.anchorScheme.name,
-                deadliftVariant = defaults.deadliftVariant.name,
+                daysPerWeek = 4,
+                split = V1Split.FULL_BODY.name,
+                anchorScheme = V1Anchors.PROTOTYPE.name,
+                deadliftVariant = V1Deadlift.TRAP_BAR.name,
                 equipment = recipe.equipment.map { it.name }.sorted(),
                 suggestedDay = suggestedDay,
             ),
@@ -104,9 +102,9 @@ class BackupV8Test {
             anchorScheme = "BIG_4", deadliftVariant = "SUMO"))
         val recipe = checkNotNull(codec.decode(codec.encode(old)).toSnapshot().legacyRecipe)
         assertEquals(6, recipe.daysPerWeek)
-        assertEquals(SplitTemplate.PPL, recipe.split)
-        assertEquals(AnchorScheme.BIG_4, recipe.anchorScheme)
-        assertEquals(DeadliftVariant.SUMO, recipe.deadliftVariant)
+        assertEquals(V1Split.PPL, recipe.split)
+        assertEquals(V1Anchors.BIG_4, recipe.anchorScheme)
+        assertEquals(V1Deadlift.SUMO, recipe.deadliftVariant)
     }
 
     private fun decode(document: BackupDocument) = codec.decode(codec.encode(document))

@@ -11,9 +11,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.serialization.V1Recipe
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.data.serialization.V1Anchors
+import cloud.trotter.log.strength.data.serialization.V1Deadlift
+import cloud.trotter.log.strength.data.serialization.V1Split
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -147,9 +147,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             cardioMode = prefs.enum(Keys.CARDIO_MODE, CardioMode.OUTDOOR_RUN),
             fiveKGoal = prefs[Keys.FIVE_K] ?: true,
             daysPerWeek = (prefs[Keys.DAYS_PER_WEEK] ?: 4).coerceIn(2, 6),
-            split = prefs.enum(Keys.SPLIT, SplitTemplate.FULL_BODY),
-            anchorScheme = prefs.enum(Keys.ANCHOR_SCHEME, AnchorScheme.PROTOTYPE),
-            deadliftVariant = prefs.enum(Keys.DEADLIFT_VARIANT, DeadliftVariant.TRAP_BAR))
+            split = prefs.enum(Keys.SPLIT, V1Split.FULL_BODY),
+            anchorScheme = prefs.enum(Keys.ANCHOR_SCHEME, V1Anchors.PROTOTYPE),
+            deadliftVariant = prefs.enum(Keys.DEADLIFT_VARIANT, V1Deadlift.TRAP_BAR))
     }
 
     val legacySuggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }

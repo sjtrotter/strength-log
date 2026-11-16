@@ -1,9 +1,10 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -20,11 +21,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,10 +58,8 @@ class OldPlanMainsTest {
     @After fun tearDown() { db.close(); storeScope.cancel() }
 
     @Test fun `an old wizard main switched to straight keeps its History card and Plan goal`() = runTest {
-        for (level in listOf(ExperienceLevel.NOVICE, ExperienceLevel.INTERMEDIATE)) {
-            val answers = WizardAnswers(equipment = setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT),
-                config = LifterConfig(level = level, goalsLb = mapOf("goblet_squat" to 80.0)))
-            val id = plans.createGeneratedPlan("Dumbbells", answers, ProgramGenerator.generate(answers))
+        for (plan in listOf(OldWizardPlans.DUMBBELL_NOVICE, OldWizardPlans.DUMBBELL_INTERMEDIATE)) {
+            val id = db.insertRuledOldWizardPlan(plan, settings, "Dumbbells")
             val squats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }
             assertTrue(squats.isNotEmpty())
             // Before #514 a structure edit cleared the prescription and replanned the accessory rule.
@@ -75,13 +69,14 @@ class OldPlanMainsTest {
                     LiftGoal.STRENGTH, SetStructure.STRAIGHT, null, MovementPattern.SQUAT_BILATERAL)))
             }
             val before = db.programDao().exercisesForPlan(id)
-            plans.publishCreatedPlan(id, answers)
+            db.runLaunchFixups(settings)
+            plans.publishPlannedPlan(id)
             val stored = plans.programFor(id).first()
             val planSettings = plans.planSettingsFor(id).first()
             val mains = JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY,
                 planSettings.goalsLb, planSettings.legacyMains)
-            assertEquals(JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, answers.config.goalsLb,
-                ProgramGenerator.mainLiftIds(answers).toSet()), mains)
+            assertEquals(JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, plan.goalsLb,
+                plan.mains.toSet()), mains)
             val card = JournalBuilder.trajectories(mains,
                 listOf(TopSetRow(1, 1000, "goblet_squat", 60.0)), WeightUnit.LB).single()
             assertEquals("goblet_squat", card.exerciseId)
@@ -95,30 +90,19 @@ class OldPlanMainsTest {
     }
 
     @Test fun `old plan History mains are unchanged by conversion`() = runTest {
-        val combinations = buildList {
-            for (equipment in listOf(Equipment.entries.toSet(), setOf(Equipment.MACHINE),
-                setOf(Equipment.DUMBBELL, Equipment.BENCH, Equipment.BODYWEIGHT))) {
-                for (level in listOf(ExperienceLevel.NOVICE, ExperienceLevel.INTERMEDIATE)) {
-                    for ((split, days) in listOf(SplitTemplate.FULL_BODY to 3, SplitTemplate.UPPER_LOWER to 4,
-                        SplitTemplate.PPL to 6)) {
-                        add(WizardAnswers(daysPerWeek = days, split = split, equipment = equipment,
-                            config = LifterConfig(level = level)))
-                    }
-                }
-            }
-            add(WizardAnswers(daysPerWeek = 3, cardioFirst = CardioFirst(liftDays = 3)))
-        }
-        for (base in combinations) {
-            val answers = base.copy(config = base.config.copy(goalsLb =
-                mapOf(ProgramGenerator.mainLiftIds(base).first() to 150.0)))
-            val id = plans.createGeneratedPlan("Old", answers, ProgramGenerator.generate(answers))
-            plans.publishCreatedPlan(id, answers)
+        for (plan in OldWizardPlans.ALL) {
+            val id = db.insertRuledOldWizardPlan(plan, settings)
+            db.runLaunchFixups(settings)
+            val plans = PlanRepository(db, settings)
+            plans.publishPlannedPlan(id)
+            plans.setPlanGoal(id, plan.mains.first(), 150.0)
+            val goals = plan.goalsLb + (plan.mains.first() to 150.0)
             val stored = plans.programFor(id).first()
             val settings = plans.planSettingsFor(id).first()
-            assertEquals(JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, answers.config.goalsLb,
-                ProgramGenerator.mainLiftIds(answers).toSet()),
+            assertEquals(JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, goals,
+                plan.mains.toSet()),
                 JournalBuilder.mainLifts(stored, ExerciseCatalog.CODE_ONLY, settings.goalsLb, settings.legacyMains),
-                "${base.equipment} ${base.config.level} ${base.split} ${base.daysPerWeek} ${base.cardioFirst}")
+                plan.recipeJson)
         }
     }
 }

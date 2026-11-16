@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -22,10 +26,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -241,11 +241,9 @@ class PlanViewModelTest {
 
     @Test
     fun `goal edits and unit changes update the viewed generated plan`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val program = ProgramGenerator.generate(answers)
-        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
-        repo.plans.publishCreatedPlan(preferred, answers)
-        val tapped = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val preferred = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Preferred").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(preferred)
+        val tapped = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Viewed").also { db.runLaunchFixups(settings) }
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
         advanceUntilIdle()
         assertNull(vm.uiState.value.goals.first().display)
@@ -261,11 +259,9 @@ class PlanViewModelTest {
 
     @Test
     fun `saving a goal writes it to the plan`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val program = ProgramGenerator.generate(answers)
-        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
-        repo.plans.publishCreatedPlan(preferred, answers)
-        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val preferred = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Preferred").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(preferred)
+        val viewed = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Viewed").also { db.runLaunchFixups(settings) }
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
         advanceUntilIdle()
         vm.openGoal("bb_back_squat")
@@ -292,11 +288,9 @@ class PlanViewModelTest {
 
     @Test
     fun `offer switches and goal edits preserve each other on the viewed generated plan`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val program = ProgramGenerator.generate(answers)
-        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
-        repo.plans.publishCreatedPlan(preferred, answers)
-        val viewed = repo.plans.createGeneratedPlan("Viewed", answers, program)
+        val preferred = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Preferred").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(preferred)
+        val viewed = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Viewed").also { db.runLaunchFixups(settings) }
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
         advanceUntilIdle()
         vm.openGoal("bb_back_squat")
@@ -325,9 +319,8 @@ class PlanViewModelTest {
 
     @Test
     fun `goal dialog and its draft survive recreation and keep the viewed plan`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(plan, answers)
+        val plan = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Goals").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(plan)
         val handle = SavedStateHandle()
         val vm = viewModel(handle)
         advanceUntilIdle()
@@ -352,9 +345,8 @@ class PlanViewModelTest {
 
     @Test
     fun `invalid goal drafts cannot save and a missing goal cannot open`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(plan, answers)
+        val plan = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Goals").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(plan)
         val vm = viewModel()
         advanceUntilIdle()
         vm.openGoal("missing")
@@ -381,9 +373,8 @@ class PlanViewModelTest {
 
     @Test
     fun `saving the goal ceiling accepts canonical pounds in either display unit`() = runTest(dispatcher) {
-        val answers = WizardAnswers()
-        val plan = repo.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers))
-        repo.plans.publishCreatedPlan(plan, answers)
+        val plan = db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Goals").also { db.runLaunchFixups(settings) }
+        repo.plans.publishPlannedPlan(plan)
         val vm = viewModel()
         for (unit in WeightUnit.entries) {
             settings.setUnit(unit)
@@ -482,9 +473,11 @@ class PlanViewModelTest {
 
     @Test
     fun `generated plan adds a seventh strength day alongside standalone cardio`() = runTest(dispatcher) {
-        repo.replaceProgram(ProgramGenerator.generate(WizardAnswers(
-            daysPerWeek = 6, cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
-        )))
+        repo.replaceProgram(Program(('A'..'F').map {
+            ProgramDay(it.toString(), "Full Body", "", listOf(ProgramExercise("plank")))
+        } + listOf("C1", "C2").map {
+            ProgramDay(it, "Cardio + Core", "", emptyList(), kind = ProgramDayKind.CARDIO)
+        }))
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()

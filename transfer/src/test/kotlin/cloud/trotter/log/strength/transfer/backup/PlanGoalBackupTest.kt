@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
+import cloud.trotter.log.strength.data.runLaunchFixups
 import cloud.trotter.log.strength.data.serialization.planSettings
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -11,8 +14,6 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -61,9 +62,9 @@ class PlanGoalBackupTest {
     }
 
     private suspend fun createPlan(): Long {
-        val answers = WizardAnswers()
-        return repository.plans.createGeneratedPlan("Goals", answers, ProgramGenerator.generate(answers)).also {
-            repository.plans.publishCreatedPlan(it, answers)
+        return db.insertRuledOldWizardPlan(OldWizardPlans.DEFAULT, settings, "Goals").also {
+            db.runLaunchFixups(settings)
+            repository.plans.publishPlannedPlan(it)
         }
     }
 

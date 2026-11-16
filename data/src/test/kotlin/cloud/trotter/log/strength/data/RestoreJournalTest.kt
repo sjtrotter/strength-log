@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.V1Split
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
@@ -26,15 +27,10 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -402,7 +398,9 @@ class RestoreJournalTest {
         commitPreviousBuildRoomHalf(restored, nonce)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
 
-        repo.plans.setWizardAnswers(WizardAnswers(cardio = CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false)))
+        db.planDao().updateRecipe(PlanEntity.LEGACY_ID,
+            v1RecipeJson(cardioMode = "NONE", cardioPlacement = "NONE", fiveKGoal = false))
+        repo.plans.invalidatePlanFixups()
 
         assertNotNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertFalse(settings.planSettingsFixupDoneFlow.first())
@@ -463,7 +461,7 @@ class RestoreJournalTest {
         val nonce = "previous-build-restore-with-interim-edits"
         stagePreviousBuild(restored, nonce)
         commitPreviousBuildRoomHalf(restored, nonce)
-        val interimRecipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(emphasis = GoalEmphasis.PHYSIQUE)))
+        val interimRecipe = v1RecipeJson(emphasis = "PHYSIQUE")
         db.planDao().updateRecipe(PlanEntity.LEGACY_ID, interimRecipe)
         db.planDao().updateSuggestedDay(PlanEntity.LEGACY_ID, "A")
         val archived = PlanEntity(2, "Archived", PlanOrigin.GENERATED.name, 1, 1_000, true, interimRecipe, "C")
@@ -697,7 +695,7 @@ class RestoreJournalTest {
             prefs[stringPreferencesKey("cardio_placement")] = CardioPlacement.FINISHERS.name
             prefs[booleanPreferencesKey("five_k")] = recipe.fiveKGoal
             prefs[intPreferencesKey("days_per_week")] = 3
-            prefs[stringPreferencesKey("split")] = SplitTemplate.FULL_BODY.name
+            prefs[stringPreferencesKey("split")] = V1Split.FULL_BODY.name
             prefs[stringPreferencesKey("anchor_scheme")] = "PROTOTYPE"
             prefs[stringPreferencesKey("deadlift_variant")] = "TRAP_BAR"
             prefs[stringSetPreferencesKey("equipment")] = recipe.equipment.map { it.name }.toSet()

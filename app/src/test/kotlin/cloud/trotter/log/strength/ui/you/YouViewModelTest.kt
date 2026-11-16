@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.you
 
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.core.DataStore
@@ -170,7 +169,6 @@ class YouViewModelTest {
 
     @Test
     fun configChangesKeepTheSelectedPlanAndProgram() = runVmTest {
-        repo.plans.setWizardAnswers(WizardAnswers())
         val vm = newViewModel()
         val programBefore = repo.plans.programFlow.first()
         val planBefore = repo.plans.selectedPlanFlow.first()

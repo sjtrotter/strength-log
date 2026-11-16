@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.data.OldWizardPlans
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
@@ -11,9 +12,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.toWatch
@@ -84,7 +82,7 @@ class TodayWidgetViewsTest {
     }
 
     @Test fun generatedRunnerDayShowsItsDayAndActivity() {
-        val day = ProgramGenerator.generate(WizardAnswers(cardioFirst = CardioFirst())).rotationDays.first()
+        val day = OldWizardPlans.CARDIO_FIRST.program.rotationDays.first()
         val snapshot = WatchSnapshot(
             revision = 0L,
             suggestedDayId = day.id,

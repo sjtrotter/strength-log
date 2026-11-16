@@ -1,12 +1,11 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.data.OldWizardPlans
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -106,13 +105,14 @@ class TodayWidgetContentTest {
 
     @Test
     fun `generated runner rotation shows scheduled cardio on every day`() {
-        val answers = WizardAnswers(cardioFirst = CardioFirst())
-        val program = ProgramGenerator.generate(answers)
+        val plan = OldWizardPlans.CARDIO_FIRST
+        val program = Program(OldWizardPlans.CARDIO_FIRST.program.days.filter { it.exercises.isEmpty() }
+            .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) })
         assertEquals(listOf("Easy", "Intervals", "Long"), program.rotationDays.map { it.title })
         for (day in program.rotationDays) {
             val performed = PerformedDay.of(
                 1L, day.id, program, emptyList(), DayTracks(null, false, emptyList()),
-                PlanSettings(equipment = answers.equipment, goalsLb = answers.config.goalsLb), ExerciseCatalog.CODE_ONLY, seeds = emptyMap(),
+                PlanSettings(equipment = plan.equipment, goalsLb = plan.goalsLb), ExerciseCatalog.CODE_ONLY, seeds = emptyMap(),
             )
             val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 0L)
             val content = todayWidgetContent(snapshot)

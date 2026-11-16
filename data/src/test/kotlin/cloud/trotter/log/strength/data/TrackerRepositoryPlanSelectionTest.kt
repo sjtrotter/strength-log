@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -10,9 +11,6 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -49,7 +47,7 @@ class TrackerRepositoryPlanSelectionTest {
     }
 
     @Test
-    fun `generated cardio plans offer increases and start at A on insert and update`() = runTest {
+    fun `planned lifting plans start at A on insert and update`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries()
@@ -59,21 +57,19 @@ class TrackerRepositoryPlanSelectionTest {
             val settings = SettingsStore(PausingDataStore())
             val repo = PlanRepository(db, settings)
             repo.runPlanSettingsFixupIfNeeded()
-            for (cardioFirst in listOf(false, true)) {
-                val answers = WizardAnswers(cardioFirst = if (cardioFirst) CardioFirst() else null)
-                for (update in listOf(false, true)) {
-                    val emptyId = if (update) db.planDao().insertPlan(PlanEntity(
-                        0, "Empty", PlanOrigin.GENERATED.name, 0, 1000,
-                        offerCardioIncreases = !cardioFirst,
-                    )).also { settings.setSelectedPlanId(it) } else null
-                    val id = repo.createGeneratedPlan("Generated", answers, ProgramGenerator.generate(answers))
-                    if (emptyId != null) assertEquals(emptyId, id)
-                    val plan = db.planDao().plan(id)!!
-                    assertEquals(cardioFirst, plan.offerCardioIncreases)
-                    assertEquals("A", plan.suggestedDayId)
-                    assertEquals(if (cardioFirst) 3 else 4, db.programDao().daysForPlan(id).size)
-                    repo.publishCreatedPlan(id, answers)
-                }
+            val answers = SetupAnswers(days = 4)
+            for (update in listOf(false, true)) {
+                val emptyId = if (update) db.planDao().insertPlan(PlanEntity(
+                    0, "Empty", PlanOrigin.GENERATED.name, 0, 1000,
+                    offerCardioIncreases = true,
+                )).also { settings.setSelectedPlanId(it) } else null
+                val id = repo.createPlannedPlan("Generated", answers)
+                if (emptyId != null) assertEquals(emptyId, id)
+                val plan = db.planDao().plan(id)!!
+                assertEquals(false, plan.offerCardioIncreases)
+                assertEquals("A", plan.suggestedDayId)
+                assertEquals(4, db.programDao().daysForPlan(id).count { it.kind == "STRENGTH" })
+                repo.publishPlannedPlan(id)
             }
         } finally {
             db.close()
@@ -93,9 +89,9 @@ class TrackerRepositoryPlanSelectionTest {
             repo.runPlanSettingsFixupIfNeeded()
             val profile = LifterProfile(190.0, 55)
             settings.setLifterProfile(profile)
-            val answers = WizardAnswers(cardioFirst = CardioFirst())
-            val id = repo.createGeneratedPlan("Running", answers, ProgramGenerator.generate(answers))
-            repo.publishCreatedPlan(id, answers, writeLifter = false)
+            val answers = SetupAnswers()
+            val id = repo.createPlannedPlan("Lifting", answers)
+            repo.publishPlannedPlan(id)
             assertEquals(profile, settings.lifterProfileFlow.first())
             assertEquals(id, settings.selectedPlanIdFlow.first())
             assertTrue(db.planDao().plan(id)!!.onToday)

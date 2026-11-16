@@ -87,7 +87,7 @@ class CustomExerciseViewModelTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     /** [uiState] is `WhileSubscribed` — needs an active collector to track updates
-     *  at all (mirrors [cloud.trotter.log.strength.ui.wizard.WizardViewModelWiringTest]). */
+     *  at all (mirrors [cloud.trotter.log.strength.ui.wizard.SetupFlowViewModelTest]). */
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): CustomExerciseViewModel =
         CustomExerciseViewModel(repo, handle, settings = settings).also { vm ->
             vms += vm

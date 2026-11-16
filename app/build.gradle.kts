@@ -2,6 +2,7 @@ import java.time.Duration
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.ksp)
@@ -221,7 +222,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
-    testImplementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.serialization.json)
     // The null Health Connect provider's SAM return type is not exposed by :transfer.
     testImplementation(libs.androidx.health.connect.client)
     // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)

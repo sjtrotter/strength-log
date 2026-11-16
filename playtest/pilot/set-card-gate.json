@@ -9,8 +9,22 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Strength"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "4"
       }
     },
     {
@@ -25,29 +39,12 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "A year or more"
       }
     },
     {
       "tap": {
         "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "None",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "None",
-        "role": "RadioButton"
       }
     },
     {
@@ -57,15 +54,15 @@
     },
     {
       "type": {
-        "text": "Bodyweight (lb)",
-        "value": "185",
+        "tag": "setup-recent-weight-bb_back_squat",
+        "value": "275",
         "ime": "done"
       }
     },
     {
       "type": {
-        "text": "Age",
-        "value": "40",
+        "tag": "setup-recent-reps-bb_back_squat",
+        "value": "5",
         "ime": "done"
       }
     },
@@ -75,13 +72,8 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
+      "expect": {
+        "text": "Your plan"
       }
     },
     {
@@ -128,26 +120,6 @@
     {
       "tap": {
         "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-2"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "lift-check-main-3"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-3"
       }
     },
     {
@@ -221,7 +193,7 @@
     },
     {
       "expect": {
-        "text": "Set 5 of 6 (TOP)"
+        "text": "Set 3 of 5 (TOP)"
       }
     },
     {

@@ -1247,3 +1247,31 @@ Reset day to plan dispatches by recipe. V2 rebuilds title, kind, cardio, slots a
 History mains are known weighted slots with role MAIN in day order, one card per exercise. A LoadReps prescription also permits a weighted trajectory regardless of catalog tracking. A main without a typed goal keeps its card with no goal line. The generated Plan screen uses the same membership, shows typed weights or Not set, and opens an empty goal field for an untyped lift. Remove goal appears only for a stored goal. Calculated goals and Use calculated leave these readers; the domain formula remains pinned for legacy callers.
 
 Backup v28 carries recipe v2 and the new settings equipment and goals, validating all three strictly. Older documents carrying those payloads are inconsistent; v27 otherwise keeps its decoder. Older builds reject v28 with their existing newer-version message. Releases continue between PR 6 and PR 7; a later shape change requires another version bump.
+
+
+## 46. Revision 37 (PR 6b, lift setup screens)
+
+Setup at the existing `wizard` route replaces the old wizard UI. Its canonical steps are Goal, Sub-goal, Your week, Equipment, About your training, Your lifts, Recent numbers and Your plan. Goal offers Lift alone until PR 7. Strength and Muscle include Your lifts when any main row has choices. Every trained lifter with a weighted current main gets Recent numbers, including General fitness. New lifters skip Recent numbers. A removed step falls back to the last preceding step still in the draft's list. Next stays enabled after initialization; Start waits for a ready, nonempty preview. The top arrow and system Back step backward, and a later entry can leave from Goal. Restore and creation hold Back until their writes finish.
+
+One versioned JSON value under `setup_draft` holds every answer and the step by name. Unknown fields are ignored, missing fields default, and unreadable versions start again. This lets PR 7 add answers without changing a saved Parcelable. Three separate latches hold initialization, first-run entry and the created plan id. The new ViewModel reads no old `wizard_*` draft keys. Preview and operation progress are transient; a restored draft on Your plan previews again.
+
+The default draft maps to `SetupAnswers()` exactly. Sub-goal maps to the lift goal; days and minutes map directly. Equipment is the exact selected set. A preset or checkbox change resets chosen mains to null, so unavailable choices cannot survive gear changes. Units keep the three smallest-step option indices and convert the options to pounds. About asks lifting experience and 65 or older, with no profile write. Your lifts replaces only the selected main's row. Recent numbers keep complete current-main entries with finite positive weights no greater than 2000 lb and 1 to 10 reps; New ignores them while retaining typed drafts. Later entries prefill only a readable v2 selected-plan recipe, otherwise defaults in the app unit; first run uses the device unit.
+
+Your plan previews the same two planner passes Start writes. Each rotation row shows its letter, stored title, first main's short name and working load when weighted, lift count and estimated minutes. Rest has just its letter and title. Over-budget rows state the excess minutes. An over-budget card offers a main to drop and the next longer session option; nothing is dropped until chosen, and Start stays enabled while a day is over. A 65+ lifter on fewer than three lifting days gets an explicit Add offer for the remaining balance days, following audit 2026-11-13 decision 12 (WHO 2020). Accepting adds the short Balance entries; Remove returns to the unaccepted preview. Declining leaves the lifting days alone.
+
+Why this plan lists short-session ladder facts, over-budget facts, accepted or offered balance days, reps left when every rule carries them, calibration when any rule carries it, a planned lighter week when present, and estimated minutes last. The older examples of twice-weekly squat and deadlift and Rest after C have no planner reason and are not built. No copy implies the balance block meets the fall-prevention dose, calls an estimate your max, predicts strength lost after a layoff, calls lighter weeks required, or claims evidence for practice values such as set floors, cadence, increments, back-offs or warm-up doses. Effort stays Easy, Good, Hard and Max without rep counts, per owner decision L30.
+
+Start sets its double-tap guard synchronously, takes the existing restore lock and lets startup reconciliation finish. A completed restore underneath a first run makes Start step aside. Otherwise it reuses a remembered plan with days or creates one transactionally through `createPlannedPlan`, remembers the id immediately, publishes selection and Today, writes the unit and writes completion last. A retry or recreation reuses that id. A landed mid-first-run import clears the id and reseeds at Goal from the restored device. The first-run-only restore picker and app-scope import keep their existing error mapping. Setup plans' own 65+ answer also drives workout layoff openings, ahead of profile age; 6c keeps this rule.
+
+| Mock | Built | Reason |
+|---|---|---|
+| Easy, Right, Hard, Grinder | Easy, Good, Hard, Max | Owner decision 7 and L30 |
+| Run, Sprint and Both cards | Lift alone | Owner, until PR 7 |
+| Work-around chips | A 65 or older checkbox row | Lead answer 3; no planner rules read the other answers |
+| Split dropdown | None | Lead answer 4; the planner derives layout |
+| Split description subtitle | Plan name, such as Strength, 4 days | The planner exposes no split name |
+| Placeholder sub-goal descriptions | The approved strings; General fitness says nothing about cardio | The Lift plan has no cardio |
+| Recent numbers for Strength and Muscle | Every trained lifter with a weighted main | Design §2.2 and the mock |
+| No balance offer | An explicit offer card | Owner answer 2, 2026-11-15 |
+
+The cardio-first setup is gone until PR 7; runners and cardio-first users can Build my own. The legacy generator, formula and repository fixture methods remain for their callers until 6c and 6d. No Room, DataStore or backup shape changes; backup stays v28.

@@ -9,12 +9,6 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
         "text": "Next"
       }
     },
@@ -39,49 +33,8 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "None",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "None",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "185",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
+      "expect": {
+        "text": "Your plan"
       }
     },
     {

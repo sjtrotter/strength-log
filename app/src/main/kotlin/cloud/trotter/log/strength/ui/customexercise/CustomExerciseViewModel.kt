@@ -25,7 +25,7 @@ import kotlinx.coroutines.sync.withLock
 
 /**
  * Custom-exercise creation form (PLAN.md A4). Every draft field lives in [SavedStateHandle] — same
- * reasoning as [cloud.trotter.log.strength.ui.wizard.WizardViewModel]: a route this reachable (from a
+ * reasoning as [cloud.trotter.log.strength.ui.wizard.SetupFlowViewModel]: a route this reachable (from a
  * sheet or Setup) can lose focus/rotate before the user finishes typing a name, and that draft must
  * survive it.
  *

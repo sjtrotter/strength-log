@@ -11,11 +11,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import cloud.trotter.log.strength.ui.wizard.WizardUiState
+import cloud.trotter.log.strength.ui.wizard.SetupFlowUiState
 
 private const val ROUTE_TRANSITION_MILLIS = 240
 private const val DAY_FADE_THROUGH_MILLIS = 220
-private const val WIZARD_TRANSITION_MILLIS = 200
+private const val SETUP_TRANSITION_MILLIS = 200
 
 internal val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 private val emphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
@@ -50,19 +50,19 @@ internal val dayFadeThroughEnterTransition: EnterTransition
 internal val dayFadeThroughExitTransition: ExitTransition
     get() = fadeOut(tween(DAY_FADE_THROUGH_MILLIS, easing = emphasizedAccelerate))
 
-internal fun AnimatedContentTransitionScope<WizardUiState>.wizardStepTransition(): ContentTransform {
-    val movingForward = targetState.stepIndex > initialState.stepIndex
+internal fun AnimatedContentTransitionScope<SetupFlowUiState>.setupStepTransition(): ContentTransform {
+    val movingForward = targetState.step.ordinal > initialState.step.ordinal
     return (
         slideIntoContainer(
             towards = if (movingForward) AnimatedContentTransitionScope.SlideDirection.Left else AnimatedContentTransitionScope.SlideDirection.Right,
-            animationSpec = tween(WIZARD_TRANSITION_MILLIS),
+            animationSpec = tween(SETUP_TRANSITION_MILLIS),
             initialOffset = { it / 6 },
-        ) + fadeIn(tween(WIZARD_TRANSITION_MILLIS))
+        ) + fadeIn(tween(SETUP_TRANSITION_MILLIS))
         ).togetherWith(
         slideOutOfContainer(
             towards = if (movingForward) AnimatedContentTransitionScope.SlideDirection.Left else AnimatedContentTransitionScope.SlideDirection.Right,
-            animationSpec = tween(WIZARD_TRANSITION_MILLIS),
+            animationSpec = tween(SETUP_TRANSITION_MILLIS),
             targetOffset = { it / 6 },
-        ) + fadeOut(tween(WIZARD_TRANSITION_MILLIS)),
+        ) + fadeOut(tween(SETUP_TRANSITION_MILLIS)),
     )
 }

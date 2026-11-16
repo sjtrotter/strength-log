@@ -4,137 +4,13 @@
   "steps": [
     {
       "tap": {
-        "text": "Lifting",
-        "role": "RadioButton"
+        "text": "Next"
       }
     },
     {
       "tap": {
         "text": "Next"
       }
-    },
-    {
-      "tap": {
-        "text": "Balanced strength + muscle"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Days per week",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "wiz-3-split"
-    },
-    {
-      "tap": {
-        "text": "Full-body rotation"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat / Bench / Deadlift / OHP (5/3/1-style)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Conventional"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bike / elliptical"
-      }
-    },
-    {
-      "tap": {
-        "text": "Finishers after lifting"
-      }
-    },
-    {
-      "checkpoint": "wiz-5-cardio"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "LB"
-      }
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "190",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "38",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Intermediate"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Trap Bar"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Kettlebell"
-      }
-    },
-    {
-      "tap": {
-        "text": "Kettlebell"
-      }
-    },
-    {
-      "checkpoint": "equipment-bottom"
-    },
-    {
-      "scrollTo": {
-        "text": "Trap Bar"
-      }
-    },
-    {
-      "checkpoint": "equipment-top-again"
     },
     {
       "tap": {
@@ -147,12 +23,14 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Missing a day never skips the next workout."
+      "tap": {
+        "text": "Next"
       }
     },
     {
-      "checkpoint": "rotation-bottom"
+      "expect": {
+        "text": "Your plan"
+      }
     },
     {
       "tap": {
@@ -172,7 +50,7 @@
     },
     {
       "tap": {
-        "textContains": "full body"
+        "textContains": "General fitness"
       }
     },
     {
@@ -187,12 +65,12 @@
     },
     {
       "scrollTo": {
-        "text": "Edit cardio"
+        "text": "Add cardio"
       }
     },
     {
       "tap": {
-        "text": "Edit cardio"
+        "text": "Add cardio"
       }
     },
     {

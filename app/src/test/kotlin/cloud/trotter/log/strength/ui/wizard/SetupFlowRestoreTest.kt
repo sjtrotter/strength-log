@@ -24,14 +24,12 @@ import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
-import cloud.trotter.log.strength.domain.generator.CardioFirst
-import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.units.DistanceUnit
-import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import cloud.trotter.log.strength.transfer.backup.BackupDocument
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -77,21 +75,22 @@ import org.robolectric.annotation.Config
 /**
  * The first-run "have a backup?" path end to end: a real SAF-shaped stream into
  * the real [BackupService], the real repository, and back out as either "leave
- * the wizard" or "stay in it".
+ * setup" or "stay in it".
  *
- * Unlike [WizardViewModelWiringTest] this fixture runs on real dispatchers —
+ * Unlike [SetupFlowViewModelTest] this fixture runs on real dispatchers —
  * the import genuinely hops to [Dispatchers.IO], so virtual time can't drive
  * it — and every wait is a bounded [withTimeout] on the state the UI reads.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class WizardRestoreWiringTest {
+class SetupFlowRestoreTest {
 
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var settingsStore: FlakyDataStore
     private lateinit var settings: SettingsStore
+    private var failCompletion = false
     private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var journal: RestoreJournal
@@ -122,7 +121,16 @@ class WizardRestoreWiringTest {
                 File.createTempFile("wizard-restore-settings", ".preferences_pb")
             },
         )
-        settings = SettingsStore(settingsStore)
+        settings = SettingsStore(object : DataStore<Preferences> {
+            override val data = settingsStore.data
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                if (failCompletion && transform(androidx.datastore.preferences.core.emptyPreferences())[booleanPreferencesKey("wizard_complete")] == true) {
+                    failCompletion = false
+                    throw IOException("completion write failed")
+                }
+                return settingsStore.updateData(transform)
+            }
+        })
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -152,8 +160,8 @@ class WizardRestoreWiringTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): WizardViewModel =
-        WizardViewModel(repo.plans, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }, settings = settings).also { vms += it }
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): SetupFlowViewModel =
+        SetupFlowViewModel(repo.plans, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }, settings = settings).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
@@ -196,41 +204,45 @@ class WizardRestoreWiringTest {
         return uri
     }
 
-    private suspend fun WizardViewModel.awaitOffered() =
+    private suspend fun SetupFlowViewModel.awaitOffered() =
         withTimeout(TIMEOUT_MS) { uiState.first { it.restore.offered } }
+
+    private suspend fun SetupFlowViewModel.startFromGoal() {
+        repeat(SetupFlowStateBuilder.steps(uiState.first { it.initialized }.draft).size - 1) { onNext() }
+        withTimeout(TIMEOUT_MS) { uiState.first { it.plan is PlanPreviewUi.Ready } }
+        onNext()
+    }
 
     private suspend fun assertRejectedRestorePreservesFinishRetry(uri: Uri): UiText? {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         vm.awaitOffered()
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
-        // Initialization retires legacy settings; Finish's fourth write is completion.
-        settingsStore.failOnUpdate = 5
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        // Fail completion after the plan has been published.
+        failCompletion = true
+        vm.startFromGoal()
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
-        val created = handle.get<Long>("wizard_created_plan_id")
+        val created = handle.get<Long>("setup_created_plan_id")
         assertNotNull(created)
         assertEquals(created, db.planDao().allPlans().single().id)
         assertTrue(repo.plans.programFlow.first().days.isNotEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION)) { vm.onBack() }
+        repeat(SetupFlowStateBuilder.steps(SetupDraft()).size - 1) { vm.onBack() }
         vm.restoreFromBackup(uri)
         val rejected = withTimeout(TIMEOUT_MS) {
             vm.uiState.first { !it.restore.inFlight && it.restore.error != null }
         }
         assertFalse(rejected.isComplete)
-        assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
+        assertEquals(created, handle.get<Long>("setup_created_plan_id"))
         assertEquals(created, db.planDao().allPlans().single().id)
         assertFalse(settings.wizardCompleteFlow.first())
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        vm.startFromGoal()
         val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
 
         val plan = db.planDao().allPlans().single()
         assertEquals(created, plan.id)
-        assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
+        assertEquals(created, handle.get<Long>("setup_created_plan_id"))
         assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
         assertTrue(settings.wizardCompleteFlow.first())
@@ -267,14 +279,14 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun restoringACompletedBackup_leavesTheWizardTheSameWayFinishDoes() = runBlocking {
+    fun restoringACompletedBackupLeavesSetup() = runBlocking {
         val uri = pickable(BackupCodec().encode(backup(wizardComplete = true)))
         val vm = newViewModel()
         vm.awaitOffered()
 
         vm.restoreFromBackup(uri)
 
-        // isComplete is what AppNavHost's WizardRoute watches to call onFinished.
+        // isComplete is what AppNavHost's SetupFlowRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
@@ -282,7 +294,7 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun restoringV8WithTwoPlans_leavesTheWizardWithTheirDaysAndTheSecondSelection() = runBlocking {
+    fun restoringV8WithTwoPlansKeepsTheirDaysAndTheSecondSelection() = runBlocking {
         val codec = BackupCodec()
         val legacy = backup(wizardComplete = true)
         val generatedDay = legacy.program.single()
@@ -320,28 +332,7 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun restoringAMidFirstRunBackup_prefillsAboutYouFields() = runBlocking {
-        val uri = pickable(BackupCodec().encode(backup(wizardComplete = false)))
-        val vm = newViewModel()
-        val initial = vm.awaitOffered()
-        assertNull(initial.bodyweightLb)
-        assertNull(initial.age)
-
-        vm.restoreFromBackup(uri)
-
-        val state = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
-        }
-        assertNull(state.restore.error)
-        assertEquals(190.0, state.bodyweightLb ?: Double.NaN, 0.0)
-        assertEquals(33, state.age)
-        repeat(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ABOUT_YOU)) { vm.onNext() }
-        val aboutYou = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.step == WizardStep.ABOUT_YOU } }
-        assertTrue(aboutYou.canContinue)
-    }
-
-    @Test
-    fun restoringAMidFirstRunBackup_staysInTheWizardOnTheRestoredAnswers() = runBlocking {
+    fun restoringAMidFirstRunBackupStaysInSetupWithTheRestoredUnit() = runBlocking {
         // wizardComplete=false means the backup was taken part-way through a first
         // run: leaving for the day screen would strand it on an empty program.
         val uri = pickable(BackupCodec().encode(backup(wizardComplete = false)))
@@ -350,23 +341,20 @@ class WizardRestoreWiringTest {
 
         vm.restoreFromBackup(uri)
 
-        // The restore lands field by field — the answers are pushed into the
-        // SavedStateHandle one key at a time and only then is inFlight cleared — so
-        // wait for the settled state and assert on *that*, not on whatever the
-        // StateFlow happens to be holding a moment after the first key changes.
+        // Wait for the restored draft and progress to settle.
         val state = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+            vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
-        assertEquals(33, state.answers.config.age)
+        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
+        assertEquals(33, repo.plans.configFlow.first().age)
         assertFalse(settings.wizardCompleteFlow.first())
     }
 
     @Test
-    fun restoringAMidFirstRunBackupWithoutAProgram_keepsTheRestoredAnswers() = runBlocking {
+    fun aMidFirstRunBackupWithoutAProgramReseedsTheDraftAtGoal() = runBlocking {
         val document = backup(wizardComplete = false).copy(program = emptyList())
         val uri = pickable(BackupCodec().encode(document))
         val vm = newViewModel()
@@ -375,90 +363,62 @@ class WizardRestoreWiringTest {
         vm.restoreFromBackup(uri)
 
         val state = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+            vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(state.isComplete)
         assertEquals(null, state.restore.error)
-        assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
-        assertEquals("STRENGTH", state.answers.config.emphasis.name)
-        assertEquals(cloud.trotter.log.strength.domain.units.WeightUnit.KG, state.unit)
-        assertEquals(state.unit, state.answers.config.weightUnit)
-        assertEquals(document.toSnapshot().answers, state.answers)
-        assertEquals(state.answers, repo.plans.wizardAnswersFlow.first())
+        assertEquals(190.0, repo.plans.wizardAnswersFlow.first().config.bodyweightLb, 0.0)
+        assertEquals(SetupStep.GOAL, state.step)
+        assertEquals(SetupAnswers(unit = WeightUnit.KG), SetupFlowStateBuilder.answers(state.draft))
+        assertEquals(document.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
-    }
-
-    @Test
-    fun restoringAnExportedMidFirstRunBackupWithoutAProgram_keepsEveryStoredAnswer() = runBlocking {
-        val codec = BackupCodec()
-        val legacy = backup(wizardComplete = false).copy(program = emptyList())
-        val expected = legacy.toSnapshot().answers
-        service.import(codec.encode(legacy))
         val exported = service.export()
-        service.import(codec.encode(legacy.copy(settings = legacy.settings.copy(
-            daysPerWeek = 6,
-            equipment = emptyList(),
-            weightUnit = "LB",
-        ))))
-        val vm = newViewModel()
-        vm.awaitOffered()
-
+        vm.setDays(6)
+        vm.setUnit(WeightUnit.LB)
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.draft.unit == WeightUnit.LB } }
         vm.restoreFromBackup(pickable(exported))
-
-        val state = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == expected.daysPerWeek }
+        val reseeded = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
-        assertNull(state.restore.error)
-        assertFalse(state.isComplete)
-        assertEquals(expected, state.answers)
-        assertEquals(expected.config.bodyweightLb, state.bodyweightLb ?: Double.NaN, 0.0)
-        assertEquals(expected.config.age, state.age)
-        assertEquals(expected.config.weightUnit, state.unit)
-        assertEquals(expected, repo.plans.wizardAnswersFlow.first())
-        assertEquals(expected, backupRepository.exportSnapshot().answers)
-        assertEquals(PlanRecipeJson.encode(expected), db.planDao().allPlans().single().recipeJson)
-        assertTrue(repo.plans.programFlow.first().days.isEmpty())
-        assertFalse(settings.wizardCompleteFlow.first())
-        assertEquals(exported, service.export())
+        assertEquals(SetupDraft(unit = WeightUnit.KG), reseeded.draft)
+        assertEquals(document.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
+        assertEquals(document.toSnapshot().answers, backupRepository.exportSnapshot().answers)
     }
 
     @Test
-    fun restoringAnEmptyMidSetupBackupAfterFailedCompletion_createsAProgramOnFinish() = runBlocking {
+    fun anEmptyMidSetupBackupAfterAFailedCompletionCreatesOnStart() = runBlocking {
         val document = backup(wizardComplete = false).copy(program = emptyList())
         val uri = pickable(BackupCodec().encode(document))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         vm.awaitOffered()
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
-        // Update 1 retires legacy settings during initialization; Finish writes
-        // global lifter, selection, unit, then completion in updates 2 through 5.
-        settingsStore.failOnUpdate = 5
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        // Fail completion after the plan has been published.
+        failCompletion = true
+        vm.startFromGoal()
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
-        val created = handle.get<Long>("wizard_created_plan_id")
+        val created = handle.get<Long>("setup_created_plan_id")
         assertNotNull(created)
         assertTrue(repo.plans.programFlow.first().days.isNotEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).indexOf(WizardStep.ROTATION)) { vm.onBack() }
+        repeat(SetupFlowStateBuilder.steps(SetupDraft()).size - 1) { vm.onBack() }
         vm.restoreFromBackup(uri)
         val restored = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+            vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(restored.isComplete)
         assertNull(restored.restore.error)
-        assertNull(handle.get<Long>("wizard_created_plan_id"))
+        assertNull(handle.get<Long>("setup_created_plan_id"))
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        vm.startFromGoal()
         val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
 
         val plan = db.planDao().allPlans().single()
-        assertEquals(plan.id, handle.get<Long>("wizard_created_plan_id"))
+        assertEquals(plan.id, handle.get<Long>("setup_created_plan_id"))
         assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
         assertEquals(3, repo.plans.programFlow.first().strengthDays.size)
@@ -467,14 +427,14 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun restoringAnInvalidBackupAfterFailedCompletion_reusesTheCreatedPlanOnFinish() = runBlocking {
+    fun restoringAnInvalidBackupAfterFailedCompletionReusesTheCreatedPlanOnStart() = runBlocking {
         val error = assertRejectedRestorePreservesFinishRetry(pickable("{ not a backup at all"))
 
         assertTrue(error is UiText.BackupError && error.kind == BackupErrorKind.BACKUP_MALFORMED)
     }
 
     @Test
-    fun restoringAnUnreadableBackupAfterFailedCompletion_reusesTheCreatedPlanOnFinish() = runBlocking {
+    fun restoringAnUnreadableBackupAfterFailedCompletionReusesTheCreatedPlanOnStart() = runBlocking {
         val uri = Uri.parse("content://test.backups/unreadable")
         shadowOf(context.contentResolver).registerInputStreamSupplier(uri) {
             object : InputStream() {
@@ -488,7 +448,7 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun aFileThatIsNotABackup_showsAnErrorAndLeavesTheDeviceUntouched() = runBlocking {
+    fun aFileThatIsNotABackupShowsAnErrorAndLeavesTheDeviceUntouched() = runBlocking {
         val uri = pickable("{ not a backup at all")
         val vm = newViewModel()
         vm.awaitOffered()
@@ -504,17 +464,15 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun finishingBeforeStartupRecovery_stepsAsideForTheStagedCompletedWizard() = runBlocking {
+    fun startingBeforeStartupRecoveryStepsAsideForAStagedCompletedSetup() = runBlocking {
         val stagedAnswers = stagePreviousBuildWithoutProgram(wizardComplete = true)
         assertTrue(db.planDao().allPlans().isEmpty())
         val vm = newViewModel()
         vm.awaitOffered()
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
-        vm.setDaysPerWeek(6)
+        vm.setDays(6)
 
         // No startup reconcile has run: finish must settle the journal first.
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        vm.startFromGoal()
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
 
         val restoredPlan = db.planDao().allPlans().single()
@@ -528,53 +486,44 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun finishingBeforeStartupRecovery_generatesAProgramMatchingItsRecipe() = runBlocking {
+    fun startingBeforeStartupRecoveryCreatesAPlanMatchingItsRecipe() = runBlocking {
         stagePreviousBuildWithoutProgram(wizardComplete = false)
         assertTrue(db.planDao().allPlans().isEmpty())
         val vm = newViewModel()
         vm.awaitOffered()
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
-        vm.setDaysPerWeek(6)
-        vm.setCardioMode(CardioMode.NONE)
-        vm.setCardioPlacement(CardioPlacement.NONE)
+        vm.setDays(6)
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        vm.startFromGoal()
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
 
         // A later startup reconcile must not overwrite the six-day recipe with
         // the staged three-day answers after the wizard has generated its plan.
         assertFalse(service.reconcilePendingRestore())
-        val answers = repo.plans.wizardAnswersFlow.first()
+        val plan = db.planDao().allPlans().single()
+        val answers = requireNotNull(plan.setupAnswers(WeightUnit.LB))
         val program = repo.plans.programFlow.first()
-        assertEquals(6, answers.daysPerWeek)
-        assertEquals(6, program.days.size)
-        assertEquals(ProgramGenerator.generate(answers), program.copy(days = program.days.map { day ->
-            day.copy(exercises = day.exercises.map { it.copy(rule = null, superset = it.superset?.copy(rule = null)) })
-        }))
-        assertTrue(program.days.flatMap { it.exercises }.all { it.rule != null })
-        assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
+        assertEquals(6, answers.days)
+        assertEquals(Planner.plan(answers).program, program)
+        assertEquals(SetupRecipeJson.encode(answers), plan.recipeJson)
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
     }
 
     @Test
-    fun aRecoveryFailureInFinish_showsAnErrorWithoutWritingAndCanBeRetried() = runBlocking {
+    fun aRecoveryFailureInStartShowsAnErrorAndCanBeRetried() = runBlocking {
         settingsStore.failOnUpdate = 1
         val failure = runCatching { service.import(BackupCodec().encode(backup(wizardComplete = true))) }.exceptionOrNull()
         assertTrue(failure is RestoreInterruption.SettingsPending)
         val vm = newViewModel()
         vm.awaitOffered()
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
-        vm.setDaysPerWeek(6)
+        vm.setDays(6)
         val before = backupRepository.exportSnapshot()
         settingsStore.failOnUpdate = 2 // the recovery's settings write
 
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size) { vm.onNext() }
+        vm.startFromGoal()
         val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null } }
 
-        assertEquals(WizardStep.ROTATION, state.step)
+        assertEquals(SetupStep.PLAN, state.step)
         assertTrue(state.finishError is UiText.FileAccessFailure)
         assertNull(state.restore.error)
         assertFalse(state.restore.inFlight)
@@ -594,7 +543,7 @@ class WizardRestoreWiringTest {
     }
 
     @Test
-    fun finishingTheWizardWaitsForAnInFlightReconcileAndThenStepsAside() = runBlocking {
+    fun startWaitsForAnInFlightReconcileAndThenStepsAside() = runBlocking {
         // The check/use race in full. Leave the device in the split state a killed
         // restore produces — data in Room, settings still the previous ones — so
         // `wizardComplete` reads false and the app opens on the wizard, then let
@@ -606,22 +555,18 @@ class WizardRestoreWiringTest {
 
         val vm = newViewModel()
         vm.awaitOffered() // the wizard has latched firstRun = true
-        vm.setBodyweight(235.0)
-        vm.setAge(40)
 
         // Park the reconcile inside its settings write, holding the restore lock.
         val open = CompletableDeferred<Unit>()
-        // Update 1 failed in import; update 2 retired the empty legacy keys
-        // when the wizard's initial answers read passed through the gate.
-        settingsStore.gateOnUpdate = 3
+        // Import failed on update 1; reconciliation is the next settings write.
+        settingsStore.gateOnUpdate = 2
         settingsStore.gate = open
         val reconcile = storeScope.async { service.reconcilePendingRestore() }
         withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }
 
         // Finish the wizard while it is parked. Outside the lock this reads
         // wizardComplete=false and generates over the restored program.
-        repeat(WizardStateBuilder.steps(WizardAnswers()).size - 1) { vm.onNext() }
-        vm.onNext()
+        vm.startFromGoal()
         delay(200)
         assertFalse("finish must wait its turn, not read a flag mid-flip", vm.uiState.value.isComplete)
 
@@ -636,80 +581,6 @@ class WizardRestoreWiringTest {
         )
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(190.0, repo.plans.configFlow.first().bodyweightLb, 0.0)
-    }
-
-    @Test
-    fun restoringAMidSetupBackupWithoutLifterAnswers_clearsDraftsAndRequiresAnswersForLifting() = runBlocking {
-        val answers = WizardAnswers(cardioFirst = CardioFirst())
-        val document = BackupDocument(
-            settings = SettingsBackup(235, 40, "INTERMEDIATE", weightUnit = "LB", wizardComplete = false,
-                selectedPlanId = 1, hasLifterAnswers = false),
-            plans = listOf(PlanBackup(1, "Running", "GENERATED", 1000, recipeJson = PlanRecipeJson.encode(answers))),
-        )
-        val vm = newViewModel()
-        vm.awaitOffered()
-        vm.setBodyweight(210.0)
-        vm.setAge(35)
-
-        vm.restoreFromBackup(pickable(BackupCodec().encode(document)))
-
-        val restored = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.cardioFirst == answers.cardioFirst }
-        }
-        assertNull(restored.restore.error)
-        assertNull(restored.bodyweightLb)
-        assertNull(restored.age)
-        val global = settings.globalLifterFlow.first()
-        vm.setLiftDays(2)
-        val steps = WizardStateBuilder.steps(answers.copy(daysPerWeek = 2, cardioFirst = CardioFirst(liftDays = 2)))
-        repeat(steps.indexOf(WizardStep.ABOUT_YOU)) { vm.onNext() }
-        val aboutYou = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.step == WizardStep.ABOUT_YOU } }
-        assertFalse(aboutYou.canContinue)
-
-        repeat(steps.size) { vm.onNext() }
-        assertFalse(vm.uiState.value.isComplete)
-        assertFalse(settings.wizardCompleteFlow.first())
-        assertFalse(settings.hasLifterAnswersFlow.first())
-        assertEquals(global, settings.globalLifterFlow.first())
-        assertTrue(repo.plans.programFlow.first().days.isEmpty())
-
-        vm.setBodyweight(185.0)
-        vm.onNext()
-        val partial = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.bodyweightLb == 185.0 } }
-        assertEquals(WizardStep.ABOUT_YOU, partial.step)
-        assertFalse(partial.canContinue)
-        vm.setAge(36)
-        repeat(steps.size) { vm.onNext() }
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
-        assertTrue(settings.hasLifterAnswersFlow.first())
-        assertEquals(185.0, settings.globalLifterFlow.first().bodyweightLb, 0.0)
-        assertEquals(36, settings.globalLifterFlow.first().age)
-        assertEquals(2, repo.plans.programFlow.first().days.count { it.exercises.isNotEmpty() })
-    }
-
-    @Test
-    fun restoringAMidFirstRunCardioBackup_keepsTheRecipeAndDistanceUnit() = runBlocking {
-        val answers = WizardAnswers(cardioFirst = CardioFirst(CardioActivity.TRAIL_RUN, Measure.Distance(4828), 4))
-        val document = BackupDocument(
-            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = false,
-                selectedPlanId = 1, distanceUnit = "KM"),
-            plans = listOf(PlanBackup(1, "Running", "GENERATED", 1000, recipeJson = PlanRecipeJson.encode(answers))),
-        )
-        val vm = newViewModel()
-        vm.awaitOffered()
-        vm.restoreFromBackup(pickable(BackupCodec().encode(document)))
-        val state = withTimeout(TIMEOUT_MS) {
-            vm.uiState.first { !it.restore.inFlight && it.answers.cardioFirst == answers.cardioFirst }
-        }
-        assertEquals(WizardStep.FOCUS, state.step)
-        assertEquals(DistanceUnit.KM, state.distanceUnit)
-        assertFalse(state.cardioStartByTime)
-        assertFalse(state.isComplete)
-        repeat(WizardStateBuilder.steps(state.answers).size) { vm.onNext() }
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
-        assertEquals(DistanceUnit.KM, settings.distanceUnitFlow.first())
-        assertEquals(answers.cardioFirst, repo.plans.wizardAnswersFlow.first().cardioFirst)
-        assertEquals("Running", db.planDao().allPlans().single().name)
     }
 
     private companion object {

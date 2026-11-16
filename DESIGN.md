@@ -41,7 +41,7 @@ widened this user.
 
 A single activity with a labeled Today / History / Plans `NavigationBar` and 24 dp Material
 icons, filled when selected (owner decision, #454), with each tab's title in its top bar
-(`ui/navigation/`, `ui/AppNavHost.kt`). The workout, receipt, wizard, Settings and You screens hide the bar.
+(`ui/navigation/`, `ui/AppNavHost.kt`). The workout, receipt, setup, Settings and You screens hide the bar.
 
 | Surface | Code | Moment | One job |
 |---|---|---|---|
@@ -64,7 +64,7 @@ icons, filled when selected (owner decision, #454), with each tab's title in its
 | You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight, age and experience level, which generated plans use for goals |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |
 | Custom exercise | `ui/customexercise/` | Catalog lacks a movement | Add one exercise |
-| Wizard | `ui/wizard/WizardScreen.kt` | First run, or a new plan | Produce a rotation the lifter accepts |
+| Setup | `ui/wizard/SetupFlowScreen.kt` | First run, or a new plan | Turn a few answers into a plan the lifter accepts |
 | Health Connect rationale | `health/HealthRationaleActivity.kt` | System permission flow | Explain each permission |
 | Widget | `widget/` | Home screen | Say today's day and progress |
 | Launcher icon | `icon/LauncherAliasMigration.kt` | Home screen | Keep legacy aliases pointing at the barbell |
@@ -287,6 +287,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-10-12 evening, pager decision | Workout is Fable's variant B: one lift per page, one set in focus, `Button` "Log 95 lb × 5", next card peeking, R1/TOP/B/O, no day selector, "Day D, done." | Owner: "looks like a pro workout app"; removes the vertical list behind the scroll jank (#260); shares the watch's grammar |
 | 2026-10-12 late, #262 | Segments are indicators, not buttons; the rest pill is a time button with a menu | 48 dp targets do not fit six to eight segments on a 360 dp phone |
 | 2026-11-15, #583 | Every set is a card; a logged set stays on its card with an effort row; the big button reads End rest during rest, never logs, and waits for the effort; the logged set leaves in a snackbar with Undo; supersets log as one round (583b) | Owner after a gym session: the effort row was easy to skip, a rating tap once logged the next set, and supersets did not read as one round |
+| 2026-11-15, wizard rebuild 6b | Setup by goal replaces the wizard: one question per screen with a Why sheet, Lift only until PR 7, a preview of the exact plan Start writes, over-budget and 65+ balance choices on Your plan | Owner decisions 2026-11-08 and 2026-11-15; the old wizard asked bodyweight and age for a formula that is gone |
 
 ### Watch
 

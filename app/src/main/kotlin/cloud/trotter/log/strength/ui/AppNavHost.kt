@@ -89,9 +89,9 @@ import cloud.trotter.log.strength.ui.setup.SetupViewModel
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayViewModel
-import cloud.trotter.log.strength.ui.wizard.WizardActions
-import cloud.trotter.log.strength.ui.wizard.WizardScreen
-import cloud.trotter.log.strength.ui.wizard.WizardViewModel
+import cloud.trotter.log.strength.ui.wizard.SetupFlowActions
+import cloud.trotter.log.strength.ui.wizard.SetupFlowScreen
+import cloud.trotter.log.strength.ui.wizard.SetupFlowViewModel
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +103,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.withContext
 
 /**
- * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / new plan),
+ * Single-activity nav graph (spec §8.1, brief D1): setup at `wizard` (first run / new plan),
  * `today` (overview), `plans` (plans list), `plan/{planId}` (one plan's days),
  * `preview/{planId}/{dayId}` (day preview), and `day` / `dayplan` (workout).
  * The plan-scoped workout's `/edit` route opens its editor once. `setup` is
@@ -125,6 +125,7 @@ object Routes {
     const val DAY_EDIT_IN_PLAN = "dayplan/{$DAY_PLAN_ID_ARG}/{$DAY_ID_ARG}/edit"
     fun day(dayId: String, planId: Long? = null, openEditor: Boolean = false) =
         if (planId == null) "$DAY/$dayId" else "dayplan/$planId/$dayId" + if (openEditor) "/edit" else ""
+    // Back stacks saved by older releases still name this route.
     const val WIZARD = "wizard"
     const val YOU = "you"
     const val SETUP = "setup"
@@ -170,9 +171,9 @@ object Routes {
  *
  * [take] latches the *first* resolved value: this is only the initial
  * screen, and after that explicit navigation drives every transition. Without
- * the latch, first-run finish() flipping wizardComplete false→true would
+ * the latch, first-run Start flipping wizardComplete false→true would
  * rebuild the NavHost with a new start destination (resetting the back stack)
- * at the same instant [WizardRoute] explicitly navigates away — the
+ * at the same instant [SetupFlowRoute] explicitly navigates away — the
  * double-navigation D1 warns against.
  */
 @HiltViewModel
@@ -274,14 +275,15 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             }
         }
         composable(Routes.WIZARD) {
-            WizardRoute(
+            SetupFlowRoute(
                 onFinished = {
-                    // Clear both first-run and new-plan wizard stacks. The new
+                    // Clear both first-run and new-plan setup stacks. The new
                     // plan is selected, and Today shows its next day.
                     navController.navigate(Routes.TODAY) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onExit = { navController.popBackStack() },
             )
         }
         composable(
@@ -885,11 +887,11 @@ private fun LogRoute(
 }
 
 @Composable
-private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hiltViewModel()) {
+private fun SetupFlowRoute(onFinished: () -> Unit, onExit: () -> Unit, viewModel: SetupFlowViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // A first-run restore leaves the wizard the same way finishing it does: the
+    // A first-run restore leaves setup the same way finishing it does: the
     // ViewModel flips isComplete once the import lands on a backup that was
-    // itself past the wizard. A backup taken mid-first-run leaves it false and
+    // itself past setup. A backup taken mid-first-run leaves it false and
     // we stay here, now showing the restored answers.
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onFinished()
@@ -899,48 +901,43 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::restoreFromBackup)
     }
-    // System back steps the wizard backward, and the current step recedes under
+    // System back steps setup backward, and the current step recedes under
     // the gesture. On the first step the handler is disabled precisely so the
     // system runs its own back-to-home preview (exiting a fresh install is fine
     // — the draft is in SavedStateHandle either way).
-    val backProgress = rememberBackGestureProgress(enabled = !state.isFirstStep) {
+    val backProgress = rememberBackGestureProgress(enabled = state.initialized && !state.isFirstStep && !state.restore.inFlight && !state.finishInFlight) {
         viewModel.onBack()
     }
     // Registered after the gesture handler so it takes priority while enabled.
     // Back on the first step means leaving the app, and a restore in flight is
     // writing two stores that share no transaction — it stays put.
-    BackHandler(enabled = state.restore.inFlight) {}
+    BackHandler(enabled = state.restore.inFlight || state.finishInFlight) {}
     Box(Modifier.backGesturePreview { backProgress.value }) {
-        WizardScreen(
+        SetupFlowScreen(
             state = state,
-            actions = WizardActions(
+            actions = SetupFlowActions(
                 onNext = viewModel::onNext,
                 onBack = viewModel::onBack,
-                onEmphasisChange = viewModel::setEmphasis,
-                onDaysPerWeekChange = viewModel::setDaysPerWeek,
-                onSplitChange = viewModel::setSplit,
-                onAnchorSchemeChange = viewModel::setAnchorScheme,
-                onDeadliftVariantChange = viewModel::setDeadliftVariant,
-                onCardioModeChange = viewModel::setCardioMode,
-                onCardioPlacementChange = viewModel::setCardioPlacement,
-                onFiveKChange = viewModel::setFiveK,
-                onBodyweightChange = viewModel::setBodyweight,
-                onUnitChange = viewModel::setUnit,
-                onAgeChange = viewModel::setAge,
-                onLevelChange = viewModel::setLevel,
-                onEquipmentToggle = viewModel::toggleEquipment,
-                onLiftWeightChange = viewModel::setLiftWeight,
-                onLiftRepsChange = viewModel::setLiftReps,
-                onFocusChange = viewModel::setFocus,
-                onCardioFamilyChange = viewModel::setCardioFamily,
-                onCardioActivityChange = viewModel::setCardioActivity,
-                onCardioStartByTimeChange = viewModel::setCardioStartByTime,
-                onCardioStartSecondsChange = viewModel::setCardioStartSeconds,
-                onCardioStartMetresChange = viewModel::setCardioStartMetres,
-                onCardioSessionsChange = viewModel::setCardioSessions,
-                onRestDaysChange = viewModel::setRestDays,
-                onLiftDaysChange = viewModel::setLiftDays,
-                onDistanceUnitChange = viewModel::setDistanceUnit,
+                onExit = onExit,
+                onSubGoal = viewModel::setSubGoal,
+                onDays = viewModel::setDays,
+                onMinutes = viewModel::setMinutes,
+                onPreset = viewModel::choosePreset,
+                onChooseExactly = viewModel::chooseExactly,
+                onToggleEquipment = viewModel::toggleEquipment,
+                onUnit = viewModel::setUnit,
+                onStepOption = viewModel::setStepOption,
+                onExperience = viewModel::setExperience,
+                onOlderAdult = viewModel::setOlderAdult,
+                onMain = viewModel::setMain,
+                onRecentWeight = viewModel::setRecentWeight,
+                onRecentReps = viewModel::setRecentReps,
+                onRecentEffort = viewModel::setRecentEffort,
+                onBalanceDays = viewModel::setBalanceDays,
+                onDropLift = viewModel::dropLift,
+                onLongerSessions = viewModel::longerSessions,
+                onRetryPreview = viewModel::retryPreview,
+                onReviewAnswers = viewModel::reviewAnswers,
                 onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },
             ),
         )

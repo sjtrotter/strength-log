@@ -46,6 +46,7 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
         search: (() -> Unit)? = null,
     ): Target? {
         var lastFailure: PlaytestError? = null
+        var hiddenFrames = 0
         while (true) {
             if (deadline.expired) throw lastFailure ?: deadline.timeout()
             val collection = nodes.onAllNodes(matcher(selector, typing, deadline), useUnmergedTree = typing)
@@ -65,8 +66,10 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
             val present = index < matches.size
             val unique = present && (selector.index != null || matches.size == 1)
             val disabled = unique && requireEnabled && matches[index].config.contains(SemanticsProperties.Disabled)
-            // A sheet or page sliding in has its node before its bounds reach the window.
+            // A sheet or page sliding in has its node before its bounds reach the window; a node still
+            // off-screen after the settle frames is genuinely off-screen and needs scrollTo.
             val hidden = unique && !disabled && requireVisible && !matches[index].visibleForTouch()
+            hiddenFrames = if (hidden) hiddenFrames + 1 else 0
             if (absent && !present) return null
             if (!absent && unique && !disabled && !hidden) {
                 return Target(collection[index], matches[index])
@@ -93,6 +96,7 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
                 }
             }
             lastFailure = failure
+            if (hidden && hiddenFrames > SETTLE_FRAMES) throw failure
             try {
                 if (!present && !absent) search?.invoke()
                 if (!deadline.pause(nodes)) throw failure
@@ -149,3 +153,5 @@ private fun SemanticsNode.selectorTexts(typing: Boolean): List<String> {
         parent?.ownTexts().orEmpty() + parentField?.descendants().orEmpty().flatMap { it.ownTexts() }).distinct()
 }
 
+/** About a second of frames: longer than an M3 sheet or page transition. */
+private const val SETTLE_FRAMES = 60

@@ -301,7 +301,9 @@ class SetupFlowViewModelTest {
         assertEquals(30, answers(fresh).minutes)
         assertTrue(fresh.uiState.value.canStart); assertTrue(ready(fresh).over)
         fresh.onNext(); advanceUntilIdle()
-        assertNull(fresh.uiState.value.finishError); assertTrue(fresh.uiState.value.isComplete)
+        val after = fresh.uiState.value
+        assertNull(after.finishError)
+        assertTrue(after.isComplete, "not complete: step=${after.step} plan=${after.plan::class.simpleName} canStart=${after.canStart} plans=${db.planDao().allPlans().size}")
         assertEquals(1, db.planDao().allPlans().size)
         assertEquals(5, repo.plans.programFlow.first().days.single().exercises.count { it.rule?.role == SlotRole.MAIN })
     }

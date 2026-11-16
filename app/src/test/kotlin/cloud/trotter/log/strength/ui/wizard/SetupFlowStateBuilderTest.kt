@@ -78,6 +78,10 @@ class SetupFlowStateBuilderTest {
         assertEquals(a, builder.answers(builder.draftFrom(a)))
         assertEquals(SetupStep.GOAL, builder.draftFrom(a).step)
     }
+    @Test fun `prefill resets mains when a stored main is excluded`() {
+        val a = SetupAnswers(mains = listOf("bb_back_squat"), excluded = setOf("bb_back_squat"))
+        assertNull(builder.draftFrom(a).mains)
+    }
     @Test fun `plan rows read the draft`() {
         val draft = Planner.plan(reference)
         val rows = preview(reference).rows

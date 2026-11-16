@@ -753,8 +753,12 @@ class TrackerRepository(
      *  Before Start it also shows each track's opening ([initialRunTracks]), still without writing. */
     fun observeDay(planId: Long, dayId: String): Flow<PerformedDay> = combine(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
-        plans.wizardAnswersFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges(), settings.globalLifterFlow, planDao.observePlans()) { catalog, _, global, plans ->
-            catalog to olderAdult(plans.firstOrNull { it.id == planId }, global)
+        plans.wizardAnswersFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges(),
+            combine(settings.globalLifterFlow, planDao.observePlan(planId)) { global, plan ->
+                olderAdult(plan, global)
+            }.distinctUntilChanged(),
+        ) { catalog, _, olderAdult ->
+            catalog to olderAdult
         },
     ) { program, slots, tracks, answers, (catalog, olderAdult) ->
         val seeds = plans.seeds(planId, slots.forRun(tracks.droppedPartners, tracks.skippedLifts),

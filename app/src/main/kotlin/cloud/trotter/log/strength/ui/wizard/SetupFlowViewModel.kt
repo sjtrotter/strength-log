@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -44,7 +45,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Keeps every setup answer and the current step in one saved JSON draft.
- *  Start creates once through createPlannedPlan under the restore lock and marks setup complete last. */
+ *  Start reuses a matching plan under the restore lock and marks setup complete last. */
 @HiltViewModel
 class SetupFlowViewModel @Inject constructor(
     private val repo: PlanRepository,
@@ -214,7 +215,9 @@ class SetupFlowViewModel @Inject constructor(
                 backupService.withRestoreLock {
                     if (firstRun.value && settings.wizardCompleteFlow.first()) return@withRestoreLock
                     val remembered = savedState.get<Long>(Keys.CREATED_PLAN_ID)
-                    val id = if (remembered != null && repo.planHasDays(remembered)) remembered else {
+                    val rememberedPlan = repo.plansFlow.first().firstOrNull { it.id == remembered }
+                    val id = if (rememberedPlan != null && rememberedPlan.recipeJson == SetupRecipeJson.encode(answers) &&
+                        repo.planHasDays(rememberedPlan.id)) rememberedPlan.id else {
                         repo.createPlannedPlan(planName(answers), answers).also { savedState[Keys.CREATED_PLAN_ID] = it }
                     }
                     repo.publishPlannedPlan(id)

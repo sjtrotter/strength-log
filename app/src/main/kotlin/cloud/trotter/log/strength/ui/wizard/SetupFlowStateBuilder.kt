@@ -72,10 +72,12 @@ object SetupFlowStateBuilder {
 
     fun draftFrom(answers: SetupAnswers): SetupDraft {
         fun index(row: StepRow, lb: Double) = stepOptionsLb(row, answers.unit).indexOf(lb).coerceAtLeast(0)
+        val choices = Planner.mainChoices(answers.equipment, answers.excluded).flatten().toSet()
         return SetupDraft(goal = answers.goal, days = answers.days, minutes = answers.minutes,
             equipment = answers.equipment, unit = answers.unit, barStep = index(StepRow.BAR, answers.steps.barLb),
             dumbbellStep = index(StepRow.DUMBBELL, answers.steps.dumbbellLb), stackStep = index(StepRow.STACK, answers.steps.stackLb),
-            experience = answers.experience, olderAdult = answers.olderAdult, mains = answers.mains,
+            experience = answers.experience, olderAdult = answers.olderAdult,
+            mains = answers.mains?.takeIf { mains -> mains.all(choices::contains) },
             recent = answers.recent.mapValues { (_, row) -> RecentDraft(row.weightLb, row.reps, row.effort) },
             balanceDays = answers.balanceDays)
     }

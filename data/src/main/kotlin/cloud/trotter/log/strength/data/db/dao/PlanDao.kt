@@ -15,6 +15,9 @@ interface PlanDao {
     @Query("SELECT * FROM plan ORDER BY position, id")
     fun observePlans(): Flow<List<PlanEntity>>
 
+    @Query("SELECT * FROM plan WHERE id = :id")
+    fun observePlan(id: Long): Flow<PlanEntity?>
+
     @Query("SELECT * FROM plan ORDER BY position, id")
     suspend fun allPlans(): List<PlanEntity>
 

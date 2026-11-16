@@ -28,22 +28,15 @@ import cloud.trotter.log.strength.ui.day.workoutSetCardioDoneFixture
 import cloud.trotter.log.strength.ui.day.workoutSetEmptyFixture
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.WorkoutSwapUndo
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.theme.ThemePreference
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.workoutLiftSheetFixture
 import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
 import cloud.trotter.log.strength.ui.day.DayUiState
-import cloud.trotter.log.strength.ui.day.UndoOffer
-import cloud.trotter.log.strength.ui.day.WorkoutFocus
 import cloud.trotter.log.strength.ui.day.WorkoutSelection
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.WorkoutState
 import cloud.trotter.log.strength.ui.day.workoutRest
-import cloud.trotter.log.strength.ui.day.withWorkoutRestHint
 import cloud.trotter.log.strength.ui.day.workoutSetLoggedFixture
 import cloud.trotter.log.strength.ui.day.workoutSetMovedOnFixture
 import cloud.trotter.log.strength.ui.day.workoutSetNextLiftFixture
@@ -57,7 +50,6 @@ import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import org.junit.After
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -89,19 +81,7 @@ class WorkoutSetScreenPreviewShotsTest {
 
     @Test fun set() = render("01-set.png", workoutSetSingleFixture())
 
-    @Test fun supersetMain() = render("02-superset-main.png", workoutSetSupersetFixture())
-
-    @Test fun supersetPartner() {
-        val state = workoutSetSupersetFixture()
-        render("03-superset-ss.png", state.copy(
-            exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
-                if (row.index == 1) row.copy(done = true) else row
-            }) },
-            workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1), undo = UndoOffer(
-                1L, Slot.MAIN, 1, "DB Bench Press", LoggedSet(80.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB,
-            )),
-        ).withWorkoutRestHint(true, emptyMap()))
-    }
+    @Test fun supersetReady() = render("02-superset-ready.png", workoutSetSupersetFixture())
 
     @Test fun rest() = render("04-rest.png", workoutSetSingleFixture().copy(
         rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
@@ -127,19 +107,6 @@ class WorkoutSetScreenPreviewShotsTest {
     }
 
     @Test fun supersetLight() = render("07-superset-light.png", workoutSetSupersetFixture(), ThemePreference.LIGHT)
-
-    @Test fun supersetRest() {
-        val state = workoutSetSupersetFixture()
-        render("08-superset-rest.png", state.copy(
-            exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
-                if (row.index < 2) row.copy(done = true, partner = row.partner?.copy(done = true)) else row
-            }) },
-            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
-            workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2), undo = UndoOffer(
-                1L, Slot.SS, 1, "Seated Cable Row", LoggedSet(120.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB,
-            )),
-        ))
-    }
 
     @Test fun supersetCompleted() {
         val state = workoutSetSupersetFixture()

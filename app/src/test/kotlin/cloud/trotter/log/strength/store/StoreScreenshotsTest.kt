@@ -227,12 +227,15 @@ class StoreScreenshotsTest {
     @Test
     fun superset() {
         val day = supersetDayState()
+        val card = day.exercises.single { it.isSuperset }
         renderDay(
             "04-superset.png",
             day,
             edit = dayEditState(day, supersetExercises),
             beforeCapture = {
-                composeTestRule.onNodeWithContentDescription("Seated Cable Row, next", substring = true).assertIsDisplayed()
+                composeTestRule.onNodeWithText("Log round", substring = true).assertIsDisplayed()
+                composeTestRule.onNodeWithText(card.title).assertIsDisplayed()
+                composeTestRule.onNodeWithText(requireNotNull(card.partnerTitle)).assertIsDisplayed()
             },
         )
     }

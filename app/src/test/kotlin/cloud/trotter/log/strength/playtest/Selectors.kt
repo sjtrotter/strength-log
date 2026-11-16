@@ -27,6 +27,7 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
             (selector.text("desc")?.let { it in node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty() } ?: true) &&
             (selector.text("tag")?.let { it == node.config.getOrNull(SemanticsProperties.TestTag) } ?: true) &&
             (selector.text("role")?.let { it == node.config.getOrNull(SemanticsProperties.Role)?.toString() } ?: true) &&
+            (selector.flag("enabled")?.let { it != node.config.contains(SemanticsProperties.Disabled) } ?: true) &&
             (!(typing || selector.flag("editable") == true) || node.config.contains(SemanticsProperties.EditableText)) &&
             (selector.flag("inDialog")?.let { wanted ->
                 wanted == generateSequence(node) { it.parent }.any { isDialog().matches(it) }

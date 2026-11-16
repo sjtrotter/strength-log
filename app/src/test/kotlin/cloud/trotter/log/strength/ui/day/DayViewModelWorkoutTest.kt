@@ -55,6 +55,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -250,11 +252,6 @@ class DayViewModelWorkoutTest {
         vm.startWorkout()
         runCurrent()
         val id = roundTwo(vm)
-        vm.logFocusedSet()
-        runCurrent()
-        assertEquals(WorkoutFocus(id, Slot.SS, 1), vm.uiState.value.workout?.focus)
-        assertNull(vm.uiState.value.workout?.review)
-        clock.now++
         val emissions = mutableListOf<DayUiState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             vm.uiState.collect { emissions += it }
@@ -527,17 +524,263 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.workout?.undo)
     }
 
+    @Test fun `★ log round writes both halves with one stamp and arms one rest`() = test {
+        prepare(listOf(bench(sets = 4, superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        val writes = mutableListOf<List<Boolean>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repo.dayTracksFlow(requireNotNull(vm.uiState.value.planId), "A").map { tracks ->
+                listOf(Slot.MAIN, Slot.SS).map { slot ->
+                    tracks.tracks.single { it.programExerciseId == id && it.slot == slot }.sets[1].done
+                }
+            }.distinctUntilChanged().collect { writes += it }
+        }
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(listOf(listOf(false, false), listOf(true, true)), writes)
+        for (slot in listOf(Slot.MAIN, Slot.SS)) assertEquals(clock.now, track(vm, id, slot)[1].completedAtMillis)
+        assertEquals(1, runtime.armed.size)
+        assertEquals("Round 3, DB Bench Press 80 × 10", runtime.armed.single().nextSetLabel)
+        assertEquals(runtime.armed.single(), settings.phoneRestFlow.first())
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.undo)
+        assertEquals(Slot.MAIN, target.slot)
+        assertEquals(1, target.index)
+        assertEquals(clock.now, target.loggedAtMillis)
+        assertEquals(80.0, target.before.weightLb, 0.0)
+        assertEquals(120.0, requireNotNull(target.partner).before.weightLb, 0.0)
+        assertNotNull(vm.uiState.value.workout?.undo?.partnerSet)
+    }
+
+    @Test fun `★ Log round then Start keeps the review before rest starts`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val emissions = mutableListOf<DayUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { emissions += it }
+        }
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(vm.uiState.value.startSheet)
+        assertFalse(track(vm, id)[0].done)
+        assertFalse(track(vm, id, Slot.SS)[0].done)
+        val gate = CompletableDeferred<Unit>()
+        val ready = CompletableDeferred<Unit>()
+        restWriteGate = gate
+        restWriteReady = ready
+        vm.confirmStart()
+        runCurrent()
+        assertTrue(ready.isCompleted)
+        for (slot in listOf(Slot.MAIN, Slot.SS)) {
+            assertTrue(track(vm, id, slot)[0].done)
+            assertEquals(clock.now, track(vm, id, slot)[0].completedAtMillis)
+        }
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.review)
+        assertEquals(clock.now, target.loggedAtMillis)
+        assertEquals(0, target.index)
+        assertEquals(WorkoutReview(id, 0, listOf(Slot.MAIN, Slot.SS), listOf(Slot.MAIN, Slot.SS)), vm.uiState.value.workout?.review)
+        assertFalse(emissions.any {
+            it.workout?.let { workout -> workout.focus == WorkoutFocus(id, Slot.MAIN, 1) && workout.review == null } == true
+        })
+        gate.complete(Unit)
+        restWriteGate = null
+        restWriteReady = null
+        runCurrent()
+        assertEquals(1, runtime.armed.size)
+        assertNotNull(settings.workoutRecordFlow.first()?.undo?.partner)
+    }
+
+    @Test fun `★ minus changes only its half`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        val main = track(vm, id)
+        val ss = track(vm, id, Slot.SS)
+        vm.decrementFocusedReps(id, Slot.SS, 1)
+        runCurrent()
+        assertEquals(main, track(vm, id))
+        assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id, Slot.SS))
+        vm.decrementFocusedReps(id, Slot.MAIN, 1)
+        runCurrent()
+        assertEquals(main.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id))
+        assertEquals(9, track(vm, id, Slot.SS)[1].reps)
+    }
+
+    @Test fun `decrement for a different exercise than the focus writes nothing`() = test {
+        prepare(listOf(bench(), bench().copy(exerciseId = "bb_bench")))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val outgoingId = vm.uiState.value.exercises.first().programExerciseId
+        val focusedId = vm.uiState.value.exercises.last().programExerciseId
+        vm.selectWorkoutLift("exercise:$focusedId")
+        runCurrent()
+        assertEquals(WorkoutFocus(focusedId, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        val before = requireNotNull(repo.openRunFlow.first())
+        vm.decrementFocusedReps(outgoingId, Slot.MAIN, 0)
+        runCurrent()
+        assertEquals(before, repo.openRunFlow.first())
+    }
+
+    @Test fun `decrement for a hidden round without a timed rep event writes nothing`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        assertNull(vm.uiState.value.timedRep)
+        val before = requireNotNull(repo.openRunFlow.first())
+        vm.decrementFocusedReps(id, Slot.SS, 1)
+        runCurrent()
+        assertEquals(before, repo.openRunFlow.first())
+    }
+
+    @Test fun `partner decrement uses the displayed round after an earlier MAIN is unticked`() = test {
+        prepare(listOf(ProgramExercise("pushup", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
+            superset = SupersetPartner("cable_row"))))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = roundTwo(vm)
+        vm.startTimedRep(id, 1)
+        runCurrent()
+        assertEquals(1, requireNotNull(vm.uiState.value.timedRep).event.setIndex)
+        vm.openLiftSheet(id, Slot.MAIN)
+        runCurrent()
+        vm.toggleDone(id, 0, false, Slot.MAIN)
+        runCurrent()
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        assertEquals(1, requireNotNull(vm.uiState.value.timedRep).event.setIndex)
+        val main = track(vm, id)
+        val ss = track(vm, id, Slot.SS)
+        vm.decrementFocusedReps(id, Slot.SS, 1)
+        runCurrent()
+        assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = set.reps - 1) else set },
+            track(vm, id, Slot.SS))
+        assertEquals(ss[0], track(vm, id, Slot.SS)[0])
+        assertEquals(main, track(vm, id))
+    }
+
+    @Test fun `★ undo reverts both halves of a round`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        val beforeMain = track(vm, id)
+        val beforeSs = track(vm, id, Slot.SS)
+        vm.logFocusedSet()
+        runCurrent()
+        rateAndContinue(vm)
+        val writes = mutableListOf<List<Boolean>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repo.dayTracksFlow(requireNotNull(vm.uiState.value.planId), "A").map { tracks ->
+                listOf(Slot.MAIN, Slot.SS).map { slot ->
+                    tracks.tracks.single { it.programExerciseId == id && it.slot == slot }.sets[1].done
+                }
+            }.distinctUntilChanged().collect { writes += it }
+        }
+        runCurrent()
+        vm.undoLastLog()
+        runCurrent()
+        assertEquals(listOf(listOf(true, true), listOf(false, false)), writes)
+        assertEquals(beforeMain, track(vm, id))
+        assertEquals(beforeSs, track(vm, id, Slot.SS))
+        assertNull(settings.workoutRecordFlow.first()?.undo)
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+    }
+
+    @Test fun `★ undo declines a round when the watch edited the partner`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        vm.logFocusedSet()
+        runCurrent()
+        rateAndContinue(vm)
+        val state = vm.uiState.value
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 1,
+            reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+            exerciseId = "cable_row",
+        )))
+        runCurrent()
+        val main = track(vm, id)
+        val ss = track(vm, id, Slot.SS)
+        assertNull(vm.uiState.value.workout?.undo)
+        vm.undoLastLog()
+        runCurrent()
+        assertEquals(main, track(vm, id))
+        assertEquals(ss, track(vm, id, Slot.SS))
+    }
+
+    // The watch completes both halves of a superset index together (SetEditApplier's pairing),
+    // so one half done alone comes from a Lift sheet tick.
+    @Test fun `★ log round after a sheet tick logged one half logs the other`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        vm.toggleDone(id, 1, true, Slot.SS)
+        runCurrent()
+        val ss = track(vm, id, Slot.SS)
+        vm.logFocusedSet()
+        runCurrent()
+        assertTrue(track(vm, id)[1].done)
+        assertEquals(ss, track(vm, id, Slot.SS))
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.undo)
+        assertEquals(Slot.MAIN, target.slot)
+        assertNull(target.partner)
+        assertNull(vm.uiState.value.workout?.undo?.partnerSet)
+        rateAndContinue(vm)
+        val ratedSs = track(vm, id, Slot.SS)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(track(vm, id)[1].done)
+        assertEquals(ratedSs, track(vm, id, Slot.SS))
+    }
+
+    @Test fun `★ timed rep MAIN logs through its timer before the round logs SS`() = test {
+        prepare(listOf(ProgramExercise("pushup", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
+            superset = SupersetPartner("cable_row"))), restEnabled = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startTimedRep(id, 0)
+        runCurrent()
+        at(220_000)
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.timedRep).event.awaitingCount)
+        vm.changeTimedRepDraft("18")
+        vm.logTimedRepCount()
+        runCurrent()
+        val main = track(vm, id)
+        assertEquals(18, main[0].reps)
+        assertTrue(main[0].done)
+        assertFalse(track(vm, id, Slot.SS)[0].done)
+        assertNull(settings.phoneRestFlow.first())
+        clock.now++
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(main, track(vm, id))
+        assertTrue(track(vm, id, Slot.SS)[0].done)
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.undo)
+        assertEquals(Slot.SS, target.slot)
+        assertNull(target.partner)
+        assertNotNull(vm.uiState.value.workout?.review)
+        assertEquals(1, runtime.armed.size)
+    }
+
     @Test fun `★ a superset round reviews both lifts and waits for both`() = test {
         prepare(listOf(bench(superset = true)), restEnabled = true)
         val vm = readyVm()
         vm.startWorkout()
         runCurrent()
         val id = roundTwo(vm)
-        vm.logFocusedSet()
-        runCurrent()
-        assertNull(vm.uiState.value.workout?.review)
-        assertNotNull(vm.uiState.value.workout?.undo)
-        clock.now++
         vm.logFocusedSet()
         runCurrent()
         assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN, Slot.SS), listOf(Slot.MAIN, Slot.SS)), vm.uiState.value.workout?.review)
@@ -629,7 +872,7 @@ class DayViewModelWorkoutTest {
         assertEquals(150, vm.dayEditState.value.slots.single().lifts.single { it.slot == Slot.MAIN }.restSeconds)
         vm.startWorkout()
         runCurrent()
-        vm.logFocusedSet()
+        vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         assertNull(settings.phoneRestFlow.first())
         vm.logFocusedSet()
@@ -1039,7 +1282,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         assertEquals(before[0].copy(reps = 4), track(vm, id)[0])
         assertEquals(before.drop(1), track(vm, id).drop(1))
@@ -1063,7 +1306,7 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         assertEquals(before, track(vm, id))
         assertEquals(1, vm.uiState.value.exercises.single().rows[0].reps)
@@ -1075,7 +1318,7 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         vm.viewModelScope.cancel()
 
@@ -1093,8 +1336,8 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps()
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         vm.startWorkout()
         runCurrent()
         vm.logFocusedSet()
@@ -1109,13 +1352,10 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench(superset = true)))
         val vm = readyVm()
         val id = roundTwo(vm)
-        vm.logFocusedSet()
-        runCurrent()
-        assertEquals(WorkoutFocus(id, Slot.SS, 1), vm.uiState.value.workout?.focus)
         val main = track(vm, id)
         val partner = track(vm, id, Slot.SS)
 
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(id, Slot.SS, 1)
         runCurrent()
         assertEquals(main, track(vm, id))
         assertEquals(partner.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set },
@@ -1129,24 +1369,17 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
-    fun `★ superset logs one half cancels mid-round rest and labels the next round`() = test {
+    fun `★ superset logs a round and labels the next round`() = test {
         prepare(listOf(bench(superset = true)), restEnabled = true)
         val vm = readyVm()
         val id = roundTwo(vm)
         settings.setPhoneRest(PhoneRest(190_000, 90, "Old rest"))
         runCurrent()
-        val cancellations = runtime.cancellations
         vm.logFocusedSet()
         runCurrent()
         assertTrue(track(vm, id)[1].done)
-        assertFalse(track(vm, id, Slot.SS)[1].done)
-        assertNull(settings.phoneRestFlow.first())
-        assertEquals(cancellations + 1, runtime.cancellations)
-        assertTrue(runtime.armed.isEmpty())
-        assertEquals(WorkoutFocus(id, Slot.SS, 1), vm.uiState.value.workout!!.focus)
-        vm.logFocusedSet()
-        runCurrent()
         assertTrue(track(vm, id, Slot.SS)[1].done)
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 2), vm.uiState.value.workout!!.focus)
         assertEquals("Round 3, DB Bench Press 80 × 10", runtime.armed.single().nextSetLabel)
         assertEquals(runtime.armed.single(), settings.phoneRestFlow.first())
     }

@@ -46,7 +46,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.OutlinedButton
@@ -56,10 +55,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -93,7 +90,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
@@ -187,6 +183,16 @@ fun WorkoutSetScreen(
 
 @Composable
 private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: ExerciseCatalog): String {
+    undo.partnerSet?.let { partner ->
+        val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
+        val main = if (undo.slot == Slot.MAIN) undo.set else partner
+        val ss = if (undo.slot == Slot.MAIN) partner else undo.set
+        fun summary(set: LoggedSet, tracking: TrackingType) = SetFormatter.summary(
+            tracking, set.weightLb, set.reps, set.seconds, undo.unit, spaced = true).trim()
+        return stringResource(R.string.workout_logged_round, undo.index + 1,
+            summary(main, card?.tracking ?: undo.tracking),
+            summary(ss, card?.partnerTracking ?: TrackingType.WEIGHTED))
+    }
     val focus = state.workout?.focus
     val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
         stringResource(R.string.workout_set_number, undo.index + 1)
@@ -355,10 +361,11 @@ private fun WorkoutSetContent(
                         values != null && card != null -> if (resting) WorkoutActionSpec(
                             stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout,
                         ) else WorkoutActionSpec(
-                            stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
+                            if (card.isSuperset) stringResource(R.string.workout_log_round, index + 1) else
+                                stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
                             actions.onLogFocusedSet,
-                            secondary = if (card.tracking(slot) != TrackingType.TIMED) {
-                                WorkoutSecondaryAction.DecrementReps(values.reps > 1, actions.onDecrementFocusedReps)
+                            secondary = if (!card.isSuperset && card.tracking(slot) != TrackingType.TIMED) {
+                                WorkoutSecondaryAction.DecrementReps(values.reps > 1) { actions.onDecrementFocusedReps(card.programExerciseId, Slot.MAIN, index) }
                             } else null)
                         else -> null
                     }
@@ -431,7 +438,7 @@ private fun WorkoutClockProgress(fraction: Float) {
 }
 
 @Composable
-private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, index: Int, actions: DayActions) {
+private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, index: Int, actions: DayActions, maxFontSize: TextUnit = SetNumerals.fontSize) {
     val duration = card.timedRepDurationSeconds ?: return
     if (timed?.event?.awaitingCount == true) {
         Text(stringResource(R.string.timed_rep_time_up), style = MaterialTheme.typography.headlineLarge,
@@ -446,10 +453,10 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
             colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp),
             // The default pill shape clips the corners of numerals this tall.
             shape = RectangleShape) {
-            WorkoutHeroText(formatCardioTime(seconds))
+            WorkoutHeroText(formatCardioTime(seconds), maxFontSize = maxFontSize)
         }
     } else {
-        WorkoutHeroText(formatCardioTime(seconds))
+        WorkoutHeroText(formatCardioTime(seconds), maxFontSize = maxFontSize)
         WorkoutClockProgress(seconds.toFloat() / duration)
     }
     Text(stringResource(R.string.workout_clock_remaining), style = MaterialTheme.typography.bodyMedium,
@@ -728,7 +735,26 @@ private fun WorkoutSetCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (compact) {
-                Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title, style = MaterialTheme.typography.titleMedium)
+                val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
+                if (logged) Text(title, style = MaterialTheme.typography.titleMedium) else {
+                    val allSetsLabel = stringResource(R.string.workout_all_sets_for, title)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(title, style = MaterialTheme.typography.titleMedium)
+                            (if (slot == Slot.SS) card.partnerMarker else card.marker)?.let {
+                                Text(stringResource(it.label), style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, slot) },
+                            colors = neutralTextButtonColors(),
+                            modifier = Modifier.testTag(if (slot == Slot.SS) "workout-all-sets-ss" else "workout-all-sets-main")
+                                .semantics { contentDescription = allSetsLabel }) {
+                            Text(stringResource(R.string.day_all_sets))
+                        }
+                    }
+                }
             } else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
@@ -741,7 +767,7 @@ private fun WorkoutSetCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (logged) {
+            if (logged || (compact && values.done)) {
                 val editLabel = stringResource(R.string.workout_edit_set, index + 1)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
@@ -756,22 +782,34 @@ private fun WorkoutSetCard(
             } else {
                 val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
                 val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
-                if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
-                    WorkoutEditableHero(card, slot, index, actions) {
-                        Crossfade(values to tracking,
-                            animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHero") {
-                            (set, type) -> WorkoutHero(set, type, state.unit)
+                val hero: @Composable () -> Unit = {
+                    if (timed) WorkoutTimedRepHero(card, event, index, actions, if (compact) 56.sp else SetNumerals.fontSize) else {
+                        WorkoutEditableHero(card, slot, index, actions) {
+                            Crossfade(values to tracking,
+                                animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHero") {
+                                (set, type) -> WorkoutHero(set, type, state.unit, if (compact) 56.sp else SetNumerals.fontSize)
+                            }
                         }
                     }
                 }
+                if (compact) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) { hero() }
+                    OutlinedIconButton(onClick = { actions.onDecrementFocusedReps(card.programExerciseId, slot, index) },
+                        enabled = values.reps > 1 && tracking != TrackingType.TIMED && !timed,
+                        modifier = Modifier.size(48.dp).testTag(if (slot == Slot.SS) "workout-minus-ss" else "workout-minus-main")) {
+                        Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))
+                    }
+                } else hero()
             }
-            if (!compact) {
+
+            if (!compact || !logged) {
+                val detailStyle = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleLarge
                 if (tracking == TrackingType.TIMED && values.weightDisplay > 0.0) {
                     Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
-                        style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        style = detailStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 workoutDetail(card, slot, index, state.unit, catalog)?.let {
-                    Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(it, style = detailStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (logged && slot in effortSlots) {
@@ -858,17 +896,8 @@ private fun WorkoutSuperset(
         },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = if (timed) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier)
-            if (!workout.completedView) {
-                val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
-                (if (slot == Slot.SS) card.partnerMarker else card.marker)?.let {
-                    Text(stringResource(it.label), style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+        Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = if (timed) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier)
         AnimatedContent(
             targetState = state,
             contentKey = { it.workout?.focus to it.workout?.completedView },
@@ -884,14 +913,14 @@ private fun WorkoutSuperset(
                 if (outgoing) Modifier.clearAndSetSemantics { } else Modifier,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                WorkoutSupersetLift(shown, actions, catalog, onNote)
+                WorkoutSupersetLift(shown, actions, catalog, reducedMotion, onNote)
             }
         }
     }
 }
 
 @Composable
-private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog, onNote: (Long) -> Unit) {
+private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog, reducedMotion: Boolean, onNote: (Long) -> Unit) {
     val workout = state.workout ?: return
     val card = state.workoutCard ?: return
     if (workout.completedView) {
@@ -916,90 +945,14 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
     val focus = workout.focus ?: return
     val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
     val index = event?.event?.setIndex ?: focus.index
-    val row = card.rows.getOrNull(index) ?: return
-    val slot = if (event != null) Slot.MAIN else focus.slot
-    val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
-                style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("workout-now-lift"))
-            if (card.note.isNotBlank()) Text(card.note,
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
-                    onNote(card.programExerciseId)
-                })
-        }
-        TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, slot) }, colors = neutralTextButtonColors()) {
-            Text(stringResource(R.string.day_all_sets))
-        }
-    }
-    row.values(slot)?.let { values ->
-        if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
-            WorkoutEditableHero(card, slot, index, actions) {
-                WorkoutHero(values, card.tracking(slot), state.unit)
-            }
-        }
-        if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
-            Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
-                style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        workoutDetail(card, slot, index, state.unit, catalog)?.let {
-            Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-    WorkoutPartnerCard(card, row, slot, state.unit, actions)
-    if (state.workoutThenRest) {
-        Text(stringResource(R.string.workout_then_rest), style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun WorkoutPartnerCard(card: ExerciseCardState, row: SetRowState, slot: String, unit: WeightUnit, actions: DayActions) {
-    val partnerSlot = if (slot == Slot.MAIN) Slot.SS else Slot.MAIN
-    val values = row.values(partnerSlot)
-    val done = values?.done == true
-    val status = stringResource(if (done) R.string.set_edit_done else R.string.plan_next)
-    val spokenStatus = stringResource(if (done) R.string.workout_partner_done else R.string.workout_partner_next)
-    val name = (if (partnerSlot == Slot.SS) card.partnerTitle else card.title)
-        ?.takeIf { it.isNotBlank() && values != null } ?: stringResource(R.string.workout_not_available)
-    val value = values?.let { workoutValue(it, card.tracking(partnerSlot), unit) }.orEmpty()
-    val description = if (value.isEmpty()) {
-        stringResource(R.string.workout_open_sets_without_value, name, spokenStatus)
-    } else stringResource(R.string.workout_open_sets, name, spokenStatus, value)
-    val largeFont = LocalDensity.current.fontScale >= 1.5f
-    OutlinedCard(Modifier.fillMaxWidth().testTag("workout-partner-card")) {
-        ListItem(
-            leadingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (done) Icon(Icons.Default.Check, null)
-                    Text(status)
-                }
-            },
-            headlineContent = { Text(name) },
-            supportingContent = if (largeFont && value.isNotEmpty()) { { Text(value,
-                style = MaterialTheme.typography.bodyLarge.copy(letterSpacing = 0.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant) } } else null,
-            trailingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!largeFont && value.isNotEmpty()) Text(value,
-                        style = MaterialTheme.typography.bodyLarge.copy(letterSpacing = 0.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-                }
-            },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                .testTag("workout-half-$partnerSlot")
-                .clickable { actions.onOpenLiftSheet(card.programExerciseId, partnerSlot) }
-                .clearAndSetSemantics {
-                    contentDescription = description
-                    onClick {
-                        actions.onOpenLiftSheet(card.programExerciseId, partnerSlot)
-                        true
-                    }
-                },
-        )
+    if (card.note.isNotBlank()) Text(card.note,
+        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.note_edit_action)) {
+            onNote(card.programExerciseId)
+        })
+    for (slot in listOf(Slot.MAIN, Slot.SS)) {
+        WorkoutSetCard(state, card, slot, index, actions, catalog, reducedMotion, compact = true)
     }
 }
 

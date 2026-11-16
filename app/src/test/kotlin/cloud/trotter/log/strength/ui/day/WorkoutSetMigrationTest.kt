@@ -39,11 +39,12 @@ class WorkoutSetMigrationTest {
             SetRowState(1, "2", false, 50.0, 10, true),
         ))
         val state = base.copy(exercises = listOf(card)).withWorkoutSelection()
+        assertEquals(WorkoutFocus(card.programExerciseId, Slot.SS, 0), state.workout?.focus)
         val writes = mutableListOf<Pair<Int, String>>()
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
             onLogFocusedSet = { state.workout?.focus?.let { writes += it.index to it.slot } },
         )) } }
-        rule.onNodeWithText("Log 90 lb × 12").assertIsEnabled().performClick()
+        rule.onNodeWithText("Log round 1").assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(listOf(0 to Slot.SS), writes) }
     }
 
@@ -68,6 +69,7 @@ class WorkoutSetMigrationTest {
 
     @Test fun finishAcceptsOnlyPartnerWorkIncludingRetiredWork() {
         var retired by mutableStateOf(false)
+        var finishes = 0
         val base = workoutSetSupersetFixture()
         rule.setContent { AppTheme {
             val card = base.exercises.single().copy(rows = listOf(
@@ -75,11 +77,17 @@ class WorkoutSetMigrationTest {
             ))
             WorkoutSetHost(base.copy(exercises = listOf(card),
                 retiredTracks = if (retired) listOf(RetiredTrackLine("Seated Cable Row", 1)) else emptyList(),
-            ).withWorkoutSelection())
+            ).withWorkoutSelection(), workoutActions().copy(onDone = { finishes++ }))
         } }
-        rule.onNodeWithText("Finish").assertIsEnabled()
+        rule.onNodeWithText("Finish").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
         rule.runOnIdle { retired = true }
-        rule.onNodeWithText("Finish").assertIsEnabled()
+        rule.onNodeWithText("Finish").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
+        rule.runOnIdle { assertEquals(2, finishes) }
     }
 
     @Test fun blankResistanceAddsNoAuthoredDetail() {
@@ -88,6 +96,7 @@ class WorkoutSetMigrationTest {
             headerTarget = HeaderTarget.Prescribed("3 × 12", resistance = "  "),
         )
         rule.setContent { AppTheme { WorkoutSetHost(base.copy(exercises = listOf(card))) } }
+        rule.onNodeWithText("Log 190 lb × 5").assertIsEnabled()
         rule.onNodeWithText("Each side", substring = true).assertDoesNotExist()
         rule.onNodeWithText("  ").assertDoesNotExist()
     }

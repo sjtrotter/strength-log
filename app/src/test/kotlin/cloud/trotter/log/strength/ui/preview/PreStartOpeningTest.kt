@@ -222,7 +222,7 @@ class PreStartOpeningTest : OverviewFixture() {
         assertTrue(!top.done)
         assertNull(db.runDao().openRun())
 
-        workout.decrementFocusedReps()
+        workout.decrementFocusedReps(s, Slot.MAIN, 0)
         advanceUntilIdle()
 
         val draft = assertNotNull(db.runDao().openRun())

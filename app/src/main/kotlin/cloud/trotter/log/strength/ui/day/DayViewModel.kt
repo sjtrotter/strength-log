@@ -1714,7 +1714,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    fun decrementFocusedReps(slot: String = Slot.MAIN) {
+    fun decrementFocusedReps(slot: String, index: Int) {
         val state = dayState.value
         val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
         val planId = state.planId ?: return
@@ -1732,11 +1732,11 @@ class DayViewModel @Inject constructor(
             val reps = if (tracks.runOpen) {
                 val set = tracks.tracks.firstOrNull {
                     it.programExerciseId == focus.programExerciseId && it.slot == slot
-                }?.sets?.getOrNull(focus.index) ?: return@mutate
+                }?.sets?.getOrNull(index) ?: return@mutate
                 if (set.done) return@mutate
                 set.reps
             } else {
-                val row = card.rows.getOrNull(focus.index) ?: return@mutate
+                val row = card.rows.getOrNull(index) ?: return@mutate
                 if (slot == Slot.SS) {
                     val partner = row.partner ?: return@mutate
                     if (partner.done) return@mutate
@@ -1747,7 +1747,7 @@ class DayViewModel @Inject constructor(
                 }
             }
             if (reps <= 1) return@mutate
-            changeRepsLocked(day, runId, planId, focus.programExerciseId, slot, focus.index, reps - 1)
+            changeRepsLocked(day, runId, planId, focus.programExerciseId, slot, index, reps - 1)
         }
     }
 

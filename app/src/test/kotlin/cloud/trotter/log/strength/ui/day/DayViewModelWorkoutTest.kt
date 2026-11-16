@@ -598,14 +598,41 @@ class DayViewModelWorkoutTest {
         val id = roundTwo(vm)
         val main = track(vm, id)
         val ss = track(vm, id, Slot.SS)
-        vm.decrementFocusedReps(Slot.SS)
+        vm.decrementFocusedReps(Slot.SS, 1)
         runCurrent()
         assertEquals(main, track(vm, id))
         assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id, Slot.SS))
-        vm.decrementFocusedReps(Slot.MAIN)
+        vm.decrementFocusedReps(Slot.MAIN, 1)
         runCurrent()
         assertEquals(main.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id))
         assertEquals(9, track(vm, id, Slot.SS)[1].reps)
+    }
+
+    @Test fun `partner decrement uses the displayed round after an earlier MAIN is unticked`() = test {
+        prepare(listOf(ProgramExercise("pushup", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
+            superset = SupersetPartner("cable_row"))))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = roundTwo(vm)
+        vm.startTimedRep(id, 1)
+        runCurrent()
+        assertEquals(1, requireNotNull(vm.uiState.value.timedRep).event.setIndex)
+        vm.openLiftSheet(id, Slot.MAIN)
+        runCurrent()
+        vm.toggleDone(id, 0, false, Slot.MAIN)
+        runCurrent()
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        assertEquals(1, requireNotNull(vm.uiState.value.timedRep).event.setIndex)
+        val main = track(vm, id)
+        val ss = track(vm, id, Slot.SS)
+        vm.decrementFocusedReps(Slot.SS, 1)
+        runCurrent()
+        assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = set.reps - 1) else set },
+            track(vm, id, Slot.SS))
+        assertEquals(ss[0], track(vm, id, Slot.SS)[0])
+        assertEquals(main, track(vm, id))
     }
 
     @Test fun `★ undo reverts both halves of a round`() = test {
@@ -1225,7 +1252,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(Slot.MAIN, 0)
         runCurrent()
         assertEquals(before[0].copy(reps = 4), track(vm, id)[0])
         assertEquals(before.drop(1), track(vm, id).drop(1))
@@ -1249,7 +1276,7 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(Slot.MAIN, 0)
         runCurrent()
         assertEquals(before, track(vm, id))
         assertEquals(1, vm.uiState.value.exercises.single().rows[0].reps)
@@ -1261,7 +1288,7 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(Slot.MAIN, 0)
         runCurrent()
         vm.viewModelScope.cancel()
 
@@ -1279,8 +1306,8 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps()
-        vm.decrementFocusedReps()
+        vm.decrementFocusedReps(Slot.MAIN, 0)
+        vm.decrementFocusedReps(Slot.MAIN, 0)
         vm.startWorkout()
         runCurrent()
         vm.logFocusedSet()
@@ -1298,7 +1325,7 @@ class DayViewModelWorkoutTest {
         val main = track(vm, id)
         val partner = track(vm, id, Slot.SS)
 
-        vm.decrementFocusedReps(Slot.SS)
+        vm.decrementFocusedReps(Slot.SS, 1)
         runCurrent()
         assertEquals(main, track(vm, id))
         assertEquals(partner.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set },

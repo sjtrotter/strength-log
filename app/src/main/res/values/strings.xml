@@ -566,6 +566,7 @@
         <item quantity="other">%1$d reps</item>
     </plurals>
     <string name="day_all_sets">All sets</string>
+    <string name="workout_all_sets_for">All sets, %1$s</string>
     <string name="day_finish_button">Finish day %1$s</string>
     <string name="day_menu_edit_day">Edit day</string>
     <string name="day_menu_drop_changes">Drop today\'s changes</string>

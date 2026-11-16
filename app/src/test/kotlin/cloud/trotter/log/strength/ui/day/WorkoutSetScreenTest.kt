@@ -85,17 +85,24 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
-    @Test fun markersFollowTheShownLiftBeforeAndAfterStart() {
+    @Test fun markersStayInTheirCompactCardsBeforeAndAfterStart() {
         val base = workoutSetSupersetFixture()
         var state by mutableStateOf(base.copy(beforeStart = true,
             exercises = base.exercises.map { it.copy(marker = LiftMarker.ESTIMATE, partnerMarker = LiftMarker.LIGHTER_TODAY) }))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
-        rule.onNodeWithText("Estimate").assertIsDisplayed()
-        rule.onNodeWithText("Lighter today").assertDoesNotExist()
+        val cards = rule.onAllNodesWithTag("workout-set-card")
+        for ((index, marker) in listOf("Estimate", "Lighter today").withIndex()) {
+            val bounds = rule.onNodeWithText(marker).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val card = cards[index].fetchSemanticsNode().boundsInRoot
+            assertTrue(card.contains(bounds.topLeft) && card.contains(bounds.bottomRight))
+        }
         rule.runOnIdle { state = state.copy(beforeStart = false,
             workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1))) }
-        rule.onNodeWithText("Lighter today").assertIsDisplayed()
-        rule.onNodeWithText("Estimate").assertDoesNotExist()
+        for ((index, marker) in listOf("Estimate", "Lighter today").withIndex()) {
+            val bounds = rule.onNodeWithText(marker).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val card = cards[index].fetchSemanticsNode().boundsInRoot
+            assertTrue(card.contains(bounds.topLeft) && card.contains(bounds.bottomRight))
+        }
     }
 
     @Test fun markersFollowTheSingleLiftBeforeAndAfterStart() {
@@ -488,7 +495,7 @@ class WorkoutSetScreenTest {
         var decrements = 0
         var logs = 0
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
-            onDecrementFocusedReps = {
+            onDecrementFocusedReps = { _, _ ->
                 decrements++
                 state = state.copy(exercises = state.exercises.map { card ->
                     card.copy(rows = card.rows.map { row -> if (row.index == 2) row.copy(reps = row.reps - 1) else row })
@@ -529,9 +536,9 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
             it.copy(partner = it.partner?.copy(reps = 1))
         }) }))
-        val decrements = mutableListOf<String>()
+        val decrements = mutableListOf<Pair<String, Int>>()
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
-            onDecrementFocusedReps = { decrements += it },
+            onDecrementFocusedReps = { slot, index -> decrements += slot to index },
         )) } }
         rule.onNodeWithTag("workout-minus-ss").assertIsNotEnabled()
         rule.onNodeWithTag("workout-minus-main").performClick()
@@ -542,7 +549,7 @@ class WorkoutSetScreenTest {
         }) }
         rule.onNodeWithTag("workout-minus-ss").assertIsEnabled().performClick()
         rule.runOnIdle {
-            assertEquals(listOf(Slot.MAIN, Slot.SS), decrements)
+            assertEquals(listOf(Slot.MAIN to 1, Slot.SS to 1), decrements)
             state = state.copy(exercises = state.exercises.map { it.copy(partnerTracking = TrackingType.TIMED) })
         }
         rule.onNodeWithTag("workout-minus-ss").assertIsNotEnabled()
@@ -615,12 +622,13 @@ class WorkoutSetScreenTest {
                 .assertContentDescriptionEquals("One fewer rep").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         }
         rule.onNodeWithText("Log round 2").assertIsDisplayed().assertIsEnabled()
-        rule.onNodeWithText("All sets").assertIsDisplayed()
+        rule.onNodeWithTag("workout-all-sets-main").assertIsDisplayed()
+        rule.onNodeWithTag("workout-all-sets-ss").assertIsDisplayed()
         rule.onNodeWithTag("workout-partner-card").assertDoesNotExist()
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
 
-    @Test fun supersetHeroesOpenTheEditorAndAllSetsOpensMain() {
+    @Test fun supersetHeroesOpenTheEditorAndEachAllSetsOpensItsOwnSlot() {
         val opened = mutableListOf<Pair<Long, String>>()
         val edited = mutableListOf<Pair<Long, Int>>()
         show(workoutSetSupersetFixture(), workoutActions().copy(
@@ -631,9 +639,12 @@ class WorkoutSetScreenTest {
         heroes.assertCountEquals(2)
         heroes[0].performClick()
         heroes[1].performClick()
-        rule.onNodeWithText("All sets").performClick()
+        for ((tag, title) in listOf("workout-all-sets-main" to "DB Bench Press", "workout-all-sets-ss" to "Seated Cable Row")) {
+            rule.onNodeWithTag(tag).assertContentDescriptionEquals("All sets, $title")
+                .assert(hasAnyAncestor(hasTestTag("workout-set-card"))).performClick()
+        }
         rule.runOnIdle {
-            assertEquals(listOf(1L to Slot.MAIN), opened)
+            assertEquals(listOf(1L to Slot.MAIN, 1L to Slot.SS), opened)
             assertEquals(listOf(1L to 1, 1L to 1), edited)
         }
     }
@@ -821,7 +832,9 @@ class WorkoutSetScreenTest {
         ) }))
         rule.onNodeWithText("Barbell Bench Press").assertIsDisplayed()
         rule.onNodeWithText("190 lb × 10").assertIsDisplayed()
-        rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertDoesNotExist()
+        val plates = rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val card = rule.onAllNodesWithTag("workout-set-card")[1].fetchSemanticsNode().boundsInRoot
+        assertTrue(card.contains(plates.topLeft) && card.contains(plates.bottomRight))
     }
 
     @Test fun loadedHoldPartnerShowsCompactSecondsAndDisablesMinus() {
@@ -833,6 +846,9 @@ class WorkoutSetScreenTest {
         show(state.copy(exercises = listOf(card)))
         rule.onNodeWithText("Weighted Plank").assertIsDisplayed()
         rule.onNodeWithText("45 s").assertIsDisplayed()
+        val weight = rule.onNodeWithText("at 25 lb").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val partner = rule.onAllNodesWithTag("workout-set-card")[1].fetchSemanticsNode().boundsInRoot
+        assertTrue(partner.contains(weight.topLeft) && partner.contains(weight.bottomRight))
         rule.onNodeWithTag("workout-minus-ss").assertIsNotEnabled()
     }
 
@@ -850,6 +866,19 @@ class WorkoutSetScreenTest {
         show(state.copy(exercises = listOf(card)))
         rule.onNodeWithText("Each side, Red band").assertIsDisplayed()
         rule.onNodeWithText("45 + 25 + 2.5 lb a side").assertDoesNotExist()
+    }
+
+    @Test fun compactAuthoredDetailStaysInMainCard() {
+        val base = workoutSetSupersetFixture()
+        show(base.copy(exercises = base.exercises.map { it.copy(
+            headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = "Red band"),
+        ) }))
+        val detail = rule.onNodeWithText("Each side, Red band").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val cards = rule.onAllNodesWithTag("workout-set-card").assertCountEquals(2)
+        val main = cards[0].fetchSemanticsNode().boundsInRoot
+        val ss = cards[1].fetchSemanticsNode().boundsInRoot
+        assertTrue(main.contains(detail.topLeft) && main.contains(detail.bottomRight))
+        assertTrue(detail.bottom <= ss.top)
     }
 
     @Test fun restWithoutReviewReadsEndRestAndNeverLogs() {
@@ -1275,6 +1304,23 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Set 2 of 2").assertIsDisplayed()
         rule.onNodeWithText("0:27").assertIsDisplayed()
         rule.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
+    @Test fun supersetPartnerMinusUsesTheTimedRepRoundAfterEarlierSetUnticked() {
+        val base = workoutSetTimedRepRunningFixture(index = 1)
+        val card = base.exercises.single().copy(isSuperset = true, partnerTitle = "Seated Cable Row",
+            partnerExerciseId = "cable_row", partnerTracking = TrackingType.WEIGHTED,
+            rows = base.exercises.single().rows.map {
+                it.copy(partner = PartnerRowState(120.0, 10, done = it.index == 0))
+            })
+        var decremented: Pair<String, Int>? = null
+        show(base.copy(exercises = listOf(card)), workoutActions().copy(
+            onDecrementFocusedReps = { slot, index -> decremented = slot to index },
+        ))
+        rule.onNodeWithText("Superset, round 2 of 2").assertIsDisplayed()
+        rule.onNodeWithTag("workout-minus-main").assertIsNotEnabled()
+        rule.onNodeWithTag("workout-minus-ss").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(Slot.SS to 1, decremented) }
     }
 
     @Test fun supersetTimedRepMainShowsClockAndPartner() {

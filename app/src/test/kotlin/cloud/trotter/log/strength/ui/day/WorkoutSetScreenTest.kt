@@ -492,11 +492,11 @@ class WorkoutSetScreenTest {
 
     @Test fun repDecrementHasAccessibleTargetUpdatesLabelAndAllowsImmediateLog() {
         var state by mutableStateOf(workoutSetSingleFixture())
-        var decrements = 0
+        val decrements = mutableListOf<Triple<Long, String, Int>>()
         var logs = 0
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
-            onDecrementFocusedReps = { _, _ ->
-                decrements++
+            onDecrementFocusedReps = { id, slot, index ->
+                decrements += Triple(id, slot, index)
                 state = state.copy(exercises = state.exercises.map { card ->
                     card.copy(rows = card.rows.map { row -> if (row.index == 2) row.copy(reps = row.reps - 1) else row })
                 })
@@ -513,7 +513,7 @@ class WorkoutSetScreenTest {
         rule.onNodeWithTag("workout-action-filled").performClick()
         rule.onNodeWithTag("workout-action-filled").performClick()
         rule.runOnIdle {
-            assertEquals(1, decrements)
+            assertEquals(listOf(Triple(1L, Slot.MAIN, 2)), decrements)
             assertEquals(1, logs)
         }
     }
@@ -536,9 +536,9 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
             it.copy(partner = it.partner?.copy(reps = 1))
         }) }))
-        val decrements = mutableListOf<Pair<String, Int>>()
+        val decrements = mutableListOf<Triple<Long, String, Int>>()
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
-            onDecrementFocusedReps = { slot, index -> decrements += slot to index },
+            onDecrementFocusedReps = { id, slot, index -> decrements += Triple(id, slot, index) },
         )) } }
         rule.onNodeWithTag("workout-minus-ss").assertIsNotEnabled()
         rule.onNodeWithTag("workout-minus-main").performClick()
@@ -549,7 +549,7 @@ class WorkoutSetScreenTest {
         }) }
         rule.onNodeWithTag("workout-minus-ss").assertIsEnabled().performClick()
         rule.runOnIdle {
-            assertEquals(listOf(Slot.MAIN to 1, Slot.SS to 1), decrements)
+            assertEquals(listOf(Triple(1L, Slot.MAIN, 1), Triple(1L, Slot.SS, 1)), decrements)
             state = state.copy(exercises = state.exercises.map { it.copy(partnerTracking = TrackingType.TIMED) })
         }
         rule.onNodeWithTag("workout-minus-ss").assertIsNotEnabled()
@@ -622,8 +622,8 @@ class WorkoutSetScreenTest {
                 .assertContentDescriptionEquals("One fewer rep").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         }
         rule.onNodeWithText("Log round 2").assertIsDisplayed().assertIsEnabled()
-        rule.onNodeWithTag("workout-all-sets-main").assertIsDisplayed()
-        rule.onNodeWithTag("workout-all-sets-ss").assertIsDisplayed()
+        rule.onNodeWithTag("workout-all-sets-main").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("workout-all-sets-ss").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("workout-partner-card").assertDoesNotExist()
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
@@ -1313,14 +1313,14 @@ class WorkoutSetScreenTest {
             rows = base.exercises.single().rows.map {
                 it.copy(partner = PartnerRowState(120.0, 10, done = it.index == 0))
             })
-        var decremented: Pair<String, Int>? = null
+        var decremented: Triple<Long, String, Int>? = null
         show(base.copy(exercises = listOf(card)), workoutActions().copy(
-            onDecrementFocusedReps = { slot, index -> decremented = slot to index },
+            onDecrementFocusedReps = { id, slot, index -> decremented = Triple(id, slot, index) },
         ))
         rule.onNodeWithText("Superset, round 2 of 2").assertIsDisplayed()
         rule.onNodeWithTag("workout-minus-main").assertIsNotEnabled()
         rule.onNodeWithTag("workout-minus-ss").assertIsEnabled().performClick()
-        rule.runOnIdle { assertEquals(Slot.SS to 1, decremented) }
+        rule.runOnIdle { assertEquals(Triple(1L, Slot.SS, 1), decremented) }
     }
 
     @Test fun supersetTimedRepMainShowsClockAndPartner() {

@@ -365,7 +365,7 @@ private fun WorkoutSetContent(
                                 stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
                             actions.onLogFocusedSet,
                             secondary = if (!card.isSuperset && card.tracking(slot) != TrackingType.TIMED) {
-                                WorkoutSecondaryAction.DecrementReps(values.reps > 1) { actions.onDecrementFocusedReps(Slot.MAIN, index) }
+                                WorkoutSecondaryAction.DecrementReps(values.reps > 1) { actions.onDecrementFocusedReps(card.programExerciseId, Slot.MAIN, index) }
                             } else null)
                         else -> null
                     }
@@ -794,7 +794,7 @@ private fun WorkoutSetCard(
                 }
                 if (compact) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) { hero() }
-                    OutlinedIconButton(onClick = { actions.onDecrementFocusedReps(slot, index) },
+                    OutlinedIconButton(onClick = { actions.onDecrementFocusedReps(card.programExerciseId, slot, index) },
                         enabled = values.reps > 1 && tracking != TrackingType.TIMED && !timed,
                         modifier = Modifier.size(48.dp).testTag(if (slot == Slot.SS) "workout-minus-ss" else "workout-minus-main")) {
                         Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))

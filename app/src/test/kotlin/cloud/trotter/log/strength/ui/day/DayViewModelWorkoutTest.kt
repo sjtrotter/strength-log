@@ -598,14 +598,44 @@ class DayViewModelWorkoutTest {
         val id = roundTwo(vm)
         val main = track(vm, id)
         val ss = track(vm, id, Slot.SS)
-        vm.decrementFocusedReps(Slot.SS, 1)
+        vm.decrementFocusedReps(id, Slot.SS, 1)
         runCurrent()
         assertEquals(main, track(vm, id))
         assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id, Slot.SS))
-        vm.decrementFocusedReps(Slot.MAIN, 1)
+        vm.decrementFocusedReps(id, Slot.MAIN, 1)
         runCurrent()
         assertEquals(main.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set }, track(vm, id))
         assertEquals(9, track(vm, id, Slot.SS)[1].reps)
+    }
+
+    @Test fun `decrement for a different exercise than the focus writes nothing`() = test {
+        prepare(listOf(bench(), bench().copy(exerciseId = "bb_bench")))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val outgoingId = vm.uiState.value.exercises.first().programExerciseId
+        val focusedId = vm.uiState.value.exercises.last().programExerciseId
+        vm.selectWorkoutLift("exercise:$focusedId")
+        runCurrent()
+        assertEquals(WorkoutFocus(focusedId, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        val before = requireNotNull(repo.openRunFlow.first())
+        vm.decrementFocusedReps(outgoingId, Slot.MAIN, 0)
+        runCurrent()
+        assertEquals(before, repo.openRunFlow.first())
+    }
+
+    @Test fun `decrement for a hidden round without a timed rep event writes nothing`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout?.focus)
+        assertNull(vm.uiState.value.timedRep)
+        val before = requireNotNull(repo.openRunFlow.first())
+        vm.decrementFocusedReps(id, Slot.SS, 1)
+        runCurrent()
+        assertEquals(before, repo.openRunFlow.first())
     }
 
     @Test fun `partner decrement uses the displayed round after an earlier MAIN is unticked`() = test {
@@ -627,7 +657,7 @@ class DayViewModelWorkoutTest {
         assertEquals(1, requireNotNull(vm.uiState.value.timedRep).event.setIndex)
         val main = track(vm, id)
         val ss = track(vm, id, Slot.SS)
-        vm.decrementFocusedReps(Slot.SS, 1)
+        vm.decrementFocusedReps(id, Slot.SS, 1)
         runCurrent()
         assertEquals(ss.mapIndexed { index, set -> if (index == 1) set.copy(reps = set.reps - 1) else set },
             track(vm, id, Slot.SS))
@@ -1252,7 +1282,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps(Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         assertEquals(before[0].copy(reps = 4), track(vm, id)[0])
         assertEquals(before.drop(1), track(vm, id).drop(1))
@@ -1276,7 +1306,7 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
         val before = track(vm, id)
-        vm.decrementFocusedReps(Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         assertEquals(before, track(vm, id))
         assertEquals(1, vm.uiState.value.exercises.single().rows[0].reps)
@@ -1288,7 +1318,7 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps(Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         runCurrent()
         vm.viewModelScope.cancel()
 
@@ -1306,8 +1336,8 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.decrementFocusedReps(Slot.MAIN, 0)
-        vm.decrementFocusedReps(Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
+        vm.decrementFocusedReps(id, Slot.MAIN, 0)
         vm.startWorkout()
         runCurrent()
         vm.logFocusedSet()
@@ -1325,7 +1355,7 @@ class DayViewModelWorkoutTest {
         val main = track(vm, id)
         val partner = track(vm, id, Slot.SS)
 
-        vm.decrementFocusedReps(Slot.SS, 1)
+        vm.decrementFocusedReps(id, Slot.SS, 1)
         runCurrent()
         assertEquals(main, track(vm, id))
         assertEquals(partner.mapIndexed { index, set -> if (index == 1) set.copy(reps = 9) else set },

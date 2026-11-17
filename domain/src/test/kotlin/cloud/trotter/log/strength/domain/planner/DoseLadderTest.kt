@@ -122,4 +122,31 @@ class DoseLadderTest {
         assertTrue(draft.program.strengthDays.single().exercises.isNotEmpty())
         assertTrue(draft.working.isNotEmpty())
     }
+
+    @Test fun `sprint flags keep plyometrics and the Nordic until steps seven and eight`() {
+        val full = Planner.plan(sprint(days = 2, minutes = 90))
+        val answers = sprint(days = 2, minutes = 30).copy(goal = LiftGoal.STRENGTH)
+        val a = full.program.days.single { it.id == "A" }
+        val c = full.program.days.single { it.id == "C" }
+        assertEquals(2936, SessionBudget.seconds(a, answers.goal))
+        assertEquals(3530, SessionBudget.seconds(c, answers.goal))
+        for ((keepPlyos, keepNordic) in listOf(false to false, false to true, true to true)) {
+            val (fittedC, cReasons) = fitDay(c, answers, keepPlyos = keepPlyos, keepNordic = keepNordic)
+            // C step 5 without Nordic=1091+3*264=1883; exhausted at 6 or 8, excess=83.
+            assertEquals(listOf(PlanReason.ShortSession("C", if (keepNordic) 8 else 6), PlanReason.OverBudget("C", 83)), cReasons)
+            assertEquals(listOf("trap_dl", "ohp", "bb_row"), fittedC.exercises.map { it.exerciseId })
+            val (fittedA, aReasons) = fitDay(a, answers, keepPlyos = keepPlyos, keepNordic = keepNordic)
+            // A off: step 3=794+4*210=1634; kept plyos: step 5=1817, step 7=794+2*264=1322.
+            assertEquals(listOf(PlanReason.ShortSession("A", if (keepPlyos) 7 else 3)), aReasons)
+            assertEquals(listOf("bb_back_squat", "bb_bench"), fittedA.exercises.map { it.exerciseId })
+            assertEquals(if (keepPlyos) 1322 else 1634, SessionBudget.seconds(fittedA, answers.goal))
+        }
+        val (beforeSeven, beforeReasons) = fitDay(c, answers, budgetSeconds = 2057, keepNordic = true)
+        assertEquals(listOf(PlanReason.ShortSession("C", 5)), beforeReasons)
+        // 1091+3*264+174=2057. At 2056, removing Nordic at step 7 would fit at 1883 and report 7.
+        // Reporting 8 proves Nordic-only step 7 changes no slot; only the knee-flexion slot then leaves.
+        val (afterEight, afterReasons) = fitDay(beforeSeven, answers, budgetSeconds = 2056, keepNordic = true)
+        assertEquals(listOf(PlanReason.ShortSession("C", 8)), afterReasons)
+        assertEquals(beforeSeven.exercises.dropLast(1), afterEight.exercises)
+    }
 }

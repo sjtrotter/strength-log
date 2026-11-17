@@ -372,4 +372,31 @@ class PlannerTest {
             Planner.plan(SetupAnswers(mains = listOf("bb_bench"), equipment = EquipmentPreset.BODYWEIGHT.equipment))
         }
     }
+
+    @Test fun `full dose minutes`() {
+        val recent100 = sprint(days = 2, answers = SprintAnswers(SprintEvent.M100, sprintedRecently = true))
+        val recent400 = sprint(days = 2, answers = SprintAnswers(SprintEvent.M400, sprintedRecently = true))
+        // A=1498+495+630+387+630=3640 > 3600; C=3530. Both fit 4500.
+        assertEquals(75, Planner.fullDoseMinutes(recent100))
+        // C=1908+375+630+387+630+630=4560 > 4500; 5400 fits.
+        assertEquals(90, Planner.fullDoseMinutes(recent400))
+        assertEquals(60, Planner.fullDoseMinutes(sprint()))
+        assertEquals(90, Planner.fullDoseMinutes(recent400.copy(minutes = 90)))
+        for (event in listOf(SprintEvent.M100, SprintEvent.M400)) for (days in 1..6) {
+            for (experience in listOf(LiftExperience.NEW, LiftExperience.A_YEAR_OR_MORE)) {
+                for (older in listOf(false, true)) for (intro in listOf(false, true)) for (minutes in listOf(30, 60)) {
+                    val base = sprint(event, days, minutes, SprintAnswers(event, sprintedRecently = !intro))
+                        .copy(experience = experience, olderAdult = older)
+                    val variants = listOf(base) + LiftGoal.entries.map { goal ->
+                        base.copy(branch = PlanBranch.BOTH, goal = goal, both = BothAnswers(sprint = true))
+                    }
+                    for (answers in variants) {
+                        val full = Planner.fullDoseMinutes(answers)
+                        assertTrue(full != null, "$answers full dose exists")
+                        assertTrue(requireNotNull(full) >= minutes, "$answers full dose never below the answer")
+                    }
+                }
+            }
+        }
+    }
 }

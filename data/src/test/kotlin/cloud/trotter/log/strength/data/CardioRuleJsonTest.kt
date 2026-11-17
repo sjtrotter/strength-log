@@ -139,4 +139,15 @@ class CardioRuleJsonTest {
             """{"session":"LONG","longSeconds":5400}""",
         )) assertEquals(json, CardioRuleJson.encode(requireNotNull(CardioRuleJson.decode(json))))
     }
+
+    @Test fun `careful intro six round trips and seven rejects`() {
+        val json = """{"session":"ACCELERATION","intro":6}"""
+        val rule = CardioRule(null, RunSession.ACCELERATION, intro = 6)
+        assertEquals(rule, CardioRuleJson.decode(json))
+        assertEquals(json, CardioRuleJson.encode(rule))
+        CardioRuleJson.validate(json)
+        val invalid = """{"session":"ACCELERATION","intro":7}"""
+        assertNull(CardioRuleJson.decode(invalid))
+        assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
+    }
 }

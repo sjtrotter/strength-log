@@ -41,7 +41,7 @@ data class CardioRule(
         require(session != RunSession.LONG || longMetres != null || longSeconds != null)
         require(longMetres == null || longMetres in 1..200_000)
         require(longSeconds == null || longSeconds in 1..86_400)
-        require(intro in 0..SprintRules.INTRO_SESSIONS)
+        require(intro in 0..SprintRules.CAREFUL_INTRO_SESSIONS)
         require(intro == 0 || session?.sprint == true)
         require(intro == 0 || (steps == 0 && credits == 0))
         require(alternate == null || (session?.sprint != true && !alternate.sprint))

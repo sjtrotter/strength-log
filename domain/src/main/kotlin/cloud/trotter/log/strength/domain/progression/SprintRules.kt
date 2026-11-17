@@ -1,13 +1,35 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.Program
+
+/** Practice (design §3.2): calendar days wanted between maximal sessions, three in the first weeks or for the
+ *  careful group, else two. Advice only; the app cannot measure hours. */
+fun spacingDays(firstWeeks: Boolean, careful: Boolean): Int = if (firstWeeks || careful) 3 else 2
+
+/** Calendar days since [lastMaximalEpochDay], or null with no earlier maximal date. */
+fun daysSince(lastMaximalEpochDay: Long?, todayEpochDay: Long): Long? = lastMaximalEpochDay?.let { todayEpochDay - it }
+
+/** Design §3.2 tiers (a), (c) and (d): a maximal day still in its intro; a `nordic` slot (not a knee-flexion fallback)
+ *  with fewer than three exposures; or, for a New lifter, a MAIN of pattern SQUAT_BILATERAL or HINGE on a maximal day
+ *  with fewer than three exposures. Tier (b), the careful group, is [spacingDays]'s other argument. */
+fun sprintFirstWeeks(program: Program, newLifter: Boolean): Boolean = program.days.any { day ->
+    val maximal = day.cardioRule?.session?.let(SprintRules::maximal) == true
+    (maximal && requireNotNull(day.cardioRule).intro > 0) || day.exercises.any { slot ->
+        val rule = slot.rule
+        rule != null && rule.state.exposures < 3 && (slot.exerciseId == "nordic" ||
+            (newLifter && maximal && rule.role == SlotRole.MAIN &&
+                ExerciseLibrary.get(slot.exerciseId).pattern in listOf(MovementPattern.SQUAT_BILATERAL, MovementPattern.HINGE)))
+    }
+}
 
 /** §3.1.3: "Every sprint day opens with a 10 min build-up block before the first maximal rep". */
 private val BUILD_UP = CardioSetSpec(CardioRole.WARMUP, Measure.Time(600))
@@ -30,6 +52,7 @@ data class SprintContext(
     val cyclesCompleted: Int = 0,
     /** Sprint B runs tempo after A actually ran a 200 or 400 m trial this rotation. */
     val tempo: Boolean = false,
+    val careful: Boolean = false,
 ) {
     init {
         require(cyclesCompleted >= 0)
@@ -51,6 +74,7 @@ data class SprintContext(
             goal: PlanGoal?,
             todayEpochDay: Long,
             maximalDaysThisCycle: Set<String>,
+            careful: Boolean = false,
         ): SprintContext {
             val maximalDays = program.days.filter { day -> day.cardioRule?.session?.let(SprintRules::maximal) == true }
             val dates = maximalDays.flatMap { maximalEpochDays[it.id].orEmpty() }.distinct().sorted()
@@ -81,7 +105,7 @@ data class SprintContext(
             val other = normal.filterKeys { it != first?.id && !(longTrial && it == second?.id) }.values.sum()
             val admitted = trialTotal != null && SprintRules.withinRise(normal.values.sum(), other + trialTotal)
             return SprintContext(layoff, trial.takeIf { admitted }, cyclesCompleted,
-                tempo = longTrial && dayId == second?.id && a?.sprintTrialCycle == cyclesCompleted)
+                tempo = longTrial && dayId == second?.id && a?.sprintTrialCycle == cyclesCompleted, careful = careful)
         }
     }
 }
@@ -90,6 +114,8 @@ data class SprintContext(
 internal object SprintRules {
     /** "the first three sprint weeks run the low end of every range": three counted sessions per sprint day. */
     const val INTRO_SESSIONS = 3
+    /** Practice: six counted sessions per sprint day for the careful group (design §5). */
+    const val CAREFUL_INTRO_SESSIONS = 6
     /** Practice: restart after more than 14 days without a maximal sprint. */
     const val GAP_DAYS = 14
     /** Practice: the trial rotation's allowance over planned maximal WORK meters. */
@@ -146,7 +172,8 @@ internal object SprintRules {
         if (!restart && trial(rule, sprint, block.activity) != null) {
             return outcome(rule.copy(sprintTrialCycle = sprint.cyclesCompleted), CardioChange.Repeat)
         }
-        val start = if (restart) rule.copy(steps = 0, credits = 0, intro = INTRO_SESSIONS) else rule
+        val start = if (restart) rule.copy(steps = 0, credits = 0,
+            intro = if (sprint.careful) CAREFUL_INTRO_SESSIONS else INTRO_SESSIONS) else rule
         val same = if (restart) CardioChange.Restart else CardioChange.Repeat
         val range = requireNotNull(RunRange.of(session))
         val counted = CardioMeasures.fullSuccess(block, results) && !pain && !(range.goodBand && effort == CardioEffort.HARD)

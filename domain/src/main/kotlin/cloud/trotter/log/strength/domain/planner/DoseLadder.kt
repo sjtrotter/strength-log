@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -17,18 +18,26 @@ internal fun fitDay(
     day: ProgramDay,
     answers: SetupAnswers,
     budgetSeconds: Int = answers.minutes * 60,
+    keepPlyos: Boolean = false,
+    keepNordic: Boolean = false,
 ): Pair<ProgramDay, List<PlanReason>> {
     if (SessionBudget.seconds(day, answers.goal) <= budgetSeconds) return day to emptyList()
     var current = day
-    for (step in 1..6) {
+    val last = if (keepPlyos || keepNordic) 8 else 6
+    for (step in 1..last) {
         val slots = when (step) {
             1 -> {
                 var keptCore = false
                 current.exercises.mapNotNull { slot ->
-                    when (requireNotNull(slot.rule).role) {
-                        SlotRole.MAIN, SlotRole.SECONDARY, SlotRole.BALANCE -> slot
-                        SlotRole.CORE -> if (keptCore) null else slot.copy(targetSets = 2).also { keptCore = true }
-                        else -> null
+                    val role = requireNotNull(slot.rule).role
+                    when {
+                        keepPlyos && role == SlotRole.PLYO -> slot
+                        keepNordic && ExerciseLibrary.get(slot.exerciseId).pattern == MovementPattern.KNEE_FLEXION -> slot
+                        else -> when (role) {
+                            SlotRole.MAIN, SlotRole.SECONDARY, SlotRole.BALANCE -> slot
+                            SlotRole.CORE -> if (keptCore) null else slot.copy(targetSets = 2).also { keptCore = true }
+                            else -> null
+                        }
                     }
                 }
             }
@@ -52,7 +61,11 @@ internal fun fitDay(
                     slot.copy(rule = rule.copy(restSeconds = 120))
                 } else slot
             }
-            else -> current.exercises.filterNot { it.rule?.role == SlotRole.CORE }
+            6 -> current.exercises.filterNot { it.rule?.role == SlotRole.CORE }
+            7 -> if (keepPlyos) current.exercises.filterNot { it.rule?.role == SlotRole.PLYO } else current.exercises
+            else -> if (keepNordic) current.exercises.filterNot {
+                ExerciseLibrary.get(it.exerciseId).pattern == MovementPattern.KNEE_FLEXION
+            } else current.exercises
         }
         if (slots.isNotEmpty()) current = current.copy(exercises = slots)
         if (SessionBudget.seconds(current, answers.goal) <= budgetSeconds) {
@@ -60,7 +73,7 @@ internal fun fitDay(
         }
     }
     return current to listOf(
-        PlanReason.ShortSession(day.id, 6),
+        PlanReason.ShortSession(day.id, last),
         PlanReason.OverBudget(day.id, SessionBudget.seconds(current, answers.goal) - budgetSeconds),
     )
 }

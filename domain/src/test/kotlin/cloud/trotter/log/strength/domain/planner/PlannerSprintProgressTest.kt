@@ -172,26 +172,32 @@ class PlannerSprintProgressTest {
             run.rotations.map { it.blocks[1].metres })
         assertEquals(listOf(330, 330, 360, 360, 390, 390, 390, 420, 420, 450, 450, 450, 480, 480, 510, 510),
             run.rotations.map { it.planned })
-        assertEquals(List(2) { listOf(0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6) },
-            listOf(run.rotations.map { it.steps[0] }, run.rotations.map { it.steps[1] }))
+        assertEquals(listOf(0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6), run.rotations.map { it.steps[0] })
+        // audit 2026-11-13, row 7: C opens at 200+5*20=300 m; each old C step gains 5.
+        assertEquals(listOf(5, 5, 6, 6, 7, 7, 7, 8, 8, 9, 9, 9, 10, 10, 11, 11), run.rotations.map { it.steps[1] })
     }
 
     @Test fun `two-day 200 and 400 m plans reach both tops with no deadlock`() {
         for (event in listOf(SprintEvent.M200, SprintEvent.M400)) for (intro in listOf(true, false)) {
             val run = simulate(event, intro, trials = false)
             assertEquals(7, rule(run.program, "A").steps)
-            assertEquals(15, rule(run.program, "C").steps)
+            // audit 2026-11-13, row 7: top=(600-200)/20=20.
+            assertEquals(20, rule(run.program, "C").steps)
             assertEquals(if (intro) 18 else 15, run.rotations.indexOfFirst { it.blocks[0].metres == 100 } + 1)
-            assertEquals(if (intro) 34 else 31, run.rotations.indexOfFirst { it.blocks[1].metres == 600 } + 1)
-            val trialRun = simulate(event, intro)
+            // audit 2026-11-13, row 7: intro adds 5 steps * 2 rotations = 10; 34+10=44; non-intro stays 31.
+            assertEquals(if (intro) 44 else 31, run.rotations.indexOfFirst { it.blocks[1].metres == 600 } + 1)
+            // audit 2026-11-13, row 7: 200 m intro trials need 56 rotations to reach 600 m; allow 60 instead of 52.
+            val trialRun = simulate(event, intro, rotations = 60)
             assertEquals(7, rule(trialRun.program, "A").steps)
-            assertEquals(15, rule(trialRun.program, "C").steps)
+            // audit 2026-11-13, row 7: 200+20*20=600 m.
+            assertEquals(20, rule(trialRun.program, "C").steps)
         }
     }
 
     @Test fun `100 and 400 m two-day trial counts match the 52 rotation simulator rows`() {
+        // audit 2026-11-13, row 7: 400 m requires planned >= 348 m; the 100 m lower intro yields 8 trials, formerly 9.
         for ((event, intro, count) in listOf(Triple(SprintEvent.M100, true, 8), Triple(SprintEvent.M100, false, 10),
-            Triple(SprintEvent.M400, true, 9), Triple(SprintEvent.M400, false, 10))) {
+            Triple(SprintEvent.M400, true, 8), Triple(SprintEvent.M400, false, 10))) {
             val run = simulate(event, intro)
             assertEquals(count, run.trials, "$event intro=$intro")
             for (rotation in run.rotations.filter { it.blocks.any { block -> block.kind == "trial" } }) {
@@ -220,7 +226,8 @@ class PlannerSprintProgressTest {
                 assertTrue(run.rotations[cycle].blocks.all { it.kind == "normal" })
             }
             assertEquals(7, rule(run.program, "A").steps)
-            assertEquals(15, rule(run.program, "C").steps)
+            // audit 2026-11-13, row 7: top=(600-200)/20=20.
+            assertEquals(20, rule(run.program, "C").steps)
         }
     }
 
@@ -285,7 +292,8 @@ class PlannerSprintProgressTest {
         val run = simulate(SprintEvent.M200, intro = true, rotations = 5) { cycle ->
             0 to if (cycle in 1..2) listOf("C" to 3) else listOf("A" to 0, "C" to 3)
         }
-        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "normal", 300)), run.rotations[4].blocks)
+        // audit 2026-11-13, row 7: intro stays at 2*100=200 m after its third counted session.
+        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "normal", 200)), run.rotations[4].blocks)
         assertEquals(0, rule(run.program, "A").intro)
     }
 
@@ -300,7 +308,8 @@ class PlannerSprintProgressTest {
         val run = simulate(SprintEvent.M400, rotations = 20) { cycle ->
             (if (cycle == 19) 21 else 0) to listOf("A" to 0, "C" to 3)
         }
-        assertEquals(listOf(Opened("A", "reset", 30), Opened("C", "reset", 300)), run.rotations[19].blocks)
+        // audit 2026-11-13, row 7: restart opens endurance at step 0 = 2*100=200 m.
+        assertEquals(listOf(Opened("A", "reset", 30), Opened("C", "reset", 200)), run.rotations[19].blocks)
         assertEquals(2, run.restarts)
         assertEquals(2, rule(run.program, "A").intro)
         assertEquals(2, rule(run.program, "C").intro)
@@ -316,7 +325,8 @@ class PlannerSprintProgressTest {
         for (cycle in 2..3) assertEquals(listOf(Opened("A", "normal", 30)), run.rotations[cycle].blocks)
         val trialRotation = run.rotations[4]
         assertEquals(330, trialRotation.planned)
-        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "reset", 300)), trialRotation.blocks)
+        // audit 2026-11-13, row 7: pending restart opens at 2*100=200 m; 30+200=230 <= planned 330.
+        assertEquals(listOf(Opened("A", "normal", 30), Opened("C", "reset", 200)), trialRotation.blocks)
         assertTrue(SprintRules.withinRise(trialRotation.planned, trialRotation.blocks.sumOf { it.metres }))
         assertEquals(0, run.trials)
         assertEquals(2, run.restarts)

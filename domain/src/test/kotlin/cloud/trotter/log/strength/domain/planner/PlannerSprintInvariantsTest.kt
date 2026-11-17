@@ -28,7 +28,8 @@ class PlannerSprintInvariantsTest {
         val kinds = when (answers.days) {
             1 -> listOf(cardio)
             2 -> listOf(cardio, rest, cardio)
-            3 -> listOf(cardio, rest, strength, cardio, rest)
+            // audit 2026-11-13, row 6: 3 training days = A + plyos, Lower, rest, B + Nordic, rest.
+            3 -> listOf(cardio, strength, rest, cardio, rest)
             4 -> listOf(cardio, strength, rest, cardio, strength)
             5 -> listOf(cardio, strength, rest, cardio, strength, cardio)
             else -> listOf(cardio, strength, rest, cardio, strength, cardio, strength)
@@ -63,6 +64,13 @@ class PlannerSprintInvariantsTest {
         for ((dayIndex, day) in draft.program.days.withIndex()) {
             val session = sessions[dayIndex]
             val block = day.cardioBlock
+            if (dayIndex > 0 && session != null && session != RunSession.SPRINT_TEMPO) {
+                val previous = draft.program.days[dayIndex - 1]
+                assertTrue(previous.title != "Lower", "$label no Lower directly before maximal sprint")
+                assertTrue(previous.exercises.none {
+                    ExerciseLibrary.get(it.exerciseId).pattern == MovementPattern.KNEE_FLEXION
+                }, "$label no knee flexion directly before maximal sprint")
+            }
             if (session == null) {
                 assertNull(block, "$label ${day.id} no block")
                 assertNull(day.cardioRule, "$label ${day.id} no cardio rule")
@@ -76,7 +84,20 @@ class PlannerSprintInvariantsTest {
                 if (session != RunSession.SPRINT_TEMPO) {
                     assertEquals(CardioSetSpec(CardioRole.WARMUP, Measure.Time(600)), planned.sets.first(), "$label build-up")
                 } else assertTrue(planned.sets.none { it.role == CardioRole.WARMUP }, "$label tempo warm-up")
-                val steps = if (session == RunSession.ACCELERATION && !answers.sprint.intro) 12 else 0
+                if (session == RunSession.SPRINT_ENDURANCE) {
+                    assertTrue(planned.sets.filter { it.role == CardioRole.RECOVERY }.all {
+                        it.end == Measure.Time(600)
+                    }, "$label sprint-endurance recovery")
+                    assertEquals(List(if (answers.sprint.intro) 2 else 3) { Measure.Distance(100) },
+                        work.map { it.end }, "$label sprint-endurance opening")
+                }
+                // audit 2026-11-13, row 7: non-intro endurance = 200+5*20=300 m; intro = 200 m.
+                val steps = when {
+                    answers.sprint.intro -> 0
+                    session == RunSession.ACCELERATION -> 12
+                    session == RunSession.SPRINT_ENDURANCE -> 5
+                    else -> 0
+                }
                 assertEquals(CardioRule(null, session, steps = steps, intro = if (answers.sprint.intro) 3 else 0), day.cardioRule, "$label rule")
             }
             if (day.kind != rest) {

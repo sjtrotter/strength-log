@@ -63,7 +63,7 @@ internal data class RunRange(
             RunSession.TEST_INTERVALS -> RunRange(4..6, 400..800, RunCap.METRES_GRID, true, 120, false)
             RunSession.ACCELERATION -> RunRange(4..8, 10..30, SPRINT_UNIT_METRES, true, null, false, recoveryPerMetre = 6, stepMetres = 10)
             RunSession.MAX_VELOCITY -> RunRange(3..5, 10..20, SPRINT_UNIT_METRES, true, 240, false, stepMetres = 10)
-            RunSession.SPRINT_ENDURANCE -> RunRange(3..4, 100..150, SPRINT_UNIT_METRES, true, 480, false, stepMetres = 20)
+            RunSession.SPRINT_ENDURANCE -> RunRange(2..4, 100..150, SPRINT_UNIT_METRES, true, 600, false, stepMetres = 20)
             RunSession.SPRINT_TEMPO -> RunRange(6..6, 100..300, RunCap.METRES_GRID, true, 60, true, hard = false, stepMetres = 100)
             RunSession.LADDER, RunSession.EASY, RunSession.LONG -> null
         }

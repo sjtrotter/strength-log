@@ -48,12 +48,26 @@ data class SetupAnswers(
         require(days in 1..6)
         require(minutes in setOf(30, 45, 60, 75, 90))
     }
+
+    /** Both's Together answer as the planner applies it (design §2.2; audit 2026-11-13 row 14). */
+    fun together(): BothAnswers.Together {
+        val liftFirst = !both.cardioFirst
+        // C04: separate days at two days would leave one strength day (WHO 2020: two or more).
+        if (liftFirst && days == 2) return BothAnswers.Together.SAME_VISIT
+        both.together?.let { return it }
+        if (days >= 4) return BothAnswers.Together.SEPARATE_DAYS
+        // C03: trained Strength lifters keep lifting apart from running when the lift side still gets two days.
+        if (liftFirst && days == 3 && goal == LiftGoal.STRENGTH && experience == LiftExperience.A_YEAR_OR_MORE) {
+            return BothAnswers.Together.SEPARATE_DAYS
+        }
+        return BothAnswers.Together.SAME_VISIT
+    }
 }
 
 /** Stored by name; new constants go at the end. */
 enum class PlanBranch { LIFT, RUN, BOTH, SPRINT }
 
-/** Both's Which first and Together (design §2.2). [together] null takes the default: separate days from 4 days. */
+/** Both's Which first and Together (design §2.2). [SetupAnswers.together] applies the default and strength floor. */
 data class BothAnswers(
     val cardioFirst: Boolean = false,
     val together: Together? = null,
@@ -63,5 +77,4 @@ data class BothAnswers(
 ) {
     init { require(!sprint || (!cardioFirst && together == null)) }
     enum class Together { SAME_VISIT, SEPARATE_DAYS }
-    fun together(days: Int): Together = together ?: if (days >= 4) Together.SEPARATE_DAYS else Together.SAME_VISIT
 }

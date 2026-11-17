@@ -24,13 +24,12 @@ private data class SprintEntry(
     val upper: Boolean = false, val nordic: Boolean = false,
 )
 
-/** Acceleration without the intro opens at 160 m of WORK (§3.1.3, revision 32). */
-private const val OPENING_METRES = 160
 /** 65 contacts, inside 40 to 80 (revision 30). */
 private val OPENING_PLYOS = listOf("pogo_hop" to 3, "a_skip" to 1)
 /** Nordic 2 × 4 to 6 (§3.1.3). */
 private val NORDIC_TARGET = RepTarget.Range(4, 6, 4)
 
+/** Design §2.1; audit 2026-11-13 decision row 6 moves the three-day Nordic after Sprint B. */
 private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
     val short = event in listOf(SprintEvent.YD40, SprintEvent.M60, SprintEvent.M100)
     val a = if (short) RunSession.ACCELERATION else RunSession.MAX_VELOCITY
@@ -39,7 +38,7 @@ private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
     return when (days) {
         1 -> listOf(SprintEntry(a, plyos = true, lower = true))
         2 -> listOf(SprintEntry(a, plyos = true, lower = true), rest, SprintEntry(b, upper = true, nordic = true))
-        3 -> listOf(SprintEntry(a, plyos = true), rest, SprintEntry(lower = true, nordic = true), SprintEntry(b), rest)
+        3 -> listOf(SprintEntry(a, plyos = true), SprintEntry(lower = true), rest, SprintEntry(b, nordic = true), rest)
         else -> buildList<SprintEntry> {
             add(SprintEntry(a, plyos = true))
             add(SprintEntry(lower = true))
@@ -52,10 +51,18 @@ private fun sprintEntries(days: Int, event: SprintEvent): List<SprintEntry> {
     }
 }
 
+/** Revision 32 opens acceleration at 160 m; S10 keeps non-intro sprint endurance at 3 × 100 m. */
 private fun openingSteps(session: RunSession, intro: Boolean): Int {
-    if (intro || session != RunSession.ACCELERATION) return 0
+    if (intro) return 0
+    val openingMetres = when (session) {
+        RunSession.ACCELERATION -> 160
+        RunSession.SPRINT_ENDURANCE -> 300
+        RunSession.MAX_VELOCITY, RunSession.SPRINT_TEMPO, RunSession.LADDER, RunSession.EASY,
+        RunSession.LONG, RunSession.THRESHOLD, RunSession.TEMPO, RunSession.VO2MAX,
+        RunSession.RACE_PACE, RunSession.SHARPENING, RunSession.TEST_INTERVALS -> return 0
+    }
     val range = requireNotNull(RunRange.of(session))
-    return (0..range.top).first { SprintRules.workMetres(sprintBlock(session, it)) >= OPENING_METRES }
+    return (0..range.top).first { SprintRules.workMetres(sprintBlock(session, it)) >= openingMetres }
 }
 
 private fun lowerLifts(

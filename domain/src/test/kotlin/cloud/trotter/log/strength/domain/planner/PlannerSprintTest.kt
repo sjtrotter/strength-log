@@ -44,7 +44,9 @@ class PlannerSprintTest {
     private val acc0 = intervals(4, 10, 60)
     private val acc5 = intervals(8, 20, 120)
     private val maxv0 = intervals(3, 10, 240)
-    private val se0 = intervals(3, 100, 480)
+    // audit 2026-11-13, row 7: intro = 2*100 = 200 m; non-intro = 200+5*20 = 300 m, with 600 s rests.
+    private val se0 = intervals(2, 100, 600)
+    private val se5 = intervals(3, 100, 600)
     private val tempo0 = intervals(6, 100, 60, warmup = false, hard = false)
 
     @Test fun `a 100 m plan at two days matches the table`() {
@@ -71,17 +73,20 @@ class PlannerSprintTest {
     @Test fun `a 100 m plan at three days matches the table`() {
         val draft = Planner.plan(sprint())
         assertEquals(listOf("A", "B", "C", "D", "E"), draft.program.days.map { it.id })
-        assertEquals(listOf(ProgramDayKind.CARDIO, ProgramDayKind.REST, ProgramDayKind.STRENGTH,
+        // audit 2026-11-13, row 6: A + plyos, Lower, rest, B + Nordic, rest; 3 training days.
+        assertEquals(listOf(ProgramDayKind.CARDIO, ProgramDayKind.STRENGTH, ProgramDayKind.REST,
             ProgramDayKind.CARDIO, ProgramDayKind.REST), draft.program.days.map { it.kind })
-        assertEquals("Lower", day(draft, "C").title)
-        assertEquals(listOf("bb_back_squat", "rdl", "bss", "nordic"), ids(draft, "C"))
+        // audit 2026-11-13, row 6: Lower moves C to B; its 3 lifts exclude the 1 Nordic moved to D.
+        assertEquals("Lower", day(draft, "B").title)
+        assertEquals(listOf("bb_back_squat", "rdl", "bss"), ids(draft, "B"))
         assertEquals(listOf("pogo_hop", "a_skip"), ids(draft, "A"))
-        assertTrue(day(draft, "D").exercises.isEmpty())
+        // audit 2026-11-13, row 6: D gains the 1 Nordic slot after Sprint B.
+        assertEquals(listOf("nordic"), ids(draft, "D"))
         assertEquals(mapOf("A" to RunSession.ACCELERATION, "D" to RunSession.MAX_VELOCITY), draft.sessions)
         assertEquals(acc0, day(draft, "A").cardioBlock)
         assertEquals(maxv0, day(draft, "D").cardioBlock)
-        // audit 2026-11-13, row 13: A=794+495=1289; C=300+3*210+6*129+2*87=1878.
-        assertEquals(listOf(1289, 0, 1878, 1091, 0), seconds(draft))
+        // audit 2026-11-13, row 6: A=794+495=1289; B=300+3*210+6*129=1704; D=1091+2*87=1265.
+        assertEquals(listOf(1289, 1704, 0, 1265, 0), seconds(draft))
         assertTrue(draft.reasons.isEmpty())
     }
 
@@ -111,6 +116,7 @@ class PlannerSprintTest {
                 val cardio = draft.program.cardioDays
                 assertEquals(maxv0, cardio[0].cardioBlock)
                 assertEquals(CardioRule(null, RunSession.MAX_VELOCITY, intro = 3), cardio[0].cardioRule)
+                // audit 2026-11-13, row 7: intro = 2*100 m, 1*600 s rest; two-day C=1272+9*210+2*87=3336.
                 assertEquals(se0, cardio[1].cardioBlock)
                 assertEquals(CardioRule(null, RunSession.SPRINT_ENDURANCE, intro = 3), cardio[1].cardioRule)
                 assertEquals(listOf(RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE), draft.sessions.values.toList())
@@ -122,26 +128,38 @@ class PlannerSprintTest {
         assertEquals(37, SprintEvent.YD40.metres)
     }
 
-    @Test fun `200 and 400 m at two days fit sixty minutes at ladder step one`() {
+    @Test fun `200 and 400 m non-intro at two days fit sixty minutes at ladder step three`() {
         for (event in listOf(SprintEvent.M200, SprintEvent.M400)) {
-            val reference = Planner.plan(sprint(event, days = 2, minutes = 75))
-            val draft = Planner.plan(sprint(event, days = 2, minutes = 60))
+            val recent = SprintAnswers(event, sprintedRecently = true)
+            val reference = Planner.plan(sprint(event, days = 2, minutes = 75, answers = recent))
+            val draft = Planner.plan(sprint(event, days = 2, minutes = 60, answers = recent))
             assertTrue(reference.reasons.isEmpty(), "$event reference reasons")
-            // audit 2026-11-13, row 13: A=1091+495+3*210+6*129=2990;
-            // C=1668+9*210+2*87=3732. Step 1 drops Nordic: 1668+9*210=3558 <= 3600.
-            assertEquals(listOf(2990, 0, 3732), seconds(reference), "$event reference seconds")
-            assertEquals(listOf(PlanReason.ShortSession("C", 1)), draft.reasons, "$event reasons")
-            assertEquals(listOf(2990, 0, 3558), seconds(draft), "$event seconds")
+            // audit 2026-11-13, row 7: A=1091+495+3*210+6*129=2990; C=1908+9*210+2*87=3972.
+            assertEquals(listOf(2990, 0, 3972), seconds(reference), "$event reference seconds")
+            // audit 2026-11-13, row 7: step 1=3972-174=3798; step 2 unchanged; step 3=1908+6*210=3168 <= 3600.
+            assertEquals(listOf(PlanReason.ShortSession("C", 3)), draft.reasons, "$event reasons")
+            assertEquals(listOf(2990, 0, 3168), seconds(draft), "$event seconds")
             for (id in listOf("A", "B")) {
                 assertEquals(day(reference, id), day(draft, id), "$event $id unchanged")
             }
             assertEquals(listOf("bb_bench", "ohp", "bb_row"), ids(draft, "C"), "$event C lifts")
             assertEquals(List(3) { SlotRole.MAIN }, roles(draft, "C"), "$event C roles")
-            // audit 2026-11-13, row 13: 1668+9*210=3558 fits before step 3; all three mains keep three sets.
-            assertEquals(listOf(3, 3, 3), day(draft, "C").exercises.map { it.targetSets }, "$event C sets")
+            // audit 2026-11-13, row 7: 3 mains * 2 straight sets = 6 sets; 1908+6*210=3168.
+            assertEquals(listOf(2, 2, 2), day(draft, "C").exercises.map { it.targetSets }, "$event C sets")
             assertEquals(day(reference, "C").cardioBlock, day(draft, "C").cardioBlock, "$event C block")
             assertEquals(day(reference, "C").cardioRule, day(draft, "C").cardioRule, "$event C rule")
             assertEquals(reference.sessions, draft.sessions, "$event sessions")
+        }
+    }
+
+    @Test fun `200 and 400 m intro at two days fit sixty minutes without shortening`() {
+        for (event in listOf(SprintEvent.M200, SprintEvent.M400)) {
+            val draft = Planner.plan(sprint(event, days = 2))
+            assertTrue(draft.reasons.isEmpty())
+            assertEquals(listOf(2990, 0, 3336), seconds(draft))
+            assertEquals(se0, day(draft, "C").cardioBlock)
+            assertEquals(listOf("bb_bench", "ohp", "bb_row", "nordic"), ids(draft, "C"))
+            assertEquals(listOf(3, 3, 3, 2), day(draft, "C").exercises.map { it.targetSets })
         }
     }
 
@@ -186,6 +204,9 @@ class PlannerSprintTest {
         val longEvent = Planner.plan(sprint(answers = recent.copy(event = SprintEvent.M200)))
         assertEquals(maxv0, day(longEvent, "A").cardioBlock)
         assertEquals(CardioRule(null, RunSession.MAX_VELOCITY), day(longEvent, "A").cardioRule)
+        // audit 2026-11-13, row 7: 200+5*20=300 m, preserving the non-intro 3*100 m opening.
+        assertEquals(se5, day(longEvent, "D").cardioBlock)
+        assertEquals(CardioRule(null, RunSession.SPRINT_ENDURANCE, steps = 5), day(longEvent, "D").cardioRule)
         assertTrue(SprintAnswers().intro)
         assertFalse(recent.intro)
     }
@@ -201,7 +222,8 @@ class PlannerSprintTest {
             assertEquals(60, slot.rule!!.restSeconds)
         }
         assertEquals(65, plyos.sumOf { it.targetSets * it.rule!!.target.reps })
-        val nordic = day(draft, "C").exercises.last()
+        // audit 2026-11-13, row 6: the 2 Nordic sets move from C to D, after Sprint B.
+        val nordic = day(draft, "D").exercises.last()
         assertEquals("nordic", nordic.exerciseId)
         assertEquals(2, nordic.targetSets)
         assertEquals(RepTarget.Range(4, 6, 4), nordic.rule!!.target)
@@ -209,7 +231,8 @@ class PlannerSprintTest {
             assertEquals(slot.targetSets, draft.working.getValue(SlotKey(day.id, index)).size)
         }
         val excluded = Planner.plan(sprint().copy(excluded = setOf("nordic")))
-        val fallback = day(excluded, "C").exercises.last()
+        // audit 2026-11-13, row 6: the 2 knee-flexion fallback sets follow the Nordic slot from C to D.
+        val fallback = day(excluded, "D").exercises.last()
         assertEquals("seated_curl", fallback.exerciseId)
         assertEquals(2, fallback.targetSets)
         assertEquals(RepTarget.Range(8, 12, 8), fallback.rule!!.target)
@@ -222,9 +245,8 @@ class PlannerSprintTest {
         // audit 2026-11-13, row 13: step 1 keeps squat only: 794+3*(15+5*3+180)=1424.
         assertEquals(1424, SessionBudget.seconds(day(one, "A"), LiftGoal.STRENGTH))
         val recent = Planner.plan(sprint(minutes = 30, answers = SprintAnswers(sprintedRecently = true)))
-        // audit 2026-11-13, row 13: A=1498+495=1993; excess=193. C full=1878 > 1800; step 1=300+3*210=930.
-        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 193),
-            PlanReason.ShortSession("C", 1)), recent.reasons)
+        // audit 2026-11-13, row 6: A=1498+495=1993, excess=193; B=1704 and D=1265 both <= 1800.
+        assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.OverBudget("A", 193)), recent.reasons)
         assertEquals(listOf("pogo_hop", "a_skip"), ids(recent, "A"))
     }
 
@@ -279,15 +301,20 @@ class PlannerSprintTest {
 
     @Test fun `sprint ranges and blocks`() {
         val sessions = listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE, RunSession.SPRINT_TEMPO)
-        assertEquals(listOf(20, 7, 15, 12), sessions.map { requireNotNull(RunRange.of(it)).top })
+        // audit 2026-11-13, row 7: sprint-endurance top=(4*150-2*100)/20=20.
+        assertEquals(listOf(20, 7, 20, 12), sessions.map { requireNotNull(RunRange.of(it)).top })
         assertEquals(listOf(false, false, false, true), sessions.map { requireNotNull(RunRange.of(it)).goodBand })
         assertEquals(intervals(8, 30, 180), sprintBlock(RunSession.ACCELERATION, 20))
         assertEquals(intervals(6, 300, 60, warmup = false, hard = false), sprintBlock(RunSession.SPRINT_TEMPO, 12))
+        // audit 2026-11-13, row 7: step zero = 2*100 m with 1*600 s rest.
         assertEquals(listOf(acc0, acc5, maxv0, se0, tempo0), listOf(
             sprintBlock(RunSession.ACCELERATION, 0), sprintBlock(RunSession.ACCELERATION, 12),
             sprintBlock(RunSession.MAX_VELOCITY, 0), sprintBlock(RunSession.SPRINT_ENDURANCE, 0),
             sprintBlock(RunSession.SPRINT_TEMPO, 0)))
-        assertEquals(listOf(794, 1498, 1091, 1668, 516), listOf(acc0, acc5, maxv0, se0, tempo0).map(::plannedSeconds))
+        // audit 2026-11-13, row 7: se0=600+2*36+600=1272; se5=600+3*36+2*600=1908.
+        assertEquals(listOf(794, 1498, 1091, 1272, 516), listOf(acc0, acc5, maxv0, se0, tempo0).map(::plannedSeconds))
+        assertEquals(se5, sprintBlock(RunSession.SPRINT_ENDURANCE, 5))
+        assertEquals(1908, plannedSeconds(se5))
         assertEquals(20, CardioRule(null, RunSession.ACCELERATION, steps = 20).steps)
         assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.ACCELERATION, steps = 21) }
     }

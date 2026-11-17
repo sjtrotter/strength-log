@@ -164,9 +164,10 @@ class PlannerBothTest {
     }
 
     @Test fun `defaults choose separate from four days and one day same visit includes a run`() {
-        assertEquals(BothAnswers.Together.SAME_VISIT, BothAnswers().together(1))
-        assertEquals(BothAnswers.Together.SAME_VISIT, BothAnswers().together(3))
-        assertEquals(BothAnswers.Together.SEPARATE_DAYS, BothAnswers().together(4))
+        // audit 2026-11-13, row 14: General and New keep defaults at 1, 3 and 4 days; 4 splits 2 + 2.
+        assertEquals(BothAnswers.Together.SAME_VISIT, answers(days = 1).copy(both = BothAnswers()).together())
+        assertEquals(BothAnswers.Together.SAME_VISIT, answers(days = 3).copy(both = BothAnswers()).together())
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, answers(days = 4).copy(both = BothAnswers()).together())
         val answers = answers(days = 1).copy(both = BothAnswers())
         val draft = plan(answers)
         val lift = liftDraft(answers, known(8050, 2900), 2400)
@@ -180,6 +181,90 @@ class PlannerBothTest {
         assertEquals(ProgramDayKind.CARDIO, cardio.program.days.single().kind)
         assertEquals(RunSession.EASY, cardio.sessions["A"])
         assertTrue(cardio.program.days.single().exercises.isNotEmpty())
+    }
+
+    @Test fun `trained Strength lifting first defaults to separate days at three days`() {
+        val trained = answers(days = 3).copy(goal = LiftGoal.STRENGTH,
+            experience = LiftExperience.A_YEAR_OR_MORE, both = BothAnswers())
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, trained.together())
+        val draft = plan(trained)
+        assertEquals(listOf(ProgramDayKind.STRENGTH, ProgramDayKind.CARDIO, ProgramDayKind.STRENGTH),
+            draft.program.days.map { it.kind })
+        assertEquals(mapOf("B" to RunSession.EASY), draft.sessions)
+        assertEquals(2, draft.program.strengthDays.size)
+        val lift = plan(trained.copy(branch = PlanBranch.LIFT, days = 2))
+        for ((index, day) in draft.program.strengthDays.withIndex()) {
+            val original = lift.program.days[index]
+            assertEquals(original.copy(id = day.id), day)
+            for (slot in day.exercises.indices) {
+                assertEquals(lift.working[SlotKey(original.id, slot)], draft.working[SlotKey(day.id, slot)])
+            }
+        }
+        val sameVisit = listOf(trained.copy(goal = LiftGoal.GENERAL), trained.copy(goal = LiftGoal.MUSCLE),
+            trained.copy(experience = LiftExperience.NEW), trained.copy(experience = LiftExperience.UNDER_A_YEAR),
+            trained.copy(both = BothAnswers(cardioFirst = true)),
+            trained.copy(both = BothAnswers(together = BothAnswers.Together.SAME_VISIT)))
+        for (variant in sameVisit) {
+            assertEquals(BothAnswers.Together.SAME_VISIT, variant.together())
+            val combined = plan(variant)
+            assertEquals(plan(variant.copy(both = variant.both.copy(together = BothAnswers.Together.SAME_VISIT))), combined)
+            if (!variant.both.cardioFirst) {
+                assertEquals(List(3) { ProgramDayKind.STRENGTH }, combined.program.days.map { it.kind })
+                assertTrue(combined.program.strengthDays.all { it.cardioBlock != null })
+            } else {
+                assertEquals(List(3) { ProgramDayKind.CARDIO } + ProgramDayKind.REST,
+                    combined.program.days.map { it.kind })
+                assertEquals(2, combined.program.cardioDays.count { it.exercises.isNotEmpty() })
+            }
+        }
+    }
+
+    @Test fun `lifting first never splits two days into one strength day`() {
+        val separate = answers(days = 2, together = BothAnswers.Together.SEPARATE_DAYS)
+        assertEquals(BothAnswers.Together.SAME_VISIT, separate.together())
+        val draft = plan(separate)
+        assertEquals(plan(answers(days = 2, together = BothAnswers.Together.SAME_VISIT)), draft)
+        assertEquals(2, draft.program.strengthDays.size)
+        val cardioFirst = separate.copy(both = separate.both.copy(cardioFirst = true))
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, cardioFirst.together())
+        val split = plan(cardioFirst)
+        assertEquals(1, split.program.strengthDays.size)
+        assertEquals(1, split.program.cardioDays.size)
+        assertTrue(split.program.cardioDays.single().exercises.isEmpty())
+    }
+
+    @Test fun `Both defaults and the strength floor hold over 324 plans`() {
+        var plans = 0
+        val choices = listOf<BothAnswers.Together?>(null) + BothAnswers.Together.entries
+        for (goal in LiftGoal.entries) for (experience in LiftExperience.entries) for (days in 1..6) {
+            for (cardioFirst in listOf(false, true)) for (choice in choices) {
+                val answers = answers(days = days).copy(goal = goal, experience = experience,
+                    both = BothAnswers(cardioFirst, choice))
+                val expected = when {
+                    !cardioFirst && days == 2 -> BothAnswers.Together.SAME_VISIT
+                    choice != null -> choice
+                    days >= 4 -> BothAnswers.Together.SEPARATE_DAYS
+                    !cardioFirst && days == 3 && goal == LiftGoal.STRENGTH &&
+                        experience == LiftExperience.A_YEAR_OR_MORE -> BothAnswers.Together.SEPARATE_DAYS
+                    else -> BothAnswers.Together.SAME_VISIT
+                }
+                val label = "$goal $experience $days days cardioFirst=$cardioFirst together=$choice"
+                assertEquals(expected, answers.together(), label)
+                val draft = plan(answers)
+                if (!cardioFirst && days >= 2) assertTrue(draft.program.strengthDays.size >= 2, label)
+                if (days >= 2 && answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
+                    assertTrue(draft.program.cardioDays.isNotEmpty(), label)
+                    assertTrue(draft.program.cardioDays.all { it.exercises.isEmpty() }, label)
+                }
+                if (!cardioFirst && answers.together() == BothAnswers.Together.SAME_VISIT) {
+                    assertTrue(draft.program.days.all {
+                        it.kind == ProgramDayKind.STRENGTH || it.kind == ProgramDayKind.REST
+                    }, label)
+                }
+                plans++
+            }
+        }
+        assertEquals(324, plans)
     }
 
     @Test fun `every Both layout takes the run goal even when only lifting fits`() {

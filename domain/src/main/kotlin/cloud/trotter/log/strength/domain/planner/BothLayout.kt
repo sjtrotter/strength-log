@@ -12,14 +12,14 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
     val run = answers.run
     val anchor = runAnchor(run, known)
     val phase = startPhase(run, anchor, runWeek(run, known))
-    if (answers.days == 1 && answers.both.together(answers.days) == BothAnswers.Together.SEPARATE_DAYS) {
+    if (answers.days == 1 && answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
         return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal)
         else {
             val lift = liftDraft(answers, known)
             lift.copy(goal = runGoal(run), reasons = lift.reasons + runReasons(run, phase, todayEpochDay))
         }
     }
-    if (answers.both.together(answers.days) == BothAnswers.Together.SEPARATE_DAYS) {
+    if (answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
         val primaryDays = (answers.days + 1) / 2
         val secondaryDays = answers.days / 2
         val lift = liftDraft(answers.copy(branch = PlanBranch.LIFT,

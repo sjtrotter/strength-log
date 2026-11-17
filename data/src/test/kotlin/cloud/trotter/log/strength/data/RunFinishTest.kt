@@ -176,6 +176,56 @@ class RunFinishTest {
         assertLadder(12, done = true)
     }
 
+    @Test fun `an Ask plan holds the last ladder level on every day`() = runTest {
+        prepare()
+        ladder(12)
+        repo.plans.setAutoApply(plan, false)
+        val before = db.programDao().daysForPlan(plan)
+        val id = log()
+        assertLadder(12)
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertEquals(undo(id).rule?.before, undo(id).rule?.after)
+        assertTrue(undo(id).days.isEmpty())
+        assertFalse(repo.finishUndoState(null, id).restorable)
+        for (effort in listOf(CardioEffort.HARD, CardioEffort.GOOD, CardioEffort.EASY)) {
+            repo.setCardioEffort(id, effort)
+            assertEquals(before, db.programDao().daysForPlan(plan))
+        }
+    }
+
+    @Test fun `an Ask ladder completion holds a lower sibling returned to Progress`() = runTest {
+        prepare()
+        ladder(11)
+        repo.setCardioKeepToPlan(plan, "B", true)
+        log()
+        assertEquals(CardioRule(12), rule())
+        assertEquals(CardioRule(11), rule("B"))
+        repo.plans.setAutoApply(plan, false)
+        repo.setCardioKeepToPlan(plan, "B", false)
+        val before = db.programDao().daysForPlan(plan)
+        val id = log()
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertEquals(RunWalkLadder.block(11, CardioActivity.ROAD_RUN), block("B"))
+        assertEquals(CardioRule(11), rule("B"))
+        assertTrue(undo(id).days.isEmpty())
+    }
+
+    @Test fun `a ladder replay back to its original state offers no Undo and can replay again`() = runTest {
+        prepare()
+        val id = log()
+        assertTrue(repo.finishUndoState(null, id).restorable)
+        repo.setCardioEffort(id, CardioEffort.GOOD)
+        assertLadder(1)
+        assertEquals(undo(id).rule?.before, undo(id).rule?.after)
+        assertEquals(setOf("A", "B", "C"), undo(id).days.map { it.dayId }.toSet())
+        assertFalse(repo.finishUndoState(null, id).restorable)
+        repo.setCardioEffort(id, CardioEffort.EASY)
+        assertLadder(2)
+        assertTrue(repo.finishUndoState(null, id).restorable)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
+        assertLadder(1)
+    }
+
     @Test fun `a quality step that adds a round writes the plan block and rule together`() = runTest {
         quality()
         assertEquals(vo2(5), block("D"))

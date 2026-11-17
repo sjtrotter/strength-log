@@ -14,6 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ProgressionRunRangeTest {
     private val ctx = Progression.CardioContext(1000, ProgressMeasure.DISTANCE, 5)
@@ -232,14 +233,49 @@ class ProgressionRunRangeTest {
             finish(opening, rule, CardioEffort.EASY, context = budget(1380)))
     }
 
-    @Test fun `an alternation past the session minutes waits on the current kind`() {
+    @Test fun `an alternation below the next kind minimum holds without pending credit`() {
         val opening = block(time(1200, true))
         val rule = CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX)
-        assertEquals(CardioOutcome(opening, rule.copy(credits = 1), CardioChange.Repeat),
+        // 4b-ii-a: step 0 needs 5 times 180 + 4 times 180 = 1620 > 1500, so hold without a pending credit.
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat),
             finish(opening, rule, CardioEffort.EASY, context = budget(1500)))
         assertEquals(CardioOutcome(intervals(5, time(180, true), 180),
             CardioRule(null, RunSession.VO2MAX, credits = 1, alternate = RunSession.THRESHOLD), CardioChange.Alternate(RunSession.VO2MAX)),
             finish(opening, rule, CardioEffort.EASY, context = budget(1620)))
+    }
+
+    @Test fun `an unfittable alternate holds without a ready credit for ten sessions`() {
+        var opening = block(time(1200, true))
+        var rule = CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX)
+        val held = CardioOutcome(opening, rule, CardioChange.Repeat)
+        repeat(10) {
+            val next = finish(opening, rule, CardioEffort.EASY, context = budget(1500))
+            assertEquals(held, next)
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
+        assertEquals(held, finish(opening, rule.copy(credits = 1), CardioEffort.EASY, context = budget(1500)))
+    }
+
+    @Test fun `an alternation fits down to the largest step within the minutes`() {
+        val opening = block(time(1500, true))
+        val rule = CardioRule(null, RunSession.THRESHOLD, steps = 5, alternate = RunSession.VO2MAX)
+        assertEquals(CardioOutcome(intervals(6, time(180, true), 180),
+            CardioRule(null, RunSession.VO2MAX, steps = 1, credits = 1, alternate = RunSession.THRESHOLD),
+            CardioChange.Alternate(RunSession.VO2MAX)),
+            finish(opening, rule, CardioEffort.EASY, context = budget(2000)))
+    }
+
+    @Test fun `a fitted alternation keeps switching for ten sessions`() {
+        var opening = block(time(1500, true))
+        var rule = CardioRule(null, RunSession.THRESHOLD, steps = 5, alternate = RunSession.VO2MAX)
+        repeat(10) {
+            val next = finish(opening, rule, CardioEffort.EASY, context = budget(2000))
+            assertEquals(CardioChange.Alternate(requireNotNull(rule.alternate)), next.change)
+            assertTrue(plannedSeconds(next.block) <= 2000)
+            opening = next.block
+            rule = assertNotNull(next.rule)
+        }
     }
 
     @Test fun `no budget keeps every existing step`() {

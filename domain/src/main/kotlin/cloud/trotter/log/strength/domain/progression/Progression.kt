@@ -272,7 +272,8 @@ object Progression {
      *  A ruled easy run with [CardioContext.easy] grows up to its stop once per rotation; Hard or Pain holds
      *  as practice (audit 2026-11-13 row 4). A long run grows up to its target; a quality session adds one unit
      *  of its range every two counted sessions (design §3.1). A sprint day steps every two counted sessions
-     *  at most once per rotation ([SprintRules]). */
+     *  at most once per rotation ([SprintRules]). An alternate fits down through its range when it exceeds the minutes.
+     *  If an alternate cannot fit at step 0, keep today's kind with no pending credit. */
     fun cardioAfterSession(
         block: CardioBlock,
         rule: CardioRule?,
@@ -414,7 +415,10 @@ object Progression {
             }
         }
         if (nextSession != session && !fits(next, block, ctx)) {
-            return CardioOutcome(block, rule.copy(credits = if (canStep) 1 else 0), CardioChange.Repeat)
+            val fittedSteps = (minOf(steps, nextRange.top) downTo 0).firstOrNull { fits(build(it), block, ctx) }
+                ?: return CardioOutcome(block, rule.copy(credits = 0), CardioChange.Repeat)
+            steps = fittedSteps
+            next = build(steps)
         }
         val change = when {
             nextSession != session -> CardioChange.Alternate(nextSession)

@@ -990,7 +990,7 @@ class TrackerRepository(
     }
 
     /** Rule-less increases write only on Automatic; sprint state always writes. Ruled run replay replaces
-     *  the previous Finish write, with Ask retaining only outcomes that keep the block. */
+     *  the previous Finish write, with Ask retaining only Repeat credit changes. */
     private suspend fun applyCardio(judgment: CardioJudgment) {
         if (judgment.runDays != null) {
             applyRuledRun(judgment, judgment.runDays)
@@ -1036,8 +1036,7 @@ class TrackerRepository(
                 before.cardioWorkingJson, before.cardioRuleJson)
         }
         val judgedDay = beforeDays.first { it.dayId == judgment.dayId }
-        val blockChanged = judgment.outcome.block != judgment.stored
-        if (judgment.automatic || !blockChanged) {
+        if (judgment.automatic || judgment.outcome.change == CardioChange.Repeat) {
             suspend fun write(day: ProgramDayEntity, block: CardioBlock, rule: CardioRule) {
                 val blockJson = CardioBlockJson.encode(block)
                 val ruleJson = CardioRuleJson.encode(rule)
@@ -2410,7 +2409,8 @@ class TrackerRepository(
             cardio?.planId != null && cardio.dayId != null &&
             programDao.day(cardio.planId, cardio.dayId)?.cardioRuleJson == cardioRule.after
         val cardioDaysMatch = cardio?.planId != null && cardioUndo?.days.orEmpty().any { record ->
-            record.matches(programDao.day(cardio.planId, record.dayId))
+            (record.blockBefore != record.blockAfter || record.workingBefore != null || record.ruleBefore != record.ruleAfter) &&
+                record.matches(programDao.day(cardio.planId, record.dayId))
         }
         FinishUndoState(session?.roughDay == true, strength != null,
             logs || ruleChanges || cardioMatches || cardioRuleMatches || cardioDaysMatch || countersMatch(session?.planId, strength?.plan) || countersMatch(cardio?.planId, cardioUndo?.plan),

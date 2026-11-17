@@ -53,6 +53,10 @@ data class SetupAnswers(
         val MINUTES = listOf(30, 45, 60, 75, 90)
     }
 
+    /** The rules for this plan's lift slots: Run and Sprint use Strength (D8, revision 31),
+     *  Lift and Both the lift sub-goal. */
+    val slotGoal: LiftGoal get() = if (branch == PlanBranch.RUN || branch == PlanBranch.SPRINT) LiftGoal.STRENGTH else goal
+
     /** Design §5: the careful group, 40 or older, 65+ or a hamstring strain in the past 12 months
      *  (Green 2020 risk factors, strong-moderate; the cutoffs and doses are practice). */
     val careful: Boolean get() = sprint.fortyOrOlder || olderAdult || sprint.hamstringStrain

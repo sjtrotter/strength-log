@@ -11,6 +11,12 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.SessionBudget
+import cloud.trotter.log.strength.domain.planner.easyRunSeconds
+import cloud.trotter.log.strength.domain.progression.EasyRunContext
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.CardioHistory
@@ -23,9 +29,11 @@ import cloud.trotter.log.strength.domain.progression.Progression
 import java.time.Instant
 import java.time.ZoneId
 
-/** Sprint context beyond the day (design §4.2): stored rules (the judged day's pre-write rule on replay),
- *  rotation count before Finish wraps it, plan goal, careful group and the zone dating sessions by local start. */
-data class SprintPlan(val program: Program, val cyclesCompleted: Int, val goal: PlanGoal?, val careful: Boolean, val zone: ZoneId)
+/** Plan inputs a ruled cardio day needs at Finish: stored rules with their exercises (the judged day's pre-write
+ *  rule on replay), the rotation count before Finish wraps it, the plan goal, the careful group, the zone dating
+ *  sessions, and the setup answers. */
+data class CardioPlan(val program: Program, val cyclesCompleted: Int, val goal: PlanGoal?, val careful: Boolean,
+                      val zone: ZoneId, val setup: SetupAnswers? = null)
 
 /** What a logged cardio session earns its day, and the block a day opens with. The cardio commit, a later distance,
  *  the chip and every opening read it, so they agree. Pure: callers pass rows they already hold. */
@@ -34,7 +42,7 @@ object CardioJudge {
      *  date, then the run cap against the family's sessions completed by then. A day kept to plan opens as stored.
      *  Null when [day] has no block or a sprint day has no [sprint] plan inputs. */
     fun opening(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
-                sets: Map<Long, List<CardioSetResult>>, nowMillis: Long, todayEpochDay: Long, sprint: SprintPlan? = null): CardioBlock? {
+                sets: Map<Long, List<CardioSetResult>>, nowMillis: Long, todayEpochDay: Long, sprint: CardioPlan? = null): CardioBlock? {
         val stored = day.cardioToRun ?: return null
         if (day.cardioProgress.keepToPlan) return stored
         val sprintDay = day.cardioRule?.session?.sprint == true
@@ -52,24 +60,24 @@ object CardioJudge {
     /** The block [session] ran ([opening]) and next time's [outcome]. */
     data class Judged(val opening: CardioBlock, val outcome: CardioOutcome)
 
-    /** Null when [day] has no block, is kept to plan or on the ladder, or when [session] has no readable activity, no
-     *  sets, or (on non-sprint days) no progress measure; sprint days require [sprint] plan inputs and an activity in
-     *  [CardioFamily.RUN]. [sessions] may hold anything: the family's sessions before [session] are taken from it;
-     *  [sets] maps ids to their results. Sprint replay anchors to Start's local date, the ledger
-     *  strictly before this session and stored rules (the judged day's pre-write rule on re-judgment).
-     *  floorDiv(completedAt, 86_400_000) used the UTC Finish day; a US evening run is already tomorrow there.
-     *  Other maximal days' current rules can drift after a plan edit or Reset day. Structural credit denies credit
-     *  when a shortened Start becomes normal on replay. Such an edit can also flip trial admission and write or drop
-     *  sprintTrialCycle; this residual is accepted. Repository undo and newest-session gates bound replay. */
+    /** Null when [day] has no block or is kept to plan, or when [session] has no readable activity or sets.
+     *  Ruled run and sprint days need [plan]; sprint days also need an activity in [CardioFamily.RUN].
+     *  Non-ladder run days need a progress measure. The opening guard lives in the repository.
+     *  [sessions] supplies the family's sessions strictly before this session by (completedAt, id).
+     *  Sprint replay uses Start's local date, the prior ledger and the pre-write rule. Other days' rules can drift
+     *  after edits; structural credit denies credit for a shortened Start that becomes normal on replay.
+     *  Trial admission can still drift after edits. Repository undo and newest-session gates bound replay. */
     fun judge(day: ProgramDay, session: CardioSessionEntity, sessions: List<CardioSessionEntity>,
-              sets: Map<Long, List<CardioSetResult>>, runCap: Boolean, sprint: SprintPlan? = null): Judged? {
-        if (day.cardioBlock == null || day.cardioProgress.keepToPlan || day.cardioRule?.ladderLevel != null) return null
+              sets: Map<Long, List<CardioSetResult>>, runCap: Boolean, plan: CardioPlan? = null): Judged? {
+        if (day.cardioBlock == null || day.cardioProgress.keepToPlan) return null
         val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
         val results = sets[session.id].orEmpty().ifEmpty { return null }
         val opening = CardioBlock(activity, results.map { it.spec })
         val sprintDay = day.cardioRule?.session?.sprint == true
-        if (sprintDay && (sprint == null || CardioFamily.of(activity) != CardioFamily.RUN)) return null
-        val measure = if (sprintDay) null else {
+        if (day.cardioRule != null && plan == null) return null
+        if (sprintDay && CardioFamily.of(activity) != CardioFamily.RUN) return null
+        val ladder = day.cardioRule?.ladderLevel != null
+        val measure = if (sprintDay || ladder) null else {
             CardioMeasures.resolve(opening, day.cardioProgress.measure) ?: return null
         }
         val family = CardioFamily.of(activity).activities.map { it.name }
@@ -77,24 +85,36 @@ object CardioJudge {
         val prior = sessions.filter { it.activity in family && order.compare(it, session) < 0 }.sortedWith(order)
         val recent = CardioHistory.of(prior.map { LoggedCardio(it.completedAt, sets[it.id].orEmpty()) }, session.completedAt)
         val effort = CardioEffort.entries.firstOrNull { it.name == session.effort }
-        val percent = if (sprintDay) 0 else {
+        val percent = if (sprintDay || ladder) 0 else {
             day.cardioProgress.increasePercent ?: CardioMeasures.defaultPercent(requireNotNull(measure))
         }
-        val today = if (sprintDay) localStart(session, requireNotNull(sprint).zone)
+        val today = if (sprintDay) localStart(session, requireNotNull(plan).zone)
             else Math.floorDiv(session.completedAt, 86_400_000L)
-        val context = if (sprintDay && sprint != null) {
-            sprint.context(day.id, session.planId, prior, sets, today)
+        val context = if (sprintDay && plan != null) {
+            plan.context(day.id, session.planId, prior, sets, today)
         } else null
-        val ctx = Progression.CardioContext(today, measure, percent, runCap = runCap, sprint = context)
+        val setup = plan?.setup
+        val programDay = plan?.program?.days?.firstOrNull { it.id == day.id }?.copy(cardioBlock = day.cardioToRun)
+        val budget = if (day.cardioRule != null && !ladder && setup != null && programDay != null) {
+            SessionBudget.cardioBudget(programDay, setup.minutes, setup.slotGoal)
+        } else null
+        val easy = if (day.cardioRule?.session == RunSession.EASY && day.kind == ProgramDayKind.CARDIO &&
+            setup != null && programDay != null) {
+            val inputs = requireNotNull(plan)
+            val long = inputs.program.days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioToRun
+            EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long), inputs.cyclesCompleted)
+        } else null
+        val ctx = Progression.CardioContext(today, measure, percent, runCap = runCap, sprint = context,
+            easy = easy, budgetSeconds = budget)
         val outcome = Progression.cardioAfterSession(opening, day.cardioRule, results, effort, recent, ctx)
-        val held = !sprintDay && outcome.block.sets.map { it.role } != opening.sets.map { it.role }
+        val held = day.cardioRule == null && outcome.block.sets.map { it.role } != opening.sets.map { it.role }
         return Judged(opening, if (held) CardioOutcome(opening, day.cardioRule, CardioChange.Repeat) else outcome)
     }
 
     private fun localStart(session: CardioSessionEntity, zone: ZoneId): Long =
         Instant.ofEpochMilli(session.startedAt).atZone(zone).toLocalDate().toEpochDay()
 
-    private fun SprintPlan.context(dayId: String, planId: Long?, prior: List<CardioSessionEntity>,
+    private fun CardioPlan.context(dayId: String, planId: Long?, prior: List<CardioSessionEntity>,
                                    sets: Map<Long, List<CardioSetResult>>, today: Long): SprintContext {
         val records = prior.filter { it.planId == planId && it.dayId != null }.map {
             SprintRecord(requireNotNull(it.dayId), localStart(it, zone), sets[it.id].orEmpty())

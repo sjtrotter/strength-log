@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.planner
 
+import cloud.trotter.log.strength.domain.progression.plannedSeconds
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole

@@ -121,6 +121,9 @@ interface ProgramDao {
 
     // --- writes --------------------------------------------------------------
 
+    @Query("UPDATE program_day SET cardioBlockJson = :block, cardioWorkingJson = :working, cardioRuleJson = :rule WHERE planId = :planId AND dayId = :dayId")
+    suspend fun setCardioState(planId: Long, dayId: String, block: String?, working: String?, rule: String?)
+
     @Upsert
     suspend fun upsertDay(day: ProgramDayEntity)
 

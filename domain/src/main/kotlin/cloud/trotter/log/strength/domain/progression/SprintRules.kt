@@ -247,6 +247,7 @@ internal object SprintRules {
         effort: CardioEffort?,
         pain: Boolean,
         sprint: SprintContext,
+        budgetSeconds: Int? = null,
     ): CardioOutcome {
         val decision = decision(rule, session, sprint, block.activity)
         fun outcome(next: CardioRule, change: CardioChange) =
@@ -270,6 +271,8 @@ internal object SprintRules {
             start.steps == range.top -> outcome(start, same)
             start.credits == 0 -> outcome(start.copy(credits = 1), same)
             start.stepCycle == sprint.cyclesCompleted -> outcome(start, same)
+            budgetSeconds != null && plannedSeconds(sprintBlock(session, start.steps + 1, block.activity)) > budgetSeconds &&
+                plannedSeconds(sprintBlock(session, start.steps + 1, block.activity)) > plannedSeconds(block) -> outcome(start, same)
             else -> outcome(start.copy(steps = start.steps + 1, credits = 0,
                 stepCycle = sprint.cyclesCompleted), CardioChange.Step)
         }

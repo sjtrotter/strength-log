@@ -99,4 +99,13 @@ class ProgressionEasyRunTest {
         assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat),
             finish(opening, context = ctx().copy(measure = ProgressMeasure.DISTANCE)))
     }
+    @Test fun `the easy stop keeps the pace of a distance aim`() {
+        val opening = block(1750).copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1750), Measure.Distance(5000))))
+        val results = finished(opening).map { it.copy(metres = 5000, distanceSource = DistanceSource.MANUAL) }
+        val expected = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1800), Measure.Distance(5142))))
+        // 1750 + round(87.5) = 1838; round(5000 * 1838 / 1750) = 5251; round(5251 * 1800 / 1838) = 5142.
+        assertEquals(CardioOutcome(expected, rule.copy(stepCycle = 0), CardioChange.Increase(ProgressMeasure.TIME, false)),
+            finish(opening, context = ctx().copy(runCap = false), results = results))
+    }
+
 }

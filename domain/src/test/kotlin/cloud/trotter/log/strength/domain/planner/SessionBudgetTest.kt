@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -84,4 +85,18 @@ class SessionBudgetTest {
         // Catalog holds use all five scheme sets too: 15+45=60 seconds each.
         assertEquals(300 + 5 * 60 + 420, SessionBudget.seconds(day(catalogTimed), LiftGoal.STRENGTH))
     }
+    @Test fun `the cardio budget is the minutes less the rest of the day`() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
+        val cardio = ProgramDay("A", "Run", "", emptyList<ProgramExercise>(), kind = ProgramDayKind.CARDIO, cardioBlock = block)
+        assertEquals(3300, SessionBudget.cardioBudget(cardio, 60, LiftGoal.STRENGTH))
+        val warmed = cardio.copy(cardioBlock = block.copy(sets = listOf(CardioSetSpec(CardioRole.WARMUP, Measure.Time(300))) + block.sets))
+        assertEquals(3600, SessionBudget.cardioBudget(warmed, 60, LiftGoal.STRENGTH))
+        val slot = ProgramExercise("bb_back_squat", targetSets = 2,
+            rule = SlotRule.defaults(SlotRole.SECONDARY, LiftGoal.STRENGTH, SetStructure.STRAIGHT, 5, MovementPattern.SQUAT_BILATERAL))
+        val combined = cardio.copy(exercises = listOf(slot))
+        val liftSeconds = SessionBudget.seconds(combined, LiftGoal.STRENGTH) - 300 - 1200
+        assertEquals(3300 - liftSeconds, SessionBudget.cardioBudget(combined, 60, LiftGoal.STRENGTH))
+        assertEquals(null, SessionBudget.cardioBudget(cardio.copy(cardioBlock = null), 60, LiftGoal.STRENGTH))
+    }
+
 }

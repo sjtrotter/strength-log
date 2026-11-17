@@ -4,15 +4,14 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
-import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
-import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.plannedSeconds
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -39,6 +38,12 @@ object SessionBudget {
             }.sum()
         } + (day.cardioBlock?.let(::plannedSeconds) ?: 0)
     }
+
+    /** What a day's cardio block may plan within [minutes] (4b-ii, design §3.1.2): the minutes less the rest of
+     *  the day's estimate (its lifts, and the 300 s warm-up unless the block opens with its own WARMUP).
+     *  Null without a block. */
+    fun cardioBudget(day: ProgramDay, minutes: Int, goal: LiftGoal): Int? =
+        day.cardioBlock?.let { minutes * 60 - (seconds(day, goal) - plannedSeconds(it)) }
 
     private fun workSeconds(slot: ProgramExercise): List<Int> {
         val kinds = setKinds(slot)
@@ -74,14 +79,3 @@ internal fun setKinds(slot: ProgramExercise): List<SetKind> {
     return List(scheme.ramps.size) { SetKind.RAMP } + SetKind.TOP +
         if (slot.structure == SetStructure.RAMP_TOP_BACKOFF) List(scheme.backoffs) { SetKind.BACKOFF } else emptyList<SetKind>()
 }
-
-/** 6:00 per km, practice; only for a distance set with no time aim. */
-private const val ESTIMATE_SECONDS_PER_METRE = 0.36
-
-internal fun plannedSeconds(block: CardioBlock): Int = Math.round(block.sets.sumOf { set ->
-    when (val end = set.end) {
-        is Measure.Time -> end.seconds.toDouble()
-        is Measure.Distance -> (set.aim as? Measure.Time)?.seconds?.toDouble()
-            ?: end.metres * ESTIMATE_SECONDS_PER_METRE
-    }
-}).toInt()

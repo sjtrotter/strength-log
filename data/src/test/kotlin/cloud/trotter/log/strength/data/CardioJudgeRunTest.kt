@@ -1,0 +1,98 @@
+package cloud.trotter.log.strength.data
+
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunRange
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
+import java.time.ZoneOffset
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import org.junit.Test
+
+class CardioJudgeRunTest {
+    private val session = CardioSessionEntity(id = 1, planId = 7, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+        label = "Run", startedAt = 86_400_000_000L, completedAt = 86_401_000_000L, seconds = 1000,
+        stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name, effort = "EASY")
+    private fun day(block: CardioBlock, rule: CardioRule?) = ProgramDay("A", "Run", "", emptyList<ProgramExercise>(),
+        kind = ProgramDayKind.CARDIO, cardioBlock = block, cardioRule = rule)
+    private fun plan(day: ProgramDay, setup: SetupAnswers? = null) = CardioPlan(Program(listOf(day)), 0, null, false, ZoneOffset.UTC, setup)
+    private fun results(block: CardioBlock) = block.sets.map { spec ->
+        CardioSetResult(spec, CardioSetStatus.FINISHED, (spec.end as? Measure.Time)?.seconds ?: 240,
+            (spec.end as? Measure.Distance)?.metres, if (spec.end is Measure.Distance) DistanceSource.MANUAL else null)
+    }
+    private fun judge(day: ProgramDay, inputs: CardioPlan? = null, cap: Boolean = false) =
+        CardioJudge.judge(day, session, listOf(session), mapOf(session.id to results(requireNotNull(day.cardioBlock))), cap, inputs)
+
+    @Test fun `a ruled run day is judged only with plan inputs`() {
+        val day = day(RunWalkLadder.block(4, CardioActivity.ROAD_RUN), CardioRule(4))
+        assertNull(judge(day))
+        assertEquals(CardioChange.LevelTo(5), assertNotNull(judge(day, plan(day))).outcome.change)
+    }
+
+    @Test fun `easy run context goes only to cardio days with setup answers`() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(960))))
+        val day = day(block, CardioRule(null, RunSession.EASY)).copy(exercises = listOf(ProgramExercise("bb_back_squat")))
+        val setup = SetupAnswers(branch = PlanBranch.RUN, days = 3, minutes = 60,
+            run = RunAnswers(RunGoal.CARDIO_FITNESS, RunExperience.SOME, longest = Measure.Time(900)))
+        val outcome = assertNotNull(judge(day, plan(day, setup), cap = true)).outcome
+        assertEquals(CardioChange.Increase(ProgressMeasure.TIME, false), outcome.change)
+        assertEquals(Measure.Time(1008), outcome.block.sets.single().end)
+        val lift = day.copy(kind = ProgramDayKind.STRENGTH)
+        assertEquals(CardioChange.Repeat, assertNotNull(judge(lift, plan(lift, setup), cap = true)).outcome.change)
+        assertEquals(CardioChange.Repeat, assertNotNull(judge(day, plan(day), cap = true)).outcome.change)
+    }
+
+    @Test fun `the held guard applies only to rule less days`() {
+        val work = CardioSetSpec(CardioRole.WORK, Measure.Distance(1000))
+        val recovery = CardioSetSpec(CardioRole.RECOVERY, Measure.Distance(200))
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(work, recovery, work, recovery, work))
+        val unruled = day(opening, null).copy(cardioProgress = CardioProgress(increasePercent = 25))
+        // A16 cannot add rounds; the cap can remove one, which must still be held on a rule-less day.
+        assertEquals(CardioChange.Repeat, assertNotNull(judge(unruled, cap = true)).outcome.change)
+        val ruled = day(requireNotNull(RunRange.of(RunSession.VO2MAX)).block(0, CardioActivity.ROAD_RUN),
+            CardioRule(null, RunSession.VO2MAX, credits = 1))
+        val next = assertNotNull(judge(ruled, plan(ruled))).outcome
+        assertEquals(CardioChange.Step, next.change)
+        assertEquals(6, next.block.sets.count { it.role == CardioRole.WORK })
+    }
+
+    @Test fun `quality steps use the budget left after lifts`() {
+        val block = requireNotNull(RunRange.of(RunSession.VO2MAX)).block(0, CardioActivity.ROAD_RUN)
+        val lift = ProgramExercise("bb_back_squat", targetSets = 4,
+            rule = SlotRule.defaults(SlotRole.SECONDARY, LiftGoal.STRENGTH, SetStructure.STRAIGHT, 5, MovementPattern.SQUAT_BILATERAL))
+        val day = day(block, CardioRule(null, RunSession.VO2MAX, credits = 1)).copy(exercises = listOf(lift))
+        val setup = SetupAnswers(branch = PlanBranch.RUN, minutes = 45)
+        // 2700 - 300 warm-up - 4 * (15 + 5 * 3 + 120 rest) = 1800; the sixth round takes 1980.
+        assertEquals(CardioChange.Repeat, assertNotNull(judge(day, plan(day, setup))).outcome.change)
+        val solo = day.copy(exercises = emptyList<ProgramExercise>())
+        assertEquals(CardioChange.Step, assertNotNull(judge(solo, plan(solo, setup))).outcome.change)
+    }
+
+}

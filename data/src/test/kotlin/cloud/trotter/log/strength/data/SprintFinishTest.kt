@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.SprintAnswers
 import cloud.trotter.log.strength.domain.progression.CardioEffort
+import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.RunSession
 import java.io.File
@@ -129,7 +130,7 @@ class SprintFinishTest {
         val sets = db.cardioSetResultDao().all().groupBy { it.cardioSessionId }.mapValues { (_, rows) -> rows.map { it.toDomain() } }
         return CardioJudge.opening(program.days.single { it.id == dayId }, storedPlan, db.cardioSessionDao().all(), sets,
             started, Instant.ofEpochMilli(started).atZone(zone).toLocalDate().toEpochDay(),
-            SprintPlan(program, storedPlan.cyclesCompleted, PlanGoal.Sprint(100), false, zone))
+            CardioPlan(program, storedPlan.cyclesCompleted, PlanGoal.Sprint(100), false, zone))
     }
     private suspend fun assertShortenedFinish(started: Long, completed: Long) {
         prepare()
@@ -325,4 +326,23 @@ class SprintFinishTest {
         val dto = CardioUndoDto(rule = CardioRuleUndoDto("before", "after", 4))
         assertEquals(dto, CardioUndoJson.decode(CardioUndoJson.encode(dto)))
     }
+    @Test fun `a sprint restart after a twenty one day layoff opens and judges the same block`() = runTest {
+        prepare()
+        seed("A", -21, block(8, 20))
+        val restart = block(4, 10, 60)
+        assertEquals(restart, opening())
+        val program = assemble(db.programDao().daysForPlan(plan), db.programDao().exercisesForPlan(plan))
+        val session = entity("A").copy(id = 99)
+        val prior = db.cardioSessionDao().all()
+        val sets = db.cardioSetResultDao().all().groupBy { it.cardioSessionId }.mapValues { (_, rows) -> rows.map { it.toDomain() } }
+        val judged = assertNotNull(CardioJudge.judge(program.days.first { it.id == "A" }, session, prior,
+            sets + (session.id to results(restart)), true,
+            CardioPlan(program, 1, PlanGoal.Sprint(100), false, zone)))
+        assertEquals(restart, judged.opening)
+        assertEquals(CardioChange.Restart, judged.outcome.change)
+        val id = log(block = restart)
+        assertEquals(CardioRule(null, RunSession.ACCELERATION, intro = 2, maximalCycle = 1), rule())
+        assertEquals(0, CardioRuleJson.decode(undo(id).rule?.after)?.steps)
+    }
+
 }

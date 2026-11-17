@@ -214,4 +214,61 @@ class ProgressionRunRangeTest {
         assertEquals(10, CardioRule(null, RunSession.THRESHOLD, steps = 10, alternate = RunSession.VO2MAX).steps)
         assertEquals(10, CardioRule(null, RunSession.VO2MAX, steps = 10, alternate = RunSession.THRESHOLD).steps)
     }
+    private fun budget(seconds: Int?) = Progression.CardioContext(1000, null, 0, runCap = false, budgetSeconds = seconds)
+
+    @Test fun `a round restore past the session minutes waits with its credit`() {
+        val opening = intervals(4, time(180, true), 180)
+        val rule = CardioRule(null, RunSession.VO2MAX, credits = 1)
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), finish(opening, rule, CardioEffort.EASY, context = budget(1500)))
+        assertEquals(CardioOutcome(intervals(5, time(180, true), 180), rule.copy(credits = 0), CardioChange.Step),
+            finish(opening, rule, CardioEffort.EASY, context = budget(1620)))
+    }
+
+    @Test fun `a full step past the session minutes waits with its credit`() {
+        val opening = block(time(1320, true))
+        val rule = CardioRule(null, RunSession.THRESHOLD, steps = 2, credits = 1)
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat), finish(opening, rule, CardioEffort.EASY, context = budget(1350)))
+        assertEquals(CardioOutcome(block(time(1380, true)), rule.copy(steps = 3, credits = 0), CardioChange.Step),
+            finish(opening, rule, CardioEffort.EASY, context = budget(1380)))
+    }
+
+    @Test fun `an alternation past the session minutes waits on the current kind`() {
+        val opening = block(time(1200, true))
+        val rule = CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX)
+        assertEquals(CardioOutcome(opening, rule.copy(credits = 1), CardioChange.Repeat),
+            finish(opening, rule, CardioEffort.EASY, context = budget(1500)))
+        assertEquals(CardioOutcome(intervals(5, time(180, true), 180),
+            CardioRule(null, RunSession.VO2MAX, credits = 1, alternate = RunSession.THRESHOLD), CardioChange.Alternate(RunSession.VO2MAX)),
+            finish(opening, rule, CardioEffort.EASY, context = budget(1620)))
+    }
+
+    @Test fun `no budget keeps every existing step`() {
+        val fixtures = listOf(
+            Triple(intervals(4, time(180, true), 180), CardioRule(null, RunSession.VO2MAX, credits = 1), 1620),
+            Triple(block(time(1320, true)), CardioRule(null, RunSession.THRESHOLD, steps = 2, credits = 1), 1380),
+            Triple(block(time(1200, true)), CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX), 1620),
+        )
+        for ((opening, rule, seconds) in fixtures) {
+            assertEquals(finish(opening, rule, CardioEffort.EASY, context = budget(seconds)),
+                finish(opening, rule, CardioEffort.EASY, context = budget(null)))
+        }
+    }
+
+    @Test fun `a full step keeps the stored warm up and cool down`() {
+        val warmup = time(300, role = CardioRole.WARMUP)
+        val cooldown = time(300, role = CardioRole.COOLDOWN)
+        val opening = block(warmup, time(1200, true), cooldown)
+        val rule = CardioRule(null, RunSession.THRESHOLD, credits = 1)
+        assertEquals(CardioOutcome(block(warmup, time(1260, true), cooldown), rule.copy(steps = 1, credits = 0), CardioChange.Step),
+            finish(opening, rule, CardioEffort.EASY, context = budget(null)))
+    }
+
+    @Test fun `a kind switch that does not grow fits above the minutes`() {
+        val opening = intervals(5, time(180, true), 180)
+        val rule = CardioRule(null, RunSession.VO2MAX, alternate = RunSession.THRESHOLD)
+        assertEquals(CardioOutcome(block(time(1200, true)),
+            CardioRule(null, RunSession.THRESHOLD, credits = 1, alternate = RunSession.VO2MAX), CardioChange.Alternate(RunSession.THRESHOLD)),
+            finish(opening, rule, CardioEffort.EASY, context = budget(1000)))
+    }
+
 }

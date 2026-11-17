@@ -248,6 +248,9 @@ object Progression {
         val runCap: Boolean = true,
         val sprint: SprintContext? = null,
         val easy: EasyRunContext? = null,
+        /** What the day's block may plan within the session minutes
+         *  ([cloud.trotter.log.strength.domain.planner.SessionBudget.cardioBudget]); null skips the check. */
+        val budgetSeconds: Int? = null,
     )
 
     /** The block a cardio day opens with, as a view: the taper from [goal]'s date, then the run cap against [recent].
@@ -306,7 +309,7 @@ object Progression {
                 longStopped(it, rule, recent.secondsPerMetre)
             }
             session.sprint -> SprintRules.afterSession(block, rule, session, results, effort, pain,
-                requireNotNull(ctx.sprint))
+                requireNotNull(ctx.sprint), ctx.budgetSeconds)
             else -> ranged(block, rule, session, results, effort, recent, ctx)
         }
     }
@@ -357,6 +360,10 @@ object Progression {
         }).minOrNull()
     }
 
+    private fun fits(next: CardioBlock, current: CardioBlock, ctx: CardioContext): Boolean =
+        ctx.budgetSeconds == null || plannedSeconds(next) <= ctx.budgetSeconds ||
+            plannedSeconds(next) <= plannedSeconds(current)
+
     private fun ranged(
         block: CardioBlock,
         rule: CardioRule,
@@ -376,10 +383,12 @@ object Progression {
         val work = block.sets.first { it.role == CardioRole.WORK }
         fun build(steps: Int): CardioBlock {
             val next = nextRange.block(minOf(steps, nextRange.top), block.activity)
-            if (nextSession != session || work.aim == null) return next
-            return next.copy(sets = next.sets.map { set ->
+            val built = if (nextSession != session || work.aim == null) next else next.copy(sets = next.sets.map { set ->
                 if (set.role != CardioRole.WORK) set else set.copy(aim = work.withEndValue(set.endValue()).aim)
             })
+            val first = block.sets.indexOfFirst { it.role == CardioRole.WORK || it.role == CardioRole.RECOVERY }
+            val last = block.sets.indexOfLast { it.role == CardioRole.WORK || it.role == CardioRole.RECOVERY }
+            return built.copy(sets = block.sets.take(first) + built.sets + block.sets.drop(last + 1))
         }
         val baseline = build(rule.steps)
         val shortOfRounds = nextSession == session && block.sets.count { it.role == CardioRole.WORK } <
@@ -396,12 +405,16 @@ object Progression {
                 val last = block.sets.indexOfLast { it.role == CardioRole.WORK }
                 block.copy(sets = block.sets.take(last + 1) + listOf(recovery, work) + block.sets.drop(last + 1))
             } else build(steps + 1)
-            if (ctx.runCap && RunCap.capped(stepped, capAnchor(recent, results), recent.secondsPerMetre) != stepped) {
+            if (!fits(stepped, block, ctx) ||
+                (ctx.runCap && RunCap.capped(stepped, capAnchor(recent, results), recent.secondsPerMetre) != stepped)) {
                 credits = 1
             } else {
                 next = stepped
                 if (!shortOfRounds) steps += 1
             }
+        }
+        if (nextSession != session && !fits(next, block, ctx)) {
+            return CardioOutcome(block, rule.copy(credits = if (canStep) 1 else 0), CardioChange.Repeat)
         }
         val change = when {
             nextSession != session -> CardioChange.Alternate(nextSession)

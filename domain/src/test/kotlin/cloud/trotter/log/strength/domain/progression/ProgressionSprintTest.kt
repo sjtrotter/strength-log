@@ -255,4 +255,15 @@ class ProgressionSprintTest {
         }
     }
 
+    @Test fun `a sprint step past the session minutes waits with its credit`() {
+        val rule = CardioRule(null, RunSession.ACCELERATION, steps = 12, credits = 1, stepCycle = 3)
+        val opening = sprintBlock(RunSession.ACCELERATION, 12, CardioActivity.TRACK_RUN)
+        val stepped = sprintBlock(RunSession.ACCELERATION, 13, CardioActivity.TRACK_RUN)
+        val context = ctx(cycle = 4)
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat),
+            finish(rule, context = context.copy(budgetSeconds = plannedSeconds(opening))))
+        assertEquals(CardioOutcome(stepped, rule.copy(steps = 13, credits = 0, stepCycle = 4), CardioChange.Step),
+            finish(rule, context = context.copy(budgetSeconds = plannedSeconds(stepped))))
+    }
+
 }

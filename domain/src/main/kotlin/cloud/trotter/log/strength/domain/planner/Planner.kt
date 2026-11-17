@@ -22,10 +22,11 @@ data class SlotKey(val dayId: String, val index: Int)
 
 /** Keys for the "Why this plan" sheet (PR 6). Re-derived from the answers, never stored. */
 sealed interface PlanReason {
-    /** The day fits after ladder step [step] (1 to 6). Step 0: the ladder left the day alone, but its minutes stop
+    /** The day fits after ladder step [step] (1 to 8; 7 drops plyometrics and 8 the knee-flexion
+     *  slot, only on sprint days). Step 0: the ladder left the day alone, but its minutes stop
      *  a weekly set floor (invariant 5). */
     data class ShortSession(val dayId: String, val step: Int) : PlanReason
-    /** After step 6 the day is still [seconds] over; Your plan offers "Drop a lift" or "Longer sessions". */
+    /** After the last ladder step the day is still [seconds] over; Your plan offers "Drop a lift" or "Longer sessions". */
     data class OverBudget(val dayId: String, val seconds: Int) : PlanReason
     /** The run cap shortened this day's session at creation. */
     data class RunCapped(val dayId: String) : PlanReason
@@ -69,6 +70,15 @@ object Planner {
             PlanBranch.SPRINT -> sprintDraft(answers, known, LiftGoal.STRENGTH)
         }
     }
+
+    /** The smallest minutes answer at or above [answers]'s whose plan needs no ladder step and is not over budget;
+     *  null when even 90 minutes trims (design §3.4). A step-0 ShortSession (a weekly floor stop) does not count. */
+    fun fullDoseMinutes(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null): Int? =
+        SetupAnswers.MINUTES.firstOrNull { minutes ->
+            minutes >= answers.minutes && plan(answers.copy(minutes = minutes), known, todayEpochDay).reasons.none {
+                (it is PlanReason.ShortSession && it.step >= 1) || it is PlanReason.OverBudget
+            }
+        }
 
     /** One day of [plan], for Reset day to plan. Null for an id the answers do not produce. */
     fun day(answers: SetupAnswers, dayId: String, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null): DayDraft? {

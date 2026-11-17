@@ -207,7 +207,8 @@ class ProgressionSprintTest {
 
     @Test fun `rules reject sprint markers on run days and invalid sprint state`() {
         val invalid = listOf<() -> CardioRule>(
-            { CardioRule(null, RunSession.ACCELERATION, intro = 4) },
+            // sprint week design §5: the intro accepts 0 through 6; 6+1=7 rejects.
+            { CardioRule(null, RunSession.ACCELERATION, intro = 7) },
             { CardioRule(null, RunSession.ACCELERATION, intro = -1) },
             { CardioRule(null, RunSession.ACCELERATION, steps = 1, intro = 1) },
             { CardioRule(null, RunSession.ACCELERATION, credits = 1, intro = 1) },

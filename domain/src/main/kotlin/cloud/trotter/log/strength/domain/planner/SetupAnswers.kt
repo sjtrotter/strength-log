@@ -46,8 +46,19 @@ data class SetupAnswers(
 ) {
     init {
         require(days in 1..6)
-        require(minutes in setOf(30, 45, 60, 75, 90))
+        require(minutes in MINUTES)
     }
+
+    companion object {
+        val MINUTES = listOf(30, 45, 60, 75, 90)
+    }
+
+    /** Design §5: the careful group, 40 or older, 65+ or a hamstring strain in the past 12 months
+     *  (Green 2020 risk factors, strong-moderate; the cutoffs and doses are practice). */
+    val careful: Boolean get() = sprint.fortyOrOlder || olderAdult || sprint.hamstringStrain
+
+    /** Design §5: the careful group always opens with the intro, even after recent all-out sprinting. */
+    val sprintIntro: Boolean get() = sprint.intro || careful
 
     /** Both's Together answer as the planner applies it (design §2.2; audit 2026-11-13 row 14). */
     fun together(): BothAnswers.Together {

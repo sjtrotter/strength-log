@@ -28,7 +28,7 @@ import kotlin.math.ceil
 /** The setup decisions in one place: steps, answer mapping and screen state.
  *  The planner does the planning; nothing here recomputes it. */
 object SetupFlowStateBuilder {
-    val minutesOptions = listOf(30, 45, 60, 75, 90)
+    val minutesOptions = SetupAnswers.MINUTES
 
     fun steps(draft: SetupDraft): List<SetupStep> = buildList {
         addAll(listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT))

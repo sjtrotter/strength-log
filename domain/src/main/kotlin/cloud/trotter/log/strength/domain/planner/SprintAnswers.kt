@@ -9,6 +9,8 @@ data class SprintAnswers(
     val event: SprintEvent = SprintEvent.M100,
     val sprintedRecently: Boolean = false,
     val hamstringStrain: Boolean = false,
+    /** 40 or older (owner Q2, practice cutoff); PR 7 asks it on sprint setup. */
+    val fortyOrOlder: Boolean = false,
 ) {
     /** Design §3.1.3 Intro: every range opens at its low end. */
     val intro: Boolean get() = !sprintedRecently || hamstringStrain

@@ -417,8 +417,7 @@ object Progression {
         if (nextSession != session && !fits(next, block, ctx)) {
             val fittedSteps = (minOf(steps, nextRange.top) downTo 0).firstOrNull { fits(build(it), block, ctx) }
                 ?: return CardioOutcome(block, rule.copy(credits = 0), CardioChange.Repeat)
-            steps = fittedSteps
-            next = build(steps)
+            next = build(fittedSteps)
         }
         val change = when {
             nextSession != session -> CardioChange.Alternate(nextSession)

@@ -1023,6 +1023,9 @@ class TrackerRepository(
         )))
     }
 
+    private val CardioDayUndoDto.changed: Boolean
+        get() = blockBefore != blockAfter || workingBefore != null || ruleBefore != ruleAfter
+
     private fun CardioDayUndoDto.matches(day: ProgramDayEntity?): Boolean = day != null &&
         day.cardioBlockJson == blockAfter && day.cardioWorkingJson == null && day.cardioRuleJson == ruleAfter
 
@@ -2409,8 +2412,7 @@ class TrackerRepository(
             cardio?.planId != null && cardio.dayId != null &&
             programDao.day(cardio.planId, cardio.dayId)?.cardioRuleJson == cardioRule.after
         val cardioDaysMatch = cardio?.planId != null && cardioUndo?.days.orEmpty().any { record ->
-            (record.blockBefore != record.blockAfter || record.workingBefore != null || record.ruleBefore != record.ruleAfter) &&
-                record.matches(programDao.day(cardio.planId, record.dayId))
+            record.changed && record.matches(programDao.day(cardio.planId, record.dayId))
         }
         FinishUndoState(session?.roughDay == true, strength != null,
             logs || ruleChanges || cardioMatches || cardioRuleMatches || cardioDaysMatch || countersMatch(session?.planId, strength?.plan) || countersMatch(cardio?.planId, cardioUndo?.plan),

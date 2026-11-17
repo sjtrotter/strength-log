@@ -261,20 +261,37 @@ class ProgressionRunRangeTest {
         val opening = block(time(1500, true))
         val rule = CardioRule(null, RunSession.THRESHOLD, steps = 5, alternate = RunSession.VO2MAX)
         assertEquals(CardioOutcome(intervals(6, time(180, true), 180),
-            CardioRule(null, RunSession.VO2MAX, steps = 1, credits = 1, alternate = RunSession.THRESHOLD),
+            CardioRule(null, RunSession.VO2MAX, steps = 5, credits = 1, alternate = RunSession.THRESHOLD),
             CardioChange.Alternate(RunSession.VO2MAX)),
             finish(opening, rule, CardioEffort.EASY, context = budget(2000)))
+    }
+
+    @Test fun `a threshold returns without shrinking after a fitted alternate`() {
+        val opening = block(time(1500, true))
+        val rule = CardioRule(null, RunSession.THRESHOLD, steps = 5, alternate = RunSession.VO2MAX)
+        val alternate = finish(opening, rule, CardioEffort.EASY, context = budget(2000))
+        val returned = finish(alternate.block, assertNotNull(alternate.rule), CardioEffort.EASY, context = budget(2000))
+        assertEquals(CardioOutcome(block(time(1560, true)), rule.copy(steps = 6),
+            CardioChange.Alternate(RunSession.THRESHOLD)), returned)
+        assertTrue(plannedSeconds(returned.block) >= plannedSeconds(opening))
     }
 
     @Test fun `a fitted alternation keeps switching for ten sessions`() {
         var opening = block(time(1500, true))
         var rule = CardioRule(null, RunSession.THRESHOLD, steps = 5, alternate = RunSession.VO2MAX)
-        repeat(10) {
+        val seconds = listOf(1980, 1560, 1980, 1620, 1980, 1680, 1980, 1740, 1980, 1800)
+        for ((index, expectedSeconds) in seconds.withIndex()) {
             val next = finish(opening, rule, CardioEffort.EASY, context = budget(2000))
-            assertEquals(CardioChange.Alternate(requireNotNull(rule.alternate)), next.change)
+            val kind = if (index % 2 == 0) RunSession.VO2MAX else RunSession.THRESHOLD
+            assertEquals(CardioChange.Alternate(kind), next.change)
+            assertEquals(if (kind == RunSession.VO2MAX) intervals(6, time(180, true), 180)
+                else block(time(expectedSeconds, true)), next.block)
+            assertEquals(expectedSeconds, plannedSeconds(next.block))
             assertTrue(plannedSeconds(next.block) <= 2000)
             opening = next.block
             rule = assertNotNull(next.rule)
+            assertEquals(kind, rule.session)
+            assertEquals(5 + (index + 1) / 2, rule.steps)
         }
     }
 

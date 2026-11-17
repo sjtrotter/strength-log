@@ -45,11 +45,13 @@ class PlannerSprintInvariantsTest {
         }
         val mains = resolveMains(answers.copy(goal = goal))
         val upper = if (mains.any { mainRow(it.pattern) in 2..4 }) strength else rest
+        // sprint week design §2.2: U sits at B from 3 days, at E from 4, and at G at 6 (HA, U, R, HB, R at 3).
+        val upperEntries = when (answers.days) { 1, 2 -> emptyList(); 3 -> listOf(1); 4, 5 -> listOf(1, 4); else -> listOf(1, 4, 6) }
         // sprint week design §2.2 and §2.4: U has upper mains or becomes Rest; high and rest counts follow the rotation.
         val kinds = sessions.mapIndexed { index, session ->
             when {
                 session != null -> cardio
-                answers.days >= 3 && index in listOf(1, 4, 6) -> upper
+                index in upperEntries -> upper
                 else -> rest
             }
         }

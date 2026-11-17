@@ -24,7 +24,6 @@ import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioRule
-import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -43,6 +42,12 @@ class CardioJudgeRunTest {
     private fun day(block: CardioBlock, rule: CardioRule?) = ProgramDay("A", "Run", "", emptyList<ProgramExercise>(),
         kind = ProgramDayKind.CARDIO, cardioBlock = block, cardioRule = rule)
     private fun plan(day: ProgramDay, setup: SetupAnswers? = null) = CardioPlan(Program(listOf(day)), 0, null, false, ZoneOffset.UTC, setup)
+    private fun vo2(rounds: Int) = CardioBlock(CardioActivity.ROAD_RUN, buildList<CardioSetSpec> {
+        repeat(rounds) { index ->
+            if (index > 0) add(CardioSetSpec(CardioRole.RECOVERY, Measure.Time(180)))
+            add(CardioSetSpec(CardioRole.WORK, Measure.Time(180), hard = true))
+        }
+    })
     private fun results(block: CardioBlock) = block.sets.map { spec ->
         CardioSetResult(spec, CardioSetStatus.FINISHED, (spec.end as? Measure.Time)?.seconds ?: 240,
             (spec.end as? Measure.Distance)?.metres, if (spec.end is Measure.Distance) DistanceSource.MANUAL else null)
@@ -76,7 +81,7 @@ class CardioJudgeRunTest {
         val unruled = day(opening, null).copy(cardioProgress = CardioProgress(increasePercent = 25))
         // A16 cannot add rounds; the cap can remove one, which must still be held on a rule-less day.
         assertEquals(CardioChange.Repeat, assertNotNull(judge(unruled, cap = true)).outcome.change)
-        val ruled = day(requireNotNull(RunRange.of(RunSession.VO2MAX)).block(0, CardioActivity.ROAD_RUN),
+        val ruled = day(vo2(5),
             CardioRule(null, RunSession.VO2MAX, credits = 1))
         val next = assertNotNull(judge(ruled, plan(ruled))).outcome
         assertEquals(CardioChange.Step, next.change)
@@ -84,7 +89,7 @@ class CardioJudgeRunTest {
     }
 
     @Test fun `quality steps use the budget left after lifts`() {
-        val block = requireNotNull(RunRange.of(RunSession.VO2MAX)).block(0, CardioActivity.ROAD_RUN)
+        val block = vo2(5)
         val lift = ProgramExercise("bb_back_squat", targetSets = 4,
             rule = SlotRule.defaults(SlotRole.SECONDARY, LiftGoal.STRENGTH, SetStructure.STRAIGHT, 5, MovementPattern.SQUAT_BILATERAL))
         val day = day(block, CardioRule(null, RunSession.VO2MAX, credits = 1)).copy(exercises = listOf(lift))

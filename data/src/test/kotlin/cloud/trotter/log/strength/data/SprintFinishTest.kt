@@ -205,6 +205,25 @@ class SprintFinishTest {
         assertEquals(after, rule())
     }
 
+    @Test fun `a sprint day swapped to a stationary bike earns no step or rule write`() = runTest {
+        prepare()
+        val before = rule().copy(credits = 1)
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(before))
+        val storedDay = assertNotNull(db.programDao().day(plan, "A"))
+        val swapped = block(8, 20).copy(activity = CardioActivity.STATIONARY_BIKE)
+        val id = repo.logCardioSession(entity("A").copy(activity = swapped.activity.name), results(swapped))
+        val session = assertNotNull(db.cardioSessionDao().byId(id))
+        assertEquals(CardioActivity.STATIONARY_BIKE.name, session.activity)
+        assertEquals(results(swapped).map { it.spec }, db.cardioSetResultDao().forSession(id).map { it.toDomain().spec })
+        assertFalse(session.increaseApplied)
+        assertNull(CardioUndoJson.decode(session.progressionUndoJson)?.rule)
+        assertEquals(before, rule())
+        assertEquals(storedDay, db.programDao().day(plan, "A"))
+        repo.setCardioEffort(id, CardioEffort.EASY)
+        assertEquals(storedDay, db.programDao().day(plan, "A"))
+        assertNull(CardioUndoJson.decode(db.cardioSessionDao().byId(id)!!.progressionUndoJson)?.rule)
+    }
+
     @Test fun `undo restores the pre-write sprint rule`() = runTest {
         prepare()
         val before = rule()

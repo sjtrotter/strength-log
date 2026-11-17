@@ -53,8 +53,9 @@ object CardioJudge {
     data class Judged(val opening: CardioBlock, val outcome: CardioOutcome)
 
     /** Null when [day] has no block, is kept to plan or on the ladder, or when [session] has no readable activity, no
-     *  sets, or (on non-sprint days) no progress measure; sprint days require [sprint] plan inputs. [sessions] may
-     *  hold anything: the family's sessions before [session] are taken from it; [sets] maps ids to their results. Sprint replay anchors to Start's local date, the ledger
+     *  sets, or (on non-sprint days) no progress measure; sprint days require [sprint] plan inputs and an activity in
+     *  [CardioFamily.RUN]. [sessions] may hold anything: the family's sessions before [session] are taken from it;
+     *  [sets] maps ids to their results. Sprint replay anchors to Start's local date, the ledger
      *  strictly before this session and stored rules (the judged day's pre-write rule on re-judgment).
      *  floorDiv(completedAt, 86_400_000) used the UTC Finish day; a US evening run is already tomorrow there.
      *  Other maximal days' current rules can drift after a plan edit or Reset day. Structural credit denies credit
@@ -67,7 +68,7 @@ object CardioJudge {
         val results = sets[session.id].orEmpty().ifEmpty { return null }
         val opening = CardioBlock(activity, results.map { it.spec })
         val sprintDay = day.cardioRule?.session?.sprint == true
-        if (sprintDay && sprint == null) return null
+        if (sprintDay && (sprint == null || CardioFamily.of(activity) != CardioFamily.RUN)) return null
         val measure = if (sprintDay) null else {
             CardioMeasures.resolve(opening, day.cardioProgress.measure) ?: return null
         }

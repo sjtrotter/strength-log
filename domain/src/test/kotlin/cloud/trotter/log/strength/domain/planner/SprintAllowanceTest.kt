@@ -155,6 +155,22 @@ class SprintAllowanceTest {
         assertEquals(old, finish(old, context, sprintBlock(RunSession.ACCELERATION, 12)).rule)
     }
 
+    @Test fun `four forty meter reps replacing eight twenty meter reps earn no step`() {
+        val program = created()
+        val old = rule(program, "A").copy(credits = 1)
+        val low = sprintBlock(RunSession.ACCELERATION, 0)
+        val edited = low.copy(sets = low.sets.map {
+            if (it.role == CardioRole.WORK) it.copy(end = Measure.Distance(40)) else it
+        })
+        assertEquals(listOf(40, 40, 40, 40), reps(edited))
+        assertEquals(SprintRules.workMetres(sprintBlock(RunSession.ACCELERATION, old.steps)), SprintRules.workMetres(edited))
+        for (context in listOf(SprintContext(false), ledger(program, 0))) {
+            val outcome = finish(old, context, edited)
+            assertEquals(old, outcome.rule)
+            assertEquals(CardioChange.Repeat, outcome.change)
+        }
+    }
+
     @Test fun `a trial declined by the cap leaves the rotation to the normal rules`() {
         val program = created()
         val context = ledger(program, 265, cycle = 4)

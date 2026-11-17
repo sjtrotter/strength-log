@@ -262,7 +262,8 @@ internal object SprintRules {
         val same = if (restart) CardioChange.Restart else CardioChange.Repeat
         val range = requireNotNull(RunRange.of(session))
         val counted = CardioMeasures.fullSuccess(block, results) && !pain && !(range.goodBand && effort == CardioEffort.HARD) &&
-            workMetres(block) == workMetres(decision.block)
+            block.sets.filter { it.role == CardioRole.WORK }.map { it.end } ==
+            decision.block.sets.filter { it.role == CardioRole.WORK }.map { it.end }
         return when {
             !counted -> outcome(start, same)
             start.intro > 0 -> outcome(start.copy(intro = start.intro - 1), same)

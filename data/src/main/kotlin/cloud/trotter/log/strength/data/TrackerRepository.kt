@@ -30,6 +30,9 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.CardioUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
+import cloud.trotter.log.strength.data.serialization.CardioRuleUndoDto
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockUndoDto
 import cloud.trotter.log.strength.data.serialization.ReasonCode
 import cloud.trotter.log.strength.domain.progression.CardioEffort
@@ -73,6 +76,8 @@ import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.sprintMaximalMetres
 import cloud.trotter.log.strength.domain.progression.CardioOutcome
 import cloud.trotter.log.strength.domain.progression.Change
 import cloud.trotter.log.strength.domain.progression.FinishedRule
@@ -871,6 +876,7 @@ class TrackerRepository(
             "cardio activity must be stored as CardioActivity.name"
         }
         val ownerId = session.planId
+        val unit = settings.unitFlow.first()
         return db.withTransaction {
             // Read the cursor in the same transaction as the log and guarded advance.
             val plan = ownerId?.let { planDao.plan(it) }
@@ -895,7 +901,7 @@ class TrackerRepository(
             if (route != null && CardioRouteJson.decode(route) != null) {
                 cardioRouteDao.insert(CardioRouteEntity(id, route))
             }
-            if (sets.isNotEmpty()) cardioJudgment(id)?.let { applyCardio(it) }
+            if (sets.isNotEmpty()) cardioJudgment(id, first = true, unit = unit)?.let { applyCardio(it) }
             if (finishDay && plan != null && stamped.dayId != null) {
                 lightAfterDay(plan, stamped.dayId, reactive = false)?.let { counters ->
                     val entry = requireNotNull(cardioSessionDao.byId(id))
@@ -909,10 +915,12 @@ class TrackerRepository(
     }
 
     private class CardioJudgment(val sessionId: Long, val planId: Long, val dayId: String, val automatic: Boolean,
-                                 val stored: CardioBlock, val outcome: CardioOutcome)
+                                 val stored: CardioBlock, val outcome: CardioOutcome,
+                                 val preWrite: CardioRule? = null, val cycle: Int? = null)
 
-    /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise. */
-    private suspend fun cardioJudgment(sessionId: Long): CardioJudgment? {
+    /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise.
+     *  Sprint amendments require the recorded pre-write rule and rotation (sprint week design §4.2). */
+    private suspend fun cardioJudgment(sessionId: Long, first: Boolean, unit: WeightUnit): CardioJudgment? {
         val session = cardioSessionDao.byId(sessionId) ?: return null
         val planId = session.planId ?: return null
         val dayId = session.dayId ?: return null
@@ -927,13 +935,44 @@ class TrackerRepository(
             .mapValues { (_, rows) -> rows.mapNotNull { it.toDomainOrNull() } }
         val day = entity.toDomain(emptyList())
         val stored = day.cardioToRun ?: return null
+        if (day.cardioRule?.session?.sprint == true) {
+            val undo = CardioUndoJson.decode(session.progressionUndoJson)
+            val recorded = undo?.rule
+            if (!first && (recorded == null || entity.cardioRuleJson != recorded.after)) return null
+            val preWrite = if (first) requireNotNull(day.cardioRule) else CardioRuleJson.decode(recorded?.before) ?: return null
+            val cycle = if (first) plan.cyclesCompleted else requireNotNull(recorded).cycle
+            val program = assemble(programDao.daysForPlan(planId), emptyList()).let { program ->
+                program.copy(days = program.days.map { if (it.id == dayId) it.copy(cardioRule = preWrite) else it })
+            }
+            val sprint = SprintPlan(program, cycle, PlanGoalJson.decode(plan.goalJson),
+                plan.setupAnswers(unit)?.careful == true, clock.zone)
+            val judged = CardioJudge.judge(day.copy(cardioRule = preWrite), session, sessions, sets,
+                plan.planSettings.runCap, sprint) ?: return null
+            return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome, preWrite, cycle)
+        }
         val judged = CardioJudge.judge(day, session, sessions, sets, plan.planSettings.runCap) ?: return null
         if (judged.opening != stored) return null
         return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome)
     }
 
-    /** An Automatic plan's write; Ask writes nothing (decision 6). */
+    /** Run increases write only on Automatic; sprint state always writes (sprint week design §4.2). */
     private suspend fun applyCardio(judgment: CardioJudgment) {
+        if (judgment.preWrite != null) {
+            val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
+            val results = cardioSetResultDao.forSession(session.id).mapNotNull { it.toDomainOrNull() }
+            val cycle = requireNotNull(judgment.cycle)
+            var next = requireNotNull(judgment.outcome.rule)
+            if (sprintMaximalMetres(results) > 0) next = next.copy(maximalCycle = cycle)
+            val after = CardioRuleJson.encode(next)
+            if (programDao.day(judgment.planId, judgment.dayId)?.cardioRuleJson != after) {
+                programDao.setCardioRule(judgment.planId, judgment.dayId, after)
+            }
+            val undo = CardioUndoJson.decode(session.progressionUndoJson) ?: CardioUndoDto()
+            cardioSessionDao.update(session.copy(increaseApplied = judgment.outcome.change == CardioChange.Step,
+                progressionUndoJson = CardioUndoJson.encode(undo.copy(rule = CardioRuleUndoDto(
+                    undo.rule?.before ?: CardioRuleJson.encode(judgment.preWrite), after, cycle)))))
+            return
+        }
         if (!judgment.automatic || judgment.outcome.change !is CardioChange.Increase || judgment.outcome.block == judgment.stored) return
         val before = programDao.day(judgment.planId, judgment.dayId)?.cardioWorkingJson
         if (!setCardioWorking(judgment.planId, judgment.dayId, judgment.outcome.block)) return
@@ -945,10 +984,13 @@ class TrackerRepository(
         )))
     }
 
-    suspend fun setCardioEffort(sessionId: Long, effort: CardioEffort?) = db.withTransaction {
-        val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction
-        cardioSessionDao.update(session.copy(effort = effort?.name))
-        cardioJudgment(sessionId)?.let { applyCardio(it) }
+    suspend fun setCardioEffort(sessionId: Long, effort: CardioEffort?) {
+        val unit = settings.unitFlow.first()
+        db.withTransaction {
+            val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction
+            cardioSessionDao.update(session.copy(effort = effort?.name))
+            cardioJudgment(sessionId, first = false, unit = unit)?.let { applyCardio(it) }
+        }
     }
 
     suspend fun clearFinishUndoForDay(planId: Long, dayId: String) = db.withTransaction {
@@ -956,13 +998,15 @@ class TrackerRepository(
         cardioSessionDao.clearProgressionUndoForDay(planId, dayId)
     }
 
-    /** Amends a set's typed distance and judges the session again: an Automatic judgment writes at most once per
-     *  session, while the day still holds its opening. Working-value undo keeps the session's increaseApplied flag.
+    /** Amends a set's typed distance and judges the session again: an Automatic run judgment writes at most once per
+     *  session, while the day still holds its opening. Sprint replay uses the undo rule until a Step or invalidation.
+     *  Working-value undo keeps the session's increaseApplied flag.
      *  A reading at the end is written with the total and judged with it. */
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?, readingAtEnd: Int? = null) {
+        val unit = settings.unitFlow.first()
         db.withTransaction {
             history.amendCardioSetDistance(sessionId, position, metres, readingAtEnd)
-            cardioJudgment(sessionId)?.let { applyCardio(it) }
+            cardioJudgment(sessionId, first = false, unit = unit)?.let { applyCardio(it) }
         }
     }
 
@@ -2171,6 +2215,11 @@ class TrackerRepository(
                     programDao.setCardioWorking(planId, dayId, block.before)
                 }
             }
+            cardioUndo.rule?.let { rule ->
+                if (programDao.day(planId, dayId)?.cardioRuleJson == rule.after) {
+                    programDao.setCardioRule(planId, dayId, rule.before)
+                }
+            }
             cardioUndo.plan?.let { swapCounters(planId, it, reverse = false) }
             cardioSessionDao.update(cardio.copy(progressionUndoJson = null))
         }
@@ -2260,8 +2309,12 @@ class TrackerRepository(
         val block = cardioUndo?.block
         val cardioMatches = block != null && block.before != block.after && cardio?.planId != null && cardio.dayId != null &&
             programDao.day(cardio.planId, cardio.dayId)?.cardioWorkingJson == block.after
+        val cardioRule = cardioUndo?.rule
+        val cardioRuleMatches = cardioRule != null && cardioRule.before != cardioRule.after &&
+            cardio?.planId != null && cardio.dayId != null &&
+            programDao.day(cardio.planId, cardio.dayId)?.cardioRuleJson == cardioRule.after
         FinishUndoState(session?.roughDay == true, strength != null,
-            logs || ruleChanges || cardioMatches || countersMatch(session?.planId, strength?.plan) || countersMatch(cardio?.planId, cardioUndo?.plan),
+            logs || ruleChanges || cardioMatches || cardioRuleMatches || countersMatch(session?.planId, strength?.plan) || countersMatch(cardio?.planId, cardioUndo?.plan),
             strength?.plan, strength?.roughLight, cardioUndo?.plan)
     }
 

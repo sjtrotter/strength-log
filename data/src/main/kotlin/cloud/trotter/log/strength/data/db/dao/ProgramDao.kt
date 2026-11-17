@@ -59,6 +59,9 @@ interface ProgramDao {
     @Query("SELECT * FROM program_exercise WHERE planId = :planId AND dayId = :dayId ORDER BY position")
     suspend fun exercisesForDay(planId: Long, dayId: String): List<ProgramExerciseEntity>
 
+    @Query("UPDATE program_day SET cardioRuleJson = :json WHERE planId = :planId AND dayId = :dayId")
+    suspend fun setCardioRule(planId: Long, dayId: String, json: String?)
+
     @Query("UPDATE program_day SET cardioWorkingJson = :json WHERE planId = :planId AND dayId = :dayId")
     suspend fun setCardioWorking(planId: Long, dayId: String, json: String?)
 

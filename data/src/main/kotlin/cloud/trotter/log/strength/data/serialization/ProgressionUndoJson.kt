@@ -25,7 +25,9 @@ internal object ProgressionUndoJson {
     }
 }
 
-@Serializable internal data class CardioUndoDto(val block: CardioBlockUndoDto? = null, val plan: UndoPlanDto? = null)
+@Serializable internal data class CardioUndoDto(val block: CardioBlockUndoDto? = null, val plan: UndoPlanDto? = null,
+                                               val rule: CardioRuleUndoDto? = null)
+@Serializable internal data class CardioRuleUndoDto(val before: String, val after: String, val cycle: Int)
 @Serializable internal data class CardioBlockUndoDto(val before: String?, val after: String?)
 
 internal object CardioUndoJson {

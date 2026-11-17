@@ -16,17 +16,18 @@ import kotlinx.serialization.Serializable
     // Key kept from v0.11; the domain calls it stepCycle.
     val sprintStepCycle: Int? = null,
     val sprintTrialCycle: Int? = null,
+    val sprintMaximalCycle: Int? = null,
 ) {
     fun toDomain(): CardioRule = CardioRule(ladderLevel, session?.let(RunSession::valueOf), steps, credits,
         alternate?.let(RunSession::valueOf), longMetres, longSeconds, intro = intro,
-        stepCycle = sprintStepCycle, sprintTrialCycle = sprintTrialCycle)
+        stepCycle = sprintStepCycle, sprintTrialCycle = sprintTrialCycle, maximalCycle = sprintMaximalCycle)
 }
 
 object CardioRuleJson {
     fun encode(rule: CardioRule): String {
         val dto = CardioRuleDto(rule.ladderLevel, rule.session?.name, rule.steps, rule.credits, rule.alternate?.name,
             rule.longMetres, rule.longSeconds, intro = rule.intro,
-            sprintStepCycle = rule.stepCycle, sprintTrialCycle = rule.sprintTrialCycle)
+            sprintStepCycle = rule.stepCycle, sprintTrialCycle = rule.sprintTrialCycle, sprintMaximalCycle = rule.maximalCycle)
         dto.toDomain()
         return SetJson.encode(CardioRuleDto.serializer(), dto)
     }

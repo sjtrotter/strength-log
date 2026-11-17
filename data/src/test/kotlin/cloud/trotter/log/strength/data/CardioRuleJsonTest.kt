@@ -150,4 +150,20 @@ class CardioRuleJsonTest {
         assertNull(CardioRuleJson.decode(invalid))
         assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
     }
+
+    @Test fun `maximal rotation markers round trip only on maximal sprint days`() {
+        val json = """{"session":"ACCELERATION","sprintMaximalCycle":3}"""
+        val rule = CardioRule(null, RunSession.ACCELERATION, maximalCycle = 3)
+        assertEquals(rule, CardioRuleJson.decode(json))
+        assertEquals(json, CardioRuleJson.encode(rule))
+        for (invalid in listOf(
+            """{"session":"SPRINT_TEMPO","sprintMaximalCycle":0}""",
+            """{"session":"EASY","sprintMaximalCycle":0}""",
+            """{"session":"ACCELERATION","sprintMaximalCycle":-1}""",
+        )) {
+            assertNull(CardioRuleJson.decode(invalid))
+            assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
+        }
+    }
+
 }

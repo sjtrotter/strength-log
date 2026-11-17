@@ -26,6 +26,8 @@ data class CardioRule(
     val stepCycle: Int? = null,
     /** Rotation of Sprint A's last trial. */
     val sprintTrialCycle: Int? = null,
+    /** Rotation of this sprint day's last maximal session; the Finish caller writes it (sprint week design §4.2). */
+    val maximalCycle: Int? = null,
 ) {
     init {
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
@@ -46,6 +48,8 @@ data class CardioRule(
         require(intro == 0 || (steps == 0 && credits == 0))
         require(alternate == null || (session?.sprint != true && !alternate.sprint))
         require(stepCycle == null || (stepCycle >= 0 && (session?.sprint == true || session == RunSession.EASY)))
+        require(maximalCycle == null || (maximalCycle >= 0 &&
+            session in listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE)))
         require(sprintTrialCycle == null || (sprintTrialCycle >= 0 &&
             session in listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY)))
     }

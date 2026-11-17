@@ -231,4 +231,28 @@ class ProgressionSprintTest {
         assertEquals(listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE,
             RunSession.SPRINT_TEMPO), RunSession.entries.filter { it.sprint })
     }
+
+    @Test fun `allowance decisions order restart then tempo then trial`() {
+        val old = CardioRule(null, RunSession.ACCELERATION, steps = 12)
+        val all = SprintContext(layoff = true, timeTrialMetres = 100, cyclesCompleted = 4, tempo = true, weekLeft = 40)
+        fun decision(context: SprintContext) = SprintRules.decision(old, RunSession.ACCELERATION, context, CardioActivity.TRACK_RUN)
+        assertEquals(SprintDose.RESTART, decision(all).dose)
+        assertEquals(sprintBlock(RunSession.ACCELERATION, 0), decision(all).block)
+        val capped = all.copy(weekLeft = 39)
+        assertEquals(SprintDose.SUBSTITUTE, decision(capped).dose)
+        assertEquals(old, finish(old, context = ctx().copy(sprint = capped), block = decision(capped).block).rule)
+        assertEquals(SprintDose.TEMPO, decision(all.copy(layoff = false)).dose)
+        assertEquals(SprintDose.TRIAL, decision(all.copy(layoff = false, tempo = false)).dose)
+        assertEquals(SprintDose.NORMAL, decision(all.copy(layoff = false, tempo = false, timeTrialMetres = null, weekLeft = 160)).dose)
+    }
+
+    @Test fun `maximal rotation markers reject tempo run days and negative rotations`() {
+        assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.SPRINT_TEMPO, maximalCycle = 0) }
+        assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.EASY, maximalCycle = 0) }
+        assertFailsWith<IllegalArgumentException> { CardioRule(null, RunSession.ACCELERATION, maximalCycle = -1) }
+        for (session in listOf(RunSession.ACCELERATION, RunSession.MAX_VELOCITY, RunSession.SPRINT_ENDURANCE)) {
+            assertEquals(0, CardioRule(null, session, maximalCycle = 0).maximalCycle)
+        }
+    }
+
 }

@@ -18,6 +18,10 @@ data class RecentMaxima(val metres: Int?, val seconds: Int?) {
     )
 }
 
+/** The finished sessions of the 7 × 24 h ending at the wrap. [total] sums their maxima, metres only over
+ *  sessions with a metres total; [longest] is their single largest ([RunCap.maxima]). */
+data class WeekLoad(val total: RecentMaxima, val longest: RecentMaxima)
+
 /** The cardio log for one day's family, as the caller reads it at run open or Finish ([of] builds it). */
 data class CardioHistory(
     /** [RunCap.maxima] over the family's finished sessions of the last 30 days; null when there are none. */
@@ -32,6 +36,16 @@ data class CardioHistory(
     companion object {
         const val WINDOW_MILLIS = 30L * 24 * 60 * 60 * 1000
         const val WEEK_MILLIS = 7L * 24 * 60 * 60 * 1000
+
+        /** Sessions with asOfMillis − completedAt in 0 until [WEEK_MILLIS]; null when none finished. */
+        fun lastWeek(sessions: List<LoggedCardio>, asOfMillis: Long): WeekLoad? {
+            val maxima = sessions.filter { asOfMillis - it.completedAt in 0 until WEEK_MILLIS }
+                .mapNotNull { RunCap.maxima(listOf(it.results)) }
+            if (maxima.isEmpty()) return null
+            fun sum(values: List<Int>) = values.takeIf { it.isNotEmpty() }?.sum()
+            return WeekLoad(RecentMaxima(sum(maxima.mapNotNull { it.metres }), sum(maxima.mapNotNull { it.seconds })),
+                maxima.reduce { longest, next -> longest.max(next) })
+        }
 
         /** The largest 7 × 24 h total of the family's finished sessions in the last 30 days, metres and seconds
          *  each its own maximum; the phase gates' week form (design §3.1.2). 4b-ii passes it as KnownLoads.longestWeek. */

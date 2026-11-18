@@ -380,4 +380,12 @@ class PlannerRunTest {
         assertTrue(draft.sessions.isEmpty())
         assertTrue(PlanReason.DateTooClose in draft.reasons)
     }
+    @Test fun `a phase floor raises the start phase and never lowers it`() {
+        val answers = run(RunGoal.MARATHON, experience = RunExperience.NEW)
+        assertEquals(RunPhase.LADDER, Planner.plan(answers).phase)
+        assertEquals(RunPhase.BASE, Planner.plan(answers, atLeast = RunPhase.BASE).phase)
+        assertEquals(RunPhase.MARATHON_BUILD, Planner.plan(answers, known(21_000, null), atLeast = RunPhase.BASE).phase)
+        assertFailsWith<IllegalArgumentException> { Planner.plan(answers, atLeast = RunPhase.ULTRA_BUILD) }
+    }
+
 }

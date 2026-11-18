@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanSettings
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
@@ -25,6 +26,11 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanDraft
@@ -96,6 +102,14 @@ class PlannedPlanTest {
                 }
             }
         }
+    }
+
+    @Test fun `a run plan records its phase`() = runTest {
+        val input = SetupAnswers(branch = PlanBranch.RUN, days = 4,
+            run = RunAnswers(RunGoal.FIVE_TO_TEN_K, RunExperience.NEW))
+        val id = plans.createPlannedPlan("Run", input)
+        val recipe = assertNotNull(db.planDao().plan(id)?.recipeJson)
+        assertEquals(RunPhase.LADDER, SetupRecipeJson.phase(recipe))
     }
 
     @Test fun `a planned plan writes its program rules rows recipe and settings`() = runTest {

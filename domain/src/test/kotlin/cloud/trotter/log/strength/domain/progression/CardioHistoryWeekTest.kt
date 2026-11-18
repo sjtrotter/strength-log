@@ -23,6 +23,18 @@ class CardioHistoryWeekTest {
     private fun sessions() = listOf(session(0, 8000, 2880), session(2, 10_000, 3600),
         session(5, 12_000, 4320), session(9, 9000, 3240))
 
+    @Test fun `the week before the wrap counts finished sessions only`() {
+        val first = session(0, 5000, 1800).copy(completedAt = asOf - 7 * day + 1)
+        val last = session(0, 6000, 2160).copy(completedAt = asOf)
+        val outside = session(0, 50_000, 18_000).copy(completedAt = asOf - 7 * day)
+        val unfinished = session(0, 50_000, 18_000, CardioSetStatus.SHORTENED).copy(completedAt = asOf)
+        assertEquals(WeekLoad(RecentMaxima(11_000, 3960), RecentMaxima(6000, 2160)),
+            CardioHistory.lastWeek(listOf(outside, first, last, unfinished), asOf))
+        assertEquals(WeekLoad(RecentMaxima(null, 1800), RecentMaxima(null, 1800)),
+            CardioHistory.lastWeek(listOf(session(0, null, 1800).copy(completedAt = asOf)), asOf))
+        assertNull(CardioHistory.lastWeek(listOf(outside, unfinished), asOf))
+    }
+
     @Test fun `week maxima sum finished sessions and exclude the exact seven day boundary`() {
         assertEquals(7 * day, CardioHistory.WEEK_MILLIS)
         assertEquals(RecentMaxima(30_000, 10_800), CardioHistory.longestWeek(sessions(), asOf))

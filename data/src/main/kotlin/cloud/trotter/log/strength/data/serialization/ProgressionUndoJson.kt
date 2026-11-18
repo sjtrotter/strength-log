@@ -16,7 +16,13 @@ import kotlinx.serialization.Serializable
                                               val slot: String = Slot.MAIN)
 
 /** The plan's light counters before and after the Finish. */
-@Serializable data class UndoPlanDto(val beforeRemaining: Int, val beforeCycles: Int, val afterRemaining: Int, val afterCycles: Int)
+@Serializable data class UndoPlanDto(val beforeRemaining: Int, val beforeCycles: Int, val afterRemaining: Int, val afterCycles: Int,
+                                     val replan: UndoReplanDto? = null)
+
+@Serializable data class UndoReplanDto(val recipeBefore: String, val recipeAfter: String, val days: List<UndoReplanDayDto>)
+@Serializable data class UndoReplanDayDto(val dayId: String, val before: UndoDayColumnsDto?, val after: UndoDayColumnsDto)
+@Serializable data class UndoDayColumnsDto(val kind: String, val title: String, val position: Int,
+                                         val block: String?, val rule: String?, val working: String?)
 
 internal object ProgressionUndoJson {
     fun encode(dto: ProgressionUndoDto): String = SetJson.encode(ProgressionUndoDto.serializer(), dto)

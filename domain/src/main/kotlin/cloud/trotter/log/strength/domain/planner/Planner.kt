@@ -59,13 +59,15 @@ object Planner {
     /** Deterministic for (answers, known, today). Never reads the clock or custom exercises.
      *  A plan built from the log's [known] starts at the first unmet gate, so a later [PlanDraft.phase] than the
      *  stored plan's is a passed gate (design §3.1.2). */
-    fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null): PlanDraft {
+    fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null,
+             atLeast: RunPhase? = null): PlanDraft {
+        require(atLeast == null || atLeast in answers.run.goal.phases)
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
             PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known)
-            PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, answers.slotGoal)
+            PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, answers.slotGoal, atLeast)
             PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.slotGoal)
-                else bothDraft(answers, known, todayEpochDay)
+                else bothDraft(answers, known, todayEpochDay, atLeast)
             PlanBranch.SPRINT -> sprintDraft(answers, known, answers.slotGoal)
         }
     }

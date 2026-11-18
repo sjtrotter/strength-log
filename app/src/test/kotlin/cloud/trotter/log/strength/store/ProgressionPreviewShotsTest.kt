@@ -441,7 +441,7 @@ class ProgressionPreviewShotsTest {
         render(scale) {
             CompositionLocalProvider(LocalSprintElapsedMillis provides { elapsed }) { WorkoutSetHost(state) }
         }
-        if (offsetMillis == null && !recovery) rule.onNodeWithText("Start on the beep").performScrollTo()
+        if (offsetMillis == null && !recovery) rule.onNodeWithText("Start on the beep").assertIsDisplayed()
         if (recovery) rule.onNodeWithText("4.52 (Phone-timed)").performScrollTo()
         capture(name)
     }

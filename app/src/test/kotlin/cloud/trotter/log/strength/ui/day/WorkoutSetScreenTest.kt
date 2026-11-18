@@ -93,16 +93,22 @@ class WorkoutSetScreenTest {
         val run = requireNotNull(base.cardio?.run)
         val arms = mutableListOf<CardioSetAction>()
         val entries = mutableListOf<CardioSetAction>()
+        val reached = mutableListOf<CardioSetAction>()
         val protocols = mutableListOf<String>()
         show(base, workoutActions().copy(onArmSprintTimer = { arms += it }, onOpenSprintTime = { entries += it },
-            onSprintProtocol = { protocols += it }))
-        rule.onNodeWithText("Start on the beep").performScrollTo().performClick()
+            onReachCardioTarget = { reached += it }, onSprintProtocol = { protocols += it }))
+        rule.onNodeWithTag("workout-hero").assert(hasText("60 m"))
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Start on the beep"))
+        rule.onNodeWithText("Stop").assertDoesNotExist()
+        rule.onNodeWithText("Elapsed").assertDoesNotExist()
+        rule.onNodeWithText("Start on the beep").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Reached 60 m").performScrollTo().performClick()
         rule.onNodeWithText("Enter time").performScrollTo().performClick()
         rule.onNodeWithText("Standing").performScrollTo().performClick()
         assertEquals(listOf(run.action()), arms)
         assertEquals(listOf(run.action()), entries)
+        assertEquals(listOf(run.action()), reached)
         assertEquals(listOf("STANDING"), protocols)
-        rule.onNodeWithText("Reached 60 m").assertExists()
     }
 
     @Test fun `an armed sprint rep shows a countdown and Stop`() {
@@ -140,7 +146,7 @@ class WorkoutSetScreenTest {
         rule.setContent { AppTheme {
             CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) { WorkoutSetHost(state.value) }
         } }
-        rule.onNodeWithText("Start on the beep").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(56.dp)
+        rule.onNodeWithText("Start on the beep").assertIsDisplayed().assertHeightIsAtLeast(56.dp)
         rule.runOnIdle { state.value = sprintRepFixture(15_000L) }
         rule.onNodeWithText("Stop").assertIsDisplayed().assertHeightIsAtLeast(56.dp)
     }

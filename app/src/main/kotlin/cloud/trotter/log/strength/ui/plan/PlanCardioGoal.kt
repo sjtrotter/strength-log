@@ -1,7 +1,9 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
@@ -35,11 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -290,7 +294,7 @@ internal fun PlanShuttleEntry(entry: String, actions: PlanActions) {
 @Composable
 internal fun PlanSprintGoal(ui: PlanSprintGoalUi, actions: PlanActions) {
     val goal = ui.goal
-    val distance = if (goal.metres == 37) stringResource(R.string.sprint_event_40yd)
+    val distance = if (goal.metres == SprintEvent.YD40.metres) stringResource(R.string.sprint_event_40yd)
         else distanceUnitFor(CardioActivity.TRACK_RUN).format(goal.metres)
     ListItem(
         modifier = Modifier.clickable(onClick = actions.onOpenCardioGoal),
@@ -328,12 +332,12 @@ internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions) 
                     value = target?.toDouble() ?: 0.0,
                     onValueChange = { actions.onSprintGoalDraft(draft.copy(targetText = ClockText.centis(it.toInt()))) },
                     onDraftEdit = { text, _ -> actions.onSprintGoalDraft(draft.copy(targetText = text)) },
-                    label = stringResource(R.string.plan_goal_target_time),
+                    label = stringResource(R.string.sprint_time_field),
                     minValue = 1.0, maxValue = SprintTime.MAX_CENTIS.toDouble(),
                     format = { if (it == 0.0) draft.targetText else ClockText.centis(it.toInt()) },
                     parse = { ClockText.parseCentis(it)?.toDouble() }, keyboardType = KeyboardType.Decimal,
                 )
-                Row {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { showDatePicker = true }) {
                         Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
                     }

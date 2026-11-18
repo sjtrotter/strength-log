@@ -2006,7 +2006,7 @@ Sprint setup remains closed until 7f. This implements owner decision 8 and Q18: 
 
 ### Six design calls
 
-1. The beep follows Start on the beep by five seconds. `SPRINT_BEEP_DELAY_MILLIS = 5_000L` is a practice choice that leaves time to set the phone hand at the start line and settle. The measured time starts at the scheduled beep instant, including after process restoration.
+1. The beep follows Start on the beep by five seconds. `SPRINT_BEEP_DELAY_MILLIS = 5_000L` is a practice choice that leaves time to set the phone hand at the start line and settle. The measured time starts at the scheduled beep instant, including after process restoration. Phone times include the tone's start latency, a known small slow bias covered by “Approximate” in the phone note.
 2. Enter time finishes the current rep. Its labeled Time (s) field uses seconds and hundredths, or m:ss.hh from a minute. Hand stopwatch is the initial method; Electronic gates, Phone video and Phone timer are explicit choices. Save requires a positive time within `SprintTime.MAX_CENTIS`.
 3. Start type defaults to the run's chosen protocol, then the newest timed result on the same plan day, then Standing. Three-point, Two-point, Blocks, Standing and Flying use the stored enum names. The next recovery shows only the preceding work rep's time and method; a phone result carries the exact phone note.
 4. Only the first judgment of an admitted trial on the plan's first maximal sprint day appends goal attempts. Admission comes from 7d's `outcome.dose == TRIAL`; this adds no judgment or progression rule. Every finished timed work rep still writes its own timing columns, including ordinary sessions. `SprintComparison.attempts` supplies the best per series in first-appearance order.

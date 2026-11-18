@@ -2812,6 +2812,7 @@ class DayViewModel @Inject constructor(
         if (run.dayId != state.viewDayId || base == null) return base
         val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
         val elapsed = cardioElapsedSeconds(run)
+        // This state builder must stay on Main: timer validation writes SavedStateHandle and can schedule the beep.
         val timer = readSprintTimer(run)
         if (timer != null && sprintBeepJob == null && timer.beepElapsedMillis > cardioClock.elapsedRealtimeMillis()) {
             scheduleSprintBeep(timer)

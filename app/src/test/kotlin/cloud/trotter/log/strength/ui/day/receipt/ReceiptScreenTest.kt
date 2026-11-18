@@ -121,7 +121,7 @@ class ReceiptScreenTest {
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
         rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         // The Next time line exposes only its spoken form (clearAndSetSemantics): it says the event in yards.
-        rule.onNodeWithContentDescription("40 yd", substring = true, useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Next time, 2 × 40 yd.", useUnmergedTree = true).assertExists()
         assertTrue(rule.onAllNodesWithText("37 m", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
         assertTrue(rule.onAllNodesWithContentDescription("37 m", substring = true, useUnmergedTree = true)
             .fetchSemanticsNodes().isEmpty())

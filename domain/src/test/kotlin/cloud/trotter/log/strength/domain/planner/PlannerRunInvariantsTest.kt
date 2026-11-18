@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.progression.plannedSeconds
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.availableWith
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Measure
@@ -192,7 +193,7 @@ class PlannerRunInvariantsTest {
                                 floorDay = withEnd(floorDay, Measure.Time(minOf((end(floorDay) as Measure.Time).seconds,
                                     RunReplan.EASY_FLOOR_SECONDS)))
                             } else if (block != null && block.sets.count { it.role == CardioRole.WORK } > 1) {
-                                var one = block
+                                var one: CardioBlock = block
                                 while (one.sets.count { it.role == CardioRole.WORK } > 1) one = one.withoutLastRound()
                                 floorDay = floorDay.copy(cardioBlock = one)
                             } else if (floorDay.cardioRule?.session == RunSession.LONG) {

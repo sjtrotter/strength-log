@@ -133,9 +133,11 @@ class RunReplanFinishTest {
     private suspend fun assertBase() {
         assertEquals(RunPhase.BASE, phase())
         assertEquals(listOf("A", "B", "C", "D", "E"), db.programDao().daysForPlan(plan).map { it.dayId })
-        for ((id, seconds) in listOf("A" to 1440, "B" to 1200, "C" to 1440, "D" to 1980)) {
+        for ((id, seconds) in listOf("A" to 1440, "C" to 1440, "D" to 1980)) {
             assertEquals(time(seconds), block(id))
         }
+        // RunRange: a threshold block's WORK sets are hard.
+        assertEquals(time(1200).copy(sets = time(1200).sets.map { it.copy(hard = true) }), block("B"))
         assertEquals(CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX), rule("B"))
         assertEquals(CardioRule(null, RunSession.LONG, longSeconds = 5400), rule("D"))
         assertEquals(ProgramDayKind.REST.name, day("E").kind)

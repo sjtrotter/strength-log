@@ -21,8 +21,8 @@ data class PlanGoalDraft(
 ) : Parcelable {
     fun goal(): PlanGoal? = runCatching {
         require(PlanGoalDate.isValid(byEpochDay))
-        require(underSeconds != INVALID_TIME)
-        if (timed) PlanGoal.Timed(CardioActivity.valueOf(activity), metres, underSeconds.takeUnless { it == 0 }, byEpochDay)
+        if (timed) PlanGoal.Timed(CardioActivity.valueOf(activity), metres,
+            underSeconds.also { require(it != INVALID_TIME) }.takeUnless { it == 0 }, byEpochDay)
         else PlanGoal.Shuttle(protocol.trim(), targetShuttles, byEpochDay = byEpochDay)
     }.getOrNull()
 

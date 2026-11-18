@@ -12,7 +12,7 @@ import cloud.trotter.log.strength.domain.progression.RunSession
 internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: Long?, atLeast: RunPhase? = null): PlanDraft {
     val run = answers.run
     val anchor = runAnchor(run, known)
-    val phase = startPhase(run, anchor, runWeek(run, known), atLeast)
+    val phase = startPhase(run, anchor, runWeek(run, known), runningSeconds(run, known), runningMetres(run, known), atLeast)
     if (answers.days == 1 && answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
         return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal, atLeast)
         else {

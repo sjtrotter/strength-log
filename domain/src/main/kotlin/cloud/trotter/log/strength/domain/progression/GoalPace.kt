@@ -6,9 +6,9 @@ import cloud.trotter.log.strength.domain.model.PlanGoal
 object GoalPace {
     const val TEST_FACTOR = 0.95
 
-    /** Seconds for [repMetres] at [goal]'s pace × [TEST_FACTOR], rounded to the nearest second once. */
+    /** Seconds for [repMetres] at [goal]'s pace × [TEST_FACTOR], rounded to the nearest second once; needs a target time. */
     fun testAimSeconds(goal: PlanGoal.Timed, repMetres: Int): Int =
-        aimSeconds(goal.underSeconds.toDouble(), goal.metres.toDouble(), repMetres, TEST_FACTOR)
+        aimSeconds(requireNotNull(goal.underSeconds).toDouble(), goal.metres.toDouble(), repMetres, TEST_FACTOR)
 
     /** Seconds for [repMetres] at the race's pace × [factor], rounded once, with a one-second minimum. */
     fun aimSeconds(raceSeconds: Double, raceMetres: Double, repMetres: Int, factor: Double = 1.0): Int =

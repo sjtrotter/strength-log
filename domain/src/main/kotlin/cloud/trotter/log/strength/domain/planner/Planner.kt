@@ -58,10 +58,12 @@ data class DayDraft(val day: ProgramDay, val working: Map<Int, List<LoggedSet>>,
 object Planner {
     /** Deterministic for (answers, known, today). Never reads the clock or custom exercises.
      *  A plan built from the log's [known] starts at the first unmet gate, so a later [PlanDraft.phase] than the
-     *  stored plan's is a passed gate (design §3.1.2). */
+     *  stored plan's is a passed gate (design §3.1.2). [atLeast] BASE on a ladder-only path asks for
+     *  the goal's own plan after the ladder. */
     fun plan(answers: SetupAnswers, known: KnownLoads = KnownLoads.NONE, todayEpochDay: Long? = null,
              atLeast: RunPhase? = null): PlanDraft {
-        require(atLeast == null || atLeast in answers.run.goal.phases)
+        require(atLeast == null || atLeast in answers.run.goal.phases ||
+            (atLeast == RunPhase.BASE && answers.run.goal.phases.isEmpty() && answers.run.phases == listOf(RunPhase.LADDER)))
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
             PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known)

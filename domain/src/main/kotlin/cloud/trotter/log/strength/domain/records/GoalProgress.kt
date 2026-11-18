@@ -32,7 +32,10 @@ object GoalProgress {
             seconds.takeIf { (atEnd ?: (work.status == CardioSetStatus.FINISHED)) && it > 0 && metres >= goal.metres }
         }.minOrNull()
 
-    fun met(goal: PlanGoal.Timed, best: Int?): Boolean = best != null && best < goal.underSeconds
+    fun met(goal: PlanGoal.Timed, best: Int?): Boolean {
+        val target = goal.underSeconds ?: return false
+        return best != null && best < target
+    }
     fun bestShuttles(goal: PlanGoal.Shuttle): Int? = goal.attempts.maxOfOrNull { it.shuttles }
     fun met(goal: PlanGoal.Shuttle, best: Int?): Boolean = best != null && best >= goal.targetShuttles
 

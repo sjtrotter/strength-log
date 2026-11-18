@@ -65,8 +65,10 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
         headlineContent = {
             Text(when (goal) {
                 is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
-                is PlanGoal.Timed -> stringResource(R.string.plan_goal_timed,
-                    distanceUnitFor(goal.activity).format(goal.metres), ClockText.minutesSeconds(goal.underSeconds))
+                is PlanGoal.Timed -> goal.underSeconds?.let { seconds ->
+                    stringResource(R.string.plan_goal_timed,
+                        distanceUnitFor(goal.activity).format(goal.metres), ClockText.minutesSeconds(seconds))
+                } ?: distanceUnitFor(goal.activity).format(goal.metres)
                 is PlanGoal.Shuttle -> stringResource(R.string.plan_goal_shuttle, goal.protocol, goal.targetShuttles)
             })
         },
@@ -88,12 +90,13 @@ private fun goalProgress(ui: PlanGoalUi): String {
     val gap = when (val goal = ui.goal) {
         is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
         is PlanGoal.Timed -> {
-            val seconds = abs(best - goal.underSeconds)
+            val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.minutesSeconds(best))
+            val seconds = abs(best - target)
             val amount = if (seconds < 60) stringResource(R.string.plan_goal_seconds, seconds)
                 else ClockText.minutesSeconds(seconds)
             when {
-                best > goal.underSeconds -> stringResource(R.string.plan_goal_over, amount)
-                best < goal.underSeconds -> stringResource(R.string.plan_goal_under, amount)
+                best > target -> stringResource(R.string.plan_goal_over, amount)
+                best < target -> stringResource(R.string.plan_goal_under, amount)
                 else -> stringResource(R.string.plan_goal_not_under)
             }
         }

@@ -89,7 +89,8 @@ class PlannerRunTest {
             assertEquals(RepTarget.Fixed(5), slots.first().rule!!.target)
         }
         assertEquals(listOf(PlanReason.RunCapped("D")), draft.reasons)
-        assertNull(draft.goal)
+        // PR 7a: Just finish keeps its event and date (revision 28).
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, null, null), draft.goal)
     }
 
     @Test fun `case 17 history wins over the setup seed and caps the base long run`() {
@@ -237,7 +238,10 @@ class PlannerRunTest {
         // ladder 2026-11-17: injury lowers the running-time start from 8 to 7, previously 9.
         assertEquals(CardioRule(7), day(plan(novice.copy(runningInjury = true)), "A").cardioRule)
         assertEquals(RunPhase.BASE, plan(novice.copy(longest = Measure.Distance(6000))).phase)
-        for (goal in listOf(RunGoal.MIDDLE_DISTANCE, RunGoal.FITNESS_TEST, RunGoal.CARDIO_FITNESS)) assertNull(plan(RunAnswers(goal)).phase)
+        // PR 7a: New with no running time now enters LADDER level 1; Some with no anchor still has no phase.
+        for (goal in listOf(RunGoal.MIDDLE_DISTANCE, RunGoal.FITNESS_TEST, RunGoal.CARDIO_FITNESS)) {
+            assertNull(plan(RunAnswers(goal, RunExperience.SOME)).phase)
+        }
     }
 
     @Test fun `Q2 follows the five and six day rows with the first requested strength flags`() {
@@ -288,12 +292,14 @@ class PlannerRunTest {
         val timed = plan(RunAnswers(RunGoal.FIVE_TO_TEN_K, RunExperience.NEW, longest = Measure.Time(2900)), days = 5, minutes = 90)
         assertEquals(block(time(3180)), day(timed, "E").cardioBlock)
         for (id in listOf("A", "C", "D")) assertEquals(block(time(2340)), day(timed, id).cardioBlock)
-        val middle = plan(RunAnswers(RunGoal.MIDDLE_DISTANCE, longest = Measure.Time(1200)), minutes = 90)
+        // PR 7a: Racing never starts on the ladder (lead, round 2); floor(0.75 * 1320 / 60) * 60 = 960.
+        val middle = plan(RunAnswers(RunGoal.MIDDLE_DISTANCE, RunExperience.RACING, longest = Measure.Time(1200)), minutes = 90)
         assertEquals(block(time(960)), day(middle, "A").cardioBlock)
     }
 
     @Test fun `middle distance with a one minute longest run keeps easy runs positive and capped`() {
-        val answers = RunAnswers(RunGoal.MIDDLE_DISTANCE, longest = Measure.Time(60))
+        // PR 7a: Racing never starts on the ladder (lead, round 2); the 60-second anchor caps at 66.
+        val answers = RunAnswers(RunGoal.MIDDLE_DISTANCE, RunExperience.RACING, longest = Measure.Time(60))
         val draft = plan(answers, days = 4)
         val cap = RunCap.limit(60, RunCap.SECONDS_GRID)
         val easyDays = draft.program.cardioDays.filter { draft.sessions[it.id] == RunSession.EASY }
@@ -305,6 +311,7 @@ class PlannerRunTest {
     }
 
     @Test fun `race and test interval aims stay positive for valid small goal times`() {
+        // PR 7a: New without an anchor now enters LADDER; Some keeps these interval-aim fixtures.
         val variants = listOf(
             RunAnswers(RunGoal.MIDDLE_DISTANCE, goalSeconds = 1),
             RunAnswers(RunGoal.MIDDLE_DISTANCE, recent = RecentRace(200_000, 1)),
@@ -312,7 +319,7 @@ class PlannerRunTest {
             RunAnswers(RunGoal.FITNESS_TEST, test = FitnessTest.COOPER, testScore = 1_000_000),
         )
         for (answers in variants) {
-            val draft = plan(answers, days = 3)
+            val draft = plan(answers.copy(experience = RunExperience.SOME), days = 3)
             val reps = work(day(draft, "B"))
             assertTrue(reps.isNotEmpty())
             assertTrue(reps.all { it.aim == Measure.Time(1) })
@@ -386,6 +393,16 @@ class PlannerRunTest {
         assertEquals(RunPhase.BASE, Planner.plan(answers, atLeast = RunPhase.BASE).phase)
         assertEquals(RunPhase.MARATHON_BUILD, Planner.plan(answers, known(21_000, null), atLeast = RunPhase.BASE).phase)
         assertFailsWith<IllegalArgumentException> { Planner.plan(answers, atLeast = RunPhase.ULTRA_BUILD) }
+    }
+
+    @Test fun `Just finish keeps the event and its date`() {
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, null, TODAY + 100),
+            plan(half().copy(dateEpochDay = TODAY + 100)).goal)
+        val test = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME)
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, null, null), plan(test).goal)
+        assertNull(plan(test.copy(test = FitnessTest.COOPER, testScore = 2400)).goal)
+        assertNull(plan(test.copy(test = FitnessTest.PACER)).goal)
+        assertNull(plan(RunAnswers(RunGoal.CARDIO_FITNESS, RunExperience.SOME)).goal)
     }
 
 }

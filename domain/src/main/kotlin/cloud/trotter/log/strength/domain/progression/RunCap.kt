@@ -21,15 +21,15 @@ object RunCap {
     fun maxima(sessions: List<List<CardioSetResult>>): RecentMaxima? = sessions.mapNotNull { session ->
         if (!finished(session)) return@mapNotNull null
         val counted = session.filter { it.spec.role == CardioRole.WORK || it.spec.role == CardioRole.RECOVERY }
-        val metres = counted.map { result ->
-            result.metresAtEnd ?: result.metres ?: (result.spec.end as? Measure.Distance)?.metres
-                ?.takeIf { result.status == CardioSetStatus.FINISHED }
-        }
+        val metres = counted.map(RunCap::metres)
         RecentMaxima(
             if (metres.all { it != null }) metres.sumOf { requireNotNull(it) } else null,
             counted.sumOf { it.secondsAtEnd ?: it.elapsedSeconds },
         )
     }.reduceOrNull { maximum, session -> maximum.max(session) }
+
+    internal fun metres(result: CardioSetResult): Int? = result.metresAtEnd ?: result.metres ?:
+        (result.spec.end as? Measure.Distance)?.metres?.takeIf { result.status == CardioSetStatus.FINISHED }
 
     internal fun finished(results: List<CardioSetResult>): Boolean {
         val work = results.filter { it.spec.role == CardioRole.WORK }

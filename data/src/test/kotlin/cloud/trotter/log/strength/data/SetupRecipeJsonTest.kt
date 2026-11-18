@@ -24,6 +24,13 @@ import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.RecentRace
 import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.progression.KnownLoads
+import cloud.trotter.log.strength.domain.progression.RecentMaxima
+import cloud.trotter.log.strength.domain.progression.WeekLoad
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.planner.RunReplan
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -167,12 +174,18 @@ class SetupRecipeJsonTest {
         assertEquals(input, SetupRecipeJson.decode(updated, settings, WeightUnit.KG))
         val originalFields = Json.parseToJsonElement(json).jsonObject - "runPhase"
         assertEquals(originalFields, Json.parseToJsonElement(updated).jsonObject - "runPhase")
-        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input) }
+        // PR 7a: a missing phase stores nothing to re-plan, even on a phased goal.
+        val phaseFree = SetupRecipeJson.encode(input)
+        assertNull(SetupRecipeJson.phase(phaseFree))
+        assertEquals(input, SetupRecipeJson.decode(phaseFree, settings, WeightUnit.KG))
         assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input, RunPhase.ULTRA_BUILD) }
         assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(answers, RunPhase.BASE) }
         assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN), RunPhase.BASE) }
         val missing = json.replace(",\"runPhase\":\"HALF_BUILD\"", "")
-        val invalid = listOf(missing, json.replace("HALF_BUILD", "ULTRA_BUILD"),
+        // PR 7a: absent HALF_BUILD is valid; the three off-path payloads stay invalid.
+        SetupRecipeJson.validate(missing)
+        assertEquals(input, SetupRecipeJson.decode(missing, settings, WeightUnit.KG))
+        val invalid = listOf(json.replace("HALF_BUILD", "ULTRA_BUILD"),
             SetupRecipeJson.encode(answers).dropLast(1) + ",\"runPhase\":\"BASE\"}",
             SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN)).dropLast(1) + ",\"runPhase\":\"BASE\"}")
         for (payload in invalid) {
@@ -185,6 +198,61 @@ class SetupRecipeJsonTest {
     @Test fun `lift recipes keep their encoded bytes`() {
         assertEquals("""{"v":2,"branch":"LIFT","goal":"GENERAL","days":3,"minutes":60,"experience":"NEW"}""",
             SetupRecipeJson.encode(SetupAnswers()))
+    }
+
+    @Test fun `a recipe may omit its run phase`() {
+        val input = answers.copy(branch = PlanBranch.RUN, run = run)
+        val json = SetupRecipeJson.encode(input)
+        SetupRecipeJson.validate(json)
+        assertNull(SetupRecipeJson.phase(json))
+        assertEquals(input, SetupRecipeJson.decode(json, settings, WeightUnit.KG))
+    }
+
+    @Test fun `ladder only answers store LADDER alone`() {
+        for (experience in listOf(RunExperience.NEW, RunExperience.SOME)) {
+            val input = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(experience = experience))
+            val json = SetupRecipeJson.encode(input, RunPhase.LADDER)
+            assertEquals(RunPhase.LADDER, SetupRecipeJson.phase(json))
+            assertEquals(input, SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB))
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input, RunPhase.BASE) }
+        }
+        val rider = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(activity = CardioActivity.STATIONARY_BIKE))
+        val racer = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(experience = RunExperience.RACING))
+        for (input in listOf(rider, racer)) {
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input, RunPhase.LADDER) }
+        }
+        val invalid = SetupRecipeJson.encode(rider).dropLast(1) + ",\"runPhase\":\"LADDER\"}"
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.validate(invalid) }
+    }
+
+    @Test fun `a Racing half recipe stored on LADDER still decodes`() {
+        val input = SetupAnswers(branch = PlanBranch.RUN, days = 3,
+            run = RunAnswers(RunGoal.HALF_MARATHON, RunExperience.RACING))
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input, RunPhase.LADDER) }
+        val json = SetupRecipeJson.encode(input).dropLast(1) + ",\"runPhase\":\"LADDER\"}"
+        SetupRecipeJson.validate(json)
+        assertEquals(RunPhase.LADDER, SetupRecipeJson.phase(json))
+        assertEquals(input, SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB))
+        val stored = Planner.plan(input.copy(run = input.run.copy(experience = RunExperience.NEW))).program.let { p ->
+            p.copy(days = p.days.map { day ->
+                if (day.cardioRule?.ladderLevel == null) day else day.copy(cardioRule = CardioRule(null),
+                    cardioBlock = RunWalkLadder.block(12, CardioActivity.ROAD_RUN))
+            })
+        }
+        val known = KnownLoads.NONE.copy(longestRecent = mapOf(CardioFamily.RUN to RecentMaxima(null, 1800)),
+            longestRunning = mapOf(CardioFamily.RUN to 1800))
+        val result = assertNotNull(RunReplan.next(stored, input, RunPhase.LADDER, known, 21000,
+            WeekLoad(RecentMaxima(null, 5400), RecentMaxima(null, 1800)), null))
+        assertEquals(RunPhase.BASE, result.phase)
+    }
+
+    @Test fun `withPhase null removes the phase and keeps every other field`() {
+        val json = SetupRecipeJson.encode(answers.copy(branch = PlanBranch.RUN, run = run), RunPhase.HALF_BUILD)
+            .dropLast(1) + ",\"futureField\":{\"keep\":true}}"
+        val updated = SetupRecipeJson.withPhase(json, null)
+        assertFalse("runPhase" in Json.parseToJsonElement(updated).jsonObject)
+        assertEquals(Json.parseToJsonElement(json).jsonObject - "runPhase", Json.parseToJsonElement(updated).jsonObject)
+        SetupRecipeJson.validate(updated)
     }
 
 }

@@ -97,7 +97,7 @@ internal fun runDraft(
 ): PlanDraft {
     val run = answers.run
     val anchor = runAnchor(run, known)
-    val phase = startPhase(run, anchor, runWeek(run, known), atLeast)
+    val phase = startPhase(run, anchor, runWeek(run, known), runningSeconds(run, known), runningMetres(run, known), atLeast)
     val entries = runEntries(answers, phase, todayEpochDay)
     val lone = entries.none { it.session == RunSession.VO2MAX }
     val level = ladderStart(runningSeconds(run, known), run.runningInjury)
@@ -150,10 +150,10 @@ internal fun runDraft(
 internal fun runGoal(run: RunAnswers): PlanGoal? {
     val seconds = run.goalSeconds
     val event = run.resolvedEvent
-    if (event != null && seconds != null) return PlanGoal.Timed(run.activity, event.metres, seconds, run.dateEpochDay)
+    if (event != null) return PlanGoal.Timed(run.activity, event.metres, seconds, run.dateEpochDay)
     if (run.goal != RunGoal.FITNESS_TEST) return null
     val metres = run.test.metres
-    if (metres != null && seconds != null) return PlanGoal.Timed(run.activity, metres, seconds, run.dateEpochDay)
+    if (metres != null) return PlanGoal.Timed(run.activity, metres, seconds, run.dateEpochDay)
     return if (run.test in listOf(FitnessTest.PACER, FitnessTest.HAMR) && run.testScore != null) {
         PlanGoal.Shuttle(run.test.name, run.testScore, byEpochDay = run.dateEpochDay)
     } else null

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.progression.plannedSeconds
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -233,7 +234,12 @@ class PlannerRunProgressTest {
     }
 
     @Test fun `Just cardio easy runs grow a step a rotation to the session minutes`() {
-        val draft = plan(run(RunGoal.CARDIO_FITNESS, days = 3, minutes = 60), known(null, 900))
+        // PR 7a: on foot this Some runner now starts the ladder; a rider keeps revision 42's worked example.
+        // PR 7a: floor(900 * 1.1 / 60) * 60 = 960; round(960 * 1.05) = 1008, once per rotation.
+        // PR 7a: known(null, 900) sets no running time, so its on-foot ladder start is level 1.
+        val answers = run(RunGoal.CARDIO_FITNESS, days = 3, minutes = 60,
+            runAnswers = RunAnswers(RunGoal.CARDIO_FITNESS, RunExperience.SOME, activity = CardioActivity.STATIONARY_BIKE))
+        val draft = plan(answers, KnownLoads.NONE.copy(longestRecent = mapOf(CardioFamily.RIDE to RecentMaxima(null, 900))))
         for (id in listOf("A", "B", "C")) assertEquals(Measure.Time(960), end(draft, id))
         var opening = block(draft, "A")
         var rule = rule(draft, "A")

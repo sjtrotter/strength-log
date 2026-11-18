@@ -47,6 +47,9 @@ import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.progression.CardioHistory
+import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.PlanDraft
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
@@ -276,11 +279,16 @@ class PlanRepository(
     /** The shape never depends on loads, so the second pass keeps the first pass's slots. Reads only Room. */
     private suspend fun planned(answers: SetupAnswers): PlanDraft {
         val today = LocalDate.now(clock).toEpochDay()
-        val first = Planner.plan(answers, KnownLoads.NONE, today)
+        val cardio = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) {
+            val family = CardioFamily.of(answers.run.activity)
+            val now = clock.millis()
+            CardioHistory.known(family, db.cardioLog(family, now), now)
+        } else KnownLoads.NONE
+        val first = Planner.plan(answers, cardio, today)
         val ids = first.program.days.flatMap { day -> day.exercises.flatMap { slot ->
             listOfNotNull(slot.exerciseId, slot.superset?.exerciseId)
         } }.distinct()
-        val known = KnownLoads(ids.mapNotNull { id -> lastWorking(id)?.let { id to it } }.toMap())
+        val known = cardio.copy(lastWorking = ids.mapNotNull { id -> lastWorking(id)?.let { id to it } }.toMap())
         return Planner.plan(answers, known, today)
     }
 

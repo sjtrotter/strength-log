@@ -1,5 +1,19 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunCap
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -26,6 +40,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunAnswers
 import cloud.trotter.log.strength.domain.planner.RunGoal
@@ -236,4 +251,60 @@ class PlannedPlanTest {
         val id = plans.createPlannedPlan("Dumbbells", a)
         assertEquals(a.equipment, plans.planSettingsFor(id).first().equipmentOrAll)
     }
+    private val clock = Clock.fixed(Instant.parse("2026-11-17T12:00:00Z"), ZoneOffset.UTC)
+    private suspend fun seedCardio(vararg results: CardioSetResult) {
+        val at = clock.millis() - 10 * 86_400_000L
+        val id = db.cardioSessionDao().insert(CardioSessionEntity(dayId = null, mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = at - 3_600_000, completedAt = at,
+            seconds = results.sumOf { it.elapsedSeconds }, stepsCompleted = results.size, activity = CardioActivity.ROAD_RUN.name))
+        db.cardioSetResultDao().insertAll(results.mapIndexed { index, result -> result.toEntity(id, index) })
+    }
+    private fun timeResult(seconds: Int, metres: Int? = null, role: CardioRole = CardioRole.WORK) =
+        CardioSetResult(CardioSetSpec(role, Measure.Time(seconds)), CardioSetStatus.FINISHED, seconds, metres, metres?.let { DistanceSource.MANUAL })
+    private suspend fun createRun(goal: RunGoal = RunGoal.FIVE_TO_TEN_K, experience: RunExperience = RunExperience.NEW): Pair<RunPhase?, cloud.trotter.log.strength.domain.model.Program> {
+        val id = PlanRepository(db, settings, clock).createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN, days = 3,
+            run = RunAnswers(goal, experience)))
+        return SetupRecipeJson.phase(assertNotNull(db.planDao().plan(id)?.recipeJson)) to plans.programFor(id).first()
+    }
+
+    @Test fun `a run walk log under the gate starts the ladder even past five kilometers on foot`() = runTest {
+        seedCardio(timeResult(900, 2500), timeResult(2700, 3000, CardioRole.RECOVERY))
+        for ((goal, experience) in listOf(RunGoal.FIVE_TO_TEN_K to RunExperience.NEW, RunGoal.CARDIO_FITNESS to RunExperience.SOME)) {
+            val (phase, program) = createRun(goal, experience)
+            assertEquals(RunPhase.LADDER, phase)
+            assertEquals(CardioRule(5), program.days.first().cardioRule)
+        }
+    }
+
+    @Test fun `a continuous 5K under thirty minutes skips the ladder`() = runTest {
+        seedCardio(CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(5000)), CardioSetStatus.FINISHED, 1700, 5000, DistanceSource.MANUAL))
+        val (phase, program) = createRun()
+        assertEquals(RunPhase.BASE, phase)
+        assertEquals(5500, RunCap.limit(5000, RunCap.METRES_GRID))
+        assertEquals(Measure.Distance(5500), program.days.single { it.id == "C" }.cardioBlock?.sets?.single()?.end)
+    }
+
+    @Test fun `setup reads the log's longest run for the gate and the cap`() = runTest {
+        seedCardio(timeResult(2400))
+        val (phase, program) = createRun()
+        assertEquals(RunPhase.BASE, phase)
+        assertEquals(2640, RunCap.limit(2400, RunCap.SECONDS_GRID))
+        assertEquals(Measure.Time(2640), program.days.single { it.id == "C" }.cardioBlock?.sets?.single()?.end)
+    }
+
+    @Test fun `Both layouts with no run session store no phase`() = runTest {
+        for (input in listOf(
+            SetupAnswers(branch = PlanBranch.BOTH, days = 1, run = RunAnswers(RunGoal.FIVE_TO_TEN_K),
+                both = BothAnswers(false, BothAnswers.Together.SEPARATE_DAYS)),
+            SetupAnswers(branch = PlanBranch.BOTH, days = 3, minutes = 30, run = RunAnswers(RunGoal.FIVE_TO_TEN_K),
+                both = BothAnswers(false, BothAnswers.Together.SAME_VISIT)),
+        )) {
+            val id = plans.createPlannedPlan("Both", input)
+            val recipe = assertNotNull(db.planDao().plan(id)?.recipeJson)
+            assertEquals(null, SetupRecipeJson.phase(recipe))
+            assertEquals(input, SetupRecipeJson.decode(recipe, assertNotNull(db.planDao().plan(id)).planSettings, WeightUnit.LB))
+            assertTrue(plans.programFor(id).first().days.all { it.cardioBlock == null })
+        }
+    }
+
 }

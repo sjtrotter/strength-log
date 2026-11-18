@@ -38,8 +38,7 @@ object PlanGoalJson {
                 it.time.timingMethod.name, it.time.startProtocol.name) }, byEpochDay = goal.byEpochDay)
     })
 
-    /** Null for a goal this build cannot show: an unreadable one or a timed goal with no time;
-     *  the stored JSON is kept as is. */
+    /** Null only for an unreadable goal; the stored JSON is kept as is. */
     fun decode(json: String?): PlanGoal? = json?.let { runCatching { parse(it) }.getOrNull() }
 
     fun validate(json: String) { parse(json) }
@@ -51,10 +50,7 @@ object PlanGoalJson {
             "timed" -> {
                 val activity = CardioActivity.valueOf(requireNotNull(dto.activity))
                 val metres = requireNotNull(dto.metres).also { require(it in 1..200_000) }
-                dto.underSeconds?.let {
-                    require(it in 1..86_400)
-                    PlanGoal.Timed(activity, metres, it, dto.byEpochDay)
-                }
+                PlanGoal.Timed(activity, metres, dto.underSeconds, dto.byEpochDay)
             }
             "sprint" -> PlanGoal.Sprint(requireNotNull(dto.metres), dto.targetCentis,
                 dto.sprintAttempts.map { SprintAttempt(it.completedAt,

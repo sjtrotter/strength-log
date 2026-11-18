@@ -98,4 +98,16 @@ class GoalProgressTest {
         for (count in listOf(-1, 1000)) assertFailsWith<IllegalArgumentException> { ShuttleAttempt(1, count) }
         assertEquals(0, ShuttleAttempt(1, 0).shuttles)
     }
+    @Test fun `an untimed goal is never met`() {
+        val untimed = goal.copy(underSeconds = null)
+        assertFalse(GoalProgress.met(untimed, 900))
+        assertFalse(GoalProgress.met(untimed, null))
+        assertEquals(984, GoalProgress.bestTimed(untimed, listOf(CardioActivity.ROAD_RUN to listOf(result()))))
+    }
+
+    @Test fun `timed goals reject zero and over a day and accept no time`() {
+        for (seconds in listOf(0, 86401)) assertFailsWith<IllegalArgumentException> { goal.copy(underSeconds = seconds) }
+        assertNull(goal.copy(underSeconds = null).underSeconds)
+    }
+
 }

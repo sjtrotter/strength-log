@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
+import org.junit.Assert.assertNull
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
@@ -217,6 +220,24 @@ class PlanCardioGoalScreenTest {
                 rule.onAllNodes(isDialog()).assertCountEquals(1)
             }
         }
+    }
+
+    @Test fun `an untimed goal shows its distance and best without a gap`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 10000, null, null)
+        val state = mutableStateOf(planScreenFixture().copy(goal = PlanGoalUi(goal, 3130, false)))
+        var headline = ""
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            headline = distanceUnitFor(goal.activity).format(goal.metres)
+            PlanScreen(state.value, actions())
+        } } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText(headline))
+        rule.onNodeWithText(headline).assertExists()
+        rule.onNodeWithText("Best ${ClockText.minutesSeconds(3130)}").assertExists()
+        rule.runOnIdle { state.value = state.value.copy(goal = PlanGoalUi(goal, null, false)) }
+        rule.onNodeWithText("No attempt yet").assertExists()
+        val draft = PlanGoalDraft.from(goal)
+        assertEquals(0, draft.underSeconds)
+        assertNull(draft.goal())
     }
 
     private companion object { const val WINDOW_SIZE = "robolectric.windowManager.useRequestedSize" }

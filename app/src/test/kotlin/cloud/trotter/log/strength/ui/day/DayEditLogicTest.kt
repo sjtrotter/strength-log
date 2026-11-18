@@ -1,5 +1,15 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -242,4 +252,18 @@ class DayEditLogicTest {
         assertEquals(DayEditPage.ADD_EXERCISE, backTarget(addingFromPattern = true))
         assertEquals(DayEditPage.ADD_PATTERN, backTarget(pickingPattern = true))
     }
+    @Test fun `Reset day to plan is offered only on Lift setup plans`() {
+        val answers = SetupAnswers(days = 4)
+        val program = Planner.plan(answers).program
+        val day = program.days.first { it.kind == ProgramDayKind.STRENGTH }
+        val rest = program.days.first { it.kind == ProgramDayKind.REST }
+        val plan = PlanEntity(1, "Plan", PlanOrigin.GENERATED.name, 0, 0, recipeJson = SetupRecipeJson.encode(answers))
+        assertTrue(DayEditRules.canResetToTemplate(plan, day, WeightUnit.LB))
+        val run = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(experience = RunExperience.SOME))
+        assertFalse(DayEditRules.canResetToTemplate(plan.copy(recipeJson = SetupRecipeJson.encode(run)), day, WeightUnit.LB))
+        assertFalse(DayEditRules.canResetToTemplate(plan, rest, WeightUnit.LB))
+        assertFalse(DayEditRules.canResetToTemplate(plan.copy(origin = PlanOrigin.AUTHORED.name), day, WeightUnit.LB))
+        assertFalse(DayEditRules.canResetToTemplate(plan, null, WeightUnit.LB))
+    }
+
 }

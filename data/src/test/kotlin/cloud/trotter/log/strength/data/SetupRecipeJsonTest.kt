@@ -15,6 +15,8 @@ import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.RecentNumber
+import cloud.trotter.log.strength.domain.planner.SprintAnswers
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.RunAnswers
@@ -81,15 +83,45 @@ class SetupRecipeJsonTest {
         }
     }
 
-    @Test fun `encode refuses sprint answers until PR 7`() {
-        // 4b-ii-a: three non-Lift branches refused → only Sprint and Both sprint refused; Run and Both retain their answers.
-        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.SPRINT)) }
-        assertFailsWith<IllegalArgumentException> {
-            SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.BOTH, both = BothAnswers(sprint = true)))
+    @Test fun `sprint recipes round trip`() {
+        // PR 7f: Sprint and Both sprint encoding refused → round trip with every sprint answer.
+        for (branch in listOf(PlanBranch.SPRINT, PlanBranch.BOTH)) {
+            val input = SetupAnswers(branch = branch, sprint = SprintAnswers(SprintEvent.YD40, true, true, true),
+                both = if (branch == PlanBranch.BOTH) BothAnswers(sprint = true) else BothAnswers())
+            val json = SetupRecipeJson.encode(input)
+            val decoded = assertNotNull(SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB))
+            assertEquals(input, decoded)
+            assertTrue(decoded.careful)
+            assertFalse("run" in Json.parseToJsonElement(json).jsonObject)
         }
         for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) {
             assertNotNull(SetupRecipeJson.decode(SetupRecipeJson.encode(SetupAnswers(branch = branch)), PlanSettings(), WeightUnit.LB))
         }
+    }
+
+    @Test fun `sprint recipes validate strictly`() {
+        val sprint = SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.SPRINT))
+        assertEquals("""{"v":2,"branch":"SPRINT","goal":"GENERAL","days":3,"minutes":60,"experience":"NEW","sprint":{"event":"M100"}}""", sprint)
+        val both = SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.BOTH, both = BothAnswers(sprint = true)))
+        val invalid = listOf(sprint.replace(",\"sprint\":{\"event\":\"M100\"}", ""),
+            sprint.replace("M100", "M50"), both.dropLast(1) + ",\"run\":{\"goal\":\"CARDIO_FITNESS\",\"experience\":\"NEW\"}}",
+            sprint.dropLast(1) + ",\"runPhase\":\"LADDER\"}")
+        for (json in invalid) {
+            assertNull(SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB))
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.validate(json) }
+        }
+        SetupRecipeJson.validate(sprint)
+        SetupRecipeJson.validate(both)
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.SPRINT), RunPhase.LADDER) }
+    }
+
+    @Test fun `lift run and both recipes keep their bytes`() {
+        val fields = "\"goal\":\"GENERAL\",\"days\":3,\"minutes\":60,\"experience\":\"NEW\""
+        val run = "\"run\":{\"goal\":\"CARDIO_FITNESS\",\"experience\":\"NEW\"}"
+        assertEquals("{\"v\":2,\"branch\":\"LIFT\",$fields}", SetupRecipeJson.encode(SetupAnswers()))
+        assertEquals("{\"v\":2,\"branch\":\"RUN\",$fields,$run}", SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN)))
+        assertEquals("{\"v\":2,\"branch\":\"BOTH\",$fields,$run,\"both\":{}}",
+            SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.BOTH)))
     }
 
     @Test fun `decode is tolerant and validate is strict`() {

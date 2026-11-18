@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -99,6 +100,7 @@ class WorkoutSetScreenTest {
         show(base, workoutActions().copy(onArmSprintTimer = { arms += it }, onOpenSprintTime = { entries += it },
             onReachCardioTarget = { reached += it }, onStopCardio = { stops += it }, onSprintProtocol = { protocols += it }))
         rule.onNodeWithTag("workout-hero").assert(hasText("60 m"))
+        rule.onNodeWithText("to 60 m").assertDoesNotExist()
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start on the beep"))
         rule.onNodeWithText("Stop").assertDoesNotExist()
         rule.onNodeWithText("Elapsed").assertDoesNotExist()
@@ -114,6 +116,18 @@ class WorkoutSetScreenTest {
         assertEquals(listOf("STANDING"), protocols)
     }
 
+    @Test fun `a forty yard sprint shows the target only while the hero shows the timer`() {
+        val state = mutableStateOf(sprintRepFixture(metres = 37))
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) { WorkoutSetHost(state.value) }
+        } }
+        rule.onNodeWithTag("workout-hero").assert(hasText("40 yd"))
+        rule.onNodeWithText("to 40 yd").assertDoesNotExist()
+        rule.runOnIdle { state.value = sprintRepFixture(5_480L, metres = 37) }
+        rule.onNodeWithText("4.52").assertExists()
+        rule.onNodeWithText("to 40 yd").performScrollTo().assertIsDisplayed()
+    }
+
     @Test fun `an armed sprint rep shows a countdown and Stop`() {
         rule.setContent { AppTheme {
             CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) {
@@ -122,6 +136,27 @@ class WorkoutSetScreenTest {
         } }
         rule.onNodeWithText("Beep in 3").assertExists()
         rule.onNodeWithText("Stop").assertExists()
+        // PR 7f: armed controls also assert that End rep is absent.
+        rule.onNodeWithText("End rep").assertDoesNotExist()
+    }
+
+    @Test fun `the armed countdown never outlives the beep`() {
+        rule.mainClock.autoAdvance = false
+        val beep = 100L
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { rule.mainClock.currentTime }) {
+                WorkoutSetHost(sprintRepFixture(beep))
+            }
+        } }
+        rule.onNodeWithText("Beep in 1").assertExists()
+        rule.mainClock.advanceTimeBy(beep - rule.mainClock.currentTime, ignoreFrameDuration = true)
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("Beep in 1").assertDoesNotExist()
+        rule.onNode(SemanticsMatcher("running hundredths") {
+            it.config.getOrNull(SemanticsProperties.Text)?.any { text -> text.text.matches(Regex("0\\.\\d{2}")) } == true
+        }).assertExists()
+        rule.onNodeWithText("Stop").assertExists()
+        rule.onNodeWithText("End rep").assertDoesNotExist()
     }
 
     @Test fun `a running sprint rep shows hundredths and Stop`() {
@@ -131,6 +166,7 @@ class WorkoutSetScreenTest {
             }
         } }
         rule.onNodeWithText("4.52").assertExists()
+        rule.onNodeWithText("to 60 m").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Stop").assertExists()
         rule.onNodeWithText("Start on the beep").assertDoesNotExist()
     }

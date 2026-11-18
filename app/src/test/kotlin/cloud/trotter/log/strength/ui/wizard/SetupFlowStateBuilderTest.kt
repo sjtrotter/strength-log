@@ -31,6 +31,12 @@ import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.math.ceil
+import java.time.DayOfWeek
+import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.planner.SprintAnswers
+import cloud.trotter.log.strength.domain.planner.SprintEvent
+import cloud.trotter.log.strength.domain.planner.SprintFloor
+import kotlin.test.assertNotNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -302,4 +308,157 @@ class SetupFlowStateBuilderTest {
         assertEquals(PlanReason.DateTooClose in plan.reasons, PlanWhy.DateTooClose in
             (builder.planPreview(plan, longer) as PlanPreviewUi.Ready).why)
     }
+    private val sprintDraft = SetupDraft(branch = PlanBranch.SPRINT)
+    private val bothSprint = SetupDraft(branch = PlanBranch.BOTH, sprintCardio = true)
+
+    @Test fun `sprint steps follow the branch`() {
+        val sprint = listOf(SetupStep.GOAL, SetupStep.RUN_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        assertEquals(sprint + SetupStep.PLAN, builder.steps(sprintDraft))
+        assertEquals(sprint + listOf(SetupStep.RECENT, SetupStep.PLAN),
+            builder.steps(sprintDraft.copy(experience = LiftExperience.UNDER_A_YEAR, goal = LiftGoal.STRENGTH)))
+        val both = listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        assertEquals(both + SetupStep.PLAN, builder.steps(bothSprint))
+        assertEquals(both + listOf(SetupStep.LIFTS, SetupStep.PLAN), builder.steps(bothSprint.copy(goal = LiftGoal.STRENGTH)))
+        for (draft in listOf(sprintDraft, bothSprint)) {
+            assertTrue(builder.steps(draft).intersect(setOf(SetupStep.ORDER, SetupStep.EVENT, SetupStep.WHERE, SetupStep.TOGETHER)).isEmpty())
+        }
+    }
+
+    @Test fun `sprint answers map and normalize`() {
+        val sprint = sprintDraft.copy(sprintEvent = SprintEvent.YD40, sprintedRecently = true,
+            hamstringStrain = true, fortyOrOlder = true, goal = LiftGoal.MUSCLE)
+        val mapped = builder.answers(sprint)
+        assertEquals(SprintAnswers(SprintEvent.YD40, true, true, true), mapped.sprint)
+        assertEquals(LiftGoal.GENERAL, mapped.goal)
+        assertEquals(RunAnswers(), mapped.run)
+        val both = builder.answers(sprint.copy(branch = PlanBranch.BOTH, sprintCardio = true, cardioFirst = true,
+            together = BothAnswers.Together.SEPARATE_DAYS))
+        assertEquals(BothAnswers(sprint = true), both.both)
+        assertEquals(LiftGoal.MUSCLE, both.goal)
+        assertEquals(mapped.sprint, both.sprint)
+        assertEquals(RunAnswers(), both.run)
+        for (draft in listOf(sprintDraft.copy(fortyOrOlder = true), sprintDraft.copy(olderAdult = true),
+            sprintDraft.copy(hamstringStrain = true))) assertTrue(builder.answers(draft).careful)
+    }
+
+    @Test fun `prefill round trips sprint answers`() {
+        for (draft in listOf(sprintDraft, bothSprint)) {
+            val answers = builder.answers(draft.copy(sprintEvent = SprintEvent.M200, sprintedRecently = true,
+                fortyOrOlder = true, hamstringStrain = true))
+            assertEquals(answers, builder.answers(builder.draftFrom(answers)))
+        }
+    }
+
+    @Test fun `the floor blocks Your lifts and Your plan`() {
+        val draft = bothSprint.copy(step = SetupStep.LIFTS, goal = LiftGoal.STRENGTH,
+            mains = listOf("bb_bench", "ohp", "bb_row"))
+        val answers = builder.answers(draft)
+        assertEquals(SprintFloor.SQUAT_OR_HINGE, Planner.sprintLowerMainMissing(answers))
+        assertFalse(builder.canAdvance(draft))
+        assertEquals(PlanPreviewUi.NeedsLowerMain(SprintFloor.SQUAT_OR_HINGE),
+            builder.planPreview(Planner.plan(builder.answers(bothSprint)), answers))
+        val careful = draft.copy(fortyOrOlder = true, mains = listOf("trap_dl", "bb_bench"))
+        assertEquals(SprintFloor.SQUAT, Planner.sprintLowerMainMissing(builder.answers(careful)))
+        assertFalse(builder.canAdvance(careful))
+        assertNull(Planner.sprintLowerMainMissing(builder.answers(careful.copy(mains = listOf("bb_back_squat")))))
+    }
+
+    @Test fun `sprint fitting names what it cut`() {
+        fun names(vararg ids: String) = ids.map { ExerciseLibrary.get(it).name }
+        val one = builder.answers(sprintDraft.copy(days = 1, minutes = 30))
+        assertTrue(PlanReason.ShortSession("A", 3) in Planner.plan(one).reasons)
+        assertEquals(PlanWhy.Dropped("A", names("rdl", "bss"), true, 30),
+            preview(one).why.filterIsInstance<PlanWhy.Dropped>().single())
+        val three = builder.answers(sprintDraft.copy(minutes = 30, sprintedRecently = true))
+        val plan = Planner.plan(three)
+        assertTrue(PlanReason.ShortSession("D", 7) in plan.reasons)
+        assertEquals(PlanWhy.Dropped("D", names("pogo_hop", "a_skip"), true, 30),
+            preview(three).why.filterIsInstance<PlanWhy.Dropped>().single { it.dayId == "D" })
+        val ui = assertNotNull(preview(three).sprint)
+        assertTrue(ui.nordic)
+        assertFalse(ui.jumps)
+        assertEquals(PlanWhy.Minutes, preview(three).why.last())
+        assertEquals(1, preview(three).why.count { it == PlanWhy.SplitDay })
+    }
+
+    @Test fun `sprint fitting falls back when the reference has the same cuts`() {
+        for (minutes in listOf(75, 90)) for (step in listOf(3, 7)) {
+            val answers = builder.answers(sprintDraft.copy(minutes = minutes))
+            val fitted = Planner.plan(answers).copy(reasons = listOf(PlanReason.ShortSession("A", step)))
+            val ui = builder.planPreview(fitted, answers) as PlanPreviewUi.Ready
+            assertTrue(assertNotNull(ui.sprint).shortened)
+            assertTrue(ui.why.filterIsInstance<PlanWhy.Dropped>().isEmpty())
+            assertTrue((if (step == 3) PlanWhy.Trimmed("A", minutes) else PlanWhy.OneSet("A", minutes)) in ui.why)
+        }
+    }
+
+    @Test fun `sprint fitting at seventy five minutes names full exercise names`() {
+        val answers = builder.answers(sprintDraft.copy(days = 2, minutes = 75,
+            sprintEvent = SprintEvent.M200, sprintedRecently = true, experience = LiftExperience.A_YEAR_OR_MORE))
+        val cuts = preview(answers).why.filterIsInstance<PlanWhy.Dropped>()
+        assertTrue(cuts.isNotEmpty())
+        assertTrue(cuts.all { it.names.isNotEmpty() || it.extraSets })
+        assertTrue(cuts.any { ExerciseLibrary.get("bss").name in it.names })
+        assertTrue(cuts.all { "Bulgarians" !in it.names })
+    }
+
+    @Test fun `the short two day sprint reason requires two requested days`() {
+        val two = builder.answers(sprintDraft.copy(days = 2, minutes = 30))
+        assertTrue(PlanWhy.ShortTwoDaySprint in preview(two).why)
+        val three = builder.answers(sprintDraft.copy(minutes = 30, mains = listOf("bb_back_squat")))
+        assertEquals(2, Planner.plan(three).program.days.count { it.kind != ProgramDayKind.REST })
+        assertFalse(PlanWhy.ShortTwoDaySprint in preview(three).why)
+    }
+
+    @Test fun `the full plan offer reads fullDoseMinutes`() {
+        val two = builder.answers(sprintDraft.copy(days = 2, sprintedRecently = true))
+        assertEquals(75, assertNotNull(preview(two).sprint).fullDoseMinutes)
+        assertEquals(90, assertNotNull(preview(two.copy(sprint = SprintAnswers(SprintEvent.M200, true))).sprint).fullDoseMinutes)
+        assertTrue(assertNotNull(preview(two).sprint).shortened)
+    }
+
+    @Test fun `the suggested week follows the rotation`() {
+        fun week(draft: SetupDraft) = assertNotNull(preview(builder.answers(draft)).sprint).week
+        val two = listOf(DayOfWeek.MONDAY to SprintWeekKind.SPRINT, DayOfWeek.THURSDAY to SprintWeekKind.SPRINT)
+        val three = listOf(two[0], DayOfWeek.TUESDAY to SprintWeekKind.UPPER, two[1])
+        assertEquals(two, week(sprintDraft.copy(days = 2)))
+        assertEquals(three, week(sprintDraft))
+        assertEquals(three + listOf(DayOfWeek.FRIDAY to SprintWeekKind.UPPER, DayOfWeek.SATURDAY to SprintWeekKind.TEMPO,
+            DayOfWeek.SUNDAY to SprintWeekKind.UPPER), week(sprintDraft.copy(days = 6)))
+        val noUpper = two
+        for (draft in listOf(sprintDraft, bothSprint)) {
+            assertEquals(noUpper, week(draft.copy(mains = listOf("bb_back_squat"))))
+            assertEquals(noUpper + (DayOfWeek.SATURDAY to SprintWeekKind.TEMPO),
+                week(draft.copy(days = 6, mains = listOf("bb_back_squat"))))
+        }
+    }
+
+    @Test fun `each sprint weekday template matches its rotation size`() {
+        for (days in 1..6) for (draft in listOf(sprintDraft, bothSprint)) {
+            for (mains in listOf(null, listOf("bb_back_squat"))) {
+                val answers = builder.answers(draft.copy(days = days, mains = mains))
+                assertEquals(Planner.plan(answers).program.rotationDays.size, builder.sprintWeekdays(days).size)
+            }
+        }
+    }
+
+    @Test fun `the high day line follows the slots`() {
+        val full = assertNotNull(preview(builder.answers(sprintDraft)).sprint)
+        assertEquals(R.string.setup_flow_high_day_full, sprintHighDayLabel(full.jumps, full.nordic))
+        val noNordic = assertNotNull(preview(builder.answers(sprintDraft.copy(days = 1))).sprint)
+        assertEquals(R.string.setup_flow_high_day_no_nordic, sprintHighDayLabel(noNordic.jumps, noNordic.nordic))
+        val noJumps = assertNotNull(preview(builder.answers(sprintDraft.copy(minutes = 30, sprintedRecently = true))).sprint)
+        assertEquals(R.string.setup_flow_high_day_no_jumps, sprintHighDayLabel(noJumps.jumps, noJumps.nordic))
+        val neither = assertNotNull(preview(builder.answers(sprintDraft.copy(days = 1, minutes = 30, sprintedRecently = true))).sprint)
+        assertEquals(R.string.setup_flow_high_day_lifts, sprintHighDayLabel(neither.jumps, neither.nordic))
+    }
+
+    @Test fun `the default sprint plans match what the pilots walk`() {
+        val plan = Planner.plan(builder.answers(sprintDraft))
+        assertEquals(listOf("A", "B", "C", "D", "E"), plan.program.days.map { it.id })
+        assertEquals(mapOf("A" to RunSession.ACCELERATION, "D" to RunSession.MAX_VELOCITY), plan.sessions)
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.WEEK,
+            SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.PLAN), builder.steps(bothSprint))
+    }
+
 }

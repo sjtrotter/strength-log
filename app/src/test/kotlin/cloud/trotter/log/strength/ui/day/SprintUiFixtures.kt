@@ -58,22 +58,36 @@ internal fun sprintReceiptFixture(intro: Boolean = false, dose: SprintDose = Spr
         activity = block.activity, minutes = (results.sumOf { it.elapsedSeconds } + 59) / 60, cardioRows = ReceiptBuilder.cardio(block.activity, results, emptyMap()))
 }
 
-internal fun sprintRepFixture(beepElapsedMillis: Long? = null, recovery: Boolean = false): DayUiState {
+internal fun sprintRepFixture(beepElapsedMillis: Long? = null, recovery: Boolean = false, metres: Int = 60): DayUiState {
     val base = workoutSetCardioRunningFixture()
     val cardio = requireNotNull(base.cardio)
     val sourceRun = requireNotNull(cardio.run)
     val work = cloud.trotter.log.strength.domain.model.CardioSetSpec(
-        cloud.trotter.log.strength.domain.model.CardioRole.WORK, Measure.Distance(60), hard = true)
+        cloud.trotter.log.strength.domain.model.CardioRole.WORK, Measure.Distance(metres), hard = true)
     val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(work,
         cloud.trotter.log.strength.domain.model.CardioSetSpec(
             cloud.trotter.log.strength.domain.model.CardioRole.RECOVERY, Measure.Time(120)), work))
     val json = cloud.trotter.log.strength.data.serialization.CardioBlockJson.encode(block)
     val run = sourceRun.copy(sourceBlockJson = json, blockJson = json,
-        results = if (recovery) listOf(SavedCardioResult("FINISHED", 10, 60)) else emptyList())
+        results = if (recovery) listOf(SavedCardioResult("FINISHED", 10, metres)) else emptyList())
     return base.copy(cardio = cardio.copy(block = block, run = run, stepSecondsLeft = 117, elapsedSeconds = 3,
         sprintRep = SprintRepUi(beepElapsedMillis != null, beepElapsedMillis,
             cloud.trotter.log.strength.domain.model.StartProtocol.THREE_POINT,
             if (recovery) cloud.trotter.log.strength.domain.model.SprintTime(452,
                 cloud.trotter.log.strength.domain.model.TimingMethod.PHONE,
                 cloud.trotter.log.strength.domain.model.StartProtocol.THREE_POINT) else null)))
+}
+
+internal fun sprintFortyYardReceiptFixture(): Pair<cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt, ReceiptProgressState> {
+    val work = cloud.trotter.log.strength.domain.model.CardioSetSpec(
+        cloud.trotter.log.strength.domain.model.CardioRole.WORK, Measure.Distance(37), hard = true)
+    val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(work))
+    val results = listOf(CardioSetResult(work, CardioSetStatus.FINISHED, 5))
+    val receipt = sprintReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(block.activity, results, emptyMap()))
+    val progress = sprintReceiptProgressFixture().let { state ->
+        // Next time adds a rep, so the receipt shows its Next time line.
+        state.copy(cardioStored = block, cardioSets = listOf(results),
+            run = requireNotNull(state.run).copy(block = block.copy(sets = listOf(work, work))))
+    }
+    return receipt to progress
 }

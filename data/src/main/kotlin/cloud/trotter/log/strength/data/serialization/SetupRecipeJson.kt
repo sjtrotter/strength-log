@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.data.serialization
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.planner.SprintAnswers
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.RecentRace
@@ -31,7 +33,7 @@ import kotlinx.serialization.json.intOrNull
     val olderAdult: Boolean = false, val mains: List<String>? = null,
     val recent: Map<String, RecentNumberDto> = emptyMap(), val excluded: List<String> = emptyList(),
     val balanceDays: Boolean = false, val run: RunRecipeDto? = null, val both: BothRecipeDto? = null,
-    val runPhase: String? = null,
+    val runPhase: String? = null, val sprint: SprintRecipeDto? = null,
 )
 @Serializable internal data class RecentNumberDto(val weightLb: Double, val reps: Int, val effort: String)
 
@@ -56,8 +58,13 @@ import kotlinx.serialization.json.intOrNull
         )
     }
 }
-@Serializable internal data class BothRecipeDto(val cardioFirst: Boolean = false, val together: String? = null) {
-    fun answers(): BothAnswers = BothAnswers(cardioFirst, together?.let(BothAnswers.Together::valueOf))
+@Serializable internal data class SprintRecipeDto(val event: String, val sprintedRecently: Boolean = false,
+    val hamstringStrain: Boolean = false, val fortyOrOlder: Boolean = false) {
+    fun answers(): SprintAnswers = SprintAnswers(SprintEvent.valueOf(event), sprintedRecently, hamstringStrain, fortyOrOlder)
+}
+@Serializable internal data class BothRecipeDto(val cardioFirst: Boolean = false, val together: String? = null,
+    val sprint: Boolean = false) {
+    fun answers(): BothAnswers = BothAnswers(cardioFirst, together?.let(BothAnswers.Together::valueOf), sprint)
 }
 
 /** Recipe v2 (design §4.1): the setup answers a plan was made from, without equipment, steps and unit, which live
@@ -65,12 +72,12 @@ import kotlinx.serialization.json.intOrNull
 object SetupRecipeJson {
     const val VERSION = 2
 
-    /** PR 7 adds sprint answers; storing them now would lose them. A null [phase] stores none: the plan has
+    /** A null [phase] stores none: the plan has
      *  nothing to re-plan (a goal without phases, a runner past them, or a Both layout with no run session,
      *  revision 48). */
     fun encode(answers: SetupAnswers, phase: RunPhase? = null): String {
-        require(answers.branch != PlanBranch.SPRINT && !(answers.branch == PlanBranch.BOTH && answers.both.sprint))
-        val phases = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.phases else emptyList()
+        val sprintPlan = answers.branch == PlanBranch.SPRINT || answers.branch == PlanBranch.BOTH && answers.both.sprint
+        val phases = if (!sprintPlan && (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH)) answers.run.phases else emptyList()
         require(phase == null || phase in phases)
         return SetJson.encode(SetupRecipeDto.serializer(), SetupRecipeDto(
             v = VERSION, branch = answers.branch.name, goal = answers.goal.name, days = answers.days,
@@ -78,13 +85,17 @@ object SetupRecipeJson {
             mains = answers.mains, recent = answers.recent.mapValues { (_, number) ->
                 RecentNumberDto(number.weightLb, number.reps, number.effort.name)
             }, excluded = answers.excluded.sorted(), balanceDays = answers.balanceDays,
-            run = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.let { run ->
+            run = if (!sprintPlan && (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH)) answers.run.let { run ->
                 RunRecipeDto(run.goal.name, run.experience.name, run.event?.name, run.test.name, run.dateEpochDay,
                     run.goalSeconds, run.testScore, run.recent?.metres, run.recent?.seconds,
                     (run.longest as? Measure.Time)?.seconds, (run.longest as? Measure.Distance)?.metres,
                     run.marathonBestSeconds, run.activity.name, run.runningInjury, run.strengthBlocks)
             } else null,
-            both = if (answers.branch == PlanBranch.BOTH) BothRecipeDto(answers.both.cardioFirst, answers.both.together?.name) else null,
+            both = if (answers.branch == PlanBranch.BOTH) BothRecipeDto(answers.both.cardioFirst, answers.both.together?.name,
+                answers.both.sprint) else null,
+            sprint = if (sprintPlan) answers.sprint.let {
+                SprintRecipeDto(it.event.name, it.sprintedRecently, it.hamstringStrain, it.fortyOrOlder)
+            } else null,
             runPhase = phase?.name,
         ))
     }
@@ -138,6 +149,7 @@ object SetupRecipeJson {
                     RecentNumber(number.weightLb, number.reps, Effort.valueOf(number.effort))
                 }, excluded = dto.excluded.toSet(), branch = PlanBranch.valueOf(dto.branch), balanceDays = dto.balanceDays,
                 run = dto.run?.answers() ?: RunAnswers(), both = dto.both?.answers() ?: BothAnswers(),
+                sprint = dto.sprint?.answers() ?: SprintAnswers(),
             )
         }.getOrNull()
     }
@@ -146,8 +158,11 @@ object SetupRecipeJson {
         require(isV2(json))
         val dto = SetJson.decode(SetupRecipeDto.serializer(), json)
         val branch = PlanBranch.valueOf(dto.branch)
-        require(dto.v == VERSION && branch != PlanBranch.SPRINT)
-        require((dto.run != null) == (branch == PlanBranch.RUN || branch == PlanBranch.BOTH))
+        val sprintPlan = branch == PlanBranch.SPRINT || branch == PlanBranch.BOTH && dto.both?.sprint == true
+        require(dto.v == VERSION)
+        require((dto.sprint != null) == sprintPlan)
+        dto.sprint?.answers()
+        require((dto.run != null) == (!sprintPlan && (branch == PlanBranch.RUN || branch == PlanBranch.BOTH)))
         require((dto.both != null) == (branch == PlanBranch.BOTH))
         val answers = dto.run?.answers()
         val phases = answers?.let { it.goal.phases.ifEmpty { it.phases } }.orEmpty()

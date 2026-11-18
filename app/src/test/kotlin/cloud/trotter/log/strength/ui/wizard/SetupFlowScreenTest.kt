@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.units.ClockText
 import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -65,6 +67,7 @@ import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -113,13 +116,13 @@ class SetupFlowScreenTest {
         show(SetupFlowUiState())
         rule.onNodeWithText("Lift").assertDoesNotExist(); rule.onNodeWithText("Next").assertIsNotEnabled(); touchTargets()
     }
-    @Test fun `goal shows three goals and restore on a first run`() {
+    @Test fun `goal shows four goals and restore on a first run`() {
         var restores = 0
         show(SetupFlowFixtures.state(firstRun = true), SetupFlowActions(onRestoreFromBackup = { restores++ }))
         rule.onNodeWithText("Lift").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-        // PR 7c: Run and Both are open to users; Sprint remains absent
+        // PR 7f: Sprint absent → visible fourth goal.
         listOf("Run", "Both").forEach { rule.onNodeWithText(it).assertExists() }
-        rule.onNodeWithText("Sprint").assertDoesNotExist()
+        rule.onNodeWithText("Sprint").assertExists()
         rule.onNodeWithText("Have a backup? Restore it").performClick(); assertEquals(1, restores); touchTargets()
         rule.runOnIdle { shown = SetupFlowFixtures.state() }
         rule.onNodeWithText("Have a backup? Restore it").assertDoesNotExist(); touchTargets()
@@ -177,6 +180,40 @@ class SetupFlowScreenTest {
         assertTrue(older)
         listOf("Pain now", "Injury", "Bone", "Falls").forEach { rule.onNodeWithText(it, substring = true).assertDoesNotExist() }; touchTargets()
     }
+    @Test fun `sprint age choices write both existing age flags`() {
+        show(state(SetupStep.ABOUT, SetupFlowFixtures.sprint), SetupFlowActions(
+            onOlderAdult = { shown = state(SetupStep.ABOUT, shown.draft.copy(olderAdult = it)) },
+            onFortyOrOlder = { shown = state(SetupStep.ABOUT, shown.draft.copy(fortyOrOlder = it)) }))
+        for (draft in listOf(SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
+            rule.runOnIdle { shown = state(SetupStep.ABOUT, draft) }
+            rule.onNodeWithText("Age").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Under 40").assertIsSelected()
+            rule.onNodeWithText("40 or older").assertDoesNotExist()
+            rule.onNodeWithText("65 or older").performScrollTo().performClick().assertIsSelected()
+            rule.runOnIdle { assertTrue(shown.draft.olderAdult); assertTrue(shown.draft.fortyOrOlder) }
+            rule.onNodeWithText("40 to 64").performClick().assertIsSelected()
+            rule.runOnIdle { assertFalse(shown.draft.olderAdult); assertTrue(shown.draft.fortyOrOlder) }
+            rule.onNodeWithText("Under 40").performClick().assertIsSelected()
+            rule.runOnIdle { assertFalse(shown.draft.olderAdult); assertFalse(shown.draft.fortyOrOlder) }
+        }
+        touchTargets()
+    }
+
+    @Test fun `Run keeps its older adult checkbox`() {
+        show(state(SetupStep.ABOUT, SetupFlowFixtures.run))
+        rule.onNodeWithText("65 or older").performScrollTo().assertIsOff()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+        rule.onNodeWithText("Age").assertDoesNotExist()
+    }
+
+    @Test fun `a shortened sprint plan at ninety minutes has no Longer sessions button`() {
+        val base = state(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 90))
+        val plan = base.plan as PlanPreviewUi.Ready
+        show(base.copy(plan = plan.copy(sprint = requireNotNull(plan.sprint).copy(shortened = true, fullDoseMinutes = null))))
+        rule.onNodeWithTag("setup-over-budget").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Longer sessions").assertDoesNotExist()
+    }
+
     @Test fun `your lifts rows drop down their choices`() {
         var picked: Pair<Int, String>? = null
         val s = state(SetupStep.LIFTS, SetupFlowFixtures.reference)
@@ -467,7 +504,8 @@ class SetupFlowScreenTest {
     private fun assertBlankEventTime() {
         val field = rule.onNodeWithText("Target time").fetchSemanticsNode()
         assertEquals("", field.config[SemanticsProperties.EditableText].text)
-        assertTrue(!field.config.contains(SemanticsProperties.Error))
+        // PR 7f: blank invalid target without error → range error after a floor change.
+        assertTrue(field.config.contains(SemanticsProperties.Error))
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, current!!.uiState.value.draft.goalSeconds) }
     }
@@ -540,6 +578,87 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Target time").performTextReplacement("16:00")
         rule.onNodeWithText("Next").assertIsEnabled()
         rule.runOnIdle { assertEquals(960, shown.draft.goalSeconds) }
+    }
+
+    @Test fun `a time field marked invalid shows the range`() {
+        val draft = SetupFlowFixtures.half.copy(step = SetupStep.EVENT, goalSeconds = INVALID_GOAL_TIME)
+        val (vm, _) = fields(SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft))))
+        rule.setContent { AppTheme {
+            val state by vm.uiState.collectAsState()
+            SetupFlowScreen(state, SetupFlowActions(onRunGoal = vm::setRunGoal, onGoalSeconds = vm::setGoalSeconds))
+        } }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
+        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("1:30:00")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(5400, vm.uiState.value.draft.goalSeconds) }
+        rule.runOnIdle { vm.setRunGoal(RunGoal.MARATHON) }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.runGoal == RunGoal.MARATHON } }
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(5400, vm.uiState.value.draft.goalSeconds) }
+        rule.runOnIdle { vm.setRunGoal(RunGoal.HALF_MARATHON) }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.runGoal == RunGoal.HALF_MARATHON } }
+        rule.onNodeWithText("Target time").requestFocus().performTextReplacement("1:00:00")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("Target time").assertIsFocused()
+        rule.runOnIdle { assertEquals(3600, vm.uiState.value.draft.goalSeconds) }
+        rule.runOnIdle { vm.setRunGoal(RunGoal.MARATHON) }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.goalSeconds == INVALID_GOAL_TIME } }
+        val floor = SetupFlowStateBuilder.goalTimeFloor(vm.uiState.value.draft)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        rule.onNodeWithText(context.getString(R.string.form_time_range, ClockText.duration(floor), "24:00:00"))
+            .performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+    }
+
+    @Test @Config(fontScale = 2f) fun largeFontGoalShowsSprint() {
+        largeScreen(SetupStep.GOAL, SetupFlowFixtures.sprint, "What are you training for?")
+        rule.onNodeWithText("Sprint").performScrollTo().assertIsDisplayed()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontWhichSprint() {
+        largeScreen(SetupStep.RUN_GOAL, SetupFlowFixtures.sprint, "Which sprint?")
+        rule.onNodeWithText("A match or hard practice counts as a sprint day.").performScrollTo().assertIsDisplayed()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontAboutSprint() {
+        largeScreen(SetupStep.ABOUT, SetupFlowFixtures.sprint, "About your training")
+        for (label in listOf("Age", "Under 40", "40 to 64", "65 or older")) {
+            rule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
+        rule.onNodeWithText("Under 40").assertIsSelected()
+        rule.onNodeWithText("Running").assertDoesNotExist()
+        touchTargets()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontAboutBothSprint() {
+        largeScreen(SetupStep.ABOUT, SetupFlowFixtures.bothSprint.copy(olderAdult = true, fortyOrOlder = true),
+            "About your training")
+        for (label in listOf("Age", "Under 40", "40 to 64", "65 or older")) {
+            rule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
+        rule.onNodeWithText("65 or older").assertIsSelected()
+        touchTargets()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontBothCardioGoalWithSprint() {
+        largeScreen(SetupStep.RUN_GOAL, SetupFlowFixtures.bothSprint, "What kind of running?")
+        rule.onNodeWithText("400 m").performScrollTo().assertIsDisplayed()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontLiftsSprintFloor() {
+        largeScreen(SetupStep.LIFTS, SetupFlowFixtures.sprintFloor, "Your lifts")
+        rule.onNodeWithText("A sprint plan needs one leg lift. Choose a squat or a hinge.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontSprintPlan() {
+        largeScreen(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 30), "Your plan")
+        listOf("Suggested week: Mon sprint, Tue upper, Thu sprint.",
+            "Keep sprint days three days apart, like Monday and Thursday.",
+            "Sprints first, then jumps, then lifts. Nordic curls last.", "Longer sessions").forEach {
+            rule.onNodeWithText(it).performScrollTo().assertIsDisplayed()
+        }
+    }
+    @Test @Config(fontScale = 2f) fun largeFontSprintNeedsLowerMain() {
+        largeScreen(SetupStep.PLAN, SetupFlowFixtures.sprintFloor, "Your plan")
+        rule.onNodeWithText("A sprint plan needs one leg lift. Choose a squat or a hinge.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Start").assertIsNotEnabled()
+        rule.onNodeWithText("Review answers").performScrollTo().assertIsDisplayed()
     }
 
 }

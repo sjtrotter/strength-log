@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -58,4 +59,13 @@ class SetupDraftJsonTest {
         assertEquals(false, SetupFlowStateBuilder.canAdvance(restored))
         assertNull(SetupFlowStateBuilder.answers(restored).run.goalSeconds)
     }
+    @Test fun `sprint draft fields survive version one restoration`() {
+        val draft = SetupFlowFixtures.bothSprint.copy(sprintEvent = SprintEvent.YD40, sprintedRecently = true,
+            hamstringStrain = true, fortyOrOlder = true)
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(1, draft.v)
+        assertEquals(SetupDraft(), SetupDraftJson.decode("""{"v":1}"""))
+        assertNull(SetupDraftJson.decode("""{"v":1,"sprintEvent":"M50"}"""))
+    }
+
 }

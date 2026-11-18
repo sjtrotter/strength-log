@@ -306,7 +306,7 @@ class PlanRepository(
             db.withTransaction {
                 val draft = planned(answers)
                 val recipe = SetupRecipeJson.encode(answers, draft.phase)
-                val planSettings = PlanSettings(defaultsFor = answers.goal, loadSteps = answers.steps,
+                val planSettings = PlanSettings(defaultsFor = answers.slotGoal, loadSteps = answers.steps,
                     equipment = answers.equipment)
                 val nextDay = draft.program.rotationDays.firstOrNull()?.let {
                     Rotation.trainingDayFrom(draft.program, it.id)

@@ -3,6 +3,11 @@ package cloud.trotter.log.strength.ui.wizard
 import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
 import cloud.trotter.log.strength.data.runLaunchFixups
+import java.time.ZoneId
+import cloud.trotter.log.strength.data.SpacingReason
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.domain.planner.SprintEvent
+import cloud.trotter.log.strength.domain.planner.SprintFloor
 import android.content.Context
 import android.net.Uri
 import androidx.datastore.core.DataStore
@@ -32,6 +37,9 @@ import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -689,4 +697,132 @@ class SetupFlowViewModelTest {
         assertEquals("Lifting and Just cardio fitness, 6 days", vm.planName(SetupFlowStateBuilder.answers(
             SetupDraft(branch = PlanBranch.BOTH, days = 6))))
     }
+    @Test fun `Start persists Strength defaults and main set rest for a pure sprint plan`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.SPRINT); advanceUntilIdle()
+        val input = answers(vm)
+        val expected = Planner.plan(input)
+        start(vm)
+        val stored = db.planDao().allPlans().single()
+        assertEquals(LiftGoal.STRENGTH, stored.planSettings.defaultsFor)
+        val saved = assertNotNull(stored.setupAnswers(WeightUnit.LB))
+        assertFalse(saved.olderAdult)
+        assertEquals(LiftGoal.GENERAL, SetupFlowStateBuilder.draftFrom(saved).goal)
+        val plannedMain = expected.program.days.first().exercises.first { it.rule?.role == SlotRole.MAIN }
+        val persistedMain = repo.plans.programFor(stored.id).first().days.first().exercises
+            .first { it.rule?.role == SlotRole.MAIN }
+        assertEquals(plannedMain.rule, persistedMain.rule)
+        val overrides = settings.restSettingsFlow.first().overrides
+        assertTrue(overrides.isEmpty())
+        val entry = ExerciseLibrary.get(persistedMain.exerciseId)
+        val expectedRest = RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            plannedMain.rule, input.slotGoal)
+        assertEquals(180, expectedRest)
+        assertEquals(expectedRest, RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            persistedMain.rule, stored.planSettings.defaultsFor))
+    }
+
+    @Test fun `Start persists Strength defaults and strength block rest for a Run plan`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); vm.setStrengthBlocks(2); advanceUntilIdle()
+        val input = answers(vm)
+        assertEquals(LiftGoal.GENERAL, input.goal)
+        val expected = Planner.plan(input)
+        start(vm)
+        val stored = db.planDao().allPlans().single()
+        assertEquals(LiftGoal.STRENGTH, stored.planSettings.defaultsFor)
+        assertEquals(2, assertNotNull(stored.setupAnswers(WeightUnit.LB)).run.strengthBlocks)
+        val plannedSecondary = expected.program.days.first().exercises.first { it.rule?.role == SlotRole.SECONDARY }
+        val persistedSecondary = repo.plans.programFor(stored.id).first().days.first().exercises
+            .first { it.rule?.role == SlotRole.SECONDARY }
+        assertEquals(plannedSecondary.rule, persistedSecondary.rule)
+        val overrides = settings.restSettingsFlow.first().overrides
+        assertTrue(overrides.isEmpty())
+        val entry = ExerciseLibrary.get(persistedSecondary.exerciseId)
+        val expectedRest = RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            plannedSecondary.rule, input.slotGoal)
+        assertEquals(120, expectedRest)
+        assertEquals(expectedRest, RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            persistedSecondary.rule, stored.planSettings.defaultsFor))
+    }
+
+    @Test fun `Start preserves the chosen lift goal for Lift and Both plans`() = runVmTest {
+        for (draft in listOf(SetupDraft(), SetupFlowFixtures.both, SetupFlowFixtures.bothSprint)) {
+            for (goal in LiftGoal.entries) {
+                val chosen = draft.copy(goal = goal)
+                val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+                    "setup_draft" to SetupDraftJson.encode(chosen))))
+                advanceUntilIdle()
+                start(vm)
+                val stored = db.planDao().allPlans().last()
+                assertEquals(goal, stored.planSettings.defaultsFor)
+                assertEquals(goal, assertNotNull(stored.setupAnswers(WeightUnit.LB)).goal)
+            }
+        }
+    }
+
+    @Test fun `Start writes a sprint plan whose careful answer reaches Start`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.SPRINT); vm.setFortyOrOlder(true); advanceUntilIdle()
+        start(vm)
+        assertTrue(vm.uiState.value.isComplete)
+        val plan = db.planDao().allPlans().single()
+        val saved = assertNotNull(plan.setupAnswers(WeightUnit.LB))
+        assertTrue(saved.sprint.fortyOrOlder)
+        assertTrue(saved.careful)
+        val program = repo.plans.programFlow.first()
+        val start = assertNotNull(DayScreenBuilder.sprintStart(program.days.first(), plan, emptyList(), emptyMap(),
+            1_000L, program, WeightUnit.LB, ZoneId.of("UTC")))
+        assertEquals(3, start.spacingDays)
+        assertEquals(SpacingReason.FORTY_OR_OLDER, start.reason)
+    }
+
+    @Test fun `a dropped main cannot break the Both sprint floor`() = runVmTest {
+        val draft = SetupFlowFixtures.bothSprint.copy(step = SetupStep.PLAN, goal = LiftGoal.STRENGTH,
+            mains = listOf("bb_back_squat", "bb_bench", "ohp", "bb_row"), minutes = 30, days = 2,
+            fortyOrOlder = true, experience = LiftExperience.A_YEAR_OR_MORE)
+        val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true, "setup_draft" to SetupDraftJson.encode(draft))))
+        advanceUntilIdle()
+        assertFalse("bb_back_squat" in ready(vm).droppable)
+        vm.dropLift("bb_back_squat"); advanceUntilIdle()
+        assertNull(Planner.sprintLowerMainMissing(answers(vm)))
+        assertTrue("bb_back_squat" in SetupFlowStateBuilder.currentMains(vm.uiState.value.draft))
+    }
+
+    @Test fun `a missing lower main shows its floor before preview and reviews lifts`() = runVmTest {
+        val draft = SetupFlowFixtures.sprintFloor.copy(step = SetupStep.PLAN)
+        val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true, "setup_draft" to SetupDraftJson.encode(draft))))
+        advanceUntilIdle()
+        assertEquals(PlanPreviewUi.NeedsLowerMain(SprintFloor.SQUAT_OR_HINGE), vm.uiState.value.plan)
+        assertFalse(vm.uiState.value.canStart)
+        vm.reviewAnswers(); advanceUntilIdle()
+        assertEquals(SetupStep.LIFTS, vm.uiState.value.step)
+        assertFalse(SetupFlowStateBuilder.canAdvance(vm.uiState.value.draft))
+    }
+
+    @Test fun `sprint longer sessions goes to the full dose`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.SPRINT); vm.setDays(2); vm.setSprintedRecently(true); advanceUntilIdle()
+        plan(vm)
+        assertEquals(75, assertNotNull(ready(vm).sprint).fullDoseMinutes)
+        vm.longerSessions(); advanceUntilIdle()
+        assertEquals(75, answers(vm).minutes)
+        vm.setMinutes(60); vm.setSprintEvent(SprintEvent.M200); advanceUntilIdle()
+        assertEquals(90, assertNotNull(ready(vm).sprint).fullDoseMinutes)
+        vm.longerSessions(); advanceUntilIdle()
+        assertEquals(90, answers(vm).minutes)
+    }
+
+    @Test fun `sprint plan names fit forty characters`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        for (branch in listOf(PlanBranch.SPRINT, PlanBranch.BOTH)) for (event in SprintEvent.entries) for (days in 1..6) {
+            val draft = SetupDraft(branch = branch, sprintCardio = branch == PlanBranch.BOTH, sprintEvent = event, days = days)
+            assertTrue(vm.planName(SetupFlowStateBuilder.answers(draft)).length <= 40)
+        }
+        assertEquals("Lifting and 400 m sprint, 6 days", vm.planName(SetupFlowStateBuilder.answers(
+            SetupFlowFixtures.bothSprint.copy(sprintEvent = SprintEvent.M400, days = 6))))
+        assertEquals("40 yd sprint, 1 day", vm.planName(SetupFlowStateBuilder.answers(
+            SetupFlowFixtures.sprint.copy(sprintEvent = SprintEvent.YD40, days = 1))))
+    }
+
 }

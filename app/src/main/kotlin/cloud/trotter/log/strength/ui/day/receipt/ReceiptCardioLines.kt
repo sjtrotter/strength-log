@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.LadderHold
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -23,11 +24,11 @@ private fun distance(meters: Int, unit: DistanceUnit): String = if (unit == Dist
     else String.format(Locale.US, "%.2f %s", unit.fromMetres(meters), unit.symbol)
 
 @Composable
-internal fun blockValue(block: CardioBlock, unit: DistanceUnit): String {
+internal fun blockValue(block: CardioBlock, unit: DistanceUnit, sprint: Boolean = false): String {
     val work = block.sets.filter { it.role == CardioRole.WORK }
     val end = work.firstOrNull()?.end ?: return ""
     val value = when (end) {
-        is Measure.Distance -> distance(end.metres, unit)
+        is Measure.Distance -> if (sprint) SprintEvent.label(end.metres, unit) else distance(end.metres, unit)
         is Measure.Time -> ClockText.minutesSeconds(end.seconds)
     }
     return if (work.size > 1) stringResource(R.string.receipt_cardio_intervals, work.size, value) else value
@@ -100,7 +101,7 @@ internal fun spokenCardioNextLine(state: ReceiptProgressState): String? {
 private fun runNextValue(state: ReceiptProgressState): String {
     val result = state.run ?: return ""
     val block = result.block ?: state.cardioStored ?: return ""
-    if (result.dose != null) return blockValue(block, distanceUnitFor(block.activity))
+    if (result.dose != null) return blockValue(block, distanceUnitFor(block.activity), sprint = true)
     val change = result.change
     val level = (change as? CardioChange.LevelTo)?.level ?: result.from
     val value = when {

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.AppCard
@@ -55,6 +56,9 @@ internal fun LiftsStep(state: SetupFlowUiState, actions: SetupFlowActions) {
                 }
             }
         }
+    }
+    Planner.sprintLowerMainMissing(SetupFlowStateBuilder.answers(state.draft))?.let {
+        SprintFloorLine(it)
     }
     Text(stringResource(R.string.setup_flow_lifts_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

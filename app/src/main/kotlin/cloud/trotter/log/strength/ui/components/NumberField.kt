@@ -53,6 +53,7 @@ fun NumberField(
     parse: ((String) -> Double?)? = null,
     keyboardType: KeyboardType? = null,
     onDraftEdit: (text: String, value: Double?) -> Unit = { _, _ -> },
+    error: Boolean = false,
 ) {
     var draft by rememberSaveable(label) { mutableStateOf(value?.let(format).orEmpty()) }
     var dirty by rememberSaveable(label) { mutableStateOf(false) }
@@ -63,7 +64,7 @@ fun NumberField(
         if (parse == null) text else parse(text.trim())?.toString().orEmpty(), minValue, maxValue, round,
     )
     val parsed = resolve(draft)
-    val invalid = dirty && parsed == null
+    val invalid = error || dirty && parsed == null
     SideEffect { onValidityChange(parsed != null) }
     var seenValue by remember { mutableStateOf(value) }
     // Keyed on focus too, so a value that changed while the field was focused shows once focus leaves.

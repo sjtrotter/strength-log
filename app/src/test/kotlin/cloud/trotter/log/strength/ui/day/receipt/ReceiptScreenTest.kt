@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
 import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.ui.day.sprintFortyYardReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
 
@@ -38,7 +39,6 @@ import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.CardioIncrease
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -46,6 +46,8 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -112,6 +114,27 @@ class ReceiptScreenTest {
 
     private fun setAnimatorScale(scale: Float) {
         ValueAnimator::class.java.getDeclaredMethod("setDurationScale", Float::class.javaPrimitiveType).invoke(null, scale)
+    }
+
+    @Test fun `a forty yard sprint receipt uses the event label`() {
+        val (receipt, progress) = sprintFortyYardReceiptFixture()
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+        rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        // The Next time line exposes only its spoken form (clearAndSetSemantics): it says the event in yards.
+        rule.onNodeWithContentDescription("Next time, 2 × 40 yd.", useUnmergedTree = true).assertExists()
+        assertTrue(rule.onAllNodesWithText("37 m", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+        assertTrue(rule.onAllNodesWithContentDescription("37 m", substring = true, useUnmergedTree = true)
+            .fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test fun `a non sprint receipt keeps 37 metres`() {
+        val work = CardioSetSpec(CardioRole.WORK, Measure.Distance(37))
+        val results = listOf(CardioSetResult(work, CardioSetStatus.FINISHED, 5))
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}) } }
+        rule.onNodeWithText("37 m", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("40 yd", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

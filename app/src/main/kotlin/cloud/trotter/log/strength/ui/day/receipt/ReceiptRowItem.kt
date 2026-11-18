@@ -319,24 +319,24 @@ private fun ReceiptAfter(text: String, spoken: String) {
 @Composable
 internal fun CardioReceiptRowItem(
     row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float, unit: DistanceUnit,
-    sets: List<CardioSetResult> = emptyList(),
+    sets: List<CardioSetResult> = emptyList(), sprint: Boolean = false,
 ) {
     val resources = LocalContext.current.resources
     val legs = sets.map { CardioLegs.of(it, unit, resources) }
     val singleLeg = legs.singleOrNull()
-    val name = cardioRowName(row, unit)
+    val name = cardioRowName(row, unit, sprint)
     if (row.role != CardioRole.WORK && row.intervals.all { it.status == CardioSetStatus.SKIPPED }) {
         SkippedReceiptRow(name)
         return
     }
-    val spoken = spokenCardioRow(row, unit) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
+    val spoken = spokenCardioRow(row, unit, sprint) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
     val expandable = row.intervals.size > 1 && (row.role == CardioRole.WORK || legs.any { it != null })
     ExpandableReceiptRow(rowKey, name, spoken, expandable,
         dayIndex, row.record?.kind, values = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (row.role == CardioRole.WORK && bestInterval(row) != null) ValueLabel(cardioValueLabel(row), Modifier.alignByBaseline())
                 val missing = row.role == CardioRole.WORK && bestInterval(row) == null
-                Text(cardioValue(row, unit), style = if (missing) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.headlineSmall,
+                Text(cardioValue(row, unit, sprint), style = if (missing) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.headlineSmall,
                     color = if (missing) MaterialTheme.colorScheme.onSurfaceVariant
                         else if (row.record != null) accentEmphasis(dayIndex) else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.alignByBaseline().then(if (row.record != null) Modifier.graphicsLayer {
@@ -354,8 +354,8 @@ internal fun CardioReceiptRowItem(
                 val childRow = sets.getOrNull(index)?.spec?.end?.let { end ->
                     row.copy(endSeconds = (end as? Measure.Time)?.seconds, endMetres = (end as? Measure.Distance)?.metres)
                 } ?: row
-                ReceiptSetLine(index, cardioIntervalValue(childRow, interval, unit),
-                    spokenInterval(childRow, index, unit) + leg?.let { " ${it.at}. ${it.past}" }.orEmpty(), dayIndex,
+                ReceiptSetLine(index, cardioIntervalValue(childRow, interval, unit, sprint),
+                    spokenInterval(childRow, index, unit, sprint) + leg?.let { " ${it.at}. ${it.past}" }.orEmpty(), dayIndex,
                     row.record?.takeIf { it.intervalIndex == index }?.let { stringResource(R.string.receipt_set_pr_note, cardioPrevious(it, unit)) })
                 leg?.let {
                     ReceiptAfter(it.at, it.at)

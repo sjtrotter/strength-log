@@ -59,6 +59,8 @@ internal fun GoalStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             state.draft.branch == PlanBranch.LIFT) { actions.onBranch(PlanBranch.LIFT) }
         ChoiceRow(stringResource(R.string.setup_flow_goal_run), stringResource(R.string.setup_flow_goal_run_body),
             state.draft.branch == PlanBranch.RUN) { actions.onBranch(PlanBranch.RUN) }
+        ChoiceRow(stringResource(R.string.setup_flow_goal_sprint), stringResource(R.string.setup_flow_goal_sprint_body),
+            state.draft.branch == PlanBranch.SPRINT) { actions.onBranch(PlanBranch.SPRINT) }
         ChoiceRow(stringResource(R.string.setup_flow_goal_both), stringResource(R.string.setup_flow_goal_both_body),
             state.draft.branch == PlanBranch.BOTH) { actions.onBranch(PlanBranch.BOTH) }
     }
@@ -175,7 +177,7 @@ internal fun AboutStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             }
         }
     }
-    if (state.draft.branch != PlanBranch.LIFT) {
+    if (state.draft.branch != PlanBranch.LIFT && !state.draft.isSprint) {
         SetupLabel(stringResource(R.string.setup_flow_running_label))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             RunExperience.entries.forEach { experience ->
@@ -193,10 +195,15 @@ internal fun AboutStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(state.draft.runningInjury,
                 role = Role.Checkbox, onValueChange = actions.onRunningInjury))
     }
-    ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_older)) },
+    if (state.draft.isSprint) SprintAgeRow(state.draft, actions)
+    else ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_older)) },
         leadingContent = { Checkbox(state.draft.olderAdult, onCheckedChange = null) },
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(state.draft.olderAdult,
             role = Role.Checkbox, onValueChange = actions.onOlderAdult))
+    if (state.draft.isSprint) {
+        SprintAnswerRow(R.string.setup_flow_sprinted_recently, state.draft.sprintedRecently, actions.onSprintedRecently)
+        SprintAnswerRow(R.string.setup_flow_hamstring_strain, state.draft.hamstringStrain, actions.onHamstringStrain)
+    }
 }
 
 private fun presetLabel(preset: EquipmentPreset): Int = when (preset) {

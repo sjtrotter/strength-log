@@ -113,10 +113,10 @@ private fun upperLifts(rows: IntRange, answers: SetupAnswers, mains: List<Exerci
 internal fun sprintDraft(answers: SetupAnswers, known: KnownLoads, liftGoal: LiftGoal): PlanDraft {
     val liftAnswers = answers.copy(goal = liftGoal)
     val mains = resolveMains(liftAnswers)
-    if (answers.branch == PlanBranch.BOTH) {
-        val rows = mains.map { mainRow(it.pattern) }
-        if (answers.careful) require(0 in rows) { "Both with a sprint goal needs a squat main" }
-        else require(0 in rows || 1 in rows) { "Both with a sprint goal needs a squat or hinge main" }
+    val floor = Planner.sprintLowerMainMissing(answers)
+    require(floor == null) {
+        if (floor == SprintFloor.SQUAT) "Both with a sprint goal needs a squat main"
+        else "Both with a sprint goal needs a squat or hinge main"
     }
     val chosen = mains.map { it.id }.toSet()
     val reasons = mutableListOf<PlanReason>()

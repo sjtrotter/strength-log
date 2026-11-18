@@ -2041,3 +2041,68 @@ Tests: new `DayViewModelSprintTimerTest`, `SprintTimeSheetTest` and `CardioRunSp
 As revision 52 records, the frozen recipe encoder rejects Sprint answers, including through `createPlannedPlan`. The new repository/ViewModel fixture therefore follows SprintFinishTest's authored-plan plus generated sprint-program setup. It does not open sprint setup or alter recipe encoding. The referenced `fix/pr7/plan.md` is absent from this checkout; the implementation follows the supplied 7e brief and repository guidance. The held-marker setup time-field follow-up remains in 7f's SetupFlowRun.kt work.
 
 No network, Gradle, compilation, builds, tests or subagents were used. Static source review, XML parsing, preserved-shape inspection and diff whitespace checks are the local verification. CI on domain, data, transfer and app, the build, pilots and p48–p61 PNG generation and inspection remain pending.
+
+
+## 63. Revision 54 (PR 7f, Sprint and Both + sprint setup, 2026-11-18)
+
+Sprint and Both with a sprint sub-goal are open in setup. Sprint asks Goal, Which sprint, Your week, Equipment, About your training, Recent numbers when a trained lifter has a weighted main, and Your plan. Both + sprint also asks Lifting goal and, for Strength or Muscle with available choices, Your lifts. It asks no Which first, Your event, Where you are or Together. Lift, Run and Both with a run retain their steps and mapping.
+
+### Design calls
+
+1. Which first stays before Both's cardio goal. Selecting a sprint event removes Which first and Together from the step list. Mapping normalizes cardioFirst to false and together to null.
+2. Sprint fitting explanations compare each fitted day to its 90-minute day with KnownLoads.NONE. Absent slots use the library's short names; a kept slot with fewer targetSets contributes “extra sets.” The comparison includes cumulative cuts, plyometrics and Nordic fallbacks. Step 0 retains the floor explanation.
+3. Longer sessions goes to Planner.fullDoseMinutes on a shortened sprint plan, with “The full plan needs N minutes.” A null result sets 90 and omits that line. Lift and Run keep the next minutes option.
+4. Split-day advice appears once in Why this plan. The suggested week, spacing tier and high-day order appear above the day rows.
+5. Backup v32 carries Sprint and Both + sprint recipes. Older builds reject v32; older documents carrying either sprint recipe shape are inconsistent.
+
+### Answers and floor
+
+About retains lifting experience and 65 or older, then asks about all-out sprinting in the past month, a hamstring strain in the past 12 months, and 40 or older. The Running row is absent. These answers reach SprintAnswers and make the careful group live. They remain setup answers rather than a profile. The setup draft remains version 1 under setup_draft, with new fields taking defaults.
+
+Planner.sprintLowerMainMissing exposes the same resolved-main check used by sprintDraft. Both + sprint needs a squat or hinge; the careful group needs a squat. Your lifts shows the owner-bound error and prevents Next. Preview checks before invoking the planner, shows NeedsLowerMain, disables Start and offers Review answers to Your lifts when present, otherwise Equipment. The drop list excludes a main whose removal would break the floor; the mutation also keeps that floor.
+
+### Suggested week and fitting
+
+| Days | Weekdays |
+|---|---|
+| 1 | Mon |
+| 2 | Mon, Thu |
+| 3 | Mon, Tue, Thu |
+| 4 | Mon, Tue, Thu, Fri |
+| 5 | Mon, Tue, Thu, Fri, Sat |
+| 6 | Mon, Tue, Thu, Fri, Sat, Sun |
+
+The rotation supplies Sprint, Upper and Tempo kinds. An Upper entry that becomes Rest is omitted without moving later entries to earlier weekdays. The three-day spacing tier reads sprintFirstWeeks or careful. Jumps and Nordic flags read fitted slots. Rest entries immediately before a maximal sprint use the existing rest-before-sprint label.
+
+The one-day 100 m intro fixture at 30 minutes keeps pogo, A-skip and squat at ShortSession(A, 3). Compared with 90 minutes, its dropped names are [RDL, Bulgarians], plus extra sets. Three-day 100 m non-intro at 30 minutes has ShortSession(D, 7): D drops [Pogo Hop, A-Skip], plus extra sets, and keeps the Nordic. Two-day non-intro 100 m offers 75 minutes; 200 m offers 90. The split-day line remains in the disclosure, and Minutes remains last.
+
+### Distance display and fixes
+
+The lead amendment supersedes the shared-formatter proposal. SprintEvent owns yardsFor and label; 40 yd remains stored as 37 m. Only sprint reps, sprint receipts, the Plan sprint goal and editor, sprint plan names and setup event rows use that label. DistanceUnit, typed distances and History keep their formatting. The Plan goal's special case and sprint_event_40yd resource are removed.
+
+The proposed half-marathon 1:30:00 fixture stays valid on switching to Marathon: the unchanged floor is floor(42195 / 10) = 4219 seconds, or 1:10:19. The regression checks that case remains enabled, then uses 1:00:00 (3600 seconds, above the half floor of 2109 and below the marathon floor) to exercise the invalid state. No floor rule changes.
+
+NumberField accepts an explicit error marker. A time cleared after a floor change stays blank, shows the existing range error and keeps Next disabled. The armed ticker delays by the smaller of 250 ms and the time remaining before the beep, then uses 16 ms ticks. The armed-rep test also asserts that End rep is absent.
+
+### Storage and expectations
+
+Recipe v2 adds a sprint object and Both's default-false sprint flag. Sprint plans store no run object or phase. Existing Lift, Run and Both-with-run recipe bytes remain unchanged. Backup exports use v32 and retain v31 decoding. Room, DataStore, saved-state keys, Parcelables, cardio rule and goal JSON, progression and the watch wire are unchanged.
+
+| Existing expectation | Old → new |
+|---|---|
+| SetupRecipeJsonTest, sprint encoding | Sprint and Both + sprint refused → round trip, including the careful answers |
+| SetupFlowScreenTest, first-run Goal | Sprint absent → fourth goal visible |
+| SetupFlowScreenTest, valid 800 m time switched to 1500 m | Blank invalid target without error → blank invalid target with range error |
+| SetupFlowScreenTest, invalid 1500 m time switched to 800 m | Blank invalid target without error → blank invalid target with range error |
+| WorkoutSetScreenTest, armed rep | Countdown and Stop asserted → End rep absence also asserted |
+| Export checks using CURRENT_SCHEMA_VERSION | 31 → 32; explicit v31 round trips remain 31 |
+
+Each edited existing expectation carries a PR 7f comment. There are no numeric re-pins, and no formatting expectation for a non-sprint 37 m distance changes. Existing setup render definitions s01 through s51 and the three existing setup pilots are unchanged; Goal renders necessarily gain the new entry. The Plan sprint editor receives its distance as presentation input while its saved Parcelable stays unchanged.
+
+### Files and verification
+
+Production: domain planner Planner, SprintAnswers and SprintLayout; data serialization SetupRecipeJson; transfer BackupDocument and BackupCodec; app wizard SetupDraft, SetupFlowModels, SetupFlowStateBuilder, SetupFlowViewModel, SetupFlowScreen, SetupFlowSteps, SetupFlowRun, SetupFlowLifts, SetupFlowPlan and new SetupFlowSprint; NumberField; WorkoutSetScreen; receipt ReceiptCardioLines, ReceiptText and ReceiptRowItem; SessionReceiptScreen; PlanCardioGoal, PlanScreen and AppNavHost; strings.xml. DistanceUnit has no production change. Docs: this revision and DESIGN.md. Pilots: sprint-to-today, both-sprint-to-today and playtest.yml.
+
+Tests add sprint draft, steps, normalization, prefill, floor, fitting, full-dose, week, high-day, plan-name, recipe and backup coverage, a careful answer reaching Start, and non-sprint 37 m regressions. SetupFlowPreviewShotsTest defines s52 through s68; ProgressionPreviewShotsTest defines p62 through p65. Seven fontScale 2 cases cover the new setup surfaces. The source review includes resource XML, pilot JSON, test names, imports and diff whitespace. No network, builds, compilation, Gradle, tests or subagents were used. CI, pilots, PNG generation and lead inspection remain pending.
+
+PR 7 is complete in scope with this PR. PR 8 carries SetupFlowRestoreTest's 10-second CI waits; remaining #610–#614 copy and SSOT nits (shared running-history filters, RunPhase fallbacks, reset eligibility, held-replan messages, Alternate's source, Ask acceptance and Undo cursor, duplicate Plan time invalidation, resolved-event fallback and time-floor documentation, parser semantics and timer lifecycle); accepted watch rebuild and nine-tenths cleanup notes; per-muscle balancing for Both + sprint Muscle; and the watch. Sprint timing method and best time in setup remain deferred under revision 31.

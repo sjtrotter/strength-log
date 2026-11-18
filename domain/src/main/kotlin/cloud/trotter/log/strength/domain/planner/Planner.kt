@@ -55,7 +55,20 @@ data class PlanDraft(
 
 data class DayDraft(val day: ProgramDay, val working: Map<Int, List<LoggedSet>>, val reasons: List<PlanReason>)
 
+enum class SprintFloor { SQUAT_OR_HINGE, SQUAT }
+
 object Planner {
+    /** Design §2.4's Both + sprint floor on resolved mains; null when it passes or does not apply. */
+    fun sprintLowerMainMissing(answers: SetupAnswers): SprintFloor? {
+        if (answers.branch != PlanBranch.BOTH || !answers.both.sprint) return null
+        val rows = resolveMains(answers).map { mainRow(it.pattern) }
+        return when {
+            answers.careful && 0 !in rows -> SprintFloor.SQUAT
+            !answers.careful && 0 !in rows && 1 !in rows -> SprintFloor.SQUAT_OR_HINGE
+            else -> null
+        }
+    }
+
     /** Deterministic for (answers, known, today). Never reads the clock or custom exercises.
      *  A plan built from the log's [known] starts at the first unmet gate, so a later [PlanDraft.phase] than the
      *  stored plan's is a passed gate (design §3.1.2). [atLeast] BASE on a ladder-only path asks for

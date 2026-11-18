@@ -231,12 +231,17 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         format = { value -> unit.toMetres(value)?.let(unit::inputText) ?: WeightStepper.format(value) },
         decimalInput = true,
     )
+    // A blank time is Just finish (0); unreadable or zero text is INVALID_TIME, which goal() rejects, so Save
+    // stays off rather than saving Just finish. NumberField reports both as null, so parse marks the difference.
     val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: 0)) }
     NumberField(
         value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
         onValueChange = onTime, onDraftChange = onTime,
-        label = stringResource(R.string.plan_goal_target_time), minValue = 1.0, maxValue = 86_400.0,
-        format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii,
+        label = stringResource(R.string.plan_goal_target_time), minValue = INVALID_TIME.toDouble(), maxValue = 86_400.0,
+        format = { ClockText.duration(it.toInt()) },
+        parse = { text -> if (text.isBlank()) null
+            else ClockText.parse(text)?.takeIf { it > 0 }?.toDouble() ?: INVALID_TIME.toDouble() },
+        keyboardType = KeyboardType.Ascii,
     )
 }
 

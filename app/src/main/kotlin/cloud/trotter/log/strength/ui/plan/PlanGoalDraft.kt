@@ -6,6 +6,9 @@ import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import kotlinx.parcelize.Parcelize
 
+/** [PlanGoalDraft.underSeconds] for time text that is not blank but not a time above zero. */
+internal const val INVALID_TIME = -1
+
 @Parcelize
 data class PlanGoalDraft(
     val timed: Boolean = true,
@@ -18,6 +21,7 @@ data class PlanGoalDraft(
 ) : Parcelable {
     fun goal(): PlanGoal? = runCatching {
         require(PlanGoalDate.isValid(byEpochDay))
+        require(underSeconds != INVALID_TIME)
         if (timed) PlanGoal.Timed(CardioActivity.valueOf(activity), metres, underSeconds.takeUnless { it == 0 }, byEpochDay)
         else PlanGoal.Shuttle(protocol.trim(), targetShuttles, byEpochDay = byEpochDay)
     }.getOrNull()

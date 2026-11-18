@@ -22,10 +22,13 @@ object SetupFlowFixtures {
     val ultra = half.copy(runGoal = RunGoal.ULTRA, activity = CardioActivity.TRAIL_RUN, marathonBestSeconds = 14400)
     val noRun = both.copy(runGoal = RunGoal.HALF_MARATHON, eventDate = 21000, minutes = 30)
 
+    /** Before every fixture's event date (21000); the repository passes the clock's date. */
+    const val TODAY = 20_800L
+
     fun state(draft: SetupDraft = SetupDraft(), firstRun: Boolean = false): SetupFlowUiState {
         val answers = SetupFlowStateBuilder.answers(draft)
         val plan = if (SetupFlowStateBuilder.currentStep(draft) == SetupStep.PLAN) {
-            val preview = SetupFlowStateBuilder.planPreview(Planner.plan(answers), answers)
+            val preview = SetupFlowStateBuilder.planPreview(Planner.plan(answers, todayEpochDay = TODAY), answers)
             val liftGoal = when (draft.goal) { LiftGoal.STRENGTH -> "Strength"; LiftGoal.MUSCLE -> "Muscle"; LiftGoal.GENERAL -> "General fitness" }
             val runGoal = when (draft.runGoal) {
                 RunGoal.FIRST_5K -> "First 5K"

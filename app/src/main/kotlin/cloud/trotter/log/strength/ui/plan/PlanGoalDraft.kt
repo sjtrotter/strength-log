@@ -6,7 +6,7 @@ import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import kotlinx.parcelize.Parcelize
 
-/** [PlanGoalDraft.underSeconds] for time text that is not blank but not a time above zero. */
+/** [PlanGoalDraft.underSeconds] while A time is chosen and its field holds no time above zero; 0 is Just finish. */
 internal const val INVALID_TIME = -1
 
 @Parcelize

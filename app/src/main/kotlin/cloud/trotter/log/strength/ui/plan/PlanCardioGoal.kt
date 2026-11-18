@@ -231,18 +231,30 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         format = { value -> unit.toMetres(value)?.let(unit::inputText) ?: WeightStepper.format(value) },
         decimalInput = true,
     )
-    // A blank time is Just finish (0); unreadable or zero text is INVALID_TIME, which goal() rejects, so Save
-    // stays off rather than saving Just finish. NumberField reports both as null, so parse marks the difference.
-    val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: 0)) }
-    NumberField(
-        value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
-        onValueChange = onTime, onDraftChange = onTime,
-        label = stringResource(R.string.plan_goal_target_time), minValue = INVALID_TIME.toDouble(), maxValue = 86_400.0,
-        format = { ClockText.duration(it.toInt()) },
-        parse = { text -> if (text.isBlank()) null
-            else ClockText.parse(text)?.takeIf { it > 0 }?.toDouble() ?: INVALID_TIME.toDouble() },
-        keyboardType = KeyboardType.Ascii,
-    )
+    // Just finish stores 0. A time stores INVALID_TIME until the field holds a time, so Save stays off.
+    val withTime = draft.underSeconds != 0
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(false, true).forEachIndexed { index, time ->
+            SegmentedButton(
+                selected = withTime == time,
+                onClick = {
+                    focusManager.clearFocus()
+                    if (withTime != time) onChange(draft.copy(underSeconds = if (time) INVALID_TIME else 0))
+                },
+                shape = SegmentedButtonDefaults.itemShape(index, 2),
+            ) { Text(stringResource(if (time) R.string.setup_flow_event_time else R.string.setup_flow_event_finish)) }
+        }
+    }
+    if (withTime) {
+        val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: INVALID_TIME)) }
+        NumberField(
+            value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
+            onValueChange = onTime, onDraftChange = onTime,
+            label = stringResource(R.string.plan_goal_target_time), minValue = 1.0, maxValue = 86_400.0,
+            format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
+            keyboardType = KeyboardType.Ascii,
+        )
+    }
 }
 
 @Composable

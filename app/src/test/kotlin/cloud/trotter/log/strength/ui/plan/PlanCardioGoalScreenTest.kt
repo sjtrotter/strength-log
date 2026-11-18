@@ -147,6 +147,22 @@ class PlanCardioGoalScreenTest {
         rule.runOnIdle { assertEquals(PlanGoal.Shuttle("PACER", 52), state.value.goalDraft!!.goal()) }
     }
 
+    @Test fun `Just finish hides the time and A time needs one`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 21_100)))
+        rule.setContent { AppTheme {
+            PlanScreen(state.value, actions().copy(onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) }))
+        } }
+        rule.onNodeWithText("Just finish").performClick()
+        rule.onNodeWithText("Target time").assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, null), state.value.goalDraft!!.goal()) }
+        rule.onNodeWithText("A time").performClick()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNodeWithText("Target time").performTextReplacement("1:45:00")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, 6300), state.value.goalDraft!!.goal()) }
+    }
+
     @Test fun `both goals show dates and an existing goal can be removed`() {
         val goal = timed.copy(byEpochDay = LocalDate.of(2027, 1, 2).toEpochDay())
         val state = mutableStateOf(planScreenFixture().copy(goal = PlanGoalUi(goal, null, false)))

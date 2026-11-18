@@ -305,7 +305,8 @@ class PlanCardioGoalScreenTest {
             onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
             onSaveGoal = { saved = state.value.goalDraft?.goal() },
         )) } }
-        rule.onNodeWithText("Target time").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
@@ -320,7 +321,8 @@ class PlanCardioGoalScreenTest {
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
             onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
         )) } }
-        rule.onNodeWithText("Target time").performTextReplacement("1:41").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 800, 101), state.value.goalDraft!!.goal()) }
     }

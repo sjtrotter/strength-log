@@ -389,7 +389,8 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
         for (text in listOf("", "bad", "0:00")) {
-            rule.onNodeWithText("Target time").performTextReplacement(text).performImeAction()
+            rule.onNodeWithText("Target time").performTextReplacement(text)
+            rule.onNodeWithText("Target time").performImeAction()
             rule.onNodeWithText("Next").assertIsNotEnabled()
             rule.runOnIdle {
                 assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds)
@@ -410,11 +411,13 @@ class SetupFlowScreenTest {
         show(state(SetupStep.EVENT, SetupFlowFixtures.run.copy(runGoal = RunGoal.MARATHON)),
             SetupFlowActions(onGoalSeconds = { shown = shown.copy(draft = shown.draft.copy(goalSeconds = it)) }))
         rule.onNodeWithText("A time").performClick()
-        rule.onNodeWithText("Target time").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
-        rule.onNodeWithText("Target time").performTextReplacement("3:30:00").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30:00")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Next").assertIsEnabled()
         rule.runOnIdle { assertEquals(12600, shown.draft.goalSeconds) }
     }
@@ -423,7 +426,8 @@ class SetupFlowScreenTest {
         show(state(SetupStep.EVENT, SetupFlowFixtures.run.copy(runGoal = RunGoal.MIDDLE_DISTANCE, runEvent = RunEvent.M800)),
             SetupFlowActions(onGoalSeconds = { shown = shown.copy(draft = shown.draft.copy(goalSeconds = it)) }))
         rule.onNodeWithText("A time").performClick()
-        rule.onNodeWithText("Target time").performTextReplacement("1:41").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Next").assertIsEnabled()
         rule.runOnIdle { assertEquals(101, shown.draft.goalSeconds) }
     }
@@ -431,10 +435,12 @@ class SetupFlowScreenTest {
     @Test fun `the marathon best rejects minutes and accepts hours`() {
         show(state(SetupStep.EVENT, SetupFlowFixtures.ultra),
             SetupFlowActions(onMarathonBest = { shown = shown.copy(draft = shown.draft.copy(marathonBestSeconds = it)) }))
-        rule.onNodeWithText("Marathon best").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Marathon best").performTextReplacement("3:30")
+        rule.onNodeWithText("Marathon best").performImeAction()
         rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
         rule.runOnIdle { assertNull(shown.draft.marathonBestSeconds) }
-        rule.onNodeWithText("Marathon best").performTextReplacement("3:30:00").performImeAction()
+        rule.onNodeWithText("Marathon best").performTextReplacement("3:30:00")
+        rule.onNodeWithText("Marathon best").performImeAction()
         rule.runOnIdle { assertEquals(12600, shown.draft.marathonBestSeconds) }
     }
 

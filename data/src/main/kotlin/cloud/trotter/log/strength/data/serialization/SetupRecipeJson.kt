@@ -1,6 +1,15 @@
 package cloud.trotter.log.strength.data.serialization
 
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.RecentRace
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RecentNumber
@@ -20,24 +29,56 @@ import kotlinx.serialization.json.intOrNull
     val v: Int, val branch: String, val goal: String, val days: Int, val minutes: Int, val experience: String,
     val olderAdult: Boolean = false, val mains: List<String>? = null,
     val recent: Map<String, RecentNumberDto> = emptyMap(), val excluded: List<String> = emptyList(),
-    val balanceDays: Boolean = false,
+    val balanceDays: Boolean = false, val run: RunRecipeDto? = null, val both: BothRecipeDto? = null,
 )
 @Serializable internal data class RecentNumberDto(val weightLb: Double, val reps: Int, val effort: String)
+
+@Serializable internal data class RunRecipeDto(
+    val goal: String, val experience: String, val event: String? = null, val test: String = "TWO_MILE",
+    val dateEpochDay: Long? = null, val goalSeconds: Int? = null, val testScore: Int? = null,
+    val recentMetres: Int? = null, val recentSeconds: Int? = null,
+    val longestSeconds: Int? = null, val longestMetres: Int? = null, val marathonBestSeconds: Int? = null,
+    val activity: String = "ROAD_RUN", val runningInjury: Boolean = false, val strengthBlocks: Int = 2,
+) {
+    fun answers(): RunAnswers {
+        require((recentMetres == null) == (recentSeconds == null))
+        require(longestSeconds == null || longestMetres == null)
+        return RunAnswers(
+            goal = RunGoal.valueOf(goal), experience = RunExperience.valueOf(experience),
+            event = event?.let(RunEvent::valueOf), test = FitnessTest.valueOf(test), dateEpochDay = dateEpochDay,
+            goalSeconds = goalSeconds, testScore = testScore,
+            recent = recentMetres?.let { RecentRace(it, requireNotNull(recentSeconds)) },
+            longest = longestSeconds?.let { Measure.Time(it) } ?: longestMetres?.let { Measure.Distance(it) },
+            marathonBestSeconds = marathonBestSeconds, activity = CardioActivity.valueOf(activity),
+            runningInjury = runningInjury, strengthBlocks = strengthBlocks,
+        )
+    }
+}
+@Serializable internal data class BothRecipeDto(val cardioFirst: Boolean = false, val together: String? = null) {
+    fun answers(): BothAnswers = BothAnswers(cardioFirst, together?.let(BothAnswers.Together::valueOf))
+}
 
 /** Recipe v2 (design §4.1): the setup answers a plan was made from, without equipment, steps and unit, which live
  *  in plan settings and the app's settings. Read by Reset day to plan; the live goal is `plan.goalJson`. */
 object SetupRecipeJson {
     const val VERSION = 2
 
-    /** PR 7 adds the other branches' answers; storing them now would lose those answers. */
+    /** PR 7 adds sprint answers; storing them now would lose them. */
     fun encode(answers: SetupAnswers): String {
-        require(answers.branch == PlanBranch.LIFT)
+        require(answers.branch != PlanBranch.SPRINT && !(answers.branch == PlanBranch.BOTH && answers.both.sprint))
         return SetJson.encode(SetupRecipeDto.serializer(), SetupRecipeDto(
             v = VERSION, branch = answers.branch.name, goal = answers.goal.name, days = answers.days,
             minutes = answers.minutes, experience = answers.experience.name, olderAdult = answers.olderAdult,
             mains = answers.mains, recent = answers.recent.mapValues { (_, number) ->
                 RecentNumberDto(number.weightLb, number.reps, number.effort.name)
             }, excluded = answers.excluded.sorted(), balanceDays = answers.balanceDays,
+            run = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.let { run ->
+                RunRecipeDto(run.goal.name, run.experience.name, run.event?.name, run.test.name, run.dateEpochDay,
+                    run.goalSeconds, run.testScore, run.recent?.metres, run.recent?.seconds,
+                    (run.longest as? Measure.Time)?.seconds, (run.longest as? Measure.Distance)?.metres,
+                    run.marathonBestSeconds, run.activity.name, run.runningInjury, run.strengthBlocks)
+            } else null,
+            both = if (answers.branch == PlanBranch.BOTH) BothRecipeDto(answers.both.cardioFirst, answers.both.together?.name) else null,
         ))
     }
 
@@ -74,6 +115,7 @@ object SetupRecipeJson {
                 recent = dto.recent.mapValues { (_, number) ->
                     RecentNumber(number.weightLb, number.reps, Effort.valueOf(number.effort))
                 }, excluded = dto.excluded.toSet(), branch = PlanBranch.valueOf(dto.branch), balanceDays = dto.balanceDays,
+                run = dto.run?.answers() ?: RunAnswers(), both = dto.both?.answers() ?: BothAnswers(),
             )
         }.getOrNull()
     }
@@ -81,7 +123,12 @@ object SetupRecipeJson {
     fun validate(json: String) {
         require(isV2(json))
         val dto = SetJson.decode(SetupRecipeDto.serializer(), json)
-        require(dto.v == VERSION && dto.branch == PlanBranch.LIFT.name)
+        val branch = PlanBranch.valueOf(dto.branch)
+        require(dto.v == VERSION && branch != PlanBranch.SPRINT)
+        require((dto.run != null) == (branch == PlanBranch.RUN || branch == PlanBranch.BOTH))
+        require((dto.both != null) == (branch == PlanBranch.BOTH))
+        dto.run?.answers()
+        dto.both?.answers()
         LiftGoal.valueOf(dto.goal)
         LiftExperience.valueOf(dto.experience)
         require(dto.days in 1..6 && dto.minutes in setOf(30, 45, 60, 75, 90))

@@ -113,3 +113,14 @@ fun CardioSetSpec.distanceMetres(): Int =
 
 fun CardioSetSpec.timeSeconds(): Int =
     requireNotNull((end as? Measure.Time) ?: (aim as? Measure.Time)).seconds
+
+/** 6:00 per km, practice; only for a distance set with no time aim. */
+private const val ESTIMATE_SECONDS_PER_METRE = 0.36
+
+internal fun plannedSeconds(block: CardioBlock): Int = Math.round(block.sets.sumOf { set ->
+    when (val end = set.end) {
+        is Measure.Time -> end.seconds.toDouble()
+        is Measure.Distance -> (set.aim as? Measure.Time)?.seconds?.toDouble()
+            ?: end.metres * ESTIMATE_SECONDS_PER_METRE
+    }
+}).toInt()

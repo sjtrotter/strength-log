@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.planner
 
+import cloud.trotter.log.strength.domain.progression.plannedSeconds
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.CardioActivity

@@ -14,7 +14,6 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.KnownLoads
-import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 
@@ -64,10 +63,10 @@ object Planner {
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
             PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known)
-            PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, LiftGoal.STRENGTH)
-            PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.goal)
+            PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, answers.slotGoal)
+            PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.slotGoal)
                 else bothDraft(answers, known, todayEpochDay)
-            PlanBranch.SPRINT -> sprintDraft(answers, known, LiftGoal.STRENGTH)
+            PlanBranch.SPRINT -> sprintDraft(answers, known, answers.slotGoal)
         }
     }
 

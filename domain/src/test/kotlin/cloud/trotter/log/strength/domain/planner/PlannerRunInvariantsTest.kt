@@ -50,6 +50,7 @@ class PlannerRunInvariantsTest {
             if (block != null) {
                 assertEquals(run.activity, block.activity, "$label activity")
                 if (session == RunSession.LADDER) {
+                    assertTrue(RunPhase.LADDER in run.phases, "$label ladder path")
                     val level = requireNotNull(day.cardioRule?.ladderLevel) { "$label ladder level" }
                     assertEquals(RunWalkLadder.block(level, run.activity), block, "$label ladder block")
                 } else {
@@ -155,12 +156,17 @@ class PlannerRunInvariantsTest {
         fun withEnd(day: ProgramDay, value: Measure) = day.copy(cardioBlock = requireNotNull(day.cardioBlock).let { b ->
             b.copy(sets = b.sets.map { if (it.role == CardioRole.WORK) it.copy(end = value) else it })
         })
-        for (layout in layouts) for (goal in listOf(RunGoal.FIVE_TO_TEN_K, RunGoal.HALF_MARATHON, RunGoal.MARATHON, RunGoal.ULTRA)) {
+        for (layout in layouts) for (goal in listOf(RunGoal.FIVE_TO_TEN_K, RunGoal.HALF_MARATHON, RunGoal.MARATHON, RunGoal.ULTRA,
+            RunGoal.MIDDLE_DISTANCE, RunGoal.FITNESS_TEST, RunGoal.CARDIO_FITNESS)) {
             for (experience in RunExperience.entries) for (days in 1..6) for (minutes in listOf(30, 60, 90)) {
                 val answers = run(goal, days, minutes, experience).let {
                     if (layout == null) it else it.copy(branch = PlanBranch.BOTH, both = layout)
                 }
-                for ((phase, nextPhase) in goal.phases.zipWithNext()) {
+                // PR 7a: use the runner's path; Racing drops 360 ladder pairs and ladder-only goals add 540, 2700 to 2880.
+                val transitions: List<Pair<RunPhase, RunPhase?>> = if (goal.phases.isEmpty()) {
+                    if (RunPhase.LADDER in answers.run.phases) listOf(RunPhase.LADDER to null) else emptyList()
+                } else answers.run.phases.zipWithNext().map { (before, after) -> before to after }
+                for ((phase, nextPhase) in transitions) {
                     val seed = when (phase) {
                         RunPhase.LADDER -> known(null, 600)
                         RunPhase.BASE -> known(null, 1800)
@@ -168,7 +174,7 @@ class PlannerRunInvariantsTest {
                         RunPhase.MARATHON_BUILD -> known(21_000, 7200)
                         RunPhase.ULTRA_BUILD -> error("No later phase")
                     }
-                    val draft = Planner.plan(answers, seed, TODAY, phase)
+                    val draft = Planner.plan(answers, seed, TODAY, phase.takeIf { goal.phases.isNotEmpty() })
                     // A Both layout without any running has no phase to advance.
                     if (draft.phase == null) { assertTrue(draft.sessions.isEmpty()); continue }
                     val stored = draft.program.let { p -> p.copy(days = p.days.map { day ->
@@ -184,7 +190,7 @@ class PlannerRunInvariantsTest {
                     val result = RunReplan.next(stored, answers, phase, history, TODAY, week, null)
                     val allowed = total.toLong() * 120 / 100
                     if (result == null) {
-                        val candidate = Planner.plan(answers, history, TODAY, nextPhase)
+                        val candidate = Planner.plan(answers, history, TODAY, nextPhase ?: RunPhase.BASE)
                         val floorDays = candidate.program.days.map { day ->
                             val old = stored.days.firstOrNull { it.id == day.id }
                             var floorDay = day.copy(exercises = old?.exercises.orEmpty())

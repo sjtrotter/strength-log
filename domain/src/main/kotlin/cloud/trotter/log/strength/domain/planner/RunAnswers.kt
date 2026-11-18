@@ -70,6 +70,16 @@ data class RunAnswers(
 
     val resolvedEvent: RunEvent? get() = event ?: goal.events.firstOrNull()
 
+    /** This runner's readiness path (design §3.1.2). On foot, goals without phases use the ladder alone,
+     *  then their own plan with no phase. Racing excludes the ladder: its evidence covers novices and its
+     *  gate measures 5K readiness (lead 2026-11-17, practice). */
+    val phases: List<RunPhase> get() {
+        val path = goal.phases.ifEmpty {
+            if (CardioFamily.of(activity) == CardioFamily.RUN) listOf(RunPhase.LADDER) else emptyList()
+        }
+        return if (experience == RunExperience.RACING) path - RunPhase.LADDER else path
+    }
+
     /** This answer stands in until there's a log; PR 7 also passes it as CardioHistory.seed. */
     fun seed(): RecentMaxima? = when (val longest = longest) {
         is Measure.Distance -> RecentMaxima(longest.metres, null)

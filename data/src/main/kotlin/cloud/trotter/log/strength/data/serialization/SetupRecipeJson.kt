@@ -65,11 +65,13 @@ import kotlinx.serialization.json.intOrNull
 object SetupRecipeJson {
     const val VERSION = 2
 
-    /** PR 7 adds sprint answers; storing them now would lose them. */
+    /** PR 7 adds sprint answers; storing them now would lose them. A null [phase] stores none: the plan has
+     *  nothing to re-plan (a goal without phases, a runner past them, or a Both layout with no run session,
+     *  revision 48). */
     fun encode(answers: SetupAnswers, phase: RunPhase? = null): String {
         require(answers.branch != PlanBranch.SPRINT && !(answers.branch == PlanBranch.BOTH && answers.both.sprint))
-        val phases = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.goal.phases else emptyList()
-        require(if (phases.isEmpty()) phase == null else phase != null && phase in phases)
+        val phases = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.phases else emptyList()
+        require(phase == null || phase in phases)
         return SetJson.encode(SetupRecipeDto.serializer(), SetupRecipeDto(
             v = VERSION, branch = answers.branch.name, goal = answers.goal.name, days = answers.days,
             minutes = answers.minutes, experience = answers.experience.name, olderAdult = answers.olderAdult,
@@ -107,16 +109,17 @@ object SetupRecipeJson {
         LiftExperience.entries.firstOrNull { experience -> experience.name == name }
     }
 
-    /** Null unless a valid v2 recipe carries a phase belonging to its run goal. */
+    /** Null unless a valid v2 recipe carries a phase on the runner's path. */
     fun phase(json: String): RunPhase? = runCatching {
         validate(json)
         SetJson.decode(SetupRecipeDto.serializer(), json).runPhase?.let(RunPhase::valueOf)
     }.getOrNull()
 
     /** Preserve every other field, including fields a newer writer may have added. */
-    fun withPhase(json: String, phase: RunPhase): String {
+    fun withPhase(json: String, phase: RunPhase?): String {
         validate(json)
-        val updated = JsonObject(requireNotNull(v2Object(json)) + ("runPhase" to JsonPrimitive(phase.name))).toString()
+        val fields = requireNotNull(v2Object(json)) - "runPhase"
+        val updated = JsonObject(if (phase == null) fields else fields + ("runPhase" to JsonPrimitive(phase.name))).toString()
         validate(updated)
         return updated
     }
@@ -146,8 +149,9 @@ object SetupRecipeJson {
         require(dto.v == VERSION && branch != PlanBranch.SPRINT)
         require((dto.run != null) == (branch == PlanBranch.RUN || branch == PlanBranch.BOTH))
         require((dto.both != null) == (branch == PlanBranch.BOTH))
-        val phases = dto.run?.answers()?.goal?.phases.orEmpty()
-        require(if (phases.isEmpty()) dto.runPhase == null else dto.runPhase != null && RunPhase.valueOf(dto.runPhase) in phases)
+        val answers = dto.run?.answers()
+        val phases = answers?.let { it.goal.phases.ifEmpty { it.phases } }.orEmpty()
+        require(dto.runPhase == null || RunPhase.valueOf(dto.runPhase) in phases)
         dto.both?.answers()
         LiftGoal.valueOf(dto.goal)
         LiftExperience.valueOf(dto.experience)

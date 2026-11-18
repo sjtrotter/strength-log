@@ -147,4 +147,8 @@ class TaperTest {
         assertEquals(block(distance(10800)),
             Progression.cardioAtStart(opening, null, history, half, ctx.copy(runCap = false)))
     }
+    @Test fun `an untimed half marathon tapers like a timed one`() {
+        assertEquals(0.6, Taper.factor(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_097, null, 20_012), 20_000))
+    }
+
 }

@@ -61,4 +61,12 @@ class PlanGoalJsonTest {
             assertFailsWith<IllegalArgumentException>(json) { PlanGoalJson.validate(json) }
         }
     }
+    @Test fun `untimed goals round trip`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 21097, null, 21000)
+        val json = PlanGoalJson.encode(goal)
+        assertEquals("""{"type":"timed","activity":"ROAD_RUN","metres":21097,"byEpochDay":21000}""", json)
+        PlanGoalJson.validate(json)
+        assertEquals(goal, PlanGoalJson.decode(json))
+    }
+
 }

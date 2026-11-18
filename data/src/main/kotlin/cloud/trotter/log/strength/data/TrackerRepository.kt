@@ -6,8 +6,6 @@ import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.planner.RunReplan as PhaseReplan
 import cloud.trotter.log.strength.domain.progression.CardioHistory
-import cloud.trotter.log.strength.domain.progression.KnownLoads
-import cloud.trotter.log.strength.domain.progression.LoggedCardio
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -951,7 +949,7 @@ class TrackerRepository(
 
     /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise.
      *  Ruled amendments require their recorded pre-write state and rotation; run replay also checks every day
-     *  written by that Finish. */
+     *  written by that Finish. A Finish that re-planned stores a later effort or distance only; Undo first, then re-rate. */
     private suspend fun cardioJudgment(sessionId: Long, first: Boolean, unit: WeightUnit): CardioJudgment? {
         val session = cardioSessionDao.byId(sessionId) ?: return null
         val planId = session.planId ?: return null
@@ -1129,7 +1127,8 @@ class TrackerRepository(
      *  once per session, while the day still holds its opening. Ruled runs replay their original state;
      *  sprint replay uses the undo rule until a Step or invalidation.
      *  Working-value undo keeps the session's increaseApplied flag.
-     *  A reading at the end is written with the total and judged with it. */
+     *  A reading at the end is written with the total and judged with it.
+     *  A Finish that re-planned stores a later effort or distance only; Undo first, then re-rate. */
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?, readingAtEnd: Int? = null) {
         val unit = settings.unitFlow.first()
         db.withTransaction {
@@ -2297,16 +2296,9 @@ class TrackerRepository(
         val days = programDao.daysForPlan(planId)
         val program = assemble(days, programDao.exercisesForPlan(planId))
         val family = CardioFamily.of(answers.run.activity)
-        val names = family.activities.map { it.name }
-        val results = cardioSetResultDao.forActivities(names).groupBy { it.cardioSessionId }
-        val log = cardioSessionDao.forActivities(names).filter { it.completedAt <= finishedAt }.map { session ->
-            LoggedCardio(session.completedAt, results[session.id].orEmpty().mapNotNull { it.toDomainOrNull() })
-        }
+        val log = db.cardioLog(family, finishedAt)
         val history = CardioHistory.of(log, finishedAt)
-        val known = KnownLoads(emptyMap(),
-            longestRecent = history.longest?.let { mapOf(family to it) }.orEmpty(),
-            longestWeek = CardioHistory.longestWeek(log, finishedAt)?.let { mapOf(family to it) }.orEmpty(),
-            longestRunning = CardioHistory.longestRunning(log, finishedAt)?.let { mapOf(family to it) }.orEmpty())
+        val known = CardioHistory.known(family, log, finishedAt)
         val week = CardioHistory.lastWeek(log, finishedAt) ?: return null
         val next = runCatching {
             PhaseReplan.next(program, answers, phase, known, localEpochDay(finishedAt), week, history.secondsPerMetre)
@@ -2338,6 +2330,8 @@ class TrackerRepository(
 
     private suspend fun replanMatches(planId: Long, record: UndoReplanDto): Boolean {
         if (planDao.plan(planId)?.recipeJson != record.recipeAfter) return false
+        val open = runDao.openRun()
+        if (open != null && open.planId == planId && record.days.any { it.before == null && it.dayId == open.dayId }) return false
         return record.days.all { day ->
             programDao.day(planId, day.dayId)?.replanColumns() == day.after &&
                 (day.before != null || programDao.exercisesForDay(planId, day.dayId).isEmpty())

@@ -4,16 +4,17 @@ package cloud.trotter.log.strength.domain.model
 sealed interface PlanGoal {
     val byEpochDay: Long?
 
-    /** Cover [metres] of [activity] in strictly less than [underSeconds]. */
+    /** Cover [metres] of [activity], in strictly less than [underSeconds] when set. A null time is Just finish
+     *  (design §2.2): the goal carries the event and its date, and the date drives the taper. */
     data class Timed(
         val activity: CardioActivity,
         val metres: Int,
-        val underSeconds: Int,
+        val underSeconds: Int?,
         override val byEpochDay: Long? = null,
     ) : PlanGoal {
         init {
             require(metres in 1..200_000)
-            require(underSeconds in 1..86_400)
+            require(underSeconds == null || underSeconds in 1..86_400)
         }
     }
 

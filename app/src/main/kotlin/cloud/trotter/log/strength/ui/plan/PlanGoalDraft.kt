@@ -25,7 +25,7 @@ data class PlanGoalDraft(
     companion object {
         fun from(goal: PlanGoal?): PlanGoalDraft = when (goal) {
             is PlanGoal.Timed -> PlanGoalDraft(activity = goal.activity.name, metres = goal.metres,
-                underSeconds = goal.underSeconds, byEpochDay = goal.byEpochDay)
+                underSeconds = goal.underSeconds ?: 0, byEpochDay = goal.byEpochDay)
             is PlanGoal.Shuttle -> PlanGoalDraft(timed = false, protocol = goal.protocol,
                 targetShuttles = goal.targetShuttles, byEpochDay = goal.byEpochDay)
             is PlanGoal.Sprint, null -> PlanGoalDraft()

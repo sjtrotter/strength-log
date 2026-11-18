@@ -20,10 +20,11 @@ import org.robolectric.annotation.Config
 class PlanGoalSprintJsonTest {
     private val sprint = """{"type":"sprint","metres":30,"targetCentis":440,"sprintAttempts":[{"completedAt":1,"centis":452,"timingMethod":"PHONE","startProtocol":"THREE_POINT"}]}"""
 
-    @Test fun `timed goals without a time validate without a domain projection`() {
+    @Test fun `timed goals without a time validate with an untimed projection`() {
         for (json in listOf("""{"type":"timed","activity":"ROAD_RUN","metres":5000}""")) {
             PlanGoalJson.validate(json)
-            assertNull(PlanGoalJson.decode(json))
+            // PR 7a: Just finish keeps its event and date (revision 28); absent time becomes null.
+            assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, null), PlanGoalJson.decode(json))
         }
     }
 

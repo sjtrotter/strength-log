@@ -14,20 +14,23 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /** The phase gate at a rotation wrap (design §3.1.2, revision 48). Pure: the caller supplies the stored program
- *  and the log. Null when nothing moves or the weekly guard cannot fit; a later wrap can try again. */
+ *  and the log. A ladder-only path leaves the ladder for the goal's own plan, whose phase is null.
+ *  Null when nothing moves or the weekly guard cannot fit; a later wrap can try again. */
 object RunReplan {
     /** Practice, guided by audit 2026-11-13 row 4 (Damsted 2019, Nielsen 2014; weak). */
     const val WEEK_RISE_PERCENT = 20
     /** Practice: the shortest easy run the weekly guard leaves. */
     const val EASY_FLOOR_SECONDS = 600
 
-    data class Replanned(val program: Program, val phase: RunPhase)
+    data class Replanned(val program: Program, val phase: RunPhase?)
 
     fun next(stored: Program, answers: SetupAnswers, phase: RunPhase, known: KnownLoads, todayEpochDay: Long?,
              week: WeekLoad, secondsPerMetre: Double?): Replanned? {
+        val ladderOnly = answers.run.goal.phases.isEmpty()
+        if (ladderOnly && phase != RunPhase.LADDER) return null
         if (phase == RunPhase.LADDER && stored.days.any { it.cardioRule?.ladderLevel != null }) return null
         val draft = Planner.plan(answers, known, todayEpochDay, if (phase == RunPhase.LADDER) RunPhase.BASE else phase)
-        val nextPhase = draft.phase?.takeIf { it > phase } ?: return null
+        val nextPhase = if (ladderOnly) null else (draft.phase?.takeIf { it > phase } ?: return null)
         val previous = stored.days.associateBy { it.id }
         if (previous.keys.any { id -> draft.program.days.none { it.id == id } }) return null
         val merged = mutableListOf<ProgramDay>()

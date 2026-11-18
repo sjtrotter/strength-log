@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.domain.planner
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
@@ -125,4 +127,36 @@ class RunReplanTest {
         for (id in listOf("A", "B")) assertEquals(day(stored, id).exercises, day(result, id).exercises)
         for (id in listOf("E", "F", "G")) assertTrue(day(result, id).exercises.isEmpty())
     }
+    private val entryAnswers = run(RunGoal.CARDIO_FITNESS, days = 3, experience = RunExperience.NEW)
+    private fun entryLadder() = Planner.plan(entryAnswers).program.let { p -> p.copy(days = p.days.map { day ->
+        if (day.cardioRule?.ladderLevel == null) day else day.copy(cardioRule = CardioRule(null),
+            cardioBlock = RunWalkLadder.block(12, CardioActivity.ROAD_RUN))
+    }) }
+    private fun nextEntry(stored: Program = entryLadder(), phase: RunPhase = RunPhase.LADDER) = RunReplan.next(
+        stored, entryAnswers, phase, known(null, 1800).copy(longestRunning = mapOf(CardioFamily.RUN to 1800)),
+        TODAY, week(5400), null)
+
+    @Test fun `a ladder only path leaves the ladder for the goal's own plan`() {
+        val result = assertNotNull(nextEntry())
+        assertNull(result.phase)
+        assertEquals(List(3) { ProgramDayKind.CARDIO } + ProgramDayKind.REST, result.program.days.map { it.kind })
+        for ((id, seconds) in listOf("A" to 1800, "B" to 1800, "C" to 1980)) {
+            assertEquals(CardioRule(null, RunSession.EASY), day(result.program, id).cardioRule)
+            assertEquals(Measure.Time(seconds), end(day(result.program, id)))
+        }
+        assertEquals(5580, planned(result.program))
+        assertTrue(planned(result.program) <= 6480)
+    }
+
+    @Test fun `a ladder only path waits while a ladder level remains`() {
+        val stored = entryLadder().let { p -> p.copy(days = p.days.map {
+            if (it.id == "B") it.copy(cardioRule = CardioRule(12)) else it
+        }) }
+        assertNull(nextEntry(stored))
+    }
+
+    @Test fun `a phase off the ladder only path never re-plans`() {
+        assertNull(nextEntry(phase = RunPhase.BASE))
+    }
+
 }

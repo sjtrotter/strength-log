@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
@@ -63,4 +64,33 @@ class CardioHistoryOfTest {
         assertEquals(CardioHistory(), CardioHistory.of(listOf(session), asOf))
         assertEquals(CardioHistory(), CardioHistory.of(emptyList(), asOf))
     }
+    @Test fun `longest running metres counts finished WORK distance only`() {
+        val work = result(time(900), 900, 2500)
+        val recovery = result(CardioSetSpec(CardioRole.RECOVERY, Measure.Time(2700)), 2700, 3000)
+        val finished = LoggedCardio(asOf - day, listOf(work, recovery))
+        assertEquals(2500, CardioHistory.longestRunningMetres(listOf(finished), asOf))
+        val skipped = listOf(
+            finished.copy(results = listOf(work, result(time(100), 100))),
+            finished.copy(results = listOf(work.copy(status = CardioSetStatus.SHORTENED, secondsAtEnd = null), recovery)),
+            finished.copy(completedAt = asOf - 31 * day),
+        )
+        assertNull(CardioHistory.longestRunningMetres(skipped, asOf))
+        assertEquals(2500, CardioHistory.longestRunningMetres(skipped + finished, asOf))
+        assertEquals(4000, CardioHistory.longestRunningMetres(
+            listOf(LoggedCardio(asOf - day, listOf(result(distance(4000), 1200)))), asOf))
+    }
+
+    @Test fun `known fills every run anchor`() {
+        val work = result(time(900), 900, 2500)
+        val recovery = result(CardioSetSpec(CardioRole.RECOVERY, Measure.Time(2700)), 2700, 3000)
+        val sessions = listOf(LoggedCardio(asOf - 2 * day, listOf(work, recovery)),
+            LoggedCardio(asOf - day, listOf(result(distance(3000), 1000, 3000))))
+        val known = CardioHistory.known(CardioFamily.RUN, sessions, asOf)
+        assertEquals(mapOf(CardioFamily.RUN to RecentMaxima(5500, 3600)), known.longestRecent)
+        assertEquals(mapOf(CardioFamily.RUN to RecentMaxima(8500, 4600)), known.longestWeek)
+        assertEquals(mapOf(CardioFamily.RUN to 1000), known.longestRunning)
+        assertEquals(mapOf(CardioFamily.RUN to 3000), known.longestRunningMetres)
+        assertEquals(KnownLoads.NONE, CardioHistory.known(CardioFamily.RUN, emptyList(), asOf))
+    }
+
 }

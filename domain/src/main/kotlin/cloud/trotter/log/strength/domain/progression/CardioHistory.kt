@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 
@@ -68,6 +69,24 @@ data class CardioHistory(
             .maxOfOrNull { session ->
                 session.results.filter { it.spec.role == CardioRole.WORK }.sumOf { it.secondsAtEnd ?: it.elapsedSeconds }
             }
+
+        /** The most WORK metres in one finished family session within [WINDOW_MILLIS] before [asOfMillis],
+         *  RECOVERY excluded. Every WORK set must have a distance ([RunCap.metres]); null when none does.
+         *  The ladder gate's distance arm (revision 47). */
+        fun longestRunningMetres(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = sessions
+            .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
+            .mapNotNull { session ->
+                val metres = session.results.filter { it.spec.role == CardioRole.WORK }.map(RunCap::metres)
+                if (metres.all { it != null }) metres.sumOf { requireNotNull(it) } else null
+            }.maxOrNull()
+
+        /** The run anchors setup and the re-plan read for [family] (design revisions 47 and 48), from
+         *  [sessions] completed by [asOfMillis]. */
+        fun known(family: CardioFamily, sessions: List<LoggedCardio>, asOfMillis: Long): KnownLoads = KnownLoads(emptyMap(),
+            longestRecent = of(sessions, asOfMillis).longest?.let { mapOf(family to it) }.orEmpty(),
+            longestWeek = longestWeek(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty(),
+            longestRunning = longestRunning(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty(),
+            longestRunningMetres = longestRunningMetres(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty())
 
         /** The history a judgment reads at [asOfMillis]. [sessions] are the family's sessions completed before it,
          *  oldest first: [longest] spans those within [WINDOW_MILLIS], the pace the newest finished one with a metres

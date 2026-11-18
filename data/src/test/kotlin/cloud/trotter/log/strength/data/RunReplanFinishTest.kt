@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -268,10 +269,10 @@ class RunReplanFinishTest {
         log("A", 8)
         log("B", 9)
         val session = log("C", 10)
-        // 4b-ii-b: the phase stays fixed while finished easy runs can grow under A16 and R11.
+        // the phase stays fixed while finished easy runs can grow under A16 and R11.
         assertEquals(RunPhase.HALF_BUILD, phase())
         assertEquals(recipe, recipe())
-        // 4b-ii-b: require the second wrap record before checking that no re-plan was written.
+        // require the second wrap record before checking that no re-plan was written.
         assertNull(assertNotNull(undo(session).plan).replan)
     }
 
@@ -321,4 +322,55 @@ class RunReplanFinishTest {
         assertEquals(RunPhase.LADDER, phase())
         assertFalse(db.programDao().daysForPlan(plan).any { it.dayId !in days.map { old -> old.dayId } })
     }
+    @Test fun `an entry ladder plan drops its phase when it leaves the ladder`() = runTest {
+        prepare(run(RunGoal.CARDIO_FITNESS, 3))
+        assertEquals(RunPhase.LADDER, phase())
+        ladder()
+        log("A", 0, effort = CardioEffort.GOOD)
+        log("B", 1, effort = CardioEffort.GOOD)
+        val before = db.programDao().daysForPlan(plan)
+        val oldRecipe = recipe()
+        val session = log("C", 2)
+        assertNull(phase())
+        assertFalse(recipe().contains("runPhase"))
+        for (id in listOf("A", "B", "C")) assertEquals(RunSession.EASY, rule(id)?.session)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals(oldRecipe, recipe())
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertEquals(RunPhase.LADDER, phase())
+    }
+
+    @Test fun `undo keeps a re-plan while a run is open on a day it inserted`() = runTest {
+        prepare(run(RunGoal.CARDIO_FITNESS, 5))
+        ladder()
+        log("A", 0, effort = CardioEffort.GOOD)
+        log("B", 1, effort = CardioEffort.GOOD)
+        val beforeWrap = assertNotNull(db.planDao().plan(plan))
+        db.planDao().updatePlan(beforeWrap.copy(lightCycleRemaining = 1))
+        val cycles = beforeWrap.cyclesCompleted
+        val session = log("C", 2)
+        assertNull(phase())
+        assertNotNull(db.programDao().day(plan, "E"))
+        assertNotNull(db.programDao().day(plan, "F"))
+        val record = assertNotNull(undo(session).plan?.replan)
+        assertTrue(record.days.single { it.dayId == "E" }.before == null)
+        val recipeAfter = recipe()
+        val daysAfter = db.programDao().daysForPlan(plan)
+        db.runDao().insertRun(WorkoutRunEntity("open-E", plan, "E", "Easy", "Run", clock.millis()))
+        val countersAfter = assertNotNull(db.planDao().plan(plan))
+        val undoRecord = assertNotNull(undo(session).plan)
+        // With the counters already restored, only the re-plan could make the receipt restorable.
+        db.planDao().updatePlan(countersAfter.copy(lightCycleRemaining = undoRecord.beforeRemaining,
+            cyclesCompleted = undoRecord.beforeCycles))
+        assertFalse(repo.finishUndoState(null, session).restorable)
+        db.planDao().updatePlan(countersAfter)
+        assertTrue(repo.finishUndoState(null, session).restorable)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals(recipeAfter, recipe())
+        assertEquals(daysAfter, db.programDao().daysForPlan(plan))
+        assertEquals("open-E", db.runDao().openRun()?.id)
+        assertEquals(cycles, db.planDao().plan(plan)!!.cyclesCompleted)
+        assertEquals(1, db.planDao().plan(plan)!!.lightCycleRemaining)
+    }
+
 }

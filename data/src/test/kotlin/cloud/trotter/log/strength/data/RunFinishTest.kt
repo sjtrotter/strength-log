@@ -309,13 +309,16 @@ class RunFinishTest {
     }
 
     @Test fun `Just cardio easy runs grow once a rotation at Finish`() = runTest {
-        prepare(run(RunGoal.CARDIO_FITNESS, 3, 60, RunExperience.SOME, Measure.Time(900)))
-        assertEquals(time(960), block())
+        // PR 7a: on foot this Some runner now starts the ladder; a rider keeps revision 42's worked example.
+        // PR 7a: floor(900 * 1.1 / 60) * 60 = 960; round(960 * 1.05) = 1008, once per rotation.
+        val answers = run(RunGoal.CARDIO_FITNESS, 3, 60, RunExperience.SOME, Measure.Time(900))
+        prepare(answers.copy(run = answers.run.copy(activity = CardioActivity.STATIONARY_BIKE)))
+        assertEquals(time(960).copy(activity = CardioActivity.STATIONARY_BIKE), block())
         log()
-        assertEquals(time(1008), block())
+        assertEquals(time(1008).copy(activity = CardioActivity.STATIONARY_BIKE), block())
         assertEquals(0, rule().stepCycle)
         log()
-        assertEquals(time(1008), block())
+        assertEquals(time(1008).copy(activity = CardioActivity.STATIONARY_BIKE), block())
         assertEquals(0, rule().stepCycle)
     }
 

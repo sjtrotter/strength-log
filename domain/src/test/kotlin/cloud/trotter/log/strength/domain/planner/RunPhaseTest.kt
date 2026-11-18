@@ -93,4 +93,12 @@ class RunPhaseTest {
         assertEquals(block(Measure.Time(3744)), time)
         assertEquals(5500, RunCap.limit(5000, 100))
     }
+    @Test fun `the ladder gate counts running and never recoveries`() {
+        assertFalse(ladderMet(RecentMaxima(5500, 3600), 900, 2500))
+        assertTrue(ladderMet(RecentMaxima(5000, 1700), 1700, 5000))
+        assertTrue(ladderMet(RecentMaxima(null, 2000), 2000, null))
+        assertTrue(ladderMet(RecentMaxima(5000, null), null, null))
+        assertFalse(ladderMet(null, null, null))
+    }
+
 }

@@ -432,6 +432,46 @@ class SetupFlowScreenTest {
         rule.runOnIdle { assertEquals(101, shown.draft.goalSeconds) }
     }
 
+    @Test fun `a valid 800 m time clears when switching to 1500 m`() {
+        eventTimeFields(RunEvent.M800)
+        rule.onNodeWithText("Target time").requestFocus().performTextReplacement("1:41")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("1500 m").performScrollTo().performClick()
+        assertBlankEventTime()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30")
+        rule.onNodeWithText("Next").assertIsEnabled()
+    }
+
+    @Test fun `an invalid 1500 m time stays blank after switching to 800 m`() {
+        eventTimeFields(RunEvent.M1500)
+        rule.onNodeWithText("Target time").requestFocus().performTextReplacement("1:41")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("800 m").performScrollTo().performClick()
+        assertBlankEventTime()
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Next").assertIsEnabled()
+    }
+
+    private fun eventTimeFields(event: RunEvent) {
+        val draft = SetupFlowFixtures.run.copy(step = SetupStep.EVENT, runGoal = RunGoal.MIDDLE_DISTANCE,
+            runEvent = event, goalSeconds = INVALID_GOAL_TIME)
+        val (vm, _) = fields(SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft))))
+        rule.setContent { AppTheme {
+            val s by vm.uiState.collectAsState()
+            SetupFlowScreen(s, SetupFlowActions(onRunEvent = vm::setRunEvent, onGoalSeconds = vm::setGoalSeconds))
+        } }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
+    }
+
+    private fun assertBlankEventTime() {
+        val field = rule.onNodeWithText("Target time").fetchSemanticsNode()
+        assertEquals("", field.config[SemanticsProperties.EditableText].text)
+        assertTrue(!field.config.contains(SemanticsProperties.Error))
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, current!!.uiState.value.draft.goalSeconds) }
+    }
+
     @Test fun `the marathon best rejects minutes and accepts hours`() {
         show(state(SetupStep.EVENT, SetupFlowFixtures.ultra),
             SetupFlowActions(onMarathonBest = { shown = shown.copy(draft = shown.draft.copy(marathonBestSeconds = it)) }))

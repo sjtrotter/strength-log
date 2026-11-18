@@ -84,12 +84,14 @@ private fun racePaceSeconds(run: RunAnswers): Double? = run.goalSeconds?.toDoubl
     Riegel.predictedSeconds(it.metres.toDouble(), it.seconds.toDouble(), requireNotNull(run.resolvedEvent).metres.toDouble())
 }
 
-private fun testAim(run: RunAnswers): Int? = when (run.test) {
-    FitnessTest.TWO_MILE, FitnessTest.ONE_AND_HALF_MILE -> run.goalSeconds?.let {
-        GoalPace.aimSeconds(it.toDouble(), requireNotNull(run.test.metres).toDouble(), 400, GoalPace.TEST_FACTOR)
+private fun testAim(run: RunAnswers): Int? {
+    if (!run.hasTestAim()) return null
+    return when (run.test) {
+        FitnessTest.TWO_MILE, FitnessTest.ONE_AND_HALF_MILE -> GoalPace.aimSeconds(
+            requireNotNull(run.goalSeconds).toDouble(), requireNotNull(run.test.metres).toDouble(), 400, GoalPace.TEST_FACTOR)
+        FitnessTest.COOPER -> GoalPace.aimSeconds(720.0, requireNotNull(run.testScore).toDouble(), 400, GoalPace.TEST_FACTOR)
+        FitnessTest.PACER, FitnessTest.HAMR -> null
     }
-    FitnessTest.COOPER -> run.testScore?.let { GoalPace.aimSeconds(720.0, it.toDouble(), 400, GoalPace.TEST_FACTOR) }
-    FitnessTest.PACER, FitnessTest.HAMR -> null
 }
 
 internal fun sharpening(run: RunAnswers, todayEpochDay: Long?): Boolean =

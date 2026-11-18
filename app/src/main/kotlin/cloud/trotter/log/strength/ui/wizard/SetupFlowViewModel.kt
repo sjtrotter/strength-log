@@ -95,7 +95,13 @@ class SetupFlowViewModel @Inject constructor(
     private fun update(transform: (SetupDraft) -> SetupDraft) {
         if (blocked()) return
         val before = current()
-        val after = transform(before)
+        val changed = transform(before)
+        val contextChanged = changed.runGoal != before.runGoal || changed.runEvent != before.runEvent ||
+            changed.test != before.test || changed.activity != before.activity
+        val after = if (contextChanged && changed.goalSeconds != null &&
+            changed.goalSeconds < SetupFlowStateBuilder.goalTimeFloor(changed)) {
+            changed.copy(goalSeconds = INVALID_GOAL_TIME)
+        } else changed
         if (after == before) return
         if (SetupFlowStateBuilder.currentStep(after) != SetupStep.PLAN ||
             SetupFlowStateBuilder.answers(after) != SetupFlowStateBuilder.answers(before)) {

@@ -586,7 +586,7 @@ class SetupFlowViewModelTest {
         val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
             "setup_draft" to SetupDraftJson.encode(draft))))
         advanceUntilIdle()
-        for (seconds in listOf(INVALID_GOAL_TIME, 0)) {
+        for (seconds in listOf(INVALID_GOAL_TIME, 0, 210)) {
             vm.setGoalSeconds(seconds); vm.onNext(); advanceUntilIdle()
             assertEquals(SetupStep.EVENT, vm.uiState.value.step)
             assertNull(answers(vm).run.goalSeconds)
@@ -597,6 +597,29 @@ class SetupFlowViewModelTest {
         vm.onBack(); vm.setGoalSeconds(null); vm.onNext(); advanceUntilIdle()
         assertEquals(SetupStep.WHERE, vm.uiState.value.step)
         assertNull(answers(vm).run.goalSeconds)
+    }
+
+    @Test fun `changing an event or test invalidates a time below the new floor`() = runVmTest {
+        val draft = SetupFlowFixtures.run.copy(step = SetupStep.EVENT, runGoal = RunGoal.MIDDLE_DISTANCE,
+            runEvent = RunEvent.M800, goalSeconds = 101)
+        val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft))))
+        advanceUntilIdle()
+        vm.setRunEvent(RunEvent.M1500); vm.onNext(); advanceUntilIdle()
+        assertEquals(INVALID_GOAL_TIME, vm.uiState.value.draft.goalSeconds)
+        assertEquals(SetupStep.EVENT, vm.uiState.value.step)
+        vm.setRunEvent(RunEvent.M800); advanceUntilIdle()
+        assertEquals(INVALID_GOAL_TIME, vm.uiState.value.draft.goalSeconds)
+        vm.setGoalSeconds(101); vm.setRunGoal(RunGoal.MARATHON); advanceUntilIdle()
+        assertEquals(INVALID_GOAL_TIME, vm.uiState.value.draft.goalSeconds)
+        vm.setRunGoal(RunGoal.FITNESS_TEST); vm.setTest(FitnessTest.ONE_AND_HALF_MILE); vm.setGoalSeconds(300)
+        vm.setTest(FitnessTest.TWO_MILE); vm.onNext(); advanceUntilIdle()
+        assertEquals(INVALID_GOAL_TIME, vm.uiState.value.draft.goalSeconds)
+        assertEquals(SetupStep.EVENT, vm.uiState.value.step)
+        assertNull(answers(vm).run.goalSeconds)
+        vm.setGoalSeconds(321); vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.WHERE, vm.uiState.value.step)
+        assertEquals(321, answers(vm).run.goalSeconds)
     }
 
     @Test fun `goal times clear only across the fitness test boundary`() = runVmTest {

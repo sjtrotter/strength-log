@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -325,6 +326,81 @@ class PlanCardioGoalScreenTest {
         rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 800, 101), state.value.goalDraft!!.goal()) }
+    }
+
+    @Test fun `an outdoor ride of 40 km accepts one hour`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(
+            activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)))
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) {
+            PlanScreen(state.value, actions().copy(
+                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            ))
+        } } }
+        rule.onNodeWithText("Target time").performTextReplacement("1:00:00")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.OUTDOOR_RIDE, 40_000, 3600), state.value.goalDraft!!.goal()) }
+        rule.onNodeWithText("Distance (km)").performTextReplacement("42.2")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(3600, state.value.goalDraft!!.underSeconds) }
+    }
+
+    @Test fun `switching a marathon editor to a ride clears the error and accepts one hour`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 42_200, underSeconds = 12600)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+        )) } }
+        rule.onNodeWithText("Target time").performTextReplacement("3:30")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNodeWithText("Road run").performClick()
+        rule.onNodeWithText("Outdoor ride").performClick()
+        assertBlankPlanTime()
+        rule.onNodeWithText("Target time").performTextReplacement("1:00:00")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.OUTDOOR_RIDE, 42_200, 3600), state.value.goalDraft!!.goal()) }
+        rule.onNodeWithText("Outdoor ride").performClick()
+        rule.onNodeWithText("Stationary bike").performClick()
+        rule.onNodeWithText("1:00:00").assertExists()
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(3600, state.value.goalDraft!!.underSeconds) }
+    }
+
+    @Test fun `switching a valid ride time to running invalidates it`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(
+            activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+        )) } }
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.onNodeWithText("Outdoor ride").performClick()
+        rule.onNodeWithText("Road run").performClick()
+        assertBlankPlanTime()
+        rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
+    }
+
+    @Test fun `distance changes clear valid and invalid time drafts at the new floor`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(
+            activity = CardioActivity.TRACK_RUN.name, metres = 800, underSeconds = 101)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+        )) } }
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.onNodeWithText("Distance (m)").performTextReplacement("1500")
+        assertBlankPlanTime()
+        rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNodeWithText("Distance (m)").performTextReplacement("800")
+        assertBlankPlanTime()
+        rule.onNodeWithText("Target time").performTextReplacement("1:41")
+        rule.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    private fun assertBlankPlanTime() {
+        val field = rule.onNodeWithText("Target time").fetchSemanticsNode()
+        assertEquals("", field.config[SemanticsProperties.EditableText].text)
+        assertEquals(false, field.config.contains(SemanticsProperties.Error))
+        rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
     private companion object { const val WINDOW_SIZE = "robolectric.windowManager.useRequestedSize" }

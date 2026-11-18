@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -66,7 +67,21 @@ object SetupFlowStateBuilder {
     fun currentStep(draft: SetupDraft): SetupStep = steps(draft).last { it.ordinal <= draft.step.ordinal }
 
     fun canAdvance(draft: SetupDraft): Boolean = currentStep(draft) != SetupStep.EVENT ||
-        draft.runGoal == RunGoal.FITNESS_TEST || draft.goalSeconds == null || draft.goalSeconds in 1..86_400
+        draft.runGoal == RunGoal.FITNESS_TEST && draft.test.metres == null ||
+        draft.goalSeconds == null || draft.goalSeconds in goalTimeFloor(draft)..86_400
+
+    internal fun goalTimeFloor(draft: SetupDraft): Int {
+        val metres = if (draft.runGoal == RunGoal.FITNESS_TEST) draft.test.metres
+            else (draft.runEvent?.takeIf { it in draft.runGoal.events } ?: draft.runGoal.events.firstOrNull())?.metres
+        return GoalTime.floorSeconds(metres ?: 0, runActivity(draft))
+    }
+
+    private fun runActivity(draft: SetupDraft): CardioActivity = when (draft.runGoal) {
+        RunGoal.CARDIO_FITNESS -> draft.activity
+        RunGoal.ULTRA -> draft.activity.takeIf { it == CardioActivity.ROAD_RUN || it == CardioActivity.TRAIL_RUN }
+            ?: CardioActivity.ROAD_RUN
+        else -> CardioActivity.ROAD_RUN
+    }
 
     fun currentMains(draft: SetupDraft): List<String> = draft.mains ?: Planner.defaultMains(draft.equipment)
 
@@ -93,12 +108,6 @@ object SetupFlowStateBuilder {
     private fun runAnswers(draft: SetupDraft): RunAnswers {
         val score = draft.testScore?.takeIf { draft.runGoal == RunGoal.FITNESS_TEST && it >= 1 &&
             (draft.test !in listOf(FitnessTest.PACER, FitnessTest.HAMR) || it <= 999) }
-        val activity = when (draft.runGoal) {
-            RunGoal.CARDIO_FITNESS -> draft.activity
-            RunGoal.ULTRA -> draft.activity.takeIf { it == CardioActivity.ROAD_RUN || it == CardioActivity.TRAIL_RUN }
-                ?: CardioActivity.ROAD_RUN
-            else -> CardioActivity.ROAD_RUN
-        }
         return RunAnswers(goal = draft.runGoal, experience = draft.runExperience,
             event = draft.runEvent?.takeIf { it in draft.runGoal.events }, test = draft.test,
             dateEpochDay = draft.eventDate?.takeIf {
@@ -107,14 +116,14 @@ object SetupFlowStateBuilder {
                         (draft.test !in listOf(FitnessTest.PACER, FitnessTest.HAMR) || score != null)) &&
                     PlanGoalDate.isValid(it)
             },
-            goalSeconds = draft.goalSeconds?.takeIf { it in 1..86_400 }, testScore = score,
+            goalSeconds = draft.goalSeconds?.takeIf { it in goalTimeFloor(draft)..86_400 }, testScore = score,
             recent = draft.recentMetres?.takeIf { it in 1..200_000 }?.let { metres ->
                 draft.recentSeconds?.takeIf { it in 1..86_400 }?.let { RecentRace(metres, it) }
             },
             longest = if (draft.longestByDistance) draft.longestMetres?.takeIf { it > 0 }?.let { Measure.Distance(it) }
                 else draft.longestSeconds?.takeIf { it > 0 }?.let { Measure.Time(it) },
             marathonBestSeconds = draft.marathonBestSeconds?.takeIf { draft.runGoal == RunGoal.ULTRA && it in 1..86_400 },
-            activity = activity, runningInjury = draft.runningInjury,
+            activity = runActivity(draft), runningInjury = draft.runningInjury,
             strengthBlocks = if (draft.branch == PlanBranch.RUN) draft.strengthBlocks.coerceIn(0, 2) else 2)
     }
 

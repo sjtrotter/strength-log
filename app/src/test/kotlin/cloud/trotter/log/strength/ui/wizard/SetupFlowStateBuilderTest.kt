@@ -214,6 +214,33 @@ class SetupFlowStateBuilderTest {
         assertEquals(SetupAnswers(), builder.answers(invalid.copy(branch = PlanBranch.LIFT)))
     }
 
+    @Test fun `event and fitness targets must meet their current floor in both branches`() {
+        for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) {
+            val middle = SetupDraft(branch = branch, step = SetupStep.EVENT, runGoal = RunGoal.MIDDLE_DISTANCE,
+                runEvent = RunEvent.M800, goalSeconds = 101)
+            assertTrue(builder.canAdvance(middle))
+            assertEquals(101, builder.answers(middle).run.goalSeconds)
+            val longer = middle.copy(runEvent = RunEvent.M1500)
+            assertFalse(builder.canAdvance(longer))
+            assertNull(builder.answers(longer).run.goalSeconds)
+            assertTrue(builder.canAdvance(longer.copy(goalSeconds = 150)))
+            assertEquals(150, builder.answers(longer.copy(goalSeconds = 150)).run.goalSeconds)
+            assertTrue(builder.canAdvance(longer.copy(goalSeconds = null)))
+            val test = middle.copy(runGoal = RunGoal.FITNESS_TEST, test = FitnessTest.ONE_AND_HALF_MILE, goalSeconds = 241)
+            assertTrue(builder.canAdvance(test))
+            assertEquals(241, builder.answers(test).run.goalSeconds)
+            val twoMile = test.copy(test = FitnessTest.TWO_MILE)
+            assertFalse(builder.canAdvance(twoMile))
+            assertNull(builder.answers(twoMile).run.goalSeconds)
+            assertTrue(builder.canAdvance(twoMile.copy(goalSeconds = 321)))
+            assertEquals(321, builder.answers(twoMile.copy(goalSeconds = 321)).run.goalSeconds)
+            assertTrue(builder.canAdvance(twoMile.copy(goalSeconds = null)))
+            for (untimed in listOf(FitnessTest.COOPER, FitnessTest.PACER, FitnessTest.HAMR)) {
+                assertTrue(builder.canAdvance(twoMile.copy(test = untimed, goalSeconds = INVALID_GOAL_TIME)))
+            }
+        }
+    }
+
     @Test fun `prefill round trips run and both answers`() {
         val half = RunAnswers(goal = RunGoal.HALF_MARATHON, experience = RunExperience.SOME,
             event = RunEvent.HALF, dateEpochDay = 21000, goalSeconds = 7000, recent = RecentRace(5000, 1500),

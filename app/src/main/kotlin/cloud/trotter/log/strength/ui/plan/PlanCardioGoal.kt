@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -215,14 +217,14 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
             CardioActivity.entries.forEach { option ->
                 DropdownMenuItem(text = { Text(cardioActivityName(option)) }, onClick = {
                     focusManager.clearFocus()
-                    onChange(draft.copy(activity = option.name))
+                    onChange(draft.copy(activity = option.name).invalidateTimeBelowFloor())
                     expanded = false
                 })
             }
         }
     }
     val unit = distanceUnitFor(activity)
-    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0)) }
+    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0).invalidateTimeBelowFloor()) }
     NumberField(
         value = draft.metres.takeIf { it > 0 }?.let(unit::fromMetres),
         onValueChange = onDistance, onDraftChange = onDistance,
@@ -247,14 +249,17 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
     }
     if (withTime) {
         val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: INVALID_TIME)) }
-        NumberField(
-            value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
-            onValueChange = onTime, onDraftChange = onTime,
-            label = stringResource(R.string.plan_goal_target_time),
-            minValue = (draft.metres / 10).coerceAtLeast(1).toDouble(), maxValue = 86_400.0,
-            format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
-            keyboardType = KeyboardType.Ascii,
-        )
+        val floor = GoalTime.floorSeconds(draft.metres, activity)
+        key(floor) {
+            NumberField(
+                value = draft.underSeconds.takeIf { it >= floor }?.toDouble(),
+                onValueChange = onTime, onDraftChange = onTime,
+                label = stringResource(R.string.plan_goal_target_time),
+                minValue = floor.toDouble(), maxValue = 86_400.0,
+                format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
+                keyboardType = KeyboardType.Ascii,
+            )
+        }
     }
 }
 

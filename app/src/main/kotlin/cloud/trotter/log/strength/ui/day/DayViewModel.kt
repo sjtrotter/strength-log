@@ -61,6 +61,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -154,6 +157,7 @@ class DayViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val historyRepository: HistoryRepository,
     private val gps: GpsDistance = GpsDistance.None,
+    private val sprintBeeper: SprintBeeper = object : SprintBeeper { override fun beep() = Unit },
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
@@ -193,6 +197,11 @@ class DayViewModel @Inject constructor(
     val pastCardioSaving: StateFlow<Boolean> = _pastCardioSaving.asStateFlow()
     private val pastCardioReceiptId = savedState.getStateFlow<Long?>(KEY_PAST_CARDIO_RECEIPT_ID, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
+    private val sprintTimer = savedState.getStateFlow<SprintTimerState?>(KEY_SPRINT_TIMER, null)
+    private val sprintTimes = savedState.getStateFlow<List<CardioSprintTime>>(KEY_SPRINT_TIMES, emptyList())
+    private val sprintProtocol = savedState.getStateFlow<String?>(KEY_SPRINT_PROTOCOL, null)
+    val sprintTimeDraft = savedState.getStateFlow<SprintTimeDraft?>(KEY_SPRINT_TIME_DRAFT, null)
+    private var sprintBeepJob: kotlinx.coroutines.Job? = null
     private val gpsSets = savedState.getStateFlow<ArrayList<CardioGpsSet>>(KEY_CARDIO_GPS_SETS, arrayListOf())
     private val gpsAsk = savedState.getStateFlow<String?>(KEY_GPS_ASK, null)
     private val gpsEnabled = settings.gpsDistanceFlow.map { enabled ->
@@ -378,6 +387,9 @@ class DayViewModel @Inject constructor(
         .combine(gpsAsk) { execution, _ -> execution }
         .combine(gpsEnabled) { execution, _ -> execution }
         .combine(distanceUnit) { execution, _ -> execution }
+        .combine(sprintTimer) { execution, _ -> execution }
+        .combine(sprintTimes) { execution, _ -> execution }
+        .combine(sprintProtocol) { execution, _ -> execution }
 
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
         sessions to sets
@@ -985,6 +997,96 @@ class DayViewModel @Inject constructor(
         maybeLogCardio()
     }
 
+    private fun sprintTimesFor(run: CardioRun): List<CardioSprintTime> =
+        sprintTimes.value.filter { it.runId == run.runId }
+
+    private fun sprintRun(action: CardioSetAction): CardioRun? = cardioRun.value?.takeIf { run ->
+        run.matches(action) && run.running && !run.complete && uiState.value.cardio?.sprintRep != null &&
+            run.block.sets[run.position].let { it.role == CardioRole.WORK && it.hard && it.end is Measure.Distance }
+    }
+
+    private fun readSprintTimer(run: CardioRun): SprintTimerState? {
+        val timer = sprintTimer.value ?: return null
+        if (timer.runId != run.runId || timer.position != run.position || !run.running ||
+            timer.bootCount != cardioClock.bootCount() ||
+            cardioClock.elapsedRealtimeMillis() - timer.beepElapsedMillis > 600_000L) {
+            clearSprintTimer()
+            return null
+        }
+        return timer
+    }
+
+    private fun clearSprintTimer() {
+        sprintBeepJob?.cancel()
+        sprintBeepJob = null
+        savedState[KEY_SPRINT_TIMER] = null
+    }
+
+    private fun scheduleSprintBeep(timer: SprintTimerState) {
+        sprintBeepJob = viewModelScope.launch {
+            delay((timer.beepElapsedMillis - cardioClock.elapsedRealtimeMillis()).coerceAtLeast(0L))
+            val run = cardioRun.value ?: return@launch
+            if (readSprintTimer(run) == timer) sprintBeeper.beep()
+        }
+    }
+
+    fun armSprintTimer(action: CardioSetAction) {
+        val run = sprintRun(action) ?: return
+        if (readSprintTimer(run) != null) return
+        val timer = SprintTimerState(run.runId, run.position,
+            cardioClock.elapsedRealtimeMillis() + SPRINT_BEEP_DELAY_MILLIS, cardioClock.bootCount())
+        savedState[KEY_SPRINT_TIMER] = timer
+        scheduleSprintBeep(timer)
+    }
+
+    private fun currentSprintProtocol(): StartProtocol =
+        sprintProtocol.value?.let { name -> StartProtocol.entries.firstOrNull { it.name == name } }
+            ?: uiState.value.cardio?.sprintRep?.protocol ?: StartProtocol.STANDING
+
+    fun stopSprintTimer(action: CardioSetAction) {
+        val run = sprintRun(action) ?: return
+        val timer = readSprintTimer(run) ?: return
+        val centis = sprintCentis(timer, cardioClock.elapsedRealtimeMillis())
+        clearSprintTimer()
+        if (centis != null) saveSprintTime(action, centis, TimingMethod.PHONE, currentSprintProtocol())
+    }
+
+    fun saveSprintTime(action: CardioSetAction, centis: Int, method: TimingMethod, protocol: StartProtocol) {
+        val run = sprintRun(action) ?: return
+        if (centis !in 1..SprintTime.MAX_CENTIS) return
+        savedState[KEY_SPRINT_TIMES] = ArrayList(sprintTimes.value +
+            CardioSprintTime(run.runId, run.position, centis, method.name, protocol.name))
+        savedState[KEY_SPRINT_PROTOCOL] = protocol.name
+        savedState[KEY_SPRINT_TIME_DRAFT] = null
+        clearSprintTimer()
+        reachCardioTarget(action)
+    }
+
+    fun setSprintProtocol(name: String) {
+        if (StartProtocol.entries.none { it.name == name }) return
+        savedState[KEY_SPRINT_PROTOCOL] = name
+    }
+
+    fun openSprintTime(action: CardioSetAction) {
+        val run = sprintRun(action) ?: return
+        if (readSprintTimer(run) != null) return
+        savedState[KEY_SPRINT_TIME_DRAFT] = SprintTimeDraft(run.runId, run.position, "", TimingMethod.HAND.name,
+            currentSprintProtocol().name)
+    }
+
+    fun changeSprintTimeDraft(draft: SprintTimeDraft) {
+        val current = sprintTimeDraft.value ?: return
+        if (current.runId == draft.runId && current.position == draft.position) savedState[KEY_SPRINT_TIME_DRAFT] = draft
+    }
+
+    fun dismissSprintTime() { savedState[KEY_SPRINT_TIME_DRAFT] = null }
+
+    fun saveSprintTimeDraft(centis: Int, method: TimingMethod, protocol: StartProtocol) {
+        val draft = sprintTimeDraft.value ?: return
+        val run = cardioRun.value?.takeIf { it.runId == draft.runId && it.position == draft.position } ?: return
+        saveSprintTime(run.action(), centis, method, protocol)
+    }
+
     fun reachCardioTarget(action: CardioSetAction) {
         val run = reconcileCardio(waitForFix = false) ?: return
         if (!run.matches(action) || !run.running || run.complete) return
@@ -1339,7 +1441,7 @@ class DayViewModel @Inject constructor(
                         seconds = summary.seconds,
                         stepsCompleted = summary.stepsCompleted,
                         planId = current.planId, planName = current.planName, activity = activity.name,
-                    ), current.resultSets(gpsSetsFor(current)), finishDay = current.finishesDay, route = route)
+                    ), current.resultSets(gpsSetsFor(current), sprintTimesFor(current)), finishDay = current.finishesDay, route = route)
                     val nextDayId = plans.plansFlow.first().firstOrNull { it.id == current.planId }?.suggestedDayId
                     val program = plans.programFor(current.planId).first()
                     val nextDay = program.days.firstOrNull { it.id == nextDayId }
@@ -2710,7 +2812,25 @@ class DayViewModel @Inject constructor(
         if (run.dayId != state.viewDayId || base == null) return base
         val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time
         val elapsed = cardioElapsedSeconds(run)
-        return base.copy(block = run.block, run = run, gps = cardioGpsState(run.block, run),
+        // This state builder must stay on Main: timer validation writes SavedStateHandle and can schedule the beep.
+        val timer = readSprintTimer(run)
+        if (timer != null && sprintBeepJob == null && timer.beepElapsedMillis > cardioClock.elapsedRealtimeMillis()) {
+            scheduleSprintBeep(timer)
+        }
+        val spec = run.block.sets.getOrNull(run.position)
+        val sprintRep = if (day?.cardioRule?.session?.sprint == true && run.running && spec != null &&
+            ((spec.role == CardioRole.WORK && spec.hard && spec.end is Measure.Distance) || spec.role == CardioRole.RECOVERY)) {
+            val previousRep = (0 until run.position).lastOrNull { run.block.sets[it].role == CardioRole.WORK }
+            val prior = sprintTimesFor(run).lastOrNull { it.position == previousRep }
+            val newestProtocol = history.filter { it.planId == run.planId && it.dayId == run.dayId }
+                .sortedWith(compareByDescending<CardioSessionEntity> { it.completedAt }.thenByDescending { it.id })
+                .firstNotNullOfOrNull { session -> sets[session.id].orEmpty().lastOrNull { it.timing != null }?.timing?.startProtocol }
+            val protocol = sprintProtocol.value?.let { name -> StartProtocol.entries.firstOrNull { it.name == name } }
+                ?: newestProtocol ?: StartProtocol.STANDING
+            SprintRepUi(timer != null, timer?.beepElapsedMillis, protocol,
+                prior?.let { SprintTime(it.centis, TimingMethod.valueOf(it.method), StartProtocol.valueOf(it.protocol)) })
+        } else null
+        return base.copy(block = run.block, run = run, gps = cardioGpsState(run.block, run), sprintRep = sprintRep,
             gpsAsk = gpsAsk.value == run.runId,
             label = activityLabel(run.block.activity), hard = run.block.sets.any { it.hard },
             phase = if (run.running) CardioPhase.EXECUTING else CardioPhase.SUGGESTION,
@@ -2775,6 +2895,10 @@ class DayViewModel @Inject constructor(
         if (!keepRecordState) cardioRun.value?.let(::clearCardioRecordState)
         cardioAlarm.cancel()
         cardioAlertAnchor = null
+        clearSprintTimer()
+        savedState[KEY_SPRINT_TIMES] = ArrayList(sprintTimes.value.filterNot { it.runId == cardioRun.value?.runId })
+        savedState[KEY_SPRINT_PROTOCOL] = null
+        savedState[KEY_SPRINT_TIME_DRAFT] = null
         savedState[KEY_CARDIO_RUN] = null
         savedState[KEY_CARDIO_RUN_DISTANCE] = null
         if (!keepDistanceSheet && openSheet.value?.kind in listOf(OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.CARDIO_SETS)) {
@@ -2922,6 +3046,10 @@ class DayViewModel @Inject constructor(
         const val KEY_PAST_CARDIO_RECEIPT_ID = "day_past_cardio_receipt_id"
         const val KEY_CARDIO_GPS_SETS = "day_cardio_gps_sets"
         const val KEY_GPS_ASK = "day_gps_ask"
+        const val KEY_SPRINT_TIMER = "day_sprint_timer"
+        const val KEY_SPRINT_TIMES = "day_sprint_times"
+        const val KEY_SPRINT_PROTOCOL = "day_sprint_protocol"
+        const val KEY_SPRINT_TIME_DRAFT = "day_sprint_time_draft"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_RUN_DISTANCE = "day_cardio_run_distance"
         const val KEY_CARDIO_READING_INPUTS = "day_cardio_reading_inputs"

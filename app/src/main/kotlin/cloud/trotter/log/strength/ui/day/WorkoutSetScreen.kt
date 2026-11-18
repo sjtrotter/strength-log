@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarResult
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioRole
 import java.util.Locale
 import kotlin.math.roundToInt
 import android.animation.ValueAnimator
@@ -69,6 +70,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import cloud.trotter.log.strength.domain.model.TimingMethod
+import cloud.trotter.log.strength.domain.units.ClockText
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -133,7 +137,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.TextUnit
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
-import kotlinx.coroutines.delay
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
@@ -327,12 +330,20 @@ private fun WorkoutSetContent(
                         cardioShown && cardio != null -> {
                             val run = cardio.run
                             val guardKey = run?.let { Triple(it.runId, it.position, it.running) }
-                            val end = cardio.block?.sets?.getOrNull(cardio.position)?.end
+                            val spec = cardio.block?.sets?.getOrNull(cardio.position)
+                            val end = spec?.end
+                            val sprintRep = cardio.sprintRep
                             when {
                                 cardio.completed || (workout.shown as? WorkoutSelection.Shown.Group)?.complete == true ->
                                     if (state.totalSets == 0 || nextTitle == null) null else WorkoutActionSpec(
                                         stringResource(R.string.day_next_exercise, nextTitle.orEmpty()), resting, true,
                                         actions.onNextWorkoutLift, guardKey = guardKey)
+                                run?.running == true && sprintRep?.armed == true -> WorkoutActionSpec(
+                                    stringResource(R.string.day_cardio_stop_button), false, true,
+                                    { actions.onStopSprintTimer(run.action()) }, guardKey = guardKey)
+                                run?.running == true && spec?.role == CardioRole.WORK && sprintRep != null && !sprintRep.armed -> WorkoutActionSpec(
+                                    stringResource(R.string.sprint_start_on_beep), false, true,
+                                    { actions.onArmSprintTimer(run.action()) }, guardKey = guardKey)
                                 run?.running == true && end is Measure.Distance -> WorkoutActionSpec(
                                     stringResource(R.string.cardio_reached, distanceUnitFor(cardio.block?.activity).format(end.metres)), false, true,
                                     { actions.onReachCardioTarget(run.action()) },
@@ -506,6 +517,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                 if (run != null) run.block.activity else cardio.loggedActivity)
         } else if (spec != null) {
             Text(position.orEmpty(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val sprintRep = cardio.sprintRep
             when (val end = spec.end) {
                 is Measure.Time -> if (block.openEnded) {
                     WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.elapsedSeconds else 0))
@@ -526,10 +538,40 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                     if (run?.running == true) WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
                 }
                 is Measure.Distance -> if (run?.running == true) {
-                    WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
-                    Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (sprintRep?.armed == true) WorkoutSprintTimer(sprintRep)
+                    else if (sprintRep != null && spec.role == CardioRole.WORK) {
+                        WorkoutHeroText(distanceUnitFor(block.activity).inputText(end.metres), distanceUnitFor(block.activity).symbol)
+                    } else {
+                        WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
+                        Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 } else WorkoutHeroText(distanceUnitFor(block.activity).inputText(end.metres), distanceUnitFor(block.activity).symbol)
+            }
+            if (run?.running == true && sprintRep != null) {
+                if (spec.role == CardioRole.WORK && !sprintRep.armed) {
+                    val end = spec.end
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (end is Measure.Distance) {
+                            TextButton(onClick = { actions.onReachCardioTarget(run.action()) }, colors = neutralTextButtonColors()) {
+                                Text(stringResource(R.string.cardio_reached, distanceUnitFor(block.activity).format(end.metres)))
+                            }
+                        }
+                        TextButton(onClick = { actions.onOpenSprintTime(run.action()) }, colors = neutralTextButtonColors()) {
+                            Text(stringResource(R.string.sprint_enter_time))
+                        }
+                        TextButton(onClick = { actions.onStopCardio(run.action()) }, colors = neutralTextButtonColors()) {
+                            Text(stringResource(R.string.sprint_end_rep))
+                        }
+                    }
+                    SprintProtocolChips(sprintRep.protocol, actions.onSprintProtocol)
+                }
+                val lastTime = sprintRep.lastTime
+                if (spec.role == CardioRole.RECOVERY && lastTime != null) {
+                    Text(stringResource(R.string.sprint_rep_time, ClockText.centis(lastTime.centis),
+                        stringResource(lastTime.timingMethod.timedLabelRes())))
+                    if (lastTime.timingMethod == TimingMethod.PHONE) Text(stringResource(R.string.sprint_phone_note))
+                }
             }
             spec.aim?.let {
                 Text(stringResource(R.string.workout_cardio_aim, measureText(it, block.activity)), style = MaterialTheme.typography.titleLarge,
@@ -552,6 +594,24 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             }
         }
     }
+}
+
+@Composable
+private fun WorkoutSprintTimer(sprint: SprintRepUi) {
+    val beep = sprint.beepElapsedMillis ?: return
+    val elapsedMillis = LocalSprintElapsedMillis.current
+    var now by remember(beep, elapsedMillis) { mutableStateOf(elapsedMillis()) }
+    LaunchedEffect(beep, elapsedMillis) {
+        // A frame-driven loop never lets Compose tests go idle; delay ticks fast enough for hundredths.
+        while (true) {
+            now = elapsedMillis()
+            delay(if (now < beep) 250L else 16L)
+        }
+    }
+    if (now < beep) {
+        Text(stringResource(R.string.sprint_beep_in, ((beep - now + 999L) / 1_000L).toInt()),
+            style = MaterialTheme.typography.headlineLarge)
+    } else WorkoutHeroText(ClockText.centis(((now - beep) / 10L).toInt().coerceAtLeast(0)))
 }
 
 @Composable

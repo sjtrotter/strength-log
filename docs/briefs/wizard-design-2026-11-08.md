@@ -1999,3 +1999,45 @@ Tests: SprintRulesTest, ProgressionSprintTest, SprintAllowanceTest, PlannerSprin
 The existing recipe encoder rejects sprint answers, including createPlannedPlan's call, and its bytes are frozen until 7f. Repository and ViewModel sprint tests therefore use the existing authored-plan plus generated-program fixture rather than opening sprint setup or changing the recipe. Plain JVM tests supply careful answers directly to CardioPlan.
 
 This supersedes revision 45's “app wiring remains PR 7's work” and revision 50's loss of sprint receipt Next time. It changes no sprint progression, trial admission, allowance, markers or Undo rule. No network, compilation, Gradle, builds, tests or subagents were used. Source inspection, diff whitespace validation and resource XML parsing completed; CI, pilots and generated PNG inspection remain pending.
+
+## 62. Revision 53 (PR 7e, the sprint timer, typed times and the sprint goal, 2026-11-18)
+
+Sprint setup remains closed until 7f. This implements owner decision 8 and Q18: phone beep-to-tap timing is its own PHONE series, compared only at the same distance and start protocol. Typed times retain their method. The record label is “Phone-timed best.” There is no watch timing.
+
+### Six design calls
+
+1. The beep follows Start on the beep by five seconds. `SPRINT_BEEP_DELAY_MILLIS = 5_000L` is a practice choice that leaves time to set the phone hand at the start line and settle. The measured time starts at the scheduled beep instant, including after process restoration. Phone times include the tone's start latency, a known small slow bias covered by “Approximate” in the phone note.
+2. Enter time finishes the current rep. Its labeled Time (s) field uses seconds and hundredths, or m:ss.hh from a minute. Hand stopwatch is the initial method; Electronic gates, Phone video and Phone timer are explicit choices. Save requires a positive time within `SprintTime.MAX_CENTIS`.
+3. Start type defaults to the run's chosen protocol, then the newest timed result on the same plan day, then Standing. Three-point, Two-point, Blocks, Standing and Flying use the stored enum names. The next recovery shows only the preceding work rep's time and method; a phone result carries the exact phone note.
+4. Only the first judgment of an admitted trial on the plan's first maximal sprint day appends goal attempts. Admission comes from 7d's `outcome.dose == TRIAL`; this adds no judgment or progression rule. Every finished timed work rep still writes its own timing columns, including ordinary sessions. `SprintComparison.attempts` supplies the best per series in first-appearance order.
+5. Sprint goals have a separate row and dialog. The row shows event distance, optional target, the newest series' standing best, its start type and the optional date. The dialog edits target and date or removes the goal; it cannot change distance or kind. The generic save refuses to replace a stored sprint goal. `PlanRepository.setGoal` preserves stored sprint attempts at the same distance.
+6. Backup remains v31. The timing columns have been in backup since v27 and sprint goals and attempts since 5a. Room, DataStore, recipe JSON, goal JSON and watch shapes do not change. Sprint recipe answers and backup v32 remain in 7f.
+
+### Saved state and atomic Finish
+
+The new keys are `day_sprint_timer` (`SprintTimerState`), `day_sprint_times` (`List<CardioSprintTime>`), `day_sprint_protocol` (protocol name), `day_sprint_time_draft` (`SprintTimeDraft`) and `plan_sprint_goal_draft` (`SprintGoalDraft`). Existing keys and Parcelables, including `CardioRun` and `PlanGoalDraft`, retain their field order and types. Half-typed rep and goal text survives restoration through the new drafts. A timer from another boot or more than ten minutes past its beep clears without storing a time. A restored future deadline can beep; a passed deadline never beeps again. ToneGenerator uses STREAM_ALARM at volume 100, creates one 200 ms beep and releases the generator afterward, with no permission change.
+
+Finish passes the run's timed readings through the new `resultSets(gps, times)` overload; the old overload remains unchanged. The last matching time for a finished work position wins. Timing columns, sprint rule writes and admitted trial attempts share the cardio transaction. A goal-write failure rolls them all back. Only that first commit appends attempts; re-rating and distance replay retain them without appending again.
+
+`CardioUndoDto.goal` is an optional default-null `CardioGoalUndoDto(before, after)` inside `progressionUndoJson`. Undo restores the exact previous goal JSON only while the current JSON still equals `after`. A later goal edit is preserved. Non-trial undo encodings continue to omit the new field.
+
+The History single-set edit first tries `toDomainOrNull()`, then decodes a copy with only the three timing columns cleared. Updates copy the stored entity, preserving unreadable timing bytes. The amendment, readings, history flows and bests paths already use `toDomainOrNull()`; the remaining `SetDto::toDomain` call decodes strength sets and cannot see a cardio timing row. Backup validation stays strict.
+
+### Changed expectations
+
+| Existing test | Old → new | Reason |
+|---|---|---|
+| PlanScreenBuilderTest, a sprint goal shows no goal row before PR 7 | Hidden sprint goal with `goal == null` → separate `PlanSprintGoalUi(Sprint(100), null)` while generic `goal` remains null | The sprint row and its editor land together; the test is renamed “a sprint goal shows its own goal row” |
+| PlanScreenTest, a sprint goal cannot open the timed goal editor | Hidden row; navigate to Light week → visible “100 m” and “No attempt yet”; no Add goal while the sprint goal exists | The sprint goal now has its own surface. Boolean fixture true/false becomes sprint UI/null; clearing it still shows Add goal |
+
+Both expectation updates carry their PR 7e comments. No existing numeric expectation changes, including SprintFinishTest, SprintAllowanceTest and pinned §11.2 case 37. Case 37 gains only the end-to-end test name. There are no unpredicted numerical re-pins.
+
+### Files and verification
+
+Production: domain `units/ClockText.kt`; data `TrackerRepository.kt`, `serialization/ProgressionUndoJson.kt`, `HistoryRepository.kt` and `PlanRepository.kt`; app day `SprintTimer.kt`, `SprintTimeSheet.kt`, `CardioRun.kt`, `DayViewModel.kt`, `DayScreenModels.kt`, `WorkoutSetScreen.kt` and `DayScreen.kt`; app `ui/AppNavHost.kt`, `di/TimeModule.kt`, plan `PlanScreenBuilder.kt`, `PlanModels.kt`, `PlanScreen.kt`, `PlanCardioGoal.kt`, `PlanViewModel.kt`, `PlanGoalDraft.kt` and `res/values/strings.xml`. Docs: this revision and the case 37 test list in `STRENGTH_TRACKER_SPEC.md`. This is the specified 23 production and documentation files.
+
+Tests: new `DayViewModelSprintTimerTest`, `SprintTimeSheetTest` and `CardioRunSprintTimeTest`; additions to `ClockTextTest`, `HistoryRepositoryCardioEditTest`, `PlanGoalTest`, `WorkoutSetScreenTest`, `PlanScreenBuilderTest`, `PlanScreenTest`, `PlanViewModelTest` and `PlanCardioGoalScreenTest`. Shared `SprintUiFixtures` and `ProgressionPreviewShotsTest` define p48 through p61, the seven new surfaces at 1x and 2x. The four requested largest-font tests cover timer controls, typed entry, goal row and goal editor. `PlaytestModules.kt` adds only the no-op SprintBeeper binding required because its test module replaces TimeModule; pilot scenarios and expectations are unchanged. Workout callbacks extend the existing `DayActions` type; this checkout has no `WorkoutSetActions` type.
+
+As revision 52 records, the frozen recipe encoder rejects Sprint answers, including through `createPlannedPlan`. The new repository/ViewModel fixture therefore follows SprintFinishTest's authored-plan plus generated sprint-program setup. It does not open sprint setup or alter recipe encoding. The referenced `fix/pr7/plan.md` is absent from this checkout; the implementation follows the supplied 7e brief and repository guidance. The held-marker setup time-field follow-up remains in 7f's SetupFlowRun.kt work.
+
+No network, Gradle, compilation, builds, tests or subagents were used. Static source review, XML parsing, preserved-shape inspection and diff whitespace checks are the local verification. CI on domain, data, transfer and app, the build, pilots and p48–p61 PNG generation and inspection remain pending.

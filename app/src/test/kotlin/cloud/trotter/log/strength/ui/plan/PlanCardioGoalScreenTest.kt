@@ -6,6 +6,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
@@ -78,6 +80,35 @@ class PlanCardioGoalScreenTest {
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("2 mi under 16:00"))
         rule.onNodeWithText("2 mi under 16:00").assertExists()
         rule.onNodeWithText(text).assertExists()
+    }
+
+    @Test fun `the sprint goal editor saves a target or a blank without distance controls`() {
+        val draft = mutableStateOf(SprintGoalDraft())
+        var saved: SprintGoalDraft? = null
+        rule.setContent { AppTheme { PlanSprintGoalEditor(draft.value, actions().copy(
+            onSprintGoalDraft = { draft.value = it }, onSaveSprintGoal = { saved = draft.value })) } }
+        rule.onNodeWithText("Distance").assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.onNodeWithText("Time (s)").performTextReplacement("12.84")
+        rule.onNodeWithText("Save").performClick()
+        assertEquals("12.84", saved?.targetText)
+        rule.onNodeWithText("Time (s)").performTextReplacement("abc")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.onNodeWithText("Time (s)").performTextReplacement("")
+        rule.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintGoalEditor() {
+        val draft = mutableStateOf(SprintGoalDraft("12.84", LocalDate.of(2026, 12, 1).toEpochDay()))
+        rule.setContent { AppTheme { PlanSprintGoalEditor(draft.value, actions().copy(onSprintGoalDraft = { draft.value = it })) } }
+        rule.onNodeWithText("Time (s)").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Dec 1, 2026").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Remove date").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(null, draft.value.byEpochDay)
+        rule.onNodeWithText("Add date").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Remove goal").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test fun `timed goal shows the best and seconds over`() { assertProgress(984, "Best 16:24 · 24 s over") }

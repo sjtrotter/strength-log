@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.transfer.health.HealthConnectClientProvider
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.CardioAlarm
+import cloud.trotter.log.strength.ui.day.SprintBeeper
 import cloud.trotter.log.strength.ui.day.CardioClock
 import dagger.Module
 import dagger.Provides
@@ -96,6 +97,7 @@ internal object PlaytestTimeModule {
     fun civilDay(time: PlaytestTime): Flow<LocalDate> = time.civil.civilTime.map { it.date }.distinctUntilChanged()
     @Provides @Singleton fun cardioClock(time: PlaytestTime): CardioClock = time.cardioClock
     @Provides @Singleton fun cardioAlarm(alarm: PlaytestCardioAlarm): CardioAlarm = alarm
+    @Provides @Singleton fun sprintBeeper(): SprintBeeper = object : SprintBeeper { override fun beep() = Unit }
 }
 
 @Module

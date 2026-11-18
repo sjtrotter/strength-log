@@ -148,7 +148,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         trailingContent = { Switch(state.runCap, onCheckedChange = null) },
                         modifier = Modifier.toggleable(state.runCap, role = Role.Switch, onValueChange = actions.onRunCapChange))
                 }
-                if (!state.sprintGoal) item(key = "cardio_goal_header") {
+                item(key = "cardio_goal_header") {
                     Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goal)) }
                 }
                 if (state.runPhase != null || state.taper) item(key = "run_phase") {
@@ -156,9 +156,12 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         headlineContent = { Text(stringResource(if (state.taper) R.string.plan_phase_taper
                             else runPhaseLabel(requireNotNull(state.runPhase)))) })
                 }
-                if (!state.sprintGoal) item(key = "cardio_goal") {
+                item(key = "cardio_goal") {
                     val goal = state.goal
-                    if (goal == null) {
+                    val sprintGoal = state.sprintGoal
+                    if (sprintGoal != null) {
+                        PlanSprintGoal(sprintGoal, actions)
+                    } else if (goal == null) {
                         TextButton(onClick = actions.onOpenCardioGoal) { Text(stringResource(R.string.plan_add_goal)) }
                     } else {
                         PlanCardioGoal(goal, actions)
@@ -195,6 +198,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         (listOf<Int?>(null) + (4..8).toList()).map { it to lightWeekLabel(it) }, state.lightWeek,
         actions.onLightWeekChange, { progressionDialog = null },
     )
+    state.sprintGoalDraft?.let { PlanSprintGoalEditor(it, actions) }
     state.goalDraft?.let { PlanCardioGoalEditor(it, state.goal != null, actions) }
     state.shuttleEntry?.let { PlanShuttleEntry(it, actions) }
     state.goalDialog?.let { dialog ->

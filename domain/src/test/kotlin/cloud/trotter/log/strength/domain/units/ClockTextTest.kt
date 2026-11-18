@@ -4,6 +4,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ClockTextTest {
+    @Test fun `centis formats seconds and minute clocks with hundredths`() {
+        listOf(1 to "0.01", 452 to "4.52", 1284 to "12.84", 5999 to "59.99", 6000 to "1:00.00", 6231 to "1:02.31")
+            .forEach { (value, text) ->
+                assertEquals(text, ClockText.centis(value))
+                assertEquals(value, ClockText.parseCentis(text))
+            }
+        assertEquals(1280, ClockText.parseCentis("12.8"))
+        assertEquals(1200, ClockText.parseCentis("12"))
+        assertEquals(360_000, ClockText.parseCentis("60:00.00"))
+    }
+
+    @Test fun `parseCentis rejects invalid zero negative and excessive times`() {
+        listOf("abc", "0", "-1", "1:60.00", "60:00.01", "3600.01", "9999999999999999999999",
+            "1.234", "1:2.31", "1:02:31", ".01", "1e2").forEach { assertEquals(null, ClockText.parseCentis(it)) }
+    }
+
     @Test
     fun `formats minutes and zero padded seconds without an hour field`() {
         assertEquals("0:00", ClockText.minutesSeconds(0))

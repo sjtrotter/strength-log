@@ -80,6 +80,22 @@ class HistoryRepositoryCardioEditTest {
         return id
     }
 
+    @Test fun `editing unreadable sprint timing preserves the stored columns`() = runTest {
+        for ((method, protocol) in listOf("SUNDIAL" to "THREE_POINT", "PHONE" to "UNKNOWN")) {
+            val id = insert(listOf(ManualCardio.result(13, 100)))
+            val stored = db.cardioSetResultDao().forSession(id).single().copy(
+                centis = 1234, timingMethod = method, startProtocol = protocol)
+            db.cardioSetResultDao().update(stored)
+            history.updateCardioSession(id, CardioActivity.TRACK_RUN, 14, 100, "Edited")
+            val edited = db.cardioSetResultDao().forSession(id).single()
+            assertEquals(14, edited.elapsedSeconds)
+            assertEquals(stored.centis, edited.centis)
+            assertEquals(stored.timingMethod, edited.timingMethod)
+            assertEquals(stored.startProtocol, edited.startProtocol)
+            assertEquals("Edited", history.cardioSession(id)!!.note)
+        }
+    }
+
     @Test
     fun `editing a one-set session keeps its start and rewrites duration distance and note`() = runTest {
         val id = insert()

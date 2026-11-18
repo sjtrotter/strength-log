@@ -36,6 +36,10 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.model.SprintAttempt
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RecentRace
@@ -52,6 +56,45 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PlanScreenTest {
+
+    @Test fun `a sprint goal shows its distance date and best series`() {
+        val goal = PlanGoal.Sprint(100, byEpochDay = java.time.LocalDate.of(2026, 12, 1).toEpochDay())
+        val state = mutableStateOf(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(goal, null)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("100 m"))
+        rule.onNodeWithText("100 m").assertIsDisplayed()
+        rule.onNodeWithText("No attempt yet").assertIsDisplayed()
+        rule.onNodeWithText("By Dec 1, 2026").assertIsDisplayed()
+        val best = SprintAttempt(123L, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))
+        rule.runOnIdle { state.value = state.value.copy(sprintGoal = PlanSprintGoalUi(goal.copy(attempts = listOf(best)), best)) }
+        rule.onNodeWithText("Phone-timed best 12.84").assertIsDisplayed()
+        rule.onNodeWithText("Start type: Three-point").assertIsDisplayed()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintGoalRow() {
+        val best = SprintAttempt(123L, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))
+        val goal = PlanGoal.Sprint(100, attempts = listOf(best))
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(goal, best)), actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("100 m"))
+        rule.onNodeWithText("100 m").assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Start type: Three-point"))
+        rule.onNodeWithText("Phone-timed best 12.84").assertIsDisplayed()
+        rule.onNodeWithText("Start type: Three-point").assertIsDisplayed()
+    }
+
+    @Test fun `the sprint goal editor settles over the plan with its goal row`() {
+        val best = SprintAttempt(123L, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))
+        val goal = PlanGoal.Sprint(100, targetCentis = 1250, attempts = listOf(best),
+            byEpochDay = java.time.LocalDate.of(2026, 12, 1).toEpochDay())
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(goal, best),
+            sprintGoalDraft = SprintGoalDraft("12.50", goal.byEpochDay)), actions()) } }
+        rule.onNode(hasText("Time (s)") and hasText("12.50") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        rule.onNode(hasText("Dec 1, 2026") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        rule.onNode(hasScrollAction() and !hasAnyAncestor(isDialog()))
+            .performScrollToNode(hasText("Phone-timed best 12.84"))
+        rule.onNodeWithText("Phone-timed best 12.84").assertExists()
+    }
 
     @Test fun automaticHidesOfferRowsAndSwitchingToAskShowsStoredChoices() {
         val state = mutableStateOf(planScreenFixture().copy(autoApply = true, offerStrengthIncreases = false,
@@ -578,11 +621,14 @@ class PlanScreenTest {
         equipment = answers.equipment, goalsLb = answers.goalsLb,
         legacyMains = answers.mains.toSet()))
     @Test fun `a sprint goal cannot open the timed goal editor`() {
-        val state = mutableStateOf(planScreenFixture().copy(sprintGoal = true, goal = null))
+        val state = mutableStateOf(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(PlanGoal.Sprint(100), null), goal = null))
         rule.setContent { AppTheme { PlanScreen(state.value, actions()) } }
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Light week"))
+        // PR 7e: the hidden sprint goal now has its own row and editor.
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("100 m"))
+        rule.onNodeWithText("100 m").assertIsDisplayed()
+        rule.onNodeWithText("No attempt yet").assertIsDisplayed()
         rule.onNodeWithText("Add goal").assertDoesNotExist()
-        rule.runOnIdle { state.value = state.value.copy(sprintGoal = false) }
+        rule.runOnIdle { state.value = state.value.copy(sprintGoal = null) }
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Add goal"))
         rule.onNodeWithText("Add goal").assertIsDisplayed()
     }

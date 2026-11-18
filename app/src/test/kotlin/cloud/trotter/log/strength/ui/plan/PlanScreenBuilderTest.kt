@@ -56,12 +56,14 @@ class PlanScreenBuilderTest {
             ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
     }
 
-    @Test fun `a sprint goal shows no goal row before PR 7`() {
+    @Test fun `a sprint goal shows its own goal row`() {
         val plan = PlanEntity(1, "Sprint", PlanOrigin.AUTHORED.name, 0, 0,
             goalJson = PlanGoalJson.encode(PlanGoal.Sprint(100)))
         val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList<ProgramDay>()),
             ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
         assertNull(state.goal)
+        // PR 7e: the sprint row replaces the hidden sprint goal.
+        assertEquals(PlanSprintGoalUi(PlanGoal.Sprint(100), null), state.sprintGoal)
     }
 
     private val catalog = ExerciseCatalog.CODE_ONLY

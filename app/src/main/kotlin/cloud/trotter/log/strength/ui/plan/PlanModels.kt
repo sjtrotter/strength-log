@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RecentRace
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.SprintAttempt
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -35,8 +36,11 @@ data class PlanUiState(
     val runCap: Boolean = true,
     val runPhase: RunPhase? = null,
     val taper: Boolean = false,
-    val sprintGoal: Boolean = false,
+    val sprintGoal: PlanSprintGoalUi? = null,
+    val sprintGoalDraft: SprintGoalDraft? = null,
 )
+
+data class PlanSprintGoalUi(val goal: PlanGoal.Sprint, val best: SprintAttempt?)
 
 data class PlanGoalUi(val goal: PlanGoal, val best: Int?, val met: Boolean,
                       val predictedSeconds: Int? = null, val predictedFrom: RecentRace? = null)
@@ -87,6 +91,8 @@ data class PlanActions(
     val onRemoveLiftGoal: () -> Unit = {},
     val onDismissGoal: () -> Unit = {},
     val onOpenCardioGoal: () -> Unit = {},
+    val onSprintGoalDraft: (SprintGoalDraft) -> Unit = {},
+    val onSaveSprintGoal: () -> Unit = {},
     val onCardioGoalDraft: (PlanGoalDraft) -> Unit = {},
     val onRemoveGoal: () -> Unit = {},
     val onOpenShuttleEntry: () -> Unit = {},

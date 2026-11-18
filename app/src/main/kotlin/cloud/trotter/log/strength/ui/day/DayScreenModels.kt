@@ -285,6 +285,11 @@ enum class WatchStatusKind { ACTIVE, SYNCING, OFFLINE_QUEUED }
 data class WatchStatus(val kind: WatchStatusKind, val changeCount: Int = 0)
 
 @Immutable
+data class SprintRepUi(val armed: Boolean, val beepElapsedMillis: Long?,
+                       val protocol: cloud.trotter.log.strength.domain.model.StartProtocol,
+                       val lastTime: cloud.trotter.log.strength.domain.model.SprintTime?)
+
+@Immutable
 data class CardioCardState(
     val label: String,
     val detail: String,
@@ -313,6 +318,7 @@ data class CardioCardState(
     val gpsAsk: Boolean = false,
     val gpsSets: List<CardioGpsSet> = emptyList(),
     val sprint: SprintStartUi? = null,
+    val sprintRep: SprintRepUi? = null,
 )
 
 data class SprintStartUi(val dose: SprintDose, val shortenedReps: Int?, val daysSince: Long?, val spacingDays: Int,

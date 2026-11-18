@@ -15,7 +15,6 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
-import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -169,7 +168,9 @@ class HistoryRepository(
             val editedSeconds = seconds?.takeIf { results.size == 1 }
             if (editedSeconds != null) {
                 val result = results.single()
-                val edited = requireNotNull(CardioEdit.apply(result.toDomain(), editedSeconds, metres, readingAtEnd))
+                val edited = requireNotNull(CardioEdit.apply(requireNotNull(result.toDomainOrNull()
+                    ?: result.copy(centis = null, timingMethod = null, startProtocol = null).toDomainOrNull()),
+                    editedSeconds, metres, readingAtEnd))
                 if (editedSeconds != result.elapsedSeconds || metres != result.metres || readingAtEnd != null) {
                     cardioSetResultDao.update(result.copy(
                         specJson = CardioBlockJson.encodeSet(edited.spec),

@@ -58,6 +58,22 @@ class CardioSetsScreenTest {
             startedAt = 1_000, wallStart = 1_000, elapsedStart = 1_000, bootCount = 1)
     }
 
+    @Test fun `a ready sprint rep can be ended from All sets`() {
+        val cardio = requireNotNull(sprintRepFixture().cardio)
+        var ended = 0
+        var closed = 0
+        rule.setContent { AppTheme {
+            WorkoutCardioSheet(cardio, "A", workoutActions().copy(onCloseAllSets = { closed++ }),
+                onEnd = { ended++ }, startEnabled = false, executionBusy = true)
+        } }
+        rule.onNodeWithContentDescription("More").performClick()
+        rule.onNodeWithText("End cardio").assertIsEnabled().performClick()
+        rule.runOnIdle {
+            assertEquals(1, closed)
+            assertEquals(1, ended)
+        }
+    }
+
     @Test fun swapCommitsTheChosenActivityAndTemplate() {
         val cardio = CardioCardState("Road run", "", false,
             block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200)))),

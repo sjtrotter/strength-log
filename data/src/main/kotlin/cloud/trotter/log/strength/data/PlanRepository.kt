@@ -246,6 +246,8 @@ class PlanRepository(
                 it.protocol.trim().equals(goal.protocol.trim(), ignoreCase = true)
             }?.attempts.orEmpty()
             goal.copy(protocol = goal.protocol.trim(), attempts = attempts)
+        } else if (goal is PlanGoal.Sprint) {
+            goal.copy(attempts = (stored as? PlanGoal.Sprint)?.takeIf { it.metres == goal.metres }?.attempts.orEmpty())
         } else goal
         planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
     }

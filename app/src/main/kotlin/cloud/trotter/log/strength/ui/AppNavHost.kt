@@ -468,6 +468,8 @@ private fun PlanRoute(
             onDismissDayDialog = viewModel::dismissDayDialog,
             onOpenCardioGoal = viewModel::openGoal,
             onCardioGoalDraft = viewModel::changeGoalDraft,
+            onSprintGoalDraft = viewModel::changeSprintGoalDraft,
+            onSaveSprintGoal = viewModel::saveSprintGoal,
             onRemoveGoal = viewModel::removeGoal,
             onOpenShuttleEntry = viewModel::openShuttleEntry,
             onShuttleEntry = viewModel::changeShuttleEntry,
@@ -503,6 +505,7 @@ internal fun DayRoute(
     val noteSave by viewModel.finisher.noteSave.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
     val pastCardio by viewModel.pastCardio.collectAsStateWithLifecycle()
+    val sprintTimeDraft by viewModel.sprintTimeDraft.collectAsStateWithLifecycle()
     val pastCardioSaveFailed by viewModel.pastCardioSaveFailed.collectAsStateWithLifecycle()
     val pastCardioSaving by viewModel.pastCardioSaving.collectAsStateWithLifecycle()
     val pastCardioCollision by viewModel.pastCardioCollision.collectAsStateWithLifecycle()
@@ -595,6 +598,13 @@ internal fun DayRoute(
         onStartCardioAfterWarmUp = viewModel::startCardioAfterWarmUp,
         onStopCardio = viewModel::stopCardio,
         onReachCardioTarget = viewModel::reachCardioTarget,
+        onArmSprintTimer = viewModel::armSprintTimer,
+        onStopSprintTimer = viewModel::stopSprintTimer,
+        onOpenSprintTime = viewModel::openSprintTime,
+        onSprintProtocol = viewModel::setSprintProtocol,
+        onSprintTimeDraft = viewModel::changeSprintTimeDraft,
+        onSaveSprintTime = viewModel::saveSprintTimeDraft,
+        onDismissSprintTime = viewModel::dismissSprintTime,
         onSkipCardioSet = viewModel::skipCardioSet,
         onEndCardioBlock = viewModel::endCardioBlock,
         onAddCardioSet = viewModel::addCardioSet,
@@ -684,6 +694,7 @@ internal fun DayRoute(
         nowMillis = viewModel.nowMillis,
         removedSets = removedSets,
         pastCardio = pastCardio,
+        sprintTimeDraft = sprintTimeDraft,
         pastCardioSaveFailed = pastCardioSaveFailed,
         pastCardioSaving = pastCardioSaving,
         pastCardioCollision = pastCardioCollision,

@@ -54,7 +54,7 @@ object PlanScreenBuilder {
             taper = run != null && Taper.factor(goal, todayEpochDay) != null,
             goal = goal?.let { goal ->
                 when (goal) {
-                    is PlanGoal.Sprint -> null // Sprint goal attempts and editing arrive together in PR 7e.
+                    is PlanGoal.Sprint -> null
                     is PlanGoal.Timed -> GoalProgress.bestTimed(goal, cardio).let { best ->
                         val recent = answers?.run?.recent?.takeIf { goal.metres <= RunEvent.MARATHON.metres }
                         PlanGoalUi(goal, best, GoalProgress.met(goal, best),
@@ -65,7 +65,7 @@ object PlanScreenBuilder {
                     }
                 }
             },
-            sprintGoal = goal is PlanGoal.Sprint,
+            sprintGoal = (goal as? PlanGoal.Sprint)?.let { PlanSprintGoalUi(it, GoalProgress.bestSprint(it)) },
             unit = unit,
             name = plan?.name,
             planId = plan?.id,

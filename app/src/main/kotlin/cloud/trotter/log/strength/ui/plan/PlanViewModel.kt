@@ -14,6 +14,8 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -55,8 +57,9 @@ class PlanViewModel @Inject constructor(
     private val goal = savedState.getStateFlow<String?>(GOAL, null)
     private val goalDraft = savedState.getStateFlow<Double?>(GOAL_DRAFT, null)
     private val cardioGoalDraft = savedState.getStateFlow<PlanGoalDraft?>(CARDIO_GOAL_DRAFT, null)
+    private val sprintGoalDraft = savedState.getStateFlow<SprintGoalDraft?>(SPRINT_GOAL_DRAFT, null)
     private val shuttleEntry = savedState.getStateFlow<String?>(SHUTTLE_ENTRY, null)
-    private val cardioDialogs = combine(cardioGoalDraft, shuttleEntry) { draft, entry -> draft to entry }
+    private val cardioDialogs = combine(cardioGoalDraft, shuttleEntry, sprintGoalDraft) { draft, entry, sprint -> Triple(draft, entry, sprint) }
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
         sessions.map { session ->
             CardioActivity.entries.firstOrNull { it.name == session.activity } to sets[session.id].orEmpty()
@@ -71,7 +74,7 @@ class PlanViewModel @Inject constructor(
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
-            goalDraft = cardio.first, shuttleEntry = cardio.second,
+            goalDraft = cardio.first, shuttleEntry = cardio.second, sprintGoalDraft = cardio.third,
             goalDialog = program.goals.firstOrNull { it.exerciseId == goalId }?.let { row ->
                 PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb, hasGoal = row.goalLb != null)
             },
@@ -81,9 +84,28 @@ class PlanViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
 
     fun openGoal() {
-        savedState[CARDIO_GOAL_DRAFT] = PlanGoalDraft.from(uiState.value.goal?.goal)
+        val sprint = uiState.value.sprintGoal?.goal
+        savedState[SPRINT_GOAL_DRAFT] = sprint?.let {
+            SprintGoalDraft(it.targetCentis?.let(ClockText::centis).orEmpty(), it.byEpochDay)
+        }
+        savedState[CARDIO_GOAL_DRAFT] = if (sprint == null) PlanGoalDraft.from(uiState.value.goal?.goal) else null
         savedState[GOAL] = null
         savedState[GOAL_DRAFT] = null
+    }
+
+    fun changeSprintGoalDraft(draft: SprintGoalDraft) { savedState[SPRINT_GOAL_DRAFT] = draft }
+
+    fun saveSprintGoal() {
+        val draft = sprintGoalDraft.value ?: return
+        val target = if (draft.targetText.isBlank()) null else ClockText.parseCentis(draft.targetText) ?: return
+        viewModelScope.launch {
+            mutationLock.withLock {
+                val stored = PlanGoalJson.decode(plans.plansFlow.first().firstOrNull { it.id == planId }?.goalJson)
+                    as? PlanGoal.Sprint ?: return@withLock
+                plans.setGoal(planId, stored.copy(targetCentis = target, byEpochDay = draft.byEpochDay))
+                dismissGoal()
+            }
+        }
     }
 
     fun changeGoalDraft(draft: PlanGoalDraft) {
@@ -123,6 +145,7 @@ class PlanViewModel @Inject constructor(
 
     fun openGoal(exerciseId: String) {
         val row = uiState.value.goals.firstOrNull { it.exerciseId == exerciseId } ?: return
+        savedState[SPRINT_GOAL_DRAFT] = null
         savedState[CARDIO_GOAL_DRAFT] = null
         savedState[GOAL] = exerciseId
         savedState[GOAL_DRAFT] = row.goalLb
@@ -132,9 +155,11 @@ class PlanViewModel @Inject constructor(
 
     fun saveGoal() {
         cardioGoalDraft.value?.let { draft ->
+            if (uiState.value.sprintGoal != null) return
             val next = draft.goal() ?: return
             viewModelScope.launch {
                 mutationLock.withLock {
+                    if (PlanGoalJson.decode(plans.plansFlow.first().firstOrNull { it.id == planId }?.goalJson) is PlanGoal.Sprint) return@withLock
                     plans.setGoal(planId, next)
                     dismissGoal()
                 }
@@ -162,6 +187,7 @@ class PlanViewModel @Inject constructor(
     }
 
     fun dismissGoal() {
+        savedState[SPRINT_GOAL_DRAFT] = null
         savedState[CARDIO_GOAL_DRAFT] = null
         savedState[GOAL] = null
         savedState[GOAL_DRAFT] = null
@@ -248,6 +274,7 @@ class PlanViewModel @Inject constructor(
     }
 
     private companion object {
+        const val SPRINT_GOAL_DRAFT = "plan_sprint_goal_draft"
         const val CARDIO_GOAL_DRAFT = "plan_goal_draft"
         const val SHUTTLE_ENTRY = "plan_shuttle_entry"
         const val GOAL = "plan_goal_exercise"

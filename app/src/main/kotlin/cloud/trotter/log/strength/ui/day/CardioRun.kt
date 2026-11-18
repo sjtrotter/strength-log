@@ -5,6 +5,10 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.cardio.BootAnchor
 import cloud.trotter.log.strength.domain.cardio.CardioExecution
 import cloud.trotter.log.strength.domain.cardio.CardioSummary
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
@@ -97,11 +101,16 @@ data class CardioRun(
     val canAddSet: Boolean get() = !complete && !(running && block.openEnded)
     val resultSets: List<CardioSetResult> get() = resultSets(emptyList())
 
-    fun resultSets(gps: List<CardioGpsSet>): List<CardioSetResult> {
+    fun resultSets(gps: List<CardioGpsSet>): List<CardioSetResult> = resultSets(gps, emptyList())
+
+    fun resultSets(gps: List<CardioGpsSet>, times: List<CardioSprintTime>): List<CardioSetResult> {
         val prescriptions = block.sets
         return results.mapIndexed { index, result ->
+            val time = times.lastOrNull { it.runId == runId && it.position == index }
+                ?.takeIf { result.status == CardioSetStatus.FINISHED.name && prescriptions[index].role == CardioRole.WORK }
             val row = CardioSetResult(prescriptions[index], CardioSetStatus.valueOf(result.status), result.seconds,
-                result.metres, result.metres?.let { DistanceSource.MANUAL })
+                result.metres, result.metres?.let { DistanceSource.MANUAL },
+                timing = time?.let { SprintTime(it.centis, TimingMethod.valueOf(it.method), StartProtocol.valueOf(it.protocol)) })
             val stamp = gps.firstOrNull { it.runId == runId && it.position == index && it.complete }
             if (stamp == null) row else {
                 val keepReading = !stamp.typed || when (row.spec.end) {

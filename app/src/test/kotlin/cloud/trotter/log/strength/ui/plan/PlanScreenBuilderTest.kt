@@ -278,7 +278,7 @@ class PlanScreenBuilderTest {
             assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.withPhase(plan.recipeJson!!, null)),
                 Program(emptyList()), catalog, WeightUnit.LB).runPhase)
             assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = null, goalJson = PlanGoalJson.encode(
-                PlanGoal.Sprint(100, 2000)))), Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+                PlanGoal.Sprint(100, 2000))), Program(emptyList()), catalog, WeightUnit.LB).runPhase)
         }
     }
 

@@ -388,7 +388,8 @@ class RunReplanFinishTest {
         assertEquals(oldRecipe, recipe())
         assertEquals("BASE", assertNotNull(undo(session).plan?.replanOffer).phase)
         assertNull(undo(session).plan?.replan)
-        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        // An offer writes nothing, so the cursor moves on through the ladder program as usual.
+        assertEquals("D", db.planDao().plan(plan)?.suggestedDayId)
         assertEquals(1, db.planDao().plan(plan)?.cyclesCompleted)
         assertTrue(repo.acceptReplanOffer(null, session))
         assertEquals(RunPhase.BASE, phase())

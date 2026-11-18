@@ -99,10 +99,11 @@ internal fun spokenCardioNextLine(state: ReceiptProgressState): String? {
 private fun runNextValue(state: ReceiptProgressState): String {
     val result = state.run ?: return ""
     val block = result.block ?: state.cardioStored ?: return ""
-    val level = (result.change as? CardioChange.LevelTo)?.level ?: result.from
+    val change = result.change
+    val level = (change as? CardioChange.LevelTo)?.level ?: result.from
     val value = when {
-        result.change is CardioChange.Alternate -> stringResource(R.string.receipt_run_kind,
-            result.change.to.title, blockValue(block, distanceUnitFor(block.activity)))
+        change is CardioChange.Alternate -> stringResource(R.string.receipt_run_kind,
+            change.to.title, blockValue(block, distanceUnitFor(block.activity)))
         state.runLadder && result.change != CardioChange.LadderDone && level != null ->
             stringResource(R.string.receipt_run_level, level, RunWalkLadder.TOP)
         else -> blockValue(block, distanceUnitFor(block.activity))
@@ -113,7 +114,7 @@ private fun runNextValue(state: ReceiptProgressState): String {
 @Composable
 private fun runWhyLine(state: ReceiptProgressState, name: String): String? {
     val result = state.run ?: return null
-    if (result.credit) return stringResource(R.string.receipt_why_ladder_credit, result.from)
+    if (result.credit) return stringResource(R.string.receipt_why_ladder_credit, result.from ?: return null)
     when (result.hold) {
         LadderHold.WEEK_CAP -> return stringResource(R.string.receipt_why_ladder_week_cap)
         LadderHold.BUSY -> return stringResource(R.string.receipt_why_ladder_busy)
@@ -121,9 +122,9 @@ private fun runWhyLine(state: ReceiptProgressState, name: String): String? {
         null -> Unit
     }
     return when (val change = result.change) {
-        is CardioChange.LevelTo -> if (change.level > (result.from ?: change.level))
-            stringResource(R.string.receipt_why_ladder_up, result.from)
-            else stringResource(R.string.receipt_why_ladder_down, change.level)
+        is CardioChange.LevelTo -> { val from = result.from
+            if (from != null && change.level > from) stringResource(R.string.receipt_why_ladder_up, from)
+            else stringResource(R.string.receipt_why_ladder_down, change.level) }
         CardioChange.LadderDone -> stringResource(R.string.receipt_why_ladder_done)
         CardioChange.Step -> {
             val block = result.block ?: return null

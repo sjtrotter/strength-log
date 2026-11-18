@@ -413,7 +413,7 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("A time").performClick()
         rule.onNodeWithText("Target time").performTextReplacement("3:30")
         rule.onNodeWithText("Target time").performImeAction()
-        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Enter a time between 1:10:19 and 24:00:00").assertExists()
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
         rule.onNodeWithText("Target time").performTextReplacement("3:30:00")
@@ -477,7 +477,7 @@ class SetupFlowScreenTest {
             SetupFlowActions(onMarathonBest = { shown = shown.copy(draft = shown.draft.copy(marathonBestSeconds = it)) }))
         rule.onNodeWithText("Marathon best").performTextReplacement("3:30")
         rule.onNodeWithText("Marathon best").performImeAction()
-        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Enter a time between 1:10:19 and 24:00:00").assertExists()
         rule.runOnIdle { assertNull(shown.draft.marathonBestSeconds) }
         rule.onNodeWithText("Marathon best").performTextReplacement("3:30:00")
         rule.onNodeWithText("Marathon best").performImeAction()

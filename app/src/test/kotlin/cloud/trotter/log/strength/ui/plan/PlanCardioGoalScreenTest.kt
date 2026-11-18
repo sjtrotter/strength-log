@@ -308,7 +308,7 @@ class PlanCardioGoalScreenTest {
         )) } }
         rule.onNodeWithText("Target time").performTextReplacement("3:30")
         rule.onNodeWithText("Target time").performImeAction()
-        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Enter a time between 1:10:19 and 24:00:00").assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
         rule.onNodeWithText("Target time").performTextReplacement("3:30:00")

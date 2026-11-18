@@ -847,7 +847,7 @@
     <string name="form_seconds_label">Seconds</string>
     <string name="form_weight_range">Enter a weight between %1$s and %2$s</string>
     <string name="form_number_range">Enter a number between %1$s and %2$s</string>
-    <string name="form_time_range">Enter a time between %1$s and %2$s.</string>
+    <string name="form_time_range">Enter a time between %1$s and %2$s</string>
     <string name="form_weight_minimum">Enter a weight of at least %1$s</string>
     <string name="form_number_minimum">Enter a number of at least %1$s</string>
     <string name="form_rest_duration">%1$d min %2$d s</string>

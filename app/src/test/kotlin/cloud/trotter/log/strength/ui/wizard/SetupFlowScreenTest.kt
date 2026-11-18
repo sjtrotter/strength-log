@@ -556,14 +556,17 @@ class SetupFlowScreenTest {
         rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
         rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("1:30:00")
         rule.onNodeWithText("Next").assertIsEnabled()
-        // PR 7f: 1:30:00 exceeds Marathon's unchanged 4219-second floor; 1:00:00 exercises the floor change.
+        rule.runOnIdle { assertEquals(5400, vm.uiState.value.draft.goalSeconds) }
         rule.runOnIdle { vm.setRunGoal(RunGoal.MARATHON) }
         rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.runGoal == RunGoal.MARATHON } }
         rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(5400, vm.uiState.value.draft.goalSeconds) }
         rule.runOnIdle { vm.setRunGoal(RunGoal.HALF_MARATHON) }
         rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.runGoal == RunGoal.HALF_MARATHON } }
-        rule.onNodeWithText("Target time").performTextReplacement("1:00:00")
+        rule.onNodeWithText("Target time").requestFocus().performTextReplacement("1:00:00")
         rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("Target time").assertIsFocused()
+        rule.runOnIdle { assertEquals(3600, vm.uiState.value.draft.goalSeconds) }
         rule.runOnIdle { vm.setRunGoal(RunGoal.MARATHON) }
         rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.draft.goalSeconds == INVALID_GOAL_TIME } }
         val floor = SetupFlowStateBuilder.goalTimeFloor(vm.uiState.value.draft)

@@ -96,7 +96,8 @@ internal fun SetupSegments(labels: List<String>, selected: Int, onSelect: (Int) 
 private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: Int? = null, onChange: (Int?) -> Unit) {
     val change: (Double?) -> Unit = { onChange(it?.toInt()) }
     key(minSeconds) {
-        NumberField(value = value?.takeIf { it >= minSeconds }?.toDouble(), onValueChange = change,
+        // Draft edits persist already; disposing a focused field must not write using its old floor.
+        NumberField(value = value?.takeIf { it >= minSeconds }?.toDouble(), onValueChange = {},
             onDraftChange = { if (invalid == null) change(it) },
             onDraftEdit = { text, parsed ->
                 if (invalid != null) onChange(when {

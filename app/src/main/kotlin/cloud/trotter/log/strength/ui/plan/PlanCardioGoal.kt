@@ -258,9 +258,10 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: INVALID_TIME)) }
         val floor = GoalTime.floorSeconds(draft.metres, activity)
         key(floor) {
+            // Draft edits persist already; disposing a focused field must not write using its old floor.
             NumberField(
                 value = draft.underSeconds.takeIf { it >= floor }?.toDouble(),
-                onValueChange = onTime, onDraftChange = onTime,
+                onValueChange = {}, onDraftChange = onTime,
                 label = stringResource(R.string.plan_goal_target_time),
                 minValue = floor.toDouble(), maxValue = 86_400.0,
                 format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },

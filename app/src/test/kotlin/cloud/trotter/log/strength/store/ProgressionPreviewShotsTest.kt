@@ -494,7 +494,7 @@ class ProgressionPreviewShotsTest {
     private fun fortyYardReceipt(name: String, scale: Float) {
         val (receipt, progress) = sprintFortyYardReceiptFixture()
         render(scale) { SessionReceiptScreen(receipt, {}, {}, progress = progress) }
-        rule.onNodeWithText("40 yd").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         capture(name)
     }
     @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")

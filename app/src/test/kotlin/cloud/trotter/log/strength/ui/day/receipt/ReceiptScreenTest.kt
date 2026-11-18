@@ -118,9 +118,9 @@ class ReceiptScreenTest {
     @Test fun `a forty yard sprint receipt uses the event label`() {
         val (receipt, progress) = sprintFortyYardReceiptFixture()
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
-        rule.onNodeWithText("40 yd").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Next time: 40 yd").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("37 m").assertDoesNotExist()
+        rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Next time: 40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("37 m", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test fun `a non sprint receipt keeps 37 metres`() {
@@ -129,8 +129,8 @@ class ReceiptScreenTest {
         val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
             cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}) } }
-        rule.onNodeWithText("37 m").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("40 yd").assertDoesNotExist()
+        rule.onNodeWithText("37 m", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("40 yd", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

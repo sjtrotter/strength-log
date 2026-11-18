@@ -89,7 +89,7 @@ class PlanScreenTest {
             byEpochDay = java.time.LocalDate.of(2026, 12, 1).toEpochDay())
         rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(goal, best),
             sprintGoalDraft = SprintGoalDraft("12.50", goal.byEpochDay)), actions()) } }
-        rule.onNode(hasText("Target time") and hasText("12.50") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        rule.onNode(hasText("Time (s)") and hasText("12.50") and hasAnyAncestor(isDialog())).assertIsDisplayed()
         rule.onNode(hasText("Dec 1, 2026") and hasAnyAncestor(isDialog())).assertIsDisplayed()
         rule.onNode(hasScrollAction() and !hasAnyAncestor(isDialog()))
             .performScrollToNode(hasText("Phone-timed best 12.84"))

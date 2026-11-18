@@ -81,7 +81,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -600,8 +599,10 @@ private fun WorkoutSprintTimer(sprint: SprintRepUi) {
     val elapsedMillis = LocalSprintElapsedMillis.current
     var now by remember(beep, elapsedMillis) { mutableStateOf(elapsedMillis()) }
     LaunchedEffect(beep, elapsedMillis) {
+        // A frame-driven loop never lets Compose tests go idle; delay ticks fast enough for hundredths.
         while (true) {
-            withFrameMillis { now = elapsedMillis() }
+            now = elapsedMillis()
+            delay(10L)
         }
     }
     if (now < beep) {

@@ -705,7 +705,9 @@ class SetupFlowViewModelTest {
         start(vm)
         val stored = db.planDao().allPlans().single()
         assertEquals(LiftGoal.STRENGTH, stored.planSettings.defaultsFor)
-        assertFalse(assertNotNull(stored.setupAnswers(WeightUnit.LB)).olderAdult)
+        val saved = assertNotNull(stored.setupAnswers(WeightUnit.LB))
+        assertFalse(saved.olderAdult)
+        assertEquals(LiftGoal.GENERAL, SetupFlowStateBuilder.draftFrom(saved).goal)
         val plannedMain = expected.program.days.first().exercises.first { it.rule?.role == SlotRole.MAIN }
         val persistedMain = repo.plans.programFor(stored.id).first().days.first().exercises
             .first { it.rule?.role == SlotRole.MAIN }
@@ -718,6 +720,45 @@ class SetupFlowViewModelTest {
         assertEquals(180, expectedRest)
         assertEquals(expectedRest, RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
             persistedMain.rule, stored.planSettings.defaultsFor))
+    }
+
+    @Test fun `Start persists Strength defaults and strength block rest for a Run plan`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); vm.setStrengthBlocks(2); advanceUntilIdle()
+        val input = answers(vm)
+        assertEquals(LiftGoal.GENERAL, input.goal)
+        val expected = Planner.plan(input)
+        start(vm)
+        val stored = db.planDao().allPlans().single()
+        assertEquals(LiftGoal.STRENGTH, stored.planSettings.defaultsFor)
+        assertEquals(2, assertNotNull(stored.setupAnswers(WeightUnit.LB)).run.strengthBlocks)
+        val plannedSecondary = expected.program.days.first().exercises.first { it.rule?.role == SlotRole.SECONDARY }
+        val persistedSecondary = repo.plans.programFor(stored.id).first().days.first().exercises
+            .first { it.rule?.role == SlotRole.SECONDARY }
+        assertEquals(plannedSecondary.rule, persistedSecondary.rule)
+        val overrides = settings.restSettingsFlow.first().overrides
+        assertTrue(overrides.isEmpty())
+        val entry = ExerciseLibrary.get(persistedSecondary.exerciseId)
+        val expectedRest = RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            plannedSecondary.rule, input.slotGoal)
+        assertEquals(120, expectedRest)
+        assertEquals(expectedRest, RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            persistedSecondary.rule, stored.planSettings.defaultsFor))
+    }
+
+    @Test fun `Start preserves the chosen lift goal for Lift and Both plans`() = runVmTest {
+        for (draft in listOf(SetupDraft(), SetupFlowFixtures.both, SetupFlowFixtures.bothSprint)) {
+            for (goal in LiftGoal.entries) {
+                val chosen = draft.copy(goal = goal)
+                val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+                    "setup_draft" to SetupDraftJson.encode(chosen))))
+                advanceUntilIdle()
+                start(vm)
+                val stored = db.planDao().allPlans().last()
+                assertEquals(goal, stored.planSettings.defaultsFor)
+                assertEquals(goal, assertNotNull(stored.setupAnswers(WeightUnit.LB)).goal)
+            }
+        }
     }
 
     @Test fun `Start writes a sprint plan whose careful answer reaches Start`() = runVmTest {

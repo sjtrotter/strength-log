@@ -329,7 +329,7 @@ class SetupFlowStateBuilderTest {
             hamstringStrain = true, fortyOrOlder = true, goal = LiftGoal.MUSCLE)
         val mapped = builder.answers(sprint)
         assertEquals(SprintAnswers(SprintEvent.YD40, true, true, true), mapped.sprint)
-        assertEquals(LiftGoal.STRENGTH, mapped.goal)
+        assertEquals(LiftGoal.GENERAL, mapped.goal)
         assertEquals(RunAnswers(), mapped.run)
         val both = builder.answers(sprint.copy(branch = PlanBranch.BOTH, sprintCardio = true, cardioFirst = true,
             together = BothAnswers.Together.SEPARATE_DAYS))
@@ -425,11 +425,20 @@ class SetupFlowStateBuilderTest {
         assertEquals(three, week(sprintDraft))
         assertEquals(three + listOf(DayOfWeek.FRIDAY to SprintWeekKind.UPPER, DayOfWeek.SATURDAY to SprintWeekKind.TEMPO,
             DayOfWeek.SUNDAY to SprintWeekKind.UPPER), week(sprintDraft.copy(days = 6)))
-        val noUpper = listOf(DayOfWeek.MONDAY to SprintWeekKind.SPRINT, DayOfWeek.TUESDAY to SprintWeekKind.SPRINT)
+        val noUpper = two
         for (draft in listOf(sprintDraft, bothSprint)) {
             assertEquals(noUpper, week(draft.copy(mains = listOf("bb_back_squat"))))
-            assertEquals(noUpper + (DayOfWeek.THURSDAY to SprintWeekKind.TEMPO),
+            assertEquals(noUpper + (DayOfWeek.SATURDAY to SprintWeekKind.TEMPO),
                 week(draft.copy(days = 6, mains = listOf("bb_back_squat"))))
+        }
+    }
+
+    @Test fun `each sprint weekday template matches its rotation size`() {
+        for (days in 1..6) for (draft in listOf(sprintDraft, bothSprint)) {
+            for (mains in listOf(null, listOf("bb_back_squat"))) {
+                val answers = builder.answers(draft.copy(days = days, mains = mains))
+                assertEquals(Planner.plan(answers).program.rotationDays.size, builder.sprintWeekdays(days).size)
+            }
         }
     }
 

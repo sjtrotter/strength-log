@@ -94,7 +94,7 @@ object SetupFlowStateBuilder {
     fun currentMains(draft: SetupDraft): List<String> = draft.mains ?: Planner.defaultMains(draft.equipment)
 
     fun answers(draft: SetupDraft): SetupAnswers = SetupAnswers(
-        goal = if (draft.branch == PlanBranch.SPRINT) LiftGoal.STRENGTH else draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
+        goal = if (draft.branch == PlanBranch.SPRINT) LiftGoal.GENERAL else draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
         steps = LoadSteps(stepOptionsLb(StepRow.BAR, draft.unit)[draft.barStep],
             stepOptionsLb(StepRow.DUMBBELL, draft.unit)[draft.dumbbellStep],
             stepOptionsLb(StepRow.STACK, draft.unit)[draft.stackStep]),
@@ -174,6 +174,14 @@ object SetupFlowStateBuilder {
             fortyOrOlder = answers.sprint.fortyOrOlder)
     }
 
+    internal fun sprintWeekdays(days: Int): List<DayOfWeek?> = when (days) {
+        1 -> listOf(DayOfWeek.MONDAY, null)
+        2 -> listOf(DayOfWeek.MONDAY, null, DayOfWeek.THURSDAY, null)
+        else -> listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, null, DayOfWeek.THURSDAY,
+            DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+            .take(when (days) { 3 -> 5; 4, 5 -> 6; else -> 7 })
+    }
+
     fun planPreview(draft: PlanDraft, answers: SetupAnswers): PlanPreviewUi {
         Planner.sprintLowerMainMissing(answers)?.let { return PlanPreviewUi.NeedsLowerMain(it) }
         val sprintPlan = answers.branch == PlanBranch.SPRINT || answers.branch == PlanBranch.BOTH && answers.both.sprint
@@ -247,17 +255,14 @@ object SetupFlowStateBuilder {
             balanceAdded = if (PlanReason.BalanceDays in draft.reasons) days.count { day ->
                 day.exercises.isNotEmpty() && day.exercises.all { it.rule?.role == SlotRole.BALANCE }
             } else null, why = why, sprint = if (sprintPlan) {
-                val weekdays = when (answers.days) {
-                    1 -> listOf(DayOfWeek.MONDAY)
-                    2 -> listOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
-                    else -> listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.THURSDAY,
-                        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
-                }
-                val week = draft.program.rotationDays.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
-                    weekdays[index] to when (day.cardioRule?.session) {
-                        RunSession.SPRINT_TEMPO -> SprintWeekKind.TEMPO
-                        null -> SprintWeekKind.UPPER
-                        else -> SprintWeekKind.SPRINT
+                val weekdays = sprintWeekdays(answers.days)
+                val week = draft.program.rotationDays.mapIndexedNotNull { index, day ->
+                    if (day.kind == ProgramDayKind.REST) null else weekdays[index]?.let { weekday ->
+                        weekday to when (day.cardioRule?.session) {
+                            RunSession.SPRINT_TEMPO -> SprintWeekKind.TEMPO
+                            null -> SprintWeekKind.UPPER
+                            else -> SprintWeekKind.SPRINT
+                        }
                     }
                 }
                 SprintPlanUi(week, sprintFirstWeeks(draft.program, answers.experience == LiftExperience.NEW) || answers.careful,

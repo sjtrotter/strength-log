@@ -119,7 +119,8 @@ class PlanViewModelTest {
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
         advanceUntilIdle()
         vm.openGoal()
-        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = 0),
+        // PR 7c: blank time saves Just finish; a negative time remains invalid
+        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = -1), PlanGoalDraft(underSeconds = -2),
             PlanGoalDraft(activity = "UNKNOWN"), PlanGoalDraft(timed = false, protocol = " "))) {
             vm.changeGoalDraft(invalid)
             vm.saveGoal()
@@ -129,6 +130,58 @@ class PlanViewModelTest {
         }
         vm.dismissGoal()
         advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDraft)
+    }
+
+    @Test fun `timed goal drafts reject times below the activity floor`() {
+        val marathon = PlanGoalDraft(metres = 42_200, underSeconds = 210)
+        assertNull(marathon.goal())
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42_200, 4220), marathon.copy(underSeconds = 4220).goal())
+        assertNull(marathon.copy(underSeconds = 4219).goal())
+        val ride = marathon.copy(activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)
+        assertEquals(PlanGoal.Timed(CardioActivity.OUTDOOR_RIDE, 40_000, 3600), ride.goal())
+        assertEquals(PlanGoal.Timed(CardioActivity.OUTDOOR_RIDE, 40_000, 1), ride.copy(underSeconds = 1).goal())
+    }
+
+    @Test fun `changing goal distance or activity persists an invalid time marker`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        val short = PlanGoalDraft(metres = 800, underSeconds = 101)
+        vm.changeGoalDraft(short)
+        vm.changeGoalDraft(short.copy(metres = 1500))
+        advanceUntilIdle()
+        assertEquals(INVALID_TIME, vm.uiState.value.goalDraft!!.underSeconds)
+        assertEquals(INVALID_TIME, handle.get<PlanGoalDraft>("plan_goal_draft")!!.underSeconds)
+        vm.changeGoalDraft(vm.uiState.value.goalDraft!!.copy(metres = 800))
+        advanceUntilIdle()
+        assertEquals(INVALID_TIME, vm.uiState.value.goalDraft!!.underSeconds)
+        val ride = PlanGoalDraft(activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)
+        vm.changeGoalDraft(ride)
+        advanceUntilIdle()
+        assertEquals(ride, vm.uiState.value.goalDraft)
+        vm.changeGoalDraft(ride.copy(activity = CardioActivity.ROAD_RUN.name))
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(INVALID_TIME, vm.uiState.value.goalDraft!!.underSeconds)
+        assertNull(db.planDao().plan(viewed)!!.goalJson)
+        vm.changeGoalDraft(ride)
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(ride.goal(), PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
+    }
+
+    @Test fun `a blank time saves Just finish with its date`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal()
+        vm.changeGoalDraft(PlanGoalDraft(metres = 42195, underSeconds = 0, byEpochDay = 21000))
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, null, 21000),
+            PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
         assertNull(vm.uiState.value.goalDraft)
     }
 

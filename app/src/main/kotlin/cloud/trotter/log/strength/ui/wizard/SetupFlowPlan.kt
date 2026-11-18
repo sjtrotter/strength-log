@@ -24,6 +24,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.ui.components.distanceUnitFor
+import cloud.trotter.log.strength.ui.day.receipt.blockValue
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -47,6 +52,23 @@ internal fun PlanStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         is PlanPreviewUi.Ready -> {
             Text(plan.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             plan.rows.forEach { row -> PlanRow(row, state.draft.unit) }
+            if (state.draft.branch == PlanBranch.RUN) {
+                SetupLabel(stringResource(R.string.setup_flow_strength_blocks))
+                SetupSegments((0..2).map(Int::toString), state.draft.strengthBlocks, actions.onStrengthBlocks)
+            }
+            if (plan.why.any { it is PlanWhy.NoRun }) {
+                AppCard {
+                    Text(stringResource(R.string.setup_flow_no_run, state.draft.minutes), style = MaterialTheme.typography.bodyMedium)
+                    if (plan.longerAvailable) OutlinedButton(onClick = actions.onLongerSessions, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.setup_flow_longer_sessions))
+                    }
+                    if (SetupFlowStateBuilder.offersTogether(state.draft) &&
+                        SetupFlowStateBuilder.answers(state.draft).together() != BothAnswers.Together.SEPARATE_DAYS) OutlinedButton(
+                        onClick = { actions.onTogether(BothAnswers.Together.SEPARATE_DAYS) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.setup_flow_together_separate))
+                    }
+                }
+            }
             if (plan.over) OverBudgetCard(plan, actions)
             plan.balanceOffer?.let { count ->
                 AppCard(Modifier.testTag("setup-balance-offer")) {
@@ -74,17 +96,18 @@ private fun PlanRow(row: PlanDayRow, unit: WeightUnit) {
     ListItem(modifier = Modifier.semantics(mergeDescendants = true) {}.testTag("setup-plan-day-${row.dayId}"),
         leadingContent = { DayIndex(Program.accentIndex(row.dayId), row.dayId, DayIndexSize.Small) },
         headlineContent = { Text(row.title) },
-        supportingContent = if (row.mainName != null || row.overMinutes != null) { {
+        supportingContent = if (row.mainName != null || row.overMinutes != null || row.cardio != null) { {
             Column {
                 row.mainName?.let { name ->
                     Text(row.mainLoadLb?.let { stringResource(R.string.setup_flow_plan_main, name, SetFormatter.weight(it, unit)) } ?: name)
                 }
+                row.cardio?.let { Text(blockValue(it, distanceUnitFor(it.activity))) }
                 row.overMinutes?.let { Text(stringResource(R.string.setup_flow_over_by, it), color = MaterialTheme.colorScheme.error) }
             }
         } } else null,
         trailingContent = if (!row.rest) { {
             Column {
-                Text(pluralStringResource(R.plurals.setup_flow_plan_lifts, row.lifts, row.lifts))
+                if (row.lifts > 0) Text(pluralStringResource(R.plurals.setup_flow_plan_lifts, row.lifts, row.lifts))
                 Text(stringResource(R.string.setup_flow_plan_minutes, row.minutes))
             }
         } } else null)
@@ -133,5 +156,10 @@ private fun whyLine(why: PlanWhy): String = when (why) {
     PlanWhy.RepsLeft -> stringResource(R.string.setup_flow_why_reps_left)
     PlanWhy.Calibrating -> stringResource(R.string.setup_flow_why_calibrating)
     is PlanWhy.LightWeek -> stringResource(R.string.setup_flow_why_light_week, why.everyCycles)
+    is PlanWhy.RunCapped -> stringResource(R.string.setup_flow_why_run_capped, why.dayId)
+    PlanWhy.DateTooClose -> stringResource(R.string.setup_flow_why_date_too_close)
+    is PlanWhy.GoalCheck -> stringResource(R.string.setup_flow_why_goal_check, ClockText.duration(why.predictedSeconds))
+    PlanWhy.Ladder -> stringResource(R.string.setup_flow_why_ladder)
+    is PlanWhy.NoRun -> stringResource(R.string.setup_flow_no_run, why.minutes)
     PlanWhy.Minutes -> stringResource(R.string.setup_flow_why_minutes)
 }

@@ -25,6 +25,10 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -307,4 +311,21 @@ class PlannedPlanTest {
         }
     }
 
+    @Test fun `a 2-mile test writes a timed goal with aims`() = runTest {
+        val a = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(goal = RunGoal.FITNESS_TEST,
+            experience = RunExperience.SOME, test = FitnessTest.TWO_MILE, goalSeconds = 960,
+            dateEpochDay = 21000, longest = Measure.Time(3600)))
+        val draft = plans.previewPlan(a)
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960, 21000), draft.goal)
+        val interval = draft.program.days.first { draft.sessions[it.id] == RunSession.TEST_INTERVALS }
+        assertTrue(interval.cardioBlock!!.sets.filter { it.role == CardioRole.WORK }.all { it.aim == Measure.Time(113) })
+        val id = plans.createPlannedPlan("Fitness test", a)
+        assertEquals(draft.goal, PlanGoalJson.decode(db.planDao().plan(id)?.goalJson))
+    }
+
+    @Test fun `a New marathoner stores the ladder phase`() = runTest {
+        val id = plans.createPlannedPlan("Marathon", SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.MARATHON)))
+        assertEquals(RunPhase.LADDER, SetupRecipeJson.phase(assertNotNull(db.planDao().plan(id)?.recipeJson)))
+    }
 }

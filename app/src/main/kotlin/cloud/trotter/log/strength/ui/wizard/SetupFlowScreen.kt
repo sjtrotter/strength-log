@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.LoadingState
@@ -72,7 +74,8 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
                 TextButton(onClick = { whyOpen = true }, enabled = !busy, modifier = Modifier.heightIn(min = 48.dp)) { Text(whyTitle) }
                 if (state.step != SetupStep.PLAN || state.plan != PlanPreviewUi.Empty) {
                     Button(onClick = actions.onNext,
-                        enabled = state.initialized && !busy && (state.step != SetupStep.PLAN || state.canStart),
+                        enabled = state.initialized && !busy && SetupFlowStateBuilder.canAdvance(state.draft) &&
+                            (state.step != SetupStep.PLAN || state.canStart),
                         modifier = Modifier.heightIn(min = 52.dp)) {
                         Text(stringResource(when {
                             state.step != SetupStep.PLAN -> R.string.setup_flow_next
@@ -95,6 +98,11 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
                                 modifier = Modifier.semantics { heading() })
                             when (screen.step) {
                                 SetupStep.GOAL -> GoalStep(screen, actions)
+                                SetupStep.ORDER -> OrderStep(screen, actions)
+                                SetupStep.RUN_GOAL -> RunGoalStep(screen, actions)
+                                SetupStep.EVENT -> EventStep(screen, actions)
+                                SetupStep.WHERE -> WhereStep(screen, actions)
+                                SetupStep.TOGETHER -> TogetherStep(screen, actions)
                                 SetupStep.SUB_GOAL -> SubGoalStep(screen, actions)
                                 SetupStep.WEEK -> WeekStep(screen, actions)
                                 SetupStep.EQUIPMENT -> EquipmentStep(screen, actions)
@@ -112,12 +120,17 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
     if (whyOpen) AppModalBottomSheet(onDismissRequest = { whyOpen = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = { Text(whyTitle, style = MaterialTheme.typography.titleLarge) }, body = {
             if (state.step == SetupStep.PLAN) PlanWhyLines((state.plan as? PlanPreviewUi.Ready)?.why.orEmpty())
-            else Text(stringResource(whyCopy(state.step)), style = MaterialTheme.typography.bodyMedium)
+            else Text(stringResource(whyCopy(state)), style = MaterialTheme.typography.bodyMedium)
         })
 }
 
 private fun stepTitle(step: SetupStep): Int = when (step) {
     SetupStep.GOAL -> R.string.setup_flow_goal_title
+    SetupStep.ORDER -> R.string.setup_flow_order_title
+    SetupStep.RUN_GOAL -> R.string.setup_flow_run_goal_title
+    SetupStep.EVENT -> R.string.setup_flow_event_title
+    SetupStep.WHERE -> R.string.setup_flow_where_title
+    SetupStep.TOGETHER -> R.string.setup_flow_together_title
     SetupStep.SUB_GOAL -> R.string.setup_flow_sub_goal_title
     SetupStep.WEEK -> R.string.setup_flow_week_title
     SetupStep.EQUIPMENT -> R.string.setup_flow_equipment_title
@@ -127,12 +140,20 @@ private fun stepTitle(step: SetupStep): Int = when (step) {
     SetupStep.PLAN -> R.string.setup_flow_plan_title
 }
 
-private fun whyCopy(step: SetupStep): Int = when (step) {
+private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     SetupStep.GOAL -> R.string.setup_flow_why_goal
+    SetupStep.ORDER -> R.string.setup_flow_why_order
+    SetupStep.RUN_GOAL -> R.string.setup_flow_why_run_goal
+    SetupStep.EVENT -> if (state.draft.runGoal == RunGoal.FITNESS_TEST) {
+        val run = SetupFlowStateBuilder.answers(state.draft).run
+        if (run.hasTestAim()) R.string.setup_flow_why_test else R.string.setup_flow_why_test_taper
+    } else R.string.setup_flow_why_event
+    SetupStep.WHERE -> R.string.setup_flow_why_where
+    SetupStep.TOGETHER -> R.string.setup_flow_why_together
     SetupStep.SUB_GOAL -> R.string.setup_flow_why_sub_goal
     SetupStep.WEEK -> R.string.setup_flow_why_week
     SetupStep.EQUIPMENT -> R.string.setup_flow_why_equipment
-    SetupStep.ABOUT -> R.string.setup_flow_why_about
+    SetupStep.ABOUT -> if (state.draft.branch == PlanBranch.LIFT) R.string.setup_flow_why_about else R.string.setup_flow_why_about_run
     SetupStep.LIFTS -> R.string.setup_flow_why_lifts
     SetupStep.RECENT -> R.string.setup_flow_why_recent
     SetupStep.PLAN -> R.string.setup_flow_why_minutes

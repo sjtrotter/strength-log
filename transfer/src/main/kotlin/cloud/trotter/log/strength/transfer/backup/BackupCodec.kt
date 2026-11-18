@@ -104,6 +104,8 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        if (version in 1..30) requireV31ShapesAbsent(obj)
+
         // Pre-v27 decoding discards settingsJson, so inspect its v28 and v29 facts before that version shaping.
         if (version in 1..26) {
             (obj["plans"] as? JsonArray)?.forEach { plan ->
@@ -145,12 +147,44 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
         return document
+    }
+
+    private fun requireV31ShapesAbsent(root: JsonObject) {
+        fun payload(fields: JsonObject, key: String): JsonObject? =
+            (fields[key] as? JsonPrimitive)?.content?.let { text ->
+                runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()
+            }
+        fun checkDay(element: JsonElement) {
+            val day = element as? JsonObject ?: return
+            val rule = payload(day, "cardioRuleJson") ?: return
+            if (rule["ladderLevel"] != null && rule["ladderLevel"] != JsonNull &&
+                ((rule["credits"] as? JsonPrimitive)?.intOrNull?.let { it > 0 } == true ||
+                    (rule["ladderCounted"] as? JsonArray)?.isNotEmpty() == true ||
+                    (rule["ladderRaised"] != null && rule["ladderRaised"] != JsonNull))) {
+                throw BackupError.Inconsistent("credited or dated ladder rule requires schema v31")
+            }
+        }
+        (root["plans"] as? JsonArray)?.forEach { element ->
+            val plan = element as? JsonObject ?: return@forEach
+            val recipe = payload(plan, "recipeJson")
+            if (recipe != null && (recipe["v"] as? JsonPrimitive)?.intOrNull == 2 &&
+                (recipe["branch"] as? JsonPrimitive)?.content in listOf("RUN", "BOTH")) {
+                throw BackupError.Inconsistent("Run and Both recipe requires schema v31")
+            }
+            val goal = payload(plan, "goalJson")
+            if (goal != null && (goal["type"] as? JsonPrimitive)?.content == "timed" &&
+                (goal["underSeconds"] == null || goal["underSeconds"] == JsonNull)) {
+                throw BackupError.Inconsistent("timed goal without a time requires schema v31")
+            }
+            (plan["days"] as? JsonArray)?.forEach(::checkDay)
+        }
+        (root["program"] as? JsonArray)?.forEach(::checkDay)
     }
 
     /**

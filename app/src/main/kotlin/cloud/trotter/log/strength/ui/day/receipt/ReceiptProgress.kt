@@ -63,6 +63,9 @@ data class ReceiptProgressState(
 
 sealed interface ReceiptMutation {
     data object UndoneLadderKept : ReceiptMutation
+    data object ReplanRunOpen : ReceiptMutation
+    data object ReplanGone : ReceiptMutation
+    data object UndoneReplanKept : ReceiptMutation
     data object ReplanFailed : ReceiptMutation
     data object Undone : ReceiptMutation
     data class DayOpen(val dayId: String) : ReceiptMutation

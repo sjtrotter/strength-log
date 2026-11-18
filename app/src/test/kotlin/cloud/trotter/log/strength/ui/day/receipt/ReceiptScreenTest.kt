@@ -1053,6 +1053,16 @@ class ReceiptScreenTest {
         rule.onNodeWithText("The plan can't move up yet.").assertIsDisplayed()
     }
 
+    @Test fun `re-plan mutations name the cause`() {
+        val mutation = mutableStateOf<ReceiptMutation>(ReceiptMutation.ReplanRunOpen)
+        rule.setContent { AppTheme { SessionReceiptScreen(receiptFixture(), {}, {}, mutation = mutation.value) } }
+        rule.onNodeWithText("Not moved: a workout is open.").assertIsDisplayed()
+        rule.runOnIdle { mutation.value = ReceiptMutation.ReplanGone }
+        rule.onNodeWithText("This offer ended with a later workout.").assertIsDisplayed()
+        rule.runOnIdle { mutation.value = ReceiptMutation.UndoneReplanKept }
+        rule.onNodeWithText("Changes undone, except the new phase: a workout is open on a day it added.").assertIsDisplayed()
+    }
+
     private fun setReceipt(
         receipt: WorkoutReceipt = receiptFixture(),
         onShare: () -> Unit = {},

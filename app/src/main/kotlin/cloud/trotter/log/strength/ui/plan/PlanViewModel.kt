@@ -86,7 +86,11 @@ class PlanViewModel @Inject constructor(
         savedState[GOAL_DRAFT] = null
     }
 
-    fun changeGoalDraft(draft: PlanGoalDraft) { savedState[CARDIO_GOAL_DRAFT] = draft }
+    fun changeGoalDraft(draft: PlanGoalDraft) {
+        val before = savedState.get<PlanGoalDraft>(CARDIO_GOAL_DRAFT)
+        savedState[CARDIO_GOAL_DRAFT] = if (before != null &&
+            (before.activity != draft.activity || before.metres != draft.metres)) draft.invalidateTimeBelowFloor() else draft
+    }
 
     fun removeGoal() {
         viewModelScope.launch {

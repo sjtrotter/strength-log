@@ -2372,7 +2372,7 @@ class TrackerRepository(
     }
 
     /** Accepts the Finish's phase offer from its log date and includes the merge in that Finish's Undo. */
-    suspend fun acceptReplanOffer(sessionId: Long?, cardioSessionId: Long?): Boolean {
+    suspend fun acceptReplanOffer(sessionId: Long?, cardioSessionId: Long?): ReplanAccept {
         val unit = settings.unitFlow.first()
         return db.withTransaction {
             val strength = sessionId?.let { sessionDao.sessionById(it) }
@@ -2381,12 +2381,12 @@ class TrackerRepository(
             val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
             val fromStrength = strengthUndo?.plan?.replanOffer != null
             val counter = if (fromStrength) strengthUndo?.plan else cardioUndo?.plan
-            if (counter?.replanOffer == null) return@withTransaction false
-            val planId = (if (fromStrength) strength?.planId else cardio?.planId) ?: return@withTransaction false
-            if (runDao.openRun()?.planId == planId) return@withTransaction false
-            val plan = planDao.plan(planId) ?: return@withTransaction false
+            if (counter?.replanOffer == null) return@withTransaction ReplanAccept.Gone
+            val planId = (if (fromStrength) strength?.planId else cardio?.planId) ?: return@withTransaction ReplanAccept.Gone
+            if (runDao.openRun()?.planId == planId) return@withTransaction ReplanAccept.RunOpen
+            val plan = planDao.plan(planId) ?: return@withTransaction ReplanAccept.Gone
             val finishedAt = if (fromStrength) requireNotNull(strength).completedAt else requireNotNull(cardio).completedAt
-            val (next, recipe) = nextPhase(plan, finishedAt, unit) ?: return@withTransaction false
+            val (next, recipe) = nextPhase(plan, finishedAt, unit) ?: return@withTransaction ReplanAccept.Waiting
             val updated = counter.copy(replan = writeReplan(plan, next, recipe), replanOffer = null)
             if (fromStrength) {
                 sessionDao.updateProgression(requireNotNull(strength).id,
@@ -2395,7 +2395,7 @@ class TrackerRepository(
                 cardioSessionDao.update(requireNotNull(cardio).copy(progressionUndoJson =
                     CardioUndoJson.encode(requireNotNull(cardioUndo).copy(plan = updated))))
             }
-            true
+            ReplanAccept.Moved
         }
     }
 
@@ -2406,10 +2406,14 @@ class TrackerRepository(
         title = columns.title, position = columns.position, cardioBlockJson = columns.block,
         cardioRuleJson = columns.rule, cardioWorkingJson = columns.working)
 
+    private suspend fun replanHeldByOpenRun(planId: Long, record: UndoReplanDto): Boolean =
+        runDao.openRun()?.let { open ->
+            open.planId == planId && record.days.any { it.before == null && it.dayId == open.dayId }
+        } == true
+
     private suspend fun replanMatches(planId: Long, record: UndoReplanDto): Boolean {
         if (planDao.plan(planId)?.recipeJson != record.recipeAfter) return false
-        val open = runDao.openRun()
-        if (open != null && open.planId == planId && record.days.any { it.before == null && it.dayId == open.dayId }) return false
+        if (replanHeldByOpenRun(planId, record)) return false
         return record.days.all { day ->
             programDao.day(planId, day.dayId)?.replanColumns() == day.after &&
                 (day.before != null || programDao.exercisesForDay(planId, day.dayId).isEmpty())
@@ -2495,9 +2499,16 @@ class TrackerRepository(
         val strengthUndo = ProgressionUndoJson.decode(session?.progressionUndoJson)
         val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
         if (strengthUndo == null && cardioUndo == null) return@withTransaction UndoResult.Nothing
-        strengthUndo?.plan?.replan?.let { undoReplan(planId, it) }
+        var replanKept = false
+        strengthUndo?.plan?.replan?.let {
+            replanKept = replanHeldByOpenRun(planId, it)
+            undoReplan(planId, it)
+        }
         if (cardio?.planId == planId && cardio.dayId == dayId) {
-            cardioUndo?.plan?.replan?.let { undoReplan(planId, it) }
+            cardioUndo?.plan?.replan?.let {
+                replanKept = replanHeldByOpenRun(planId, it) || replanKept
+                undoReplan(planId, it)
+            }
         }
         var ladderKept = false
         if (strengthUndo != null) {
@@ -2526,7 +2537,11 @@ class TrackerRepository(
             cardioUndo.plan?.let { swapCounters(planId, it, reverse = false) }
             cardioSessionDao.update(cardio.copy(progressionUndoJson = null))
         }
-        if (ladderKept) UndoResult.UndoneLadderKept else UndoResult.Undone
+        when {
+            replanKept -> UndoResult.UndoneReplanKept
+            ladderKept -> UndoResult.UndoneLadderKept
+            else -> UndoResult.Undone
+        }
     }
 
     private suspend fun dayOpen(planId: Long, dayId: String): Boolean =

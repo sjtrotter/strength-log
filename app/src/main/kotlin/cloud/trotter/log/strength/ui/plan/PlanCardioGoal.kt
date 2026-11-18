@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -44,7 +46,6 @@ import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.day.cardioActivityName
-import cloud.trotter.log.strength.ui.day.parseSheetDuration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -67,7 +68,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
                 is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
                 is PlanGoal.Timed -> goal.underSeconds?.let { seconds ->
                     stringResource(R.string.plan_goal_timed,
-                        distanceUnitFor(goal.activity).format(goal.metres), ClockText.minutesSeconds(seconds))
+                        distanceUnitFor(goal.activity).format(goal.metres), ClockText.duration(seconds))
                 } ?: distanceUnitFor(goal.activity).format(goal.metres)
                 is PlanGoal.Shuttle -> stringResource(R.string.plan_goal_shuttle, goal.protocol, goal.targetShuttles)
             })
@@ -78,8 +79,8 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
                 goal.byEpochDay?.let { day -> Text(stringResource(R.string.plan_goal_by, goalDate(day))) }
                 val recent = ui.predictedFrom
                 if (goal is PlanGoal.Timed && ui.predictedSeconds != null && recent != null) {
-                    Text(stringResource(R.string.plan_goal_predicted, ClockText.minutesSeconds(ui.predictedSeconds),
-                        distanceUnitFor(goal.activity).format(recent.metres), ClockText.minutesSeconds(recent.seconds)))
+                    Text(stringResource(R.string.plan_goal_predicted, ClockText.duration(ui.predictedSeconds),
+                        distanceUnitFor(goal.activity).format(recent.metres), ClockText.duration(recent.seconds)))
                 }
             }
         },
@@ -95,10 +96,10 @@ private fun goalProgress(ui: PlanGoalUi): String {
     val gap = when (val goal = ui.goal) {
         is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
         is PlanGoal.Timed -> {
-            val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.minutesSeconds(best))
+            val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.duration(best))
             val seconds = abs(best - target)
             val amount = if (seconds < 60) stringResource(R.string.plan_goal_seconds, seconds)
-                else ClockText.minutesSeconds(seconds)
+                else ClockText.duration(seconds)
             when {
                 best > target -> stringResource(R.string.plan_goal_over, amount)
                 best < target -> stringResource(R.string.plan_goal_under, amount)
@@ -108,7 +109,7 @@ private fun goalProgress(ui: PlanGoalUi): String {
         is PlanGoal.Shuttle -> if (ui.met) stringResource(R.string.plan_goal_met)
             else stringResource(R.string.plan_goal_shuttles_to_go, goal.targetShuttles - best)
     }
-    val display = if (ui.goal is PlanGoal.Timed) ClockText.minutesSeconds(best) else best.toString()
+    val display = if (ui.goal is PlanGoal.Timed) ClockText.duration(best) else best.toString()
     return stringResource(R.string.plan_goal_progress, stringResource(R.string.plan_goal_best, display), gap)
 }
 
@@ -216,14 +217,14 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
             CardioActivity.entries.forEach { option ->
                 DropdownMenuItem(text = { Text(cardioActivityName(option)) }, onClick = {
                     focusManager.clearFocus()
-                    onChange(draft.copy(activity = option.name))
+                    onChange(draft.copy(activity = option.name).invalidateTimeBelowFloor())
                     expanded = false
                 })
             }
         }
     }
     val unit = distanceUnitFor(activity)
-    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0)) }
+    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0).invalidateTimeBelowFloor()) }
     NumberField(
         value = draft.metres.takeIf { it > 0 }?.let(unit::fromMetres),
         onValueChange = onDistance, onDraftChange = onDistance,
@@ -232,13 +233,34 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         format = { value -> unit.toMetres(value)?.let(unit::inputText) ?: WeightStepper.format(value) },
         decimalInput = true,
     )
-    val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: 0)) }
-    NumberField(
-        value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
-        onValueChange = onTime, onDraftChange = onTime,
-        label = stringResource(R.string.plan_goal_target_time), minValue = 1.0, maxValue = 86_400.0,
-        format = { ClockText.minutesSeconds(it.toInt()) }, parse = ::parseSheetDuration, keyboardType = KeyboardType.Ascii,
-    )
+    // Just finish stores 0. A time stores INVALID_TIME until the field holds a time, so Save stays off.
+    val withTime = draft.underSeconds != 0
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(false, true).forEachIndexed { index, time ->
+            SegmentedButton(
+                selected = withTime == time,
+                onClick = {
+                    focusManager.clearFocus()
+                    if (withTime != time) onChange(draft.copy(underSeconds = if (time) INVALID_TIME else 0))
+                },
+                shape = SegmentedButtonDefaults.itemShape(index, 2),
+            ) { Text(stringResource(if (time) R.string.setup_flow_event_time else R.string.setup_flow_event_finish)) }
+        }
+    }
+    if (withTime) {
+        val onTime: (Double?) -> Unit = { onChange(draft.copy(underSeconds = it?.toInt() ?: INVALID_TIME)) }
+        val floor = GoalTime.floorSeconds(draft.metres, activity)
+        key(floor) {
+            NumberField(
+                value = draft.underSeconds.takeIf { it >= floor }?.toDouble(),
+                onValueChange = onTime, onDraftChange = onTime,
+                label = stringResource(R.string.plan_goal_target_time),
+                minValue = floor.toDouble(), maxValue = 86_400.0,
+                format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
+                keyboardType = KeyboardType.Ascii,
+            )
+        }
+    }
 }
 
 @Composable

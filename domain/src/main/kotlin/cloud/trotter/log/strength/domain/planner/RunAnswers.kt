@@ -70,6 +70,12 @@ data class RunAnswers(
 
     val resolvedEvent: RunEvent? get() = event ?: goal.events.firstOrNull()
 
+    fun hasTestAim(): Boolean = when (test) {
+        FitnessTest.TWO_MILE, FitnessTest.ONE_AND_HALF_MILE -> goalSeconds != null
+        FitnessTest.COOPER -> testScore != null
+        FitnessTest.PACER, FitnessTest.HAMR -> false
+    }
+
     /** This runner's readiness path (design §3.1.2). On foot, goals without phases use the ladder alone,
      *  then their own plan with no phase. Racing excludes the ladder: its evidence covers novices and its
      *  gate measures 5K readiness (lead 2026-11-17, practice). */

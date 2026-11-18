@@ -22,7 +22,7 @@ private fun distance(meters: Int, unit: DistanceUnit): String = if (unit == Dist
     else String.format(Locale.US, "%.2f %s", unit.fromMetres(meters), unit.symbol)
 
 @Composable
-private fun blockValue(block: CardioBlock, unit: DistanceUnit): String {
+internal fun blockValue(block: CardioBlock, unit: DistanceUnit): String {
     val work = block.sets.filter { it.role == CardioRole.WORK }
     val end = work.firstOrNull()?.end ?: return ""
     val value = when (end) {

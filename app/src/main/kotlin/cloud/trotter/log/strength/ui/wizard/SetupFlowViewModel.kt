@@ -11,6 +11,13 @@ import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.di.ApplicationScope
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
@@ -88,7 +95,13 @@ class SetupFlowViewModel @Inject constructor(
     private fun update(transform: (SetupDraft) -> SetupDraft) {
         if (blocked()) return
         val before = current()
-        val after = transform(before)
+        val changed = transform(before)
+        val contextChanged = changed.runGoal != before.runGoal || changed.runEvent != before.runEvent ||
+            changed.test != before.test || changed.activity != before.activity
+        val after = if (contextChanged && changed.goalSeconds != null &&
+            changed.goalSeconds < SetupFlowStateBuilder.goalTimeFloor(changed)) {
+            changed.copy(goalSeconds = INVALID_GOAL_TIME)
+        } else changed
         if (after == before) return
         if (SetupFlowStateBuilder.currentStep(after) != SetupStep.PLAN ||
             SetupFlowStateBuilder.answers(after) != SetupFlowStateBuilder.answers(before)) {
@@ -150,6 +163,7 @@ class SetupFlowViewModel @Inject constructor(
     fun onNext() {
         if (blocked()) return
         val draft = current()
+        if (!SetupFlowStateBuilder.canAdvance(draft)) return
         val step = SetupFlowStateBuilder.currentStep(draft)
         if (step == SetupStep.PLAN) start() else update {
             val steps = SetupFlowStateBuilder.steps(it)
@@ -162,6 +176,28 @@ class SetupFlowViewModel @Inject constructor(
         it.copy(step = steps[(steps.indexOf(SetupFlowStateBuilder.currentStep(it)) - 1).coerceAtLeast(0)])
     }
     fun reviewAnswers() = update { it.copy(step = SetupStep.EQUIPMENT) }
+    fun setBranch(value: PlanBranch) = update { it.copy(branch = value, step = SetupStep.GOAL) }
+    fun setCardioFirst(value: Boolean) = update { it.copy(cardioFirst = value) }
+    fun setRunGoal(value: RunGoal) = update {
+        it.copy(runGoal = value, goalSeconds = if ((it.runGoal == RunGoal.FITNESS_TEST) !=
+            (value == RunGoal.FITNESS_TEST)) null else it.goalSeconds)
+    }
+    fun setRunExperience(value: RunExperience) = update { it.copy(runExperience = value) }
+    fun setRunningInjury(value: Boolean) = update { it.copy(runningInjury = value) }
+    fun setRunEvent(value: RunEvent) = update { it.copy(runEvent = value) }
+    fun setEventDate(value: Long?) = update { it.copy(eventDate = value) }
+    fun setGoalSeconds(value: Int?) = update { it.copy(goalSeconds = value) }
+    fun setTest(value: FitnessTest) = update { it.copy(test = value) }
+    fun setTestScore(value: Int?) = update { it.copy(testScore = value) }
+    fun setRecent(metres: Int?, seconds: Int?) = update { it.copy(recentMetres = metres, recentSeconds = seconds) }
+    fun setLongestByDistance(value: Boolean) = update { it.copy(longestByDistance = value) }
+    fun setLongest(value: Int?) = update {
+        if (it.longestByDistance) it.copy(longestMetres = value) else it.copy(longestSeconds = value)
+    }
+    fun setActivity(value: CardioActivity) = update { it.copy(activity = value) }
+    fun setMarathonBest(value: Int?) = update { it.copy(marathonBestSeconds = value) }
+    fun setTogether(value: BothAnswers.Together) = update { it.copy(together = value) }
+    fun setStrengthBlocks(value: Int) = update { it.copy(strengthBlocks = value.coerceIn(0, 2)) }
     fun setSubGoal(value: LiftGoal) = update { it.copy(goal = value) }
     fun setDays(value: Int) = update { it.copy(days = value.coerceIn(1, 6)) }
     fun setMinutes(value: Int) = update { if (value in SetupFlowStateBuilder.minutesOptions) it.copy(minutes = value) else it }
@@ -246,8 +282,10 @@ class SetupFlowViewModel @Inject constructor(
         }
     }
 
-    private fun planName(answers: SetupAnswers): String = context.resources.getQuantityString(
-        R.plurals.setup_flow_plan_name, answers.days, context.getString(subGoalLabel(answers.goal)), answers.days,
+    internal fun planName(answers: SetupAnswers): String = context.resources.getQuantityString(
+        if (answers.branch == PlanBranch.BOTH) R.plurals.setup_flow_plan_name_both else R.plurals.setup_flow_plan_name,
+        answers.days, context.getString(if (answers.branch == PlanBranch.LIFT) subGoalLabel(answers.goal)
+            else runGoalLabel(answers.run.goal)), answers.days,
     )
 
     /** No confirmation on first run: there is nothing to overwrite, and validation precedes all writes.

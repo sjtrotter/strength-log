@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -43,7 +45,7 @@ import cloud.trotter.log.strength.ui.components.LoadingState
 import cloud.trotter.log.strength.ui.text.resolve
 
 @Composable
-private fun ChoiceRow(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
+internal fun ChoiceRow(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
     ListItem(headlineContent = { Text(title) }, supportingContent = { Text(body) },
         leadingContent = { RadioButton(selected, onClick = null) },
         colors = ListItemDefaults.colors(containerColor = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface),
@@ -53,7 +55,12 @@ private fun ChoiceRow(title: String, body: String, selected: Boolean, onClick: (
 @Composable
 internal fun GoalStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     Column(Modifier.selectableGroup()) {
-        ChoiceRow(stringResource(R.string.setup_flow_goal_lift), stringResource(R.string.setup_flow_goal_lift_body), true) {}
+        ChoiceRow(stringResource(R.string.setup_flow_goal_lift), stringResource(R.string.setup_flow_goal_lift_body),
+            state.draft.branch == PlanBranch.LIFT) { actions.onBranch(PlanBranch.LIFT) }
+        ChoiceRow(stringResource(R.string.setup_flow_goal_run), stringResource(R.string.setup_flow_goal_run_body),
+            state.draft.branch == PlanBranch.RUN) { actions.onBranch(PlanBranch.RUN) }
+        ChoiceRow(stringResource(R.string.setup_flow_goal_both), stringResource(R.string.setup_flow_goal_both_body),
+            state.draft.branch == PlanBranch.BOTH) { actions.onBranch(PlanBranch.BOTH) }
     }
     if (state.restore.offered) {
         OutlinedButton(onClick = actions.onRestoreFromBackup, enabled = !state.restore.inFlight && !state.finishInFlight,
@@ -167,6 +174,24 @@ internal fun AboutStep(state: SetupFlowUiState, actions: SetupFlowActions) {
                 }))
             }
         }
+    }
+    if (state.draft.branch != PlanBranch.LIFT) {
+        SetupLabel(stringResource(R.string.setup_flow_running_label))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            RunExperience.entries.forEach { experience ->
+                SetupChip(state.draft.runExperience == experience, { actions.onRunExperience(experience) }) {
+                    Text(stringResource(when (experience) {
+                        RunExperience.NEW -> R.string.setup_flow_running_new
+                        RunExperience.SOME -> R.string.setup_flow_running_some
+                        RunExperience.RACING -> R.string.setup_flow_running_racing
+                    }))
+                }
+            }
+        }
+        ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_running_injury)) },
+            leadingContent = { Checkbox(state.draft.runningInjury, onCheckedChange = null) },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(state.draft.runningInjury,
+                role = Role.Checkbox, onValueChange = actions.onRunningInjury))
     }
     ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_older)) },
         leadingContent = { Checkbox(state.draft.olderAdult, onCheckedChange = null) },

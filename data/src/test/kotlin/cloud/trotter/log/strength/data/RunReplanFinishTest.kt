@@ -365,8 +365,8 @@ class RunReplanFinishTest {
         assertFalse(repo.finishUndoState(null, session).restorable)
         db.planDao().updatePlan(countersAfter)
         assertTrue(repo.finishUndoState(null, session).restorable)
-        // PR 7b: the open inserted day prevents the re-plan and ladder from restoring
-        assertEquals(UndoResult.UndoneLadderKept, repo.undoFinish(null, session))
+        // PR 7c: the open inserted day names the re-plan as the cause before its ladder mismatch
+        assertEquals(UndoResult.UndoneReplanKept, repo.undoFinish(null, session))
         assertEquals(recipeAfter, recipe())
         assertEquals(daysAfter, db.programDao().daysForPlan(plan))
         assertEquals("open-E", db.runDao().openRun()?.id)
@@ -391,7 +391,8 @@ class RunReplanFinishTest {
         // An offer writes nothing, so the cursor moves on through the ladder program as usual.
         assertEquals("D", db.planDao().plan(plan)?.suggestedDayId)
         assertEquals(1, db.planDao().plan(plan)?.cyclesCompleted)
-        assertTrue(repo.acceptReplanOffer(null, session))
+        // PR 7c: a written re-plan returns Moved
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(null, session))
         assertEquals(RunPhase.BASE, phase())
         assertNotNull(undo(session).plan?.replan)
         assertNull(undo(session).plan?.replanOffer)
@@ -410,7 +411,8 @@ class RunReplanFinishTest {
         val session = log("C", 2)
         assertNull(assertNotNull(undo(session).plan?.replanOffer).phase)
         assertEquals(RunPhase.LADDER, phase())
-        assertTrue(repo.acceptReplanOffer(null, session))
+        // PR 7c: a written re-plan returns Moved
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(null, session))
         assertNull(phase())
         assertFalse(recipe().contains("runPhase"))
         assertNotNull(undo(session).plan?.replan)
@@ -426,12 +428,14 @@ class RunReplanFinishTest {
         val before = db.programDao().daysForPlan(plan)
         val oldRecipe = recipe()
         db.runDao().insertRun(WorkoutRunEntity("open-A", plan, "A", "Easy", "Run", clock.millis()))
-        assertFalse(repo.acceptReplanOffer(null, session))
+        // PR 7c: an open workout names RunOpen
+        assertEquals(ReplanAccept.RunOpen, repo.acceptReplanOffer(null, session))
         assertNotNull(undo(session).plan?.replanOffer)
         assertEquals(before, db.programDao().daysForPlan(plan))
         assertEquals(oldRecipe, recipe())
         repo.clearFinishUndoForDay(plan, "C")
-        assertFalse(repo.acceptReplanOffer(null, session))
+        // PR 7c: a cleared record names Gone
+        assertEquals(ReplanAccept.Gone, repo.acceptReplanOffer(null, session))
         assertEquals(oldRecipe, recipe())
     }
 
@@ -444,7 +448,8 @@ class RunReplanFinishTest {
         val session = log("C", 2)
         db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(credited))
         val before = db.programDao().daysForPlan(plan)
-        assertFalse(repo.acceptReplanOffer(null, session))
+        // PR 7c: the phase guard names Waiting
+        assertEquals(ReplanAccept.Waiting, repo.acceptReplanOffer(null, session))
         assertNotNull(undo(session).plan?.replanOffer)
         assertEquals(before, db.programDao().daysForPlan(plan))
         assertEquals(RunPhase.LADDER, phase())
@@ -471,9 +476,28 @@ class RunReplanFinishTest {
         }
         val record = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(last)?.progressionUndoJson))
         assertEquals("BASE", assertNotNull(record.plan?.replanOffer).phase)
-        assertTrue(repo.acceptReplanOffer(last, null))
+        // PR 7c: a written strength re-plan returns Moved
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(last, null))
         assertEquals(RunPhase.BASE, phase())
         assertEquals(UndoResult.Undone, repo.undoFinish(last, null))
         assertEquals(RunPhase.LADDER, phase())
+    }
+    @Test fun `acceptReplanOffer names its cause`() = runTest {
+        assertEquals(ReplanAccept.Gone, repo.acceptReplanOffer(null, null))
+        prepare()
+        ladder()
+        repo.plans.setAutoApply(plan, false)
+        assertTrue(repo.setRunOfferApplied(log("A", 0), true))
+        log("B", 1)
+        val session = log("C", 2)
+        db.runDao().insertRun(WorkoutRunEntity("cause-open", plan, "A", "Easy", "Run", clock.millis()))
+        assertEquals(ReplanAccept.RunOpen, repo.acceptReplanOffer(null, session))
+        db.runDao().deleteRun("cause-open")
+        val after = assertNotNull(day("A").cardioRuleJson)
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(credited))
+        assertEquals(ReplanAccept.Waiting, repo.acceptReplanOffer(null, session))
+        db.programDao().setCardioRule(plan, "A", after)
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(null, session))
+        assertEquals(ReplanAccept.Gone, repo.acceptReplanOffer(null, session))
     }
 }

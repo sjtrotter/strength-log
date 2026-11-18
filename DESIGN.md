@@ -282,6 +282,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 
 | When, where | Decided | Reason given |
 |---|---|---|
+| 2026-11-18, wizard rebuild PR 7c | Run and Both setup with event, longest-run and Together choices; h:mm:ss goal times | The first Run and Both plan writer; hour-long goals retain a readable clock |
 | 2026-10-12, `ui-redesign-2026-10-12.md` Round 2 | Day index (letter on an accent block); Today / Log / Plan bar; coach states facts only; M3 `Checkbox`; edits in a `ModalBottomSheet`; rotation 2 to 6 days; no bespoke components | Owner: it did not feel like an app; both reviewers found captions carrying the hierarchy and reference outranking the action; an instructing coach line read as condescending |
 | 2026-10-12, HANDOFF rule 4 | Retire tracked caps and dot-joined meta; caps only as set notation | Seven caps captions turned Today into a readout. Reverses the July convention |
 | 2026-10-12 evening, pager decision | Workout is Fable's variant B: one lift per page, one set in focus, `Button` "Log 95 lb × 5", next card peeking, R1/TOP/B/O, no day selector, "Day D, done." | Owner: "looks like a pro workout app"; removes the vertical list behind the scroll jank (#260); shares the watch's grammar |

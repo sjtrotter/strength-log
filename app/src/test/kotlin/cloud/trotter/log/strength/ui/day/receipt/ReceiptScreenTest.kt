@@ -39,7 +39,6 @@ import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.CardioIncrease
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -47,6 +46,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -119,10 +119,11 @@ class ReceiptScreenTest {
         val (receipt, progress) = sprintFortyYardReceiptFixture()
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
         rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        // Next time shows the event in yards, and no line on the receipt shows it in metres.
-        rule.onNodeWithText("Next time", substring = true, useUnmergedTree = true).performScrollTo()
-            .assertTextContains("yd", substring = true)
+        // The Next time line exposes only its spoken form (clearAndSetSemantics): it says the event in yards.
+        rule.onNodeWithContentDescription("40 yd", substring = true, useUnmergedTree = true).assertExists()
         assertTrue(rule.onAllNodesWithText("37 m", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+        assertTrue(rule.onAllNodesWithContentDescription("37 m", substring = true, useUnmergedTree = true)
+            .fetchSemanticsNodes().isEmpty())
     }
 
     @Test fun `a non sprint receipt keeps 37 metres`() {

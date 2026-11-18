@@ -960,6 +960,8 @@ class TrackerRepository(
         val entity = programDao.day(planId, dayId) ?: return null
         if (session.increaseApplied) return null
         if (cardioSessionDao.newestForDay(planId, dayId)?.id != sessionId) return null
+        // A re-plan can keep the judged day's columns, so the column gates alone would replay it; Undo comes first.
+        if (!first && CardioUndoJson.decode(session.progressionUndoJson)?.plan?.replan != null) return null
         val activity = CardioActivity.entries.firstOrNull { it.name == session.activity } ?: return null
         val names = CardioFamily.of(activity).activities.map { it.name }
         val sessions = cardioSessionDao.forActivities(names)

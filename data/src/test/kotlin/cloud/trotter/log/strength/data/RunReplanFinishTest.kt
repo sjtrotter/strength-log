@@ -215,6 +215,37 @@ class RunReplanFinishTest {
         assertNotNull(undo(session).plan?.replan)
     }
 
+    @Test fun `a re-plan with unchanged block and rule refuses replay and preserves Undo`() = runTest {
+        prepare(run(RunGoal.HALF_MARATHON, 1, RunExperience.SOME, Measure.Time(1800)).copy(minutes = 90))
+        assertEquals(RunPhase.BASE, phase())
+        assertEquals(time(1980), block("A"))
+        assertEquals(CardioRule(null, RunSession.EASY), rule("A"))
+        log(atDay = 0, current = time(3600))
+        val before = db.programDao().daysForPlan(plan)
+        val oldRecipe = recipe()
+        val session = log("A", 1, effort = CardioEffort.HARD)
+        assertEquals(RunPhase.HALF_BUILD, phase())
+        val record = assertNotNull(undo(session).plan?.replan).days.single { it.dayId == "A" }
+        val columns = assertNotNull(record.before)
+        assertEquals(columns.block, record.after.block)
+        assertEquals(columns.rule, record.after.rule)
+        assertEquals(before.single().cardioBlockJson, day("A").cardioBlockJson)
+        assertEquals(before.single().cardioRuleJson, day("A").cardioRuleJson)
+        val after = db.programDao().daysForPlan(plan)
+        val stored = assertNotNull(db.cardioSessionDao().byId(session))
+
+        repo.setCardioEffort(session, CardioEffort.EASY)
+
+        assertEquals(stored.copy(effort = CardioEffort.EASY.name), db.cardioSessionDao().byId(session))
+        assertEquals(after, db.programDao().daysForPlan(plan))
+        assertEquals(RunPhase.HALF_BUILD, phase())
+        assertTrue(repo.finishUndoState(null, session).restorable)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals(RunPhase.BASE, phase())
+        assertEquals(oldRecipe, recipe())
+        assertEquals(before, db.programDao().daysForPlan(plan))
+    }
+
     @Test fun `an Ask plan does not re-plan`() = runTest {
         prepare(run(RunGoal.HALF_MARATHON, 3, RunExperience.SOME, Measure.Time(1800)))
         repo.plans.setAutoApply(plan, false)
@@ -233,14 +264,15 @@ class RunReplanFinishTest {
         log("B", 2)
         log("C", 3)
         assertEquals(RunPhase.HALF_BUILD, phase())
-        val before = db.programDao().daysForPlan(plan)
         val recipe = recipe()
-        log("A", 8, finished = false)
-        log("B", 9, finished = false)
-        val session = log("C", 10, finished = false)
-        assertEquals(before, db.programDao().daysForPlan(plan))
+        log("A", 8)
+        log("B", 9)
+        val session = log("C", 10)
+        // 4b-ii-b: the phase stays fixed while finished easy runs can grow under A16 and R11.
+        assertEquals(RunPhase.HALF_BUILD, phase())
         assertEquals(recipe, recipe())
-        assertNull(undo(session).plan?.replan)
+        // 4b-ii-b: require the second wrap record before checking that no re-plan was written.
+        assertNull(assertNotNull(undo(session).plan).replan)
     }
 
     @Test fun `a wrap with no finished run in its week waits`() = runTest {

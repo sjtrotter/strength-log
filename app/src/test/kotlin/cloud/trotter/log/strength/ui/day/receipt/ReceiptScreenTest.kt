@@ -1123,9 +1123,14 @@ class ReceiptScreenTest {
                 Text(spokenCardioNextLine(progress.value).orEmpty())
             }
         } }
+        rule.onNodeWithText("Next time: 8 × 30 m").assertIsDisplayed()
         fun expect(next: ReceiptProgressState, why: String?) {
             rule.runOnIdle { progress.value = next }
-            val value = if (next.run?.introLeft != null) "4 × 10 m" else "8 × 20 m"
+            val value = when {
+                next.run?.introLeft != null -> "4 × 10 m"
+                next.run?.change == CardioChange.Step -> "8 × 30 m"
+                else -> "8 × 20 m"
+            }
             rule.onNodeWithText("Next time: $value").assertIsDisplayed()
             if (why != null) rule.onNodeWithText(why).assertIsDisplayed()
         }
@@ -1149,7 +1154,7 @@ class ReceiptScreenTest {
         rule.setContent { AppTheme {
             SessionReceiptScreen(sprintReceiptFixture(), {}, {}, progress = sprintReceiptProgressFixture())
         } }
-        rule.onNodeWithContentDescription("Next time, 8 × 20 m.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Next time, 8 × 30 m.").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Why").performScrollTo().performClick()
         rule.onNodeWithText("Two full sessions at this dose: one step more next time.").performScrollTo().assertIsDisplayed()
     }

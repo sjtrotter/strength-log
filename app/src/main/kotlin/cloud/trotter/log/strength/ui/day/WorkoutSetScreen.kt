@@ -1,8 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.data.SpacingReason
-import cloud.trotter.log.strength.domain.progression.SprintDose
-
 import cloud.trotter.log.strength.ui.theme.SetNumerals
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.sp
@@ -103,6 +100,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -111,6 +109,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.EffortScale
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import androidx.compose.foundation.layout.BoxWithConstraints
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper

@@ -16,9 +16,9 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilder
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptProgressState
 import cloud.trotter.log.strength.ui.day.receipt.timeTargetFixture
 
-internal fun sprintBlockFixture(intro: Boolean = false): CardioBlock = requireNotNull(sprintPlannedBlock(
+internal fun sprintBlockFixture(intro: Boolean = false, steps: Int = 12): CardioBlock = requireNotNull(sprintPlannedBlock(
     if (intro) CardioRule(null, RunSession.ACCELERATION, intro = 3)
-    else CardioRule(null, RunSession.ACCELERATION, steps = 12), CardioActivity.TRACK_RUN))
+    else CardioRule(null, RunSession.ACCELERATION, steps = steps), CardioActivity.TRACK_RUN))
 
 internal fun sprintStartFixture(dose: SprintDose = SprintDose.NORMAL, gap: Long? = 1,
                                reason: SpacingReason = SpacingReason.STARTING_OUT,
@@ -40,9 +40,11 @@ internal fun sprintEditorFixture() = DayEditUiState(cardioBlock = sprintBlockFix
     cardioPlanned = sprintBlockFixture(), planEditing = true)
 
 internal fun sprintReceiptProgressFixture(change: CardioChange = CardioChange.Step, dose: SprintDose = SprintDose.NORMAL,
-                                         introLeft: Int? = null, credit: Boolean = false) =
-    ReceiptProgressState(cardioSessionId = 2, cardioStored = sprintBlockFixture(introLeft != null),
-        run = RunResult(change, null, null, credit, false, sprintBlockFixture(introLeft != null), dose = dose, introLeft = introLeft))
+                                         introLeft: Int? = null, credit: Boolean = false): ReceiptProgressState {
+    val block = sprintBlockFixture(introLeft != null, steps = if (change == CardioChange.Step) 13 else 12)
+    return ReceiptProgressState(cardioSessionId = 2, cardioStored = block,
+        run = RunResult(change, null, null, credit, false, block, dose = dose, introLeft = introLeft))
+}
 
 internal fun sprintReceiptFixture(intro: Boolean = false, dose: SprintDose = SprintDose.NORMAL) = sprintBlockFixture(intro).let { planned ->
     val block = when (dose) {

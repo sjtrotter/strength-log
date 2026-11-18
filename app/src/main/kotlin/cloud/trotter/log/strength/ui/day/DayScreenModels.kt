@@ -1,8 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.data.SpacingReason
-import cloud.trotter.log.strength.domain.progression.SprintDose
-
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
@@ -10,6 +7,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.RunSetCounts
+import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.routine.Move
@@ -20,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit

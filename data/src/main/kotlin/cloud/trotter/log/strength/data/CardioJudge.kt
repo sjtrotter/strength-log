@@ -35,7 +35,6 @@ import cloud.trotter.log.strength.domain.progression.daysSince
 import cloud.trotter.log.strength.domain.progression.lastMaximalEpochDay
 import cloud.trotter.log.strength.domain.progression.spacingDays
 import cloud.trotter.log.strength.domain.progression.sprintDecision
-import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
 import cloud.trotter.log.strength.domain.progression.sprintFirstWeeks
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Instant
@@ -103,7 +102,8 @@ object CardioJudge {
         }
         return SprintStart(decision.block, decision.dose, daysSince(lastMaximalEpochDay(inputs.program, records), todayEpochDay),
             spacingDays(firstWeeks, inputs.careful), reason,
-            inputs.careful && rule.intro > 0 && sprintPlannedBlock(rule, stored.activity)?.sets?.any { it.hard } == true)
+            inputs.careful && decision.dose != SprintDose.SUBSTITUTE &&
+                (rule.intro > 0 || decision.dose == SprintDose.RESTART) && decision.block.sets.any { it.hard })
     }
 
     /** The block [session] ran ([opening]) and next time's [outcome]. */

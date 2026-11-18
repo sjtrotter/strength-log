@@ -86,6 +86,32 @@ class CardioJudgeSprintStartTest {
             today.toEpochDay(), tempo)).nineTenths)
     }
 
+    @Test fun `a careful intro substituted by the allowance hides nine tenths`() {
+        val inputs = inputs(SetupAnswers(branch = PlanBranch.SPRINT, days = 2,
+            experience = LiftExperience.A_YEAR_OR_MORE, sprint = SprintAnswers(fortyOrOlder = true)))
+        val day = inputs.program.days.first()
+        assertTrue(assertNotNull(day.cardioRule).intro > 0)
+        val history = (1L..3L).map { session(it, it) }
+        val start = assertNotNull(CardioJudge.sprintStart(day, plan, history,
+            history.associate { it.id to rows(inputs) }, now, today.toEpochDay(), inputs))
+        assertEquals(SprintDose.SUBSTITUTE, start.dose)
+        assertFalse(start.nineTenths)
+    }
+
+    @Test fun `a careful restart shows nine tenths after the stored intro ends`() {
+        val careful = inputs(SetupAnswers(branch = PlanBranch.SPRINT, days = 2,
+            experience = LiftExperience.A_YEAR_OR_MORE, sprint = SprintAnswers(fortyOrOlder = true)))
+        val mature = careful.copy(program = careful.program.copy(days = careful.program.days.map { day ->
+            day.copy(cardioRule = day.cardioRule?.copy(intro = 0))
+        }))
+        val restart = start(mature, gap = 15)
+        assertEquals(SprintDose.RESTART, restart.dose)
+        assertTrue(restart.nineTenths)
+        val ordinary = start(mature.copy(careful = false), gap = 15)
+        assertEquals(SprintDose.RESTART, ordinary.dose)
+        assertFalse(ordinary.nineTenths)
+    }
+
     @Test fun `the opening on a sprint day is the decided block`() {
         val inputs = inputs()
         val day = inputs.program.days.first()

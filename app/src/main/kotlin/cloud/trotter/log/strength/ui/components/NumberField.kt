@@ -78,7 +78,11 @@ fun NumberField(
         if (!dirty && pendingCommit == null && !focused) draft = value?.let(format).orEmpty()
     }
     val rangeError = if (maxValue.isFinite()) {
-        stringResource(if (weightInput) R.string.form_weight_range else R.string.form_number_range,
+        stringResource(when {
+            parse != null -> R.string.form_time_range
+            weightInput -> R.string.form_weight_range
+            else -> R.string.form_number_range
+        },
             format(minValue), format(maxValue))
     } else {
         stringResource(if (weightInput) R.string.form_weight_minimum else R.string.form_number_minimum, format(minValue))

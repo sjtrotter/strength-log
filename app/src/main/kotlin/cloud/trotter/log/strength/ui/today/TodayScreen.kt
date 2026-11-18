@@ -26,6 +26,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -147,29 +148,32 @@ private fun TodayUnavailable(state: TodayUiState, actions: TodayActions) {
 
 @Composable
 private fun TodayRestItem(day: TodayDay, actions: TodayActions, showRestTaken: Boolean) {
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val restActions: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.End) {
+            day.trainDayId?.let { trainDayId ->
+                TextButton(onClick = { actions.onSkipRest(day.selection.copy(dayId = trainDayId)) }) {
+                    Text(stringResource(R.string.today_skip_rest))
+                }
+            }
+            if (showRestTaken) {
+                FilledTonalButton(onClick = { actions.onRestTaken(day.selection) }) {
+                    Text(stringResource(R.string.today_rest_taken))
+                }
+            }
+        }
+    }
     ListItem(
         leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
         headlineContent = { Text(stringResource(R.string.today_rest_day, day.dayId)) },
         supportingContent = {
-            Column {
+            Column(if (largeFont) Modifier.fillMaxWidth() else Modifier) {
                 Text(day.planName)
                 if (day.beforeSprint) Text(stringResource(R.string.today_rest_before_sprint))
+                if (largeFont) restActions()
             }
         },
-        trailingContent = {
-            Column(horizontalAlignment = Alignment.End) {
-                day.trainDayId?.let { trainDayId ->
-                    TextButton(onClick = { actions.onSkipRest(day.selection.copy(dayId = trainDayId)) }) {
-                        Text(stringResource(R.string.today_skip_rest))
-                    }
-                }
-                if (showRestTaken) {
-                    FilledTonalButton(onClick = { actions.onRestTaken(day.selection) }) {
-                        Text(stringResource(R.string.today_rest_taken))
-                    }
-                }
-            }
-        },
+        trailingContent = if (largeFont) null else restActions,
     )
 }
 

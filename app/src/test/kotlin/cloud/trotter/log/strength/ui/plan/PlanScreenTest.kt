@@ -83,6 +83,19 @@ class PlanScreenTest {
         rule.onNodeWithText("Start type: Three-point").assertIsDisplayed()
     }
 
+    @Test fun `the sprint goal editor settles over the plan with its goal row`() {
+        val best = SprintAttempt(123L, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))
+        val goal = PlanGoal.Sprint(100, targetCentis = 1250, attempts = listOf(best),
+            byEpochDay = java.time.LocalDate.of(2026, 12, 1).toEpochDay())
+        rule.setContent { AppTheme { PlanScreen(planScreenFixture().copy(sprintGoal = PlanSprintGoalUi(goal, best),
+            sprintGoalDraft = SprintGoalDraft("12.50", goal.byEpochDay)), actions()) } }
+        rule.onNode(hasText("Target time") and hasText("12.50") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        rule.onNode(hasText("Dec 1, 2026") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        rule.onNode(hasScrollAction() and !hasAnyAncestor(isDialog()))
+            .performScrollToNode(hasText("Phone-timed best 12.84"))
+        rule.onNodeWithText("Phone-timed best 12.84").assertExists()
+    }
+
     @Test fun automaticHidesOfferRowsAndSwitchingToAskShowsStoredChoices() {
         val state = mutableStateOf(planScreenFixture().copy(autoApply = true, offerStrengthIncreases = false,
             offerCardioIncreases = true))

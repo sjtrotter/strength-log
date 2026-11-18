@@ -155,19 +155,25 @@ class ProgressionPreviewShotsTest {
     private lateinit var originalLocale: Locale
     private lateinit var originalTimeZone: TimeZone
     private var originalFontScale = 1f
+    private var originalWindowSize: String? = null
 
     @Before fun fixLocaleAndTimeZone() {
         originalLocale = Locale.getDefault()
         originalTimeZone = TimeZone.getDefault()
         originalFontScale = RuntimeEnvironment.getApplication().resources.configuration.fontScale
+        originalWindowSize = System.getProperty(REQUESTED_WINDOW_SIZE)
         Locale.setDefault(Locale.US)
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        System.setProperty(REQUESTED_WINDOW_SIZE, "true")
     }
 
     @After fun restoreLocaleAndTimeZone() {
         Locale.setDefault(originalLocale)
         TimeZone.setDefault(originalTimeZone)
         RuntimeEnvironment.setFontScale(originalFontScale)
+        val windowSize = originalWindowSize
+        if (windowSize == null) System.clearProperty(REQUESTED_WINDOW_SIZE)
+        else System.setProperty(REQUESTED_WINDOW_SIZE, windowSize)
     }
 
     @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
@@ -643,3 +649,6 @@ class ProgressionPreviewShotsTest {
         }
     }
 }
+
+/** Robolectric's full-screen frame for wrap-content dialogs keeps a dialog text field relaying out forever. */
+private const val REQUESTED_WINDOW_SIZE = "robolectric.windowManager.useRequestedSize"

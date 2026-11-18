@@ -9,6 +9,12 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoDto
@@ -62,6 +68,7 @@ class SprintFinishTest {
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var repo: TrackerRepository
+    private lateinit var settings: SettingsStore
     private var plan = 0L
     private val zone = ZoneId.of("America/Los_Angeles")
     private val date = LocalDate.of(2026, 11, 17)
@@ -73,7 +80,7 @@ class SprintFinishTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
+        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("sprint-finish", ".preferences_pb")
         })
         val plans = PlanRepository(db, settings, clock)
@@ -84,13 +91,13 @@ class SprintFinishTest {
 
     @After fun tearDown() { db.close(); scope.cancel() }
 
-    private suspend fun prepare(cycles: Int = 1, days: Int = 2) {
+    private suspend fun prepare(cycles: Int = 1, days: Int = 2, event: SprintEvent = SprintEvent.M100) {
         val id = repo.plans.createAuthoredPlan("Sprints", "Sprint")
         repo.plans.publishCreatedAuthoredPlan(id)
         repo.replaceProgram(Planner.plan(SetupAnswers(branch = PlanBranch.SPRINT, days = days, minutes = 60,
-            sprint = SprintAnswers(sprintedRecently = true))).program)
+            sprint = SprintAnswers(event = event, sprintedRecently = true))).program)
         plan = assertNotNull(repo.plans.selectedPlanIdFlow.first())
-        db.planDao().updateGoal(plan, PlanGoalJson.encode(PlanGoal.Sprint(100)))
+        db.planDao().updateGoal(plan, PlanGoalJson.encode(PlanGoal.Sprint(event.metres)))
         db.planDao().updateLightCycle(plan, 0, cycles)
     }
     private fun block(rounds: Int, metres: Int, recovery: Int = 120, hard: Boolean = true) =
@@ -343,6 +350,93 @@ class SprintFinishTest {
         val id = log(block = restart)
         assertEquals(CardioRule(null, RunSession.ACCELERATION, intro = 2, maximalCycle = 1), rule())
         assertEquals(0, CardioRuleJson.decode(undo(id).rule?.after)?.steps)
+    }
+
+    @Test fun `sprint Finishes record their result`() = runTest {
+        suspend fun expect(id: Long, dose: SprintDose, change: CardioChange = CardioChange.Repeat,
+                           credit: Boolean = false, introLeft: Int? = null, dayId: String = "A") {
+            val session = assertNotNull(db.cardioSessionDao().byId(id))
+            val result = assertNotNull(session.runResult())
+            assertEquals(dose, result.dose)
+            assertEquals(change, result.change)
+            assertEquals(credit, result.credit)
+            assertEquals(introLeft, result.introLeft)
+            assertFalse(result.held)
+            assertEquals(sprintPlannedBlock(rule(dayId), CardioActivity.TRACK_RUN), result.block)
+        }
+        prepare()
+        val normal = log()
+        expect(normal, SprintDose.NORMAL, credit = true)
+        repo.setCardioEffort(normal, CardioEffort.HARD)
+        expect(normal, SprintDose.NORMAL, credit = true)
+
+        prepare()
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(rule().copy(credits = 1)))
+        expect(log(), SprintDose.NORMAL, CardioChange.Step)
+
+        for (intro in listOf(3, 1)) {
+            prepare()
+            db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(CardioRule(null, RunSession.ACCELERATION, intro = intro)))
+            expect(log(block = block(4, 10, 60)), SprintDose.NORMAL, introLeft = intro - 1)
+        }
+        prepare()
+        seed("A", -20, block(8, 20))
+        expect(log(block = block(4, 10, 60)), SprintDose.RESTART, CardioChange.Restart)
+
+        prepare(cycles = 4)
+        expect(log(block = block(1, 100)), SprintDose.TRIAL)
+
+        prepare()
+        seedWindow()
+        expect(log(block = block(6, 20)), SprintDose.SHORTENED)
+
+        prepare()
+        repeat(2) { seed("A", -1, block(8, 20)) }
+        expect(log(block = block(6, 100, 60, hard = false)), SprintDose.SUBSTITUTE)
+
+        prepare(cycles = 4, event = SprintEvent.M200)
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(rule().copy(sprintTrialCycle = 4)))
+        expect(log("C", block(6, 100, 60, hard = false)), SprintDose.TEMPO, dayId = "C")
+    }
+
+    @Test fun `keep to plan does not bypass the allowance on a sprint day`() = runTest {
+        prepare()
+        seedWindow()
+        db.programDao().setCardioKeepToPlan(plan, "A", true)
+        assertEquals(block(6, 20), opening())
+        val id = log(block = block(6, 20))
+        assertEquals(SprintDose.SHORTENED, assertNotNull(db.cardioSessionDao().byId(id)?.runResult()).dose)
+    }
+
+    @Test fun `the repository zone dates Start and Finish on the same evening`() = runTest {
+        prepare()
+        seedWindow()
+        val chicago = ZoneId.of("America/Chicago")
+        val localRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings,
+            clock = clock.withZone(chicago), plans = repo.plans, history = repo.history)
+        val started = date.atTime(23, 50).atZone(localRepo.zone).toInstant().toEpochMilli()
+        val completed = date.plusDays(1).atTime(0, 10).atZone(localRepo.zone).toInstant().toEpochMilli()
+        val program = repo.plans.programFor(plan).first()
+        val storedPlan = assertNotNull(db.planDao().plan(plan))
+        val inputs = CardioPlan.of(storedPlan, program, WeightUnit.LB, localRepo.zone)
+        val sessions = db.cardioSessionDao().all()
+        val sets = db.cardioSetResultDao().all().groupBy { it.cardioSessionId }
+            .mapValues { (_, rows) -> rows.map { it.toDomain() } }
+        val start = assertNotNull(CardioJudge.sprintStart(program.days.first(), storedPlan, sessions, sets, started,
+            Instant.ofEpochMilli(started).atZone(localRepo.zone).toLocalDate().toEpochDay(), inputs))
+        assertEquals(chicago, localRepo.zone)
+        assertEquals(block(6, 20), start.block)
+        val id = localRepo.logCardioSession(entity("A", started, completed), results(start.block))
+        assertEquals(start.dose, assertNotNull(db.cardioSessionDao().byId(id)?.runResult()).dose)
+    }
+
+    @Test fun `a sprint result has stable undo record bytes`() = runTest {
+        prepare()
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(CardioRule(null, RunSession.ACCELERATION)))
+        val id = log(block = block(4, 10, 60))
+        val result = assertNotNull(undo(id).result)
+        assertEquals(CardioBlockJson.encode(block(4, 10, 60)), result.block)
+        assertEquals("""{"result":{"change":"REPEAT","credit":true,"block":"{\"activity\":\"TRACK_RUN\",\"sets\":[{\"role\":\"WARMUP\",\"end\":{\"type\":\"time\",\"seconds\":600}},{\"role\":\"WORK\",\"end\":{\"type\":\"distance\",\"metres\":10},\"hard\":true},{\"role\":\"RECOVERY\",\"end\":{\"type\":\"time\",\"seconds\":60}},{\"role\":\"WORK\",\"end\":{\"type\":\"distance\",\"metres\":10},\"hard\":true},{\"role\":\"RECOVERY\",\"end\":{\"type\":\"time\",\"seconds\":60}},{\"role\":\"WORK\",\"end\":{\"type\":\"distance\",\"metres\":10},\"hard\":true},{\"role\":\"RECOVERY\",\"end\":{\"type\":\"time\",\"seconds\":60}},{\"role\":\"WORK\",\"end\":{\"type\":\"distance\",\"metres\":10},\"hard\":true}]}","dose":"NORMAL"}}""", CardioUndoJson.encode(CardioUndoDto(result = result)))
     }
 
 }

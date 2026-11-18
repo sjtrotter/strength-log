@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
@@ -91,6 +92,8 @@ internal class DayEditor(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioLadder = day?.cardioRule?.ladderLevel != null,
+                cardioSprint = day?.cardioRule?.session?.sprint == true,
+                cardioPlanned = if (day != null && block != null) sprintPlannedBlock(day.cardioRule, block.activity) else null,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
                 cardioMeasures = block?.let(CardioMeasures::available).orEmpty(),
                 performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },

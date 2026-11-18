@@ -525,4 +525,21 @@ class SetupFlowScreenTest {
         assertTrue(text.contains("${cardio.minutes} min"))
         assertTrue(!text.contains("lifts"))
     }
+    @Test fun `a fitness test target that is not a time waits`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)),
+            SetupFlowActions(onGoalSeconds = { shown = state(SetupStep.EVENT, shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("16")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("1:00")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertNull(shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("16:00")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(960, shown.draft.goalSeconds) }
+    }
+
 }

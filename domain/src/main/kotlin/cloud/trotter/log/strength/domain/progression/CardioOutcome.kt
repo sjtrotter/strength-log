@@ -25,4 +25,4 @@ enum class LadderHold { BACKDATED, WEEK_CAP, BUSY }
 
 /** Next time's block and rule; the caller writes both together. [hold] names an Easy held by a ladder rule. */
 data class CardioOutcome(val block: CardioBlock, val rule: CardioRule?, val change: CardioChange,
-                         val hold: LadderHold? = null)
+                         val hold: LadderHold? = null, val dose: SprintDose? = null)

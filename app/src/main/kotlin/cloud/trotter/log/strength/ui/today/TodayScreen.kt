@@ -150,7 +150,12 @@ private fun TodayRestItem(day: TodayDay, actions: TodayActions, showRestTaken: B
     ListItem(
         leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
         headlineContent = { Text(stringResource(R.string.today_rest_day, day.dayId)) },
-        supportingContent = { Text(day.planName) },
+        supportingContent = {
+            Column {
+                Text(day.planName)
+                if (day.beforeSprint) Text(stringResource(R.string.today_rest_before_sprint))
+            }
+        },
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
                 day.trainDayId?.let { trainDayId ->

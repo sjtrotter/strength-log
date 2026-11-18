@@ -1361,4 +1361,36 @@
         <item quantity="one">Lifting and %1$s, %2$d day</item>
         <item quantity="other">Lifting and %1$s, %2$d days</item>
     </plurals>
+    <plurals name="sprint_allowance_shortened">
+        <item quantity="one">You\'ve done more sprint sessions in the last 7 days than this plan has, so today is shortened to %1$d rep.</item>
+        <item quantity="other">You\'ve done more sprint sessions in the last 7 days than this plan has, so today is shortened to %1$d reps.</item>
+    </plurals>
+    <string name="sprint_allowance_substitute">You\'ve done more sprint sessions in the last 7 days than this plan has. Today is an easy tempo session instead.</string>
+    <string name="sprint_note_today">You already sprinted today.</string>
+    <string name="sprint_note_yesterday">Your last sprint session was yesterday.</string>
+    <plurals name="sprint_note_days_ago">
+        <item quantity="one">Your last sprint session was %1$d day ago.</item>
+        <item quantity="other">Your last sprint session was %1$d days ago.</item>
+    </plurals>
+    <string name="sprint_spacing_three">%1$s, sprint days work best three days apart. You can train a different day from your plan instead.</string>
+    <string name="sprint_spacing_two">%1$s, sprint days work best two days apart. You can train a different day from your plan instead.</string>
+    <string name="sprint_reason_starting">While you\'re starting out</string>
+    <string name="sprint_reason_forty">Since you\'re 40 or older</string>
+    <string name="sprint_reason_strain">After a hamstring strain</string>
+    <string name="sprint_reason_for_now">For now</string>
+    <string name="sprint_nine_tenths">Run these reps at about nine-tenths effort.</string>
+    <string name="today_rest_before_sprint">Rest before your next sprint day.</string>
+    <string name="sprint_editor_follows_plan">Sprint sets follow the plan.</string>
+    <string name="receipt_why_sprint_step">Two full sessions at this dose: one step more next time.</string>
+    <string name="receipt_why_sprint_credit">One full session at this dose. The next one adds a step.</string>
+    <plurals name="receipt_why_sprint_intro">
+        <item quantity="one">Starting dose: %1$d more session.</item>
+        <item quantity="other">Starting dose: %1$d more sessions.</item>
+    </plurals>
+    <string name="receipt_why_sprint_intro_done">Starting dose done: steps begin next time.</string>
+    <string name="receipt_why_sprint_restart">Back to the starting dose after more than two weeks without sprinting.</string>
+    <string name="receipt_why_sprint_trial">Time trial: no step from this session.</string>
+    <string name="receipt_why_sprint_shortened">Shortened for the weekly limit: no step from this session.</string>
+    <string name="receipt_why_sprint_substitute">Tempo in place of sprints for the weekly limit: no step from this session.</string>
+    <string name="receipt_why_sprint_tempo">Tempo after the time trial: no step from this session.</string>
 </resources>

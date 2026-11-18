@@ -2,6 +2,14 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.data.CardioJudge
+import cloud.trotter.log.strength.data.CardioPlan
+import cloud.trotter.log.strength.data.of
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.SprintAnswers
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
@@ -363,8 +371,10 @@ class DayViewModelCardioExecutionTest {
         val plan = requireNotNull(db.planDao().plan(planId))
         assertTrue(plan.autoApply)
         val sets = sessions.associate { it.id to repo.history.cardioSetsFor(it.id) }
+        // PR 7d: opening receives plan inputs and the repository zone; the run value is unchanged.
         assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 3480))),
-            DayScreenBuilder.cardioOpening(day, plan, sessions, sets, clock.wall))
+            DayScreenBuilder.cardioOpening(day, plan, sessions, sets, clock.wall,
+                repo.plans.programFor(planId).first(), WeightUnit.LB, repo.zone))
     }
 
     @Test fun aTaperedOpeningShowsBeforeStart() = test {
@@ -405,7 +415,9 @@ class DayViewModelCardioExecutionTest {
         val day = repo.plans.programFor(planId).first().days.first { it.id == "A" }
         val sessions = repo.history.cardioSessionsFlow.first()
         val sets = sessions.associate { it.id to repo.history.cardioSetsFor(it.id) }
-        assertEquals(stored, DayScreenBuilder.cardioOpening(day, requireNotNull(db.planDao().plan(planId)), sessions, sets, clock.wall))
+        // PR 7d: opening receives plan inputs and the repository zone; the rule-less value is unchanged.
+        assertEquals(stored, DayScreenBuilder.cardioOpening(day, requireNotNull(db.planDao().plan(planId)), sessions, sets, clock.wall,
+            repo.plans.programFor(planId).first(), WeightUnit.LB, repo.zone))
         assertEquals(frozen, handle.get<CardioRun>("day_cardio_run")?.block)
         assertEquals(frozen, vm.uiState.value.cardio?.block)
         vm.startCardio()
@@ -3395,6 +3407,56 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(CardioBlock(CardioActivity.ROAD_RUN, listOf(time(CardioRole.WORK, 1575, aim = 5250))),
             repo.plans.programFor(plan).first().days.first { it.id == "A" }.cardioToRun)
+    }
+
+    private suspend fun prepareSprint(fullWindow: Boolean): Long {
+        val planId = repo.plans.createAuthoredPlan("Sprint", "Sprint")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val program = Planner.plan(SetupAnswers(branch = PlanBranch.SPRINT, days = 2, minutes = 60,
+            sprint = SprintAnswers(sprintedRecently = true))).program
+        repo.replaceProgram(program)
+        if (fullWindow) {
+            for ((dayId, gap) in listOf("A" to 6L, "C" to 4L, "C" to 2L)) {
+                val day = program.days.single { it.id == dayId }
+                val block = requireNotNull(sprintPlannedBlock(day.cardioRule, CardioActivity.TRACK_RUN))
+                val started = clock.wall - gap * 86_400_000
+                val id = db.cardioSessionDao().insert(CardioSessionEntity(planId = planId, dayId = dayId,
+                    mode = "OUTDOOR_RUN", hard = true, label = "Sprint", startedAt = started, completedAt = started + 2_400_000,
+                    seconds = 2400, stepsCompleted = block.sets.size, activity = block.activity.name))
+                db.cardioSetResultDao().insertAll(block.sets.mapIndexed { index, spec ->
+                    CardioSetResult(spec, CardioSetStatus.FINISHED, (spec.end as? Measure.Time)?.seconds ?: 5).toEntity(id, index)
+                })
+            }
+        }
+        return planId
+    }
+
+    @Test fun `a sprint day starts with the decided block`() = test {
+        val planId = prepareSprint(fullWindow = false)
+        val program = repo.plans.programFor(planId).first()
+        val plan = requireNotNull(db.planDao().plan(planId))
+        val expected = requireNotNull(CardioJudge.sprintStart(program.days.first(), plan, emptyList(), emptyMap(), clock.wall,
+            Instant.ofEpochMilli(clock.wall).atZone(repo.zone).toLocalDate().toEpochDay(),
+            CardioPlan.of(plan, program, WeightUnit.LB, repo.zone)))
+        val vm = readyVm()
+        assertEquals(expected.block, vm.uiState.value.cardio?.block)
+        assertEquals(expected.dose, vm.uiState.value.cardio?.sprint?.dose)
+        vm.startCardio()
+        runCurrent()
+        assertEquals(expected.block, requireNotNull(vm.uiState.value.cardio?.run).block)
+        assertNull(vm.uiState.value.cardio?.sprint)
+    }
+
+    @Test fun `a full sprint window starts shortened`() = test {
+        prepareSprint(fullWindow = true)
+        val vm = readyVm()
+        assertEquals(SprintDose.SHORTENED, vm.uiState.value.cardio?.sprint?.dose)
+        assertEquals(6, vm.uiState.value.cardio?.sprint?.shortenedReps)
+        val opening = requireNotNull(vm.uiState.value.cardio?.block)
+        vm.startCardio()
+        runCurrent()
+        assertEquals(opening, requireNotNull(vm.uiState.value.cardio?.run).block)
+        assertEquals(6, opening.sets.count { it.role == CardioRole.WORK })
     }
 
 }

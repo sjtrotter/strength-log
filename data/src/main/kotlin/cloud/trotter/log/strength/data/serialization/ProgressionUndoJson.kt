@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.LadderHold
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.RunSession
 import kotlinx.serialization.Serializable
 
@@ -57,17 +58,17 @@ internal object CardioUndoJson {
     }
 }
 
-/** One ruled run Finish's judged change and block, held state, ladder credit and explicit chip choice. */
+/** One ruled run or sprint Finish's judged change and block, credit and explicit chip choice. */
 @Serializable internal data class CardioResultDto(
     val change: String, val level: Int? = null, val to: String? = null, val capped: Boolean = false,
     val from: Int? = null, val hold: String? = null, val credit: Boolean = false, val held: Boolean = false,
-    val choice: Boolean? = null, val block: String? = null,
+    val choice: Boolean? = null, val block: String? = null, val dose: String? = null, val introLeft: Int? = null,
 )
 
-/** One ruled run Finish's result; null without a readable record (rule-less, sprint, cleared). */
+/** One ruled run or sprint Finish's result; null without a readable record (rule-less, cleared). */
 data class RunResult(val change: CardioChange, val from: Int?, val hold: LadderHold?, val credit: Boolean,
                      val held: Boolean, val block: CardioBlock?, val replanned: Boolean = false,
-                     val rule: CardioRule? = null)
+                     val rule: CardioRule? = null, val dose: SprintDose? = null, val introLeft: Int? = null)
 
 fun CardioSessionEntity.runResult(): RunResult? = runCatching {
     val undo = CardioUndoJson.decode(progressionUndoJson) ?: return@runCatching null
@@ -88,5 +89,5 @@ fun CardioSessionEntity.runResult(): RunResult? = runCatching {
         else -> return@runCatching null
     }
     RunResult(change, record.from, record.hold?.let(LadderHold::valueOf), record.credit, record.held, block,
-        undo.plan?.replan != null, CardioRuleJson.decode(undo.rule?.after))
+        undo.plan?.replan != null, CardioRuleJson.decode(undo.rule?.after), record.dose?.let(SprintDose::valueOf), record.introLeft)
 }.getOrNull()

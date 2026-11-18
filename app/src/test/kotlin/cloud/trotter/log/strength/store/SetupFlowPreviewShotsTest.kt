@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.store
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.assertIsNotEnabled
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
@@ -183,6 +188,21 @@ class SetupFlowPreviewShotsTest {
         rule.onNodeWithText("Why we ask").performClick()
         capture("s51-setup-why-event.png", true)
     }
+
+    private fun invalidTestTarget(name: String, scale: Float) {
+        val shown = mutableStateOf(state(SetupStep.EVENT,
+            SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)))
+        render(scale) { SetupFlowScreen(shown.value, SetupFlowActions(onGoalSeconds = {
+            shown.value = state(SetupStep.EVENT, shown.value.draft.copy(goalSeconds = it))
+        })) }
+        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("16")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun testTargetInvalid() = invalidTestTarget("p46-setup-test-target-invalid.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun testTargetInvalidLargeFont() = invalidTestTarget("p47-setup-test-target-invalid-2x.png", 2f)
 
     private fun render(fontScale: Float = 1f, light: Boolean = false, content: @Composable () -> Unit) {
         RuntimeEnvironment.setFontScale(fontScale)

@@ -1,5 +1,13 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.SpacingReason
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import java.time.ZoneId
+
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
@@ -781,6 +789,32 @@ class DayScreenBuilderTest {
         val rows = opening.sets.map { cardioResult(it, if (it.role == CardioRole.WORK) 240 else 90,
             (it.end as Measure.Distance).metres) }
         assertEquals(CardioNextTime.Repeat, DayScreenBuilder.cardioNextTime(day, plan, listOf(last), mapOf(last.id to rows)))
+    }
+
+    @Test fun `the sprint card carries its dose gap tier and reason without a chip`() {
+        val program = Planner.plan(SetupAnswers(branch = PlanBranch.SPRINT, days = 2)).program
+        val day = program.days.first()
+        val zone = ZoneId.of("America/Chicago")
+        val now = java.time.Instant.parse("2026-11-18T03:30:00Z").toEpochMilli()
+        val plan = PlanEntity(7, "Sprint", "AUTHORED", 0, 0, offerCardioIncreases = true)
+        val prior = CardioSessionEntity(id = 1, planId = plan.id, dayId = day.id, mode = "OUTDOOR_RUN", hard = true,
+            label = "Sprint", startedAt = now - 86_400_000, completedAt = now - 84_000_000,
+            seconds = 2400, stepsCompleted = 1, activity = CardioActivity.TRACK_RUN.name)
+        val sets = mapOf(prior.id to requireNotNull(day.cardioBlock).sets.map {
+            CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as? Measure.Time)?.seconds ?: 5)
+        })
+        val start = requireNotNull(DayScreenBuilder.sprintStart(day, plan, listOf(prior), sets, now, program, WeightUnit.LB, zone))
+        assertEquals(SprintDose.NORMAL, start.dose)
+        assertEquals(1L, start.daysSince)
+        assertEquals(3, start.spacingDays)
+        assertEquals(SpacingReason.STARTING_OUT, start.reason)
+        assertNull(start.shortenedReps)
+        assertEquals(false, start.nineTenths)
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, listOf(prior), sets))
+        val careful = plan.copy(recipeJson = SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN, olderAdult = true)))
+        val carefulStart = requireNotNull(DayScreenBuilder.sprintStart(day, careful, listOf(prior), sets, now, program, WeightUnit.LB, zone))
+        assertEquals(SpacingReason.FORTY_OR_OLDER, carefulStart.reason)
+        assertEquals(true, carefulStart.nineTenths)
     }
 
 }

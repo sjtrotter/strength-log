@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.SpacingReason
+import cloud.trotter.log.strength.domain.progression.SprintDose
+
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
@@ -310,7 +313,11 @@ data class CardioCardState(
     val gps: CardioGpsState? = null,
     val gpsAsk: Boolean = false,
     val gpsSets: List<CardioGpsSet> = emptyList(),
+    val sprint: SprintStartUi? = null,
 )
+
+data class SprintStartUi(val dose: SprintDose, val shortenedReps: Int?, val daysSince: Long?, val spacingDays: Int,
+                         val reason: SpacingReason, val nineTenths: Boolean)
 
 enum class GpsShown { READY, FINDING, LIVE, NO_SIGNAL, PARTIAL, LOCATION_OFF }
 @Immutable

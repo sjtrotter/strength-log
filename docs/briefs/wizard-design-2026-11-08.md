@@ -1937,3 +1937,65 @@ Production: app wizard SetupDraft, SetupFlowModels, SetupFlowStateBuilder, Setup
 Tests: SetupDraftJsonTest, SetupFlowStateBuilderTest, SetupFlowViewModelTest, SetupFlowScreenTest and shared SetupFlowFixtures; SetupFlowPreviewShotsTest and ProgressionPreviewShotsTest; PlanCardioGoalScreenTest, PlanViewModelTest and ReceiptScreenTest; ClockTextTest; PlannedPlanTest and RunReplanFinishTest; BackupV30Test and new BackupV31Test.
 
 No network, compilation, Gradle, builds, tests or subagents were used. CI results, pilot execution and generated render artifacts remain pending.
+
+
+## 61. Revision 52 (PR 7d, sprint days ready, 2026-11-18)
+
+### Start inputs and the public decision
+
+Every opening receives the stored program, display unit and TrackerRepository.zone. The pure CardioPlan.of builder reads the stored rotation, goal and setup answers after the repository applies a replay's pre-write override. The day state, new cardio runs, preview and watch projection use it. Start dates its decision in the repository clock's zone, the same zone Finish uses for the frozen session's local Start date. The watch receives the decided block through the existing cardioOpening field.
+
+SprintDose and SprintDecision are public. sprintDecision exposes the existing restart, B tempo, admitted trial, normal, shortened and substitute decision without changing its order or allowance. Every sprint CardioOutcome names that decision's dose; other outcomes retain null. sprintPlannedBlock exposes the build-up and current range before trials and allowance. The latest maximal date shares SprintContext.ofHistory's own-day, positive-maximal-meter filter; tempo and empty sessions do not become maximal dates.
+
+### Set screen and rest rows
+
+Before Start, with nothing logged today, the sprint card carries its dose, shortened WORK count, local gap, spacing tier, reason and intro-effort flag. Copy sits where the cardio chip would sit, in bodyMedium and onSurfaceVariant. A shortened dose first shows the approved allowance plural; a substitute first shows its approved tempo-substitution line. A maximal dose then shows the required Start note only when the known gap is below the spacing tier and the dose is not a substitute. Gap zero uses today, one uses yesterday, and larger gaps use the days-ago plural. A gap of three shows no note: the largest tier is three and the comparison is strict.
+
+The three-day tier uses the reason in this order: 40-or-older or older-adult answer, hamstring strain, first weeks, then For now. The two-day tier always says For now. First weeks includes the existing intro, Nordic and New-lifter exposure rules. The careful group's maximal intro adds the nine-tenths effort line last. Tempo plan days have none of this advice. Start remains available. Preview and watch carry the block without this copy.
+
+restBeforeSprint reads rotationDays in order, wrapping the last entry to the first. A REST row immediately before a maximal sprint day says “Rest before your next sprint day.” Today shows it under the plan name; Plan replaces its generic rest supporting text. At 100 m, two-day rotations mark B and D, three-day rotations C and E, four-day rotations C and F, and five- and six-day rotations only C. Tempo is not a maximal next day.
+
+### Receipts, Plan and editing
+
+Every sprint judgment, including replay and Ask, writes result inside progressionUndoJson. It records change, dose, whether credits rose, a reduced intro count when present, held=false and the outcome's planned next block. The existing RunResult reader handles ruled runs and sprints. Sprint receipts show the planned block as Next time, with the existing spoken same-value template. Why precedence is Restart, trial, shortened, substitute, B tempo, Step, completed intro, remaining intro plural, first credit, then no line. Repeat outcomes with a sprint explanation expose the existing Why action; otherwise these records would have text but no reachable sheet.
+
+Plan rows count sprintPlannedBlock at the current steps rather than creation-time block columns. The sprint editor shows its planned block and “Sprint sets follow the plan.” It hides Edit cardio, Next time including Keep, and Remove cardio. Today-only rounds edits remain available and retain the structural-credit guard. Opening and judging ignore a sprint day's stale keepToPlan flag so it cannot bypass allowance.
+
+The four design calls are retained: no sprint chip because Ask also writes sprint progression; copy belongs on the set screen before Start; the sprint goal row and its editing wait for PR 7e's timer and attempts; and TrackerRepository.zone owns local sprint dates. A sprint goal also hides Add goal so its unavailable editor cannot replace it with a timed goal. CardioRun, saved state, Room, backup v31, recipe bytes, rule bytes and the watch wire are unchanged. Sprint setup remains closed until 7f.
+
+### Fitness-test target
+
+NumberField's optional onDraftEdit reports raw text and the resolved number on each edit. Only the fitness-test target uses SetupTime's invalid marker: blank stays null, while nonblank malformed or below-floor text becomes INVALID_GOAL_TIME. For the 2-mile test, “16” and “1:00” wait, blank permits no target, and “16:00” stores 960 seconds. The event's existing A time behavior and all other setup behavior remain unchanged.
+
+### Changed expectations
+
+| Existing test and assertion | Old → new |
+|---|---|
+| ProgressionSprintTest: two counted sessions add one total unit whatever the maximal effort word, assertion 1 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: an unfinished WORK set or Pain does not count and Hard tempo keeps its credit, assertion 1 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: an unfinished WORK set or Pain does not count and Hard tempo keeps its credit, assertion 2 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: intro ends after three counted sessions without earning credit, assertion 1 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: restart precedes trial and B tempo substitution and counts intro session one, assertion 1 | `dose` implicit null → `SprintDose.RESTART`; block, rule and change unchanged |
+| ProgressionSprintTest: admitted trial records its rotation and preserves step credit and intro, assertion 1 | `dose` implicit null → `SprintDose.TRIAL`; block, rule and change unchanged |
+| ProgressionSprintTest: tempo never restarts and a trial substitute leaves B rule untouched, assertion 1 | `dose` implicit null → `SprintDose.TEMPO`; block, rule and change unchanged |
+| ProgressionSprintTest: range tops hold and sprint days bypass the run cap and require context, assertion 1 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: a sprint step past the session minutes waits with its credit, assertion 1 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| ProgressionSprintTest: a sprint step past the session minutes waits with its credit, assertion 2 | `dose` implicit null → `SprintDose.NORMAL`; block, rule and change unchanged |
+| SprintAllowanceTest: an edited-down restart writes the restart state without counting, assertion 1 | `dose` implicit null → `SprintDose.RESTART`; block, rule and change unchanged |
+| SprintRulesTest: a careful restart writes the six session intro, assertion 1 | `dose` implicit null → `SprintDose.RESTART`; block, rule and change unchanged |
+| SprintRulesTest: a careful restart writes the six session intro, assertion 2 | `dose` implicit null → `SprintDose.RESTART`; block, rule and change unchanged |
+| PlannerSprintProgressTest: trial preserves A stored step and credit for the next normal session | `dose` implicit null → `SprintDose.TRIAL`; stored block, rule, trial cycle 4 and change unchanged |
+| DayViewModelCardioExecutionTest: aCappedOpeningShowsBeforeStartWritesNothingAndFreezesAtStart | Opening call without program/unit/zone → call with all three; 3480 seconds → 3480 seconds |
+| DayViewModelCardioExecutionTest: anAddedSetBeforeStartKeepsTheFrozenOpening | Opening call without program/unit/zone → call with all three; stored 3600-second block → same stored block |
+
+Every changed expectation has its PR 7d comment. SprintRulesTest's two careful-restart comparisons and PlannerSprintProgressTest's trial-preserves-state comparison also need the new dose even though §11 named only ProgressionSprintTest, SprintAllowanceTest and SprintFinishTest. All numeric progression and allowance expectations, including all existing SprintFinishTest assertions and pinned §11.2 cases, remain unchanged. No existing sprint undo byte expectation existed to replace; new coverage pins result bytes for a normal first-credit Finish. Run result bytes keep omitting the new default-null fields.
+
+### Files and verification
+
+Production: domain progression SprintRules.kt and CardioOutcome.kt; data CardioJudge.kt, TrackerRepository.kt and serialization/ProgressionUndoJson.kt; app day DayScreenBuilder.kt, DayScreenModels.kt, DayViewModel.kt, WorkoutSetScreen.kt, DayEditSheet.kt, DayEditor.kt and DayEditModels.kt; receipt ReceiptCardioLines.kt and ReceiptProgress.kt; preview PreviewViewModel.kt; sync TodaySnapshotSource.kt; plan PlanScreenBuilder.kt, PlanModels.kt and PlanScreen.kt; today TodayViewModel.kt, TodayModels.kt and TodayScreen.kt; wizard SetupFlowRun.kt; components NumberField.kt; res/values/strings.xml. ReceiptProgress.kt is the one production addition to the proposed file list, needed for the Why action.
+
+Tests: SprintRulesTest, ProgressionSprintTest, SprintAllowanceTest, PlannerSprintProgressTest, new CardioJudgeSprintStartTest, SprintFinishTest, DayViewModelCardioExecutionTest, DayScreenBuilderTest, WorkoutSetScreenTest, ReceiptScreenTest, TodayScreenTest, PlanScreenBuilderTest, PlanScreenTest and DayEditSheetTest; the fitness-test regression in SetupFlowScreenTest; shared SprintUiFixtures; ProgressionPreviewShotsTest and SetupFlowPreviewShotsTest. The four requested fontScale=2 tests cover the Start note and allowance, sprint receipt, rest row and editor. Render fixtures p26 through p45 cover every sprint surface at both scales; p46 and p47 cover the invalid 2-mile target with Next disabled. Existing CI already includes both fixture classes in set-screen-preview.
+
+The existing recipe encoder rejects sprint answers, including createPlannedPlan's call, and its bytes are frozen until 7f. Repository and ViewModel sprint tests therefore use the existing authored-plan plus generated-program fixture rather than opening sprint setup or changing the recipe. Plain JVM tests supply careful answers directly to CardioPlan.
+
+This supersedes revision 45's “app wiring remains PR 7's work” and revision 50's loss of sprint receipt Next time. It changes no sprint progression, trial admission, allowance, markers or Undo rule. No network, compilation, Gradle, builds, tests or subagents were used. Source inspection, diff whitespace validation and resource XML parsing completed; CI, pilots and generated PNG inspection remain pending.

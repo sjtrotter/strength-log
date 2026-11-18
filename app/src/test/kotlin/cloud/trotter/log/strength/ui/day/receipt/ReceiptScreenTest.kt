@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
+import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
+
 import android.animation.ValueAnimator
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -1108,6 +1112,55 @@ class ReceiptScreenTest {
         setReceipt(receipt, nextTimes = ReceiptNextTimes(receipt.sessionId, listOf(ReceiptNextTime(0, 0, 175.0, 185.0))))
         rule.onNodeWithText("Next time: 175 lb (−10)", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithContentDescription("Bench. 185 pounds: 5, 5 and 5 reps. Next time, 175 pounds, down 10 pounds.").assertExists()
+    }
+
+    @Test fun `a sprint receipt shows Next time and the first matching Why`() {
+        val progress = mutableStateOf(sprintReceiptProgressFixture())
+        rule.setContent { AppTheme {
+            androidx.compose.foundation.layout.Column {
+                Text(cardioNextLine(progress.value).orEmpty())
+                Text(cardioWhyLine(progress.value, "Sprint").orEmpty())
+                Text(spokenCardioNextLine(progress.value).orEmpty())
+            }
+        } }
+        fun expect(next: ReceiptProgressState, why: String?) {
+            rule.runOnIdle { progress.value = next }
+            val value = if (next.run?.introLeft != null) "4 × 10 m" else "8 × 20 m"
+            rule.onNodeWithText("Next time: $value").assertIsDisplayed()
+            if (why != null) rule.onNodeWithText(why).assertIsDisplayed()
+        }
+        expect(sprintReceiptProgressFixture(CardioChange.Restart, SprintDose.TRIAL),
+            "Back to the starting dose after more than two weeks without sprinting.")
+        expect(sprintReceiptProgressFixture(dose = SprintDose.TRIAL), "Time trial: no step from this session.")
+        expect(sprintReceiptProgressFixture(dose = SprintDose.SHORTENED), "Shortened for the weekly limit: no step from this session.")
+        expect(sprintReceiptProgressFixture(dose = SprintDose.SUBSTITUTE), "Tempo in place of sprints for the weekly limit: no step from this session.")
+        expect(sprintReceiptProgressFixture(dose = SprintDose.TEMPO), "Tempo after the time trial: no step from this session.")
+        expect(sprintReceiptProgressFixture(introLeft = 0), "Two full sessions at this dose: one step more next time.")
+        expect(sprintReceiptProgressFixture(CardioChange.Repeat, introLeft = 0, credit = true), "Starting dose done: steps begin next time.")
+        expect(sprintReceiptProgressFixture(CardioChange.Repeat, introLeft = 1), "Starting dose: 1 more session.")
+        expect(sprintReceiptProgressFixture(CardioChange.Repeat, introLeft = 2, credit = true), "Starting dose: 2 more sessions.")
+        expect(sprintReceiptProgressFixture(CardioChange.Repeat, credit = true), "One full session at this dose. The next one adds a step.")
+        expect(sprintReceiptProgressFixture(CardioChange.Repeat), null)
+        rule.onNodeWithText("One full session at this dose. The next one adds a step.").assertDoesNotExist()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintReceipt() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(sprintReceiptFixture(), {}, {}, progress = sprintReceiptProgressFixture())
+        } }
+        rule.onNodeWithContentDescription("Next time, 8 × 20 m.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Why").performScrollTo().performClick()
+        rule.onNodeWithText("Two full sessions at this dose: one step more next time.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `a sprint intro receipt exposes its Why`() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(sprintReceiptFixture(intro = true), {}, {},
+                progress = sprintReceiptProgressFixture(CardioChange.Repeat, introLeft = 2))
+        } }
+        rule.onNodeWithText("Why").performScrollTo().performClick()
+        rule.onNodeWithText("Starting dose: 2 more sessions.").performScrollTo().assertIsDisplayed()
     }
 
 }

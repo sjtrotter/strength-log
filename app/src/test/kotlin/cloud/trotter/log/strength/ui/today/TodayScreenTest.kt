@@ -227,4 +227,20 @@ class TodayScreenTest {
         assertTrue(resumes.isEmpty())
     }
 
+    @Test fun `a rest row before a sprint day says so`() {
+        val state = mutableStateOf(TodayUiState(hasProgram = true,
+            upNext = listOf(first.copy(rest = true, beforeSprint = true))))
+        rule.setContent { AppTheme { TodayScreen(state.value, actions()) } }
+        rule.onNodeWithText("Rest before your next sprint day.").assertIsDisplayed()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(first.copy(rest = true))) }
+        rule.onNodeWithText("Rest before your next sprint day.").assertDoesNotExist()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontRestBeforeSprint() {
+        rule.setContent { AppTheme { TodayScreen(TodayUiState(hasProgram = true,
+            upNext = listOf(first.copy(rest = true, beforeSprint = true))), actions()) } }
+        rule.onNodeWithText("Rest before your next sprint day.").assertIsDisplayed()
+    }
+
 }

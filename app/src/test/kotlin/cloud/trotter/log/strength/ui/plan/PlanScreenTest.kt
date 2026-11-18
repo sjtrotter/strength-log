@@ -577,6 +577,16 @@ class PlanScreenTest {
     private fun oldSettings(answers: OldWizardPlan) = PlanSettingsJson.encode(PlanSettings(
         equipment = answers.equipment, goalsLb = answers.goalsLb,
         legacyMains = answers.mains.toSet()))
+    @Test fun `a sprint goal cannot open the timed goal editor`() {
+        val state = mutableStateOf(planScreenFixture().copy(sprintGoal = true, goal = null))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Light week"))
+        rule.onNodeWithText("Add goal").assertDoesNotExist()
+        rule.runOnIdle { state.value = state.value.copy(sprintGoal = false) }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Add goal"))
+        rule.onNodeWithText("Add goal").assertIsDisplayed()
+    }
+
 }
 
 /** Robolectric's full-screen frame for wrap-content dialogs can prevent text fields from settling. */

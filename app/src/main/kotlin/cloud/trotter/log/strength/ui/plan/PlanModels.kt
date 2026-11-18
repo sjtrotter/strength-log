@@ -35,6 +35,7 @@ data class PlanUiState(
     val runCap: Boolean = true,
     val runPhase: RunPhase? = null,
     val taper: Boolean = false,
+    val sprintGoal: Boolean = false,
 )
 
 data class PlanGoalUi(val goal: PlanGoal, val best: Int?, val met: Boolean,
@@ -62,6 +63,7 @@ data class PlanDay(
     val cardioActivity: CardioActivity? = null,
     val cardioSetCount: Int = 0,
     val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
+    val beforeSprint: Boolean = false,
 )
 
 data class PlanActions(

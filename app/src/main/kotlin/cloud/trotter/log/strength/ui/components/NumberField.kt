@@ -52,6 +52,7 @@ fun NumberField(
     onDraftChange: (Double?) -> Unit = {},
     parse: ((String) -> Double?)? = null,
     keyboardType: KeyboardType? = null,
+    onDraftEdit: (text: String, value: Double?) -> Unit = { _, _ -> },
 ) {
     var draft by rememberSaveable(label) { mutableStateOf(value?.let(format).orEmpty()) }
     var dirty by rememberSaveable(label) { mutableStateOf(false) }
@@ -97,6 +98,7 @@ fun NumberField(
             draft = it
             dirty = true
             onDraftChange(resolve(it))
+            onDraftEdit(it, resolve(it))
         },
         label = { Text(label) },
         modifier = modifier.fillMaxWidth().onFocusChanged {

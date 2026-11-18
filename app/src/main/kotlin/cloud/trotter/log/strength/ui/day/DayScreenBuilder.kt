@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.data.CardioPlan
+import cloud.trotter.log.strength.data.of
 import cloud.trotter.log.strength.data.CardioJudge
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -18,12 +20,14 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.WorkingRows
@@ -203,9 +207,19 @@ object DayScreenBuilder {
 
     /** [CardioJudge.opening] at [nowMillis], on the civil day [loggedToday] reads. Read-only: a run freezes it. */
     fun cardioOpening(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
-                      sets: Map<Long, List<CardioSetResult>>, nowMillis: Long): CardioBlock? =
+                      sets: Map<Long, List<CardioSetResult>>, nowMillis: Long, program: Program,
+                      unit: WeightUnit, zone: ZoneId): CardioBlock? =
         CardioJudge.opening(day, plan, sessions, sets, nowMillis,
-            Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay())
+            Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate().toEpochDay(), CardioPlan.of(plan, program, unit, zone))
+
+    fun sprintStart(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
+                    sets: Map<Long, List<CardioSetResult>>, nowMillis: Long, program: Program,
+                    unit: WeightUnit, zone: ZoneId): SprintStartUi? =
+        CardioJudge.sprintStart(day, plan, sessions, sets, nowMillis,
+            Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate().toEpochDay(), CardioPlan.of(plan, program, unit, zone))?.let { start ->
+            val shortenedReps = if (start.dose == SprintDose.SHORTENED) start.block.sets.count { it.role == CardioRole.WORK } else null
+            SprintStartUi(start.dose, shortenedReps, start.daysSince, start.spacingDays, start.reason, start.nineTenths)
+        }
 
     /** Ruled chips read the Finish's stored result: judging a credited ladder again would predict the next Finish.
      *  Rule-less chips use history and the current block. Ask plans follow their Offer switch.

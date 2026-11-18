@@ -19,6 +19,8 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.restBeforeSprint
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -52,7 +54,7 @@ object PlanScreenBuilder {
             taper = run != null && Taper.factor(goal, todayEpochDay) != null,
             goal = goal?.let { goal ->
                 when (goal) {
-                    is PlanGoal.Sprint -> null // Shown from PR 7, with its copy.
+                    is PlanGoal.Sprint -> null // Sprint goal attempts and editing arrive together in PR 7e.
                     is PlanGoal.Timed -> GoalProgress.bestTimed(goal, cardio).let { best ->
                         val recent = answers?.run?.recent?.takeIf { goal.metres <= RunEvent.MARATHON.metres }
                         PlanGoalUi(goal, best, GoalProgress.met(goal, best),
@@ -63,6 +65,7 @@ object PlanScreenBuilder {
                     }
                 }
             },
+            sprintGoal = goal is PlanGoal.Sprint,
             unit = unit,
             name = plan?.name,
             planId = plan?.id,
@@ -95,6 +98,8 @@ object PlanScreenBuilder {
     ): List<PlanDay> =
         program.days.map { day ->
             val trainingDay = day.takeUnless { it.kind == ProgramDayKind.REST }
+            val stored = trainingDay?.cardioBlock
+            val block = stored?.let { sprintPlannedBlock(day.cardioRule, it.activity) ?: it }
             PlanDay(
                 dayId = day.id,
                 dayIndex = Program.accentIndex(day.id),
@@ -103,8 +108,9 @@ object PlanScreenBuilder {
                 setCount = trainingDay?.exercises.orEmpty().sumOf { openingRows(it, catalog.find(it.exerciseId), unit) },
                 isNext = day.id == nextDayId,
                 kind = day.kind,
-                cardioActivity = trainingDay?.cardioBlock?.activity,
-                cardioSetCount = trainingDay?.cardioBlock?.sets?.size ?: 0,
+                cardioActivity = block?.activity,
+                cardioSetCount = block?.sets?.size ?: 0,
+                beforeSprint = restBeforeSprint(program, day.id),
             )
         }
 

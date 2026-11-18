@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.SpacingReason
+import cloud.trotter.log.strength.domain.progression.SprintDose
+
 import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
@@ -1834,5 +1837,63 @@ class WorkoutSetScreenTest {
         assertEquals(1, starts)
         assertEquals(2, dismisses)
     }
+
+    @Test fun `shortened allowance precedes the Start note`() {
+        rule.setContent { AppTheme { WorkoutSetHost(sprintStartFixture(SprintDose.SHORTENED)) } }
+        rule.onNodeWithText(shortenedSprint).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Your last sprint session was yesterday.").performScrollTo().assertIsDisplayed()
+        val allowance = rule.onNodeWithText(shortenedSprint).fetchSemanticsNode().positionInRoot.y
+        val note = rule.onNodeWithText("Your last sprint session was yesterday.").fetchSemanticsNode().positionInRoot.y
+        assertTrue(allowance < note)
+        rule.onNodeWithText(startingSprint).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `a substitute shows allowance without a Start note`() {
+        rule.setContent { AppTheme { WorkoutSetHost(sprintStartFixture(SprintDose.SUBSTITUTE)) } }
+        rule.onNodeWithText(substituteSprint).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Your last sprint session was yesterday.").assertDoesNotExist()
+        rule.onNodeWithText(startingSprint).assertDoesNotExist()
+    }
+
+    @Test fun `the careful Start note includes nine tenths effort`() {
+        rule.setContent { AppTheme { WorkoutSetHost(sprintStartFixture(reason = SpacingReason.FORTY_OR_OLDER, nineTenths = true)) } }
+        rule.onNodeWithText("Since you're 40 or older, sprint days work best three days apart. You can train a different day from your plan instead.")
+            .performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Run these reps at about nine-tenths effort.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `the Start note follows gaps zero one and three`() {
+        val state = mutableStateOf(sprintStartFixture(gap = 0))
+        rule.setContent { AppTheme { WorkoutSetHost(state.value) } }
+        rule.onNodeWithText("You already sprinted today.").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle { state.value = sprintStartFixture(gap = 1) }
+        rule.onNodeWithText("Your last sprint session was yesterday.").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle { state.value = sprintStartFixture(gap = 2) }
+        rule.onNodeWithText("Your last sprint session was 2 days ago.").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle { state.value = sprintStartFixture(gap = 3) }
+        rule.onNodeWithText("Your last sprint session was 3 days ago.").assertDoesNotExist()
+        rule.runOnIdle { state.value = sprintStartFixture(gap = 1, spacing = 2, reason = SpacingReason.FOR_NOW) }
+        rule.onNodeWithText("For now, sprint days work best two days apart. You can train a different day from your plan instead.")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `tempo has no Start note or allowance`() {
+        rule.setContent { AppTheme { WorkoutSetHost(sprintStartFixture(SprintDose.TEMPO)) } }
+        rule.onNodeWithText("Your last sprint session was yesterday.").assertDoesNotExist()
+        rule.onNodeWithText(startingSprint).assertDoesNotExist()
+        rule.onNodeWithText(substituteSprint).assertDoesNotExist()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintStartNoteAndAllowance() {
+        rule.setContent { AppTheme { WorkoutSetHost(sprintStartFixture(SprintDose.SHORTENED)) } }
+        rule.onNodeWithText(shortenedSprint).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Your last sprint session was yesterday.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(startingSprint).performScrollTo().assertIsDisplayed()
+    }
+
+    private val shortenedSprint = "You've done more sprint sessions in the last 7 days than this plan has, so today is shortened to 4 reps."
+    private val substituteSprint = "You've done more sprint sessions in the last 7 days than this plan has. Today is an easy tempo session instead."
+    private val startingSprint = "While you're starting out, sprint days work best three days apart. You can train a different day from your plan instead."
 
 }

@@ -1433,7 +1433,9 @@
     <string name="setup_flow_why_sprint_goal">Short events train acceleration and top speed; 200 and 400 m add speed endurance. Hard sprint days sit apart, with lifting and rest between them.</string>
     <string name="setup_flow_sprinted_recently">Sprinted all-out in the past month</string>
     <string name="setup_flow_hamstring_strain">Hamstring strain in the past 12 months</string>
-    <string name="setup_flow_forty_or_older">40 or older</string>
+    <string name="setup_flow_age">Age</string>
+    <string name="setup_flow_under_forty">Under 40</string>
+    <string name="setup_flow_forty_to_sixty_four">40 to 64</string>
     <string name="setup_flow_why_about_sprint">Experience sets where lifting starts. Without all-out sprinting in the past month, sprints open at a starting dose. 40 or older, 65 or older, or a hamstring strain in the past 12 months means a longer starting dose and sprint days three days apart. Nothing here is stored as a profile.</string>
     <string name="setup_flow_sprint_needs_leg_lift">A sprint plan needs one leg lift. Choose a squat or a hinge.</string>
     <string name="setup_flow_sprint_needs_squat">Choose a squat lift for your sprint days.</string>

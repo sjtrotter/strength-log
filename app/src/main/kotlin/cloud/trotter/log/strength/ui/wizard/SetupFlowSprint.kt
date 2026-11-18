@@ -42,6 +42,21 @@ internal fun SprintGoalRows(state: SetupFlowUiState, actions: SetupFlowActions) 
 }
 
 @Composable
+internal fun SprintAgeRow(draft: SetupDraft, actions: SetupFlowActions) {
+    SetupLabel(stringResource(R.string.setup_flow_age))
+    val selected = when {
+        draft.olderAdult -> 2
+        draft.fortyOrOlder -> 1
+        else -> 0
+    }
+    SetupSegments(listOf(stringResource(R.string.setup_flow_under_forty),
+        stringResource(R.string.setup_flow_forty_to_sixty_four), stringResource(R.string.setup_flow_older)), selected) { index ->
+        actions.onOlderAdult(index == 2)
+        actions.onFortyOrOlder(index >= 1)
+    }
+}
+
+@Composable
 internal fun SprintAnswerRow(label: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
     ListItem(headlineContent = { Text(stringResource(label)) },
         leadingContent = { Checkbox(checked, onCheckedChange = null) },

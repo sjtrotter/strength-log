@@ -67,6 +67,7 @@ import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -179,6 +180,40 @@ class SetupFlowScreenTest {
         assertTrue(older)
         listOf("Pain now", "Injury", "Bone", "Falls").forEach { rule.onNodeWithText(it, substring = true).assertDoesNotExist() }; touchTargets()
     }
+    @Test fun `sprint age choices write both existing age flags`() {
+        show(state(SetupStep.ABOUT, SetupFlowFixtures.sprint), SetupFlowActions(
+            onOlderAdult = { shown = state(SetupStep.ABOUT, shown.draft.copy(olderAdult = it)) },
+            onFortyOrOlder = { shown = state(SetupStep.ABOUT, shown.draft.copy(fortyOrOlder = it)) }))
+        for (draft in listOf(SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
+            rule.runOnIdle { shown = state(SetupStep.ABOUT, draft) }
+            rule.onNodeWithText("Age").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Under 40").assertIsSelected()
+            rule.onNodeWithText("40 or older").assertDoesNotExist()
+            rule.onNodeWithText("65 or older").performScrollTo().performClick().assertIsSelected()
+            rule.runOnIdle { assertTrue(shown.draft.olderAdult); assertTrue(shown.draft.fortyOrOlder) }
+            rule.onNodeWithText("40 to 64").performClick().assertIsSelected()
+            rule.runOnIdle { assertFalse(shown.draft.olderAdult); assertTrue(shown.draft.fortyOrOlder) }
+            rule.onNodeWithText("Under 40").performClick().assertIsSelected()
+            rule.runOnIdle { assertFalse(shown.draft.olderAdult); assertFalse(shown.draft.fortyOrOlder) }
+        }
+        touchTargets()
+    }
+
+    @Test fun `Run keeps its older adult checkbox`() {
+        show(state(SetupStep.ABOUT, SetupFlowFixtures.run))
+        rule.onNodeWithText("65 or older").performScrollTo().assertIsOff()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+        rule.onNodeWithText("Age").assertDoesNotExist()
+    }
+
+    @Test fun `a shortened sprint plan at ninety minutes has no Longer sessions button`() {
+        val base = state(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 90))
+        val plan = base.plan as PlanPreviewUi.Ready
+        show(base.copy(plan = plan.copy(sprint = requireNotNull(plan.sprint).copy(shortened = true, fullDoseMinutes = null))))
+        rule.onNodeWithTag("setup-over-budget").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Longer sessions").assertDoesNotExist()
+    }
+
     @Test fun `your lifts rows drop down their choices`() {
         var picked: Pair<Int, String>? = null
         val s = state(SetupStep.LIFTS, SetupFlowFixtures.reference)
@@ -586,8 +621,21 @@ class SetupFlowScreenTest {
     }
     @Test @Config(fontScale = 2f) fun largeFontAboutSprint() {
         largeScreen(SetupStep.ABOUT, SetupFlowFixtures.sprint, "About your training")
-        rule.onNodeWithText("40 or older").performScrollTo().assertIsDisplayed()
+        for (label in listOf("Age", "Under 40", "40 to 64", "65 or older")) {
+            rule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
+        rule.onNodeWithText("Under 40").assertIsSelected()
         rule.onNodeWithText("Running").assertDoesNotExist()
+        touchTargets()
+    }
+    @Test @Config(fontScale = 2f) fun largeFontAboutBothSprint() {
+        largeScreen(SetupStep.ABOUT, SetupFlowFixtures.bothSprint.copy(olderAdult = true, fortyOrOlder = true),
+            "About your training")
+        for (label in listOf("Age", "Under 40", "40 to 64", "65 or older")) {
+            rule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
+        rule.onNodeWithText("65 or older").assertIsSelected()
+        touchTargets()
     }
     @Test @Config(fontScale = 2f) fun largeFontBothCardioGoalWithSprint() {
         largeScreen(SetupStep.RUN_GOAL, SetupFlowFixtures.bothSprint, "What kind of running?")

@@ -195,14 +195,14 @@ internal fun AboutStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(state.draft.runningInjury,
                 role = Role.Checkbox, onValueChange = actions.onRunningInjury))
     }
-    ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_older)) },
+    if (state.draft.isSprint) SprintAgeRow(state.draft, actions)
+    else ListItem(headlineContent = { Text(stringResource(R.string.setup_flow_older)) },
         leadingContent = { Checkbox(state.draft.olderAdult, onCheckedChange = null) },
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(state.draft.olderAdult,
             role = Role.Checkbox, onValueChange = actions.onOlderAdult))
     if (state.draft.isSprint) {
         SprintAnswerRow(R.string.setup_flow_sprinted_recently, state.draft.sprintedRecently, actions.onSprintedRecently)
         SprintAnswerRow(R.string.setup_flow_hamstring_strain, state.draft.hamstringStrain, actions.onHamstringStrain)
-        SprintAnswerRow(R.string.setup_flow_forty_or_older, state.draft.fortyOrOlder, actions.onFortyOrOlder)
     }
 }
 

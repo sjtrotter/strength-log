@@ -94,7 +94,7 @@ object SetupFlowStateBuilder {
     fun currentMains(draft: SetupDraft): List<String> = draft.mains ?: Planner.defaultMains(draft.equipment)
 
     fun answers(draft: SetupDraft): SetupAnswers = SetupAnswers(
-        goal = if (draft.branch == PlanBranch.SPRINT) LiftGoal.GENERAL else draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
+        goal = if (draft.branch == PlanBranch.SPRINT) LiftGoal.STRENGTH else draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
         steps = LoadSteps(stepOptionsLb(StepRow.BAR, draft.unit)[draft.barStep],
             stepOptionsLb(StepRow.DUMBBELL, draft.unit)[draft.dumbbellStep],
             stepOptionsLb(StepRow.STACK, draft.unit)[draft.stackStep]),
@@ -198,18 +198,21 @@ object SetupFlowStateBuilder {
         val rules = days.flatMap { day -> day.exercises.flatMap { listOfNotNull(it.rule, it.superset?.rule) } }
         val why = buildList {
             draft.reasons.filterIsInstance<PlanReason.ShortSession>().forEach { reason ->
-                if (full != null && reason.step >= 1) {
+                val dropped = if (full != null && reason.step >= 1) {
                     val original = full.program.days.single { it.id == reason.dayId }.exercises
                     val fitted = days.single { it.id == reason.dayId }.exercises
                     val kept = fitted.associateBy { it.exerciseId }
                     val names = original.filter { it.exerciseId !in kept }.map {
-                        ExerciseLibrary.get(it.exerciseId).let { entry -> entry.shortName ?: entry.name }
+                        ExerciseLibrary.get(it.exerciseId).name
                     }
-                    add(PlanWhy.Dropped(reason.dayId, names, original.any {
+                    val extraSets = original.any {
                         val slot = kept[it.exerciseId]
                         slot != null && slot.targetSets < it.targetSets
-                    }, answers.minutes))
-                } else add(when (reason.step) {
+                    }
+                    if (names.isNotEmpty() || extraSets) PlanWhy.Dropped(reason.dayId, names, extraSets, answers.minutes)
+                    else null
+                } else null
+                add(dropped ?: when (reason.step) {
                     0 -> PlanWhy.Floor(reason.dayId, answers.minutes)
                     in 1..3 -> PlanWhy.Trimmed(reason.dayId, answers.minutes)
                     else -> PlanWhy.OneSet(reason.dayId, answers.minutes)
@@ -228,7 +231,7 @@ object SetupFlowStateBuilder {
             draft.reasons.filterIsInstance<PlanReason.GoalCheck>().forEach { add(PlanWhy.GoalCheck(it.predictedSeconds)) }
             if (draft.phase == RunPhase.LADDER) add(PlanWhy.Ladder)
             if (sprintPlan) {
-                if (days.count { it.kind != ProgramDayKind.REST } == 2 && answers.minutes == 30) add(PlanWhy.ShortTwoDaySprint)
+                if (answers.days == 2 && days.count { it.kind != ProgramDayKind.REST } == 2 && answers.minutes == 30) add(PlanWhy.ShortTwoDaySprint)
                 add(PlanWhy.SplitDay)
             }
             add(PlanWhy.Minutes)
@@ -245,18 +248,16 @@ object SetupFlowStateBuilder {
                 day.exercises.isNotEmpty() && day.exercises.all { it.rule?.role == SlotRole.BALANCE }
             } else null, why = why, sprint = if (sprintPlan) {
                 val weekdays = when (answers.days) {
-                    1 -> listOf(DayOfWeek.MONDAY, null)
-                    2 -> listOf(DayOfWeek.MONDAY, null, DayOfWeek.THURSDAY, null)
-                    else -> listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, null, DayOfWeek.THURSDAY,
+                    1 -> listOf(DayOfWeek.MONDAY)
+                    2 -> listOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
+                    else -> listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.THURSDAY,
                         DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
                 }
-                val week = draft.program.rotationDays.mapIndexedNotNull { index, day ->
-                    if (day.kind == ProgramDayKind.REST) null else weekdays[index]?.let { weekday ->
-                        weekday to when (day.cardioRule?.session) {
-                            RunSession.SPRINT_TEMPO -> SprintWeekKind.TEMPO
-                            null -> SprintWeekKind.UPPER
-                            else -> SprintWeekKind.SPRINT
-                        }
+                val week = draft.program.rotationDays.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
+                    weekdays[index] to when (day.cardioRule?.session) {
+                        RunSession.SPRINT_TEMPO -> SprintWeekKind.TEMPO
+                        null -> SprintWeekKind.UPPER
+                        else -> SprintWeekKind.SPRINT
                     }
                 }
                 SprintPlanUi(week, sprintFirstWeeks(draft.program, answers.experience == LiftExperience.NEW) || answers.careful,

@@ -100,6 +100,7 @@ class WorkoutSetScreenTest {
         show(base, workoutActions().copy(onArmSprintTimer = { arms += it }, onOpenSprintTime = { entries += it },
             onReachCardioTarget = { reached += it }, onStopCardio = { stops += it }, onSprintProtocol = { protocols += it }))
         rule.onNodeWithTag("workout-hero").assert(hasText("60 m"))
+        rule.onNodeWithText("to 60 m").assertDoesNotExist()
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start on the beep"))
         rule.onNodeWithText("Stop").assertDoesNotExist()
         rule.onNodeWithText("Elapsed").assertDoesNotExist()
@@ -113,6 +114,18 @@ class WorkoutSetScreenTest {
         assertEquals(listOf(run.action()), reached)
         assertEquals(listOf(run.action()), stops)
         assertEquals(listOf("STANDING"), protocols)
+    }
+
+    @Test fun `a forty yard sprint shows the target only while the hero shows the timer`() {
+        val state = mutableStateOf(sprintRepFixture(metres = 37))
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) { WorkoutSetHost(state.value) }
+        } }
+        rule.onNodeWithTag("workout-hero").assert(hasText("40 yd"))
+        rule.onNodeWithText("to 40 yd").assertDoesNotExist()
+        rule.runOnIdle { state.value = sprintRepFixture(5_480L, metres = 37) }
+        rule.onNodeWithText("4.52").assertExists()
+        rule.onNodeWithText("to 40 yd").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun `an armed sprint rep shows a countdown and Stop`() {
@@ -153,6 +166,7 @@ class WorkoutSetScreenTest {
             }
         } }
         rule.onNodeWithText("4.52").assertExists()
+        rule.onNodeWithText("to 60 m").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Stop").assertExists()
         rule.onNodeWithText("Start on the beep").assertDoesNotExist()
     }

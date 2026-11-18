@@ -37,6 +37,9 @@ import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetStructure
@@ -694,6 +697,29 @@ class SetupFlowViewModelTest {
         assertEquals("Lifting and Just cardio fitness, 6 days", vm.planName(SetupFlowStateBuilder.answers(
             SetupDraft(branch = PlanBranch.BOTH, days = 6))))
     }
+    @Test fun `Start persists Strength defaults and main set rest for a pure sprint plan`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.SPRINT); advanceUntilIdle()
+        val input = answers(vm)
+        val expected = Planner.plan(input)
+        start(vm)
+        val stored = db.planDao().allPlans().single()
+        assertEquals(LiftGoal.STRENGTH, stored.planSettings.defaultsFor)
+        assertFalse(assertNotNull(stored.setupAnswers(WeightUnit.LB)).olderAdult)
+        val plannedMain = expected.program.days.first().exercises.first { it.rule?.role == SlotRole.MAIN }
+        val persistedMain = repo.plans.programFor(stored.id).first().days.first().exercises
+            .first { it.rule?.role == SlotRole.MAIN }
+        assertEquals(plannedMain.rule, persistedMain.rule)
+        val overrides = settings.restSettingsFlow.first().overrides
+        assertTrue(overrides.isEmpty())
+        val entry = ExerciseLibrary.get(persistedMain.exerciseId)
+        val expectedRest = RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            plannedMain.rule, input.slotGoal)
+        assertEquals(180, expectedRest)
+        assertEquals(expectedRest, RestPolicy.effectiveRestSeconds(SetKind.WORK, entry.tracking, overrides,
+            persistedMain.rule, stored.planSettings.defaultsFor))
+    }
+
     @Test fun `Start writes a sprint plan whose careful answer reaches Start`() = runVmTest {
         val vm = newViewModel(); advanceUntilIdle()
         vm.setBranch(PlanBranch.SPRINT); vm.setFortyOrOlder(true); advanceUntilIdle()

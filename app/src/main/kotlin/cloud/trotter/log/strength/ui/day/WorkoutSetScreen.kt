@@ -595,7 +595,8 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                 }
             }
             val end = spec.end
-            if (end is Measure.Distance && run?.running == true) {
+            val sprintDistanceHero = sprintRep != null && !sprintRep.armed && spec.role == CardioRole.WORK
+            if (end is Measure.Distance && run?.running == true && !sprintDistanceHero) {
                 Text(stringResource(R.string.workout_cardio_to, if (sprintRep != null) {
                     SprintEvent.label(end.metres, distanceUnitFor(block.activity))
                 } else measureText(end, block.activity)), style = MaterialTheme.typography.titleLarge,

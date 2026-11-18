@@ -244,6 +244,13 @@ class SetupFlowPreviewShotsTest {
         capture("s68-setup-why-sprint-plan.png", true)
     }
 
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun aboutBothSprint() = shot("s69-setup-about-both-sprint.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.bothSprint.copy(fortyOrOlder = true)), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun aboutBothSprintLargeFont() = shot("s70-setup-about-both-sprint-2x.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.bothSprint.copy(olderAdult = true, fortyOrOlder = true)), scale = 2f)
+
     private fun invalidTestTarget(name: String, scale: Float) {
         val shown = mutableStateOf(state(SetupStep.EVENT,
             SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)))

@@ -329,11 +329,12 @@ class SetupFlowStateBuilderTest {
             hamstringStrain = true, fortyOrOlder = true, goal = LiftGoal.MUSCLE)
         val mapped = builder.answers(sprint)
         assertEquals(SprintAnswers(SprintEvent.YD40, true, true, true), mapped.sprint)
-        assertEquals(LiftGoal.GENERAL, mapped.goal)
+        assertEquals(LiftGoal.STRENGTH, mapped.goal)
         assertEquals(RunAnswers(), mapped.run)
         val both = builder.answers(sprint.copy(branch = PlanBranch.BOTH, sprintCardio = true, cardioFirst = true,
             together = BothAnswers.Together.SEPARATE_DAYS))
         assertEquals(BothAnswers(sprint = true), both.both)
+        assertEquals(LiftGoal.MUSCLE, both.goal)
         assertEquals(mapped.sprint, both.sprint)
         assertEquals(RunAnswers(), both.run)
         for (draft in listOf(sprintDraft.copy(fortyOrOlder = true), sprintDraft.copy(olderAdult = true),
@@ -363,7 +364,7 @@ class SetupFlowStateBuilderTest {
     }
 
     @Test fun `sprint fitting names what it cut`() {
-        fun names(vararg ids: String) = ids.map { ExerciseLibrary.get(it).let { entry -> entry.shortName ?: entry.name } }
+        fun names(vararg ids: String) = ids.map { ExerciseLibrary.get(it).name }
         val one = builder.answers(sprintDraft.copy(days = 1, minutes = 30))
         assertTrue(PlanReason.ShortSession("A", 3) in Planner.plan(one).reasons)
         assertEquals(PlanWhy.Dropped("A", names("rdl", "bss"), true, 30),
@@ -378,6 +379,35 @@ class SetupFlowStateBuilderTest {
         assertFalse(ui.jumps)
         assertEquals(PlanWhy.Minutes, preview(three).why.last())
         assertEquals(1, preview(three).why.count { it == PlanWhy.SplitDay })
+    }
+
+    @Test fun `sprint fitting falls back when the reference has the same cuts`() {
+        for (minutes in listOf(75, 90)) for (step in listOf(3, 7)) {
+            val answers = builder.answers(sprintDraft.copy(minutes = minutes))
+            val fitted = Planner.plan(answers).copy(reasons = listOf(PlanReason.ShortSession("A", step)))
+            val ui = builder.planPreview(fitted, answers) as PlanPreviewUi.Ready
+            assertTrue(assertNotNull(ui.sprint).shortened)
+            assertTrue(ui.why.filterIsInstance<PlanWhy.Dropped>().isEmpty())
+            assertTrue((if (step == 3) PlanWhy.Trimmed("A", minutes) else PlanWhy.OneSet("A", minutes)) in ui.why)
+        }
+    }
+
+    @Test fun `sprint fitting at seventy five minutes names full exercise names`() {
+        val answers = builder.answers(sprintDraft.copy(days = 2, minutes = 75,
+            sprintEvent = SprintEvent.M200, sprintedRecently = true, experience = LiftExperience.A_YEAR_OR_MORE))
+        val cuts = preview(answers).why.filterIsInstance<PlanWhy.Dropped>()
+        assertTrue(cuts.isNotEmpty())
+        assertTrue(cuts.all { it.names.isNotEmpty() || it.extraSets })
+        assertTrue(cuts.any { ExerciseLibrary.get("bss").name in it.names })
+        assertTrue(cuts.all { "Bulgarians" !in it.names })
+    }
+
+    @Test fun `the short two day sprint reason requires two requested days`() {
+        val two = builder.answers(sprintDraft.copy(days = 2, minutes = 30))
+        assertTrue(PlanWhy.ShortTwoDaySprint in preview(two).why)
+        val three = builder.answers(sprintDraft.copy(minutes = 30, mains = listOf("bb_back_squat")))
+        assertEquals(2, Planner.plan(three).program.days.count { it.kind != ProgramDayKind.REST })
+        assertFalse(PlanWhy.ShortTwoDaySprint in preview(three).why)
     }
 
     @Test fun `the full plan offer reads fullDoseMinutes`() {
@@ -395,7 +425,12 @@ class SetupFlowStateBuilderTest {
         assertEquals(three, week(sprintDraft))
         assertEquals(three + listOf(DayOfWeek.FRIDAY to SprintWeekKind.UPPER, DayOfWeek.SATURDAY to SprintWeekKind.TEMPO,
             DayOfWeek.SUNDAY to SprintWeekKind.UPPER), week(sprintDraft.copy(days = 6)))
-        assertEquals(two, week(sprintDraft.copy(mains = listOf("bb_back_squat"))))
+        val noUpper = listOf(DayOfWeek.MONDAY to SprintWeekKind.SPRINT, DayOfWeek.TUESDAY to SprintWeekKind.SPRINT)
+        for (draft in listOf(sprintDraft, bothSprint)) {
+            assertEquals(noUpper, week(draft.copy(mains = listOf("bb_back_squat"))))
+            assertEquals(noUpper + (DayOfWeek.THURSDAY to SprintWeekKind.TEMPO),
+                week(draft.copy(days = 6, mains = listOf("bb_back_squat"))))
+        }
     }
 
     @Test fun `the high day line follows the slots`() {

@@ -157,7 +157,7 @@ private fun OverBudgetCard(plan: PlanPreviewUi.Ready, actions: SetupFlowActions)
                     }
                 }
             }
-            if (plan.sprint != null || plan.longerAvailable) OutlinedButton(onClick = actions.onLongerSessions, modifier = Modifier.heightIn(min = 48.dp)) {
+            if (plan.longerAvailable) OutlinedButton(onClick = actions.onLongerSessions, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.setup_flow_longer_sessions))
             }
         }

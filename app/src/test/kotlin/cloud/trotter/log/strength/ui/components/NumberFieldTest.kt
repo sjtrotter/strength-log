@@ -69,7 +69,7 @@ class NumberFieldTest {
         } }
         rule.onNodeWithText("Time").performClick().performTextReplacement("1:00:01")
         rule.onNodeWithText("Time").performImeAction()
-        rule.onNodeWithText("Enter a time between 0:01 and 1:00:00.").assertExists()
+        rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertExists()
         rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
     }
 

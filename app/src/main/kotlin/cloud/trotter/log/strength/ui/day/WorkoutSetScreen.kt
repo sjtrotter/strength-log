@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarResult
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioRole
 import java.util.Locale
 import kotlin.math.roundToInt
 import android.animation.ValueAnimator

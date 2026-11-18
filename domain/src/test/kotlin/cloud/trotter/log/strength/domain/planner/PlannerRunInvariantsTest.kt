@@ -90,7 +90,11 @@ class PlannerRunInvariantsTest {
         if (answers.branch == PlanBranch.BOTH) {
             if (!answers.both.cardioFirst && answers.minutes >= 45 &&
                 answers.together() == BothAnswers.Together.SAME_VISIT) {
-                assertTrue(draft.program.strengthDays.all { it.cardioBlock != null }, "$label reserve")
+                // Run ladder design §8: a ladder phase rides on at most 3 spread lift days; other phases on every lift day.
+                val withRun = draft.program.strengthDays.count { it.cardioBlock != null }
+                val expected = if (draft.phase == RunPhase.LADDER) minOf(draft.program.strengthDays.size, 3)
+                    else draft.program.strengthDays.size
+                assertEquals(expected, withRun, "$label reserve")
             }
             if (answers.together() == BothAnswers.Together.SEPARATE_DAYS && draft.program.strengthDays.isNotEmpty()) {
                 for (main in Planner.defaultMains(answers.equipment, answers.excluded)) {

@@ -17,17 +17,21 @@ import kotlinx.serialization.Serializable
     val sprintStepCycle: Int? = null,
     val sprintTrialCycle: Int? = null,
     val sprintMaximalCycle: Int? = null,
+    val ladderCounted: List<Long> = emptyList(),
+    val ladderRaised: Long? = null,
 ) {
     fun toDomain(): CardioRule = CardioRule(ladderLevel, session?.let(RunSession::valueOf), steps, credits,
         alternate?.let(RunSession::valueOf), longMetres, longSeconds, intro = intro,
-        stepCycle = sprintStepCycle, sprintTrialCycle = sprintTrialCycle, maximalCycle = sprintMaximalCycle)
+        stepCycle = sprintStepCycle, sprintTrialCycle = sprintTrialCycle, maximalCycle = sprintMaximalCycle,
+        ladderCounted = ladderCounted, ladderRaised = ladderRaised)
 }
 
 object CardioRuleJson {
     fun encode(rule: CardioRule): String {
         val dto = CardioRuleDto(rule.ladderLevel, rule.session?.name, rule.steps, rule.credits, rule.alternate?.name,
             rule.longMetres, rule.longSeconds, intro = rule.intro,
-            sprintStepCycle = rule.stepCycle, sprintTrialCycle = rule.sprintTrialCycle, sprintMaximalCycle = rule.maximalCycle)
+            sprintStepCycle = rule.stepCycle, sprintTrialCycle = rule.sprintTrialCycle, sprintMaximalCycle = rule.maximalCycle,
+            ladderCounted = rule.ladderCounted, ladderRaised = rule.ladderRaised)
         dto.toDomain()
         return SetJson.encode(CardioRuleDto.serializer(), dto)
     }

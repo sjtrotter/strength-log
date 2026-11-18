@@ -231,9 +231,11 @@ class PlannerRunTest {
         val novice = marathon.copy(experience = RunExperience.NEW, longest = Measure.Time(1200))
         val draft = plan(novice)
         assertEquals(RunPhase.LADDER, draft.phase)
-        assertEquals(CardioRule(10), day(draft, "A").cardioRule)
-        assertEquals(block(time(1200)), day(draft, "A").cardioBlock)
-        assertEquals(CardioRule(9), day(plan(novice.copy(runningInjury = true)), "A").cardioRule)
+        // ladder 2026-11-17: 1200 WORK seconds cover level 8, four times 300 with 90-second walks.
+        assertEquals(CardioRule(8), day(draft, "A").cardioRule)
+        assertEquals(RunWalkLadder.block(8, CardioActivity.ROAD_RUN), day(draft, "A").cardioBlock)
+        // ladder 2026-11-17: injury lowers the running-time start from 8 to 7, previously 9.
+        assertEquals(CardioRule(7), day(plan(novice.copy(runningInjury = true)), "A").cardioRule)
         assertEquals(RunPhase.BASE, plan(novice.copy(longest = Measure.Distance(6000))).phase)
         for (goal in listOf(RunGoal.MIDDLE_DISTANCE, RunGoal.FITNESS_TEST, RunGoal.CARDIO_FITNESS)) assertNull(plan(RunAnswers(goal)).phase)
     }
@@ -360,5 +362,22 @@ class PlannerRunTest {
         assertFailsWith<IllegalArgumentException> { RunAnswers(RunGoal.MARATHON, activity = CardioActivity.STATIONARY_BIKE) }
         assertFailsWith<IllegalArgumentException> { RecentRace(0, 100) }
         assertFailsWith<IllegalArgumentException> { RecentRace(5000, 86_401) }
+    }
+
+    @Test fun `ladderStart reads running seconds not recovery`() {
+        val history = KnownLoads(emptyMap(), longestRecent = mapOf(CardioFamily.RUN to RecentMaxima(null, 1500)),
+            longestRunning = mapOf(CardioFamily.RUN to 600))
+        val draft = plan(RunAnswers(RunGoal.MARATHON, RunExperience.NEW), history)
+        assertEquals(RunPhase.LADDER, draft.phase)
+        assertEquals(CardioRule(1), day(draft, "A").cardioRule)
+    }
+
+    @Test fun `a plan with no ladder sessions reports DateTooClose`() {
+        val answers = run(RunGoal.FIRST_5K, days = 1, experience = RunExperience.NEW,
+            runAnswers = RunAnswers(RunGoal.FIRST_5K, RunExperience.NEW, dateEpochDay = TODAY + 365))
+            .copy(branch = PlanBranch.BOTH, both = BothAnswers(false, BothAnswers.Together.SEPARATE_DAYS))
+        val draft = Planner.plan(answers, KnownLoads.NONE, TODAY)
+        assertTrue(draft.sessions.isEmpty())
+        assertTrue(PlanReason.DateTooClose in draft.reasons)
     }
 }

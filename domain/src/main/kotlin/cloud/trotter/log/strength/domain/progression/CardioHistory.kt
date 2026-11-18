@@ -47,6 +47,14 @@ data class CardioHistory(
             }.reduceOrNull { maximum, week -> maximum.max(week) }
         }
 
+        /** The most WORK seconds (secondsAtEnd, else elapsedSeconds) in one finished family session completed within
+         *  [WINDOW_MILLIS] before [asOfMillis], RECOVERY excluded; null when none finished. The ladder start's anchor. */
+        fun longestRunning(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = sessions
+            .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
+            .maxOfOrNull { session ->
+                session.results.filter { it.spec.role == CardioRole.WORK }.sumOf { it.secondsAtEnd ?: it.elapsedSeconds }
+            }
+
         /** The history a judgment reads at [asOfMillis]. [sessions] are the family's sessions completed before it,
          *  oldest first: [longest] spans those within [WINDOW_MILLIS], the pace the newest finished one with a metres
          *  total, whatever its age. No seed until PR 7. */

@@ -4,8 +4,13 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.progression.CardioHistory
+import cloud.trotter.log.strength.domain.progression.LoggedCardio
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.progression.RecentMaxima
 import cloud.trotter.log.strength.domain.progression.RunCap
@@ -13,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertNull
 
 class RunPhaseTest {
     @Test fun `single run gates include their distance and time boundaries`() {
@@ -31,21 +37,46 @@ class RunPhaseTest {
     }
 
     @Test fun `remaining weeks stop at the events own readiness phase`() {
-        assertEquals(30, weeksNeeded(RunGoal.MARATHON, RunPhase.LADDER))
-        assertEquals(14, weeksNeeded(RunGoal.HALF_MARATHON, RunPhase.BASE))
-        assertEquals(0, weeksNeeded(RunGoal.FIVE_TO_TEN_K, RunPhase.HALF_BUILD))
-        assertEquals(8, weeksNeeded(RunGoal.FIRST_5K, RunPhase.LADDER))
-        assertEquals(0, weeksNeeded(RunGoal.FIRST_5K, RunPhase.BASE))
+        // ladder 2026-11-17: ceil(24 divided by 3) = 8 derived ladder weeks replaces the fixed 8; totals stay unchanged.
+        assertEquals(30, weeksNeeded(RunGoal.MARATHON, RunPhase.LADDER, ladderWeeks = 8))
+        assertEquals(14, weeksNeeded(RunGoal.HALF_MARATHON, RunPhase.BASE, ladderWeeks = 8))
+        assertEquals(0, weeksNeeded(RunGoal.FIVE_TO_TEN_K, RunPhase.HALF_BUILD, ladderWeeks = 8))
+        assertEquals(8, weeksNeeded(RunGoal.FIRST_5K, RunPhase.LADDER, ladderWeeks = 8))
+        assertEquals(0, weeksNeeded(RunGoal.FIRST_5K, RunPhase.BASE, ladderWeeks = 8))
+        assertNull(weeksNeeded(RunGoal.FIRST_5K, RunPhase.LADDER, null))
+        assertEquals(14, weeksNeeded(RunGoal.HALF_MARATHON, RunPhase.BASE, null))
     }
 
-    @Test fun `ladder starts at the highest run interval the longest time fits`() {
+    @Test fun `ladder starts at the highest level the longest running time covers`() {
+        // ladder 2026-11-17: no WORK time replaces a distance-only maximum; the start stays at 1.
         assertEquals(1, ladderStart(null, false))
-        assertEquals(1, ladderStart(RecentMaxima(500, null), false))
-        for ((seconds, level) in listOf(59 to 1, 60 to 1, 1200 to 10, 1799 to 11)) {
-            assertEquals(level, ladderStart(RecentMaxima(null, seconds), false), "$seconds seconds")
+        // ladder 2026-11-17: running totals place 900 at 5 and 1200 at 8 instead of interval-based level 10.
+        for ((seconds, level) in listOf(59 to 1, 60 to 1, 900 to 5, 1200 to 8, 1799 to 11)) {
+            assertEquals(level, ladderStart(seconds, false), "$seconds seconds")
         }
-        assertEquals(1, ladderStart(RecentMaxima(null, 60), true))
-        assertEquals(9, ladderStart(RecentMaxima(null, 1200), true))
+        assertEquals(1, ladderStart(60, true))
+        // ladder 2026-11-17: injury subtracts one from 8, giving 7 instead of 9.
+        assertEquals(7, ladderStart(1200, true))
+    }
+
+    @Test fun `ladder weeks follow the sessions the plan runs`() {
+        assertEquals(8, ladderWeeks(1, 3))
+        assertEquals(12, ladderWeeks(1, 2))
+        assertEquals(24, ladderWeeks(1, 1))
+        assertEquals(4, ladderWeeks(8, 3))
+        assertNull(ladderWeeks(1, 0))
+    }
+
+    @Test fun `the longest running time counts work only`() {
+        val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val results = block.sets.map { CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as Measure.Time).seconds) }
+        val log = listOf(LoggedCardio(100, results))
+        assertEquals(600, CardioHistory.longestRunning(log, 101))
+        assertEquals(1500, CardioHistory.of(log, 101).longest?.seconds)
+        assertEquals(1, ladderStart(600, false))
+        assertEquals(10, ladderStart(1500, false))
+        val unfinished = results.map { if (it.spec.role == CardioRole.WORK) it.copy(status = CardioSetStatus.SHORTENED) else it }
+        assertNull(CardioHistory.longestRunning(listOf(LoggedCardio(100, unfinished)), 101))
     }
 
     @Test fun `case 30 existing five percent increases reach the base gate on step fifteen`() {

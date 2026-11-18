@@ -172,10 +172,16 @@ class PlannerRunProgressTest {
         assertEquals(CardioRule(1), rule(ladder, "A"))
         var ladderBlock = block(ladder, "A")
         var ladderRule = rule(ladder, "A")
-        repeat(12) { index ->
+        // ladder 2026-11-17: two Easy finishes at each of 12 levels require 24, with no dated context here.
+        repeat(24) { index ->
             val next = Progression.cardioAfterSession(ladderBlock, ladderRule, finished(ladderBlock), CardioEffort.EASY,
                 CardioHistory(), ctx)
-            assertEquals(if (index == 11) CardioChange.LadderDone else CardioChange.LevelTo(index + 2), next.change)
+            // ladder 2026-11-17: even indices earn credit; odd indices advance, with completion on index 23.
+            assertEquals(when {
+                index % 2 == 0 -> CardioChange.Repeat
+                index == 23 -> CardioChange.LadderDone
+                else -> CardioChange.LevelTo(index / 2 + 2)
+            }, next.change)
             ladderBlock = next.block
             ladderRule = assertNotNull(next.rule)
         }

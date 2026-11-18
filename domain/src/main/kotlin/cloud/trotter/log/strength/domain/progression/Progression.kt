@@ -251,6 +251,7 @@ object Progression {
         /** What the day's block may plan within the session minutes
          *  ([cloud.trotter.log.strength.domain.planner.SessionBudget.cardioBudget]); null skips the check. */
         val budgetSeconds: Int? = null,
+        val ladder: LadderContext? = null,
     )
 
     /** The block a cardio day opens with, as a view: the taper from [goal]'s date, then the run cap against [recent].
@@ -266,8 +267,12 @@ object Progression {
         return if (ctx.runCap) RunCap.capped(tapered, RunCap.anchor(recent, ctx.todayEpochDay), recent.secondsPerMetre) else tapered
     }
 
-    /** After Finish: next time's block and rule. A ladder day advances only on a finished session rated Easy;
-     *  Good or no word repeats; Hard or Pain drops one (audit 2026-11-13 row 3).
+    /** After Finish: next time's block and rule. A ladder day earns a credit on its first finished
+     *  Easy session and moves up one level on the second (two per level); Good, no word or unfinished repeats and keeps the
+     *  credit; Hard or Pain drops one and clears it. With [CardioContext.ladder], an Easy finish counts only while fewer
+     *  than three counted finishes fall in the seven local days ending today and it is not dated before the newest stored
+     *  ladder date; a level-up or LadderDone waits seven days after the last level-up while the runner is busy (design
+     *  revision 47, practice).
      *  Other days take A16's increase on full success, capped against [recent] and this session.
      *  A ruled easy run with [CardioContext.easy] grows up to its stop once per rotation; Hard or Pain holds
      *  as practice (audit 2026-11-13 row 4). A long run grows up to its target; a quality session adds one unit
@@ -287,14 +292,29 @@ object Progression {
         val level = rule?.ladderLevel
         if (rule != null && level != null) {
             val finished = CardioMeasures.fullSuccess(block, results)
-            val next = when {
-                pain || effort == CardioEffort.HARD -> maxOf(1, level - 1)
-                !finished || effort != CardioEffort.EASY -> level
-                level == RunWalkLadder.TOP -> return CardioOutcome(block, rule.copy(ladderLevel = null), CardioChange.LadderDone)
-                else -> level + 1
+            val l = ctx.ladder
+            fun counted() = l?.let { (rule.ladderCounted + it.todayEpochDay).takeLast(RunWalkLadder.COUNTED_PER_WEEK) }
+                ?: rule.ladderCounted
+            return when {
+                pain || effort == CardioEffort.HARD -> {
+                    val down = maxOf(1, level - 1)
+                    val next = rule.copy(ladderLevel = down, credits = 0)
+                    if (down == level) CardioOutcome(block, next, CardioChange.Repeat)
+                    else CardioOutcome(RunWalkLadder.block(down, block.activity), next, CardioChange.LevelTo(down))
+                }
+                !finished || effort != CardioEffort.EASY -> repeat()
+                l != null && l.todayEpochDay < maxOf(rule.ladderCounted.lastOrNull() ?: Long.MIN_VALUE,
+                    rule.ladderRaised ?: Long.MIN_VALUE) -> repeat()
+                l != null && rule.ladderCounted.count { it in l.todayEpochDay - 6..l.todayEpochDay } >=
+                    RunWalkLadder.COUNTED_PER_WEEK -> repeat()
+                rule.credits == 0 -> CardioOutcome(block, rule.copy(credits = 1, ladderCounted = counted()), CardioChange.Repeat)
+                l != null && rule.ladderRaised != null && l.todayEpochDay - rule.ladderRaised < RunWalkLadder.LEVEL_UP_DAYS &&
+                    l.busy -> repeat()
+                level == RunWalkLadder.TOP -> CardioOutcome(block, CardioRule(null), CardioChange.LadderDone)
+                else -> CardioOutcome(RunWalkLadder.block(level + 1, block.activity),
+                    rule.copy(ladderLevel = level + 1, credits = 0, ladderCounted = counted(), ladderRaised = l?.todayEpochDay),
+                    CardioChange.LevelTo(level + 1))
             }
-            return if (next == level) repeat()
-            else CardioOutcome(RunWalkLadder.block(next, block.activity), rule.copy(ladderLevel = next), CardioChange.LevelTo(next))
         }
         val session = rule?.session
         return when {

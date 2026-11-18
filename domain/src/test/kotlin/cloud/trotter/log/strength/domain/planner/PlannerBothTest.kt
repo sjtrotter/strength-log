@@ -83,19 +83,38 @@ class PlannerBothTest {
         assertFalse(draft.reasons.any { it is PlanReason.RunCapped })
     }
 
-    @Test fun `D15 ladder reserves its own duration and sets every lift days ladder rule`() {
+    @Test fun `D15 ladder reserves its own duration on at most three spread lift days`() {
         val answers = answers(days = 6).copy(run = RunAnswers(RunGoal.MARATHON, RunExperience.NEW))
         val draft = plan(answers, KnownLoads.NONE)
         val ladder = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
-        val lift = liftDraft(answers, KnownLoads.NONE, 2160)
+        // ladder 2026-11-17: 3600 minus 10 times 150 = 2100 lift seconds, previously 2160.
+        val lift = liftDraft(answers, KnownLoads.NONE, 2100)
         assertEquals(RunPhase.LADDER, draft.phase)
-        assertEquals(6, draft.sessions.size)
+        // ladder 2026-11-17: six attached ladder days become three spread days A, C and E.
+        assertEquals(3, draft.sessions.size)
+        assertEquals(setOf("A", "C", "E"), draft.sessions.keys)
         for ((index, day) in draft.program.strengthDays.withIndex()) {
-            assertEquals(ladder, day.cardioBlock)
-            assertEquals(CardioRule(1), day.cardioRule)
+            // ladder 2026-11-17: only A, C and E have ladder blocks and rules; B, F and G have neither.
+            if (day.id in draft.sessions) {
+                assertEquals(ladder, day.cardioBlock)
+                assertEquals(CardioRule(1), day.cardioRule)
+            } else {
+                assertNull(day.cardioBlock)
+                assertNull(day.cardioRule)
+            }
+            // ladder 2026-11-17: the comparison lift draft reserves 1500 seconds on every lift day.
             assertEquals(lift.program.strengthDays[index], day.copy(cardioBlock = null, cardioRule = null))
-            assertTrue(SessionBudget.seconds(day.copy(cardioBlock = null), answers.goal) <= 2160 ||
+            assertTrue(SessionBudget.seconds(day.copy(cardioBlock = null), answers.goal) <= 2100 ||
                 draft.reasons.any { it is PlanReason.OverBudget && it.dayId == day.id })
+        }
+    }
+
+    @Test fun `the ladder spreads by rotation gaps`() {
+        for ((count, expected) in listOf(3 to listOf("A", "B", "C"), 4 to listOf("A", "C", "E"),
+            5 to listOf("A", "C", "E"), 6 to listOf("A", "C", "E"))) {
+            val answers = answers(days = count).copy(run = RunAnswers(RunGoal.MARATHON, RunExperience.NEW))
+            val draft = plan(answers, KnownLoads.NONE)
+            assertEquals(expected.associateWith { RunSession.LADDER }, draft.sessions)
         }
     }
 

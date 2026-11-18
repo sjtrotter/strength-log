@@ -61,6 +61,7 @@ class RunFinishTest {
     private lateinit var repo: TrackerRepository
     private var plan = 0L
     private var sequence = 0L
+    private val d = 20_774L
     private val clock = Clock.fixed(Instant.parse("2026-11-17T12:00:00Z"), ZoneOffset.UTC)
     private fun run(goal: RunGoal = RunGoal.FIVE_TO_TEN_K, days: Int = 3, minutes: Int = 60,
                     experience: RunExperience = RunExperience.NEW, longest: Measure? = null) =
@@ -103,24 +104,26 @@ class RunFinishTest {
             (spec.end as? Measure.Distance)?.metres, if (spec.end is Measure.Distance) DistanceSource.MANUAL else null)
     }
     private suspend fun log(id: String = "A", current: CardioBlock? = null, effort: CardioEffort? = CardioEffort.EASY,
-                            owner: Long? = plan, at: Long = clock.millis() + sequence++ * 1000): Long {
+                            owner: Long? = plan, at: Long = clock.millis() + sequence++ * 1000, day: Int = 0): Long {
         val actual = current ?: block(id)
         val rows = results(actual)
+        val completed = at + day * 86_400_000L
         return repo.logCardioSession(CardioSessionEntity(planId = owner, dayId = id, mode = "OUTDOOR_RUN", hard = false, label = "Run",
-            startedAt = at - 3_600_000, completedAt = at, seconds = rows.sumOf { it.elapsedSeconds },
+            startedAt = completed - 3_600_000, completedAt = completed, seconds = rows.sumOf { it.elapsedSeconds },
             stepsCompleted = actual.sets.size, activity = actual.activity.name, effort = effort?.name), rows)
     }
-    private suspend fun ladder(level: Int) {
+    private suspend fun ladder(rule: CardioRule) {
+        val level = requireNotNull(rule.ladderLevel)
         for (id in listOf("A", "B", "C")) {
             val row = day(id)
             db.programDao().upsertDay(row.copy(cardioBlockJson = CardioBlockJson.encode(RunWalkLadder.block(level, CardioActivity.ROAD_RUN)),
-                cardioRuleJson = CardioRuleJson.encode(CardioRule(level))))
+                cardioRuleJson = CardioRuleJson.encode(rule)))
         }
     }
-    private suspend fun assertLadder(level: Int, done: Boolean = false) {
+    private suspend fun assertLadder(level: Int, rule: CardioRule = CardioRule(level), done: Boolean = false) {
         for (id in listOf("A", "B", "C")) {
             assertEquals(RunWalkLadder.block(level, CardioActivity.ROAD_RUN), block(id))
-            assertEquals(CardioRule(if (done) null else level), rule(id))
+            assertEquals(if (done) CardioRule(null) else rule, rule(id))
             assertNull(day(id).cardioWorkingJson)
         }
     }
@@ -130,17 +133,23 @@ class RunFinishTest {
         assertEquals(RunSession.VO2MAX, rule("D").session)
     }
 
-    @Test fun `a ladder Easy finish moves every ladder day up one level`() = runTest {
+    @Test fun `two ladder Easy finishes move every ladder day up one level`() = runTest {
         prepare()
         assertLadder(1)
         assertEquals(ProgramDayKind.REST.name, day("D").kind)
-        val id = log()
-        assertLadder(2)
-        assertFalse(db.cardioSessionDao().byId(id)!!.increaseApplied)
-        assertEquals(setOf("A", "B", "C"), undo(id).days.map { it.dayId }.toSet())
-        assertTrue(repo.finishUndoState(null, id).restorable)
-        assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
-        assertLadder(1)
+        val first = log()
+        val credit = CardioRule(1, credits = 1, ladderCounted = listOf(d))
+        // ladder 2026-11-17: the first Easy earns a shared credit at level 1 instead of raising to 2.
+        assertLadder(1, credit)
+        assertFalse(db.cardioSessionDao().byId(first)!!.increaseApplied)
+        assertEquals(setOf("A", "B", "C"), undo(first).days.map { it.dayId }.toSet())
+        assertTrue(repo.finishUndoState(null, first).restorable)
+        val second = log("B", day = 2)
+        assertLadder(2, CardioRule(2, ladderCounted = listOf(d, d + 2), ladderRaised = d + 2))
+        assertTrue(repo.finishUndoState(null, second).restorable)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, second))
+        // ladder 2026-11-17: Undo of the second Finish restores the first credit and its date, not an empty rule.
+        assertLadder(1, credit)
     }
 
     @Test fun `an unrated ladder finish repeats until a rating replays it`() = runTest {
@@ -151,11 +160,14 @@ class RunFinishTest {
         assertEquals(undo(id).rule?.before, undo(id).rule?.after)
         assertTrue(undo(id).days.isEmpty())
         repo.setCardioEffort(id, CardioEffort.EASY)
-        assertLadder(2)
+        val credit = CardioRule(1, credits = 1, ladderCounted = listOf(d))
+        // ladder 2026-11-17: one Easy replay earns credit on level 1, previously level 2.
+        assertLadder(1, credit)
         repo.setCardioEffort(id, CardioEffort.GOOD)
         assertLadder(1)
         repo.setCardioEffort(id, CardioEffort.EASY)
-        assertLadder(2)
+        // ladder 2026-11-17: replay restores the recorded befores before adding the same dated credit.
+        assertLadder(1, credit)
         for (record in undo(id).days) {
             assertEquals(CardioRule(1), CardioRuleJson.decode(record.ruleBefore))
             assertEquals(RunWalkLadder.block(1, CardioActivity.ROAD_RUN), CardioBlockJson.decode(record.blockBefore))
@@ -164,55 +176,71 @@ class RunFinishTest {
 
     @Test fun `Hard drops every ladder day one level`() = runTest {
         prepare()
-        ladder(3)
+        ladder(CardioRule(3, credits = 1, ladderCounted = listOf(d - 1), ladderRaised = d - 1))
         log(effort = CardioEffort.HARD)
-        assertLadder(2)
+        // ladder 2026-11-17: Hard clears the credit but retains counted and raised dates on the lower level.
+        assertLadder(2, CardioRule(2, ladderCounted = listOf(d - 1), ladderRaised = d - 1))
     }
 
     @Test fun `the last ladder level leaves the ladder on every day`() = runTest {
         prepare()
-        ladder(12)
+        // ladder 2026-11-17: the second Easy at level 12 completes; dates are old enough to allow the step.
+        ladder(CardioRule(12, credits = 1, ladderCounted = listOf(d - 2), ladderRaised = d - 9))
         log()
         assertLadder(12, done = true)
     }
 
     @Test fun `an Ask plan holds the last ladder level on every day`() = runTest {
         prepare()
-        ladder(12)
+        val credited = CardioRule(12, credits = 1, ladderCounted = listOf(d - 2), ladderRaised = d - 9)
+        ladder(credited)
         repo.plans.setAutoApply(plan, false)
         val before = db.programDao().daysForPlan(plan)
         val id = log()
-        assertLadder(12)
+        // ladder 2026-11-17: held LadderDone keeps the original level, credit and dates.
+        assertLadder(12, credited)
         assertEquals(before, db.programDao().daysForPlan(plan))
         assertEquals(undo(id).rule?.before, undo(id).rule?.after)
         assertTrue(undo(id).days.isEmpty())
         assertFalse(repo.finishUndoState(null, id).restorable)
-        for (effort in listOf(CardioEffort.HARD, CardioEffort.GOOD, CardioEffort.EASY)) {
+        repo.setCardioEffort(id, CardioEffort.HARD)
+        // ladder 2026-11-17: Ask holds the drop but clears the shared credit, previously writing nothing.
+        assertLadder(12, credited.copy(credits = 0))
+        for (effort in listOf(CardioEffort.GOOD, CardioEffort.EASY)) {
             repo.setCardioEffort(id, effort)
             assertEquals(before, db.programDao().daysForPlan(plan))
         }
     }
 
-    @Test fun `an Ask ladder completion holds a lower sibling returned to Progress`() = runTest {
+    @Test fun `an Ask ladder completion holds a sibling returned to Progress`() = runTest {
         prepare()
-        ladder(11)
+        ladder(CardioRule(11, credits = 1))
         repo.setCardioKeepToPlan(plan, "B", true)
         log()
-        assertEquals(CardioRule(12), rule())
-        assertEquals(CardioRule(11), rule("B"))
+        val raised = CardioRule(12, ladderCounted = listOf(d), ladderRaised = d)
+        // ladder 2026-11-17: kept B shares the raised rule instead of lagging at 11; its block stays 11.
+        assertEquals(raised, rule())
+        assertEquals(raised, rule("B"))
+        assertEquals(RunWalkLadder.block(11, CardioActivity.ROAD_RUN), block("B"))
         repo.plans.setAutoApply(plan, false)
         repo.setCardioKeepToPlan(plan, "B", false)
+        // ladder 2026-11-17: leaving Keep synchronizes B to the current level 12 even on Ask.
+        assertLadder(12, raised)
+        log()
+        val credit = raised.copy(credits = 1, ladderCounted = listOf(d, d))
+        // ladder 2026-11-17: Ask writes the first Easy credit to all ladder days before holding completion.
+        assertLadder(12, credit)
         val before = db.programDao().daysForPlan(plan)
-        val id = log()
+        val id = log("C")
         assertEquals(before, db.programDao().daysForPlan(plan))
-        assertEquals(RunWalkLadder.block(11, CardioActivity.ROAD_RUN), block("B"))
-        assertEquals(CardioRule(11), rule("B"))
         assertTrue(undo(id).days.isEmpty())
     }
 
     @Test fun `a ladder replay back to its original state offers no Undo and can replay again`() = runTest {
         prepare()
         val id = log()
+        val credit = CardioRule(1, credits = 1, ladderCounted = listOf(d))
+        assertLadder(1, credit)
         assertTrue(repo.finishUndoState(null, id).restorable)
         repo.setCardioEffort(id, CardioEffort.GOOD)
         assertLadder(1)
@@ -220,7 +248,8 @@ class RunFinishTest {
         assertEquals(setOf("A", "B", "C"), undo(id).days.map { it.dayId }.toSet())
         assertFalse(repo.finishUndoState(null, id).restorable)
         repo.setCardioEffort(id, CardioEffort.EASY)
-        assertLadder(2)
+        // ladder 2026-11-17: replay gives the first dated credit, previously level 2.
+        assertLadder(1, credit)
         assertTrue(repo.finishUndoState(null, id).restorable)
         assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
         assertLadder(1)
@@ -333,25 +362,156 @@ class RunFinishTest {
         val edited = CardioBlockJson.encode(time(900))
         db.programDao().upsertDay(sibling.copy(cardioBlockJson = edited))
         repo.setCardioEffort(id, CardioEffort.GOOD)
-        assertEquals(CardioRule(2), rule())
+        val credit = CardioRule(1, credits = 1, ladderCounted = listOf(d))
+        // ladder 2026-11-17: one Easy leaves level 1 with a dated credit instead of level 2.
+        assertEquals(credit, rule())
         assertEquals(edited, day("B").cardioBlockJson)
+        assertFalse(repo.finishUndoState(null, id).restorable)
         assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
-        assertEquals(CardioRule(1), rule())
+        // ladder 2026-11-17: a mismatching B prevents every ladder restore, including A and C.
+        for (day in listOf("A", "B", "C")) assertEquals(credit, rule(day))
         assertEquals(edited, day("B").cardioBlockJson)
-        assertEquals(CardioRule(2), rule("B"))
-        assertEquals(CardioRule(1), rule("C"))
     }
 
-    @Test fun `ladder changes preserve kept days and sibling activities`() = runTest {
+    @Test fun `ladder changes keep the kept block and each sibling activity`() = runTest {
         prepare()
+        ladder(CardioRule(1, credits = 1))
         repo.setCardioKeepToPlan(plan, "B", true)
         val sibling = day("C")
         db.programDao().upsertDay(sibling.copy(cardioBlockJson = CardioBlockJson.encode(RunWalkLadder.block(1, CardioActivity.TRAIL_RUN))))
         log()
-        assertEquals(CardioRule(1), rule("B"))
+        val raised = CardioRule(2, ladderCounted = listOf(d), ladderRaised = d)
+        // ladder 2026-11-17: kept B takes the runner rule at 2 instead of retaining rule 1.
+        assertEquals(raised, rule("B"))
         assertEquals(RunWalkLadder.block(1, CardioActivity.ROAD_RUN), block("B"))
-        assertEquals(CardioRule(2), rule("C"))
+        // ladder 2026-11-17: C keeps TRAIL activity and now records the counted and raised date.
+        assertEquals(raised, rule("C"))
         assertEquals(RunWalkLadder.block(2, CardioActivity.TRAIL_RUN), block("C"))
     }
 
+    @Test fun `a fourth Easy in a week repeats`() = runTest {
+        prepare()
+        log("A", day = 0)
+        log("B", day = 1)
+        log("C", day = 2)
+        val credit = CardioRule(2, credits = 1, ladderCounted = listOf(d, d + 1, d + 2), ladderRaised = d + 1)
+        assertLadder(2, credit)
+        val before = db.programDao().daysForPlan(plan)
+        val id = log("A", day = 3)
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertTrue(undo(id).days.isEmpty())
+    }
+
+    @Test fun `a late rating cannot add a credit`() = runTest {
+        prepare()
+        val first = log(effort = null)
+        log("B", day = 1)
+        log("C", day = 2)
+        log("A", day = 3)
+        val credit = CardioRule(2, credits = 1, ladderCounted = listOf(d + 1, d + 2, d + 3), ladderRaised = d + 2)
+        assertLadder(2, credit)
+        val before = db.programDao().daysForPlan(plan)
+        repo.setCardioEffort(first, CardioEffort.EASY)
+        assertEquals(before, db.programDao().daysForPlan(plan))
+    }
+
+    @Test fun `Undo restores credit and date on every ladder day`() = runTest {
+        prepare()
+        log()
+        val second = log("B", day = 2)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, second))
+        assertLadder(1, CardioRule(1, credits = 1, ladderCounted = listOf(d)))
+        log("C", day = 2)
+        assertLadder(2, CardioRule(2, ladderCounted = listOf(d, d + 2), ladderRaised = d + 2))
+    }
+
+    @Test fun `on Ask a drop clears the credit and keeps the level`() = runTest {
+        prepare()
+        ladder(CardioRule(5, credits = 1))
+        repo.plans.setAutoApply(plan, false)
+        val id = log(effort = CardioEffort.HARD)
+        assertLadder(5)
+        assertEquals(setOf("A", "B", "C"), undo(id).days.map { it.dayId }.toSet())
+    }
+
+    @Test fun `a kept ladder day follows the runner`() = runTest {
+        prepare()
+        repo.setCardioKeepToPlan(plan, "B", true)
+        log("A")
+        log("C", day = 1)
+        log("A", day = 2)
+        val credit = CardioRule(2, credits = 1, ladderCounted = listOf(d, d + 1, d + 2), ladderRaised = d + 1)
+        for (day in listOf("A", "B", "C")) assertEquals(credit, rule(day))
+        assertEquals(RunWalkLadder.block(1, CardioActivity.ROAD_RUN), block("B"))
+        repo.setCardioKeepToPlan(plan, "B", false)
+        assertLadder(2, credit)
+        val before = db.programDao().daysForPlan(plan)
+        val id = log("B", day = 3)
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertTrue(undo(id).days.isEmpty())
+    }
+
+    @Test fun `LadderDone clears a kept day level`() = runTest {
+        prepare()
+        ladder(CardioRule(12, credits = 1, ladderCounted = listOf(d - 2), ladderRaised = d - 9))
+        val kept = RunWalkLadder.block(11, CardioActivity.ROAD_RUN)
+        db.programDao().upsertDay(day("B").copy(cardioBlockJson = CardioBlockJson.encode(kept)))
+        repo.setCardioKeepToPlan(plan, "B", true)
+        log()
+        for (day in listOf("A", "B", "C")) assertEquals(CardioRule(null), rule(day))
+        assertEquals(kept, block("B"))
+        for (day in listOf("A", "C")) assertEquals(RunWalkLadder.block(12, CardioActivity.ROAD_RUN), block(day))
+    }
+
+    @Test fun `a partial ladder Undo restores nothing on the ladder`() = runTest {
+        prepare()
+        repo.setCardioKeepToPlan(plan, "B", true)
+        log()
+        val second = log("C", day = 1)
+        val edited = CardioBlockJson.encode(time(900))
+        db.programDao().upsertDay(day("B").copy(cardioBlockJson = edited))
+        assertFalse(repo.finishUndoState(null, second).restorable)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, second))
+        val raised = CardioRule(2, ladderCounted = listOf(d, d + 1), ladderRaised = d + 1)
+        for (day in listOf("A", "B", "C")) assertEquals(raised, rule(day))
+        for (day in listOf("A", "C")) assertEquals(RunWalkLadder.block(2, CardioActivity.ROAD_RUN), block(day))
+        assertEquals(edited, day("B").cardioBlockJson)
+        assertNull(db.cardioSessionDao().byId(second)!!.progressionUndoJson)
+    }
+
+    @Test fun `diverged ladder days are not judged`() = runTest {
+        prepare()
+        ladder(CardioRule(2))
+        db.programDao().setCardioRule(plan, "B", CardioRuleJson.encode(CardioRule(3)))
+        val before = db.programDao().daysForPlan(plan)
+        val id = log()
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertNull(db.cardioSessionDao().byId(id)!!.progressionUndoJson)
+    }
+
+    @Test fun `ladder days share one rule through Keep Undo replay and the editor`() = runTest {
+        prepare()
+        suspend fun shared() {
+            val rules = db.programDao().daysForPlan(plan).mapNotNull { CardioRuleJson.decode(it.cardioRuleJson) }
+                .filter { it.ladderLevel != null }.distinct()
+            assertEquals(1, rules.size)
+        }
+        log()
+        shared()
+        repo.setCardioKeepToPlan(plan, "B", true)
+        shared()
+        val second = log("C", day = 1)
+        shared()
+        repo.setCardioEffort(second, CardioEffort.GOOD)
+        shared()
+        repo.setCardioEffort(second, CardioEffort.EASY)
+        shared()
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, second))
+        shared()
+        repo.setCardioKeepToPlan(plan, "B", false)
+        shared()
+        assertTrue(repo.setCardioBlock(plan, "A", time(900)))
+        shared()
+        assertNull(day().cardioRuleJson)
+    }
 }

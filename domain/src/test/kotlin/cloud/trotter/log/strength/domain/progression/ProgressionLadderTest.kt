@@ -13,7 +13,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
 
 class ProgressionLadderTest {
@@ -32,15 +33,20 @@ class ProgressionLadderTest {
         pain: Boolean = false,
         opening: CardioBlock = ladder(level),
         results: List<CardioSetResult> = finished(opening),
-    ) = Progression.cardioAfterSession(opening, CardioRule(level), results, effort, tiny, ctx, pain)
+        credits: Int = 0,
+        ladder: LadderContext? = null,
+    ) = Progression.cardioAfterSession(opening, CardioRule(level, credits = credits), results, effort, tiny, ctx.copy(ladder = ladder), pain)
 
     @Test
     fun `case 34 ladder table and rule bounds`() {
         assertEquals(12, RunWalkLadder.LEVELS.size)
         assertEquals(12, RunWalkLadder.TOP)
-        assertEquals(block(*List(8) { listOf(time(60), time(120, CardioRole.RECOVERY)) }.flatten().toTypedArray()), ladder(1))
-        assertEquals(block(*List(3) { listOf(time(480), time(60, CardioRole.RECOVERY)) }.flatten().toTypedArray()), ladder(7))
-        assertEquals(block(time(1200)), ladder(10))
+        // ladder 2026-11-17: level 1 is 10 times 60 WORK and 90 RECOVERY, previously 8 times 60 and 120.
+        assertEquals(block(*List(10) { listOf(time(60), time(90, CardioRole.RECOVERY)) }.flatten().toTypedArray()), ladder(1))
+        // ladder 2026-11-17: level 7 is 4 times 270 and 90, previously 3 times 480 and 60.
+        assertEquals(block(*List(4) { listOf(time(270), time(90, CardioRole.RECOVERY)) }.flatten().toTypedArray()), ladder(7))
+        // ladder 2026-11-17: level 10 is 2 times 720 and 90, previously 1200 continuous.
+        assertEquals(block(*List(2) { listOf(time(720), time(90, CardioRole.RECOVERY)) }.flatten().toTypedArray()), ladder(10))
         assertEquals(block(time(1800)), ladder(12))
         assertFailsWith<IllegalArgumentException> { CardioRule(0) }
         assertFailsWith<IllegalArgumentException> { CardioRule(13) }
@@ -49,23 +55,28 @@ class ProgressionLadderTest {
     }
 
     @Test
-    fun `case 34 twelve Easy sessions climb the ladder with no cap`() {
+    fun `case 34 twenty four Easy sessions climb two per level with no cap`() {
         var rule = CardioRule(1)
         var opening = ladder(1)
-        for (level in 1..11) {
+        for (level in 1..12) {
             assertSame(opening, Progression.cardioAtStart(opening, rule, tiny, null, ctx))
-            val next = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY, tiny, ctx)
-            assertEquals(CardioChange.LevelTo(level + 1), next.change)
-            assertEquals(level + 1, next.rule?.ladderLevel)
-            assertEquals(ladder(level + 1), next.block)
-            rule = assertNotNull(next.rule)
-            opening = next.block
+            val first = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY, tiny, ctx)
+            // ladder 2026-11-17: the first of two Easy finishes earns a credit and preserves the block.
+            assertEquals(CardioOutcome(opening, CardioRule(level, credits = 1), CardioChange.Repeat), first)
+            assertSame(opening, first.block)
+            rule = assertNotNull(first.rule)
+            assertSame(opening, Progression.cardioAtStart(opening, rule, tiny, null, ctx))
+            val second = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY, tiny, ctx)
+            // ladder 2026-11-17: 2 times 12 = 24 finishes; only the second advances or clears all ladder state.
+            if (level == 12) {
+                assertEquals(CardioOutcome(opening, CardioRule(null), CardioChange.LadderDone), second)
+                assertSame(opening, second.block)
+            } else {
+                assertEquals(CardioOutcome(ladder(level + 1), CardioRule(level + 1), CardioChange.LevelTo(level + 1)), second)
+            }
+            rule = assertNotNull(second.rule)
+            opening = second.block
         }
-        assertSame(opening, Progression.cardioAtStart(opening, rule, tiny, null, ctx))
-        val last = Progression.cardioAfterSession(opening, rule, finished(opening), CardioEffort.EASY, tiny, ctx)
-        assertEquals(CardioChange.LadderDone, last.change)
-        assertNull(assertNotNull(last.rule).ladderLevel)
-        assertSame(opening, last.block)
     }
 
     @Test
@@ -76,6 +87,8 @@ class ProgressionLadderTest {
             // audit 2026-11-13, row 3: no word gives 4 + 0 = 4 and 12 + 0 = 12, with no ladder completion.
             assertEquals(CardioOutcome(opening, CardioRule(level), CardioChange.Repeat), next)
             assertSame(opening, next.block)
+            assertEquals(CardioOutcome(opening, CardioRule(level, credits = 1), CardioChange.Repeat),
+                finish(level, effort = null, credits = 1, opening = opening))
         }
     }
 
@@ -100,12 +113,16 @@ class ProgressionLadderTest {
             val next = finish(5, CardioEffort.GOOD, opening = opening)
             assertEquals(CardioOutcome(opening, CardioRule(5), CardioChange.Repeat), next)
             assertSame(opening, next.block)
+            assertEquals(CardioOutcome(opening, CardioRule(5, credits = 1), CardioChange.Repeat),
+                finish(5, CardioEffort.GOOD, credits = 1, opening = opening))
         }
     }
 
     @Test
     fun `case 34 Hard drops one with a floor at level one`() {
         assertEquals(CardioOutcome(ladder(4), CardioRule(4), CardioChange.LevelTo(4)), finish(5, CardioEffort.HARD))
+        assertEquals(CardioOutcome(ladder(4), CardioRule(4), CardioChange.LevelTo(4)), finish(5, CardioEffort.HARD, credits = 1))
+        assertEquals(CardioOutcome(ladder(1), CardioRule(1), CardioChange.Repeat), finish(1, CardioEffort.HARD, credits = 1))
         val opening = ladder(1)
         val next = finish(1, CardioEffort.HARD, opening = opening)
         assertEquals(CardioOutcome(opening, CardioRule(1), CardioChange.Repeat), next)
@@ -115,6 +132,7 @@ class ProgressionLadderTest {
     @Test
     fun `case 34 Pain drops one whatever the word`() {
         assertEquals(CardioOutcome(ladder(4), CardioRule(4), CardioChange.LevelTo(4)), finish(5, pain = true))
+        assertEquals(CardioOutcome(ladder(4), CardioRule(4), CardioChange.LevelTo(4)), finish(5, pain = true, credits = 1))
     }
 
     @Test
@@ -126,6 +144,8 @@ class ProgressionLadderTest {
         val repeated = finish(5, opening = opening, results = results)
         assertEquals(CardioOutcome(opening, CardioRule(5), CardioChange.Repeat), repeated)
         assertSame(opening, repeated.block)
+        assertEquals(CardioOutcome(opening, CardioRule(5, credits = 1), CardioChange.Repeat),
+            finish(5, credits = 1, opening = opening, results = results))
         assertEquals(CardioOutcome(ladder(4), CardioRule(4), CardioChange.LevelTo(4)),
             finish(5, CardioEffort.HARD, opening = opening, results = results))
     }
@@ -158,8 +178,102 @@ class ProgressionLadderTest {
         val edited = ladder(5).let { it.copy(sets = it.sets.dropLast(2)) }
         assertSame(edited, finish(5, CardioEffort.GOOD, opening = edited).block)
         val trail = ladder(5).copy(activity = CardioActivity.TRAIL_RUN)
-        assertEquals(RunWalkLadder.block(6, CardioActivity.TRAIL_RUN), finish(5, opening = trail).block)
+        // ladder 2026-11-17: the next level needs one stored credit before the Easy finish.
+        assertEquals(RunWalkLadder.block(6, CardioActivity.TRAIL_RUN), finish(5, credits = 1, opening = trail).block)
         // audit 2026-11-13, row 3: finished Easy at 12 completes; no word now gives 12 + 0 = 12 above.
-        assertEquals(CardioChange.LadderDone, finish(12).change)
+        // ladder 2026-11-17: completion also needs the first Easy credit.
+        assertEquals(CardioChange.LadderDone, finish(12, credits = 1).change)
+    }
+
+    private val d = 20_000L
+    private fun dated(rule: CardioRule, day: Long = d, busy: Boolean = false, effort: CardioEffort = CardioEffort.EASY): CardioOutcome {
+        val opening = ladder(requireNotNull(rule.ladderLevel))
+        return Progression.cardioAfterSession(opening, rule, finished(opening), effort, tiny,
+            ctx.copy(ladder = LadderContext(day, busy)))
+    }
+
+    @Test fun `the cap counts three Easy finishes in seven days`() {
+        val first = dated(CardioRule(1))
+        assertEquals(CardioOutcome(ladder(1), CardioRule(1, credits = 1, ladderCounted = listOf(d)), CardioChange.Repeat), first)
+        val second = dated(assertNotNull(first.rule), d + 1)
+        assertEquals(CardioOutcome(ladder(2), CardioRule(2, ladderCounted = listOf(d, d + 1), ladderRaised = d + 1),
+            CardioChange.LevelTo(2)), second)
+        val third = dated(assertNotNull(second.rule), d + 2)
+        val credited = CardioRule(2, credits = 1, ladderCounted = listOf(d, d + 1, d + 2), ladderRaised = d + 1)
+        assertEquals(CardioOutcome(ladder(2), credited, CardioChange.Repeat), third)
+        assertEquals(CardioOutcome(ladder(2), credited, CardioChange.Repeat), dated(credited, d + 3))
+        assertEquals(CardioOutcome(ladder(3), CardioRule(3, ladderCounted = listOf(d + 1, d + 2, d + 7), ladderRaised = d + 7),
+            CardioChange.LevelTo(3)), dated(credited, d + 7))
+    }
+
+    @Test fun `a full cap keeps the credit`() {
+        val rule = CardioRule(4, credits = 1, ladderCounted = listOf(d - 2, d - 1, d), ladderRaised = d - 1)
+        assertEquals(CardioOutcome(ladder(4), rule, CardioChange.Repeat), dated(rule))
+    }
+
+    @Test fun `the cap window is local days`() {
+        val rule = CardioRule(3, ladderCounted = listOf(d - 7, d - 6, d - 5))
+        assertEquals(CardioRule(3, credits = 1, ladderCounted = listOf(d - 6, d - 5, d)), dated(rule).rule)
+        val full = CardioRule(3, ladderCounted = listOf(d - 6, d - 5, d - 4))
+        assertEquals(CardioOutcome(ladder(3), full, CardioChange.Repeat), dated(full))
+    }
+
+    @Test fun `the guard holds a second level-up within a week for a busy runner`() {
+        val rule = CardioRule(5, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
+        assertEquals(CardioOutcome(ladder(5), rule, CardioChange.Repeat), dated(rule, busy = true))
+        assertEquals(CardioOutcome(ladder(6), CardioRule(6, ladderCounted = listOf(d - 3, d), ladderRaised = d),
+            CardioChange.LevelTo(6)), dated(rule))
+        val weekAgo = rule.copy(ladderCounted = listOf(d - 7), ladderRaised = d - 7)
+        assertEquals(CardioOutcome(ladder(6), CardioRule(6, ladderCounted = listOf(d - 7, d), ladderRaised = d),
+            CardioChange.LevelTo(6)), dated(weekAgo, busy = true))
+    }
+
+    @Test fun `the guard holds LadderDone`() {
+        val rule = CardioRule(12, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
+        assertEquals(CardioOutcome(ladder(12), rule, CardioChange.Repeat), dated(rule, busy = true))
+        assertEquals(CardioOutcome(ladder(12), CardioRule(null), CardioChange.LadderDone), dated(rule, d + 4, busy = true))
+    }
+
+    @Test fun `a held level-up takes no cap slot`() {
+        val rule = CardioRule(5, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
+        assertEquals(listOf(d - 3), dated(rule, busy = true).rule?.ladderCounted)
+    }
+
+    @Test fun `a backdated Easy is a Repeat`() {
+        val rule = CardioRule(2, credits = 1, ladderCounted = listOf(10, 11, 12), ladderRaised = 11)
+        assertEquals(CardioOutcome(ladder(2), rule, CardioChange.Repeat), dated(rule, 9))
+        assertEquals(CardioOutcome(ladder(1), CardioRule(1, ladderCounted = listOf(10, 11, 12), ladderRaised = 11),
+            CardioChange.LevelTo(1)), dated(rule, 9, effort = CardioEffort.HARD))
+    }
+
+    @Test fun `a drop keeps the dates`() {
+        val rule = CardioRule(5, credits = 1, ladderCounted = listOf(d - 2, d - 1), ladderRaised = d - 2)
+        assertEquals(CardioOutcome(ladder(4), CardioRule(4, ladderCounted = listOf(d - 2, d - 1), ladderRaised = d - 2),
+            CardioChange.LevelTo(4)), dated(rule, effort = CardioEffort.HARD))
+    }
+
+    @Test fun `LadderDone clears the ladder state`() {
+        val rule = CardioRule(12, credits = 1, ladderCounted = listOf(d - 9), ladderRaised = d - 9)
+        assertEquals(CardioRule(null), dated(rule).rule)
+    }
+
+    @Test fun `ladder rule bounds`() {
+        assertEquals(1, CardioRule(3, credits = 1).credits)
+        for (invalid in listOf<() -> CardioRule>(
+            { CardioRule(3, ladderCounted = listOf(1, 2, 3, 4)) },
+            { CardioRule(3, ladderCounted = listOf(2, 1)) },
+            { CardioRule(null, ladderCounted = listOf(1)) },
+            { CardioRule(null, ladderRaised = 1) },
+            { CardioRule(3, credits = 2) },
+            { CardioRule(null, credits = 1) },
+        )) assertFailsWith<IllegalArgumentException> { invalid() }
+    }
+
+    @Test fun `busy counts any seven days of the last fourteen`() {
+        assertTrue(RunWalkLadder.busy(listOf(d - 13, d - 12, d - 11, d - 10, d), d))
+        assertTrue(RunWalkLadder.busy(listOf(d - 13, d - 11, d - 9, d - 7, d - 5, d - 3, d), d))
+        assertFalse(RunWalkLadder.busy(listOf(d - 11, d - 9, d - 7, d - 4, d - 2, d), d))
+        assertFalse(RunWalkLadder.busy(listOf(d - 12, d - 9, d - 6, d - 3, d), d))
+        assertTrue(RunWalkLadder.busy(listOf(d - 6, d - 4, d - 2, d), d))
     }
 }

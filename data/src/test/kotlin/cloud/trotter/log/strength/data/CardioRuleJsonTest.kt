@@ -166,4 +166,23 @@ class CardioRuleJsonTest {
         }
     }
 
+    @Test fun `ladder credits and dates round trip`() {
+        val json = """{"ladderLevel":3,"credits":1,"ladderCounted":[20000,20001],"ladderRaised":20001}"""
+        val rule = CardioRule(3, credits = 1, ladderCounted = listOf(20000, 20001), ladderRaised = 20001)
+        assertEquals(rule, CardioRuleJson.decode(json))
+        assertEquals(json, CardioRuleJson.encode(rule))
+        CardioRuleJson.validate(json)
+        val old = """{"ladderLevel":3}"""
+        assertEquals(old, CardioRuleJson.encode(CardioRule(3)))
+        for (invalid in listOf(
+            """{"ladderLevel":3,"ladderCounted":[1,2,3,4]}""",
+            """{"ladderLevel":3,"ladderCounted":[2,1]}""",
+            """{"ladderCounted":[1]}""",
+            """{"ladderRaised":1}""",
+            """{"ladderLevel":3,"credits":2}""",
+        )) {
+            assertNull(CardioRuleJson.decode(invalid))
+            assertFailsWith<IllegalArgumentException> { CardioRuleJson.validate(invalid) }
+        }
+    }
 }

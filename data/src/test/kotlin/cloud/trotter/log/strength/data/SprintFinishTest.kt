@@ -364,37 +364,42 @@ class SprintFinishTest {
             assertFalse(result.held)
             assertEquals(sprintPlannedBlock(rule(dayId), CardioActivity.TRACK_RUN), result.block)
         }
-        prepare()
+        // Each case starts from an empty log: earlier sessions count toward the runner's weekly sprint allowance.
+        suspend fun fresh(cycles: Int = 1, event: SprintEvent = SprintEvent.M100) {
+            db.cardioSessionDao().deleteAll()
+            prepare(cycles = cycles, event = event)
+        }
+        fresh()
         val normal = log()
         expect(normal, SprintDose.NORMAL, credit = true)
         repo.setCardioEffort(normal, CardioEffort.HARD)
         expect(normal, SprintDose.NORMAL, credit = true)
 
-        prepare()
+        fresh()
         db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(rule().copy(credits = 1)))
         expect(log(), SprintDose.NORMAL, CardioChange.Step)
 
         for (intro in listOf(3, 1)) {
-            prepare()
+            fresh()
             db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(CardioRule(null, RunSession.ACCELERATION, intro = intro)))
             expect(log(block = block(4, 10, 60)), SprintDose.NORMAL, introLeft = intro - 1)
         }
-        prepare()
+        fresh()
         seed("A", -20, block(8, 20))
         expect(log(block = block(4, 10, 60)), SprintDose.RESTART, CardioChange.Restart)
 
-        prepare(cycles = 4)
+        fresh(cycles = 4)
         expect(log(block = block(1, 100)), SprintDose.TRIAL)
 
-        prepare()
+        fresh()
         seedWindow()
         expect(log(block = block(6, 20)), SprintDose.SHORTENED)
 
-        prepare()
+        fresh()
         repeat(2) { seed("A", -1, block(8, 20)) }
         expect(log(block = block(6, 100, 60, hard = false)), SprintDose.SUBSTITUTE)
 
-        prepare(cycles = 4, event = SprintEvent.M200)
+        fresh(cycles = 4, event = SprintEvent.M200)
         db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(rule().copy(sprintTrialCycle = 4)))
         expect(log("C", block(6, 100, 60, hard = false)), SprintDose.TEMPO, dayId = "C")
     }

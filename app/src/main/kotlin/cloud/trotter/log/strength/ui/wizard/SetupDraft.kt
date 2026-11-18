@@ -18,6 +18,9 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+/** A time is selected but its field holds no valid time; null is Just finish. */
+internal const val INVALID_GOAL_TIME = -1
+
 /** The setup answers and step, saved as one JSON value: a Parcelable could never gain PR 7's answers.
  *  New fields take defaults; [v] marks a shape this build cannot read. */
 @Serializable

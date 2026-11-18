@@ -1297,7 +1297,7 @@
     <string name="setup_flow_running_some">Some</string>
     <string name="setup_flow_running_racing">Racing</string>
     <string name="setup_flow_running_injury">Running injury in the past year</string>
-    <string name="setup_flow_why_about_run">Experience sets where lifting and running start. A New runner, or a Some runner whose longest run is under 30 minutes, starts on a run/walk ladder; a past running injury starts it one level lower. Nothing here is stored as a profile.</string>
+    <string name="setup_flow_why_about_run">Experience sets where lifting and running start. A runner whose longest recent run is under 30 minutes and under 5 km starts on a run/walk ladder, as does a New runner who leaves it blank; Racing runners skip it. A past running injury starts it one level lower. Nothing here is stored as a profile.</string>
     <string name="setup_flow_event_title">Your event</string>
     <string name="setup_flow_event_label">Event</string>
     <string name="setup_flow_event_5k">5K</string>
@@ -1329,6 +1329,7 @@
     <string name="setup_flow_recent_time">Time</string>
     <string name="setup_flow_why_event">The date sets the build and a taper of up to three weeks that cuts volume and keeps intensity (Bosquet 2007). A recent result predicts pace for races up to the marathon (Riegel).</string>
     <string name="setup_flow_why_test">Interval reps aim slightly faster than the target pace. A date tapers the last ten days.</string>
+    <string name="setup_flow_why_test_taper">A date tapers the last ten days.</string>
     <string name="setup_flow_where_title">Where you are</string>
     <string name="setup_flow_longest_run">Longest run in the past 30 days</string>
     <string name="setup_flow_longest_session">Longest session in the past 30 days</string>
@@ -1340,10 +1341,10 @@
     <string name="setup_flow_activity_bike">Bike</string>
     <string name="setup_flow_activity_row">Row</string>
     <string name="setup_flow_activity_elliptical">Elliptical</string>
-    <string name="setup_flow_why_where" formatted="false">No single session goes more than 10% past your longest in the last 30 days, a limit from runners (Frandsen 2025). This answer stands in until there\'s a log.</string>
+    <string name="setup_flow_why_where" formatted="false">Runs past the run/walk ladder stay within 10% of your longest session in the last 30 days, a limit from runners (Frandsen 2025). This answer stands in for 30 days, or until there\'s a log.</string>
     <string name="setup_flow_together_title">Lifting and running</string>
     <string name="setup_flow_together_same">Same visit</string>
-    <string name="setup_flow_together_same_body">Both on each training day</string>
+    <string name="setup_flow_together_same_body">Lifting and running in the same visits</string>
     <string name="setup_flow_together_separate">Separate days</string>
     <string name="setup_flow_together_separate_body">Lifting days and running days</string>
     <string name="setup_flow_why_together">Sessions three hours or more apart showed no cost to explosive strength; the same session did (Schumann 2022). Separate days need more days a week.</string>

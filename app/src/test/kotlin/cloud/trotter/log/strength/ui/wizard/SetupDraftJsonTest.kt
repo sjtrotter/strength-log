@@ -50,4 +50,12 @@ class SetupDraftJsonTest {
     @Test fun `three strength blocks is unreadable`() {
         assertNull(SetupDraftJson.decode("""{"v":1,"strengthBlocks":3}"""))
     }
+    @Test fun `an invalid A time survives draft restoration`() {
+        val draft = SetupFlowFixtures.run.copy(step = SetupStep.EVENT, runGoal = RunGoal.MARATHON,
+            goalSeconds = INVALID_GOAL_TIME)
+        val restored = requireNotNull(SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(draft, restored)
+        assertEquals(false, SetupFlowStateBuilder.canAdvance(restored))
+        assertNull(SetupFlowStateBuilder.answers(restored).run.goalSeconds)
+    }
 }

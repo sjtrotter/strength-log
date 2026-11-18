@@ -62,7 +62,8 @@ internal fun PlanStep(state: SetupFlowUiState, actions: SetupFlowActions) {
                     if (plan.longerAvailable) OutlinedButton(onClick = actions.onLongerSessions, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.setup_flow_longer_sessions))
                     }
-                    if (SetupFlowStateBuilder.offersTogether(state.draft)) OutlinedButton(
+                    if (SetupFlowStateBuilder.offersTogether(state.draft) &&
+                        SetupFlowStateBuilder.answers(state.draft).together() != BothAnswers.Together.SEPARATE_DAYS) OutlinedButton(
                         onClick = { actions.onTogether(BothAnswers.Together.SEPARATE_DAYS) }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.setup_flow_together_separate))
                     }
@@ -106,7 +107,7 @@ private fun PlanRow(row: PlanDayRow, unit: WeightUnit) {
         } } else null,
         trailingContent = if (!row.rest) { {
             Column {
-                Text(pluralStringResource(R.plurals.setup_flow_plan_lifts, row.lifts, row.lifts))
+                if (row.lifts > 0) Text(pluralStringResource(R.plurals.setup_flow_plan_lifts, row.lifts, row.lifts))
                 Text(stringResource(R.string.setup_flow_plan_minutes, row.minutes))
             }
         } } else null)

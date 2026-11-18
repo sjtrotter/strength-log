@@ -581,6 +581,37 @@ class SetupFlowViewModelTest {
         assertEquals(BothAnswers.Together.SAME_VISIT, stored.both.together)
     }
 
+    @Test fun `an invalid event time cannot advance`() = runVmTest {
+        val draft = SetupFlowFixtures.run.copy(step = SetupStep.EVENT, runGoal = RunGoal.MARATHON)
+        val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft))))
+        advanceUntilIdle()
+        for (seconds in listOf(INVALID_GOAL_TIME, 0)) {
+            vm.setGoalSeconds(seconds); vm.onNext(); advanceUntilIdle()
+            assertEquals(SetupStep.EVENT, vm.uiState.value.step)
+            assertNull(answers(vm).run.goalSeconds)
+        }
+        vm.setGoalSeconds(12600); vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.WHERE, vm.uiState.value.step)
+        assertEquals(12600, answers(vm).run.goalSeconds)
+        vm.onBack(); vm.setGoalSeconds(null); vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.WHERE, vm.uiState.value.step)
+        assertNull(answers(vm).run.goalSeconds)
+    }
+
+    @Test fun `goal times clear only across the fitness test boundary`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); vm.setRunGoal(RunGoal.MARATHON); vm.setGoalSeconds(12600)
+        vm.setRunGoal(RunGoal.HALF_MARATHON); advanceUntilIdle()
+        assertEquals(12600, vm.uiState.value.draft.goalSeconds)
+        vm.setRunGoal(RunGoal.FITNESS_TEST); advanceUntilIdle()
+        assertNull(vm.uiState.value.draft.goalSeconds)
+        vm.setGoalSeconds(960); vm.setRunGoal(RunGoal.FITNESS_TEST); advanceUntilIdle()
+        assertEquals(960, vm.uiState.value.draft.goalSeconds)
+        vm.setRunGoal(RunGoal.HALF_MARATHON); advanceUntilIdle()
+        assertNull(vm.uiState.value.draft.goalSeconds)
+    }
+
     @Test fun `process death keeps every run answer`() = runVmTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle); advanceUntilIdle()

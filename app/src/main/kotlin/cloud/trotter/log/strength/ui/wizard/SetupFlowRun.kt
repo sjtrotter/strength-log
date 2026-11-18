@@ -86,10 +86,10 @@ internal fun SetupSegments(labels: List<String>, selected: Int, onSelect: (Int) 
 }
 
 @Composable
-private fun SetupTime(value: Int?, label: String, onChange: (Int?) -> Unit) {
+private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, onChange: (Int?) -> Unit) {
     val change: (Double?) -> Unit = { onChange(it?.toInt()) }
     NumberField(value = value?.takeIf { it > 0 }?.toDouble(), onValueChange = change, onDraftChange = change,
-        label = label, minValue = 1.0, maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
+        label = label, minValue = minSeconds.toDouble(), maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
         parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii)
 }
 
@@ -122,7 +122,8 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             if (run.activity == CardioActivity.TRAIL_RUN) 1 else 0) {
             actions.onActivity(if (it == 1) CardioActivity.TRAIL_RUN else CardioActivity.ROAD_RUN)
         }
-        SetupTime(draft.marathonBestSeconds, stringResource(R.string.setup_flow_marathon_best), actions.onMarathonBest)
+        SetupTime(draft.marathonBestSeconds, stringResource(R.string.setup_flow_marathon_best),
+            minSeconds = RunEvent.MARATHON.metres / 10, onChange = actions.onMarathonBest)
     }
     if (draft.runGoal == RunGoal.FITNESS_TEST) {
         SetupLabel(stringResource(R.string.setup_flow_test_label))
@@ -140,7 +141,8 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             }
         }
         if (draft.test.metres != null) {
-            SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time), actions.onGoalSeconds)
+            SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
+                minSeconds = requireNotNull(draft.test.metres) / 10, onChange = actions.onGoalSeconds)
         } else {
             val change: (Double?) -> Unit = { actions.onTestScore(it?.toInt()) }
             NumberField(value = draft.testScore?.toDouble(), onValueChange = change, onDraftChange = change,
@@ -152,9 +154,12 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         SetupLabel(stringResource(R.string.setup_flow_event_goal_label))
         SetupSegments(listOf(stringResource(R.string.setup_flow_event_finish), stringResource(R.string.setup_flow_event_time)),
             if (timed) 1 else 0) {
-            actions.onGoalSeconds(if (it == 1) draft.goalSeconds ?: 0 else null)
+            actions.onGoalSeconds(if (it == 1) draft.goalSeconds ?: INVALID_GOAL_TIME else null)
         }
-        if (timed) SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time)) { actions.onGoalSeconds(it ?: 0) }
+        if (timed) SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
+            minSeconds = ((run.resolvedEvent?.metres ?: 0) / 10).coerceAtLeast(1)) {
+            actions.onGoalSeconds(it ?: INVALID_GOAL_TIME)
+        }
     }
     if (draft.runGoal.events.isNotEmpty() || draft.runGoal == RunGoal.FITNESS_TEST &&
         draft.test != FitnessTest.COOPER && (draft.test.metres != null || run.testScore != null)) {

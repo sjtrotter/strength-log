@@ -65,6 +65,9 @@ object SetupFlowStateBuilder {
 
     fun currentStep(draft: SetupDraft): SetupStep = steps(draft).last { it.ordinal <= draft.step.ordinal }
 
+    fun canAdvance(draft: SetupDraft): Boolean = currentStep(draft) != SetupStep.EVENT ||
+        draft.runGoal == RunGoal.FITNESS_TEST || draft.goalSeconds == null || draft.goalSeconds in 1..86_400
+
     fun currentMains(draft: SetupDraft): List<String> = draft.mains ?: Planner.defaultMains(draft.equipment)
 
     fun answers(draft: SetupDraft): SetupAnswers = SetupAnswers(

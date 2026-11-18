@@ -305,10 +305,24 @@ class PlanCardioGoalScreenTest {
             onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
             onSaveGoal = { saved = state.value.goalDraft?.goal() },
         )) } }
+        rule.onNodeWithText("Target time").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
         rule.onNodeWithText("Target time").performTextReplacement("3:30:00")
         rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
         assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600), saved)
+    }
+
+    @Test fun `the goal editor accepts a fast 800 m time`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 800)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+        )) } }
+        rule.onNodeWithText("Target time").performTextReplacement("1:41").performImeAction()
+        rule.onNodeWithText("Save").assertIsEnabled()
+        rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 800, 101), state.value.goalDraft!!.goal()) }
     }
 
     private companion object { const val WINDOW_SIZE = "robolectric.windowManager.useRequestedSize" }

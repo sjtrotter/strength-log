@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
@@ -74,7 +75,8 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
                 TextButton(onClick = { whyOpen = true }, enabled = !busy, modifier = Modifier.heightIn(min = 48.dp)) { Text(whyTitle) }
                 if (state.step != SetupStep.PLAN || state.plan != PlanPreviewUi.Empty) {
                     Button(onClick = actions.onNext,
-                        enabled = state.initialized && !busy && (state.step != SetupStep.PLAN || state.canStart),
+                        enabled = state.initialized && !busy && SetupFlowStateBuilder.canAdvance(state.draft) &&
+                            (state.step != SetupStep.PLAN || state.canStart),
                         modifier = Modifier.heightIn(min = 52.dp)) {
                         Text(stringResource(when {
                             state.step != SetupStep.PLAN -> R.string.setup_flow_next
@@ -143,7 +145,15 @@ private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     SetupStep.GOAL -> R.string.setup_flow_why_goal
     SetupStep.ORDER -> R.string.setup_flow_why_order
     SetupStep.RUN_GOAL -> R.string.setup_flow_why_run_goal
-    SetupStep.EVENT -> if (state.draft.runGoal == RunGoal.FITNESS_TEST) R.string.setup_flow_why_test else R.string.setup_flow_why_event
+    SetupStep.EVENT -> if (state.draft.runGoal == RunGoal.FITNESS_TEST) {
+        val run = SetupFlowStateBuilder.answers(state.draft).run
+        val hasAim = when (run.test) {
+            FitnessTest.TWO_MILE, FitnessTest.ONE_AND_HALF_MILE -> run.goalSeconds != null
+            FitnessTest.COOPER -> run.testScore != null
+            FitnessTest.PACER, FitnessTest.HAMR -> false
+        }
+        if (hasAim) R.string.setup_flow_why_test else R.string.setup_flow_why_test_taper
+    } else R.string.setup_flow_why_event
     SetupStep.WHERE -> R.string.setup_flow_why_where
     SetupStep.TOGETHER -> R.string.setup_flow_why_together
     SetupStep.SUB_GOAL -> R.string.setup_flow_why_sub_goal

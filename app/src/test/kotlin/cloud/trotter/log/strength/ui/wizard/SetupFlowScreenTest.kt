@@ -51,6 +51,10 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -370,7 +374,109 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Separate days").performScrollTo().performClick()
         assertEquals(1, longer)
         assertEquals(cloud.trotter.log.strength.domain.planner.BothAnswers.Together.SEPARATE_DAYS, together)
+        rule.runOnIdle { shown = shown.copy(draft = shown.draft.copy(together = BothAnswers.Together.SEPARATE_DAYS)) }
+        rule.onNodeWithText("No run fits in 30 minutes.").assertExists()
+        rule.onNodeWithText("Separate days").assertDoesNotExist()
         rule.runOnIdle { shown = state(SetupStep.PLAN, SetupFlowFixtures.noRun.copy(days = 1)) }
         rule.onNodeWithText("Separate days").assertDoesNotExist()
+    }
+
+    @Test fun `A time needs a valid target before Next`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.run.copy(runGoal = RunGoal.FIRST_5K)),
+            SetupFlowActions(onGoalSeconds = { shown = shown.copy(draft = shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("A time").performClick()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        for (text in listOf("", "bad", "0:00")) {
+            rule.onNodeWithText("Target time").performTextReplacement(text).performImeAction()
+            rule.onNodeWithText("Next").assertIsNotEnabled()
+            rule.runOnIdle {
+                assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds)
+                assertNull(SetupFlowStateBuilder.answers(shown.draft).run.goalSeconds)
+            }
+        }
+        rule.onNodeWithText("Target time").performTextReplacement("30:00")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(1800, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("0:00")
+        rule.onNodeWithText("Just finish").performScrollTo().performClick()
+        rule.onNodeWithText("Target time").assertDoesNotExist()
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertNull(shown.draft.goalSeconds) }
+    }
+
+    @Test fun `a marathon target rejects minutes and accepts hours`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.run.copy(runGoal = RunGoal.MARATHON)),
+            SetupFlowActions(onGoalSeconds = { shown = shown.copy(draft = shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("A time").performClick()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("3:30:00").performImeAction()
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(12600, shown.draft.goalSeconds) }
+    }
+
+    @Test fun `an 800 m target accepts a fast result`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.run.copy(runGoal = RunGoal.MIDDLE_DISTANCE, runEvent = RunEvent.M800)),
+            SetupFlowActions(onGoalSeconds = { shown = shown.copy(draft = shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("A time").performClick()
+        rule.onNodeWithText("Target time").performTextReplacement("1:41").performImeAction()
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(101, shown.draft.goalSeconds) }
+    }
+
+    @Test fun `the marathon best rejects minutes and accepts hours`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.ultra),
+            SetupFlowActions(onMarathonBest = { shown = shown.copy(draft = shown.draft.copy(marathonBestSeconds = it)) }))
+        rule.onNodeWithText("Marathon best").performTextReplacement("3:30").performImeAction()
+        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.runOnIdle { assertNull(shown.draft.marathonBestSeconds) }
+        rule.onNodeWithText("Marathon best").performTextReplacement("3:30:00").performImeAction()
+        rule.runOnIdle { assertEquals(12600, shown.draft.marathonBestSeconds) }
+    }
+
+    @Test fun `test Why mentions interval pace only with an aim`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.test))
+        rule.onNodeWithText("Why we ask").performClick()
+        val interval = "Interval reps aim slightly faster than the target pace. A date tapers the last ten days."
+        val taper = "A date tapers the last ten days."
+        for (test in FitnessTest.entries) for (target in listOf(false, true)) {
+            rule.runOnIdle { shown = state(SetupStep.EVENT, SetupFlowFixtures.test.copy(test = test,
+                goalSeconds = if (target) 960 else null, testScore = if (target) 50 else null)) }
+            val hasAim = target && test !in listOf(FitnessTest.PACER, FitnessTest.HAMR)
+            rule.onNodeWithText(if (hasAim) interval else taper).assertExists()
+            rule.onNodeWithText(if (hasAim) taper else interval).assertDoesNotExist()
+        }
+    }
+
+    @Test fun `running experience Why describes the ladder gate`() {
+        show(state(SetupStep.ABOUT, SetupFlowFixtures.run))
+        rule.onNodeWithText("Why we ask").performClick()
+        rule.onNodeWithText("Experience sets where lifting and running start. A runner whose longest recent run is under 30 minutes and under 5 km starts on a run/walk ladder, as does a New runner who leaves it blank; Racing runners skip it. A past running injury starts it one level lower. Nothing here is stored as a profile.").assertExists()
+    }
+
+    @Test fun `Where Why describes the cap after the ladder and seed expiry`() {
+        show(state(SetupStep.WHERE, SetupFlowFixtures.run))
+        rule.onNodeWithText("Why we ask").performClick()
+        rule.onNodeWithText("Runs past the run/walk ladder stay within 10% of your longest session in the last 30 days, a limit from runners (Frandsen 2025). This answer stands in for 30 days, or until there's a log.").assertExists()
+    }
+
+    @Test fun `Together describes visits and days`() {
+        show(state(SetupStep.TOGETHER, SetupFlowFixtures.both))
+        rule.onNodeWithText("Lifting and running in the same visits").assertExists()
+        rule.onNodeWithText("Lifting days and running days").assertExists()
+    }
+
+    @Test fun `a cardio row shows minutes without zero lifts`() {
+        val s = state(SetupStep.PLAN, SetupFlowFixtures.run)
+        show(s)
+        val cardio = (s.plan as PlanPreviewUi.Ready).rows.first { it.cardio != null && it.lifts == 0 }
+        val text = rule.onNodeWithTag("setup-plan-day-${cardio.dayId}").fetchSemanticsNode()
+            .config[SemanticsProperties.Text].joinToString { it.text }
+        assertTrue(text.contains("${cardio.minutes} min"))
+        assertTrue(!text.contains("lifts"))
     }
 }

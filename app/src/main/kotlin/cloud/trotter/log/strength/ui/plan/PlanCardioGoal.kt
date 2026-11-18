@@ -250,7 +250,8 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         NumberField(
             value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
             onValueChange = onTime, onDraftChange = onTime,
-            label = stringResource(R.string.plan_goal_target_time), minValue = 1.0, maxValue = 86_400.0,
+            label = stringResource(R.string.plan_goal_target_time),
+            minValue = (draft.metres / 10).coerceAtLeast(1).toDouble(), maxValue = 86_400.0,
             format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
             keyboardType = KeyboardType.Ascii,
         )

@@ -157,6 +157,7 @@ class SetupFlowViewModel @Inject constructor(
     fun onNext() {
         if (blocked()) return
         val draft = current()
+        if (!SetupFlowStateBuilder.canAdvance(draft)) return
         val step = SetupFlowStateBuilder.currentStep(draft)
         if (step == SetupStep.PLAN) start() else update {
             val steps = SetupFlowStateBuilder.steps(it)
@@ -171,7 +172,10 @@ class SetupFlowViewModel @Inject constructor(
     fun reviewAnswers() = update { it.copy(step = SetupStep.EQUIPMENT) }
     fun setBranch(value: PlanBranch) = update { it.copy(branch = value, step = SetupStep.GOAL) }
     fun setCardioFirst(value: Boolean) = update { it.copy(cardioFirst = value) }
-    fun setRunGoal(value: RunGoal) = update { it.copy(runGoal = value) }
+    fun setRunGoal(value: RunGoal) = update {
+        it.copy(runGoal = value, goalSeconds = if ((it.runGoal == RunGoal.FITNESS_TEST) !=
+            (value == RunGoal.FITNESS_TEST)) null else it.goalSeconds)
+    }
     fun setRunExperience(value: RunExperience) = update { it.copy(runExperience = value) }
     fun setRunningInjury(value: Boolean) = update { it.copy(runningInjury = value) }
     fun setRunEvent(value: RunEvent) = update { it.copy(runEvent = value) }

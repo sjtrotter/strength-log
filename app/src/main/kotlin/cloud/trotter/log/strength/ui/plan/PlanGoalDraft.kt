@@ -22,7 +22,7 @@ data class PlanGoalDraft(
     fun goal(): PlanGoal? = runCatching {
         require(PlanGoalDate.isValid(byEpochDay))
         if (timed) PlanGoal.Timed(CardioActivity.valueOf(activity), metres,
-            underSeconds.also { require(it != INVALID_TIME) }.takeUnless { it == 0 }, byEpochDay)
+            underSeconds.also { require(it >= 0) }.takeUnless { it == 0 }, byEpochDay)
         else PlanGoal.Shuttle(protocol.trim(), targetShuttles, byEpochDay = byEpochDay)
     }.getOrNull()
 

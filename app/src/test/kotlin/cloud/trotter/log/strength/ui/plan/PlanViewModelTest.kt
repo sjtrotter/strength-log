@@ -120,7 +120,7 @@ class PlanViewModelTest {
         advanceUntilIdle()
         vm.openGoal()
         // PR 7c: blank time saves Just finish; a negative time remains invalid
-        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = -1),
+        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = -1), PlanGoalDraft(underSeconds = -2),
             PlanGoalDraft(activity = "UNKNOWN"), PlanGoalDraft(timed = false, protocol = " "))) {
             vm.changeGoalDraft(invalid)
             vm.saveGoal()

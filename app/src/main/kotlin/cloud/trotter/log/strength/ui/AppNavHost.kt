@@ -669,6 +669,7 @@ internal fun DayRoute(
         onReceiptMutationHandled = viewModel.finisher::mutationHandled,
         onUndoChanges = viewModel.finisher::undoChanges, onRoughDay = viewModel.finisher::setRoughDay,
         onCardioEffort = viewModel.finisher::setCardioEffort,
+        onAcceptReplan = viewModel.finisher::acceptReplan,
         pastCardioEffort = pastCardioEffort, onPastCardioEffort = viewModel::setPastCardioEffort,
         finish = finish,
         noteSave = noteSave,

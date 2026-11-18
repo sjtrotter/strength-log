@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.data.serialization.setupAnswers
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.progression.Riegel
+import cloud.trotter.log.strength.domain.progression.Taper
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
@@ -33,16 +39,24 @@ object PlanScreenBuilder {
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
+        todayEpochDay: Long = 0,
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
         val planSettings = plan?.planSettings ?: PlanSettings()
+        val answers = plan?.setupAnswers(unit)
+        val run = answers?.takeIf { it.branch == PlanBranch.RUN || (it.branch == PlanBranch.BOTH && !it.both.sprint) }
+        val goal = PlanGoalJson.decode(plan?.goalJson)
         return PlanUiState(
-            goal = PlanGoalJson.decode(plan?.goalJson)?.let { goal ->
+            runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) },
+            taper = run != null && Taper.factor(goal, todayEpochDay) != null,
+            goal = goal?.let { goal ->
                 when (goal) {
                     is PlanGoal.Sprint -> null // Shown from PR 7, with its copy.
                     is PlanGoal.Timed -> GoalProgress.bestTimed(goal, cardio).let { best ->
-                        PlanGoalUi(goal, best, GoalProgress.met(goal, best))
+                        val recent = answers?.run?.recent?.takeIf { goal.metres <= RunEvent.MARATHON.metres }
+                        PlanGoalUi(goal, best, GoalProgress.met(goal, best),
+                            recent?.let { Riegel.goalCheckSeconds(it.metres.toDouble(), it.seconds.toDouble(), goal.metres.toDouble()) }, recent)
                     }
                     is PlanGoal.Shuttle -> GoalProgress.bestShuttles(goal).let { best ->
                         PlanGoalUi(goal, best, GoalProgress.met(goal, best))

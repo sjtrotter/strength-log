@@ -31,6 +31,8 @@ import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.data.serialization.CardioResultDto
+import cloud.trotter.log.strength.data.serialization.UndoReplanOfferDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
@@ -940,7 +942,7 @@ class TrackerRepository(
     private class CardioJudgment(val sessionId: Long, val planId: Long, val dayId: String, val automatic: Boolean,
                                  val stored: CardioBlock, val outcome: CardioOutcome,
                                  val preWrite: CardioRule? = null, val cycle: Int? = null,
-                                 val runDays: List<ProgramDayEntity>? = null) {
+                                 val runDays: List<ProgramDayEntity>? = null, val choice: Boolean? = null) {
         val ladderDrop: Boolean get() {
             val level = preWrite?.ladderLevel ?: return false
             return (outcome.change as? CardioChange.LevelTo)?.level?.let { it < level } == true
@@ -950,7 +952,7 @@ class TrackerRepository(
     /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise.
      *  Ruled amendments require their recorded pre-write state and rotation; run replay also checks every day
      *  written by that Finish. A Finish that re-planned stores a later effort or distance only; Undo first, then re-rate. */
-    private suspend fun cardioJudgment(sessionId: Long, first: Boolean, unit: WeightUnit): CardioJudgment? {
+    private suspend fun cardioJudgment(sessionId: Long, first: Boolean, unit: WeightUnit, choice: Boolean? = null): CardioJudgment? {
         val session = cardioSessionDao.byId(sessionId) ?: return null
         val planId = session.planId ?: return null
         val dayId = session.dayId ?: return null
@@ -973,12 +975,7 @@ class TrackerRepository(
             if (!first && (recorded == null || entity.cardioRuleJson != recorded.after)) return null
             val preWrite = if (first) requireNotNull(day.cardioRule) else CardioRuleJson.decode(recorded?.before) ?: return null
             val cycle = if (first) plan.cyclesCompleted else requireNotNull(recorded).cycle
-            val program = assemble(programDao.daysForPlan(planId), programDao.exercisesForPlan(planId)).let { program ->
-                program.copy(days = program.days.map { if (it.id == dayId) it.copy(cardioRule = preWrite) else it })
-            }
-            val setup = plan.setupAnswers(unit)
-            val sprint = CardioPlan(program, cycle, PlanGoalJson.decode(plan.goalJson),
-                setup?.careful == true, clock.zone, setup)
+            val sprint = cardioPlan(plan, programDao.daysForPlan(planId), cycle, unit, dayId to preWrite)
             val judged = CardioJudge.judge(day.copy(cardioRule = preWrite), session, sessions, sets,
                 plan.planSettings.runCap, sprint) ?: return null
             return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome, preWrite, cycle)
@@ -998,22 +995,33 @@ class TrackerRepository(
                     cardioWorkingJson = record.workingBefore, cardioRuleJson = record.ruleBefore)
                 if (current.dayId == dayId && !first) restored.copy(cardioRuleJson = requireNotNull(recorded).before) else restored
             }
-            val program = assemble(preWriteDays, programDao.exercisesForPlan(planId))
+            val inputs = cardioPlan(plan, preWriteDays, cycle, unit)
+            val program = inputs.program
             if (preWrite.ladderLevel != null && program.days.any {
                     it.id != dayId && it.cardioRule?.ladderLevel != null && it.cardioRule != preWrite
                 }) return null
             val preWriteDay = program.days.first { it.id == dayId }
             val preWriteStored = preWriteDay.cardioToRun ?: return null
-            val setup = plan.setupAnswers(unit)
-            val inputs = CardioPlan(program, cycle, PlanGoalJson.decode(plan.goalJson), setup?.careful == true, clock.zone, setup)
             val judged = CardioJudge.judge(preWriteDay, session, sessions, sets, plan.planSettings.runCap, inputs) ?: return null
             if (judged.opening != preWriteStored) return null
-            return CardioJudgment(sessionId, planId, dayId, plan.autoApply, preWriteStored, judged.outcome,
-                preWrite, cycle, preWriteDays)
+            return CardioJudgment(sessionId, planId, dayId, choice ?: undo?.result?.choice ?: plan.autoApply,
+                preWriteStored, judged.outcome, preWrite, cycle, preWriteDays, choice ?: undo?.result?.choice)
         }
         val judged = CardioJudge.judge(day, session, sessions, sets, plan.planSettings.runCap) ?: return null
         if (judged.opening != stored) return null
         return CardioJudgment(sessionId, plan.id, dayId, plan.autoApply, stored, judged.outcome)
+    }
+
+    /** Room-only plan inputs, with the judgment's days, rotation and optional pre-write sprint rule. */
+    private suspend fun cardioPlan(plan: PlanEntity, days: List<ProgramDayEntity>, cycle: Int, unit: WeightUnit,
+                                   override: Pair<String, CardioRule>? = null): CardioPlan {
+        val program = assemble(days, programDao.exercisesForPlan(plan.id)).let { program ->
+            if (override == null) program else program.copy(days = program.days.map {
+                if (it.id == override.first) it.copy(cardioRule = override.second) else it
+            })
+        }
+        val setup = plan.setupAnswers(unit)
+        return CardioPlan(program, cycle, PlanGoalJson.decode(plan.goalJson), setup?.careful == true, clock.zone, setup)
     }
 
     /** Rule-less increases write only on Automatic; sprint state always writes. Ruled run replay replaces
@@ -1106,7 +1114,40 @@ class TrackerRepository(
         val afterRule = requireNotNull(programDao.day(judgment.planId, judgment.dayId)?.cardioRuleJson)
         cardioSessionDao.update(session.copy(progressionUndoJson = CardioUndoJson.encode(undo.copy(
             rule = CardioRuleUndoDto(undo.rule?.before ?: requireNotNull(judgedDay.cardioRuleJson), afterRule,
-                requireNotNull(judgment.cycle)), days = records))))
+                requireNotNull(judgment.cycle)), days = records, result = runResult(judgment)))))
+    }
+
+    private fun runResult(judgment: CardioJudgment): CardioResultDto {
+        val change = judgment.outcome.change
+        val name = when (change) {
+            CardioChange.Repeat -> "REPEAT"
+            is CardioChange.Increase -> "INCREASE"
+            is CardioChange.LevelTo -> "LEVEL_TO"
+            CardioChange.LadderDone -> "LADDER_DONE"
+            CardioChange.Step -> "STEP"
+            is CardioChange.Alternate -> "ALTERNATE"
+            CardioChange.Restart -> "RESTART"
+        }
+        return CardioResultDto(name, (change as? CardioChange.LevelTo)?.level,
+            (change as? CardioChange.Alternate)?.to?.name, (change as? CardioChange.Increase)?.capped == true,
+            judgment.preWrite?.ladderLevel, judgment.outcome.hold?.name,
+            change == CardioChange.Repeat && judgment.preWrite?.ladderLevel != null &&
+                (judgment.outcome.rule?.credits ?: 0) > judgment.preWrite.credits,
+            !judgment.automatic && change != CardioChange.Repeat, judgment.choice,
+            CardioBlockJson.encode(judgment.outcome.block))
+    }
+
+    /** Replays the newest ruled run Finish with an explicit chip choice, retaining its original Undo. */
+    suspend fun setRunOfferApplied(cardioSessionId: Long, applied: Boolean): Boolean {
+        val unit = settings.unitFlow.first()
+        return db.withTransaction {
+            val session = cardioSessionDao.byId(cardioSessionId) ?: return@withTransaction false
+            if (CardioUndoJson.decode(session.progressionUndoJson)?.result == null) return@withTransaction false
+            val judgment = cardioJudgment(cardioSessionId, first = false, unit = unit, choice = applied)
+                ?.takeIf { it.runDays != null } ?: return@withTransaction false
+            applyCardio(judgment)
+            true
+        }
     }
 
     suspend fun setCardioEffort(sessionId: Long, effort: CardioEffort?) {
@@ -2281,13 +2322,16 @@ class TrackerRepository(
     private suspend fun afterDay(plan: PlanEntity, dayId: String, reactive: Boolean, finishedAt: Long,
                                  unit: WeightUnit): UndoPlanDto? {
         val counters = lightAfterDay(plan, dayId, reactive) ?: return null
-        return if (counters.afterCycles > counters.beforeCycles) counters.copy(replan = replan(plan.id, finishedAt, unit))
-            else counters
+        if (counters.afterCycles <= counters.beforeCycles) return counters
+        val current = planDao.plan(plan.id) ?: return counters
+        val (next, recipe) = nextPhase(current, finishedAt, unit) ?: return counters
+        return if (current.autoApply) counters.copy(replan = writeReplan(current, next, recipe))
+            else counters.copy(replanOffer = UndoReplanOfferDto(next.phase?.name))
     }
 
     /** Called inside Finish's transaction, with settings frozen by its caller. */
-    private suspend fun replan(planId: Long, finishedAt: Long, unit: WeightUnit): UndoReplanDto? {
-        val plan = planDao.plan(planId)?.takeIf { it.autoApply } ?: return null
+    private suspend fun nextPhase(plan: PlanEntity, finishedAt: Long, unit: WeightUnit): Pair<PhaseReplan.Replanned, String>? {
+        val planId = plan.id
         val answers = plan.setupAnswers(unit)?.takeIf {
             it.branch == PlanBranch.RUN || (it.branch == PlanBranch.BOTH && !it.both.sprint)
         } ?: return null
@@ -2303,6 +2347,12 @@ class TrackerRepository(
         val next = runCatching {
             PhaseReplan.next(program, answers, phase, known, localEpochDay(finishedAt), week, history.secondsPerMetre)
         }.getOrNull() ?: return null
+        return next to recipe
+    }
+
+    private suspend fun writeReplan(plan: PlanEntity, next: PhaseReplan.Replanned, recipe: String): UndoReplanDto {
+        val planId = plan.id
+        val days = programDao.daysForPlan(planId)
         val recipeAfter = SetupRecipeJson.withPhase(recipe, next.phase)
         val records = next.program.days.mapIndexed { index, day ->
             val before = days.firstOrNull { it.dayId == day.id }
@@ -2319,6 +2369,34 @@ class TrackerRepository(
         val first = Rotation.trainingDayFrom(next.program, next.program.rotationDays.first().id)
         planDao.updatePlan(plan.copy(recipeJson = recipeAfter, suggestedDayId = first))
         return UndoReplanDto(recipe, recipeAfter, records)
+    }
+
+    /** Accepts the Finish's phase offer from its log date and includes the merge in that Finish's Undo. */
+    suspend fun acceptReplanOffer(sessionId: Long?, cardioSessionId: Long?): Boolean {
+        val unit = settings.unitFlow.first()
+        return db.withTransaction {
+            val strength = sessionId?.let { sessionDao.sessionById(it) }
+            val cardio = cardioSessionId?.let { cardioSessionDao.byId(it) }
+            val strengthUndo = ProgressionUndoJson.decode(strength?.progressionUndoJson)
+            val cardioUndo = CardioUndoJson.decode(cardio?.progressionUndoJson)
+            val fromStrength = strengthUndo?.plan?.replanOffer != null
+            val counter = if (fromStrength) strengthUndo?.plan else cardioUndo?.plan
+            if (counter?.replanOffer == null) return@withTransaction false
+            val planId = (if (fromStrength) strength?.planId else cardio?.planId) ?: return@withTransaction false
+            if (runDao.openRun()?.planId == planId) return@withTransaction false
+            val plan = planDao.plan(planId) ?: return@withTransaction false
+            val finishedAt = if (fromStrength) requireNotNull(strength).completedAt else requireNotNull(cardio).completedAt
+            val (next, recipe) = nextPhase(plan, finishedAt, unit) ?: return@withTransaction false
+            val updated = counter.copy(replan = writeReplan(plan, next, recipe), replanOffer = null)
+            if (fromStrength) {
+                sessionDao.updateProgression(requireNotNull(strength).id,
+                    ProgressionUndoJson.encode(requireNotNull(strengthUndo).copy(plan = updated)), strength.roughDay)
+            } else {
+                cardioSessionDao.update(requireNotNull(cardio).copy(progressionUndoJson =
+                    CardioUndoJson.encode(requireNotNull(cardioUndo).copy(plan = updated))))
+            }
+            true
+        }
     }
 
     private fun ProgramDayEntity.replanColumns() = UndoDayColumnsDto(kind, title, position,
@@ -2421,6 +2499,7 @@ class TrackerRepository(
         if (cardio?.planId == planId && cardio.dayId == dayId) {
             cardioUndo?.plan?.replan?.let { undoReplan(planId, it) }
         }
+        var ladderKept = false
         if (strengthUndo != null) {
             swapStrength(planId, dayId, strengthUndo, reverse = false)
             strengthUndo.plan?.let { swapCounters(planId, it, reverse = false) }
@@ -2428,6 +2507,7 @@ class TrackerRepository(
         }
         if (cardioUndo != null && cardio?.planId == planId && cardio.dayId == dayId) {
             val ladderMatches = ladderRecordsMatch(planId, dayId, cardioUndo)
+            ladderKept = cardioUndo.days.any { it.ladder } && !ladderMatches
             cardioUndo.block?.let { block ->
                 if (programDao.day(planId, dayId)?.cardioWorkingJson == block.after) {
                     programDao.setCardioWorking(planId, dayId, block.before)
@@ -2446,7 +2526,7 @@ class TrackerRepository(
             cardioUndo.plan?.let { swapCounters(planId, it, reverse = false) }
             cardioSessionDao.update(cardio.copy(progressionUndoJson = null))
         }
-        UndoResult.Undone
+        if (ladderKept) UndoResult.UndoneLadderKept else UndoResult.Undone
     }
 
     private suspend fun dayOpen(planId: Long, dayId: String): Boolean =

@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.UndoPlanDto
 
-enum class UndoResult { Undone, DayOpen, Nothing }
+enum class UndoResult { Undone, UndoneLadderKept, DayOpen, Nothing }
 
 data class FinishUndoState(
     val rough: Boolean,

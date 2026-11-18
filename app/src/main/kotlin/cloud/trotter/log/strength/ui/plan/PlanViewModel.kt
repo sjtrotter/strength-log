@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.plan
 
 import android.content.Context
+import java.time.Clock
+import java.time.LocalDate
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -40,6 +42,7 @@ class PlanViewModel @Inject constructor(
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
     private val historyRepository: HistoryRepository = repo.history,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
     private val mutationLock = Mutex()
     private val dialog = savedState.getStateFlow<String?>(DIALOG, null)
@@ -64,7 +67,7 @@ class PlanViewModel @Inject constructor(
         .flatMapLatest { plan -> combine(
             plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory,
         ) { program, catalog, unit, cardio ->
-            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio)
+            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, LocalDate.now(clock).toEpochDay())
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(

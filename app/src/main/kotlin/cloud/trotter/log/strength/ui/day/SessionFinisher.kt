@@ -247,12 +247,27 @@ internal class SessionFinisher(
         }
     }
 
+    fun acceptReplan() {
+        scope.launch {
+            try {
+                mutationLock.withLock {
+                    val identity = receiptProgress.value ?: return@withLock
+                    if (!repo.acceptReplanOffer(identity.sessionId, identity.cardioSessionId)) {
+                        _mutation.value = ReceiptMutation.ReplanFailed
+                    }
+                }
+            } catch (cancelled: CancellationException) { throw cancelled
+            } catch (_: Exception) { _mutation.value = ReceiptMutation.ReplanFailed }
+        }
+    }
+
     private fun mutateReceipt(announceUndo: Boolean = true, write: suspend (ReceiptProgress) -> UndoResult) {
         scope.launch {
             try {
                 mutationLock.withLock {
                     val identity = receiptProgress.value ?: return@withLock
                     _mutation.value = when (write(identity)) {
+                        UndoResult.UndoneLadderKept -> ReceiptMutation.UndoneLadderKept
                         UndoResult.Undone -> ReceiptMutation.Undone.takeIf { announceUndo }
                         UndoResult.DayOpen -> if (announceUndo) ReceiptMutation.DayOpen(identity.dayId) else ReceiptMutation.RoughDayOpen(identity.dayId)
                         UndoResult.Nothing -> if (announceUndo) ReceiptMutation.Failed else ReceiptMutation.RoughDayFailed

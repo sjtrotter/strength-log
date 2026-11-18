@@ -38,6 +38,7 @@ data class DayEditUiState(
     val planId: Long? = null,
     val dayId: String? = null,
     val cardioBlock: CardioBlock? = null,
+    val cardioLadder: Boolean = false,
     val cardioProgress: CardioProgress = CardioProgress(),
     val cardioMeasures: Set<ProgressMeasure> = emptySet(),
     val cardioDraft: CardioBlockDraft? = null,

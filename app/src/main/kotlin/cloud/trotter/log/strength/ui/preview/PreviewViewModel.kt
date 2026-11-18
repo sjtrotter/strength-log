@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.ui.Routes
+import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.LiftMarker
@@ -132,7 +133,12 @@ class PreviewViewModel @Inject constructor(
     fun start() = workoutStart.start(selection)
 
     fun applyCardioNextTime(block: CardioBlock) {
-        viewModelScope.launch { repo.setCardioWorking(planId, dayId, block) }
+        viewModelScope.launch {
+            val offer = uiState.value.cardio?.nextTime as? CardioNextTime.Offer
+            if (offer?.sessionId != null) {
+                repo.setRunOfferApplied(offer.sessionId, !offer.applied)
+            } else repo.setCardioWorking(planId, dayId, block)
+        }
     }
 
     fun setWorkingWeight(programExerciseId: Long, weightLb: Double) {

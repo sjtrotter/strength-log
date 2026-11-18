@@ -37,6 +37,8 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.ui.components.RadioChoiceDialog
 import cloud.trotter.log.strength.ui.day.NextTimeControl
+import androidx.annotation.StringRes
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -148,6 +150,11 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 }
                 item(key = "cardio_goal_header") {
                     Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goal)) }
+                }
+                if (state.runPhase != null || state.taper) item(key = "run_phase") {
+                    ListItem(overlineContent = { Text(stringResource(R.string.plan_phase)) },
+                        headlineContent = { Text(stringResource(if (state.taper) R.string.plan_phase_taper
+                            else runPhaseLabel(requireNotNull(state.runPhase)))) })
                 }
                 item(key = "cardio_goal") {
                     val goal = state.goal
@@ -335,3 +342,12 @@ private fun defaultsForLabel(goal: LiftGoal): String = stringResource(when (goal
 @Composable
 private fun lightWeekLabel(cycles: Int?): String = if (cycles == null) stringResource(R.string.plan_light_week_off)
     else stringResource(R.string.plan_light_week_every, cycles)
+
+@StringRes
+internal fun runPhaseLabel(phase: RunPhase): Int = when (phase) {
+    RunPhase.LADDER -> R.string.plan_phase_ladder
+    RunPhase.BASE -> R.string.plan_phase_base
+    RunPhase.HALF_BUILD -> R.string.plan_phase_half
+    RunPhase.MARATHON_BUILD -> R.string.plan_phase_marathon
+    RunPhase.ULTRA_BUILD -> R.string.plan_phase_ultra
+}

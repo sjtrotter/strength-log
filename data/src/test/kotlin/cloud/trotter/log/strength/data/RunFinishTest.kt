@@ -8,6 +8,10 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioResultDto
+import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.LadderHold
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
@@ -370,7 +374,8 @@ class RunFinishTest {
         assertEquals(credit, rule())
         assertEquals(edited, day("B").cardioBlockJson)
         assertFalse(repo.finishUndoState(null, id).restorable)
-        assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
+        // PR 7b: Undo reports that the changed ladder was kept
+        assertEquals(UndoResult.UndoneLadderKept, repo.undoFinish(null, id))
         // ladder 2026-11-17: a mismatching B prevents every ladder restore, including A and C.
         for (day in listOf("A", "B", "C")) assertEquals(credit, rule(day))
         assertEquals(edited, day("B").cardioBlockJson)
@@ -474,7 +479,8 @@ class RunFinishTest {
         val edited = CardioBlockJson.encode(time(900))
         db.programDao().upsertDay(day("B").copy(cardioBlockJson = edited))
         assertFalse(repo.finishUndoState(null, second).restorable)
-        assertEquals(UndoResult.Undone, repo.undoFinish(null, second))
+        // PR 7b: Undo reports that the changed ladder was kept
+        assertEquals(UndoResult.UndoneLadderKept, repo.undoFinish(null, second))
         val raised = CardioRule(2, ladderCounted = listOf(d, d + 1), ladderRaised = d + 1)
         for (day in listOf("A", "B", "C")) assertEquals(raised, rule(day))
         for (day in listOf("A", "C")) assertEquals(RunWalkLadder.block(2, CardioActivity.ROAD_RUN), block(day))
@@ -516,5 +522,172 @@ class RunFinishTest {
         assertTrue(repo.setCardioBlock(plan, "A", time(900)))
         shared()
         assertNull(day().cardioRuleJson)
+    }
+
+    @Test fun `run result decoding tolerates older and unreadable records`() {
+        val entry = CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run", startedAt = 1,
+            completedAt = 2, seconds = 1800, stepsCompleted = 1)
+        for (json in listOf(null, "{}", "broken", """{"result":{"change":"UNKNOWN"}}""",
+            """{"result":{"change":"LEVEL_TO"}}""", """{"result":{"change":"REPEAT","hold":"UNKNOWN"}}""")) {
+            assertNull(entry.copy(progressionUndoJson = json).runResult())
+        }
+        val block = RunWalkLadder.block(12, CardioActivity.ROAD_RUN)
+        val record = CardioResultDto("LADDER_DONE", from = 12, held = true, block = CardioBlockJson.encode(block))
+        val encoded = CardioUndoJson.encode(CardioUndoDto(result = record))
+        val expected = """{"result":{"change":"LADDER_DONE","from":12,"held":true,"block":"{\"activity\":\"ROAD_RUN\",\"sets\":[{\"role\":\"WORK\",\"end\":{\"type\":\"time\",\"seconds\":1800}}]}"}}"""
+        assertEquals(expected, encoded)
+        val result = assertNotNull(entry.copy(progressionUndoJson = encoded).runResult())
+        assertEquals(CardioChange.LadderDone, result.change)
+        assertEquals(12, result.from)
+        assertEquals(block, result.block)
+    }
+
+    private suspend fun result(id: Long) = assertNotNull(db.cardioSessionDao().byId(id)?.runResult())
+
+    @Test fun `Finish records what a ladder session earned`() = runTest {
+        prepare()
+        val first = result(log())
+        assertTrue(first.credit)
+        assertEquals(1, first.from)
+        assertEquals(CardioChange.Repeat, first.change)
+        assertEquals(block(), first.block)
+        val second = result(log("B", day = 2))
+        assertEquals(CardioChange.LevelTo(2), second.change)
+        assertEquals(1, second.from)
+        ladder(CardioRule(3, credits = 1))
+        assertEquals(CardioChange.LevelTo(2), result(log(effort = CardioEffort.HARD)).change)
+        ladder(CardioRule(2, ladderCounted = listOf(d - 2, d - 1, d)))
+        assertEquals(LadderHold.WEEK_CAP, result(log()).hold)
+        ladder(CardioRule(2, ladderCounted = listOf(d + 1)))
+        assertEquals(LadderHold.BACKDATED, result(log()).hold)
+        ladder(CardioRule(2, credits = 1, ladderRaised = d - 1))
+        assertEquals(LadderHold.BUSY, result(log()).hold)
+        ladder(CardioRule(12, credits = 1, ladderCounted = listOf(d - 2), ladderRaised = d - 9))
+        assertEquals(CardioChange.LadderDone, result(log()).change)
+    }
+
+    @Test fun `Finish records quality steps alternates and easy growth`() = runTest {
+        quality()
+        log("D")
+        val stepped = result(log("D"))
+        assertEquals(CardioChange.Step, stepped.change)
+        assertEquals(block("D"), stepped.block)
+        val row = day("D")
+        val threshold = time(1200).let { it.copy(sets = it.sets.map { set -> set.copy(hard = true) }) }
+        db.programDao().upsertDay(row.copy(cardioBlockJson = CardioBlockJson.encode(threshold),
+            cardioRuleJson = CardioRuleJson.encode(CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX))))
+        val alternate = result(log("D"))
+        assertEquals(CardioChange.Alternate(RunSession.VO2MAX), alternate.change)
+        assertEquals(block("D"), alternate.block)
+        val answers = run(RunGoal.CARDIO_FITNESS, experience = RunExperience.SOME, longest = Measure.Time(900))
+        prepare(answers.copy(run = answers.run.copy(activity = CardioActivity.STATIONARY_BIKE)))
+        val increase = result(log())
+        assertTrue(increase.change is CardioChange.Increase)
+        assertEquals(block(), increase.block)
+    }
+
+    @Test fun `Ask holds a level up and the chip accepts it`() = runTest {
+        prepare()
+        repo.plans.setAutoApply(plan, false)
+        repo.setCardioKeepToPlan(plan, "C", true)
+        log()
+        val credit = rule()
+        val id = log("B", day = 2)
+        assertTrue(result(id).held)
+        for (day in listOf("A", "B", "C")) assertEquals(1, rule(day).ladderLevel)
+        assertTrue(repo.setRunOfferApplied(id, true))
+        for (day in listOf("A", "B", "C")) assertEquals(2, rule(day).ladderLevel)
+        assertEquals(RunWalkLadder.block(1, CardioActivity.ROAD_RUN), block("C"))
+        assertFalse(result(id).held)
+        assertEquals(true, undo(id).result?.choice)
+        assertTrue(repo.setRunOfferApplied(id, false))
+        for (day in listOf("A", "B", "C")) assertEquals(credit, rule(day))
+        assertTrue(result(id).held)
+        assertTrue(repo.setRunOfferApplied(id, true))
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, id))
+        assertLadder(1, credit)
+    }
+
+    @Test fun `Ask accepts and declines a quality step and easy growth`() = runTest {
+        quality()
+        repo.plans.setAutoApply(plan, false)
+        log("D")
+        val before = day("D")
+        val id = log("D")
+        assertTrue(result(id).held)
+        assertTrue(repo.setRunOfferApplied(id, true))
+        assertEquals(vo2(6), block("D"))
+        assertFalse(result(id).held)
+        assertTrue(repo.setRunOfferApplied(id, false))
+        assertEquals(before, day("D"))
+        val answers = run(RunGoal.CARDIO_FITNESS, experience = RunExperience.SOME, longest = Measure.Time(900))
+        prepare(answers.copy(run = answers.run.copy(activity = CardioActivity.STATIONARY_BIKE)))
+        repo.plans.setAutoApply(plan, false)
+        val old = day()
+        val growth = log()
+        assertTrue(result(growth).held)
+        assertTrue(repo.setRunOfferApplied(growth, true))
+        assertEquals(result(growth).block, block())
+        assertTrue(repo.setRunOfferApplied(growth, false))
+        assertEquals(old, day())
+    }
+
+    @Test fun `a re-rating keeps the chip choice`() = runTest {
+        prepare()
+        repo.plans.setAutoApply(plan, false)
+        log()
+        val id = log("B", day = 2)
+        assertTrue(repo.setRunOfferApplied(id, true))
+        repo.setCardioEffort(id, CardioEffort.GOOD)
+        assertEquals(1, rule().ladderLevel)
+        assertEquals(CardioChange.Repeat, result(id).change)
+        assertEquals(true, undo(id).result?.choice)
+        repo.setCardioEffort(id, CardioEffort.EASY)
+        assertEquals(2, rule().ladderLevel)
+        assertFalse(result(id).held)
+        assertEquals(true, undo(id).result?.choice)
+    }
+
+    @Test fun `Ask accepts a held drop and a held LadderDone`() = runTest {
+        prepare()
+        repo.plans.setAutoApply(plan, false)
+        ladder(CardioRule(3, credits = 1))
+        val drop = log(effort = CardioEffort.HARD)
+        assertLadder(3)
+        assertTrue(result(drop).held)
+        assertTrue(repo.setRunOfferApplied(drop, true))
+        assertLadder(2)
+        ladder(CardioRule(12, credits = 1, ladderCounted = listOf(d - 2), ladderRaised = d - 9))
+        val done = log()
+        assertTrue(result(done).held)
+        assertTrue(repo.setRunOfferApplied(done, true))
+        assertLadder(12, done = true)
+    }
+
+    @Test fun `run offers refuse when the session no longer judges`() = runTest {
+        prepare()
+        val older = log()
+        val newest = log()
+        val before = db.programDao().daysForPlan(plan)
+        assertFalse(repo.setRunOfferApplied(older, true))
+        repo.clearFinishUndoForDay(plan, "A")
+        assertFalse(repo.setRunOfferApplied(newest, true))
+        assertEquals(before, db.programDao().daysForPlan(plan))
+        assertTrue(repo.setCardioBlock(plan, "A", time(900)))
+        val ruleless = log()
+        assertFalse(repo.setRunOfferApplied(ruleless, true))
+        db.programDao().setCardioRule(plan, "A", CardioRuleJson.encode(CardioRule(null, RunSession.ACCELERATION)))
+        assertFalse(repo.setRunOfferApplied(log(), true))
+    }
+
+    @Test fun `undo reports a ladder it kept`() = runTest {
+        prepare()
+        repo.setCardioKeepToPlan(plan, "B", true)
+        log()
+        val id = log("C", day = 2)
+        repo.setCardioKeepToPlan(plan, "B", false)
+        assertEquals(UndoResult.UndoneLadderKept, repo.undoFinish(null, id))
+        for (day in listOf("A", "B", "C")) assertEquals(2, rule(day).ladderLevel)
+        assertNull(db.cardioSessionDao().byId(id)?.progressionUndoJson)
     }
 }

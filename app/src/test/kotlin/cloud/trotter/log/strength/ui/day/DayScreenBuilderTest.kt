@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -39,6 +44,54 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
+
+    @Test fun `ruled run days read the Finish result`() {
+        val opening = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val offered = RunWalkLadder.block(2, CardioActivity.ROAD_RUN)
+        val blockJson = CardioBlockJson.encode(offered).replace("\\", "\\\\").replace("\"", "\\\"")
+        val ruleJson = CardioRuleJson.encode(CardioRule(1)).replace("\\", "\\\\").replace("\"", "\\\"")
+        val rule = """"rule":{"before":"$ruleJson","after":"$ruleJson","cycle":0}"""
+        val json = """{$rule,"result":{"change":"LEVEL_TO","level":2,"from":1,"held":true,"block":"$blockJson"}}"""
+        val day = ProgramDay("A", "Run", "", emptyList(), cardioBlock = opening, cardioRule = CardioRule(1))
+        val plan = PlanEntity(1, "Run", "GENERATED", 0, 0, offerCardioIncreases = true)
+        val last = CardioSessionEntity(id = 5, planId = 1, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1, completedAt = 2, seconds = 1500, stepsCompleted = opening.sets.size,
+            activity = opening.activity.name, progressionUndoJson = json)
+        val offer = DayScreenBuilder.cardioNextTime(day, plan, listOf(last), emptyMap()) as CardioNextTime.Offer
+        assertEquals(CardioNextTime.Offer(offered, opening, false, CardioIncrease.Level(2), 5), offer)
+        val applied = last.copy(progressionUndoJson = json.replace("\"held\":true", "\"held\":false"))
+        assertTrue((DayScreenBuilder.cardioNextTime(day, plan.copy(autoApply = true), listOf(applied), emptyMap())
+            as CardioNextTime.Offer).applied)
+        val repeated = last.copy(progressionUndoJson = """{$rule,"result":{"change":"REPEAT","from":1,"credit":true}}""")
+        assertEquals(CardioNextTime.Repeat, DayScreenBuilder.cardioNextTime(day, plan, listOf(repeated), emptyMap()))
+        val changed = day.copy(cardioRule = CardioRule(2))
+        assertNull(DayScreenBuilder.cardioNextTime(changed, plan, listOf(last), emptyMap()))
+        assertNull(DayScreenBuilder.cardioNextTime(changed, plan, listOf(repeated), emptyMap()))
+        assertEquals(offer, DayScreenBuilder.cardioNextTime(changed, plan, listOf(last), emptyMap(), readOnly = true))
+        assertNull(DayScreenBuilder.cardioNextTime(day.copy(cardioRule = CardioRule(null, RunSession.ACCELERATION)),
+            plan, listOf(last), emptyMap()))
+        assertNull(DayScreenBuilder.cardioNextTime(day, plan, listOf(last.copy(progressionUndoJson = null)), emptyMap()))
+    }
+
+    @Test fun `an applied run Step shows the rounds earned at Finish`() {
+        val work = CardioSetSpec(CardioRole.WORK, Measure.Time(180), hard = true)
+        val opening = CardioBlock(CardioActivity.ROAD_RUN, List(5) { work })
+        val offered = opening.copy(sets = List(6) { work })
+        val blockJson = CardioBlockJson.encode(offered).replace("\\", "\\\\").replace("\"", "\\\"")
+        val rule = CardioRule(null, RunSession.VO2MAX, steps = 1)
+        val ruleJson = CardioRuleJson.encode(rule).replace("\\", "\\\\").replace("\"", "\\\"")
+        val last = CardioSessionEntity(id = 1, planId = 1, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Run", startedAt = 1, completedAt = 2, seconds = 900, stepsCompleted = 5,
+            activity = opening.activity.name, progressionUndoJson =
+                """{"rule":{"before":"$ruleJson","after":"$ruleJson","cycle":0},"result":{"change":"STEP","block":"$blockJson"}}""")
+        val day = ProgramDay("A", "Intervals", "", emptyList(), cardioBlock = offered,
+            cardioRule = rule)
+        val results = opening.sets.map { CardioSetResult(it, CardioSetStatus.FINISHED, 180) }
+        val chip = DayScreenBuilder.cardioNextTime(day, PlanEntity(1, "Run", "GENERATED", 0, 0, autoApply = true),
+            listOf(last), mapOf(1L to results)) as CardioNextTime.Offer
+        assertEquals(CardioIncrease.Rounds(1), chip.change)
+        assertTrue(chip.applied)
+    }
 
     @Test fun `strength switch off hides the offer and Repeat`() {
         val rows = List(3) { work(70.0, 5) }

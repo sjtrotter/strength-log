@@ -18,6 +18,12 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.planner.RecentRace
+import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
@@ -258,6 +264,61 @@ class PlanScreenBuilderTest {
             val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
             assertEquals(listOf("db_bench"), state.goals.map { it.exerciseId })
         }
+    }
+
+    @Test fun `Run and Both plans show their stored phase`() {
+        for ((branch, phase) in listOf(PlanBranch.RUN to RunPhase.LADDER, PlanBranch.BOTH to RunPhase.HALF_BUILD)) {
+            val answers = SetupAnswers(branch = branch, run = RunAnswers(goal = RunGoal.HALF_MARATHON))
+            val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0,
+                recipeJson = SetupRecipeJson.encode(answers, phase))
+            val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB)
+            assertEquals(phase, state.runPhase)
+            assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.encode(SetupAnswers())),
+                Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+            assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.withPhase(plan.recipeJson!!, null)),
+                Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+            assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = null, goalJson = PlanGoalJson.encode(
+                PlanGoal.Sprint(100, 2000))), Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+        }
+    }
+
+    @Test fun `a dated half shows Taper twelve days before the goal`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, 7200, 20_012)
+        // PR 7b: Taper requires an eligible run recipe, like the phase line.
+        for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) {
+            val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0, goalJson = PlanGoalJson.encode(goal),
+                recipeJson = SetupRecipeJson.encode(SetupAnswers(branch = branch)))
+            assertTrue(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+                todayEpochDay = 20_000).taper)
+            assertFalse(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+                todayEpochDay = 19_990).taper)
+        }
+    }
+
+    @Test fun `a Lift recipe with a dated Timed goal hides phase and Taper`() {
+        val answers = SetupAnswers(branch = PlanBranch.LIFT)
+        val plan = PlanEntity(1, "Lift", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers),
+            goalJson = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, 7200, 20_012)))
+        val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+            todayEpochDay = 20_000)
+        assertNull(state.runPhase)
+        assertFalse(state.taper)
+    }
+
+    @Test fun `a 10K goal predicts from a recent 5K and an ultra does not`() {
+        val answers = SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K, experience = RunExperience.SOME, recent = RecentRace(5000, 1500)))
+        val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers, RunPhase.BASE),
+            goalJson = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 10_000, 3300)))
+        val goal = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB).goal!!
+        assertEquals(3127, goal.predictedSeconds)
+        assertEquals(RecentRace(5000, 1500), goal.predictedFrom)
+        val ultra = PlanScreenBuilder.buildUiState(plan.copy(goalJson = PlanGoalJson.encode(
+            PlanGoal.Timed(CardioActivity.ROAD_RUN, 50_000, null))), Program(emptyList()), catalog, WeightUnit.LB).goal!!
+        assertNull(ultra.predictedSeconds)
+        assertNull(ultra.predictedFrom)
     }
 
     private fun day(id: String, title: String, vararg rounds: Int) = ProgramDay(

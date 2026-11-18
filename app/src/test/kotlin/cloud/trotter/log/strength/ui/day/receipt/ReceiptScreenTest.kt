@@ -20,6 +20,18 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import cloud.trotter.log.strength.data.serialization.RunResult
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.LadderHold
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.ui.day.CardioNextTime
+import cloud.trotter.log.strength.ui.day.CardioIncrease
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -946,6 +958,99 @@ class ReceiptScreenTest {
         }
         rule.onNodeWithText("Couldn't save.").assertIsDisplayed()
         rule.onNodeWithText("Couldn't undo.").assertDoesNotExist()
+    }
+
+    // PR 7b: the ladder note includes the Hard level drop.
+    private val ladderNote = "Easy counts toward the next level. Two Easy runs finish a level; Good or no answer repeats it; Hard drops a level."
+    private val weekCap = "Up to three Easy runs a week count toward the next level."
+    private fun runProgress(change: CardioChange = CardioChange.Repeat, from: Int? = 1, hold: LadderHold? = null,
+                            credit: Boolean = false, held: Boolean = false, block: CardioBlock = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)) =
+        ReceiptProgressState(cardioSessionId = 1, cardioStored = block, runLadder = from != null,
+            run = RunResult(change, from, hold, credit, held, block))
+
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontRunReceiptShowsTheLadderNoteAndReplanOffer() {
+        var accepted = 0
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(timeTargetFixture(), {}, {},
+                progress = runProgress().copy(replan = ReceiptReplan(RunPhase.BASE, true)),
+                onAcceptReplan = { accepted++ })
+        } }
+        rule.onNodeWithText(ladderNote).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Ready for Base.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Move to Base").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
+        rule.runOnIdle { assertEquals(1, accepted) }
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontRunWhySheetLines() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(timeTargetFixture(), {}, {}, progress = runProgress(hold = LadderHold.WEEK_CAP))
+        } }
+        rule.onNodeWithText("Why").performScrollTo().performClick()
+        rule.onNodeWithText(weekCap).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `run receipt values and Why lines read the stored result`() {
+        val state = mutableStateOf(runProgress(credit = true))
+        rule.setContent { AppTheme {
+            androidx.compose.foundation.layout.Column {
+                Text(cardioNextLine(state.value).orEmpty())
+                Text(cardioWhyLine(state.value, "Run").orEmpty())
+                Text(spokenCardioNextLine(state.value).orEmpty())
+            }
+        } }
+        fun expect(progress: ReceiptProgressState, next: String, why: String?) {
+            rule.runOnIdle { state.value = progress }
+            rule.onNodeWithText("Next time: $next").assertIsDisplayed()
+            if (why != null) rule.onNodeWithText(why).assertIsDisplayed()
+        }
+        // PR 7b: counted runs finish a level without promising the next run moves up.
+        expect(runProgress(credit = true), "level 1 of 12", "Level 1: one Easy run counted. Two counted Easy runs finish a level.")
+        expect(runProgress(hold = LadderHold.WEEK_CAP), "level 1 of 12", weekCap)
+        expect(runProgress(hold = LadderHold.BUSY), "level 1 of 12", "A busy two weeks holds the next level for a week.")
+        expect(runProgress(hold = LadderHold.BACKDATED), "level 1 of 12",
+            "An Easy run dated before the last counted one doesn't count toward the next level.")
+        expect(runProgress(CardioChange.LevelTo(2), held = true), "level 2 of 12 offered", "Level 1: two Easy runs counted.")
+        expect(runProgress(CardioChange.LevelTo(2), from = 3), "level 2 of 12", "Back to level 2.")
+        val continuous = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1800))))
+        expect(runProgress(CardioChange.LadderDone, from = 12, block = continuous), "30:00", "Run/walk ladder done: 30 minutes running.")
+        val intervals = continuous.copy(sets = List(5) { CardioSetSpec(CardioRole.WORK, Measure.Time(180)) })
+        expect(runProgress(CardioChange.Step, from = null, block = intervals), "5 × 3:00", "Run 5 × 3:00 next time: two sessions finished.")
+        expect(runProgress(CardioChange.Alternate(RunSession.VO2MAX), from = null, block = intervals),
+            "Intervals, 5 × 3:00", "Threshold and Intervals take turns on this day.")
+        val increased = continuous.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1890))))
+        val offer = CardioNextTime.Offer(increased, continuous, true, CardioIncrease.Time(90), 1)
+        for (capped in listOf(false, true)) {
+            expect(runProgress(CardioChange.Increase(cloud.trotter.log.strength.domain.model.ProgressMeasure.TIME, capped),
+                from = null, block = increased).copy(cardioNext = offer), "31:30",
+                if (capped) "Run 31:30 next time (+1:30): held to 10% past your longest recent run."
+                else "Run 31:30 next time (+1:30): every set finished.")
+        }
+        expect(runProgress(), "level 1 of 12", null)
+        rule.onNodeWithText(weekCap).assertDoesNotExist()
+    }
+
+    @Test fun `re-plan applied and offered lines use the phase or full plan`() {
+        val state = mutableStateOf(ReceiptProgressState(replan = ReceiptReplan(RunPhase.BASE, false)))
+        rule.setContent { AppTheme { SessionReceiptScreen(timeTargetFixture(), {}, {}, progress = state.value) } }
+        rule.onNodeWithText("Base from the next workout.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(ladderNote).assertDoesNotExist()
+        rule.runOnIdle { state.value = state.value.copy(replan = ReceiptReplan(null, false)) }
+        rule.onNodeWithText("Run/walk ladder done. The full plan starts with the next workout.").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle { state.value = state.value.copy(replan = ReceiptReplan(null, true)) }
+        rule.onNodeWithText("Ready for the full plan.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Start the full plan").performScrollTo().assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test fun `run receipt mutations show their messages`() {
+        val mutation = mutableStateOf<ReceiptMutation>(ReceiptMutation.UndoneLadderKept)
+        rule.setContent { AppTheme { SessionReceiptScreen(receiptFixture(), {}, {}, mutation = mutation.value) } }
+        rule.onNodeWithText("Changes undone, except the ladder level: a ladder day changed since.").assertIsDisplayed()
+        rule.runOnIdle { mutation.value = ReceiptMutation.ReplanFailed }
+        rule.onNodeWithText("The plan can't move up yet.").assertIsDisplayed()
     }
 
     private fun setReceipt(

@@ -76,6 +76,11 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
             Column {
                 Text(goalProgress(ui))
                 goal.byEpochDay?.let { day -> Text(stringResource(R.string.plan_goal_by, goalDate(day))) }
+                val recent = ui.predictedFrom
+                if (goal is PlanGoal.Timed && ui.predictedSeconds != null && recent != null) {
+                    Text(stringResource(R.string.plan_goal_predicted, ClockText.minutesSeconds(ui.predictedSeconds),
+                        distanceUnitFor(goal.activity).format(recent.metres), ClockText.minutesSeconds(recent.seconds)))
+                }
             }
         },
         trailingContent = if (goal is PlanGoal.Shuttle) {

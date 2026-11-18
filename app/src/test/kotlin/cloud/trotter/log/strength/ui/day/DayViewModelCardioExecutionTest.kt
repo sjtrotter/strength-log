@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
+import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -267,6 +273,36 @@ class DayViewModelCardioExecutionTest {
         assertNull(db.programDao().day(plan, "A")!!.cardioWorkingJson)
         assertEquals(opening, CardioBlockJson.decode(db.programDao().day(plan, "A")!!.cardioBlockJson))
         assertTrue(db.cardioSessionDao().byId(id)!!.increaseApplied)
+    }
+
+    @Test fun `tapping a run offer toggles it in the repository`() = test {
+        val plan = repo.plans.createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN))
+        repo.plans.publishPlannedPlan(plan)
+        repo.plans.setAutoApply(plan, false)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val opening = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        suspend fun finish(at: Long): Long = repo.logCardioSession(CardioSessionEntity(
+            planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run", startedAt = at - 1_500_000,
+            completedAt = at, seconds = 1500, stepsCompleted = opening.sets.size,
+            activity = CardioActivity.ROAD_RUN.name, effort = CardioEffort.EASY.name), opening.sets.map {
+                CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as Measure.Time).seconds)
+            })
+        finish(clock.wall - 3 * 86_400_000)
+        val id = finish(clock.wall - 86_400_000)
+        val vm = readyVm()
+        val offer = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertFalse(offer.applied)
+        assertEquals(id, offer.sessionId)
+        vm.applyCardioNextTime(offer.offered)
+        runCurrent()
+        assertEquals(2, CardioRuleJson.decode(db.programDao().day(plan, "A")!!.cardioRuleJson)?.ladderLevel)
+        assertFalse(db.cardioSessionDao().byId(id)!!.runResult()!!.held)
+        val applied = vm.uiState.value.cardio?.nextTime as CardioNextTime.Offer
+        assertTrue(applied.applied)
+        vm.applyCardioNextTime(applied.opening)
+        runCurrent()
+        assertEquals(1, CardioRuleJson.decode(db.programDao().day(plan, "A")!!.cardioRuleJson)?.ladderLevel)
+        assertTrue(db.cardioSessionDao().byId(id)!!.runResult()!!.held)
     }
 
     @Test fun cardioOfferAppliesBeforeStartAndTheRunFreezesItsWorkingBlock() = test {

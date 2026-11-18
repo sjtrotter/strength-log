@@ -6,6 +6,18 @@ import cloud.trotter.log.strength.ui.day.CardioIncrease
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.data.serialization.CardioRuleJson
+import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.CardioEffort
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptReplan
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -28,12 +40,16 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.NextTime
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,6 +61,73 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun `an Automatic re-plan hides the run chip and retains the receipt result`() = runTest(dispatcher) {
+        assertReplannedRun(autoApply = true)
+    }
+
+    @Test fun `an accepted Ask re-plan hides the run chip and retains the receipt result`() = runTest(dispatcher) {
+        assertReplannedRun(autoApply = false)
+    }
+
+    private suspend fun TestScope.assertReplannedRun(autoApply: Boolean) {
+        val plan = repo.plans.createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN, days = 4, minutes = 60,
+            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K)))
+        repo.plans.publishPlannedPlan(plan)
+        repo.plans.setAutoApply(plan, autoApply)
+        repo.plans.setOfferCardioIncreases(plan, true)
+        val start = LocalDate.now().minusDays(3)
+        val credited = CardioRule(12, credits = 1, ladderCounted = listOf(start.toEpochDay() - 2),
+            ladderRaised = start.toEpochDay() - 9)
+        for (entity in db.programDao().daysForPlan(plan).filter { CardioRuleJson.decode(it.cardioRuleJson)?.ladderLevel != null }) {
+            db.programDao().upsertDay(entity.copy(
+                cardioBlockJson = CardioBlockJson.encode(RunWalkLadder.block(12, CardioActivity.ROAD_RUN)),
+                cardioRuleJson = CardioRuleJson.encode(credited)))
+        }
+        suspend fun finish(dayId: String, offset: Long): Long {
+            val block = requireNotNull(repo.plans.programFor(plan).first().days.first { it.id == dayId }.cardioToRun)
+            val completedAt = start.plusDays(offset).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val results = block.sets.map {
+                CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as Measure.Time).seconds)
+            }
+            return repo.logCardioSession(CardioSessionEntity(planId = plan, dayId = dayId, mode = "OUTDOOR_RUN",
+                hard = false, label = "Run", startedAt = completedAt - 3_600_000, completedAt = completedAt,
+                seconds = results.sumOf { it.elapsedSeconds }, stepsCompleted = results.size,
+                activity = block.activity.name, effort = CardioEffort.EASY.name), results, finishDay = true)
+        }
+        val done = finish("A", 0)
+        if (!autoApply) assertTrue(repo.setRunOfferApplied(done, true))
+        finish("B", 1)
+        val id = finish("C", 2)
+        val preview = preview(plan, "C")
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "C"))))
+        advanceUntilIdle()
+        workout.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(id)),
+            repo.history.cardioSetsFor(id), 2, emptyMap())
+        advanceUntilIdle()
+        val stored = requireNotNull(db.cardioSessionDao().byId(id)?.runResult())
+        assertNotNull(stored.block)
+        if (!autoApply) {
+            assertFalse(stored.replanned)
+            assertTrue(preview.uiState.value.cardio?.nextTime is CardioNextTime.Offer)
+            assertTrue(workout.uiState.value.cardio?.nextTime is CardioNextTime.Offer)
+            workout.finisher.acceptReplan()
+            advanceUntilIdle()
+        }
+        val replanned = requireNotNull(db.cardioSessionDao().byId(id)?.runResult())
+        assertTrue(replanned.replanned)
+        assertEquals(stored.copy(replanned = true), replanned)
+        assertNull(preview.uiState.value.cardio?.nextTime)
+        assertNull(workout.uiState.value.cardio?.nextTime)
+        assertEquals(replanned, workout.finisher.progressState.value.run)
+        assertTrue(workout.finisher.progressState.value.cardioNext is CardioNextTime.Offer)
+        assertEquals(ReceiptReplan(RunPhase.BASE, false), workout.finisher.progressState.value.replan)
+        val days = db.programDao().daysForPlan(plan)
+        val session = db.cardioSessionDao().byId(id)
+        assertFalse(repo.setRunOfferApplied(id, !replanned.held))
+        assertEquals(days, db.programDao().daysForPlan(plan))
+        assertEquals(session, db.cardioSessionDao().byId(id))
+    }
+
     @Test fun `Automatic Finish updates the prescribed watch label from working rows`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
             ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(185.0, 5))),

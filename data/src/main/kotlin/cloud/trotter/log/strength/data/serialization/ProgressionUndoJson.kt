@@ -65,10 +65,11 @@ internal object CardioUndoJson {
 
 /** One ruled run Finish's result; null without a readable record (rule-less, sprint, cleared). */
 data class RunResult(val change: CardioChange, val from: Int?, val hold: LadderHold?, val credit: Boolean,
-                     val held: Boolean, val block: CardioBlock?)
+                     val held: Boolean, val block: CardioBlock?, val replanned: Boolean = false)
 
 fun CardioSessionEntity.runResult(): RunResult? = runCatching {
-    val record = CardioUndoJson.decode(progressionUndoJson)?.result ?: return@runCatching null
+    val undo = CardioUndoJson.decode(progressionUndoJson) ?: return@runCatching null
+    val record = undo.result ?: return@runCatching null
     val block = CardioBlockJson.decode(record.block)
     if (record.block != null && block == null) return@runCatching null
     val change = when (record.change) {
@@ -84,5 +85,6 @@ fun CardioSessionEntity.runResult(): RunResult? = runCatching {
         "RESTART" -> CardioChange.Restart
         else -> return@runCatching null
     }
-    RunResult(change, record.from, record.hold?.let(LadderHold::valueOf), record.credit, record.held, block)
+    RunResult(change, record.from, record.hold?.let(LadderHold::valueOf), record.credit, record.held, block,
+        undo.plan?.replan != null)
 }.getOrNull()

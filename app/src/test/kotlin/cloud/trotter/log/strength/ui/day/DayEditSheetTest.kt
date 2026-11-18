@@ -51,7 +51,8 @@ class DayEditSheetTest {
     private lateinit var view: View
 
     private val keepLadder = "Keep this run as it is. Your other days keep moving, and a hard run here won't change the plan."
-    private val leaveLadder = "Choosing Progress moves this day up to your current level."
+    // PR 7b: the shared level can drop while this day is kept.
+    private val leaveLadder = "Choosing Progress moves this day to your current level."
     private fun ladderPage(keep: Boolean = true) = DayEditUiState(
         cardioBlock = RunWalkLadder.block(1, CardioActivity.ROAD_RUN), cardioLadder = true,
         cardioProgress = CardioProgress(keepToPlan = keep), cardioMeasures = setOf(ProgressMeasure.TIME))

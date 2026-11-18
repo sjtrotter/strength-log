@@ -284,11 +284,26 @@ class PlanScreenBuilderTest {
 
     @Test fun `a dated half shows Taper twelve days before the goal`() {
         val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, 7200, 20_012)
-        val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0, goalJson = PlanGoalJson.encode(goal))
-        assertTrue(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
-            todayEpochDay = 20_000).taper)
-        assertFalse(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
-            todayEpochDay = 19_990).taper)
+        // PR 7b: Taper requires an eligible run recipe, like the phase line.
+        for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) {
+            val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0, goalJson = PlanGoalJson.encode(goal),
+                recipeJson = SetupRecipeJson.encode(SetupAnswers(branch = branch)))
+            assertTrue(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+                todayEpochDay = 20_000).taper)
+            assertFalse(PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+                todayEpochDay = 19_990).taper)
+        }
+    }
+
+    @Test fun `a Lift recipe with a dated Timed goal hides phase and Taper`() {
+        val answers = SetupAnswers(branch = PlanBranch.LIFT)
+        val plan = PlanEntity(1, "Lift", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers),
+            goalJson = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 21_100, 7200, 20_012)))
+        val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+            todayEpochDay = 20_000)
+        assertNull(state.runPhase)
+        assertFalse(state.taper)
     }
 
     @Test fun `a 10K goal predicts from a recent 5K and an ultra does not`() {

@@ -49,7 +49,7 @@ object PlanScreenBuilder {
         val goal = PlanGoalJson.decode(plan?.goalJson)
         return PlanUiState(
             runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) },
-            taper = Taper.factor(goal, todayEpochDay) != null,
+            taper = run != null && Taper.factor(goal, todayEpochDay) != null,
             goal = goal?.let { goal ->
                 when (goal) {
                     is PlanGoal.Sprint -> null // Shown from PR 7, with its copy.

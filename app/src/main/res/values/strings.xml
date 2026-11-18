@@ -1232,7 +1232,7 @@
     <string name="next_time_ladder_done">Ladder done</string>
     <string name="receipt_run_level">level %1$d of %2$d</string>
     <string name="receipt_run_kind">%1$s, %2$s</string>
-    <string name="receipt_why_ladder_credit">Level %1$d: one Easy run counted. The next one moves up a level.</string>
+    <string name="receipt_why_ladder_credit">Level %1$d: one Easy run counted. Two counted Easy runs finish a level.</string>
     <string name="receipt_why_ladder_up">Level %1$d: two Easy runs counted.</string>
     <string name="receipt_why_ladder_down">Back to level %1$d.</string>
     <string name="receipt_why_ladder_done">Run/walk ladder done: 30 minutes running.</string>
@@ -1241,7 +1241,7 @@
     <string name="receipt_why_ladder_backdated">An Easy run dated before the last counted one doesn\'t count toward the next level.</string>
     <string name="receipt_why_run_step">%1$s %2$s %3$s: two sessions finished.</string>
     <string name="receipt_why_run_alternate">%1$s and %2$s take turns on this day.</string>
-    <string name="cardio_ladder_effort_note">Easy counts toward the next level. Two Easy runs finish a level; Good or no answer repeats it.</string>
+    <string name="cardio_ladder_effort_note">Easy counts toward the next level. Two Easy runs finish a level; Good or no answer repeats it; Hard drops a level.</string>
     <string name="receipt_replan_applied">%1$s from the next workout.</string>
     <string name="receipt_replan_own_plan">Run/walk ladder done. The full plan starts with the next workout.</string>
     <string name="receipt_replan_offer">Ready for %1$s.</string>
@@ -1251,7 +1251,7 @@
     <string name="receipt_replan_failed">The plan can\'t move up yet.</string>
     <string name="receipt_changes_undone_ladder_kept">Changes undone, except the ladder level: a ladder day changed since.</string>
     <string name="day_edit_keep_ladder">Keep this run as it is. Your other days keep moving, and a hard run here won\'t change the plan.</string>
-    <string name="day_edit_leave_keep_ladder">Choosing Progress moves this day up to your current level.</string>
+    <string name="day_edit_leave_keep_ladder">Choosing Progress moves this day to your current level.</string>
     <string name="plan_phase">Phase</string>
     <string name="plan_phase_ladder">Run/walk ladder</string>
     <string name="plan_phase_base">Base</string>

@@ -104,7 +104,8 @@ internal object ReceiptProgressBuilder {
         val run = entry?.runResult()
         val next = if (identity.cardioSessionId != null && day != null) {
             // Receipts retain applied changes and unchanged values when Ask offers are hidden.
-            DayScreenBuilder.cardioNextTime(day, plan.copy(offerCardioIncreases = true), cardio, sets)?.takeIf {
+            DayScreenBuilder.cardioNextTime(day, plan.copy(offerCardioIncreases = true), cardio, sets,
+                includeReplanned = true)?.takeIf {
                 run != null || it !is CardioNextTime.Offer || it.applied || NextTimeGate.cardio(plan)
             }
         } else null

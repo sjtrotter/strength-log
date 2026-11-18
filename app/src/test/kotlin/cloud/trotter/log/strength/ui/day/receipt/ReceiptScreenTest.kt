@@ -960,7 +960,8 @@ class ReceiptScreenTest {
         rule.onNodeWithText("Couldn't undo.").assertDoesNotExist()
     }
 
-    private val ladderNote = "Easy counts toward the next level. Two Easy runs finish a level; Good or no answer repeats it."
+    // PR 7b: the ladder note includes the Hard level drop.
+    private val ladderNote = "Easy counts toward the next level. Two Easy runs finish a level; Good or no answer repeats it; Hard drops a level."
     private val weekCap = "Up to three Easy runs a week count toward the next level."
     private fun runProgress(change: CardioChange = CardioChange.Repeat, from: Int? = 1, hold: LadderHold? = null,
                             credit: Boolean = false, held: Boolean = false, block: CardioBlock = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)) =
@@ -1006,7 +1007,8 @@ class ReceiptScreenTest {
             rule.onNodeWithText("Next time: $next").assertIsDisplayed()
             if (why != null) rule.onNodeWithText(why).assertIsDisplayed()
         }
-        expect(runProgress(credit = true), "level 1 of 12", "Level 1: one Easy run counted. The next one moves up a level.")
+        // PR 7b: counted runs finish a level without promising the next run moves up.
+        expect(runProgress(credit = true), "level 1 of 12", "Level 1: one Easy run counted. Two counted Easy runs finish a level.")
         expect(runProgress(hold = LadderHold.WEEK_CAP), "level 1 of 12", weekCap)
         expect(runProgress(hold = LadderHold.BUSY), "level 1 of 12", "A busy two weeks holds the next level for a week.")
         expect(runProgress(hold = LadderHold.BACKDATED), "level 1 of 12",

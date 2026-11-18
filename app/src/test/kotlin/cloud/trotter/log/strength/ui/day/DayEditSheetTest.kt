@@ -21,6 +21,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -45,6 +49,40 @@ class DayEditSheetTest {
 
     private lateinit var backDispatcher: OnBackPressedDispatcher
     private lateinit var view: View
+
+    private val keepLadder = "Keep this run as it is. Your other days keep moving, and a hard run here won't change the plan."
+    private val leaveLadder = "Choosing Progress moves this day up to your current level."
+    private fun ladderPage(keep: Boolean = true) = DayEditUiState(
+        cardioBlock = RunWalkLadder.block(1, CardioActivity.ROAD_RUN), cardioLadder = true,
+        cardioProgress = CardioProgress(keepToPlan = keep), cardioMeasures = setOf(ProgressMeasure.TIME))
+    private fun ladderActions(onKeep: (Boolean) -> Unit = {}) = DayEditActions(
+        onSwap = { _, _ -> }, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+        onRemoveSuperset = {}, onResetToTemplate = {}, onCardioKeepToPlanChange = onKeep)
+
+    @Test fun `ladder Keep copy follows Plan and hides Progress by`() {
+        val state = mutableStateOf(ladderPage())
+        composeTestRule.setContent { AppTheme {
+            CardioNextTimePage(state.value, ladderActions { state.value = state.value.copy(
+                cardioProgress = state.value.cardioProgress.copy(keepToPlan = it)) }, {})
+        } }
+        composeTestRule.onNodeWithText(keepLadder).assertIsDisplayed()
+        composeTestRule.onNodeWithText(leaveLadder).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Progress by").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Progress").performScrollTo().performClick()
+        composeTestRule.onNodeWithText(keepLadder).assertDoesNotExist()
+        composeTestRule.onNodeWithText(leaveLadder).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Progress by").assertDoesNotExist()
+        composeTestRule.runOnIdle { state.value = state.value.copy(cardioLadder = false) }
+        composeTestRule.onNodeWithText("Progress by").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontLadderKeepCopyStaysReadable() {
+        composeTestRule.setContent { AppTheme { CardioNextTimePage(ladderPage(), ladderActions(), {}) } }
+        composeTestRule.onNodeWithText(keepLadder).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(leaveLadder).performScrollTo().assertIsDisplayed()
+    }
 
     private val squatRamp = listOf(
         LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(165.0, 5, SetKind.RAMP),

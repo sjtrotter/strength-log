@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.data.serialization.runResult
 import cloud.trotter.log.strength.data.CardioJudge
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -206,14 +207,38 @@ object DayScreenBuilder {
         CardioJudge.opening(day, plan, sessions, sets, nowMillis,
             Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay())
 
-    /** The cardio chip: [CardioJudge]'s outcome for the day's newest session in [sessions], selected while the day
-     *  holds it, unselected while the day holds the session's opening. Automatic plans show changes; Ask plans follow their Offer switch. */
+    /** Ruled chips read the Finish's stored result: judging a credited ladder again would predict the next Finish.
+     *  Rule-less chips use history and the current block. Ask plans follow their Offer switch. */
     fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
                        sets: Map<Long, List<CardioSetResult>>): CardioNextTime? {
         if (!NextTimeGate.cardio(plan)) return null
         val stored = day.cardioToRun ?: return null
         val last = sessions.filter { it.planId == plan.id && it.dayId == day.id }
             .maxWithOrNull(compareBy({ it.completedAt }, { it.id })) ?: return null
+        if (day.cardioRule?.session?.sprint == true) return null
+        if (day.cardioRule != null) {
+            val result = last.runResult() ?: return null
+            if (result.change == CardioChange.Repeat) return CardioNextTime.Repeat
+            val offered = result.block ?: return null
+            val opening = sets[last.id]?.map { it.spec }?.takeIf { it.isNotEmpty() }
+                ?.let { CardioBlock(offered.activity, it) } ?: stored
+            val change = when (val change = result.change) {
+                is CardioChange.LevelTo -> CardioIncrease.Level(change.level)
+                CardioChange.LadderDone -> CardioIncrease.LadderDone
+                CardioChange.Step, is CardioChange.Alternate -> {
+                    val rounds = offered.sets.count { it.role == CardioRole.WORK } - opening.sets.count { it.role == CardioRole.WORK }
+                    if (change == CardioChange.Step && rounds > 0) CardioIncrease.Rounds(rounds)
+                    else {
+                        val end = offered.sets.firstOrNull { it.role == CardioRole.WORK }?.end ?: return null
+                        cardioIncrease(opening, offered, if (end is Measure.Distance) ProgressMeasure.DISTANCE else ProgressMeasure.TIME)
+                    }
+                }
+                is CardioChange.Increase -> cardioIncrease(opening, offered, change.measure)
+                CardioChange.Repeat, CardioChange.Restart -> return null
+            }
+            return CardioNextTime.Offer(offered, stored, !result.held, change, last.id,
+                (result.change as? CardioChange.Alternate)?.to)
+        }
         val judged = CardioJudge.judge(day, last, sessions, sets, plan.planSettings.runCap) ?: return null
         val opening = judged.opening
         val change = judged.outcome.change as? CardioChange.Increase

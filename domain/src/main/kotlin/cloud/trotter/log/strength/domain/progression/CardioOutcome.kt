@@ -20,5 +20,9 @@ sealed interface CardioChange {
     data object Restart : CardioChange
 }
 
-/** Next time's block and rule for a cardio day; the caller writes both together. */
-data class CardioOutcome(val block: CardioBlock, val rule: CardioRule?, val change: CardioChange)
+/** Why a finished Easy ladder session repeated without counting or moving (design revision 47, practice). */
+enum class LadderHold { BACKDATED, WEEK_CAP, BUSY }
+
+/** Next time's block and rule; the caller writes both together. [hold] names an Easy held by a ladder rule. */
+data class CardioOutcome(val block: CardioBlock, val rule: CardioRule?, val change: CardioChange,
+                         val hold: LadderHold? = null)

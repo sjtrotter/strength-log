@@ -318,6 +318,33 @@ class WorkoutSetScreenTest {
         rule.onNodeWithTag("cardio-next-time-offer").assertDoesNotExist()
     }
 
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontLadderChipRenders() {
+        val base = workoutSetCardioFixture()
+        val opening = cloud.trotter.log.strength.domain.progression.RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val offered = cloud.trotter.log.strength.domain.progression.RunWalkLadder.block(2, CardioActivity.ROAD_RUN)
+        show(base.copy(cardio = base.cardio!!.copy(block = opening,
+            nextTime = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Level(2), 1))))
+        rule.onNodeWithText("Level 2").assertIsDisplayed()
+        rule.onNodeWithTag("cardio-next-time-offer").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test fun `run chips name levels completion rounds and the alternate kind`() {
+        val block = requireNotNull(workoutSetCardioFixture().cardio?.block)
+        val offer = mutableStateOf(CardioNextTime.Offer(block, block, false, CardioIncrease.Level(2), 1))
+        rule.setContent { AppTheme { CardioNextTimeChip(offer.value, {}) } }
+        rule.onNodeWithText("Level 2").assertIsDisplayed()
+        rule.runOnIdle { offer.value = offer.value.copy(change = CardioIncrease.LadderDone) }
+        rule.onNodeWithText("Ladder done").assertIsDisplayed()
+        rule.runOnIdle { offer.value = offer.value.copy(change = CardioIncrease.Rounds(1)) }
+        rule.onNodeWithText("+1 round").assertIsDisplayed()
+        rule.runOnIdle { offer.value = offer.value.copy(change = CardioIncrease.Rounds(2)) }
+        rule.onNodeWithText("+2 rounds").assertIsDisplayed()
+        rule.runOnIdle { offer.value = offer.value.copy(kind = cloud.trotter.log.strength.domain.progression.RunSession.VO2MAX) }
+        rule.onNodeWithText("Intervals").assertIsDisplayed()
+    }
+
     @Test fun cardioOfferChipAppliesAndSelectedChipRestoresOpening() {
         val opening = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1200))))
         val offered = opening.copy(sets = listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1260))))

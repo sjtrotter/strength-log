@@ -2,6 +2,11 @@ package cloud.trotter.log.strength.ui.day.receipt
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.LadderHold
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -33,10 +38,14 @@ private fun cardioDelta(offer: CardioNextTime.Offer, unit: DistanceUnit, withUni
         else String.format(Locale.US, "%.2f", unit.fromMetres(change.metres))
     is CardioIncrease.Time -> "+" + ClockText.minutesSeconds(change.seconds)
     is CardioIncrease.Faster -> stringResource(R.string.next_time_faster, change.seconds)
+    is CardioIncrease.Level -> stringResource(R.string.next_time_level, change.level)
+    CardioIncrease.LadderDone -> stringResource(R.string.next_time_ladder_done)
+    is CardioIncrease.Rounds -> pluralStringResource(R.plurals.next_time_rounds, change.rounds, change.rounds)
 }
 
 @Composable
 internal fun cardioNextLine(state: ReceiptProgressState): String? {
+    state.run?.let { return stringResource(R.string.receipt_next_time, runNextValue(state)) }
     val block = state.cardioStored ?: return null
     val unit = distanceUnitFor(block.activity)
     val offer = state.cardioNext as? CardioNextTime.Offer
@@ -50,6 +59,7 @@ internal fun cardioNextLine(state: ReceiptProgressState): String? {
 
 @Composable
 internal fun cardioWhyLine(state: ReceiptProgressState, name: String): String? {
+    state.run?.let { return runWhyLine(state, name) }
     val offer = state.cardioNext as? CardioNextTime.Offer ?: return null
     val unit = distanceUnitFor(offer.offered.activity)
     return stringResource(if (state.cardioCapped) R.string.receipt_why_cardio_capped else R.string.receipt_why_cardio,
@@ -59,6 +69,7 @@ internal fun cardioWhyLine(state: ReceiptProgressState, name: String): String? {
 
 @Composable
 internal fun spokenCardioNextLine(state: ReceiptProgressState): String? {
+    state.run?.let { return stringResource(R.string.receipt_say_next_time_same, runNextValue(state)) }
     val block = state.cardioStored ?: return null
     val unit = distanceUnitFor(block.activity)
     val offer = state.cardioNext as? CardioNextTime.Offer
@@ -74,9 +85,60 @@ internal fun spokenCardioNextLine(state: ReceiptProgressState): String? {
     val delta = when (val change = offer.change) {
         is CardioIncrease.Distance -> spokenDistance(change.metres, unit)
         is CardioIncrease.Time -> spokenDuration(change.seconds)
+        is CardioIncrease.Level -> stringResource(R.string.next_time_level, change.level)
+        CardioIncrease.LadderDone -> stringResource(R.string.next_time_ladder_done)
+        is CardioIncrease.Rounds -> pluralStringResource(R.plurals.next_time_rounds, change.rounds, change.rounds)
         is CardioIncrease.Faster -> return stringResource(R.string.receipt_say_next_time_same,
             stringResource(R.string.next_time_faster, change.seconds))
     }
     return stringResource(if (offer.applied) R.string.receipt_say_next_time_up else R.string.receipt_say_next_time_offered_up,
         value, delta)
+}
+
+@Composable
+private fun runNextValue(state: ReceiptProgressState): String {
+    val result = state.run ?: return ""
+    val block = result.block ?: state.cardioStored ?: return ""
+    val level = (result.change as? CardioChange.LevelTo)?.level ?: result.from
+    val value = when {
+        result.change is CardioChange.Alternate -> stringResource(R.string.receipt_run_kind,
+            result.change.to.title, blockValue(block, distanceUnitFor(block.activity)))
+        state.runLadder && result.change != CardioChange.LadderDone && level != null ->
+            stringResource(R.string.receipt_run_level, level, RunWalkLadder.TOP)
+        else -> blockValue(block, distanceUnitFor(block.activity))
+    }
+    return if (result.held) stringResource(R.string.next_time_offered_plain, value) else value
+}
+
+@Composable
+private fun runWhyLine(state: ReceiptProgressState, name: String): String? {
+    val result = state.run ?: return null
+    if (result.credit) return stringResource(R.string.receipt_why_ladder_credit, result.from)
+    when (result.hold) {
+        LadderHold.WEEK_CAP -> return stringResource(R.string.receipt_why_ladder_week_cap)
+        LadderHold.BUSY -> return stringResource(R.string.receipt_why_ladder_busy)
+        LadderHold.BACKDATED -> return stringResource(R.string.receipt_why_ladder_backdated)
+        null -> Unit
+    }
+    return when (val change = result.change) {
+        is CardioChange.LevelTo -> if (change.level > (result.from ?: change.level))
+            stringResource(R.string.receipt_why_ladder_up, result.from)
+            else stringResource(R.string.receipt_why_ladder_down, change.level)
+        CardioChange.LadderDone -> stringResource(R.string.receipt_why_ladder_done)
+        CardioChange.Step -> {
+            val block = result.block ?: return null
+            stringResource(R.string.receipt_why_run_step, name, blockValue(block, distanceUnitFor(block.activity)),
+                stringResource(if (result.held) R.string.receipt_why_offered else R.string.receipt_why_next_time))
+        }
+        is CardioChange.Alternate -> stringResource(R.string.receipt_why_run_alternate,
+            if (change.to == RunSession.VO2MAX) RunSession.THRESHOLD.title else RunSession.VO2MAX.title, change.to.title)
+        is CardioChange.Increase -> {
+            val offer = state.cardioNext as? CardioNextTime.Offer ?: return null
+            val unit = distanceUnitFor(offer.offered.activity)
+            stringResource(if (change.capped) R.string.receipt_why_cardio_capped else R.string.receipt_why_cardio,
+                name, blockValue(offer.offered, unit), cardioDelta(offer, unit, false), 0,
+                stringResource(if (result.held) R.string.receipt_why_offered else R.string.receipt_why_next_time))
+        }
+        CardioChange.Repeat, CardioChange.Restart -> null
+    }
 }

@@ -428,7 +428,13 @@ internal fun CardioNextTimePage(state: DayEditUiState, actions: DayEditActions, 
                 )
             }
         }
-        if (!progress.keepToPlan && state.cardioMeasures.isNotEmpty() && measure != null) {
+        if (state.cardioLadder && progress.keepToPlan) {
+            Text(stringResource(R.string.day_edit_keep_ladder), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.day_edit_leave_keep_ladder), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (!state.cardioLadder && !progress.keepToPlan && state.cardioMeasures.isNotEmpty() && measure != null) {
             Text(stringResource(R.string.cardio_progress_by), style = MaterialTheme.typography.titleSmall)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 ProgressMeasure.entries.forEachIndexed { index, choice ->

@@ -6,6 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -13,12 +17,15 @@ import cloud.trotter.log.strength.ui.components.distanceUnitFor
 
 /** The size of an offered change, read from the first WORK set; the app formats it. */
 sealed interface CardioIncrease {
+    data class Level(val level: Int) : CardioIncrease
+    data object LadderDone : CardioIncrease
+    data class Rounds(val rounds: Int) : CardioIncrease
     data class Distance(val metres: Int) : CardioIncrease
     data class Time(val seconds: Int) : CardioIncrease
     data class Faster(val seconds: Int) : CardioIncrease
 }
 
-/** Next time for a cardio block: derived on every read, like strength's NextTime. */
+/** A ruled run Finish's stored result, or a rule-less cardio offer derived from history. */
 sealed interface CardioNextTime {
     data object Repeat : CardioNextTime
     data class Offer(
@@ -26,12 +33,17 @@ sealed interface CardioNextTime {
         val opening: CardioBlock,
         val applied: Boolean,
         val change: CardioIncrease,
+        val sessionId: Long? = null,
+        val kind: RunSession? = null,
     ) : CardioNextTime
 }
 
 @Composable
 internal fun CardioNextTimeChip(offer: CardioNextTime.Offer, onApply: (CardioBlock) -> Unit) {
-    val label = when (val change = offer.change) {
+    val label = offer.kind?.title ?: when (val change = offer.change) {
+        is CardioIncrease.Level -> stringResource(R.string.next_time_level, change.level)
+        CardioIncrease.LadderDone -> stringResource(R.string.next_time_ladder_done)
+        is CardioIncrease.Rounds -> pluralStringResource(R.plurals.next_time_rounds, change.rounds, change.rounds)
         is CardioIncrease.Distance -> "+" + distanceUnitFor(offer.offered.activity).format(change.metres)
         is CardioIncrease.Time -> "+" + ClockText.minutesSeconds(change.seconds)
         is CardioIncrease.Faster -> stringResource(R.string.next_time_faster, change.seconds)
@@ -40,6 +52,7 @@ internal fun CardioNextTimeChip(offer: CardioNextTime.Offer, onApply: (CardioBlo
         selected = offer.applied,
         onClick = { onApply(if (offer.applied) offer.opening else offer.offered) },
         label = { Text(label) },
-        modifier = Modifier.testTag("cardio-next-time-offer"),
+        modifier = Modifier.testTag("cardio-next-time-offer")
+            .then(if (offer.sessionId != null) Modifier.heightIn(min = 48.dp) else Modifier),
     )
 }

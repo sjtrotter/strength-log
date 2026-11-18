@@ -1771,6 +1771,8 @@ The existing planner returns a null phase when a Both layout supplies no run ses
 
 **1.1 Entry [P, owner decision; lead adjudication 2026-11-17].** A brand-new runner starts on the run/walk ladder. New and Some runners use one entry gate for every run goal on foot: 1,800 running seconds or 5,000 running meters. A family's finished log supplies the gate; without a log, the typed longest run supplies it. With neither, New enters the ladder and Some starts past it. “Always” is read with this gate: case 29's New marathoner with a typed 6,000 m longest still starts at BASE. Middle distance, Fitness test and Just cardio fitness now have a ladder-only path for runners on foot; after the ladder their own plan has no phase. Walk, ride, row and elliptical Just cardio answers have no ladder.
 
+The running-only LADDER gate also applies below a BASE floor. A run/walk log now stops at BASE where it previously reached HALF_BUILD; this is conservative.
+
 A Some runner with a 900-second running anchor on Just cardio fitness now starts at level 5: five 180-second runs with walks. Revision 42's continuous easy-growth worked example survives as a stationary rider's example, with its anchor in the RIDE family. Its 960-second opening, subsequent 1,008 through 1,800 seconds and 26 increases on the day without strength remain unchanged. A synthetic `known(null, 900)` fixture supplies no WORK running time or typed longest, so its on-foot ladder start is level 1; a typed 900-second longest starts at level 5.
 
 **1.2 Racing [P, practice; lead round 2].** Racing runners never start on the ladder, on any goal. The ladder's evidence concerns novices: Couch-to-5K and GRONORUN practice, Relph 2023 and Videbæk 2015, as recorded in [the ladder research](run-ladder-2026-11-17/research.md). “30 min continuous” is a 5K-readiness gate, not a measure of a middle-distance or test racer. A Racing runner on a phased goal starts at the first unmet gate from BASE; without an anchor that is BASE. A Racing runner on a goal without phases gets that goal's plan with no phase.
@@ -1798,6 +1800,7 @@ Undo leaves the re-plan intact while an open run belongs to a day it inserted. T
 | Existing expectation or fixture | Old → new | Reason |
 |---|---|---|
 | SetupRecipeJsonTest run recipes carry their phase | Missing phase throws and fails validation → encodes, validates and decodes, `phase` null; invalid payload count 4 → 3 | A null phase stores nothing to re-plan; off-path phases still reject |
+| PlannerBothTest lift-first one-day Separate draft | Goal null → untimed run goal | A one-day lift-only layout retains the run goal on the plan |
 | PlannerRunTest half at four sixty minute days | Goal null → `Timed(ROAD_RUN, 21097, null, null)` | Just finish keeps its event and date |
 | PlannerRunTest readiness selects the first unmet single run gate | New/no-anchor unphased fixtures with null → Some/no-anchor fixtures with null; New covered separately at LADDER | One entry gate; no-anchor Some still starts past it |
 | PlannerRunTest short middle-distance anchors | New → Racing fixtures; 960 and the two positive capped easy runs stay | 1,200 × 1.1 = 1,320; floor(0.75 × 1,320 / 60) × 60 = 960. At a 60-second anchor cap = 66 and easy floor = 60 |
@@ -1817,6 +1820,52 @@ This supersedes revision 28's “Middle distance, tests and Just cardio have no 
 
 Production: domain model `PlanGoal.kt`; planner `RunAnswers.kt`, `RunPhase.kt`, `RunLayout.kt`, `BothLayout.kt`, `Planner.kt`, `RunReplan.kt`; progression `SlotSeeding.kt`, `RunCap.kt`, `CardioHistory.kt`, `GoalPace.kt`; records `GoalProgress.kt`; data new `CardioLog.kt`, `PlanRepository.kt`, `TrackerRepository.kt`, serialization `PlanGoalJson.kt`, `SetupRecipeJson.kt`; app `ui/plan/PlanCardioGoal.kt`, `PlanGoalDraft.kt`, `ui/day/DayEditLogic.kt`, `DayEditor.kt`.
 
-Tests: domain new `planner/PlannerEntryLadderTest.kt`, planner `PlannerRunTest.kt`, `PlannerRunProgressTest.kt`, `PlannerRunInvariantsTest.kt`, `RunPhaseTest.kt`, `RunReplanTest.kt`, progression `CardioHistoryOfTest.kt`, `TaperTest.kt`, records `GoalProgressTest.kt`; data `SetupRecipeJsonTest.kt`, `PlannedPlanTest.kt`, `RunReplanFinishTest.kt`, `RunFinishTest.kt`, `PlanGoalJsonTest.kt`, `PlanGoalSprintJsonTest.kt`; app `ui/plan/PlanCardioGoalScreenTest.kt`, `ui/day/DayEditLogicTest.kt`. Docs: this revision.
+Tests: domain new `planner/PlannerEntryLadderTest.kt`, planner `PlannerBothTest.kt`, `PlannerRunTest.kt`, `PlannerRunProgressTest.kt`, `PlannerRunInvariantsTest.kt`, `RunPhaseTest.kt`, `RunReplanTest.kt`, progression `CardioHistoryOfTest.kt`, `TaperTest.kt`, records `GoalProgressTest.kt`; data `SetupRecipeJsonTest.kt`, `PlannedPlanTest.kt`, `RunReplanFinishTest.kt`, `RunFinishTest.kt`, `PlanGoalJsonTest.kt`, `PlanGoalSprintJsonTest.kt`; app `ui/plan/PlanCardioGoalScreenTest.kt`, `ui/day/DayEditLogicTest.kt`. Docs: this revision.
 
-No network, compilation, Gradle, builds, tests or subagents were used. CI verification of domain, data, transfer and app unit tests and the build remains pending.
+No network, compilation, Gradle, builds, tests or subagents were used.
+
+## 59. Revision 50 (PR 7b, run results, Keep copy and Ask offers, 2026-11-17)
+
+### Finish results and offers
+
+A ruled run Finish stores its judged result inside the existing cardio undo JSON. The chip and receipt use the public `runResult()` decoder. They do not re-judge the current rule: after a first Easy has written credit, re-judging would describe the next Easy's level-up instead of the Finish that earned the credit. Older records default to no result; unreadable records return null. Rule-less and sprint record bytes stay unchanged. The two ruled judgment branches share one private Room-only `cardioPlan` builder; sprint inputs and behavior stay the same.
+
+Ladder Easy repeats name BACKDATED, WEEK_CAP or BUSY only when those rules held them. Credit-earning repeats, Good, no answer and unfinished sessions carry no hold. The receipt explains earned credit, level-up, drop, completion and each hold in its Why sheet. Its next-time line names the level, Alternate kind or resulting block, with held changes marked offered. Sprint receipts and chips remain empty.
+
+Run change offers live on Today's and the preview's next-time chips. Accept and decline replay the recorded pre-write days through the same guard and Undo as an effort edit. The explicit choice persists in the result and overrides the plan mode during later effort or distance edits. Ask's ordinary write policy remains Repeat credit and a held drop's credit clear. Accepted ladder changes update every ladder rule while kept days retain their block.
+
+At a wrap, Automatic still computes and merges the next phase in Finish. Ask records a plan-level offer and advances the cursor without merging. The receipt shows the offered phase (or the goal's own plan after a ladder-only path) and one accept button. Acceptance computes again from the log as of that Finish, refuses while a run on that plan is open or the guard waits, and stores the merge in that Finish's Undo. A missed offer is checked again at the next wrap. Applied re-plans also appear on the receipt.
+
+Undo reports `UndoneLadderKept` when changed ladder days prevent the shared ladder restore; other Finish restoration proceeds. The existing single Undo button remains the workout's reversal action.
+
+### Keep and Plan copy
+
+The ladder Next time page shows both prescribed Keep and leaving-Keep lines under Plan. Progress hides both; ladder days hide Progress by because its measure does not govern the ladder. The receipt shows the prescribed effort note under How was it on ladder days. Exact resource copy is in `strings.xml`, including the weekly-cap explanation.
+
+The Plan screen shows the stored Run or non-sprint Both phase, with Taper taking precedence in its date band. A timed goal through marathon distance with a recent race shows the existing Riegel goal-check prediction, recent distance and recent time in minutes:seconds. Case 20 remains 3,127 seconds from a 1,500-second 5K to 10K. Ultra goals show no prediction.
+
+### Changed expectations
+
+| File and existing test | Old → new | Reason |
+|---|---|---|
+| ProgressionLadderTest `the cap counts three Easy finishes in seven days` | Fourth Easy outcome hold null → WEEK_CAP | Names the hold; block, rule and change unchanged |
+| ProgressionLadderTest `a full cap keeps the credit` | Outcome hold null → WEEK_CAP | Names the hold only |
+| ProgressionLadderTest `the cap window is local days` | Full-window outcome hold null → WEEK_CAP | Names the hold only |
+| ProgressionLadderTest `the guard holds a second level-up within a week for a busy runner` | Outcome hold null → BUSY | Names the hold only |
+| ProgressionLadderTest `the guard holds LadderDone` | Outcome hold null → BUSY | Names the hold only |
+| ProgressionLadderTest `a backdated Easy is a Repeat` | Outcome hold null → BACKDATED | Names the hold only |
+| RunFinishTest `a changed ladder sibling prevents replay and survives Undo` | Undone → UndoneLadderKept | Shared ladder afters no longer match |
+| RunFinishTest `a partial ladder Undo restores nothing on the ladder` | Undone → UndoneLadderKept | Changed sibling prevents shared restore |
+| RunReplanFinishTest `undo keeps a re-plan while a run is open on a day it inserted` | Undone → UndoneLadderKept | Open inserted day keeps the re-plan, so the recorded ladder afters cannot match |
+
+Every changed expectation above carries its `// PR 7b:` comment. PlannerBothTest's existing one-day Separate comment gains the missing `// PR 7a:` prefix; its expectation does not change here. No existing encoded-byte assertion changes: the older rule-less undo byte assertion remains exact. New coverage pins the new result bytes. No §11.2 numbers change.
+
+### Supersession and files
+
+This supersedes revision 46's Ask hold “until PR 7 supplies the offer” and unchanged receipt for ruled runs; revision 47's held LadderDone “until PR 7's offer”; and revision 48 §1.2's Ask phase hold until that offer and §1.5's “No receipt line”. The result, offer and copy additions do not change progression, readiness, weekly guards, Automatic re-planning or sprint rules.
+
+Production: domain progression `CardioOutcome.kt`, `Progression.kt`; data `TrackerRepository.kt`, `FinishUndoState.kt`, serialization `ProgressionUndoJson.kt`; app day `DayScreenBuilder.kt`, `CardioNextTimeChip.kt`, `DayViewModel.kt`, `SessionReceiptScreen.kt`, `SessionFinisher.kt`, `DayScreen.kt`, `DayEditSheet.kt`, `DayEditor.kt`, `DayEditModels.kt`, receipt `ReceiptProgress.kt`, `ReceiptCardioLines.kt`; preview `PreviewViewModel.kt`; plan `PlanScreenBuilder.kt`, `PlanModels.kt`, `PlanScreen.kt`, `PlanCardioGoal.kt`, `PlanViewModel.kt`; `AppNavHost.kt`, `res/values/strings.xml`.
+
+Tests: domain `ProgressionLadderTest.kt` and the revision 49 comment correction in `PlannerBothTest.kt`; data `RunFinishTest.kt`, `RunReplanFinishTest.kt`; app `DayScreenBuilderTest.kt`, `DayViewModelCardioExecutionTest.kt`, `ReceiptScreenTest.kt`, `PlanScreenBuilderTest.kt`, `DayEditSheetTest.kt`, `PlanScreenTest.kt`, `WorkoutSetScreenTest.kt`. Large-font fixtures cover the receipt, Why sheet, Keep page, Plan phase and prediction, and ladder chip, including the new button and chip's 48 dp target.
+
+No network, compilation, Gradle, builds, tests or subagents were used. CI and the ladder receipt and set-screen render artifacts must be checked before merging. Room, backup schema 30, DataStore, SavedStateHandle, Parcelables, setup recipe bytes, cardio rule bytes and watch wire stay unchanged.

@@ -90,6 +90,7 @@ internal class DayEditor(
             buildEditState(slots, ctx.catalog, planSettings.equipmentOrAll, rows, plan, unit, rest).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
+                cardioLadder = day?.cardioRule?.ladderLevel != null,
                 cardioProgress = day?.cardioProgress ?: CardioProgress(),
                 cardioMeasures = block?.let(CardioMeasures::available).orEmpty(),
                 performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },

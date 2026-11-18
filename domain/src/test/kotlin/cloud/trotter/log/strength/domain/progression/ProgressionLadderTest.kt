@@ -16,6 +16,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
+import kotlin.test.assertNull
 
 class ProgressionLadderTest {
     private fun time(seconds: Int, role: CardioRole = CardioRole.WORK) = CardioSetSpec(role, Measure.Time(seconds))
@@ -201,26 +202,30 @@ class ProgressionLadderTest {
         val third = dated(assertNotNull(second.rule), d + 2)
         val credited = CardioRule(2, credits = 1, ladderCounted = listOf(d, d + 1, d + 2), ladderRaised = d + 1)
         assertEquals(CardioOutcome(ladder(2), credited, CardioChange.Repeat), third)
-        assertEquals(CardioOutcome(ladder(2), credited, CardioChange.Repeat), dated(credited, d + 3))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(2), credited, CardioChange.Repeat, hold = LadderHold.WEEK_CAP), dated(credited, d + 3))
         assertEquals(CardioOutcome(ladder(3), CardioRule(3, ladderCounted = listOf(d + 1, d + 2, d + 7), ladderRaised = d + 7),
             CardioChange.LevelTo(3)), dated(credited, d + 7))
     }
 
     @Test fun `a full cap keeps the credit`() {
         val rule = CardioRule(4, credits = 1, ladderCounted = listOf(d - 2, d - 1, d), ladderRaised = d - 1)
-        assertEquals(CardioOutcome(ladder(4), rule, CardioChange.Repeat), dated(rule))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(4), rule, CardioChange.Repeat, hold = LadderHold.WEEK_CAP), dated(rule))
     }
 
     @Test fun `the cap window is local days`() {
         val rule = CardioRule(3, ladderCounted = listOf(d - 7, d - 6, d - 5))
         assertEquals(CardioRule(3, credits = 1, ladderCounted = listOf(d - 6, d - 5, d)), dated(rule).rule)
         val full = CardioRule(3, ladderCounted = listOf(d - 6, d - 5, d - 4))
-        assertEquals(CardioOutcome(ladder(3), full, CardioChange.Repeat), dated(full))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(3), full, CardioChange.Repeat, hold = LadderHold.WEEK_CAP), dated(full))
     }
 
     @Test fun `the guard holds a second level-up within a week for a busy runner`() {
         val rule = CardioRule(5, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
-        assertEquals(CardioOutcome(ladder(5), rule, CardioChange.Repeat), dated(rule, busy = true))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(5), rule, CardioChange.Repeat, hold = LadderHold.BUSY), dated(rule, busy = true))
         assertEquals(CardioOutcome(ladder(6), CardioRule(6, ladderCounted = listOf(d - 3, d), ladderRaised = d),
             CardioChange.LevelTo(6)), dated(rule))
         val weekAgo = rule.copy(ladderCounted = listOf(d - 7), ladderRaised = d - 7)
@@ -230,7 +235,8 @@ class ProgressionLadderTest {
 
     @Test fun `the guard holds LadderDone`() {
         val rule = CardioRule(12, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
-        assertEquals(CardioOutcome(ladder(12), rule, CardioChange.Repeat), dated(rule, busy = true))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(12), rule, CardioChange.Repeat, hold = LadderHold.BUSY), dated(rule, busy = true))
         assertEquals(CardioOutcome(ladder(12), CardioRule(null), CardioChange.LadderDone), dated(rule, d + 4, busy = true))
     }
 
@@ -241,7 +247,8 @@ class ProgressionLadderTest {
 
     @Test fun `a backdated Easy is a Repeat`() {
         val rule = CardioRule(2, credits = 1, ladderCounted = listOf(10, 11, 12), ladderRaised = 11)
-        assertEquals(CardioOutcome(ladder(2), rule, CardioChange.Repeat), dated(rule, 9))
+        // PR 7b: the hold now names its reason
+        assertEquals(CardioOutcome(ladder(2), rule, CardioChange.Repeat, hold = LadderHold.BACKDATED), dated(rule, 9))
         assertEquals(CardioOutcome(ladder(1), CardioRule(1, ladderCounted = listOf(10, 11, 12), ladderRaised = 11),
             CardioChange.LevelTo(1)), dated(rule, 9, effort = CardioEffort.HARD))
     }
@@ -275,5 +282,14 @@ class ProgressionLadderTest {
         assertFalse(RunWalkLadder.busy(listOf(d - 11, d - 9, d - 7, d - 4, d - 2, d), d))
         assertFalse(RunWalkLadder.busy(listOf(d - 12, d - 9, d - 6, d - 3, d), d))
         assertTrue(RunWalkLadder.busy(listOf(d - 6, d - 4, d - 2, d), d))
+    }
+
+    @Test fun `a held ladder Easy names why it did not count`() {
+        assertEquals(LadderHold.BACKDATED, dated(CardioRule(2, ladderCounted = listOf(d + 1))).hold)
+        assertEquals(LadderHold.WEEK_CAP, dated(CardioRule(2, ladderCounted = listOf(d - 2, d - 1, d))).hold)
+        assertEquals(LadderHold.BUSY, dated(CardioRule(2, credits = 1, ladderRaised = d - 1), busy = true).hold)
+        assertNull(dated(CardioRule(2)).hold)
+        assertNull(finish(2, effort = CardioEffort.GOOD).hold)
+        assertNull(finish(2, results = emptyList()).hold)
     }
 }

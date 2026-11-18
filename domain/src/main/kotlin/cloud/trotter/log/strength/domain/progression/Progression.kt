@@ -304,12 +304,12 @@ object Progression {
                 }
                 !finished || effort != CardioEffort.EASY -> repeat()
                 l != null && l.todayEpochDay < maxOf(rule.ladderCounted.lastOrNull() ?: Long.MIN_VALUE,
-                    rule.ladderRaised ?: Long.MIN_VALUE) -> repeat()
+                    rule.ladderRaised ?: Long.MIN_VALUE) -> repeat().copy(hold = LadderHold.BACKDATED)
                 l != null && rule.ladderCounted.count { it in l.todayEpochDay - 6..l.todayEpochDay } >=
-                    RunWalkLadder.COUNTED_PER_WEEK -> repeat()
+                    RunWalkLadder.COUNTED_PER_WEEK -> repeat().copy(hold = LadderHold.WEEK_CAP)
                 rule.credits == 0 -> CardioOutcome(block, rule.copy(credits = 1, ladderCounted = counted()), CardioChange.Repeat)
                 l != null && rule.ladderRaised != null && l.todayEpochDay - rule.ladderRaised < RunWalkLadder.LEVEL_UP_DAYS &&
-                    l.busy -> repeat()
+                    l.busy -> repeat().copy(hold = LadderHold.BUSY)
                 level == RunWalkLadder.TOP -> CardioOutcome(block, CardioRule(null), CardioChange.LadderDone)
                 else -> CardioOutcome(RunWalkLadder.block(level + 1, block.activity),
                     rule.copy(ladderLevel = level + 1, credits = 0, ladderCounted = counted(), ladderRaised = l?.todayEpochDay),

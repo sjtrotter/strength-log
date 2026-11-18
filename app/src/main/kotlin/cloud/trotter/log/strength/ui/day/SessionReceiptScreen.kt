@@ -33,6 +33,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedButton
+import cloud.trotter.log.strength.ui.plan.runPhaseLabel
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -107,6 +109,7 @@ internal fun SessionReceiptScreen(
     onUndo: () -> Unit = {},
     onRoughDay: (Boolean) -> Unit = {},
     onCardioEffort: (CardioEffort?) -> Unit = {},
+    onAcceptReplan: () -> Unit = {},
 ) {
     val counts = setCounts?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }
     val resources = LocalContext.current.resources
@@ -115,6 +118,8 @@ internal fun SessionReceiptScreen(
     LaunchedEffect(mutation) {
         if (mutation != null) {
             snackbar.showSnackbar(when (mutation) {
+                ReceiptMutation.UndoneLadderKept -> resources.getString(R.string.receipt_changes_undone_ladder_kept)
+                ReceiptMutation.ReplanFailed -> resources.getString(R.string.receipt_replan_failed)
                 ReceiptMutation.Undone -> resources.getString(R.string.receipt_changes_undone)
                 is ReceiptMutation.DayOpen -> resources.getString(R.string.receipt_undo_day_open, mutation.dayId)
                 ReceiptMutation.Failed -> resources.getString(R.string.receipt_undo_failed)
@@ -208,10 +213,26 @@ internal fun SessionReceiptScreen(
             Box(Modifier.padding(horizontal = 16.dp)) {
                 CardioEffortRow(progress.cardioEffort, onCardioEffort, "receipt-cardio-effort")
             }
+            if (progress.runLadder) Text(stringResource(R.string.cardio_ladder_effort_note),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp))
             val spokenNext = spokenCardioNextLine(progress).orEmpty()
             cardioNextLine(progress)?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp).clearAndSetSemantics { contentDescription = spokenNext }) }
+        }
+        progress.replan?.let { replan ->
+            val phase = replan.phase?.let { stringResource(runPhaseLabel(it)) }
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(if (phase == null) stringResource(if (replan.offered) R.string.receipt_replan_offer_own
+                        else R.string.receipt_replan_own_plan)
+                    else stringResource(if (replan.offered) R.string.receipt_replan_offer else R.string.receipt_replan_applied, phase),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (replan.offered) OutlinedButton(onClick = onAcceptReplan, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (phase == null) stringResource(R.string.receipt_replan_start_own)
+                        else stringResource(R.string.receipt_replan_move, phase))
+                }
+            }
         }
         if (progress.lightWeekNext) Text(stringResource(R.string.receipt_light_week_next),
             style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))

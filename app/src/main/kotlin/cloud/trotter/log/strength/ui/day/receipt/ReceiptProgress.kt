@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
+import cloud.trotter.log.strength.data.serialization.RunResult
+import cloud.trotter.log.strength.data.serialization.runResult
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.ui.day.NextTimeGate
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.progression.CardioChange
@@ -32,6 +36,8 @@ data class ReceiptSlotRef(val groupIndex: Int, val rowIndex: Int, val programExe
 data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val line: ReceiptLiftLine,
                                val whyLine: ReceiptLiftLine?)
 
+data class ReceiptReplan(val phase: RunPhase?, val offered: Boolean)
+
 data class ReceiptProgressState(
     val lifts: List<ReceiptLiftProgress> = emptyList(),
     val undoVisible: Boolean = false,
@@ -47,11 +53,17 @@ data class ReceiptProgressState(
     val cardioStored: CardioBlock? = null,
     val cardioCapped: Boolean = false,
     val cardioSets: List<List<CardioSetResult>> = emptyList(),
+    val run: RunResult? = null,
+    val runLadder: Boolean = false,
+    val replan: ReceiptReplan? = null,
 ) {
-    val whyVisible: Boolean get() = lifts.isNotEmpty() || lightRemaining > 0 || lightEnded || cardioNext is CardioNextTime.Offer
+    val whyVisible: Boolean get() = lifts.isNotEmpty() || lightRemaining > 0 || lightEnded || cardioNext is CardioNextTime.Offer ||
+        run?.let { it.credit || it.hold != null || it.change != CardioChange.Repeat } == true
 }
 
 sealed interface ReceiptMutation {
+    data object UndoneLadderKept : ReceiptMutation
+    data object ReplanFailed : ReceiptMutation
     data object Undone : ReceiptMutation
     data class DayOpen(val dayId: String) : ReceiptMutation
     data object Failed : ReceiptMutation
@@ -89,13 +101,15 @@ internal object ReceiptProgressBuilder {
             ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
         }
         val day = program.days.firstOrNull { it.id == identity.dayId }
+        val run = entry?.runResult()
         val next = if (identity.cardioSessionId != null && day != null) {
             // Receipts retain applied changes and unchanged values when Ask offers are hidden.
             DayScreenBuilder.cardioNextTime(day, plan.copy(offerCardioIncreases = true), cardio, sets)?.takeIf {
-                it !is CardioNextTime.Offer || it.applied || NextTimeGate.cardio(plan)
+                run != null || it !is CardioNextTime.Offer || it.applied || NextTimeGate.cardio(plan)
             }
         } else null
-        val capped = if (entry != null && day != null && identity.cardioSessionId != null) {
+        val capped = if (run != null) (run.change as? CardioChange.Increase)?.capped == true
+        else if (entry != null && day != null && day.cardioRule == null && identity.cardioSessionId != null) {
             (CardioJudge.judge(day, entry, cardio, sets, plan.planSettings.runCap)?.outcome?.change
                 as? CardioChange.Increase)?.capped == true
         } else false
@@ -105,7 +119,9 @@ internal object ReceiptProgressBuilder {
         return ReceiptProgressState(lifts, undo.restorable && !undo.rough, undo.rough, undo.hasStrengthRecord,
             lightNext, plan.lightCycleRemaining, counter?.beforeRemaining?.let { it > 0 && counter.afterRemaining == 0 } == true,
             undo.roughLight != null, entry?.id, CardioEffort.entries.firstOrNull { it.name == entry?.effort },
-            next, day?.cardioToRun.takeIf { identity.cardioSessionId != null }, capped,
-            cardioSets)
+            next, day?.cardioToRun.takeIf { identity.cardioSessionId != null && (day?.cardioRule == null || run != null) }, capped,
+            cardioSets, run, day?.cardioRule?.ladderLevel != null || run?.from != null,
+            counter?.replan?.let { ReceiptReplan(SetupRecipeJson.phase(it.recipeAfter), offered = false) }
+                ?: counter?.replanOffer?.let { ReceiptReplan(it.phase?.let(RunPhase::valueOf), offered = true) })
     }
 }

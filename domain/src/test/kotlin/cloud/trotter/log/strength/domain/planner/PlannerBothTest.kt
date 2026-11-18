@@ -193,7 +193,7 @@ class PlannerBothTest {
         assertEquals(lift.program.days.single(), draft.program.days.single().copy(cardioBlock = null, cardioRule = null))
         assertEquals(block(1200), draft.program.days.single().cardioBlock)
         assertEquals(mapOf("A" to RunSession.EASY), draft.sessions)
-        // One separate day lifts only; the run goal stays on the plan, as a timed goal always has (7a: untimed too).
+        // PR 7a: one separate day lifts only; the run goal stays on the plan, including an untimed goal.
         val separate = plan(answers.copy(both = BothAnswers(together = BothAnswers.Together.SEPARATE_DAYS)))
         assertEquals(plan(answers.copy(branch = PlanBranch.LIFT)), separate.copy(goal = null))
         assertEquals(draft.goal, separate.goal)

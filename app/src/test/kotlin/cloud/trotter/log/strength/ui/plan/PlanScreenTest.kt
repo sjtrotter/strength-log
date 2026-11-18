@@ -5,6 +5,10 @@ import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.CompositionLocalProvider
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
+import cloud.trotter.log.strength.domain.units.DistanceUnit
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -32,6 +36,9 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.planner.RecentRace
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -78,6 +85,22 @@ class PlanScreenTest {
             assertEquals(true, cardio)
         }
     }
+    @Test
+    @Config(fontScale = 2f)
+    fun largeFontPhaseAndPredictionLinesRender() {
+        val state = planScreenFixture().copy(runPhase = RunPhase.LADDER,
+            goal = PlanGoalUi(PlanGoal.Timed(CardioActivity.ROAD_RUN, 10_000, 3300), null, false,
+                3127, RecentRace(5000, 1500)))
+        rule.setContent { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) { AppTheme { PlanScreen(state, actions()) } } }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Phase"))
+        rule.onNodeWithText("Phase").assertIsDisplayed()
+        list.performScrollToNode(hasText("Run/walk ladder"))
+        rule.onNodeWithText("Run/walk ladder").assertIsDisplayed()
+        list.performScrollToNode(hasText("Predicted 52:07 from 5 km in 25:00"))
+        rule.onNodeWithText("Predicted 52:07 from 5 km in 25:00").assertIsDisplayed()
+    }
+
     @get:Rule val rule = createComposeRule()
     private var previousWindowSize: String? = null
 

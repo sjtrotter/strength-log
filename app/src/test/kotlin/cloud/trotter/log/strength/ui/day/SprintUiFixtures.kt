@@ -85,7 +85,9 @@ internal fun sprintFortyYardReceiptFixture(): Pair<cloud.trotter.log.strength.ui
     val results = listOf(CardioSetResult(work, CardioSetStatus.FINISHED, 5))
     val receipt = sprintReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(block.activity, results, emptyMap()))
     val progress = sprintReceiptProgressFixture().let { state ->
-        state.copy(cardioStored = block, cardioSets = listOf(results), run = requireNotNull(state.run).copy(block = block))
+        // Next time adds a rep, so the receipt shows its Next time line.
+        state.copy(cardioStored = block, cardioSets = listOf(results),
+            run = requireNotNull(state.run).copy(block = block.copy(sets = listOf(work, work))))
     }
     return receipt to progress
 }

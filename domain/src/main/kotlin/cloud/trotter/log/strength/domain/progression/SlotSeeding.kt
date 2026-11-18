@@ -22,6 +22,8 @@ data class KnownLoads(
     val longestRecent: Map<CardioFamily, RecentMaxima> = emptyMap(),
     /** Per family, [CardioHistory.longestWeek]; the half build's week gate reads it. */
     val longestWeek: Map<CardioFamily, RecentMaxima> = emptyMap(),
+    /** Per family, [CardioHistory.longestRunning]; the ladder's start reads it (design revision 47). */
+    val longestRunning: Map<CardioFamily, Int> = emptyMap(),
 ) {
     companion object { val NONE = KnownLoads(emptyMap()) }
 }

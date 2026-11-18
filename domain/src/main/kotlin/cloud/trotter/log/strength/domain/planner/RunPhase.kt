@@ -5,8 +5,9 @@ import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.RecentMaxima
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 
-/** The readiness phases (design §3.1.2), in order. [minWeeks] feeds DATE_TOO_CLOSE (Q4). Stored nowhere. */
-enum class RunPhase(val minWeeks: Int) { LADDER(8), BASE(6), HALF_BUILD(8), MARATHON_BUILD(8), ULTRA_BUILD(8) }
+/** The readiness phases (design §3.1.2), in order. [minWeeks] feeds DATE_TOO_CLOSE (Q4); the ladder's length is
+ *  derived from the plan ([ladderWeeks]). */
+enum class RunPhase(val minWeeks: Int?) { LADDER(null), BASE(6), HALF_BUILD(8), MARATHON_BUILD(8), ULTRA_BUILD(8) }
 
 /** §3.1.2 gates: "30 min continuous" (or 5,000 m, Q4), "10 km or 60 min", "21 km or 2 h, or a 30 km or 3 h week",
  *  and "30 km or 3 h, or a logged marathon". */
@@ -31,11 +32,23 @@ internal fun runAnchor(run: RunAnswers, known: KnownLoads): RecentMaxima? =
 
 internal fun runWeek(run: RunAnswers, known: KnownLoads): RecentMaxima? = known.longestWeek[CardioFamily.of(run.activity)]
 
-internal fun weeksNeeded(goal: RunGoal, start: RunPhase): Int =
-    goal.phases.filter { it >= start && it <= requireNotNull(goal.eventPhase) }.sumOf { it.minWeeks }
+/** Weeks to finish the ladder from [level] at [ladderSessions] a rotation: an all-Easy estimate at one rotation a
+ *  week; ratings, the cap, the guard and drops only lengthen it. Null when the plan runs no ladder session. */
+internal fun ladderWeeks(level: Int, ladderSessions: Int): Int? = if (ladderSessions == 0) null
+    else (RunWalkLadder.EASY_PER_LEVEL * (RunWalkLadder.TOP - level + 1) + ladderSessions - 1) / ladderSessions
 
-internal fun ladderStart(anchor: RecentMaxima?, injury: Boolean): Int {
-    val seconds = anchor?.seconds ?: 0
-    val level = (RunWalkLadder.LEVELS.indexOfLast { it.runSeconds <= seconds } + 1).coerceAtLeast(1)
+/** Null when the counted phases include LADDER and [ladderWeeks] is null. */
+internal fun weeksNeeded(goal: RunGoal, start: RunPhase, ladderWeeks: Int?): Int? {
+    val phases = goal.phases.filter { it >= start && it <= requireNotNull(goal.eventPhase) }
+    if (RunPhase.LADDER in phases && ladderWeeks == null) return null
+    return phases.sumOf { if (it == RunPhase.LADDER) requireNotNull(ladderWeeks) else requireNotNull(it.minWeeks) }
+}
+
+internal fun runningSeconds(run: RunAnswers, known: KnownLoads): Int? =
+    known.longestRunning[CardioFamily.of(run.activity)] ?: run.seed()?.seconds
+
+internal fun ladderStart(runningSeconds: Int?, injury: Boolean): Int {
+    val seconds = runningSeconds ?: 0
+    val level = (RunWalkLadder.LEVELS.indexOfLast { it.runningSeconds <= seconds } + 1).coerceAtLeast(1)
     return (level - if (injury) 1 else 0).coerceAtLeast(1)
 }

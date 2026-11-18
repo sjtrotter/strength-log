@@ -99,7 +99,7 @@ internal fun runDraft(
     val phase = startPhase(run, anchor, runWeek(run, known))
     val entries = runEntries(answers, phase, todayEpochDay)
     val lone = entries.none { it.session == RunSession.VO2MAX }
-    val level = ladderStart(anchor, run.runningInjury)
+    val level = ladderStart(runningSeconds(run, known), run.runningInjury)
     val pace = run.recent?.let { it.seconds.toDouble() / it.metres }
     fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level)
     val long = entries.firstOrNull { it.session == RunSession.LONG }?.let {
@@ -141,7 +141,7 @@ internal fun runDraft(
         day
     }
     val (days, working) = seedAll(fitted, blockAnswers, known)
-    reasons += runReasons(run, phase, todayEpochDay)
+    reasons += runReasons(run, phase, todayEpochDay, ladderWeeks(level, sessions.values.count { it == RunSession.LADDER }))
     return PlanDraft(Program(days), working, if (answers.experience == LiftExperience.A_YEAR_OR_MORE) 6 else null,
         reasons, runGoal(run), phase, sessions)
 }
@@ -158,9 +158,11 @@ internal fun runGoal(run: RunAnswers): PlanGoal? {
     } else null
 }
 
-internal fun runReasons(run: RunAnswers, phase: RunPhase?, todayEpochDay: Long?): List<PlanReason> = buildList {
-    if (run.dateEpochDay != null && phase != null &&
-        run.dateEpochDay - requireNotNull(todayEpochDay) < 7L * weeksNeeded(run.goal, phase)) add(PlanReason.DateTooClose)
+internal fun runReasons(run: RunAnswers, phase: RunPhase?, todayEpochDay: Long?, ladderWeeks: Int?): List<PlanReason> = buildList {
+    if (run.dateEpochDay != null && phase != null) {
+        val weeks = weeksNeeded(run.goal, phase, ladderWeeks)
+        if (weeks == null || run.dateEpochDay - requireNotNull(todayEpochDay) < 7L * weeks) add(PlanReason.DateTooClose)
+    }
     val event = run.resolvedEvent
     if (event != null && event.metres <= RunEvent.MARATHON.metres && run.goalSeconds != null && run.recent != null) {
         val predicted = Riegel.goalCheckSeconds(run.recent.metres.toDouble(), run.recent.seconds.toDouble(), event.metres.toDouble())

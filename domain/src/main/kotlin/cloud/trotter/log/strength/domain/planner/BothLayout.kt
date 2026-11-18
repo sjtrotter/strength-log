@@ -17,7 +17,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal)
         else {
             val lift = liftDraft(answers, known)
-            lift.copy(goal = runGoal(run), reasons = lift.reasons + runReasons(run, phase, todayEpochDay))
+            lift.copy(goal = runGoal(run), reasons = lift.reasons + runReasons(run, phase, todayEpochDay, null))
         }
     }
     if (answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
@@ -47,7 +47,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
     }
     if (answers.both.cardioFirst) return runDraft(answers, known, todayEpochDay, answers.goal)
 
-    val level = ladderStart(anchor, run.runningInjury)
+    val level = ladderStart(runningSeconds(run, known), run.runningInjury)
     val pace = run.recent?.let { it.seconds.toDouble() / it.metres }
     fun template(session: RunSession, easy: Int = 1_200) = runBlock(session, run, phase, anchor, easy, level)
     fun capped(block: CardioBlock) = RunCap.capped(block, anchor, pace)
@@ -57,7 +57,10 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
     val lift = liftDraft(answers, known, if (reservesRun) budget - reserve else budget)
     val entries = runEntries(answers, phase, todayEpochDay).mapNotNull { it.session }
     val lone = RunSession.VO2MAX !in entries
-    val mapped = lift.program.days.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
+    val mapped = if (phase == RunPhase.LADDER) {
+        spreadDays(lift.program.days, minOf(lift.program.days.count { it.kind != ProgramDayKind.REST }, 3))
+            .associateWith { RunSession.LADDER }
+    } else lift.program.days.filter { it.kind != ProgramDayKind.REST }.mapIndexed { index, day ->
         day.id to entries[index % entries.size]
     }.toMap()
     fun fits(day: ProgramDay, block: CardioBlock) = SessionBudget.seconds(day.copy(cardioBlock = block), answers.goal) <= budget
@@ -101,9 +104,35 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         if (excess > 0) reasons += PlanReason.OverBudget(day.id, excess)
         combined
     }
-    reasons += runReasons(run, phase, todayEpochDay)
+    reasons += runReasons(run, phase, todayEpochDay, ladderWeeks(level, sessions.values.count { it == RunSession.LADDER }))
     return lift.copy(program = Program(days), reasons = reasons, goal = runGoal(run),
         phase = phase.takeIf { sessions.isNotEmpty() }, sessions = sessions)
+}
+
+/** Practice: choose the largest smallest cyclic gap, then the fewest gaps at that minimum, then the earliest set
+ *  in rotation order. Rest entries occupy positions but cannot be chosen. */
+internal fun spreadDays(rotation: List<ProgramDay>, k: Int): List<String> {
+    if (k == 0) return emptyList()
+    val positions = rotation.indices.filter { rotation[it].kind != ProgramDayKind.REST }
+    var best: List<Int> = emptyList()
+    var bestGap = -1
+    var bestTies = Int.MAX_VALUE
+    fun choose(chosen: List<Int>, from: Int) {
+        if (chosen.size == k) {
+            val gaps = chosen.zipWithNext { a, b -> b - a } + (rotation.size + chosen.first() - chosen.last())
+            val gap = gaps.min()
+            val ties = gaps.count { it == gap }
+            if (gap > bestGap || (gap == bestGap && ties < bestTies)) {
+                best = chosen
+                bestGap = gap
+                bestTies = ties
+            }
+            return
+        }
+        for (index in from..positions.size - (k - chosen.size)) choose(chosen + positions[index], index + 1)
+    }
+    choose(emptyList(), 0)
+    return best.map { rotation[it].id }
 }
 
 internal fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = draft.copy(

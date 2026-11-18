@@ -12,7 +12,8 @@ data class CardioRule(
     val session: RunSession? = null,
     /** Units above the range's low end, shared with [alternate] (design §3.1). */
     val steps: Int = 0,
-    /** Counted sessions toward the next unit, 0 or 1. */
+    /** Counted sessions toward the next unit, 0 or 1; on the ladder, counted Easy finishes toward the next level
+     *  ([RunWalkLadder.EASY_PER_LEVEL]). */
     val credits: Int = 0,
     /** The kind a lone base-phase threshold day alternates with (§3.1.2). */
     val alternate: RunSession? = null,
@@ -28,6 +29,11 @@ data class CardioRule(
     val sprintTrialCycle: Int? = null,
     /** Rotation of this sprint day's last maximal session; the Finish caller writes it (sprint week design §4.2). */
     val maximalCycle: Int? = null,
+    /** Local epoch days of the most recent counted Easy ladder finishes, ascending, at most
+     *  [RunWalkLadder.COUNTED_PER_WEEK]; duplicates allowed. The runner's, copied to every ladder day. */
+    val ladderCounted: List<Long> = emptyList(),
+    /** Local epoch day of the last ladder level-up. */
+    val ladderRaised: Long? = null,
 ) {
     init {
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
@@ -35,7 +41,9 @@ data class CardioRule(
         require(session != RunSession.LADDER)
         require(credits in 0..1)
         val range = session?.let(RunRange::of)
-        require(credits == 0 || range != null)
+        require(credits == 0 || range != null || ladderLevel != null)
+        require(ladderLevel != null || (ladderCounted.isEmpty() && ladderRaised == null))
+        require(ladderCounted.size <= RunWalkLadder.COUNTED_PER_WEEK && ladderCounted.zipWithNext().all { (a, b) -> a <= b })
         require(alternate == null || (range != null && alternate != session && RunRange.of(alternate) != null))
         val top = maxOf(range?.top ?: 0, alternate?.let(RunRange::of)?.top ?: 0)
         require(steps in 0..top)

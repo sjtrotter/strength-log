@@ -245,7 +245,18 @@ class TrackerRepository(
         }
 
     suspend fun setCardioKeepToPlan(planId: Long, dayId: String, keep: Boolean) {
-        db.withTransaction { programDao.setCardioKeepToPlan(planId, dayId, keep) }
+        db.withTransaction {
+            programDao.setCardioKeepToPlan(planId, dayId, keep)
+            if (!keep) {
+                val day = programDao.day(planId, dayId) ?: return@withTransaction
+                val level = CardioRuleJson.decode(day.cardioRuleJson)?.ladderLevel ?: return@withTransaction
+                val stored = day.toDomain(emptyList()).cardioToRun ?: return@withTransaction
+                val block = CardioBlockJson.encode(RunWalkLadder.block(level, stored.activity))
+                if (block != day.cardioBlockJson) {
+                    programDao.setCardioState(planId, dayId, block, null, day.cardioRuleJson)
+                }
+            }
+        }
     }
 
     suspend fun setCardioProgression(planId: Long, dayId: String, measure: ProgressMeasure, percent: Int) {
@@ -923,7 +934,12 @@ class TrackerRepository(
     private class CardioJudgment(val sessionId: Long, val planId: Long, val dayId: String, val automatic: Boolean,
                                  val stored: CardioBlock, val outcome: CardioOutcome,
                                  val preWrite: CardioRule? = null, val cycle: Int? = null,
-                                 val runDays: List<ProgramDayEntity>? = null)
+                                 val runDays: List<ProgramDayEntity>? = null) {
+        val ladderDrop: Boolean get() {
+            val level = preWrite?.ladderLevel ?: return false
+            return (outcome.change as? CardioChange.LevelTo)?.level?.let { it < level } == true
+        }
+    }
 
     /** [sessionId]'s judgment when it counts (decision 3), read from Room only; null otherwise.
      *  Ruled amendments require their recorded pre-write state and rotation; run replay also checks every day
@@ -975,6 +991,9 @@ class TrackerRepository(
                 if (current.dayId == dayId && !first) restored.copy(cardioRuleJson = requireNotNull(recorded).before) else restored
             }
             val program = assemble(preWriteDays, programDao.exercisesForPlan(planId))
+            if (preWrite.ladderLevel != null && program.days.any {
+                    it.id != dayId && it.cardioRule?.ladderLevel != null && it.cardioRule != preWrite
+                }) return null
             val preWriteDay = program.days.first { it.id == dayId }
             val preWriteStored = preWriteDay.cardioToRun ?: return null
             val setup = plan.setupAnswers(unit)
@@ -1039,30 +1058,36 @@ class TrackerRepository(
                 before.cardioWorkingJson, before.cardioRuleJson)
         }
         val judgedDay = beforeDays.first { it.dayId == judgment.dayId }
+        suspend fun write(day: ProgramDayEntity, block: CardioBlock, rule: CardioRule) {
+            val blockJson = CardioBlockJson.encode(block)
+            val ruleJson = CardioRuleJson.encode(rule)
+            if (day.cardioBlockJson != blockJson || day.cardioRuleJson != ruleJson || day.cardioWorkingJson != null) {
+                programDao.setCardioState(judgment.planId, day.dayId, blockJson, null, ruleJson)
+                touched += day.dayId
+            }
+        }
         if (judgment.automatic || judgment.outcome.change == CardioChange.Repeat) {
-            suspend fun write(day: ProgramDayEntity, block: CardioBlock, rule: CardioRule) {
-                val blockJson = CardioBlockJson.encode(block)
-                val ruleJson = CardioRuleJson.encode(rule)
-                if (day.cardioBlockJson != blockJson || day.cardioRuleJson != ruleJson || day.cardioWorkingJson != null) {
-                    programDao.setCardioState(judgment.planId, day.dayId, blockJson, null, ruleJson)
-                    touched += day.dayId
-                }
-            }
-            write(judgedDay, judgment.outcome.block, requireNotNull(judgment.outcome.rule))
-            val level = when (val change = judgment.outcome.change) {
-                is CardioChange.LevelTo -> change.level
-                CardioChange.LadderDone -> RunWalkLadder.TOP
-                else -> null
-            }
-            if (level != null) {
+            val rule = requireNotNull(judgment.outcome.rule)
+            write(judgedDay, judgment.outcome.block, rule)
+            if (judgment.preWrite?.ladderLevel != null && rule != judgment.preWrite) {
                 for (day in beforeDays) {
-                    if (day.dayId == judgment.dayId || day.cardioKeepToPlan) continue
+                    if (day.dayId == judgment.dayId) continue
                     val domain = day.toDomain(emptyList())
                     if (domain.cardioRule?.ladderLevel == null) continue
-                    val activity = domain.cardioToRun?.activity ?: continue
-                    val rule = CardioRule(if (judgment.outcome.change == CardioChange.LadderDone) null else level)
-                    write(day, RunWalkLadder.block(level, activity), rule)
+                    val stored = domain.cardioToRun ?: continue
+                    val block = if (day.cardioKeepToPlan) stored
+                        else RunWalkLadder.block(rule.ladderLevel ?: RunWalkLadder.TOP, stored.activity)
+                    write(day, block, rule)
                 }
+            }
+        } else if (judgment.ladderDrop) {
+            val cleared = requireNotNull(judgment.preWrite).copy(credits = 0)
+            write(judgedDay, judgment.stored, cleared)
+            for (day in beforeDays) {
+                if (day.dayId == judgment.dayId) continue
+                val domain = day.toDomain(emptyList())
+                if (domain.cardioRule?.ladderLevel == null) continue
+                write(day, domain.cardioToRun ?: continue, cleared)
             }
         }
         val records = beforeDays.filter { it.dayId in touched }.map { before ->
@@ -2287,6 +2312,20 @@ class TrackerRepository(
             outcome.rows.map(SetDto::of), SlotRuleJson.encode(rule), SlotRuleJson.encode(outcome.rule))
     }
 
+    private val CardioDayUndoDto.ladder: Boolean
+        get() = CardioRuleJson.decode(ruleBefore)?.ladderLevel != null || CardioRuleJson.decode(ruleAfter)?.ladderLevel != null
+
+    /** A ladder Finish restores its shared credit, dates and level together, or none of them after a later edit. */
+    private suspend fun ladderRecordsMatch(planId: Long, dayId: String, undo: CardioUndoDto): Boolean {
+        val days = undo.days.filter { it.ladder }
+        val rule = undo.rule
+        val ladderRule = CardioRuleJson.decode(rule?.before)?.ladderLevel != null ||
+            CardioRuleJson.decode(rule?.after)?.ladderLevel != null
+        if (days.isEmpty() && !ladderRule) return true
+        return days.all { it.matches(programDao.day(planId, it.dayId)) } &&
+            (rule == null || programDao.day(planId, dayId)?.cardioRuleJson == rule.after)
+    }
+
     suspend fun undoFinish(sessionId: Long?, cardioSessionId: Long?): UndoResult = db.withTransaction {
         val session = sessionId?.let { sessionDao.sessionById(it) }
         val cardio = cardioSessionId?.let { cardioSessionDao.byId(it) }
@@ -2303,18 +2342,19 @@ class TrackerRepository(
             sessionDao.clearProgressionUndo(requireNotNull(session).id)
         }
         if (cardioUndo != null && cardio?.planId == planId && cardio.dayId == dayId) {
+            val ladderMatches = ladderRecordsMatch(planId, dayId, cardioUndo)
             cardioUndo.block?.let { block ->
                 if (programDao.day(planId, dayId)?.cardioWorkingJson == block.after) {
                     programDao.setCardioWorking(planId, dayId, block.before)
                 }
             }
             for (record in cardioUndo.days) {
-                if (record.matches(programDao.day(planId, record.dayId))) {
+                if ((!record.ladder || ladderMatches) && record.matches(programDao.day(planId, record.dayId))) {
                     programDao.setCardioState(planId, record.dayId, record.blockBefore, record.workingBefore, record.ruleBefore)
                 }
             }
             cardioUndo.rule?.let { rule ->
-                if (programDao.day(planId, dayId)?.cardioRuleJson == rule.after) {
+                if (ladderMatches && programDao.day(planId, dayId)?.cardioRuleJson == rule.after) {
                     programDao.setCardioRule(planId, dayId, rule.before)
                 }
             }
@@ -2407,11 +2447,14 @@ class TrackerRepository(
         val block = cardioUndo?.block
         val cardioMatches = block != null && block.before != block.after && cardio?.planId != null && cardio.dayId != null &&
             programDao.day(cardio.planId, cardio.dayId)?.cardioWorkingJson == block.after
+        val ladderMatches = if (cardioUndo != null && cardio?.planId != null && cardio.dayId != null) {
+            ladderRecordsMatch(cardio.planId, cardio.dayId, cardioUndo)
+        } else true
         val cardioRule = cardioUndo?.rule
-        val cardioRuleMatches = cardioRule != null && cardioRule.before != cardioRule.after &&
+        val cardioRuleMatches = ladderMatches && cardioRule != null && cardioRule.before != cardioRule.after &&
             cardio?.planId != null && cardio.dayId != null &&
             programDao.day(cardio.planId, cardio.dayId)?.cardioRuleJson == cardioRule.after
-        val cardioDaysMatch = cardio?.planId != null && cardioUndo?.days.orEmpty().any { record ->
+        val cardioDaysMatch = ladderMatches && cardio?.planId != null && cardioUndo?.days.orEmpty().any { record ->
             record.changed && record.matches(programDao.day(cardio.planId, record.dayId))
         }
         FinishUndoState(session?.roughDay == true, strength != null,

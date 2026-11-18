@@ -19,10 +19,7 @@ object RunCap {
      *  finished when it has a WORK set and every WORK set is finished ([FinishedRule.finished], or status FINISHED on
      *  an older row). */
     fun maxima(sessions: List<List<CardioSetResult>>): RecentMaxima? = sessions.mapNotNull { session ->
-        val work = session.filter { it.spec.role == CardioRole.WORK }
-        if (work.isEmpty() || work.any { !(FinishedRule.finished(it) ?: (it.status == CardioSetStatus.FINISHED)) }) {
-            return@mapNotNull null
-        }
+        if (!finished(session)) return@mapNotNull null
         val counted = session.filter { it.spec.role == CardioRole.WORK || it.spec.role == CardioRole.RECOVERY }
         val metres = counted.map { result ->
             result.metresAtEnd ?: result.metres ?: (result.spec.end as? Measure.Distance)?.metres
@@ -33,6 +30,11 @@ object RunCap {
             counted.sumOf { it.secondsAtEnd ?: it.elapsedSeconds },
         )
     }.reduceOrNull { maximum, session -> maximum.max(session) }
+
+    internal fun finished(results: List<CardioSetResult>): Boolean {
+        val work = results.filter { it.spec.role == CardioRole.WORK }
+        return work.isNotEmpty() && work.all { FinishedRule.finished(it) ?: (it.status == CardioSetStatus.FINISHED) }
+    }
 
     /** The maxima the cap compares against at run open: history when it has any, else the seed for 30 days from the
      *  plan's creation, else none (no cap). */

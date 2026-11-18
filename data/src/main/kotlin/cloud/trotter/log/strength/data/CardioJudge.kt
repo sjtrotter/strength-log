@@ -22,6 +22,8 @@ import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.CardioHistory
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.progression.CardioOutcome
+import cloud.trotter.log.strength.domain.progression.LadderContext
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.LoggedCardio
 import cloud.trotter.log.strength.domain.progression.SprintContext
 import cloud.trotter.log.strength.domain.progression.SprintRecord
@@ -62,6 +64,7 @@ object CardioJudge {
 
     /** Null when [day] has no block or is kept to plan, or when [session] has no readable activity or sets.
      *  Ruled run and sprint days need [plan]; sprint days also need an activity in [CardioFamily.RUN].
+     *  Ladder days take the session's local Start date and the busy test ([RunWalkLadder.busy]).
      *  Non-ladder run days need a progress measure. The opening guard lives in the repository.
      *  [sessions] supplies the family's sessions strictly before this session by (completedAt, id).
      *  Sprint replay uses Start's local date, the prior ledger and the pre-write rule. Other days' rules can drift
@@ -93,6 +96,11 @@ object CardioJudge {
         val context = if (sprintDay && plan != null) {
             plan.context(day.id, session.planId, prior, sets, today)
         } else null
+        val ladderContext = if (ladder) {
+            val zone = requireNotNull(plan).zone
+            val localDay = localStart(session, zone)
+            LadderContext(localDay, RunWalkLadder.busy(prior.map { localStart(it, zone) } + localDay, localDay))
+        } else null
         val setup = plan?.setup
         val programDay = plan?.program?.days?.firstOrNull { it.id == day.id }?.copy(cardioBlock = day.cardioToRun)
         val budget = if (day.cardioRule != null && !ladder && setup != null && programDay != null) {
@@ -105,7 +113,7 @@ object CardioJudge {
             EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long), inputs.cyclesCompleted)
         } else null
         val ctx = Progression.CardioContext(today, measure, percent, runCap = runCap, sprint = context,
-            easy = easy, budgetSeconds = budget)
+            easy = easy, budgetSeconds = budget, ladder = ladderContext)
         val outcome = Progression.cardioAfterSession(opening, day.cardioRule, results, effort, recent, ctx)
         val held = day.cardioRule == null && outcome.block.sets.map { it.role } != opening.sets.map { it.role }
         return Judged(opening, if (held) CardioOutcome(opening, day.cardioRule, CardioChange.Repeat) else outcome)

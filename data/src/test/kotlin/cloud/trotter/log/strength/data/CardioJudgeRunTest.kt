@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -56,9 +57,13 @@ class CardioJudgeRunTest {
         CardioJudge.judge(day, session, listOf(session), mapOf(session.id to results(requireNotNull(day.cardioBlock))), cap, inputs)
 
     @Test fun `a ruled run day is judged only with plan inputs`() {
-        val day = day(RunWalkLadder.block(4, CardioActivity.ROAD_RUN), CardioRule(4))
+        // ladder 2026-11-17: a level-up now needs the first Easy credit before this finish.
+        val day = day(RunWalkLadder.block(4, CardioActivity.ROAD_RUN), CardioRule(4, credits = 1))
         assertNull(judge(day))
         assertEquals(CardioChange.LevelTo(5), assertNotNull(judge(day, plan(day))).outcome.change)
+        // ladder 2026-11-17: Start is UTC day 1000, so production records its counted and raised date.
+        assertEquals(CardioRule(5, ladderCounted = listOf(1000), ladderRaised = 1000),
+            assertNotNull(judge(day, plan(day))).outcome.rule)
     }
 
     @Test fun `easy run context goes only to cardio days with setup answers`() {
@@ -100,4 +105,29 @@ class CardioJudgeRunTest {
         assertEquals(CardioChange.Step, assertNotNull(judge(solo, plan(solo, setup))).outcome.change)
     }
 
+    @Test fun `a ladder day always gets a ladder context`() {
+        val d = 20_000L
+        val zone = ZoneOffset.ofHours(-6)
+        fun start(day: Long) = LocalDate.ofEpochDay(day).atTime(23, 30).toInstant(zone).toEpochMilli()
+        val current = session.copy(id = 10, startedAt = start(d), completedAt = start(d) + 40 * 60_000)
+        val day = day(RunWalkLadder.block(4, CardioActivity.ROAD_RUN), CardioRule(4, credits = 1))
+        val inputs = plan(day).copy(zone = zone)
+        val rows = results(requireNotNull(day.cardioBlock))
+        val next = assertNotNull(CardioJudge.judge(day, current, listOf(current), mapOf(current.id to rows), false, inputs)).outcome
+        assertEquals(CardioChange.LevelTo(5), next.change)
+        assertEquals(CardioRule(5, ladderCounted = listOf(d), ladderRaised = d), next.rule)
+        val busyRule = CardioRule(4, credits = 1, ladderCounted = listOf(d - 3), ladderRaised = d - 3)
+        val busyDay = day.copy(cardioRule = busyRule)
+        val prior = (d - 13..d - 10).mapIndexed { index, date ->
+            session.copy(id = index + 1L, planId = null, startedAt = start(date), completedAt = start(date) + 40 * 60_000,
+                effort = if (index == 0) null else "GOOD", stepsCompleted = if (index == 1) 0 else rows.size)
+        }
+        val sets = prior.filterIndexed { index, _ -> index != 1 }.associate { it.id to rows } + (current.id to rows)
+        val held = assertNotNull(CardioJudge.judge(busyDay, current, prior + current, sets, false, inputs)).outcome
+        assertEquals(CardioChange.Repeat, held.change)
+        assertEquals(busyRule, held.rule)
+        val quiet = assertNotNull(CardioJudge.judge(busyDay, current, listOf(current), sets, false, inputs)).outcome
+        assertEquals(CardioChange.LevelTo(5), quiet.change)
+        assertEquals(CardioRule(5, ladderCounted = listOf(d - 3, d), ladderRaised = d), quiet.rule)
+    }
 }

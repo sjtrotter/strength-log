@@ -289,7 +289,8 @@ class PlanCardioGoalScreenTest {
             onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
             onSaveGoal = { saved = state.value.goalDraft?.goal() },
         )) } }
-        rule.onNodeWithText("Target time").performTextReplacement("3:30:00").performImeAction()
+        rule.onNodeWithText("Target time").performTextReplacement("3:30:00")
+        rule.onNodeWithText("Target time").performImeAction()
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
         assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600), saved)
     }

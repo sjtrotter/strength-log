@@ -10,6 +10,10 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.SprintAttempt
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import java.io.File
 import java.time.Clock
@@ -58,6 +62,17 @@ class PlanGoalTest {
     }
 
     private suspend fun goal() = PlanGoalJson.decode(db.planDao().plan(1)!!.goalJson)
+
+    @Test fun `same sprint distance keeps stored attempts and a new distance drops them`() = runTest {
+        seed()
+        val attempts = listOf(SprintAttempt(now, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT)))
+        val stored = PlanGoal.Sprint(100, attempts = attempts)
+        db.planDao().updateGoal(1, PlanGoalJson.encode(stored))
+        plans.setGoal(1, PlanGoal.Sprint(100, targetCentis = 1250))
+        assertEquals(stored.copy(targetCentis = 1250), goal())
+        plans.setGoal(1, PlanGoal.Sprint(60, attempts = attempts))
+        assertEquals(PlanGoal.Sprint(60), goal())
+    }
 
     @Test fun `setGoal stores and clears only the addressed plan`() = runTest {
         seed()

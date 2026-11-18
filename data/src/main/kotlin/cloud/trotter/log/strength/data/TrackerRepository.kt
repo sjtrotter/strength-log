@@ -33,6 +33,9 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.serialization.CardioResultDto
 import cloud.trotter.log.strength.data.serialization.UndoReplanOfferDto
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.data.serialization.CardioGoalUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
@@ -70,6 +73,7 @@ import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.DistanceSource
@@ -86,6 +90,9 @@ import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
+import cloud.trotter.log.strength.domain.records.SprintComparison
 import cloud.trotter.log.strength.domain.progression.sprintMaximalMetres
 import cloud.trotter.log.strength.domain.progression.CardioOutcome
 import cloud.trotter.log.strength.domain.progression.Change
@@ -928,7 +935,10 @@ class TrackerRepository(
             if (route != null && CardioRouteJson.decode(route) != null) {
                 cardioRouteDao.insert(CardioRouteEntity(id, route))
             }
-            if (sets.isNotEmpty()) cardioJudgment(id, first = true, unit = unit)?.let { applyCardio(it) }
+            if (sets.isNotEmpty()) cardioJudgment(id, first = true, unit = unit)?.let {
+                applyCardio(it)
+                appendSprintAttempts(it)
+            }
             if (finishDay && plan != null && stamped.dayId != null) {
                 val counters = afterDay(plan, stamped.dayId, reactive = false, finishedAt = stamped.completedAt, unit = unit)
                 counters?.let {
@@ -1058,6 +1068,27 @@ class TrackerRepository(
         cardioSessionDao.update(session.copy(increaseApplied = true, progressionUndoJson = CardioUndoJson.encode(
             undo.copy(block = CardioBlockUndoDto(if (undo.block != null) undo.block.before else before, after)),
         )))
+    }
+
+    private suspend fun appendSprintAttempts(judgment: CardioJudgment) {
+        if (judgment.outcome.dose != SprintDose.TRIAL) return
+        val plan = planDao.plan(judgment.planId) ?: return
+        val goal = PlanGoalJson.decode(plan.goalJson) as? PlanGoal.Sprint ?: return
+        val first = programDao.daysForPlan(plan.id).firstOrNull {
+            sprintPlannedBlock(CardioRuleJson.decode(it.cardioRuleJson), CardioActivity.TRACK_RUN)
+                ?.sets?.any { spec -> spec.role == CardioRole.WORK && spec.hard } == true
+        } ?: return
+        if (first.dayId != judgment.dayId) return
+        val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))
+        val results = cardioSetResultDao.forSession(session.id).mapNotNull { it.toDomainOrNull() }
+        val attempts = SprintComparison.attempts(goal, results, session.completedAt)
+        if (attempts.isEmpty()) return
+        val before = requireNotNull(plan.goalJson)
+        val after = PlanGoalJson.encode(goal.copy(attempts = goal.attempts + attempts))
+        planDao.updateGoal(plan.id, after)
+        val undo = CardioUndoJson.decode(session.progressionUndoJson) ?: CardioUndoDto()
+        cardioSessionDao.update(session.copy(progressionUndoJson = CardioUndoJson.encode(
+            undo.copy(goal = CardioGoalUndoDto(before, after)))))
     }
 
     private val CardioDayUndoDto.changed: Boolean
@@ -2539,6 +2570,9 @@ class TrackerRepository(
                 if (ladderMatches && programDao.day(planId, dayId)?.cardioRuleJson == rule.after) {
                     programDao.setCardioRule(planId, dayId, rule.before)
                 }
+            }
+            cardioUndo.goal?.let { goal ->
+                if (planDao.plan(planId)?.goalJson == goal.after) planDao.updateGoal(planId, goal.before)
             }
             cardioUndo.plan?.let { swapCounters(planId, it, reverse = false) }
             cardioSessionDao.update(cardio.copy(progressionUndoJson = null))

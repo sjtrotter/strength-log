@@ -69,6 +69,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import cloud.trotter.log.strength.domain.model.TimingMethod
+import cloud.trotter.log.strength.domain.units.ClockText
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -133,7 +136,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.TextUnit
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
-import kotlinx.coroutines.delay
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
@@ -333,6 +335,9 @@ private fun WorkoutSetContent(
                                     if (state.totalSets == 0 || nextTitle == null) null else WorkoutActionSpec(
                                         stringResource(R.string.day_next_exercise, nextTitle.orEmpty()), resting, true,
                                         actions.onNextWorkoutLift, guardKey = guardKey)
+                                run?.running == true && cardio.sprintRep?.armed == true -> WorkoutActionSpec(
+                                    stringResource(R.string.day_cardio_stop_button), false, true,
+                                    { actions.onStopSprintTimer(run.action()) }, guardKey = guardKey)
                                 run?.running == true && end is Measure.Distance -> WorkoutActionSpec(
                                     stringResource(R.string.cardio_reached, distanceUnitFor(cardio.block?.activity).format(end.metres)), false, true,
                                     { actions.onReachCardioTarget(run.action()) },
@@ -526,10 +531,33 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                     if (run?.running == true) WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
                 }
                 is Measure.Distance -> if (run?.running == true) {
-                    WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
-                    Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val sprint = cardio.sprintRep
+                    if (sprint?.armed == true) WorkoutSprintTimer(sprint)
+                    else {
+                        WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
+                        Text(stringResource(R.string.workout_clock_elapsed), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 } else WorkoutHeroText(distanceUnitFor(block.activity).inputText(end.metres), distanceUnitFor(block.activity).symbol)
+            }
+            val sprintRep = cardio.sprintRep
+            if (run?.running == true && sprintRep != null) {
+                if (spec.role == CardioRole.WORK && !sprintRep.armed) {
+                    Button(onClick = { actions.onArmSprintTimer(run.action()) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                        Text(stringResource(R.string.sprint_start_on_beep))
+                    }
+                    TextButton(onClick = { actions.onOpenSprintTime(run.action()) }) {
+                        Text(stringResource(R.string.sprint_enter_time))
+                    }
+                    SprintProtocolChips(sprintRep.protocol, actions.onSprintProtocol)
+                }
+                val lastTime = sprintRep.lastTime
+                if (spec.role == CardioRole.RECOVERY && lastTime != null) {
+                    Text(stringResource(R.string.sprint_rep_time, ClockText.centis(lastTime.centis),
+                        stringResource(lastTime.timingMethod.timedLabelRes())))
+                    if (lastTime.timingMethod == TimingMethod.PHONE) Text(stringResource(R.string.sprint_phone_note))
+                }
             }
             spec.aim?.let {
                 Text(stringResource(R.string.workout_cardio_aim, measureText(it, block.activity)), style = MaterialTheme.typography.titleLarge,
@@ -552,6 +580,23 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             }
         }
     }
+}
+
+@Composable
+private fun WorkoutSprintTimer(sprint: SprintRepUi) {
+    val beep = sprint.beepElapsedMillis ?: return
+    val elapsedMillis = LocalSprintElapsedMillis.current
+    var now by remember(beep, elapsedMillis) { mutableStateOf(elapsedMillis()) }
+    LaunchedEffect(beep, elapsedMillis) {
+        while (true) {
+            now = elapsedMillis()
+            delay(10L)
+        }
+    }
+    if (now < beep) {
+        Text(stringResource(R.string.sprint_beep_in, ((beep - now + 999L) / 1_000L).toInt()),
+            style = MaterialTheme.typography.headlineLarge)
+    } else WorkoutHeroText(ClockText.centis(((now - beep) / 10L).toInt().coerceAtLeast(0)))
 }
 
 @Composable

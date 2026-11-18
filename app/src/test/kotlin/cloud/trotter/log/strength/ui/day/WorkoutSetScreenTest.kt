@@ -88,6 +88,63 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
+    @Test fun `a sprint rep offers the beep timer typed time and start protocols`() {
+        val base = sprintRepFixture()
+        val run = requireNotNull(base.cardio?.run)
+        val arms = mutableListOf<CardioSetAction>()
+        val entries = mutableListOf<CardioSetAction>()
+        val protocols = mutableListOf<String>()
+        show(base, workoutActions().copy(onArmSprintTimer = { arms += it }, onOpenSprintTime = { entries += it },
+            onSprintProtocol = { protocols += it }))
+        rule.onNodeWithText("Start on the beep").performScrollTo().performClick()
+        rule.onNodeWithText("Enter time").performScrollTo().performClick()
+        rule.onNodeWithText("Standing").performScrollTo().performClick()
+        assertEquals(listOf(run.action()), arms)
+        assertEquals(listOf(run.action()), entries)
+        assertEquals(listOf("STANDING"), protocols)
+        rule.onNodeWithText("Reached 60 m").assertExists()
+    }
+
+    @Test fun `an armed sprint rep shows a countdown and Stop`() {
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) {
+                WorkoutSetHost(sprintRepFixture(13_000L))
+            }
+        } }
+        rule.onNodeWithText("Beep in 3").assertExists()
+        rule.onNodeWithText("Stop").assertExists()
+    }
+
+    @Test fun `a running sprint rep shows hundredths and Stop`() {
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) {
+                WorkoutSetHost(sprintRepFixture(5_480L))
+            }
+        } }
+        rule.onNodeWithText("4.52").assertExists()
+        rule.onNodeWithText("Stop").assertExists()
+        rule.onNodeWithText("Start on the beep").assertDoesNotExist()
+    }
+
+    @Test fun `sprint recovery shows the previous rep time and phone note`() {
+        show(sprintRepFixture(recovery = true))
+        rule.onNodeWithText("4.52 (Phone-timed)").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Approximate beep-to-tap time; compare only with your phone-timed runs using the same setup.")
+            .performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Start on the beep").assertDoesNotExist()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintTimerControls() {
+        val state = mutableStateOf(sprintRepFixture())
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { 10_000L }) { WorkoutSetHost(state.value) }
+        } }
+        rule.onNodeWithText("Start on the beep").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(56.dp)
+        rule.runOnIdle { state.value = sprintRepFixture(15_000L) }
+        rule.onNodeWithText("Stop").assertIsDisplayed().assertHeightIsAtLeast(56.dp)
+    }
+
     @Test fun markersStayInTheirCompactCardsBeforeAndAfterStart() {
         val base = workoutSetSupersetFixture()
         var state by mutableStateOf(base.copy(beforeStart = true,

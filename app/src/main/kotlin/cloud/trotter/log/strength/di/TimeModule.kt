@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.di
 
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.time.SystemCivilTimeSource
+import cloud.trotter.log.strength.ui.day.AndroidSprintBeeper
+import cloud.trotter.log.strength.ui.day.SprintBeeper
 import cloud.trotter.log.strength.ui.day.AndroidCardioAlarm
 import cloud.trotter.log.strength.ui.day.CardioAlarm
 import cloud.trotter.log.strength.ui.day.CardioClock
@@ -33,6 +35,10 @@ object TimeModule {
     @Provides
     @Singleton
     fun cardioAlarm(alarm: AndroidCardioAlarm): CardioAlarm = alarm
+
+    @Provides
+    @Singleton
+    fun sprintBeeper(beeper: AndroidSprintBeeper): SprintBeeper = beeper
 
     /** Write stamps and legacy restore dates must use the same clock.
      *  Its zone is frozen at construction; live screen dates require [CivilTimeSource]. */

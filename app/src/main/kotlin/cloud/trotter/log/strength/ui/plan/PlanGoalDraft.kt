@@ -46,3 +46,6 @@ data class PlanGoalDraft(
         }
     }
 }
+
+@Parcelize
+data class SprintGoalDraft(val targetText: String = "", val byEpochDay: Long? = null) : Parcelable

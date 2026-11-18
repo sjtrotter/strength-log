@@ -46,6 +46,9 @@ import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.day.cardioActivityName
+import cloud.trotter.log.strength.ui.day.labelRes
+import cloud.trotter.log.strength.ui.day.timedLabelRes
+import cloud.trotter.log.strength.domain.model.SprintTime
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -65,7 +68,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
         overlineContent = (goal as? PlanGoal.Timed)?.let { { Text(cardioActivityName(it.activity)) } },
         headlineContent = {
             Text(when (goal) {
-                is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
+                is PlanGoal.Sprint -> error("Sprint goals use PlanSprintGoal")
                 is PlanGoal.Timed -> goal.underSeconds?.let { seconds ->
                     stringResource(R.string.plan_goal_timed,
                         distanceUnitFor(goal.activity).format(goal.metres), ClockText.duration(seconds))
@@ -94,7 +97,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
 private fun goalProgress(ui: PlanGoalUi): String {
     val best = ui.best ?: return stringResource(R.string.plan_goal_no_attempt)
     val gap = when (val goal = ui.goal) {
-        is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
+        is PlanGoal.Sprint -> error("Sprint goals use PlanSprintGoal")
         is PlanGoal.Timed -> {
             val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.duration(best))
             val seconds = abs(best - target)
@@ -282,4 +285,102 @@ internal fun PlanShuttleEntry(entry: String, actions: PlanActions) {
             TextButton(onClick = actions.onDismissShuttleEntry) { Text(stringResource(R.string.setup_cancel_button)) }
         },
     )
+}
+
+@Composable
+internal fun PlanSprintGoal(ui: PlanSprintGoalUi, actions: PlanActions) {
+    val goal = ui.goal
+    val distance = if (goal.metres == 37) stringResource(R.string.sprint_event_40yd)
+        else distanceUnitFor(CardioActivity.TRACK_RUN).format(goal.metres)
+    ListItem(
+        modifier = Modifier.clickable(onClick = actions.onOpenCardioGoal),
+        headlineContent = {
+            Text(goal.targetCentis?.let { stringResource(R.string.plan_goal_timed, distance, ClockText.centis(it)) }
+                ?: distance)
+        },
+        supportingContent = {
+            Column {
+                val best = ui.best
+                if (best == null) Text(stringResource(R.string.plan_goal_no_attempt))
+                else {
+                    Text(stringResource(R.string.plan_sprint_best, stringResource(best.time.timingMethod.timedLabelRes()),
+                        ClockText.centis(best.time.centis)))
+                    Text(stringResource(R.string.plan_sprint_start, stringResource(best.time.startProtocol.labelRes())))
+                }
+                goal.byEpochDay?.let { Text(stringResource(R.string.plan_goal_by, goalDate(it))) }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions) {
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
+    val target = ClockText.parseCentis(draft.targetText)
+    AppAlertDialog(
+        onDismissRequest = actions.onDismissGoal,
+        title = { Text(stringResource(R.string.plan_goal)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                NumberField(
+                    value = target?.toDouble() ?: 0.0,
+                    onValueChange = { actions.onSprintGoalDraft(draft.copy(targetText = ClockText.centis(it.toInt()))) },
+                    onDraftEdit = { text, _ -> actions.onSprintGoalDraft(draft.copy(targetText = text)) },
+                    label = stringResource(R.string.plan_goal_target_time),
+                    minValue = 1.0, maxValue = SprintTime.MAX_CENTIS.toDouble(),
+                    format = { if (it == 0.0) draft.targetText else ClockText.centis(it.toInt()) },
+                    parse = { ClockText.parseCentis(it)?.toDouble() }, keyboardType = KeyboardType.Decimal,
+                )
+                Row {
+                    TextButton(onClick = { showDatePicker = true }) {
+                        Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
+                    }
+                    if (draft.byEpochDay != null) TextButton(onClick = {
+                        actions.onSprintGoalDraft(draft.copy(byEpochDay = null))
+                    }) { Text(stringResource(R.string.plan_goal_remove_date)) }
+                }
+                TextButton(onClick = actions.onRemoveGoal,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                    Text(stringResource(R.string.plan_goal_remove))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = actions.onSaveSprintGoal,
+                enabled = (draft.targetText.isBlank() || target != null) && PlanGoalDate.isValid(draft.byEpochDay)) {
+                Text(stringResource(R.string.plans_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = actions.onDismissGoal) { Text(stringResource(R.string.setup_cancel_button)) }
+        },
+    )
+    if (showDatePicker) {
+        val displayedDay = date ?: LocalDate.now().toEpochDay().coerceIn(PlanGoalDate.epochDays)
+        val picker = rememberDatePickerState(
+            initialSelectedDateMillis = date?.let {
+                LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+            },
+            initialDisplayedMonthMillis = LocalDate.ofEpochDay(displayedDay)
+                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            yearRange = PlanGoalDate.years,
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    picker.selectedDateMillis?.let {
+                        actions.onSprintGoalDraft(draft.copy(byEpochDay = Instant.ofEpochMilli(it)
+                            .atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()))
+                    }
+                    showDatePicker = false
+                }, enabled = picker.selectedDateMillis != null) { Text(stringResource(R.string.plans_save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.setup_cancel_button)) }
+            },
+        ) { DatePicker(picker) }
+    }
 }

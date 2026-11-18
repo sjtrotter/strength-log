@@ -100,6 +100,7 @@ fun DayScreen(
     pastCardioSaving: Boolean = false,
     pastCardioCollision: Boolean = false,
     gpsNotice: cloud.trotter.log.strength.run.GpsNotice? = null,
+    sprintTimeDraft: SprintTimeDraft? = null,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
@@ -153,7 +154,7 @@ fun DayScreen(
     // Only the newest removal can be undone against the current row indices.
     val openOffer = removedSets.lastOrNull()
     val openSheet = state.openSheet
-    val countHostFree = state.warmUp == null && state.coolDown == null && !state.startSheet && pastCardio == null && !showEditSheet && openSheet == null &&
+    val countHostFree = sprintTimeDraft == null && state.warmUp == null && state.coolDown == null && !state.startSheet && pastCardio == null && !showEditSheet && openSheet == null &&
         noteCardId == null &&
         !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
@@ -165,7 +166,7 @@ fun DayScreen(
         if (cardioRequestsSheet && countHostFree) actions.onOpenCardioDistance()
     }
     val dayBackProgress = rememberBackGestureProgress(
-        enabled = onBack != null && state.warmUp == null && state.coolDown == null && pastCardio == null &&
+        enabled = onBack != null && sprintTimeDraft == null && state.warmUp == null && state.coolDown == null && pastCardio == null &&
             !showEditSheet && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
             !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null && !state.startSheet,
@@ -382,6 +383,9 @@ fun DayScreen(
         }
     }
 
+    sprintTimeDraft?.let {
+        SprintTimeSheet(it, actions.onSprintTimeDraft, actions.onSaveSprintTime, actions.onDismissSprintTime)
+    }
     pastCardio?.let {
         CardioEntrySheet(it, stringResource(R.string.cardio_log_past), nowMillis,
             actions.onPastCardioChange, actions.onSavePastCardio, actions.onDismissPastCardio,
@@ -452,7 +456,7 @@ fun DayScreen(
 
     if (state.startSheet) StartWorkoutSheet(state.viewDayId.orEmpty(), state.dayIndex, actions.onConfirmStart, actions.onDismissStart)
 
-    if (openSheet == null && !showEditSheet && pastCardio == null && noteCardId == null && !state.startSheet &&
+    if (sprintTimeDraft == null && openSheet == null && !showEditSheet && pastCardio == null && noteCardId == null && !state.startSheet &&
         !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null) {
         if (state.warmUp != null) RoutineSheetHost(RoutineKind.WARM_UP, state.warmUp, state.dayIndex, nowMillis, actions)
         else state.coolDown?.let { RoutineSheetHost(RoutineKind.COOL_DOWN, it, state.dayIndex, nowMillis, actions) }
@@ -550,6 +554,14 @@ data class DayActions(
     val onDismissPastCardio: () -> Unit = {},
     val onStartCardio: () -> Unit = {},
     val onStopCardio: (CardioSetAction) -> Unit = {},
+    val onArmSprintTimer: (CardioSetAction) -> Unit = {},
+    val onStopSprintTimer: (CardioSetAction) -> Unit = {},
+    val onOpenSprintTime: (CardioSetAction) -> Unit = {},
+    val onSprintProtocol: (String) -> Unit = {},
+    val onSprintTimeDraft: (SprintTimeDraft) -> Unit = {},
+    val onSaveSprintTime: (Int, cloud.trotter.log.strength.domain.model.TimingMethod,
+        cloud.trotter.log.strength.domain.model.StartProtocol) -> Unit = { _, _, _ -> },
+    val onDismissSprintTime: () -> Unit = {},
     val onReachCardioTarget: (CardioSetAction) -> Unit = {},
     val onSkipCardioSet: (CardioSetAction) -> Unit = {},
     val onEndCardioBlock: () -> Unit = {},

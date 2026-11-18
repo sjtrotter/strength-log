@@ -11,6 +11,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.model.SprintAttempt
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -60,6 +64,39 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanViewModelTest {
+
+    @Test fun `opening and saving a sprint goal uses its own draft and preserves attempts`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Sprint")
+        val stored = PlanGoal.Sprint(100, attempts = listOf(SprintAttempt(123L,
+            SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))))
+        db.planDao().updateGoal(viewed, PlanGoalJson.encode(stored))
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openGoal()
+        advanceUntilIdle()
+        assertEquals(SprintGoalDraft(), handle.get<SprintGoalDraft>("plan_sprint_goal_draft"))
+        assertNull(handle.get<PlanGoalDraft>("plan_goal_draft"))
+        vm.changeSprintGoalDraft(SprintGoalDraft("12.50", 21000))
+        vm.saveSprintGoal()
+        advanceUntilIdle()
+        assertEquals(stored.copy(targetCentis = 1250, byEpochDay = 21000),
+            PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
+        assertNull(handle.get<SprintGoalDraft>("plan_sprint_goal_draft"))
+        assertNull(handle.get<PlanGoalDraft>("plan_goal_draft"))
+    }
+
+    @Test fun `a generic goal save never replaces a stored sprint goal`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Sprint")
+        val stored = PlanGoal.Sprint(100)
+        db.planDao().updateGoal(viewed, PlanGoalJson.encode(stored))
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString(), "plan_goal_draft" to PlanGoalDraft()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(stored, PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
+    }
 
     @Test fun `offer switches update only the viewed plan`() = runTest(dispatcher) {
         val preferred = repo.plans.createAuthoredPlan("Preferred", "Day")

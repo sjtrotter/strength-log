@@ -13,6 +13,16 @@ import cloud.trotter.log.strength.ui.day.DayPlanEditor
 import cloud.trotter.log.strength.ui.day.sprintEditorFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
+import cloud.trotter.log.strength.ui.day.LocalSprintElapsedMillis
+import cloud.trotter.log.strength.ui.day.sprintRepFixture
+import cloud.trotter.log.strength.ui.day.SprintTimeDraft
+import cloud.trotter.log.strength.ui.day.SprintTimeSheet
+import cloud.trotter.log.strength.ui.plan.PlanSprintGoalUi
+import cloud.trotter.log.strength.ui.plan.SprintGoalDraft
+import cloud.trotter.log.strength.domain.model.SprintAttempt
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.ui.day.sprintStartFixture
 import cloud.trotter.log.strength.ui.plan.PlanScreenBuilder
 
@@ -418,6 +428,51 @@ class ProgressionPreviewShotsTest {
     }
     @Test fun dayEditorSprint() = sprintEditor("p44-day-editor-sprint.png", 1f)
     @Test fun dayEditorSprintLargeFont() = sprintEditor("p45-day-editor-sprint-2x.png", 2f)
+
+    private fun sprintRep(name: String, scale: Float, offsetMillis: Long? = null, recovery: Boolean = false) {
+        val elapsed = 10_000L
+        val state = sprintRepFixture(offsetMillis?.let { elapsed + it }, recovery)
+        render(scale) {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { elapsed }) { WorkoutSetHost(state) }
+        }
+        if (offsetMillis == null && !recovery) rule.onNodeWithText("Start on the beep").performScrollTo()
+        if (recovery) rule.onNodeWithText("4.52 (Phone-timed)").performScrollTo()
+        capture(name)
+    }
+    @Test fun sprintRepReady() = sprintRep("p48-sprint-rep-ready.png", 1f)
+    @Test fun sprintRepReadyLargeFont() = sprintRep("p49-sprint-rep-ready-2x.png", 2f)
+    @Test fun sprintRepArmed() = sprintRep("p50-sprint-rep-armed.png", 1f, 3_000L)
+    @Test fun sprintRepArmedLargeFont() = sprintRep("p51-sprint-rep-armed-2x.png", 2f, 3_000L)
+    @Test fun sprintRepRunning() = sprintRep("p52-sprint-rep-running.png", 1f, -4_520L)
+    @Test fun sprintRepRunningLargeFont() = sprintRep("p53-sprint-rep-running-2x.png", 2f, -4_520L)
+    @Test fun sprintRecoveryTime() = sprintRep("p54-sprint-recovery-time.png", 1f, recovery = true)
+    @Test fun sprintRecoveryTimeLargeFont() = sprintRep("p55-sprint-recovery-time-2x.png", 2f, recovery = true)
+
+    private fun sprintTimeEntry(name: String, scale: Float) {
+        render(scale) {
+            WorkoutSetHost(sprintRepFixture())
+            SprintTimeSheet(SprintTimeDraft("run", 1, "8.30", "GATES", "THREE_POINT"), {}, { _, _, _ -> }, {})
+        }
+        capture(name, sheet = true)
+    }
+    @Test fun sprintTimeSheet() = sprintTimeEntry("p56-sprint-time-sheet.png", 1f)
+    @Test fun sprintTimeSheetLargeFont() = sprintTimeEntry("p57-sprint-time-sheet-2x.png", 2f)
+
+    private fun sprintGoal(name: String, scale: Float, editing: Boolean = false) {
+        val best = SprintAttempt(1L, SprintTime(1284, TimingMethod.PHONE, StartProtocol.THREE_POINT))
+        val goal = PlanGoal.Sprint(100, targetCentis = 1250, attempts = listOf(best), byEpochDay = 20_788)
+        val state = PlanUiState(hasProgram = true, planId = 1, name = "Sprint",
+            days = listOf(PlanDay("A", 0, "Sprint A", 0, 0, true, cardioActivity = CardioActivity.TRACK_RUN, cardioSetCount = 4)),
+            sprintGoal = PlanSprintGoalUi(goal, best),
+            sprintGoalDraft = SprintGoalDraft("12.50", goal.byEpochDay).takeIf { editing })
+        render(scale) { PlanScreen(state, PlanActions({}, {}, {})) }
+        if (!editing) rule.onNode(hasScrollAction()).performScrollToNode(hasText("Start type: Three-point"))
+        capture(name, sheet = editing)
+    }
+    @Test fun planSprintGoal() = sprintGoal("p58-plan-sprint-goal.png", 1f)
+    @Test fun planSprintGoalLargeFont() = sprintGoal("p59-plan-sprint-goal-2x.png", 2f)
+    @Test fun planSprintGoalEditor() = sprintGoal("p60-plan-sprint-goal-editor.png", 1f, editing = true)
+    @Test fun planSprintGoalEditorLargeFont() = sprintGoal("p61-plan-sprint-goal-editor-2x.png", 2f, editing = true)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

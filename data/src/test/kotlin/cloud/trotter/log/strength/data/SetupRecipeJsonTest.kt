@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.planner.RecentNumber
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunExperience
@@ -135,12 +136,14 @@ class SetupRecipeJsonTest {
         for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) {
             val input = answers.copy(branch = branch, run = run,
                 both = if (branch == PlanBranch.BOTH) BothAnswers(true, BothAnswers.Together.SEPARATE_DAYS) else BothAnswers())
-            assertEquals(input, SetupRecipeJson.decode(SetupRecipeJson.encode(input), settings, WeightUnit.KG))
+            // 4b-ii-b: phased Run and Both recipe fixtures now supply HALF_BUILD instead of an absent phase.
+            assertEquals(input, SetupRecipeJson.decode(SetupRecipeJson.encode(input, RunPhase.HALF_BUILD), settings, WeightUnit.KG))
         }
     }
 
     @Test fun `run recipes validate strictly`() {
-        val json = SetupRecipeJson.encode(answers.copy(branch = PlanBranch.RUN, run = run))
+        // 4b-ii-b: the strict run fixture now carries HALF_BUILD instead of an absent phase.
+        val json = SetupRecipeJson.encode(answers.copy(branch = PlanBranch.RUN, run = run), RunPhase.HALF_BUILD)
         val invalid = listOf(
             SetupRecipeJson.encode(answers).replace("LIFT", "RUN"), json.replace("\"branch\":\"RUN\"", "\"branch\":\"LIFT\""),
             json.replace(",\"recentSeconds\":3300", ""),
@@ -152,6 +155,30 @@ class SetupRecipeJsonTest {
         for (payload in invalid) {
             assertNull(SetupRecipeJson.decode(payload, settings, WeightUnit.KG), payload)
             assertFailsWith<IllegalArgumentException>(payload) { SetupRecipeJson.validate(payload) }
+        }
+    }
+
+    @Test fun `run recipes carry their phase`() {
+        val input = answers.copy(branch = PlanBranch.RUN, run = run)
+        val json = SetupRecipeJson.encode(input, RunPhase.HALF_BUILD)
+        assertEquals(RunPhase.HALF_BUILD, SetupRecipeJson.phase(json))
+        val updated = SetupRecipeJson.withPhase(json, RunPhase.BASE)
+        assertEquals(RunPhase.BASE, SetupRecipeJson.phase(updated))
+        assertEquals(input, SetupRecipeJson.decode(updated, settings, WeightUnit.KG))
+        val originalFields = Json.parseToJsonElement(json).jsonObject - "runPhase"
+        assertEquals(originalFields, Json.parseToJsonElement(updated).jsonObject - "runPhase")
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input) }
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(input, RunPhase.ULTRA_BUILD) }
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(answers, RunPhase.BASE) }
+        assertFailsWith<IllegalArgumentException> { SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN), RunPhase.BASE) }
+        val missing = json.replace(",\"runPhase\":\"HALF_BUILD\"", "")
+        val invalid = listOf(missing, json.replace("HALF_BUILD", "ULTRA_BUILD"),
+            SetupRecipeJson.encode(answers).dropLast(1) + ",\"runPhase\":\"BASE\"}",
+            SetupRecipeJson.encode(SetupAnswers(branch = PlanBranch.RUN)).dropLast(1) + ",\"runPhase\":\"BASE\"}")
+        for (payload in invalid) {
+            assertNull(SetupRecipeJson.phase(payload))
+            assertNull(SetupRecipeJson.decode(payload, settings, WeightUnit.KG))
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.validate(payload) }
         }
     }
 

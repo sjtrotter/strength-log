@@ -6,6 +6,12 @@ import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RecentMaxima
+import cloud.trotter.log.strength.domain.progression.WeekLoad
+import cloud.trotter.log.strength.domain.progression.withoutLastRound
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -135,6 +141,96 @@ class PlannerRunInvariantsTest {
             }
         }
         assertEquals(8208, plans)
+    }
+
+    @Test fun `re-plans keep slots and the run cap across the grid`() {
+        val layouts = listOf<BothAnswers?>(null) + listOf(false, true).flatMap { first ->
+            BothAnswers.Together.entries.map { BothAnswers(first, it) }
+        }
+        val gates = mapOf(RunPhase.LADDER to RecentMaxima(null, 1800), RunPhase.BASE to RecentMaxima(10_000, 3600),
+            RunPhase.HALF_BUILD to RecentMaxima(21_000, 7200), RunPhase.MARATHON_BUILD to RecentMaxima(30_000, 10_800))
+        fun planned(program: Program) = program.rotationDays.sumOf { it.cardioToRun?.let { b -> plannedSeconds(b) } ?: 0 }
+        fun end(day: ProgramDay) = day.cardioToRun?.sets?.firstOrNull { it.role == CardioRole.WORK }?.end
+        fun withEnd(day: ProgramDay, value: Measure) = day.copy(cardioBlock = requireNotNull(day.cardioBlock).let { b ->
+            b.copy(sets = b.sets.map { if (it.role == CardioRole.WORK) it.copy(end = value) else it })
+        })
+        for (layout in layouts) for (goal in listOf(RunGoal.FIVE_TO_TEN_K, RunGoal.HALF_MARATHON, RunGoal.MARATHON, RunGoal.ULTRA)) {
+            for (experience in RunExperience.entries) for (days in 1..6) for (minutes in listOf(30, 60, 90)) {
+                val answers = run(goal, days, minutes, experience).let {
+                    if (layout == null) it else it.copy(branch = PlanBranch.BOTH, both = layout)
+                }
+                for ((phase, nextPhase) in goal.phases.zipWithNext()) {
+                    val seed = when (phase) {
+                        RunPhase.LADDER -> known(null, 600)
+                        RunPhase.BASE -> known(null, 1800)
+                        RunPhase.HALF_BUILD -> known(10_000, 3600)
+                        RunPhase.MARATHON_BUILD -> known(21_000, 7200)
+                        RunPhase.ULTRA_BUILD -> error("No later phase")
+                    }
+                    val draft = Planner.plan(answers, seed, TODAY, phase)
+                    // A Both layout without any running has no phase to advance.
+                    if (draft.phase == null) { assertTrue(draft.sessions.isEmpty()); continue }
+                    val stored = draft.program.let { p -> p.copy(days = p.days.map { day ->
+                        if (day.cardioRule?.ladderLevel == null) day else day.copy(cardioRule = CardioRule(null),
+                            cardioBlock = RunWalkLadder.block(12, answers.run.activity))
+                    }) }
+                    val anchor = gates.getValue(phase)
+                    val history = KnownLoads.NONE.copy(longestRecent = mapOf(CardioFamily.RUN to anchor))
+                    val total = planned(stored)
+                    val longest = stored.days.maxOf { it.cardioToRun?.let { b -> plannedSeconds(b) } ?: 0 }
+                    val week = WeekLoad(RecentMaxima(null, total), RecentMaxima(null, longest))
+                    val label = "$goal $experience $days days $minutes min $layout $phase"
+                    val result = RunReplan.next(stored, answers, phase, history, TODAY, week, null)
+                    val allowed = total.toLong() * 120 / 100
+                    if (result == null) {
+                        val candidate = Planner.plan(answers, history, TODAY, nextPhase)
+                        val floorDays = candidate.program.days.map { day ->
+                            val old = stored.days.firstOrNull { it.id == day.id }
+                            var floorDay = day.copy(exercises = old?.exercises.orEmpty())
+                            val block = floorDay.cardioBlock
+                            if (floorDay.cardioRule?.session == RunSession.EASY && end(floorDay) is Measure.Time) {
+                                floorDay = withEnd(floorDay, Measure.Time(minOf((end(floorDay) as Measure.Time).seconds,
+                                    RunReplan.EASY_FLOOR_SECONDS)))
+                            } else if (block != null && block.sets.count { it.role == CardioRole.WORK } > 1) {
+                                var one = block
+                                while (one.sets.count { it.role == CardioRole.WORK } > 1) one = one.withoutLastRound()
+                                floorDay = floorDay.copy(cardioBlock = one)
+                            } else if (floorDay.cardioRule?.session == RunSession.LONG) {
+                                val oldLong = stored.days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioToRun
+                                val seconds = maxOf(oldLong?.let { plannedSeconds(it) } ?: 0, longest)
+                                floorDay = when (val value = end(floorDay)) {
+                                    is Measure.Time -> withEnd(floorDay, Measure.Time(minOf(value.seconds, seconds)))
+                                    is Measure.Distance -> withEnd(floorDay, Measure.Distance(minOf(value.metres,
+                                        kotlin.math.ceil(seconds / 0.36).toInt())))
+                                    null -> floorDay
+                                }
+                            }
+                            floorDay
+                        }
+                        assertTrue(planned(Program(floorDays)) > allowed, "$label only floors can defer")
+                        continue
+                    }
+                    assertEquals(nextPhase, result.phase, label)
+                    val next = result.program
+                    assertEquals(stored.days.map { it.id }, next.days.take(stored.days.size).map { it.id }, "$label prefix")
+                    assertEquals(stored.days.count { it.exercises.isNotEmpty() }, next.days.count { it.exercises.isNotEmpty() }, label)
+                    assertTrue(planned(next) <= allowed, "$label weekly guard")
+                    for (day in next.days) {
+                        val old = stored.days.firstOrNull { it.id == day.id }
+                        assertEquals(old?.exercises.orEmpty(), day.exercises, "$label ${day.id} slots")
+                        if (old?.exercises?.isNotEmpty() == true) assertTrue(day.kind != ProgramDayKind.REST, label)
+                        if (old == null) assertTrue(day.kind != ProgramDayKind.STRENGTH, label)
+                        day.cardioBlock?.let { block -> assertEquals(block, RunCap.capped(block, anchor, null), "$label cap") }
+                        if (day.cardioRule?.session == RunSession.EASY) {
+                            val carry = old?.takeIf { it.cardioRule?.session == RunSession.EASY }?.cardioToRun?.let { plannedSeconds(it) }
+                                ?: stored.days.filter { it.cardioRule?.session == RunSession.EASY }
+                                    .mapNotNull { it.cardioToRun?.let { b -> plannedSeconds(b) } }.maxOrNull()
+                            if (carry != null) assertTrue(plannedSeconds(requireNotNull(day.cardioToRun)) <= carry, "$label carry")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Test fun `D15 reserve also holds at forty five and seventy five minutes`() {

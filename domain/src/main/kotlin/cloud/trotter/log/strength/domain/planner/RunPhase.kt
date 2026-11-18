@@ -6,7 +6,8 @@ import cloud.trotter.log.strength.domain.progression.RecentMaxima
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 
 /** The readiness phases (design §3.1.2), in order. [minWeeks] feeds DATE_TOO_CLOSE (Q4); the ladder's length is
- *  derived from the plan ([ladderWeeks]). */
+ *  derived from the plan ([ladderWeeks]). Stored as recipe v2's `runPhase`; a re-plan advances it
+ *  (design revision 48). */
 enum class RunPhase(val minWeeks: Int?) { LADDER(null), BASE(6), HALF_BUILD(8), MARATHON_BUILD(8), ULTRA_BUILD(8) }
 
 /** §3.1.2 gates: "30 min continuous" (or 5,000 m, Q4), "10 km or 60 min", "21 km or 2 h, or a 30 km or 3 h week",
@@ -20,11 +21,13 @@ internal fun RunPhase.met(anchor: RecentMaxima, marathonBest: Boolean, week: Rec
     RunPhase.ULTRA_BUILD -> false
 }
 
-internal fun startPhase(run: RunAnswers, anchor: RecentMaxima?, week: RecentMaxima?): RunPhase? {
+internal fun startPhase(run: RunAnswers, anchor: RecentMaxima?, week: RecentMaxima?, atLeast: RunPhase? = null): RunPhase? {
     val phases = run.goal.phases
     if (phases.isEmpty()) return null
-    if (anchor == null) return if (run.experience == RunExperience.NEW) RunPhase.LADDER else RunPhase.BASE
-    return phases.firstOrNull { !it.met(anchor, run.marathonBestSeconds != null, week) } ?: phases.last()
+    val start = if (anchor == null) {
+        if (run.experience == RunExperience.NEW) RunPhase.LADDER else RunPhase.BASE
+    } else phases.firstOrNull { !it.met(anchor, run.marathonBestSeconds != null, week) } ?: phases.last()
+    return maxOf(start, atLeast ?: start)
 }
 
 internal fun runAnchor(run: RunAnswers, known: KnownLoads): RecentMaxima? =

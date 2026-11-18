@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.planner.RecentRace
 import cloud.trotter.log.strength.domain.planner.RunAnswers
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -30,6 +31,7 @@ import kotlinx.serialization.json.intOrNull
     val olderAdult: Boolean = false, val mains: List<String>? = null,
     val recent: Map<String, RecentNumberDto> = emptyMap(), val excluded: List<String> = emptyList(),
     val balanceDays: Boolean = false, val run: RunRecipeDto? = null, val both: BothRecipeDto? = null,
+    val runPhase: String? = null,
 )
 @Serializable internal data class RecentNumberDto(val weightLb: Double, val reps: Int, val effort: String)
 
@@ -64,8 +66,10 @@ object SetupRecipeJson {
     const val VERSION = 2
 
     /** PR 7 adds sprint answers; storing them now would lose them. */
-    fun encode(answers: SetupAnswers): String {
+    fun encode(answers: SetupAnswers, phase: RunPhase? = null): String {
         require(answers.branch != PlanBranch.SPRINT && !(answers.branch == PlanBranch.BOTH && answers.both.sprint))
+        val phases = if (answers.branch == PlanBranch.RUN || answers.branch == PlanBranch.BOTH) answers.run.goal.phases else emptyList()
+        require(if (phases.isEmpty()) phase == null else phase != null && phase in phases)
         return SetJson.encode(SetupRecipeDto.serializer(), SetupRecipeDto(
             v = VERSION, branch = answers.branch.name, goal = answers.goal.name, days = answers.days,
             minutes = answers.minutes, experience = answers.experience.name, olderAdult = answers.olderAdult,
@@ -79,6 +83,7 @@ object SetupRecipeJson {
                     run.marathonBestSeconds, run.activity.name, run.runningInjury, run.strengthBlocks)
             } else null,
             both = if (answers.branch == PlanBranch.BOTH) BothRecipeDto(answers.both.cardioFirst, answers.both.together?.name) else null,
+            runPhase = phase?.name,
         ))
     }
 
@@ -100,6 +105,20 @@ object SetupRecipeJson {
     fun experience(json: String): LiftExperience? = v2Object(json)?.let {
         val name = (it["experience"] as? JsonPrimitive)?.content
         LiftExperience.entries.firstOrNull { experience -> experience.name == name }
+    }
+
+    /** Null unless a valid v2 recipe carries a phase belonging to its run goal. */
+    fun phase(json: String): RunPhase? = runCatching {
+        validate(json)
+        SetJson.decode(SetupRecipeDto.serializer(), json).runPhase?.let(RunPhase::valueOf)
+    }.getOrNull()
+
+    /** Preserve every other field, including fields a newer writer may have added. */
+    fun withPhase(json: String, phase: RunPhase): String {
+        validate(json)
+        val updated = JsonObject(requireNotNull(v2Object(json)) + ("runPhase" to JsonPrimitive(phase.name))).toString()
+        validate(updated)
+        return updated
     }
 
     fun decode(json: String, settings: PlanSettings, unit: WeightUnit): SetupAnswers? {
@@ -127,7 +146,8 @@ object SetupRecipeJson {
         require(dto.v == VERSION && branch != PlanBranch.SPRINT)
         require((dto.run != null) == (branch == PlanBranch.RUN || branch == PlanBranch.BOTH))
         require((dto.both != null) == (branch == PlanBranch.BOTH))
-        dto.run?.answers()
+        val phases = dto.run?.answers()?.goal?.phases.orEmpty()
+        require(if (phases.isEmpty()) dto.runPhase == null else dto.runPhase != null && RunPhase.valueOf(dto.runPhase) in phases)
         dto.both?.answers()
         LiftGoal.valueOf(dto.goal)
         LiftExperience.valueOf(dto.experience)

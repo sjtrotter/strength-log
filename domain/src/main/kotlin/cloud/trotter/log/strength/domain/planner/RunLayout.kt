@@ -93,10 +93,11 @@ internal fun runDraft(
     known: KnownLoads,
     todayEpochDay: Long?,
     strengthGoal: LiftGoal,
+    atLeast: RunPhase? = null,
 ): PlanDraft {
     val run = answers.run
     val anchor = runAnchor(run, known)
-    val phase = startPhase(run, anchor, runWeek(run, known))
+    val phase = startPhase(run, anchor, runWeek(run, known), atLeast)
     val entries = runEntries(answers, phase, todayEpochDay)
     val lone = entries.none { it.session == RunSession.VO2MAX }
     val level = ladderStart(runningSeconds(run, known), run.runningInjury)

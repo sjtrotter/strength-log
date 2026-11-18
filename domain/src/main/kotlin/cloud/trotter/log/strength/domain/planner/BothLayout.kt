@@ -9,12 +9,12 @@ import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.RunCap
 import cloud.trotter.log.strength.domain.progression.RunSession
 
-internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: Long?): PlanDraft {
+internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: Long?, atLeast: RunPhase? = null): PlanDraft {
     val run = answers.run
     val anchor = runAnchor(run, known)
-    val phase = startPhase(run, anchor, runWeek(run, known))
+    val phase = startPhase(run, anchor, runWeek(run, known), atLeast)
     if (answers.days == 1 && answers.together() == BothAnswers.Together.SEPARATE_DAYS) {
-        return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal)
+        return if (answers.both.cardioFirst) runDraft(answers, known, todayEpochDay, answers.goal, atLeast)
         else {
             val lift = liftDraft(answers, known)
             lift.copy(goal = runGoal(run), reasons = lift.reasons + runReasons(run, phase, todayEpochDay, null))
@@ -26,7 +26,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
         val lift = liftDraft(answers.copy(branch = PlanBranch.LIFT,
             days = if (answers.both.cardioFirst) secondaryDays else primaryDays), known)
         val cardio = runDraft(answers.copy(days = if (answers.both.cardioFirst) primaryDays else secondaryDays,
-            run = run.copy(strengthBlocks = 0)), known, todayEpochDay, answers.goal)
+            run = run.copy(strengthBlocks = 0)), known, todayEpochDay, answers.goal, atLeast)
         val sides = if (answers.both.cardioFirst) listOf(cardio, lift) else listOf(lift, cardio)
         val groups = sides.map { draft ->
             val result = mutableListOf<MutableList<ProgramDay>>()
@@ -45,7 +45,7 @@ internal fun bothDraft(answers: SetupAnswers, known: KnownLoads, todayEpochDay: 
             merged.flatMap { it.working.entries }.associate { it.toPair() }, lift.deloadEveryCycles,
             merged.flatMap { it.reasons }, cardio.goal, cardio.phase, merged.flatMap { it.sessions.entries }.associate { it.toPair() })
     }
-    if (answers.both.cardioFirst) return runDraft(answers, known, todayEpochDay, answers.goal)
+    if (answers.both.cardioFirst) return runDraft(answers, known, todayEpochDay, answers.goal, atLeast)
 
     val level = ladderStart(runningSeconds(run, known), run.runningInjury)
     val pace = run.recent?.let { it.seconds.toDouble() / it.metres }

@@ -295,7 +295,7 @@ class PlanRepository(
             val storedId = settings.selectedPlanIdFlow.first()
             db.withTransaction {
                 val draft = planned(answers)
-                val recipe = SetupRecipeJson.encode(answers)
+                val recipe = SetupRecipeJson.encode(answers, draft.phase)
                 val planSettings = PlanSettings(defaultsFor = answers.goal, loadSteps = answers.steps,
                     equipment = answers.equipment)
                 val nextDay = draft.program.rotationDays.firstOrNull()?.let {

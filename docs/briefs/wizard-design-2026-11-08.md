@@ -1712,3 +1712,57 @@ No Room version, entity, column, backup version, DataStore key, SavedStateHandle
 8. **Backup schema bump.** Older imports are strict: their `CardioRule.init` rejects ladder credits, so a backup carrying those credits fails import, although `ignoreUnknownKeys` ignores the two new keys. Moot until PR 7 creates ladder plans; bump with its writer.
 9. **Fail closed [P].** A ladder forked outside the app by a hand-edited backup stalls; PR 7 may add repair.
 10. **Watch.** Blocks reach the watch through the existing block path. No wire change; any watch copy is a follow-up.
+
+## 57. Revision 48 (PR 4b-ii-b, phase gates and the re-plan, 2026-11-17)
+
+**1.1 When [P].** Re-planning runs inside the Finish that wraps the rotation, immediately after `lightAfterDay` increases `cyclesCompleted`, on either the cardio commit or the strength Finish path. The next phase begins a new rotation; quality days do not move mid-rotation, and a mistaken distance can be corrected before the wrap. The new cursor is the first training day. Finish skips its ordinary cursor advance when it re-plans.
+
+**1.2 The gates [P; ladder end follows Relph 2023].** Recipe v2 stores `runPhase` at creation and changes it only on a re-plan. Only Automatic Run and Both plans without a sprint sub-goal re-plan. Ask keeps its phase until PR 7's offer, which owns acceptance and copy. Leaving LADDER requires every rule to have cleared its `ladderLevel`, including kept days: LadderDone, rather than a longest-run threshold, is the exit gate. A run/walk outside the ladder can reach 30 minutes on foot without 30 minutes continuously; `RunCap.maxima` includes RECOVERY. LadderDone needs a credit at level 12 and a counted Easy finish passing the weekly cap and level-up guard. The credited fixture uses `credits = 1`, `ladderCounted = [d − 2]`, `ladderRaised = d − 9`; its sessions are on d, d + 1 and d + 2. No seven consecutive days of its last fourteen hold more than three runs, and nine days since the last raise also clears the guard.
+
+Every other gate uses §3.1.2's table, with the family's 30-day longest, longest week and longest WORK running time from the log at the wrap. Gate forms are practice (audit R37/R38), superseding the table introduction's moderate label for the numerical gates. `Planner.plan(..., atLeast = storedPhase)` cannot move back; the ladder exit uses a BASE floor. A later draft phase supplies the next program, skipping gates already met. A wrap without a finished family run in the preceding 7 × 24 hours waits. Lift, converted, old cardio-first and unphased recipes keep the existing Finish behavior. Setup offers Lift alone until PR 7, so this changes no live plan.
+
+**1.3 What the plan writes [P].** Merge the draft in its day-id order. Existing days keep their exercises, slot rules and working rows; strength blocks are never rebuilt, refitted or moved. New days take the draft's cardio with no slots, keeping the stored strength-block count. Kept days retain their entire stored prescription, including a former ladder day with `CardioRule(null)`. A STRENGTH day takes only the new cardio block and rule. Other surviving run days take the draft's kind, title, capped block and rule. Unsupported kind changes or missing stored ids refuse the re-plan. Quality sessions restart at the low end. The long run opens under creation's single-session run cap, including case 30's 11,400 m opening from 10,371 m.
+
+An EASY Time end is the least of the draft end, `easyRunSeconds` for the actual retained strength block and new long run, and the same day's previous easy length, falling back to the longest stored EASY day. Easy runs never lengthen at a re-plan. A merged CARDIO day whose retained slots differ from the draft drops interval rounds until its minutes fit; a single WORK set stays whole, as creation's OverBudget behavior requires.
+
+**1.4 The weekly guard and waiting [P, guided by weak evidence].** Planned seconds include every rotation day's `cardioToRun`, kept days included. Distance sets without time aims use the family's recent pace, else 0.36 seconds per meter. The allowance is floor(1.2 × min(stored planned seconds, finished seconds in the 7 × 24 hours ending at the wrap)). In day order, shorten easy runs by 60 seconds each pass to a 600-second floor, checking after each cut; then remove interval rounds to one; then shorten the long run by the remaining excess, rounding down to 60 seconds or 100 m. The long-run floor is the larger of the stored LONG end and that week's longest finished run, converting units at the same pace. Kept days are never shortened. If these floors still exceed the allowance, return null and write no phase, recipe or program change. Retry at a later wrap. Sparse runners keep the stored program; after LadderDone, their level-12 blocks grow under A16 within the run cap.
+
+Audit row 4's novice weekly practice guides the 20-percent allowance. Damsted 2019 compared early rises of 20–60 percent with under 20 percent; Nielsen 2014's greater-than-30-percent rise over two weeks had HR 1.59 (0.96–2.66). These weak findings do not establish a safe threshold. R52's ordinary-week novice two-week rule remains in 4b-iii. At the six-day New marathon ladder exit the simulation goes from 5,220 seconds run to 8,940 planned without the guard (+71.3 percent), or 6,240 with it (+19.5 percent); the easy runs then grow under R11.
+
+**1.5 What the user sees [P].** No receipt line, reason or toast is added; PR 7 reads `plan.replan` from the Finish undo record for copy. Today opens the new rotation's first training day, and Plan lists its new cardio titles. Deferral shows nothing. Later deletion or correction of the gate run cannot move a plan backward; Undo can.
+
+**1.6 Undo, idempotency, crash safety and ratings [P].** Finish and re-plan share the Room transaction and undo record. The phase advances with the program, so another wrap at the same phase does not re-plan; a deferred wrap writes nothing and retries later. Undo restores every prior day, deletes inserted days and restores the old recipe only when the recipe and every recorded day column still match the re-plan's afters, and inserted days have no exercises. Otherwise it leaves the re-plan and undoes the rest of Finish as before. Restore the program before part A's cardio records or the light counters so a wrapping LadderDone can restore all its shared ladder state. Undo does not move the cursor; day A exists in every program. `finishUndoState` recognizes a matching re-plan as restorable. Editing the wrapping session's effort or distance does not replay through the re-plan: part A's matching-afters gate refuses it. Undo first, then re-rate.
+
+### Simulation and findings
+
+The supplied `fix/ladder/replan_newladder.py` ports the new table, two Easy credits per level across ladder days, running-time ladder starts, the run cap and minutes waits, R11, quality alternation, the gates, easy carry and deferral. It models time-form runners, every attended session finished and Easy, one rotation per week with consecutive entries: 5K to 10K, half, marathon and 50K × New, Some and Racing × one to six days × 30 to 90 minutes × no anchor or 600–7,200 seconds, 2,880 plans for 104 rotations. Three ladder sessions never occupy fewer than seven days, so the ladder cap and guard do not bind. The Kotlin Run/Both invariant is separate and awaits CI.
+
+| Variant | Re-plans | Worst re-planned week over week run | Base → half | Ladder → base |
+|---|---|---|---|---|
+| Draft replaces run days | 3,390 | +74.7 percent | +14.2 percent | +74.7 percent |
+| Slots kept, easy carry | 3,384 | +74.7 percent | +8.3 percent | +74.7 percent |
+| Carry, guard and deferral | 3,422 | +20.0 percent | +8.3 percent | +20.0 percent |
+
+The guarded grid has zero plans above 1.2 × the week run and zero openings above the single-session cap. Half → marathon is at most +8.6 percent, marathon → ultra +9.0 percent. The guard shortens easy runs in 280 plans, all five- or six-day ladder exits (140 each; `fix/ladder-spec/bind_where.txt`). A New marathoner at three 60-minute days reaches base at rotation 8, half build at 22 and marathon build at 35, superseding the old one-per-level ladder's 4, 17 and 30. Guard factors 1.1/1.2/1.3 give maximum rises of 10.0/20.0/30.0 percent.
+
+| Sparse runners, 35 percent skipped at random | Re-plans | Deferred wraps | Worst re-planned week over week run |
+|---|---|---|---|
+| Deferral | 3,470 | 1,249 | +20.0 percent |
+| Without deferral | 3,486 | — | +308.8 percent |
+
+No New runner remains in the ladder after 104 rotations in either sparse variant. Outside ladder and re-plan rotations the worst ordinary rotation rise remains +30.7 percent (5K to 10K, New, three days, 75 minutes, 1,800-second anchor), from the lone base threshold day's VO2max alternation; its two-rotation mean rises at most 25.3 percent. That 4b-i finding is unchanged. The ladder now takes eight weeks at three sessions rather than four.
+
+### Supersession, files and expectations
+
+This supersedes revision 29's draft replacement: the draft is merged. It supersedes revision 28's and §3.1.2's re-derived easy-run length at a gate: easy runs never lengthen on a re-plan. The phase now lives in recipe v2, superseding the former “Stored nowhere” description. Revision 47's deferral, Automatic-only phase changes and credited LadderDone fixture are binding.
+
+Production files: `RunPhase.kt`, `Planner.kt`, `RunLayout.kt`, `BothLayout.kt`, new planner `RunReplan.kt`, `CardioMeasures.kt`, `CardioHistory.kt`, `TrackerRepository.kt`, `PlanRepository.kt`, `SetupRecipeJson.kt` and `ProgressionUndoJson.kt`. Tests: new planner `RunReplanTest` and data `RunReplanFinishTest`; additions to `PlannerRunInvariantsTest`, `PlannerRunTest`, `CardioHistoryWeekTest`, `SetupRecipeJsonTest` and `PlannedPlanTest`. `STRENGTH_TRACKER_SPEC.md` §11.2 case 30 adds the re-plan test without changing a number.
+
+| Existing expectation or fixture | Old → new | Reason |
+|---|---|---|
+| SetupRecipeJsonTest run and both answers round trip | Absent phase → explicit HALF_BUILD in both fixtures; decoded answers unchanged | A phased goal requires its stored phase |
+| SetupRecipeJsonTest run recipes validate strictly | Absent phase → explicit HALF_BUILD in the valid fixture; malformed payloads still reject | Validate run fields on an otherwise valid phased recipe |
+
+Each fixture change has a `// 4b-ii-b:` comment. All creation numbers, ladder expectations, case 31 and Lift recipe bytes remain unchanged. The second-wrap idempotency fixture uses unfinished results in its second rotation to isolate re-planning from ordinary A16/R11 and quality progression. Extra coverage exercises a strength Finish wrapping a Both plan's run gate and undoing it. No Room schema, backup, DataStore, SavedStateHandle, Parcelable, watch wire, resource or app production change. No network, compilation, Gradle, builds, Kotlin tests or subagents were used; CI still owns domain, data and app unit tests and the build.
+
+The existing planner returns a null phase when a Both layout supplies no run sessions (for example, lifting first on one separate day). Under this PR's strict recipe contract, `createPlannedPlan` cannot encode such phased-goal answers with that null draft phase. Their planner output remains unchanged; PR 7 needs to handle the no-run setup choice before offering it. The re-plan invariant checks only stored drafts with a phase and verifies that skipped drafts have no run sessions.

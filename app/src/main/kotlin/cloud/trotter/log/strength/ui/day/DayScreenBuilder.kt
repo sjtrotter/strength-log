@@ -209,9 +209,9 @@ object DayScreenBuilder {
 
     /** Ruled chips read the Finish's stored result: judging a credited ladder again would predict the next Finish.
      *  Rule-less chips use history and the current block. Ask plans follow their Offer switch.
-     *  Receipts retain re-planned results for their read-only increase explanations. */
+     *  Receipts retain stored results for their read-only increase explanations. */
     fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
-                       sets: Map<Long, List<CardioSetResult>>, includeReplanned: Boolean = false): CardioNextTime? {
+                       sets: Map<Long, List<CardioSetResult>>, readOnly: Boolean = false): CardioNextTime? {
         if (!NextTimeGate.cardio(plan)) return null
         val stored = day.cardioToRun ?: return null
         val last = sessions.filter { it.planId == plan.id && it.dayId == day.id }
@@ -219,7 +219,7 @@ object DayScreenBuilder {
         if (day.cardioRule?.session?.sprint == true) return null
         if (day.cardioRule != null) {
             val result = last.runResult() ?: return null
-            if (result.replanned && !includeReplanned) return null
+            if (!readOnly && (result.replanned || day.cardioRule != result.rule)) return null
             if (result.change == CardioChange.Repeat) return CardioNextTime.Repeat
             val offered = result.block ?: return null
             val opening = sets[last.id]?.map { it.spec }?.takeIf { it.isNotEmpty() }

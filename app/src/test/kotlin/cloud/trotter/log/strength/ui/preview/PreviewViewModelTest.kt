@@ -10,11 +10,13 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.runResult
 import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.RunAnswers
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.CardioEffort
+import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptReplan
@@ -33,6 +35,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -61,7 +64,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
-    @Test fun `an Automatic re-plan hides the run chip and retains the receipt result`() = runTest(dispatcher) {
+    @Test fun `an Automatic re-plan hides wrapping and earlier run chips and retains receipt results`() = runTest(dispatcher) {
         assertReplannedRun(autoApply = true)
     }
 
@@ -69,8 +72,14 @@ class PreviewViewModelTest : OverviewFixture() {
         assertReplannedRun(autoApply = false)
     }
 
-    private suspend fun TestScope.assertReplannedRun(autoApply: Boolean) {
-        val plan = repo.plans.createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN, days = 4, minutes = 60,
+    @Test fun `an Automatic Both strength re-plan hides an earlier run chip and retains its receipt result`() = runTest(dispatcher) {
+        assertReplannedRun(autoApply = true, both = true)
+    }
+
+    private suspend fun TestScope.assertReplannedRun(autoApply: Boolean, both: Boolean = false) {
+        val plan = repo.plans.createPlannedPlan("Run", SetupAnswers(
+            branch = if (both) PlanBranch.BOTH else PlanBranch.RUN, days = if (both) 6 else 4, minutes = 60,
+            both = BothAnswers(true, BothAnswers.Together.SEPARATE_DAYS),
             run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K)))
         repo.plans.publishPlannedPlan(plan)
         repo.plans.setAutoApply(plan, autoApply)
@@ -94,8 +103,25 @@ class PreviewViewModelTest : OverviewFixture() {
                 seconds = results.sumOf { it.elapsedSeconds }, stepsCompleted = results.size,
                 activity = block.activity.name, effort = CardioEffort.EASY.name), results, finishDay = true)
         }
+        if (both) {
+            var earlier: CardioSessionEntity? = null
+            var last = 0L
+            for ((index, day) in db.programDao().daysForPlan(plan).filter { it.kind != ProgramDayKind.REST.name }.withIndex()) {
+                if (day.kind == ProgramDayKind.CARDIO.name) {
+                    val id = finish(day.dayId, (index / 2).toLong())
+                    if (earlier == null) earlier = requireNotNull(db.cardioSessionDao().byId(id))
+                } else {
+                    val run = repo.startRun(plan, day.dayId) as RunStartResult.Started
+                    last = requireNotNull(repo.finishRun(run.runId))
+                }
+            }
+            assertNotNull(repo.finishUndoState(last, null).strengthPlan?.replan)
+            assertEarlierRunAfterReplan(plan, requireNotNull(earlier))
+            return
+        }
         val done = finish("A", 0)
         if (!autoApply) assertTrue(repo.setRunOfferApplied(done, true))
+        val earlier = requireNotNull(db.cardioSessionDao().byId(done))
         finish("B", 1)
         val id = finish("C", 2)
         val preview = preview(plan, "C")
@@ -126,6 +152,33 @@ class PreviewViewModelTest : OverviewFixture() {
         assertFalse(repo.setRunOfferApplied(id, !replanned.held))
         assertEquals(days, db.programDao().daysForPlan(plan))
         assertEquals(session, db.cardioSessionDao().byId(id))
+        assertEarlierRunAfterReplan(plan, earlier)
+    }
+
+    private suspend fun TestScope.assertEarlierRunAfterReplan(plan: Long, session: CardioSessionEntity) {
+        // Later sessions can clear undo records; this case requires the earlier Finish to remain readable.
+        db.cardioSessionDao().update(session)
+        val stored = requireNotNull(db.cardioSessionDao().byId(session.id)?.runResult())
+        assertEquals(CardioChange.LadderDone, stored.change)
+        assertFalse(stored.replanned)
+        val dayId = requireNotNull(session.dayId)
+        val current = repo.plans.programFor(plan).first().days.first { it.id == dayId }
+        assertNotNull(stored.rule)
+        assertFalse(current.cardioRule == stored.rule)
+        val preview = preview(plan, dayId)
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, dayId))))
+        advanceUntilIdle()
+        assertNotNull(preview.uiState.value.cardio)
+        assertNotNull(workout.uiState.value.cardio)
+        assertNull(preview.uiState.value.cardio?.nextTime)
+        assertNull(workout.uiState.value.cardio?.nextTime)
+        workout.finisher.showLoggedCardio(requireNotNull(repo.history.cardioSession(session.id)),
+            repo.history.cardioSetsFor(session.id), Program.accentIndex(dayId), emptyMap())
+        advanceUntilIdle()
+        assertEquals(stored, workout.finisher.progressState.value.run)
+        val receipt = workout.finisher.progressState.value.cardioNext as CardioNextTime.Offer
+        assertEquals(CardioIncrease.LadderDone, receipt.change)
+        assertEquals(stored.block, receipt.offered)
     }
 
     @Test fun `Automatic Finish updates the prescribed watch label from working rows`() = runTest(dispatcher) {

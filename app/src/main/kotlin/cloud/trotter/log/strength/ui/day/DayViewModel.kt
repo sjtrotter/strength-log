@@ -711,7 +711,7 @@ class DayViewModel @Inject constructor(
             if (uiState.value.planId != planId || currentDay() != dayId || cardioRun.value != null) return@mutate
             val offer = uiState.value.cardio?.nextTime as? CardioNextTime.Offer
             if (offer?.sessionId != null) {
-                if (!repo.setRunOfferApplied(offer.sessionId, !offer.applied)) return@mutate
+                repo.setRunOfferApplied(offer.sessionId, !offer.applied)
             } else repo.setCardioWorking(planId, dayId, block)
         }
     }

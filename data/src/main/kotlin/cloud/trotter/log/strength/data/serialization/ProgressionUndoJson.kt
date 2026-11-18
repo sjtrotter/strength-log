@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.LadderHold
 import cloud.trotter.log.strength.domain.progression.RunSession
 import kotlinx.serialization.Serializable
@@ -65,7 +66,8 @@ internal object CardioUndoJson {
 
 /** One ruled run Finish's result; null without a readable record (rule-less, sprint, cleared). */
 data class RunResult(val change: CardioChange, val from: Int?, val hold: LadderHold?, val credit: Boolean,
-                     val held: Boolean, val block: CardioBlock?, val replanned: Boolean = false)
+                     val held: Boolean, val block: CardioBlock?, val replanned: Boolean = false,
+                     val rule: CardioRule? = null)
 
 fun CardioSessionEntity.runResult(): RunResult? = runCatching {
     val undo = CardioUndoJson.decode(progressionUndoJson) ?: return@runCatching null
@@ -86,5 +88,5 @@ fun CardioSessionEntity.runResult(): RunResult? = runCatching {
         else -> return@runCatching null
     }
     RunResult(change, record.from, record.hold?.let(LadderHold::valueOf), record.credit, record.held, block,
-        undo.plan?.replan != null)
+        undo.plan?.replan != null, CardioRuleJson.decode(undo.rule?.after))
 }.getOrNull()

@@ -136,7 +136,7 @@ class PreviewViewModel @Inject constructor(
         viewModelScope.launch {
             val offer = uiState.value.cardio?.nextTime as? CardioNextTime.Offer
             if (offer?.sessionId != null) {
-                if (!repo.setRunOfferApplied(offer.sessionId, !offer.applied)) return@launch
+                repo.setRunOfferApplied(offer.sessionId, !offer.applied)
             } else repo.setCardioWorking(planId, dayId, block)
         }
     }

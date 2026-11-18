@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.ui.today
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,18 +13,23 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.WorkoutConflict
 import cloud.trotter.log.strength.ui.day.WorkoutConflictDialog
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -225,6 +233,49 @@ class TodayScreenTest {
         rule.onNodeWithText("Start day A").assertIsDisplayed().performClick()
         assertEquals(listOf(second.selection), starts)
         assertTrue(resumes.isEmpty())
+    }
+
+    @Test fun `a rest row before a sprint day says so`() {
+        val state = mutableStateOf(TodayUiState(hasProgram = true,
+            upNext = listOf(first.copy(rest = true, beforeSprint = true))))
+        rule.setContent { AppTheme { TodayScreen(state.value, actions()) } }
+        rule.onNodeWithText("Rest before your next sprint day.").assertIsDisplayed()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(first.copy(rest = true))) }
+        rule.onNodeWithText("Rest before your next sprint day.").assertDoesNotExist()
+    }
+
+    @Test @Config(qualifiers = "w360dp-h720dp-xxhdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun restBeforeSprintKeepsWholeWordsAtFontScaleTwo() {
+        val rest = TodayDay(1, "Sprint", "B", 1, "Rest", rest = true, trainDayId = "C", beforeSprint = true)
+        var skipped: DaySelection? = null
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { TodayScreen(TodayUiState(hasProgram = true, upNext = listOf(rest)),
+                    actions().copy(onSkipRest = { skipped = it })) }
+            }
+        }
+        val note = "Rest before your next sprint day."
+        val node = rule.onNodeWithText(note, useUnmergedTree = true).assertIsDisplayed()
+        val layouts = mutableListOf<TextLayoutResult>()
+        node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        val bounds = node.fetchSemanticsNode().boundsInRoot
+        assertEquals(2f, layout.layoutInput.density.fontScale, 0f)
+        assertFalse("Rest note exceeds its height", layout.didOverflowHeight)
+        for (line in 0 until layout.lineCount) {
+            assertFalse("Rest note is ellipsized on line $line", layout.isLineEllipsized(line))
+            val end = layout.getLineEnd(line, visibleEnd = true)
+            assertTrue("Rest note splits a word on line $line",
+                end == note.length || note[end].isWhitespace() || end > 0 && note[end - 1].isWhitespace())
+            assertTrue("Rest note exceeds its width on line $line",
+                bounds.width + 1f >= layout.getLineRight(line) - layout.getLineLeft(line))
+        }
+        val skip = rule.onNodeWithText("Skip rest and train").assertIsDisplayed()
+        assertTrue(skip.fetchSemanticsNode().boundsInRoot.top >= bounds.bottom)
+        skip.performClick()
+        assertEquals(DaySelection(rest.planId, "C"), skipped)
     }
 
 }

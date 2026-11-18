@@ -413,7 +413,7 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("A time").performClick()
         rule.onNodeWithText("Target time").performTextReplacement("3:30")
         rule.onNodeWithText("Target time").performImeAction()
-        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Enter a time between 1:10:19 and 24:00:00").assertExists()
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
         rule.onNodeWithText("Target time").performTextReplacement("3:30:00")
@@ -477,7 +477,7 @@ class SetupFlowScreenTest {
             SetupFlowActions(onMarathonBest = { shown = shown.copy(draft = shown.draft.copy(marathonBestSeconds = it)) }))
         rule.onNodeWithText("Marathon best").performTextReplacement("3:30")
         rule.onNodeWithText("Marathon best").performImeAction()
-        rule.onNodeWithText("Enter a number between 1:10:19 and 24:00:00").assertExists()
+        rule.onNodeWithText("Enter a time between 1:10:19 and 24:00:00").assertExists()
         rule.runOnIdle { assertNull(shown.draft.marathonBestSeconds) }
         rule.onNodeWithText("Marathon best").performTextReplacement("3:30:00")
         rule.onNodeWithText("Marathon best").performImeAction()
@@ -525,4 +525,21 @@ class SetupFlowScreenTest {
         assertTrue(text.contains("${cardio.minutes} min"))
         assertTrue(!text.contains("lifts"))
     }
+    @Test fun `a fitness test target that is not a time waits`() {
+        show(state(SetupStep.EVENT, SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)),
+            SetupFlowActions(onGoalSeconds = { shown = state(SetupStep.EVENT, shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("16")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("1:00")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertNull(shown.draft.goalSeconds) }
+        rule.onNodeWithText("Target time").performTextReplacement("16:00")
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(960, shown.draft.goalSeconds) }
+    }
+
 }

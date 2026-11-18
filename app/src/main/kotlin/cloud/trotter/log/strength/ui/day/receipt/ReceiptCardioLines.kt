@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day.receipt
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.LadderHold
 import cloud.trotter.log.strength.domain.progression.RunSession
@@ -99,6 +100,7 @@ internal fun spokenCardioNextLine(state: ReceiptProgressState): String? {
 private fun runNextValue(state: ReceiptProgressState): String {
     val result = state.run ?: return ""
     val block = result.block ?: state.cardioStored ?: return ""
+    if (result.dose != null) return blockValue(block, distanceUnitFor(block.activity))
     val change = result.change
     val level = (change as? CardioChange.LevelTo)?.level ?: result.from
     val value = when {
@@ -114,6 +116,21 @@ private fun runNextValue(state: ReceiptProgressState): String {
 @Composable
 private fun runWhyLine(state: ReceiptProgressState, name: String): String? {
     val result = state.run ?: return null
+    if (result.dose != null) {
+        val introLeft = result.introLeft
+        return when {
+            result.change == CardioChange.Restart -> stringResource(R.string.receipt_why_sprint_restart)
+            result.dose == SprintDose.TRIAL -> stringResource(R.string.receipt_why_sprint_trial)
+            result.dose == SprintDose.SHORTENED -> stringResource(R.string.receipt_why_sprint_shortened)
+            result.dose == SprintDose.SUBSTITUTE -> stringResource(R.string.receipt_why_sprint_substitute)
+            result.dose == SprintDose.TEMPO -> stringResource(R.string.receipt_why_sprint_tempo)
+            result.change == CardioChange.Step -> stringResource(R.string.receipt_why_sprint_step)
+            introLeft == 0 -> stringResource(R.string.receipt_why_sprint_intro_done)
+            introLeft != null && introLeft > 0 -> pluralStringResource(R.plurals.receipt_why_sprint_intro, introLeft, introLeft)
+            result.credit -> stringResource(R.string.receipt_why_sprint_credit)
+            else -> null
+        }
+    }
     if (result.credit) return stringResource(R.string.receipt_why_ladder_credit, result.from ?: return null)
     when (result.hold) {
         LadderHold.WEEK_CAP -> return stringResource(R.string.receipt_why_ladder_week_cap)

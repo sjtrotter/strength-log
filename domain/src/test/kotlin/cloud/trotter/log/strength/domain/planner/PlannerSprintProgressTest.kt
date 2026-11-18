@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.Reason
 import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.SprintContext
 import cloud.trotter.log.strength.domain.progression.SprintRules
 import cloud.trotter.log.strength.domain.progression.sprintBlock
@@ -350,7 +351,8 @@ class PlannerSprintProgressTest {
         val stored = requireNotNull(day(program, "A").cardioBlock)
         val block = Progression.cardioAtStart(stored, rule(program, "A"), history, goal, context)
         val out = Progression.cardioAfterSession(block, rule(program, "A"), finished(block), CardioEffort.HARD, history, context)
-        assertEquals(CardioOutcome(stored, rule(program, "A").copy(sprintTrialCycle = 4), CardioChange.Repeat), out)
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(stored, rule(program, "A").copy(sprintTrialCycle = 4), CardioChange.Repeat, dose = SprintDose.TRIAL), out)
         val next = withRule(program, "A", requireNotNull(out.rule))
         assertNull(SprintContext.of(next, "A", mapOf("A" to listOf(1_000L)), 4, goal, 1_001, setOf("A")).timeTrialMetres)
         val after = SprintContext.of(next, "A", mapOf("A" to listOf(1_000L)), 5, goal, 1_007, emptySet())

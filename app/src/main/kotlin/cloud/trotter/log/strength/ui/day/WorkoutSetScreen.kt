@@ -83,6 +83,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -99,6 +100,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -107,6 +109,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.EffortScale
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import androidx.compose.foundation.layout.BoxWithConstraints
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -534,6 +537,7 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             }
             cardio.gps?.let { WorkoutGps(it, cardio.distanceUnit, activity, run?.running == true) }
             if (run == null && !done) {
+                cardio.sprint?.let { WorkoutSprintStart(it, block.sets.any { set -> set.hard }) }
                 when (val nextTime = cardio.nextTime) {
                     is CardioNextTime.Offer ->
                         CardioNextTimeChip(nextTime, actions.onApplyCardioNextTime)
@@ -548,6 +552,39 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
             }
         }
     }
+}
+
+@Composable
+private fun WorkoutSprintStart(sprint: SprintStartUi, maximal: Boolean) {
+    when (sprint.dose) {
+        SprintDose.SHORTENED -> sprint.shortenedReps?.let { reps ->
+            WorkoutSprintLine(pluralStringResource(R.plurals.sprint_allowance_shortened, reps, reps))
+        }
+        SprintDose.SUBSTITUTE -> WorkoutSprintLine(stringResource(R.string.sprint_allowance_substitute))
+        else -> Unit
+    }
+    val gap = sprint.daysSince
+    if (maximal && gap != null && gap < sprint.spacingDays && sprint.dose != SprintDose.SUBSTITUTE) {
+        WorkoutSprintLine(when (gap) {
+            0L -> stringResource(R.string.sprint_note_today)
+            1L -> stringResource(R.string.sprint_note_yesterday)
+            else -> pluralStringResource(R.plurals.sprint_note_days_ago, gap.toInt(), gap.toInt())
+        })
+        val three = sprint.spacingDays == 3
+        val reason = if (three) when (sprint.reason) {
+            SpacingReason.FORTY_OR_OLDER -> R.string.sprint_reason_forty
+            SpacingReason.HAMSTRING_STRAIN -> R.string.sprint_reason_strain
+            SpacingReason.STARTING_OUT -> R.string.sprint_reason_starting
+            SpacingReason.FOR_NOW -> R.string.sprint_reason_for_now
+        } else R.string.sprint_reason_for_now
+        WorkoutSprintLine(stringResource(if (three) R.string.sprint_spacing_three else R.string.sprint_spacing_two, stringResource(reason)))
+    }
+    if (sprint.nineTenths) WorkoutSprintLine(stringResource(R.string.sprint_nine_tenths))
+}
+
+@Composable
+private fun WorkoutSprintLine(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

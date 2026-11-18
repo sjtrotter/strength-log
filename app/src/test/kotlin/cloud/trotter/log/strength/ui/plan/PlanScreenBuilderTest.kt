@@ -332,4 +332,17 @@ class PlanScreenBuilderTest {
     private fun oldSettings(answers: OldWizardPlan) = PlanSettingsJson.encode(PlanSettings(
         equipment = answers.equipment, goalsLb = answers.goalsLb,
         legacyMains = answers.mains.toSet()))
+    @Test fun `sprint rows count the planned block after two steps and mark rest before sprint`() {
+        val program = Planner.plan(SetupAnswers(branch = PlanBranch.SPRINT, days = 5)).program.let { program ->
+            program.copy(days = program.days.map { day ->
+                if (day.id == "A") day.copy(cardioRule = requireNotNull(day.cardioRule).copy(intro = 0, steps = 2)) else day
+            })
+        }
+        val rows = PlanScreenBuilder.days(program, "A", WeightUnit.LB, catalog)
+        assertEquals(listOf("C"), rows.filter { it.beforeSprint }.map { it.dayId })
+        assertEquals(8, requireNotNull(program.days.first().cardioBlock).sets.size)
+        assertEquals(12, rows.first().cardioSetCount)
+        assertEquals(CardioActivity.TRACK_RUN, rows.first().cardioActivity)
+    }
+
 }

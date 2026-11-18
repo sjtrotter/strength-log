@@ -62,9 +62,11 @@ class PreviewViewModel @Inject constructor(
         sessions to sets
     }
 
+    private val planInputs = combine(plans.plansFlow, plans.programFor(planId), ::Pair)
+
     val uiState = combine(
-        repo.observeDay(planId, dayId), settings.unitFlow, history, plans.plansFlow, cardioHistory,
-    ) { performedDay, unit, history, plans, cardioHistory ->
+        repo.observeDay(planId, dayId), settings.unitFlow, history, planInputs, cardioHistory,
+    ) { performedDay, unit, history, (plans, program), cardioHistory ->
         val (last, slotSessions) = history
         val day = performedDay.day
         val plan = plans.firstOrNull { it.id == planId }
@@ -73,7 +75,7 @@ class PreviewViewModel @Inject constructor(
             DayScreenBuilder.cardioNextTime(day, plan, cardioSessions, cardioSets)
         } else null
         val opening = if (day != null && plan != null) {
-            DayScreenBuilder.cardioOpening(day, plan, cardioSessions, cardioSets, clock.millis())
+            DayScreenBuilder.cardioOpening(day, plan, cardioSessions, cardioSets, clock.millis(), program, unit, repo.zone)
         } else null
         PreviewUiState(
             loading = false, selection = selection, runId = performedDay.tracks.runId,

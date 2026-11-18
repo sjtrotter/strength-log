@@ -38,7 +38,6 @@ import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleUndoDto
 import cloud.trotter.log.strength.data.serialization.CardioDayUndoDto
-import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.CardioBlockUndoDto
 import cloud.trotter.log.strength.data.serialization.ReasonCode
 import cloud.trotter.log.strength.domain.progression.CardioEffort
@@ -107,6 +106,7 @@ import cloud.trotter.log.strength.domain.seeding.RunReplan
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Clock
+import java.time.ZoneId
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -142,6 +142,9 @@ class TrackerRepository(
     val catalog: CatalogRepository = CatalogRepository(customExerciseDao),
     val history: HistoryRepository = HistoryRepository(db, settings, plans, sessionDao, customExerciseDao),
 ) {
+
+    /** The zone every local sprint and ladder date uses; Start and Finish read the same one. */
+    val zone: ZoneId get() = clock.zone
 
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
@@ -1020,8 +1023,7 @@ class TrackerRepository(
                 if (it.id == override.first) it.copy(cardioRule = override.second) else it
             })
         }
-        val setup = plan.setupAnswers(unit)
-        return CardioPlan(program, cycle, PlanGoalJson.decode(plan.goalJson), setup?.careful == true, clock.zone, setup)
+        return CardioPlan.of(plan.copy(cyclesCompleted = cycle), program, unit, zone)
     }
 
     /** Rule-less increases write only on Automatic; sprint state always writes. Ruled run replay replaces
@@ -1044,7 +1046,7 @@ class TrackerRepository(
             val undo = CardioUndoJson.decode(session.progressionUndoJson) ?: CardioUndoDto()
             cardioSessionDao.update(session.copy(increaseApplied = judgment.outcome.change == CardioChange.Step,
                 progressionUndoJson = CardioUndoJson.encode(undo.copy(rule = CardioRuleUndoDto(
-                    undo.rule?.before ?: CardioRuleJson.encode(judgment.preWrite), after, cycle)))))
+                    undo.rule?.before ?: CardioRuleJson.encode(judgment.preWrite), after, cycle), result = runResult(judgment)))))
             return
         }
         if (!judgment.automatic || judgment.outcome.change !is CardioChange.Increase || judgment.outcome.block == judgment.stored) return
@@ -1128,13 +1130,17 @@ class TrackerRepository(
             is CardioChange.Alternate -> "ALTERNATE"
             CardioChange.Restart -> "RESTART"
         }
+        val sprint = judgment.outcome.dose != null
+        val before = judgment.preWrite
+        val after = judgment.outcome.rule
+        val credit = before != null && after != null && after.credits > before.credits
+        val introLeft = if (sprint && before != null && after != null && after.intro < before.intro) after.intro else null
         return CardioResultDto(name, (change as? CardioChange.LevelTo)?.level,
             (change as? CardioChange.Alternate)?.to?.name, (change as? CardioChange.Increase)?.capped == true,
             judgment.preWrite?.ladderLevel, judgment.outcome.hold?.name,
-            change == CardioChange.Repeat && judgment.preWrite?.ladderLevel != null &&
-                (judgment.outcome.rule?.credits ?: 0) > judgment.preWrite.credits,
-            !judgment.automatic && change != CardioChange.Repeat, judgment.choice,
-            CardioBlockJson.encode(judgment.outcome.block))
+            credit && (sprint || (change == CardioChange.Repeat && before?.ladderLevel != null)),
+            !sprint && !judgment.automatic && change != CardioChange.Repeat, judgment.choice,
+            CardioBlockJson.encode(judgment.outcome.block), judgment.outcome.dose?.name, introLeft)
     }
 
     /** Replays the newest ruled run Finish with an explicit chip choice, retaining its original Undo. */

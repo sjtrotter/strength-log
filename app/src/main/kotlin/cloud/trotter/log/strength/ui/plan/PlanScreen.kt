@@ -148,7 +148,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         trailingContent = { Switch(state.runCap, onCheckedChange = null) },
                         modifier = Modifier.toggleable(state.runCap, role = Role.Switch, onValueChange = actions.onRunCapChange))
                 }
-                item(key = "cardio_goal_header") {
+                if (!state.sprintGoal) item(key = "cardio_goal_header") {
                     Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goal)) }
                 }
                 if (state.runPhase != null || state.taper) item(key = "run_phase") {
@@ -156,7 +156,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         headlineContent = { Text(stringResource(if (state.taper) R.string.plan_phase_taper
                             else runPhaseLabel(requireNotNull(state.runPhase)))) })
                 }
-                item(key = "cardio_goal") {
+                if (!state.sprintGoal) item(key = "cardio_goal") {
                     val goal = state.goal
                     if (goal == null) {
                         TextButton(onClick = actions.onOpenCardioGoal) { Text(stringResource(R.string.plan_add_goal)) }
@@ -291,7 +291,7 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
         supportingContent = {
             val activity = day.cardioActivity
             Text(when {
-                day.kind == ProgramDayKind.REST -> stringResource(R.string.rest_day_title)
+                day.kind == ProgramDayKind.REST -> stringResource(if (day.beforeSprint) R.string.today_rest_before_sprint else R.string.rest_day_title)
                 day.liftCount == 0 && activity != null -> stringResource(R.string.plan_cardio_summary,
                     cardioActivityName(activity), pluralStringResource(R.plurals.plan_sets, day.cardioSetCount, day.cardioSetCount))
                 else -> "$lifts, $sets"

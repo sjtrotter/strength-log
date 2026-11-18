@@ -1,5 +1,21 @@
 package cloud.trotter.log.strength.store
 
+import cloud.trotter.log.strength.data.SpacingReason
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayPlanEditor
+import cloud.trotter.log.strength.ui.day.sprintEditorFixture
+import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
+import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
+import cloud.trotter.log.strength.ui.day.sprintStartFixture
+import cloud.trotter.log.strength.ui.plan.PlanScreenBuilder
+
 import cloud.trotter.log.strength.data.serialization.RunResult
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.LadderHold
@@ -325,6 +341,83 @@ class ProgressionPreviewShotsTest {
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Predicted 4:00:49", substring = true))
         capture("p25-plan-goal-hours.png")
     }
+
+    private fun sprintStart(name: String, scale: Float, dose: SprintDose = SprintDose.NORMAL, careful: Boolean = false) {
+        render(scale) { WorkoutSetHost(sprintStartFixture(dose,
+            reason = if (careful) SpacingReason.FORTY_OR_OLDER else SpacingReason.STARTING_OUT, nineTenths = careful)) }
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartFirstWeeks() = sprintStart("p26-sprint-start-first-weeks.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartFirstWeeksLargeFont() = sprintStart("p27-sprint-start-first-weeks-2x.png", 2f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartCareful() = sprintStart("p28-sprint-start-careful.png", 1f, careful = true)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartCarefulLargeFont() = sprintStart("p29-sprint-start-careful-2x.png", 2f, careful = true)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartShortened() = sprintStart("p30-sprint-start-shortened.png", 1f, SprintDose.SHORTENED)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartShortenedLargeFont() = sprintStart("p31-sprint-start-shortened-2x.png", 2f, SprintDose.SHORTENED)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartSubstitute() = sprintStart("p32-sprint-start-substitute.png", 1f, SprintDose.SUBSTITUTE)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintStartSubstituteLargeFont() = sprintStart("p33-sprint-start-substitute-2x.png", 2f, SprintDose.SUBSTITUTE)
+
+    private fun sprintReceipt(name: String, scale: Float, change: CardioChange = CardioChange.Step,
+                              dose: SprintDose = SprintDose.NORMAL, introLeft: Int? = null) {
+        render(scale) { SessionReceiptScreen(sprintReceiptFixture(introLeft != null, dose), {}, {},
+            progress = sprintReceiptProgressFixture(change, dose, introLeft)) }
+        rule.onNodeWithText("Why").performScrollTo().performClick()
+        capture(name, sheet = true)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptStep() = sprintReceipt("p34-sprint-receipt-step.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptStepLargeFont() = sprintReceipt("p35-sprint-receipt-step-2x.png", 2f)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptIntro() = sprintReceipt("p36-sprint-receipt-intro.png", 1f, CardioChange.Repeat, introLeft = 2)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptIntroLargeFont() = sprintReceipt("p37-sprint-receipt-intro-2x.png", 2f, CardioChange.Repeat, introLeft = 2)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptShortened() = sprintReceipt("p38-sprint-receipt-shortened.png", 1f, CardioChange.Repeat, SprintDose.SHORTENED)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintReceiptShortenedLargeFont() = sprintReceipt("p39-sprint-receipt-shortened-2x.png", 2f, CardioChange.Repeat, SprintDose.SHORTENED)
+
+    private fun restBeforeSprint(name: String, scale: Float) {
+        render(scale) { TodayScreen(TodayUiState(hasProgram = true,
+            upNext = listOf(TodayDay(1, "Sprint", "B", 1, "Rest", rest = true, trainDayId = "C", beforeSprint = true))),
+            TodayActions({}, {}, {})) }
+        capture(name)
+    }
+    @Test fun todayRestBeforeSprint() = restBeforeSprint("p40-today-rest-before-sprint.png", 1f)
+    @Test fun todayRestBeforeSprintLargeFont() = restBeforeSprint("p41-today-rest-before-sprint-2x.png", 2f)
+
+    private fun sprintPlan(name: String, scale: Float) {
+        val program = Planner.plan(SetupAnswers(branch = PlanBranch.SPRINT, days = 2)).program.let { program ->
+            program.copy(days = program.days.map { day ->
+                if (day.id == "A") day.copy(cardioRule = requireNotNull(day.cardioRule).copy(intro = 0, steps = 2)) else day
+            })
+        }
+        val plan = PlanEntity(1, "Sprint", "AUTHORED", 0, 0, suggestedDayId = "A",
+            goalJson = PlanGoalJson.encode(PlanGoal.Sprint(100)))
+        val state = PlanScreenBuilder.buildUiState(plan, program, ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+        render(scale) { PlanScreen(state, PlanActions({}, {}, {})) }
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun planSprintDays() = sprintPlan("p42-plan-sprint-days.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun planSprintDaysLargeFont() = sprintPlan("p43-plan-sprint-days-2x.png", 2f)
+
+    private fun sprintEditor(name: String, scale: Float) {
+        render(scale) { DayPlanEditor(sprintEditorFixture(), "A", false, MaterialTheme.colorScheme.primary,
+            DayEditActions(onSwap = { _, _ -> }, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+                onRemoveSuperset = {}, onResetToTemplate = {}), {}, {}) }
+        capture(name)
+    }
+    @Test fun dayEditorSprint() = sprintEditor("p44-day-editor-sprint.png", 1f)
+    @Test fun dayEditorSprintLargeFont() = sprintEditor("p45-day-editor-sprint-2x.png", 2f)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.progression.restBeforeSprint
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.time.CivilTimeSource
@@ -69,6 +70,7 @@ class TodayViewModel @Inject constructor(
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
                             (day.exercises.isEmpty() && day.cardioBlock != null),
                         rest = day.kind == ProgramDayKind.REST,
+                        beforeSprint = restBeforeSprint(program, day.id),
                         trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST },
                         lighterAvailable = run == null && plan.lightCycleRemaining == 0 &&
                             day.kind == ProgramDayKind.STRENGTH && day.exercises.any {

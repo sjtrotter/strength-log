@@ -52,6 +52,7 @@ fun NumberField(
     onDraftChange: (Double?) -> Unit = {},
     parse: ((String) -> Double?)? = null,
     keyboardType: KeyboardType? = null,
+    onDraftEdit: (text: String, value: Double?) -> Unit = { _, _ -> },
 ) {
     var draft by rememberSaveable(label) { mutableStateOf(value?.let(format).orEmpty()) }
     var dirty by rememberSaveable(label) { mutableStateOf(false) }
@@ -77,7 +78,11 @@ fun NumberField(
         if (!dirty && pendingCommit == null && !focused) draft = value?.let(format).orEmpty()
     }
     val rangeError = if (maxValue.isFinite()) {
-        stringResource(if (weightInput) R.string.form_weight_range else R.string.form_number_range,
+        stringResource(when {
+            parse != null -> R.string.form_time_range
+            weightInput -> R.string.form_weight_range
+            else -> R.string.form_number_range
+        },
             format(minValue), format(maxValue))
     } else {
         stringResource(if (weightInput) R.string.form_weight_minimum else R.string.form_number_minimum, format(minValue))
@@ -97,6 +102,7 @@ fun NumberField(
             draft = it
             dirty = true
             onDraftChange(resolve(it))
+            onDraftEdit(it, resolve(it))
         },
         label = { Text(label) },
         modifier = modifier.fillMaxWidth().onFocusChanged {

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.requestFocus
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -58,6 +59,25 @@ class NumberFieldTest {
         rule.onNodeWithText("Weight (lb)").performClick().performTextReplacement("501")
         rule.onNodeWithText("Reps").performClick()
         rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
+    }
+
+    @Test fun parsedTimeUsesTimeRangeError() {
+        val writes = mutableListOf<Double>()
+        rule.setContent { AppTheme {
+            NumberField(60.0, { writes += it }, "Time", minValue = 1.0, maxValue = 3600.0,
+                format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() })
+        } }
+        rule.onNodeWithText("Time").performClick().performTextReplacement("1:00:01")
+        rule.onNodeWithText("Time").performImeAction()
+        rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertExists()
+        rule.runOnIdle { assertEquals(emptyList<Double>(), writes) }
+    }
+
+    @Test fun numericFieldKeepsNumberRangeError() {
+        rule.setContent { AppTheme { NumberField(8.0, {}, "Reps", minValue = 1.0, maxValue = 100.0) } }
+        rule.onNodeWithText("Reps").performClick().performTextReplacement("101")
+        rule.onNodeWithText("Reps").performImeAction()
+        rule.onNodeWithText("Enter a number between 1 and 100").assertExists()
     }
 
     @Test fun delayedCommitAcknowledgmentPreservesTheNextDraft() {

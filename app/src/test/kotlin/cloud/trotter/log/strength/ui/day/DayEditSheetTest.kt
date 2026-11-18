@@ -624,4 +624,24 @@ class DayEditSheetTest {
         composeTestRule.onNodeWithText("No sets yet").assertExists()
     }
 
+    @Test fun `a sprint day editor follows the planned block`() {
+        composeTestRule.setContent { AppTheme {
+            DayEditPages(sprintEditorFixture(), ladderActions(), Color.Gray, {}, {})
+        } }
+        composeTestRule.onNodeWithText("8 × 20 m").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sprint sets follow the plan.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Edit cardio").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Next time").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Remove cardio").assertDoesNotExist()
+    }
+
+    @Test @Config(fontScale = 2f)
+    fun largeFontSprintDayEditor() {
+        composeTestRule.setContent { AppTheme {
+            DayEditPages(sprintEditorFixture(), ladderActions(), Color.Gray, {}, {})
+        } }
+        composeTestRule.onNodeWithText("8 × 20 m").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sprint sets follow the plan.").assertIsDisplayed()
+    }
+
 }

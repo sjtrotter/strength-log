@@ -42,7 +42,8 @@ class ProgressionSprintTest {
                 val first = finish(rule, effort)
                 assertEquals(rule.copy(credits = 1), first.rule)
                 val second = finish(assertNotNull(first.rule), effort)
-                assertEquals(CardioOutcome(sprintBlock(session, 1), rule.copy(steps = 1, stepCycle = 0), CardioChange.Step), second)
+                // PR 7d: the outcome names its dose
+                assertEquals(CardioOutcome(sprintBlock(session, 1), rule.copy(steps = 1, stepCycle = 0), CardioChange.Step, dose = SprintDose.NORMAL), second)
             }
         }
     }
@@ -53,9 +54,11 @@ class ProgressionSprintTest {
         val incomplete = finished(block).mapIndexed { index, row ->
             if (index == block.sets.indexOfLast { it.role == CardioRole.WORK }) row.copy(status = CardioSetStatus.SHORTENED) else row
         }
-        assertEquals(CardioOutcome(block, rule, CardioChange.Repeat),
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(block, rule, CardioChange.Repeat, dose = SprintDose.NORMAL),
             Progression.cardioAfterSession(block, rule, incomplete, CardioEffort.HARD, history, ctx()))
-        assertEquals(CardioOutcome(block, rule, CardioChange.Repeat), finish(rule, pain = true))
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(block, rule, CardioChange.Repeat, dose = SprintDose.NORMAL), finish(rule, pain = true))
         val tempo = CardioRule(null, RunSession.SPRINT_TEMPO, credits = 1)
         assertEquals(tempo, finish(tempo).rule)
         assertEquals(listOf(200, 100, 100, 100, 100, 100), reps(finish(tempo, CardioEffort.GOOD).block))
@@ -67,7 +70,8 @@ class ProgressionSprintTest {
             repeat(3) { index ->
                 val out = finish(rule, CardioEffort.GOOD)
                 rule = rule.copy(intro = 2 - index)
-                assertEquals(CardioOutcome(sprintBlock(session, 0), rule, CardioChange.Repeat), out)
+                // PR 7d: the outcome names its dose
+                assertEquals(CardioOutcome(sprintBlock(session, 0), rule, CardioChange.Repeat, dose = SprintDose.NORMAL), out)
             }
             rule = assertNotNull(finish(rule, CardioEffort.GOOD).rule)
             assertEquals(1, rule.credits)
@@ -139,7 +143,8 @@ class ProgressionSprintTest {
                 cycle = 4, tempo = session == RunSession.SPRINT_ENDURANCE)
             val low = sprintBlock(session, 0)
             assertEquals(low, opening(rule, context))
-            assertEquals(CardioOutcome(low, CardioRule(null, session, intro = 2, stepCycle = 3), CardioChange.Restart),
+            // PR 7d: the outcome names its dose
+            assertEquals(CardioOutcome(low, CardioRule(null, session, intro = 2, stepCycle = 3), CardioChange.Restart, dose = SprintDose.RESTART),
                 finish(rule, context = context, block = low))
             assertEquals(CardioRule(null, session, intro = 3, stepCycle = 3),
                 finish(rule, context = context, pain = true, block = low).rule)
@@ -161,7 +166,8 @@ class ProgressionSprintTest {
         val trial = SprintRules.timeTrial(100, CardioActivity.TRACK_RUN)
         assertEquals(trial, opening(rule, context))
         for (pain in listOf(false, true)) {
-            assertEquals(CardioOutcome(sprintBlock(RunSession.ACCELERATION, 12), rule.copy(sprintTrialCycle = 4), CardioChange.Repeat),
+            // PR 7d: the outcome names its dose
+            assertEquals(CardioOutcome(sprintBlock(RunSession.ACCELERATION, 12), rule.copy(sprintTrialCycle = 4), CardioChange.Repeat, dose = SprintDose.TRIAL),
                 finish(rule, context = context, pain = pain, block = trial))
         }
         val intro = CardioRule(null, RunSession.ACCELERATION, intro = 1)
@@ -186,7 +192,8 @@ class ProgressionSprintTest {
         val context = ctx(tempo = true)
         val substitute = sprintBlock(RunSession.SPRINT_TEMPO, 0)
         assertEquals(substitute, opening(b, context))
-        assertEquals(CardioOutcome(sprintBlock(RunSession.SPRINT_ENDURANCE, 4), b, CardioChange.Repeat),
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(sprintBlock(RunSession.SPRINT_ENDURANCE, 4), b, CardioChange.Repeat, dose = SprintDose.TEMPO),
             finish(b, context = context, block = substitute))
     }
 
@@ -194,7 +201,8 @@ class ProgressionSprintTest {
         for (session in RunSession.entries.filter { it.sprint }) {
             val rule = CardioRule(null, session, steps = requireNotNull(RunRange.of(session)).top)
             val block = sprintBlock(session, rule.steps)
-            assertEquals(CardioOutcome(block, rule, CardioChange.Repeat), finish(rule, CardioEffort.GOOD))
+            // PR 7d: the outcome names its dose
+            assertEquals(CardioOutcome(block, rule, CardioChange.Repeat, dose = SprintDose.NORMAL), finish(rule, CardioEffort.GOOD))
             for (runCap in listOf(true, false)) {
                 assertEquals(block, Progression.cardioAtStart(block, rule, CardioHistory(longest = RecentMaxima(100, 30)),
                     PlanGoal.Sprint(100), ctx().copy(runCap = runCap)))
@@ -260,9 +268,11 @@ class ProgressionSprintTest {
         val opening = sprintBlock(RunSession.ACCELERATION, 12, CardioActivity.TRACK_RUN)
         val stepped = sprintBlock(RunSession.ACCELERATION, 13, CardioActivity.TRACK_RUN)
         val context = ctx(cycle = 4)
-        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat),
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(opening, rule, CardioChange.Repeat, dose = SprintDose.NORMAL),
             finish(rule, context = context.copy(budgetSeconds = plannedSeconds(opening))))
-        assertEquals(CardioOutcome(stepped, rule.copy(steps = 13, credits = 0, stepCycle = 4), CardioChange.Step),
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(stepped, rule.copy(steps = 13, credits = 0, stepCycle = 4), CardioChange.Step, dose = SprintDose.NORMAL),
             finish(rule, context = context.copy(budgetSeconds = plannedSeconds(stepped))))
     }
 

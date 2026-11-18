@@ -88,10 +88,18 @@ internal fun SetupSegments(labels: List<String>, selected: Int, onSelect: (Int) 
 }
 
 @Composable
-private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, onChange: (Int?) -> Unit) {
+private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: Int? = null, onChange: (Int?) -> Unit) {
     val change: (Double?) -> Unit = { onChange(it?.toInt()) }
     key(minSeconds) {
-        NumberField(value = value?.takeIf { it >= minSeconds }?.toDouble(), onValueChange = change, onDraftChange = change,
+        NumberField(value = value?.takeIf { it >= minSeconds }?.toDouble(), onValueChange = change,
+            onDraftChange = { if (invalid == null) change(it) },
+            onDraftEdit = { text, parsed ->
+                if (invalid != null) onChange(when {
+                    text.isBlank() -> null
+                    parsed == null -> invalid
+                    else -> parsed.toInt()
+                })
+            },
             label = label, minValue = minSeconds.toDouble(), maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
             parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii)
     }
@@ -147,7 +155,7 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         }
         if (draft.test.metres != null) {
             SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
-                minSeconds = SetupFlowStateBuilder.goalTimeFloor(draft), onChange = actions.onGoalSeconds)
+                minSeconds = SetupFlowStateBuilder.goalTimeFloor(draft), invalid = INVALID_GOAL_TIME, onChange = actions.onGoalSeconds)
         } else {
             val change: (Double?) -> Unit = { actions.onTestScore(it?.toInt()) }
             NumberField(value = draft.testScore?.toDouble(), onValueChange = change, onDraftChange = change,

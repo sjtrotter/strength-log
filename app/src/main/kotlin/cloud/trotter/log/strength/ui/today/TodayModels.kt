@@ -27,6 +27,7 @@ data class TodayDay(
     val rest: Boolean = false,
     val trainDayId: String? = null,
     val lighterAvailable: Boolean = false,
+    val beforeSprint: Boolean = false,
 ) {
     val selection: DaySelection get() = DaySelection(planId, dayId)
 }

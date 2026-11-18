@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 
 /** Practice (design §3.2): calendar days wanted between maximal sessions, three in the first weeks or for the
  *  careful group, else two. Advice only; the app cannot measure hours. */
@@ -54,8 +55,57 @@ fun sprintMaximalMetres(results: List<CardioSetResult>): Int = results.filter {
 /** One finished session on a plan day; [epochDay] is the local date of its start. */
 data class SprintRecord(val dayId: String, val epochDay: Long, val results: List<CardioSetResult>)
 
-internal enum class SprintDose { NORMAL, RESTART, TEMPO, TRIAL, SHORTENED, SUBSTITUTE }
-internal data class SprintDecision(val dose: SprintDose, val block: CardioBlock)
+/** Design §4.2's named Start decisions. */
+enum class SprintDose {
+    /** The prescribed range at the rule's steps. */
+    NORMAL,
+    /** The starting dose after a maximal layoff, fitted to the allowance. */
+    RESTART,
+    /** Sprint B's tempo after Sprint A completed a long trial. */
+    TEMPO,
+    /** An admitted time trial. */
+    TRIAL,
+    /** A normal dose with fewer reps to fit the allowance. */
+    SHORTENED,
+    /** Easy tempo when the maximal dose cannot fit the allowance. */
+    SUBSTITUTE,
+}
+
+/** Today's dose and its decided block. */
+data class SprintDecision(val dose: SprintDose, val block: CardioBlock)
+
+/** Design §4.2's Start decision for [rule]'s sprint session: restart, B's tempo, trial, or the normal dose fitted to the
+ *  weekly allowance (shortened or substituted). Pure; the caller supplies [sprint] from the same anchor Finish replays. */
+fun sprintDecision(rule: CardioRule, sprint: SprintContext, activity: CardioActivity): SprintDecision {
+    val session = requireNotNull(rule.session)
+    require(session.sprint)
+    return SprintRules.decision(rule, session, sprint, activity)
+}
+
+/** The block [rule] prescribes on a sprint day, before the allowance and trials: the build-up and the range at its
+ *  steps. Null for a rule that is not a sprint session. */
+fun sprintPlannedBlock(rule: CardioRule?, activity: CardioActivity): CardioBlock? {
+    if (rule == null) return null
+    val session = rule.session?.takeIf { it.sprint } ?: return null
+    return sprintBlock(session, rule.steps, activity)
+}
+
+/** A REST entry whose next rotation entry, wrapping to the first, is a maximal sprint day (owner: rest before Sprint A). */
+fun restBeforeSprint(program: Program, dayId: String): Boolean {
+    val days = program.rotationDays
+    val index = days.indexOfFirst { it.id == dayId }
+    if (index < 0 || days[index].kind != ProgramDayKind.REST) return false
+    return days[(index + 1) % days.size].cardioRule?.session?.let(SprintRules::maximal) == true
+}
+
+private fun maximalRecords(program: Program, records: List<SprintRecord>): List<SprintRecord> {
+    val ids = program.days.filter { it.cardioRule?.session?.let(SprintRules::maximal) == true }.map { it.id }.toSet()
+    return records.filter { it.dayId in ids && sprintMaximalMetres(it.results) > 0 }
+}
+
+/** The latest local date among [records] on [program]'s maximal days with positive maximal meters; null without one. */
+fun lastMaximalEpochDay(program: Program, records: List<SprintRecord>): Long? =
+    maximalRecords(program, records).maxOfOrNull { it.epochDay }
 
 /** Plan-wide sprint history, supplied by the caller at Start and Finish. */
 data class SprintContext(
@@ -150,8 +200,7 @@ data class SprintContext(
             careful: Boolean,
         ): SprintContext {
             val maximal = program.days.filter { it.cardioRule?.session?.let(SprintRules::maximal) == true }
-            val ids = maximal.map { it.id }.toSet()
-            val records = history.filter { it.dayId in ids && sprintMaximalMetres(it.results) > 0 }
+            val records = maximalRecords(program, history)
             val first = maximal.firstOrNull()
             val trialRep = first?.cardioRule?.session?.let(RunRange::of)?.rep?.last
             val trials = records.filter { record ->
@@ -251,7 +300,7 @@ internal object SprintRules {
     ): CardioOutcome {
         val decision = decision(rule, session, sprint, block.activity)
         fun outcome(next: CardioRule, change: CardioChange) =
-            CardioOutcome(sprintBlock(session, next.steps, block.activity), next, change)
+            CardioOutcome(sprintBlock(session, next.steps, block.activity), next, change, dose = decision.dose)
         when (decision.dose) {
             SprintDose.TEMPO, SprintDose.SHORTENED, SprintDose.SUBSTITUTE -> return outcome(rule, CardioChange.Repeat)
             SprintDose.TRIAL -> return outcome(rule.copy(sprintTrialCycle = sprint.cyclesCompleted), CardioChange.Repeat)

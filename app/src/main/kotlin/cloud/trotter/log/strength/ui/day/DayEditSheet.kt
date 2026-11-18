@@ -92,6 +92,7 @@ import cloud.trotter.log.strength.ui.components.AppSheetLayout
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
+import cloud.trotter.log.strength.ui.day.receipt.blockValue
 import cloud.trotter.log.strength.ui.text.patternLabel
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Error
@@ -388,11 +389,16 @@ private fun DaySlotList(
             }
             item { AddExerciseRow(stringResource(R.string.sheet_add_exercise), onAddClick) }
             item {
-                if (state.cardioBlock == null) AddExerciseRow(stringResource(R.string.day_edit_add_cardio), onOpenCardio)
+                if (state.cardioSprint) {
+                    state.cardioPlanned?.let { block ->
+                        ListItem(headlineContent = { Text(blockValue(block, distanceUnitFor(block.activity))) },
+                            supportingContent = { Text(stringResource(R.string.sprint_editor_follows_plan)) })
+                    }
+                } else if (state.cardioBlock == null) AddExerciseRow(stringResource(R.string.day_edit_add_cardio), onOpenCardio)
                 else ListItem(headlineContent = { Text(stringResource(R.string.day_edit_edit_cardio)) },
                     modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onOpenCardio))
             }
-            if (state.cardioBlock != null) item {
+            if (state.cardioBlock != null && !state.cardioSprint) item {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.day_edit_next_time)) },
                     supportingContent = { Text(stringResource(if (state.cardioProgress.keepToPlan)
@@ -400,7 +406,7 @@ private fun DaySlotList(
                     modifier = Modifier.heightIn(min = 72.dp).clickable(onClick = onCardioOptions),
                 )
             }
-            if (state.cardioBlock != null) item {
+            if (state.cardioBlock != null && !state.cardioSprint) item {
                 TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty(), modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(stringResource(R.string.day_edit_remove_cardio))
                 }

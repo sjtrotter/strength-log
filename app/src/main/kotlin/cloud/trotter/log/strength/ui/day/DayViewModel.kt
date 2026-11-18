@@ -813,7 +813,7 @@ class DayViewModel @Inject constructor(
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.cardioToRun ?: return null
         val (sessions, sets) = cardioHistory.first()
-        val opening = DayScreenBuilder.cardioOpening(day, plan, sessions, sets, cardioClock.wallMillis()) ?: return null
+        val opening = DayScreenBuilder.cardioOpening(day, plan, sessions, sets, cardioClock.wallMillis(), program, settings.unitFlow.first(), repo.zone) ?: return null
         val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
@@ -2661,8 +2661,8 @@ class DayViewModel @Inject constructor(
         }
         val day = context?.program?.days?.firstOrNull { it.id == state.viewDayId }
         val plan = context?.plan
-        val opening = if (day != null && plan != null) {
-            DayScreenBuilder.cardioOpening(day, plan, history, sets, cardioClock.wallMillis())
+        val opening = if (context != null && day != null && plan != null) {
+            DayScreenBuilder.cardioOpening(day, plan, history, sets, cardioClock.wallMillis(), context.program, context.unit, repo.zone)
         } else null
         // Removing the source block must leave the frozen run and pending distances accessible.
         val sourceCard = state.cardio?.let { card ->
@@ -2674,10 +2674,13 @@ class DayViewModel @Inject constructor(
         val nextTime = if (savedRun == null && frozen == null && logged == null && day != null && plan != null) {
             DayScreenBuilder.cardioNextTime(day, plan, history, sets)
         } else null
+        val sprint = if (context != null && savedRun == null && frozen == null && logged == null && day != null && plan != null) {
+            DayScreenBuilder.sprintStart(day, plan, history, sets, cardioClock.wallMillis(), context.program, context.unit, repo.zone)
+        } else null
         val base = sourceCard?.let { source ->
             val loggedActivity = logged?.activity?.let { name -> CardioActivity.entries.firstOrNull { it.name == name } }
             val completed = activeRun == null && loggedSets.isNotEmpty()
-            source.copy(nextTime = nextTime, distanceUnit = distanceUnit.value, loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
+            source.copy(nextTime = nextTime, sprint = sprint, distanceUnit = distanceUnit.value, loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
                 label = if (completed && loggedActivity != null) activityLabel(loggedActivity) else source.label,
                 loggedActivity = loggedActivity,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },

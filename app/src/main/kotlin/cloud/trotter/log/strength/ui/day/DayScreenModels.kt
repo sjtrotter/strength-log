@@ -7,6 +7,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.RunSetCounts
+import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.routine.Move
@@ -17,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRule
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -310,7 +312,11 @@ data class CardioCardState(
     val gps: CardioGpsState? = null,
     val gpsAsk: Boolean = false,
     val gpsSets: List<CardioGpsSet> = emptyList(),
+    val sprint: SprintStartUi? = null,
 )
+
+data class SprintStartUi(val dose: SprintDose, val shortenedReps: Int?, val daysSince: Long?, val spacingDays: Int,
+                         val reason: SpacingReason, val nineTenths: Boolean)
 
 enum class GpsShown { READY, FINDING, LIVE, NO_SIGNAL, PARTIAL, LOCATION_OFF }
 @Immutable

@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 
 /**
  * The one observed projection of *today* — the open run or suggested day, its sets, their
@@ -82,8 +81,8 @@ class TodaySnapshotSource(
                 ) { unit, rest, cardio, edits ->
                     Context(unit, rest, cardio, edits)
                 }
-                plans.programFor(plan.id).map { it.dayToShow(dayId)?.id }.distinctUntilChanged().flatMapLatest resolved@ { resolvedId ->
-                    if (resolvedId == null) return@resolved flowOf(null)
+                plans.programFor(plan.id).distinctUntilChanged().flatMapLatest resolved@ { program ->
+                    val resolvedId = program.dayToShow(dayId)?.id ?: return@resolved flowOf(null)
                     combine(
                         repo.observeDay(plan.id, resolvedId), repo.openRunFlow, context,
                         combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
@@ -108,7 +107,7 @@ class TodaySnapshotSource(
                             processedEditStamps = ctx.processedEdits,
                             liftGoal = plan.planSettings.defaultsFor,
                             cardioOpening = performedDay.day?.let {
-                                DayScreenBuilder.cardioOpening(it, plan, sessions, sets, clock.millis())
+                                DayScreenBuilder.cardioOpening(it, plan, sessions, sets, clock.millis(), program, ctx.unit, repo.zone)
                             },
                         )
                     }

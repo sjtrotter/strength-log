@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.ui.day.NextTimeGate
 import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.data.CardioJudge
 import android.os.Parcelable
@@ -58,7 +59,8 @@ data class ReceiptProgressState(
     val replan: ReceiptReplan? = null,
 ) {
     val whyVisible: Boolean get() = lifts.isNotEmpty() || lightRemaining > 0 || lightEnded || cardioNext is CardioNextTime.Offer ||
-        run?.let { it.credit || it.hold != null || it.change != CardioChange.Repeat } == true
+        run?.let { it.credit || it.hold != null || it.change != CardioChange.Repeat || it.introLeft != null ||
+            (it.dose != null && it.dose != SprintDose.NORMAL) } == true
 }
 
 sealed interface ReceiptMutation {

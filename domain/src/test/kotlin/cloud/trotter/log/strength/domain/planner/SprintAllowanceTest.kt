@@ -133,7 +133,8 @@ class SprintAllowanceTest {
     @Test fun `an edited-down restart writes the restart state without counting`() {
         val old = CardioRule(null, RunSession.ACCELERATION, steps = 12, credits = 1)
         val low = sprintBlock(RunSession.ACCELERATION, 0)
-        assertEquals(CardioOutcome(low, CardioRule(null, RunSession.ACCELERATION, intro = 3), CardioChange.Restart),
+        // PR 7d: the outcome names its dose
+        assertEquals(CardioOutcome(low, CardioRule(null, RunSession.ACCELERATION, intro = 3), CardioChange.Restart, dose = SprintDose.RESTART),
             finish(old, SprintContext(layoff = true), dropRep(low)))
     }
 

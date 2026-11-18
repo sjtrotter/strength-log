@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -69,8 +70,12 @@ internal fun RunGoalStep(state: SetupFlowUiState, actions: SetupFlowActions) {
                 RunGoal.MIDDLE_DISTANCE -> R.string.setup_flow_run_middle_body
                 RunGoal.FITNESS_TEST -> R.string.setup_flow_run_test_body
                 RunGoal.CARDIO_FITNESS -> R.string.setup_flow_run_cardio_body
-            }), state.draft.runGoal == goal) { actions.onRunGoal(goal) }
+            }), !state.draft.isSprint && state.draft.runGoal == goal) { actions.onRunGoal(goal) }
         }
+    }
+    if (state.draft.branch == PlanBranch.BOTH) {
+        SetupLabel(stringResource(R.string.setup_flow_sprint_section))
+        SprintGoalRows(state, actions)
     }
 }
 
@@ -100,7 +105,7 @@ private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: 
                     else -> parsed.toInt()
                 })
             },
-            label = label, minValue = minSeconds.toDouble(), maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
+            error = value == INVALID_GOAL_TIME, label = label, minValue = minSeconds.toDouble(), maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
             parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii)
     }
 }

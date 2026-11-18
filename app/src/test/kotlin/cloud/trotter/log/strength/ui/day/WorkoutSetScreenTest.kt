@@ -122,6 +122,27 @@ class WorkoutSetScreenTest {
         } }
         rule.onNodeWithText("Beep in 3").assertExists()
         rule.onNodeWithText("Stop").assertExists()
+        // PR 7f: armed controls also assert that End rep is absent.
+        rule.onNodeWithText("End rep").assertDoesNotExist()
+    }
+
+    @Test fun `the armed countdown never outlives the beep`() {
+        rule.mainClock.autoAdvance = false
+        val beep = 100L
+        rule.setContent { AppTheme {
+            CompositionLocalProvider(LocalSprintElapsedMillis provides { rule.mainClock.currentTime }) {
+                WorkoutSetHost(sprintRepFixture(beep))
+            }
+        } }
+        rule.onNodeWithText("Beep in 1").assertExists()
+        rule.mainClock.advanceTimeBy(beep - rule.mainClock.currentTime, ignoreFrameDuration = true)
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("Beep in 1").assertDoesNotExist()
+        rule.onNode(SemanticsMatcher("running hundredths") {
+            it.config.getOrNull(SemanticsProperties.Text)?.any { text -> text.text.matches(Regex("0\\.\\d{2}")) } == true
+        }).assertExists()
+        rule.onNodeWithText("Stop").assertExists()
+        rule.onNodeWithText("End rep").assertDoesNotExist()
     }
 
     @Test fun `a running sprint rep shows hundredths and Stop`() {

@@ -94,12 +94,13 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
                     Box(Modifier.fillMaxSize()) {
                         Column(readableWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text(stringResource(stepTitle(screen.step)), style = MaterialTheme.typography.headlineSmall,
+                            Text(stringResource(if (screen.step == SetupStep.RUN_GOAL && screen.draft.branch == PlanBranch.SPRINT)
+                                R.string.setup_flow_sprint_goal_title else stepTitle(screen.step)), style = MaterialTheme.typography.headlineSmall,
                                 modifier = Modifier.semantics { heading() })
                             when (screen.step) {
                                 SetupStep.GOAL -> GoalStep(screen, actions)
                                 SetupStep.ORDER -> OrderStep(screen, actions)
-                                SetupStep.RUN_GOAL -> RunGoalStep(screen, actions)
+                                SetupStep.RUN_GOAL -> if (screen.draft.branch == PlanBranch.SPRINT) SprintGoalStep(screen, actions) else RunGoalStep(screen, actions)
                                 SetupStep.EVENT -> EventStep(screen, actions)
                                 SetupStep.WHERE -> WhereStep(screen, actions)
                                 SetupStep.TOGETHER -> TogetherStep(screen, actions)
@@ -143,7 +144,7 @@ private fun stepTitle(step: SetupStep): Int = when (step) {
 private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     SetupStep.GOAL -> R.string.setup_flow_why_goal
     SetupStep.ORDER -> R.string.setup_flow_why_order
-    SetupStep.RUN_GOAL -> R.string.setup_flow_why_run_goal
+    SetupStep.RUN_GOAL -> if (state.draft.branch == PlanBranch.SPRINT) R.string.setup_flow_why_sprint_goal else R.string.setup_flow_why_run_goal
     SetupStep.EVENT -> if (state.draft.runGoal == RunGoal.FITNESS_TEST) {
         val run = SetupFlowStateBuilder.answers(state.draft).run
         if (run.hasTestAim()) R.string.setup_flow_why_test else R.string.setup_flow_why_test_taper
@@ -153,7 +154,7 @@ private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     SetupStep.SUB_GOAL -> R.string.setup_flow_why_sub_goal
     SetupStep.WEEK -> R.string.setup_flow_why_week
     SetupStep.EQUIPMENT -> R.string.setup_flow_why_equipment
-    SetupStep.ABOUT -> if (state.draft.branch == PlanBranch.LIFT) R.string.setup_flow_why_about else R.string.setup_flow_why_about_run
+    SetupStep.ABOUT -> if (state.draft.isSprint) R.string.setup_flow_why_about_sprint else if (state.draft.branch == PlanBranch.LIFT) R.string.setup_flow_why_about else R.string.setup_flow_why_about_run
     SetupStep.LIFTS -> R.string.setup_flow_why_lifts
     SetupStep.RECENT -> R.string.setup_flow_why_recent
     SetupStep.PLAN -> R.string.setup_flow_why_minutes

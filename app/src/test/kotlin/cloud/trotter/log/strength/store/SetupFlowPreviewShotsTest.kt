@@ -189,6 +189,61 @@ class SetupFlowPreviewShotsTest {
         capture("s51-setup-why-event.png", true)
     }
 
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun goalSprint() = shot("s52-setup-goal-sprint.png",
+        state(SetupStep.GOAL, SetupFlowFixtures.sprint), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun goalSprintLargeFont() = shot("s53-setup-goal-sprint-2x.png",
+        state(SetupStep.GOAL, SetupFlowFixtures.sprint), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun sprintGoal() = shot("s54-setup-sprint-goal.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.sprint), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun sprintGoalLargeFont() = shot("s55-setup-sprint-goal-2x.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.sprint), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun aboutSprint() = shot("s56-setup-about-sprint.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.sprint), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun aboutSprintLargeFont() = shot("s57-setup-about-sprint-2x.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.sprint), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun bothCardioSprint() = shot("s58-setup-both-cardio-sprint.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.bothSprint), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun bothCardioSprintLargeFont() = shot("s59-setup-both-cardio-sprint-2x.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.bothSprint), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun liftsSprintFloor() = shot("s60-setup-lifts-sprint-floor.png",
+        state(SetupStep.LIFTS, SetupFlowFixtures.sprintFloor), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun liftsSprintFloorLargeFont() = shot("s61-setup-lifts-sprint-floor-2x.png",
+        state(SetupStep.LIFTS, SetupFlowFixtures.sprintFloor), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planSprint() = shot("s62-setup-plan-sprint.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprint), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planSprintLargeFont() = shot("s63-setup-plan-sprint-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprint), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planSprintShort() = shot("s64-setup-plan-sprint-short.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 30)), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planSprintShortLargeFont() = shot("s65-setup-plan-sprint-short-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 30)), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planNeedsLowerMain() = shot("s66-setup-plan-needs-lower-main.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprintFloor), scale = 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planNeedsLowerMainLargeFont() = shot("s67-setup-plan-needs-lower-main-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.sprintFloor), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun whySprintPlan() {
+        render { SetupFlowScreen(state(SetupStep.PLAN, SetupFlowFixtures.sprint.copy(minutes = 30, sprintedRecently = true)), SetupFlowActions()) }
+        rule.onNodeWithText("Why this plan").performClick()
+        capture("s68-setup-why-sprint-plan.png", true)
+    }
+
     private fun invalidTestTarget(name: String, scale: Float) {
         val shown = mutableStateOf(state(SetupStep.EVENT,
             SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)))

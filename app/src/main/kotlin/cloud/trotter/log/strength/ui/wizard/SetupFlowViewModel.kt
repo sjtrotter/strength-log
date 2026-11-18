@@ -12,6 +12,8 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.SprintEvent
+import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -142,7 +144,9 @@ class SetupFlowViewModel @Inject constructor(
                 preview.value = PlanPreviewUi.Loading
                 if (answers != null) {
                     try {
-                        val result = SetupFlowStateBuilder.planPreview(repo.previewPlan(answers), answers)
+                        val floor = Planner.sprintLowerMainMissing(answers)
+                        val result = if (floor != null) PlanPreviewUi.NeedsLowerMain(floor)
+                            else SetupFlowStateBuilder.planPreview(repo.previewPlan(answers), answers)
                         previewAnswers = answers
                         preview.value = if (result is PlanPreviewUi.Ready) result.copy(name = planName(answers)) else result
                     } catch (e: CancellationException) {
@@ -175,13 +179,19 @@ class SetupFlowViewModel @Inject constructor(
         val steps = SetupFlowStateBuilder.steps(it)
         it.copy(step = steps[(steps.indexOf(SetupFlowStateBuilder.currentStep(it)) - 1).coerceAtLeast(0)])
     }
-    fun reviewAnswers() = update { it.copy(step = SetupStep.EQUIPMENT) }
+    fun reviewAnswers() = update {
+        it.copy(step = if (it.isSprint && SetupStep.LIFTS in SetupFlowStateBuilder.steps(it)) SetupStep.LIFTS else SetupStep.EQUIPMENT)
+    }
     fun setBranch(value: PlanBranch) = update { it.copy(branch = value, step = SetupStep.GOAL) }
     fun setCardioFirst(value: Boolean) = update { it.copy(cardioFirst = value) }
     fun setRunGoal(value: RunGoal) = update {
-        it.copy(runGoal = value, goalSeconds = if ((it.runGoal == RunGoal.FITNESS_TEST) !=
+        it.copy(runGoal = value, sprintCardio = false, goalSeconds = if ((it.runGoal == RunGoal.FITNESS_TEST) !=
             (value == RunGoal.FITNESS_TEST)) null else it.goalSeconds)
     }
+    fun setSprintEvent(value: SprintEvent) = update { it.copy(sprintEvent = value, sprintCardio = it.branch == PlanBranch.BOTH) }
+    fun setSprintedRecently(value: Boolean) = update { it.copy(sprintedRecently = value) }
+    fun setHamstringStrain(value: Boolean) = update { it.copy(hamstringStrain = value) }
+    fun setFortyOrOlder(value: Boolean) = update { it.copy(fortyOrOlder = value) }
     fun setRunExperience(value: RunExperience) = update { it.copy(runExperience = value) }
     fun setRunningInjury(value: Boolean) = update { it.copy(runningInjury = value) }
     fun setRunEvent(value: RunEvent) = update { it.copy(runEvent = value) }
@@ -232,10 +242,13 @@ class SetupFlowViewModel @Inject constructor(
     fun setBalanceDays(value: Boolean) = update { it.copy(balanceDays = value) }
     fun dropLift(id: String) = update {
         val mains = SetupFlowStateBuilder.currentMains(it)
-        if (mains.size < 2 || id !in mains) it else it.copy(mains = mains - id)
+        if (mains.size < 2 || id !in mains ||
+            Planner.sprintLowerMainMissing(SetupFlowStateBuilder.answers(it.copy(mains = mains - id))) != null) it
+        else it.copy(mains = mains - id)
     }
     fun longerSessions() = update {
-        it.copy(minutes = SetupFlowStateBuilder.minutesOptions.firstOrNull { minutes -> minutes > it.minutes } ?: it.minutes)
+        it.copy(minutes = if (it.isSprint) Planner.fullDoseMinutes(SetupFlowStateBuilder.answers(it)) ?: 90
+            else SetupFlowStateBuilder.minutesOptions.firstOrNull { minutes -> minutes > it.minutes } ?: it.minutes)
     }
     fun retryPreview() {
         if (blocked()) return
@@ -282,11 +295,21 @@ class SetupFlowViewModel @Inject constructor(
         }
     }
 
-    internal fun planName(answers: SetupAnswers): String = context.resources.getQuantityString(
-        if (answers.branch == PlanBranch.BOTH) R.plurals.setup_flow_plan_name_both else R.plurals.setup_flow_plan_name,
-        answers.days, context.getString(if (answers.branch == PlanBranch.LIFT) subGoalLabel(answers.goal)
-            else runGoalLabel(answers.run.goal)), answers.days,
-    )
+    internal fun planName(answers: SetupAnswers): String {
+        val sprintPlan = answers.branch == PlanBranch.SPRINT || answers.branch == PlanBranch.BOTH && answers.both.sprint
+        val distance = SprintEvent.label(answers.sprint.event.metres, DistanceUnit.M)
+        val label = when {
+            answers.branch == PlanBranch.SPRINT -> distance
+            sprintPlan -> context.getString(R.string.setup_flow_sprint_label, distance)
+            answers.branch == PlanBranch.LIFT -> context.getString(subGoalLabel(answers.goal))
+            else -> context.getString(runGoalLabel(answers.run.goal))
+        }
+        return context.resources.getQuantityString(when (answers.branch) {
+            PlanBranch.SPRINT -> R.plurals.setup_flow_plan_name_sprint
+            PlanBranch.BOTH -> R.plurals.setup_flow_plan_name_both
+            else -> R.plurals.setup_flow_plan_name
+        }, answers.days, label, answers.days)
+    }
 
     /** No confirmation on first run: there is nothing to overwrite, and validation precedes all writes.
      *  A mid-first-run backup keeps setup open and re-seeds from the restored device at Goal. */

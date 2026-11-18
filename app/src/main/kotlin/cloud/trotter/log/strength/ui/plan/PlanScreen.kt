@@ -198,7 +198,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         (listOf<Int?>(null) + (4..8).toList()).map { it to lightWeekLabel(it) }, state.lightWeek,
         actions.onLightWeekChange, { progressionDialog = null },
     )
-    state.sprintGoalDraft?.let { PlanSprintGoalEditor(it, actions) }
+    state.sprintGoalDraft?.let { PlanSprintGoalEditor(it, actions, state.sprintGoal?.goal?.metres) }
     state.goalDraft?.let { PlanCardioGoalEditor(it, state.goal != null, actions) }
     state.shuttleEntry?.let { PlanShuttleEntry(it, actions) }
     state.goalDialog?.let { dialog ->

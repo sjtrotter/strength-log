@@ -2,11 +2,27 @@ package cloud.trotter.log.strength.domain.units
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import java.util.Locale
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class DistanceUnitTest {
+    @Test fun `forty yards reads in yards on sprint surfaces`() {
+        for (unit in DistanceUnit.entries) assertEquals("40 yd", SprintEvent.label(37, unit))
+        assertEquals("36 m", SprintEvent.label(36, DistanceUnit.M))
+        assertEquals("38 m", SprintEvent.label(38, DistanceUnit.M))
+        assertEquals(40, SprintEvent.yardsFor(37))
+        assertNull(SprintEvent.yardsFor(100))
+        assertEquals("37", DistanceUnit.M.inputText(37))
+    }
+
+    @Test fun `a non sprint distance of 37 metres keeps its unit`() {
+        assertEquals("37 m", DistanceUnit.M.format(37))
+        assertEquals("0.04 km", DistanceUnit.KM.format(37))
+        assertEquals("0.02 mi", DistanceUnit.MI.format(37))
+    }
+
     @Test fun `distance formatting uses display precision and trims zeros`() {
         assertEquals("2 mi", DistanceUnit.MI.format(3219))
         assertEquals("0.25 mi", DistanceUnit.MI.format(400))

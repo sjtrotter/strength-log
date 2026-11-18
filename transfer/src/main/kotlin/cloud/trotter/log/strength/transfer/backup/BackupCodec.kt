@@ -45,6 +45,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.booleanOrNull
 
 /**
  * The pure (Android-free, JVM-testable) core of the A2 backup: it turns a
@@ -104,6 +105,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        if (version in 1..31) requireV32ShapesAbsent(obj)
         if (version in 1..30) requireV31ShapesAbsent(obj)
 
         // Pre-v27 decoding discards settingsJson, so inspect its v28 and v29 facts before that version shaping.
@@ -147,12 +149,24 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
         return document
+    }
+
+    private fun requireV32ShapesAbsent(root: JsonObject) {
+        (root["plans"] as? JsonArray)?.forEach { element ->
+            val text = ((element as? JsonObject)?.get("recipeJson") as? JsonPrimitive)?.content ?: return@forEach
+            val recipe = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return@forEach
+            if ((recipe["v"] as? JsonPrimitive)?.intOrNull == 2 &&
+                ((recipe["branch"] as? JsonPrimitive)?.content == "SPRINT" ||
+                    ((recipe["both"] as? JsonObject)?.get("sprint") as? JsonPrimitive)?.booleanOrNull == true)) {
+                throw BackupError.Inconsistent("sprint recipe requires schema v32")
+            }
+        }
     }
 
     private fun requireV31ShapesAbsent(root: JsonObject) {

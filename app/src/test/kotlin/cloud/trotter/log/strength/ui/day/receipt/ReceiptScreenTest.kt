@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day.receipt
 
 import cloud.trotter.log.strength.domain.progression.SprintDose
+import cloud.trotter.log.strength.ui.day.sprintFortyYardReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
 
@@ -112,6 +113,24 @@ class ReceiptScreenTest {
 
     private fun setAnimatorScale(scale: Float) {
         ValueAnimator::class.java.getDeclaredMethod("setDurationScale", Float::class.javaPrimitiveType).invoke(null, scale)
+    }
+
+    @Test fun `a forty yard sprint receipt uses the event label`() {
+        val (receipt, progress) = sprintFortyYardReceiptFixture()
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+        rule.onNodeWithText("40 yd").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Next time: 40 yd").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("37 m").assertDoesNotExist()
+    }
+
+    @Test fun `a non sprint receipt keeps 37 metres`() {
+        val work = CardioSetSpec(CardioRole.WORK, Measure.Distance(37))
+        val results = listOf(CardioSetResult(work, CardioSetStatus.FINISHED, 5))
+        val receipt = timeTargetFixture().copy(activity = CardioActivity.TRACK_RUN,
+            cardioRows = ReceiptBuilder.cardio(CardioActivity.TRACK_RUN, results, emptyMap()))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}) } }
+        rule.onNodeWithText("37 m").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("40 yd").assertDoesNotExist()
     }
 
     @Test

@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import java.time.DayOfWeek
+import cloud.trotter.log.strength.domain.planner.SprintEvent
+import cloud.trotter.log.strength.domain.planner.SprintFloor
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -26,12 +29,15 @@ data class LiftRowState(val row: Int, val choices: List<String>, val selectedId:
 data class RecentRowState(val exerciseId: String, val name: String, val perHand: Boolean,
     val weightLb: Double?, val reps: Int?, val effort: Effort)
 data class PlanDayRow(val dayId: String, val title: String, val rest: Boolean, val mainName: String?,
-    val mainLoadLb: Double?, val lifts: Int, val minutes: Int, val overMinutes: Int?, val cardio: CardioBlock? = null)
+    val mainLoadLb: Double?, val lifts: Int, val minutes: Int, val overMinutes: Int?, val cardio: CardioBlock? = null, val restBeforeSprint: Boolean = false)
 
 sealed interface PlanWhy {
     data class Floor(val dayId: String, val minutes: Int) : PlanWhy
     data class Trimmed(val dayId: String, val minutes: Int) : PlanWhy
     data class OneSet(val dayId: String, val minutes: Int) : PlanWhy
+    data class Dropped(val dayId: String, val names: List<String>, val extraSets: Boolean, val minutes: Int) : PlanWhy
+    data object ShortTwoDaySprint : PlanWhy
+    data object SplitDay : PlanWhy
     data class Over(val dayId: String, val minutes: Int) : PlanWhy
     data object BalanceDays : PlanWhy
     data class BalanceOffered(val liftingDays: Int) : PlanWhy
@@ -46,10 +52,15 @@ sealed interface PlanWhy {
     data object Minutes : PlanWhy
 }
 
+data class SprintPlanUi(val week: List<Pair<DayOfWeek, SprintWeekKind>>, val threeDayTier: Boolean,
+    val jumps: Boolean, val nordic: Boolean, val fullDoseMinutes: Int?, val shortened: Boolean)
+enum class SprintWeekKind { SPRINT, UPPER, TEMPO }
+
 sealed interface PlanPreviewUi {
     data object Loading : PlanPreviewUi
     data object Failed : PlanPreviewUi
     data object Empty : PlanPreviewUi
+    data class NeedsLowerMain(val floor: SprintFloor) : PlanPreviewUi
     data class Ready(
         val name: String,
         val rows: List<PlanDayRow>,
@@ -59,6 +70,7 @@ sealed interface PlanPreviewUi {
         val balanceOffer: Int?,
         val balanceAdded: Int?,
         val why: List<PlanWhy>,
+        val sprint: SprintPlanUi? = null,
     ) : PlanPreviewUi
 }
 
@@ -88,6 +100,8 @@ data class SetupFlowUiState(
 
 /** Callbacks forwarded to [SetupFlowViewModel]. */
 data class SetupFlowActions(
+    val onSprintEvent: (SprintEvent) -> Unit = {}, val onSprintedRecently: (Boolean) -> Unit = {},
+    val onHamstringStrain: (Boolean) -> Unit = {}, val onFortyOrOlder: (Boolean) -> Unit = {},
     val onBranch: (PlanBranch) -> Unit = {}, val onCardioFirst: (Boolean) -> Unit = {},
     val onRunGoal: (RunGoal) -> Unit = {}, val onRunExperience: (RunExperience) -> Unit = {},
     val onRunningInjury: (Boolean) -> Unit = {}, val onRunEvent: (RunEvent) -> Unit = {},

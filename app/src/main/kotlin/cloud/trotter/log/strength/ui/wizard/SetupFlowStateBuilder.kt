@@ -35,6 +35,11 @@ import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 import kotlin.math.ceil
+import java.time.DayOfWeek
+import cloud.trotter.log.strength.domain.planner.SprintAnswers
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.progression.sprintFirstWeeks
+import cloud.trotter.log.strength.domain.progression.restBeforeSprint
 
 /** The setup decisions in one place: steps, answer mapping and screen state.
  *  The planner does the planning; nothing here recomputes it. */
@@ -43,17 +48,17 @@ object SetupFlowStateBuilder {
 
     fun steps(draft: SetupDraft): List<SetupStep> = buildList {
         add(SetupStep.GOAL)
-        if (draft.branch == PlanBranch.BOTH) add(SetupStep.ORDER)
-        if (draft.branch != PlanBranch.RUN) add(SetupStep.SUB_GOAL)
+        if (draft.branch == PlanBranch.BOTH && !draft.sprintCardio) add(SetupStep.ORDER)
+        if (draft.branch == PlanBranch.LIFT || draft.branch == PlanBranch.BOTH) add(SetupStep.SUB_GOAL)
         if (draft.branch != PlanBranch.LIFT) add(SetupStep.RUN_GOAL)
         addAll(listOf(SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT))
         if (draft.branch != PlanBranch.RUN) {
-            if (draft.goal != LiftGoal.GENERAL && Planner.mainChoices(draft.equipment).any { it.isNotEmpty() }) add(SetupStep.LIFTS)
+            if (draft.branch != PlanBranch.SPRINT && draft.goal != LiftGoal.GENERAL && Planner.mainChoices(draft.equipment).any { it.isNotEmpty() }) add(SetupStep.LIFTS)
             if (draft.experience != LiftExperience.NEW && currentMains(draft).any {
                 ExerciseLibrary.get(it).tracking == TrackingType.WEIGHTED
             }) add(SetupStep.RECENT)
         }
-        if (draft.branch != PlanBranch.LIFT) {
+        if (draft.branch != PlanBranch.LIFT && !draft.isSprint) {
             if (draft.runGoal != RunGoal.CARDIO_FITNESS) add(SetupStep.EVENT)
             add(SetupStep.WHERE)
             if (offersTogether(draft)) add(SetupStep.TOGETHER)
@@ -62,13 +67,16 @@ object SetupFlowStateBuilder {
     }
 
     fun offersTogether(draft: SetupDraft): Boolean =
-        draft.branch == PlanBranch.BOTH && (draft.days >= 3 || draft.days == 2 && draft.cardioFirst)
+        draft.branch == PlanBranch.BOTH && !draft.sprintCardio && (draft.days >= 3 || draft.days == 2 && draft.cardioFirst)
 
     fun currentStep(draft: SetupDraft): SetupStep = steps(draft).last { it.ordinal <= draft.step.ordinal }
 
-    fun canAdvance(draft: SetupDraft): Boolean = currentStep(draft) != SetupStep.EVENT ||
-        draft.runGoal == RunGoal.FITNESS_TEST && draft.test.metres == null ||
-        draft.goalSeconds == null || draft.goalSeconds in goalTimeFloor(draft)..86_400
+    fun canAdvance(draft: SetupDraft): Boolean = when (currentStep(draft)) {
+        SetupStep.LIFTS -> Planner.sprintLowerMainMissing(answers(draft)) == null
+        SetupStep.EVENT -> draft.runGoal == RunGoal.FITNESS_TEST && draft.test.metres == null ||
+            draft.goalSeconds == null || draft.goalSeconds in goalTimeFloor(draft)..86_400
+        else -> true
+    }
 
     internal fun goalTimeFloor(draft: SetupDraft): Int {
         val metres = if (draft.runGoal == RunGoal.FITNESS_TEST) draft.test.metres
@@ -86,7 +94,7 @@ object SetupFlowStateBuilder {
     fun currentMains(draft: SetupDraft): List<String> = draft.mains ?: Planner.defaultMains(draft.equipment)
 
     fun answers(draft: SetupDraft): SetupAnswers = SetupAnswers(
-        goal = draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
+        goal = if (draft.branch == PlanBranch.SPRINT) LiftGoal.GENERAL else draft.goal, days = draft.days, minutes = draft.minutes, equipment = draft.equipment, unit = draft.unit,
         steps = LoadSteps(stepOptionsLb(StepRow.BAR, draft.unit)[draft.barStep],
             stepOptionsLb(StepRow.DUMBBELL, draft.unit)[draft.dumbbellStep],
             stepOptionsLb(StepRow.STACK, draft.unit)[draft.stackStep]),
@@ -100,8 +108,11 @@ object SetupFlowStateBuilder {
             } else null
         }.toMap(), balanceDays = draft.balanceDays,
         branch = draft.branch,
-        run = if (draft.branch == PlanBranch.LIFT) RunAnswers() else runAnswers(draft),
-        both = if (draft.branch == PlanBranch.BOTH) BothAnswers(cardioFirst = draft.cardioFirst,
+        run = if (draft.branch == PlanBranch.LIFT || draft.isSprint) RunAnswers() else runAnswers(draft),
+        sprint = if (draft.isSprint) SprintAnswers(draft.sprintEvent, draft.sprintedRecently, draft.hamstringStrain,
+            draft.fortyOrOlder) else SprintAnswers(),
+        both = if (draft.branch == PlanBranch.BOTH && draft.sprintCardio) BothAnswers(sprint = true)
+        else if (draft.branch == PlanBranch.BOTH) BothAnswers(cardioFirst = draft.cardioFirst,
             together = if (offersTogether(draft)) draft.together else BothAnswers.Together.SAME_VISIT) else BothAnswers(),
     )
 
@@ -157,10 +168,16 @@ object SetupFlowStateBuilder {
             longestSeconds = (answers.run.longest as? Measure.Time)?.seconds,
             longestMetres = (answers.run.longest as? Measure.Distance)?.metres, activity = answers.run.activity,
             marathonBestSeconds = answers.run.marathonBestSeconds, runningInjury = answers.run.runningInjury,
-            strengthBlocks = answers.run.strengthBlocks, cardioFirst = answers.both.cardioFirst, together = answers.both.together)
+            strengthBlocks = answers.run.strengthBlocks, cardioFirst = answers.both.cardioFirst, together = answers.both.together,
+            sprintEvent = answers.sprint.event, sprintCardio = answers.both.sprint,
+            sprintedRecently = answers.sprint.sprintedRecently, hamstringStrain = answers.sprint.hamstringStrain,
+            fortyOrOlder = answers.sprint.fortyOrOlder)
     }
 
     fun planPreview(draft: PlanDraft, answers: SetupAnswers): PlanPreviewUi {
+        Planner.sprintLowerMainMissing(answers)?.let { return PlanPreviewUi.NeedsLowerMain(it) }
+        val sprintPlan = answers.branch == PlanBranch.SPRINT || answers.branch == PlanBranch.BOTH && answers.both.sprint
+        val full = if (sprintPlan) Planner.plan(answers.copy(minutes = 90)) else null
         val days = draft.program.days
         if (days.none { it.kind == ProgramDayKind.STRENGTH || it.kind == ProgramDayKind.CARDIO }) return PlanPreviewUi.Empty
         val over = draft.reasons.filterIsInstance<PlanReason.OverBudget>()
@@ -174,13 +191,25 @@ object SetupFlowStateBuilder {
             } else null
             PlanDayRow(day.id, day.title, day.kind == ProgramDayKind.REST, main?.let { it.shortName ?: it.name }, load,
                 day.exercises.sumOf { if (it.superset == null) 1 else 2 },
-                ceil(SessionBudget.seconds(day, answers.goal) / 60.0).toInt(),
-                over.firstOrNull { it.dayId == day.id }?.let { ceil(it.seconds / 60.0).toInt() }, day.cardioBlock)
+                ceil(SessionBudget.seconds(day, if (sprintPlan) answers.slotGoal else answers.goal) / 60.0).toInt(),
+                over.firstOrNull { it.dayId == day.id }?.let { ceil(it.seconds / 60.0).toInt() }, day.cardioBlock,
+                sprintPlan && restBeforeSprint(draft.program, day.id))
         }
         val rules = days.flatMap { day -> day.exercises.flatMap { listOfNotNull(it.rule, it.superset?.rule) } }
         val why = buildList {
             draft.reasons.filterIsInstance<PlanReason.ShortSession>().forEach { reason ->
-                add(when (reason.step) {
+                if (full != null && reason.step >= 1) {
+                    val original = full.program.days.single { it.id == reason.dayId }.exercises
+                    val fitted = days.single { it.id == reason.dayId }.exercises
+                    val kept = fitted.associateBy { it.exerciseId }
+                    val names = original.filter { it.exerciseId !in kept }.map {
+                        ExerciseLibrary.get(it.exerciseId).let { entry -> entry.shortName ?: entry.name }
+                    }
+                    add(PlanWhy.Dropped(reason.dayId, names, original.any {
+                        val slot = kept[it.exerciseId]
+                        slot != null && slot.targetSets < it.targetSets
+                    }, answers.minutes))
+                } else add(when (reason.step) {
                     0 -> PlanWhy.Floor(reason.dayId, answers.minutes)
                     in 1..3 -> PlanWhy.Trimmed(reason.dayId, answers.minutes)
                     else -> PlanWhy.OneSet(reason.dayId, answers.minutes)
@@ -193,22 +222,50 @@ object SetupFlowStateBuilder {
             if (rules.any { it.state.calibrating }) add(PlanWhy.Calibrating)
             draft.deloadEveryCycles?.let { add(PlanWhy.LightWeek(it)) }
             draft.reasons.filterIsInstance<PlanReason.RunCapped>().forEach { add(PlanWhy.RunCapped(it.dayId)) }
-            val noRun = answers.branch in listOf(PlanBranch.RUN, PlanBranch.BOTH) && draft.sessions.isEmpty()
+            val noRun = !sprintPlan && answers.branch in listOf(PlanBranch.RUN, PlanBranch.BOTH) && draft.sessions.isEmpty()
             if (noRun) add(PlanWhy.NoRun(answers.minutes))
             else if (PlanReason.DateTooClose in draft.reasons) add(PlanWhy.DateTooClose)
             draft.reasons.filterIsInstance<PlanReason.GoalCheck>().forEach { add(PlanWhy.GoalCheck(it.predictedSeconds)) }
             if (draft.phase == RunPhase.LADDER) add(PlanWhy.Ladder)
+            if (sprintPlan) {
+                if (days.count { it.kind != ProgramDayKind.REST } == 2 && answers.minutes == 30) add(PlanWhy.ShortTwoDaySprint)
+                add(PlanWhy.SplitDay)
+            }
             add(PlanWhy.Minutes)
         }
         val mains = answers.mains ?: Planner.defaultMains(answers.equipment)
         return PlanPreviewUi.Ready("", rows,
             droppable = if (mains.size < 2) emptyList() else days.filter { day -> over.any { it.dayId == day.id } }
-                .flatMap { it.exercises }.filter { it.rule?.role == SlotRole.MAIN }.map { it.exerciseId }.distinct(),
+                .flatMap { it.exercises }.filter { it.rule?.role == SlotRole.MAIN }.map { it.exerciseId }.distinct().filter { id ->
+                    !sprintPlan || Planner.sprintLowerMainMissing(answers.copy(mains = mains - id)) == null
+                },
             longerAvailable = answers.minutes < minutesOptions.last(), over = over.isNotEmpty(),
             balanceOffer = if (PlanReason.BalanceDaysOffered in draft.reasons) BALANCE_DAYS_A_WEEK - strengthDays else null,
             balanceAdded = if (PlanReason.BalanceDays in draft.reasons) days.count { day ->
                 day.exercises.isNotEmpty() && day.exercises.all { it.rule?.role == SlotRole.BALANCE }
-            } else null, why = why)
+            } else null, why = why, sprint = if (sprintPlan) {
+                val weekdays = when (answers.days) {
+                    1 -> listOf(DayOfWeek.MONDAY, null)
+                    2 -> listOf(DayOfWeek.MONDAY, null, DayOfWeek.THURSDAY, null)
+                    else -> listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, null, DayOfWeek.THURSDAY,
+                        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+                }
+                val week = draft.program.rotationDays.mapIndexedNotNull { index, day ->
+                    if (day.kind == ProgramDayKind.REST) null else weekdays[index]?.let { weekday ->
+                        weekday to when (day.cardioRule?.session) {
+                            RunSession.SPRINT_TEMPO -> SprintWeekKind.TEMPO
+                            null -> SprintWeekKind.UPPER
+                            else -> SprintWeekKind.SPRINT
+                        }
+                    }
+                }
+                SprintPlanUi(week, sprintFirstWeeks(draft.program, answers.experience == LiftExperience.NEW) || answers.careful,
+                    days.any { day -> day.exercises.any { it.rule?.role == SlotRole.PLYO } },
+                    days.any { day -> day.exercises.any { it.exerciseId == "nordic" } },
+                    Planner.fullDoseMinutes(answers), draft.reasons.any {
+                        it is PlanReason.ShortSession && it.step >= 1 || it is PlanReason.OverBudget
+                    })
+            } else null)
     }
 
     fun build(draft: SetupDraft, initialized: Boolean, firstRun: Boolean, plan: PlanPreviewUi,

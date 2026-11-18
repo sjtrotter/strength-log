@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayPlanEditor
 import cloud.trotter.log.strength.ui.day.sprintEditorFixture
+import cloud.trotter.log.strength.ui.day.sprintFortyYardReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptFixture
 import cloud.trotter.log.strength.ui.day.sprintReceiptProgressFixture
 import cloud.trotter.log.strength.ui.day.LocalSprintElapsedMillis
@@ -479,6 +480,27 @@ class ProgressionPreviewShotsTest {
     @Test fun planSprintGoalLargeFont() = sprintGoal("p59-plan-sprint-goal-2x.png", 2f)
     @Test fun planSprintGoalEditor() = sprintGoal("p60-plan-sprint-goal-editor.png", 1f, editing = true)
     @Test fun planSprintGoalEditorLargeFont() = sprintGoal("p61-plan-sprint-goal-editor-2x.png", 2f, editing = true)
+
+    private fun fortyYardReached(name: String, scale: Float) {
+        render(scale) { WorkoutSetHost(sprintRepFixture(metres = 37)) }
+        rule.onNodeWithText("Reached 40 yd").performScrollTo().assertIsDisplayed()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun sprintFortyYardReached() = fortyYardReached("p62-sprint-40yd-reached.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun sprintFortyYardReachedLargeFont() = fortyYardReached("p63-sprint-40yd-reached-2x.png", 2f)
+
+    private fun fortyYardReceipt(name: String, scale: Float) {
+        val (receipt, progress) = sprintFortyYardReceiptFixture()
+        render(scale) { SessionReceiptScreen(receipt, {}, {}, progress = progress) }
+        rule.onNodeWithText("40 yd").performScrollTo().assertIsDisplayed()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptFortyYards() = fortyYardReceipt("p64-receipt-40yd.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun receiptFortyYardsLargeFont() = fortyYardReceipt("p65-receipt-40yd-2x.png", 2f)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

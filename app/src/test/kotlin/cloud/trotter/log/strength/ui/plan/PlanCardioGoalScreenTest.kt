@@ -111,6 +111,12 @@ class PlanCardioGoalScreenTest {
         rule.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled()
     }
 
+    @Test fun `the forty yard sprint goal editor uses the event label`() {
+        rule.setContent { AppTheme { PlanSprintGoalEditor(SprintGoalDraft(), actions(), metres = 37) } }
+        rule.onNodeWithText("40 yd").assertIsDisplayed()
+        rule.onNodeWithText("37 m").assertDoesNotExist()
+    }
+
     @Test fun `timed goal shows the best and seconds over`() { assertProgress(984, "Best 16:24 · 24 s over") }
     @Test fun `equal time is not under`() { assertProgress(960, "Best 16:00 · not under") }
     @Test fun `faster time shows seconds under`() { assertProgress(950, "Best 15:50 · 10 s under") }

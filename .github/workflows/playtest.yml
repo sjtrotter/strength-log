@@ -45,8 +45,8 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           SCRIPT: ${{ inputs.script }}
         run: |
-          core='["playtest/pilot/wizard-to-today.json","playtest/pilot/run-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/history-day-start.json","playtest/pilot/dialog-text-field.json"]'
-          all='["playtest/pilot/both-to-today.json","playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/run-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/set-card-gate.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json","playtest/pilot/zero-size-tap.json","playtest/pilot/dropdown-tap.json","playtest/pilot/advance-tap.json","playtest/pilot/page-transition-settle.json","playtest/pilot/compact-capture.json"]'
+          core='["playtest/pilot/sprint-to-today.json","playtest/pilot/wizard-to-today.json","playtest/pilot/run-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/history-day-start.json","playtest/pilot/dialog-text-field.json"]'
+          all='["playtest/pilot/sprint-to-today.json","playtest/pilot/both-sprint-to-today.json","playtest/pilot/both-to-today.json","playtest/pilot/zero-step-launch.json","playtest/pilot/wizard-dialog-capture.json","playtest/pilot/wizard-to-today.json","playtest/pilot/run-to-today.json","playtest/pilot/rest-timer-advance.json","playtest/pilot/set-card-gate.json","playtest/pilot/day-crossing.json","playtest/pilot/scroll-below-fold.json","playtest/pilot/sheet-number-ime.json","playtest/pilot/dialog-text-field.json","playtest/pilot/history-day-start.json","playtest/pilot/zero-size-tap.json","playtest/pilot/dropdown-tap.json","playtest/pilot/advance-tap.json","playtest/pilot/page-transition-settle.json","playtest/pilot/compact-capture.json"]'
           if [ -z "$PR" ]; then
             scripts=$(jq -nc --arg s "$SCRIPT" '[$s]')
           else

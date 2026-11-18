@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -60,7 +61,14 @@ data class SetupDraft(
     val strengthBlocks: Int = 2,
     val cardioFirst: Boolean = false,
     val together: BothAnswers.Together? = null,
+    val sprintEvent: SprintEvent = SprintEvent.M100,
+    val sprintCardio: Boolean = false,
+    val sprintedRecently: Boolean = false,
+    val hamstringStrain: Boolean = false,
+    val fortyOrOlder: Boolean = false,
 ) {
+    val isSprint: Boolean get() = branch == PlanBranch.SPRINT || branch == PlanBranch.BOTH && sprintCardio
+
     companion object { const val VERSION = 1 }
 }
 

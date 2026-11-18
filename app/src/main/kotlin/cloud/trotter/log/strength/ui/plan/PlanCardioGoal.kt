@@ -294,8 +294,7 @@ internal fun PlanShuttleEntry(entry: String, actions: PlanActions) {
 @Composable
 internal fun PlanSprintGoal(ui: PlanSprintGoalUi, actions: PlanActions) {
     val goal = ui.goal
-    val distance = if (goal.metres == SprintEvent.YD40.metres) stringResource(R.string.sprint_event_40yd)
-        else distanceUnitFor(CardioActivity.TRACK_RUN).format(goal.metres)
+    val distance = SprintEvent.label(goal.metres, distanceUnitFor(CardioActivity.TRACK_RUN))
     ListItem(
         modifier = Modifier.clickable(onClick = actions.onOpenCardioGoal),
         headlineContent = {
@@ -319,7 +318,7 @@ internal fun PlanSprintGoal(ui: PlanSprintGoalUi, actions: PlanActions) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions) {
+internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions, metres: Int? = null) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
     val target = ClockText.parseCentis(draft.targetText)
@@ -328,6 +327,7 @@ internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions) 
         title = { Text(stringResource(R.string.plan_goal)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
+                metres?.let { Text(SprintEvent.label(it, distanceUnitFor(CardioActivity.TRACK_RUN))) }
                 NumberField(
                     value = target?.toDouble() ?: 0.0,
                     onValueChange = { actions.onSprintGoalDraft(draft.copy(targetText = ClockText.centis(it.toInt()))) },

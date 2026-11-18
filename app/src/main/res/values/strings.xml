@@ -1419,5 +1419,43 @@
     <string name="sprint_phone_note">Approximate beep-to-tap time; compare only with your phone-timed runs using the same setup.</string>
     <string name="plan_sprint_best">%1$s best %2$s</string>
     <string name="plan_sprint_start">Start type: %1$s</string>
-    <string name="sprint_event_40yd">40 yd</string>
+
+    <string name="setup_flow_goal_sprint">Sprint</string>
+    <string name="setup_flow_goal_sprint_body">40 yards to 400 meters</string>
+    <string name="setup_flow_sprint_goal_title">Which sprint?</string>
+    <string name="setup_flow_sprint_40yd_body">Acceleration</string>
+    <string name="setup_flow_sprint_60_body">Acceleration and top speed</string>
+    <string name="setup_flow_sprint_100_body">Top speed</string>
+    <string name="setup_flow_sprint_200_body">Top speed you hold</string>
+    <string name="setup_flow_sprint_400_body">Speed endurance</string>
+    <string name="setup_flow_sprint_match_note">A match or hard practice counts as a sprint day.</string>
+    <string name="setup_flow_sprint_section">Sprint</string>
+    <string name="setup_flow_why_sprint_goal">Short events train acceleration and top speed; 200 and 400 m add speed endurance. Hard sprint days sit apart, with lifting and rest between them.</string>
+    <string name="setup_flow_sprinted_recently">Sprinted all-out in the past month</string>
+    <string name="setup_flow_hamstring_strain">Hamstring strain in the past 12 months</string>
+    <string name="setup_flow_forty_or_older">40 or older</string>
+    <string name="setup_flow_why_about_sprint">Experience sets where lifting starts. Without all-out sprinting in the past month, sprints open at a starting dose. 40 or older, 65 or older, or a hamstring strain in the past 12 months means a longer starting dose and sprint days three days apart. Nothing here is stored as a profile.</string>
+    <string name="setup_flow_sprint_needs_leg_lift">A sprint plan needs one leg lift. Choose a squat or a hinge.</string>
+    <string name="setup_flow_sprint_needs_squat">Choose a squat lift for your sprint days.</string>
+    <string name="setup_flow_suggested_week">Suggested week: %1$s.</string>
+    <string name="setup_flow_week_sprint">%1$s sprint</string>
+    <string name="setup_flow_week_upper">%1$s upper</string>
+    <string name="setup_flow_week_tempo">%1$s tempo</string>
+    <string name="setup_flow_sprint_spacing_three">Keep sprint days three days apart, like Monday and Thursday.</string>
+    <string name="setup_flow_sprint_spacing_two">Keep at least one rest day between sprint days.</string>
+    <string name="setup_flow_high_day_full">Sprints first, then jumps, then lifts. Nordic curls last.</string>
+    <string name="setup_flow_high_day_no_nordic">Sprints first, then jumps, then lifts.</string>
+    <string name="setup_flow_high_day_no_jumps">Sprints first, then lifts. Nordic curls last.</string>
+    <string name="setup_flow_high_day_lifts">Sprints first, then lifts.</string>
+    <string name="setup_flow_full_plan_minutes">The full plan needs %1$d minutes.</string>
+    <string name="setup_flow_why_dropped">Day %1$s: %2$s left out to fit %3$d minutes.</string>
+    <string name="setup_flow_extra_sets">extra sets</string>
+    <string name="setup_flow_list_and">%1$s and %2$s</string>
+    <string name="setup_flow_why_short_two_day">30 minutes is short for a two-day sprint plan.</string>
+    <string name="setup_flow_why_split_day">Splitting the day? Sprint first and lift at least six hours later. If you must lift first, leave two hours before sprinting.</string>
+    <string name="setup_flow_sprint_label">%1$s sprint</string>
+    <plurals name="setup_flow_plan_name_sprint">
+        <item quantity="one">%1$s sprint, %2$d day</item>
+        <item quantity="other">%1$s sprint, %2$d days</item>
+    </plurals>
 </resources>

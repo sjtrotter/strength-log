@@ -91,7 +91,7 @@ import cloud.trotter.log.strength.domain.progression.CardioMeasures
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.progression.SprintDose
-import cloud.trotter.log.strength.domain.progression.SprintRules
+import cloud.trotter.log.strength.domain.progression.sprintPlannedBlock
 import cloud.trotter.log.strength.domain.records.SprintComparison
 import cloud.trotter.log.strength.domain.progression.sprintMaximalMetres
 import cloud.trotter.log.strength.domain.progression.CardioOutcome
@@ -1075,7 +1075,8 @@ class TrackerRepository(
         val plan = planDao.plan(judgment.planId) ?: return
         val goal = PlanGoalJson.decode(plan.goalJson) as? PlanGoal.Sprint ?: return
         val first = programDao.daysForPlan(plan.id).firstOrNull {
-            CardioRuleJson.decode(it.cardioRuleJson)?.session?.let(SprintRules::maximal) == true
+            sprintPlannedBlock(CardioRuleJson.decode(it.cardioRuleJson), CardioActivity.TRACK_RUN)
+                ?.sets?.any { spec -> spec.role == CardioRole.WORK && spec.hard } == true
         } ?: return
         if (first.dayId != judgment.dayId) return
         val session = requireNotNull(cardioSessionDao.byId(judgment.sessionId))

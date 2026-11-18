@@ -179,6 +179,27 @@ class DayViewModelSprintTimerTest {
         assertNull(handle.get<SprintTimerState>("day_sprint_timer"))
     }
 
+    @Test fun `ending a ready sprint rep shortens only that rep and leaves recovery available`() = test {
+        prepare()
+        val vm = ready()
+        firstRep(vm)
+        val rep = run(vm)
+        assertFalse(assertNotNull(vm.uiState.value.cardio?.sprintRep).armed)
+        vm.stopCardio(rep.action())
+        runCurrent()
+        val next = run(vm)
+        assertEquals(rep.position + 1, next.position)
+        assertEquals(rep.results.size + 1, next.results.size)
+        assertEquals("SHORTENED", next.results.last().status)
+        assertTrue(next.results.none { it.status == "SKIPPED" })
+        assertFalse(next.complete)
+        assertEquals(CardioRole.RECOVERY, next.block.sets[next.position].role)
+        vm.startCardio()
+        runCurrent()
+        assertEquals(next.position, run(vm).position)
+        assertTrue(run(vm).running)
+    }
+
     @Test fun `stop before the beep cancels without a time`() = test {
         prepare()
         val handle = SavedStateHandle()

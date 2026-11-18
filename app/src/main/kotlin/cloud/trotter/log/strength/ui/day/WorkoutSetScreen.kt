@@ -560,6 +560,9 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                         TextButton(onClick = { actions.onOpenSprintTime(run.action()) }, colors = neutralTextButtonColors()) {
                             Text(stringResource(R.string.sprint_enter_time))
                         }
+                        TextButton(onClick = { actions.onStopCardio(run.action()) }, colors = neutralTextButtonColors()) {
+                            Text(stringResource(R.string.sprint_end_rep))
+                        }
                     }
                     SprintProtocolChips(sprintRep.protocol, actions.onSprintProtocol)
                 }
@@ -602,7 +605,7 @@ private fun WorkoutSprintTimer(sprint: SprintRepUi) {
         // A frame-driven loop never lets Compose tests go idle; delay ticks fast enough for hundredths.
         while (true) {
             now = elapsedMillis()
-            delay(10L)
+            delay(if (now < beep) 250L else 16L)
         }
     }
     if (now < beep) {

@@ -1397,6 +1397,7 @@
     <string name="sprint_start_on_beep">Start on the beep</string>
     <string name="sprint_beep_in">Beep in %1$d</string>
     <string name="sprint_enter_time">Enter time</string>
+    <string name="sprint_end_rep">End rep</string>
     <string name="sprint_start_type">Start type</string>
     <string name="sprint_protocol_three_point">Three-point</string>
     <string name="sprint_protocol_two_point">Two-point</string>

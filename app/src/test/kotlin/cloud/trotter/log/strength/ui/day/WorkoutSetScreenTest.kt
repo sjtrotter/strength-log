@@ -94,9 +94,10 @@ class WorkoutSetScreenTest {
         val arms = mutableListOf<CardioSetAction>()
         val entries = mutableListOf<CardioSetAction>()
         val reached = mutableListOf<CardioSetAction>()
+        val stops = mutableListOf<CardioSetAction>()
         val protocols = mutableListOf<String>()
         show(base, workoutActions().copy(onArmSprintTimer = { arms += it }, onOpenSprintTime = { entries += it },
-            onReachCardioTarget = { reached += it }, onSprintProtocol = { protocols += it }))
+            onReachCardioTarget = { reached += it }, onStopCardio = { stops += it }, onSprintProtocol = { protocols += it }))
         rule.onNodeWithTag("workout-hero").assert(hasText("60 m"))
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start on the beep"))
         rule.onNodeWithText("Stop").assertDoesNotExist()
@@ -104,10 +105,12 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Start on the beep").assertIsDisplayed().performClick()
         rule.onNodeWithText("Reached 60 m").performScrollTo().performClick()
         rule.onNodeWithText("Enter time").performScrollTo().performClick()
+        rule.onNodeWithText("End rep").performScrollTo().performClick()
         rule.onNodeWithText("Standing").performScrollTo().performClick()
         assertEquals(listOf(run.action()), arms)
         assertEquals(listOf(run.action()), entries)
         assertEquals(listOf(run.action()), reached)
+        assertEquals(listOf(run.action()), stops)
         assertEquals(listOf("STANDING"), protocols)
     }
 

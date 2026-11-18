@@ -43,7 +43,8 @@ class BackupV30Test {
     private fun snapshot(profile: LifterProfile) = document().toSnapshot().copy(profile = profile)
 
     @Test fun `a v30 document carries a partial profile`() {
-        val document = snapshot(LifterProfile(180.0, null)).toDocument()
+        // PR 7c: keep this v30 import fixture at v30 while new exports use v31
+        val document = snapshot(LifterProfile(180.0, null)).toDocument().copy(schemaVersion = 30)
         val encoded = codec.encode(document)
         val settings = Json.parseToJsonElement(encoded).jsonObject.getValue("settings").jsonObject
         assertEquals(JsonPrimitive(180), settings["bodyweightLb"])

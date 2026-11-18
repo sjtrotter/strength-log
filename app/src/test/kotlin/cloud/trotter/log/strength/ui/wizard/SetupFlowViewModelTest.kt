@@ -38,6 +38,14 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -556,5 +564,75 @@ class SetupFlowViewModelTest {
     @Test fun `the first-run latch survives recreation`() = runVmTest {
         val h = SavedStateHandle(); newViewModel(h); advanceUntilIdle(); settings.setWizardComplete(true)
         val vm = newViewModel(copyHandle(h)); advanceUntilIdle(); assertTrue(vm.uiState.value.restore.offered)
+    }
+    @Test fun `the Together sequence keeps a run`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.BOTH); advanceUntilIdle()
+        while (vm.uiState.value.step != SetupStep.TOGETHER) { vm.onNext(); advanceUntilIdle() }
+        vm.setTogether(BothAnswers.Together.SEPARATE_DAYS)
+        while (vm.uiState.value.step != SetupStep.WEEK) { vm.onBack(); advanceUntilIdle() }
+        vm.setDays(1); advanceUntilIdle()
+        while (vm.uiState.value.step != SetupStep.PLAN) { vm.onNext(); advanceUntilIdle() }
+        assertFalse(SetupStep.TOGETHER in SetupFlowStateBuilder.steps(vm.uiState.value.draft))
+        assertTrue(ready(vm).rows.any { it.cardio != null })
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, vm.uiState.value.draft.together)
+        vm.onNext(); advanceUntilIdle()
+        val stored = assertNotNull(db.planDao().allPlans().single().setupAnswers(WeightUnit.LB))
+        assertEquals(BothAnswers.Together.SAME_VISIT, stored.both.together)
+    }
+
+    @Test fun `process death keeps every run answer`() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle); advanceUntilIdle()
+        vm.setBranch(PlanBranch.BOTH); vm.setCardioFirst(true); vm.setRunGoal(RunGoal.ULTRA)
+        vm.setRunExperience(RunExperience.SOME); vm.setRunningInjury(true); vm.setRunEvent(RunEvent.MI50)
+        vm.setEventDate(21000); vm.setGoalSeconds(30000); vm.setTest(FitnessTest.HAMR); vm.setTestScore(50)
+        vm.setRecent(21097, 6600); vm.setLongest(3600); vm.setLongestByDistance(true); vm.setLongest(30000)
+        vm.setActivity(CardioActivity.TRAIL_RUN); vm.setMarathonBest(14400)
+        vm.setTogether(BothAnswers.Together.SEPARATE_DAYS); vm.setStrengthBlocks(1); advanceUntilIdle()
+        val original = vm.uiState.value.draft
+        for (step in listOf(SetupStep.ORDER, SetupStep.RUN_GOAL, SetupStep.ABOUT, SetupStep.EVENT,
+            SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN)) {
+            val copied = copyHandle(handle)
+            copied["setup_draft"] = SetupDraftJson.encode(original.copy(step = step))
+            val restored = newViewModel(copied); advanceUntilIdle()
+            assertEquals(original.copy(step = step), restored.uiState.value.draft)
+            assertEquals(answers(vm), answers(restored))
+        }
+    }
+
+    @Test fun `Start writes a run recipe`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); vm.setRunGoal(RunGoal.MARATHON); advanceUntilIdle()
+        val expected = answers(vm)
+        start(vm)
+        val stored = db.planDao().allPlans().single()
+        assertEquals(expected, stored.setupAnswers(WeightUnit.LB))
+        assertEquals(RunPhase.LADDER, SetupRecipeJson.phase(assertNotNull(stored.recipeJson)))
+    }
+
+    @Test fun `a run publish retry reuses only matching answers`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); advanceUntilIdle()
+        failPublication = true; start(vm)
+        val first = db.planDao().allPlans().single().id
+        failPublication = true; vm.onNext(); advanceUntilIdle()
+        assertEquals(listOf(first), db.planDao().allPlans().map { it.id })
+        vm.setRunningInjury(true); advanceUntilIdle()
+        vm.onNext(); advanceUntilIdle()
+        assertEquals(2, db.planDao().allPlans().size)
+        assertTrue(vm.uiState.value.isComplete)
+        assertTrue(assertNotNull(db.planDao().allPlans().last().setupAnswers(WeightUnit.LB)).run.runningInjury)
+    }
+
+    @Test fun `plan names fit forty characters`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        for (branch in listOf(PlanBranch.RUN, PlanBranch.BOTH)) for (goal in RunGoal.entries)
+            for (lift in LiftGoal.entries) for (days in 1..6) {
+                val a = SetupFlowStateBuilder.answers(SetupDraft(branch = branch, runGoal = goal, goal = lift, days = days))
+                assertTrue(vm.planName(a).length <= 40, vm.planName(a))
+            }
+        assertEquals("Lifting and Just cardio fitness, 6 days", vm.planName(SetupFlowStateBuilder.answers(
+            SetupDraft(branch = PlanBranch.BOTH, days = 6))))
     }
 }

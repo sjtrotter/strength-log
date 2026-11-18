@@ -119,6 +119,9 @@ internal fun SessionReceiptScreen(
         if (mutation != null) {
             snackbar.showSnackbar(when (mutation) {
                 ReceiptMutation.UndoneLadderKept -> resources.getString(R.string.receipt_changes_undone_ladder_kept)
+                ReceiptMutation.ReplanRunOpen -> resources.getString(R.string.receipt_replan_run_open)
+                ReceiptMutation.ReplanGone -> resources.getString(R.string.receipt_replan_gone)
+                ReceiptMutation.UndoneReplanKept -> resources.getString(R.string.receipt_changes_undone_replan_kept)
                 ReceiptMutation.ReplanFailed -> resources.getString(R.string.receipt_replan_failed)
                 ReceiptMutation.Undone -> resources.getString(R.string.receipt_changes_undone)
                 is ReceiptMutation.DayOpen -> resources.getString(R.string.receipt_undo_day_open, mutation.dayId)

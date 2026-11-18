@@ -1,5 +1,20 @@
 package cloud.trotter.log.strength.store
 
+import cloud.trotter.log.strength.data.serialization.RunResult
+import cloud.trotter.log.strength.domain.progression.CardioChange
+import cloud.trotter.log.strength.domain.progression.LadderHold
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
+import cloud.trotter.log.strength.domain.model.ProgressMeasure
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.planner.RecentRace
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.ui.day.CardioNextTimePage
+import cloud.trotter.log.strength.domain.model.CardioProgress
+import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.DayEditActions
+import cloud.trotter.log.strength.ui.day.workoutSetCardioFixture
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptReplan
+import cloud.trotter.log.strength.ui.plan.PlanGoalUi
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.routine.CreditedExercise
@@ -224,6 +239,91 @@ class ProgressionPreviewShotsTest {
         rule.onNodeWithText("3.11 mi at 25:00", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("3:10, 0.37 mi past the target", useUnmergedTree = true).assertExists()
         capture("p21-history-two-legs.png")
+    }
+
+    private fun ladderProgress(hold: LadderHold? = null): ReceiptProgressState {
+        val block = RunWalkLadder.block(if (hold == null) 2 else 1, CardioActivity.ROAD_RUN)
+        return ReceiptProgressState(cardioSessionId = 2, cardioEffort = CardioEffort.EASY,
+            undoVisible = true, cardioStored = block, runLadder = true,
+            run = RunResult(if (hold == null) CardioChange.LevelTo(2) else CardioChange.Repeat,
+                1, hold, false, false, block))
+    }
+
+    private fun ladderReceipt(name: String, scale: Float = 1f, why: Boolean = false,
+        hold: LadderHold? = null, replan: Boolean = false) {
+        val opening = RunWalkLadder.block(if (replan) 12 else 1, CardioActivity.ROAD_RUN)
+        val results = opening.sets.map { spec ->
+            CardioSetResult(spec, CardioSetStatus.FINISHED, (spec.end as Measure.Time).seconds, null, null)
+        }
+        val receipt = timeTargetFixture().copy(dayId = "A", dayIndex = 0,
+            dayTitle = cloud.trotter.log.strength.domain.progression.RunSession.LADDER.title,
+            minutes = (results.sumOf { it.elapsedSeconds } + 59) / 60,
+            cardioRows = ReceiptBuilder.cardio(opening.activity, results, emptyMap()))
+        val progress = if (replan) {
+            val continuous = CardioBlock(opening.activity, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1800))))
+            ReceiptProgressState(cardioSessionId = 2, cardioEffort = CardioEffort.EASY, undoVisible = true,
+                cardioStored = continuous, runLadder = true, replan = ReceiptReplan(RunPhase.BASE, true),
+                run = RunResult(CardioChange.LadderDone, 12, null, false, false, continuous))
+        } else ladderProgress(hold)
+        render(scale) {
+            SessionReceiptScreen(receipt, {}, {}, progress = progress.copy(
+                cardioSets = ReceiptBuilder.cardioGroups(results).map { it.sets }))
+        }
+        if (why) rule.onNodeWithText("Why").performScrollTo().performClick()
+        capture(name, sheet = why)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptLadder() = ladderReceipt("p18-receipt-ladder.png")
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptLadderLargeFont() = ladderReceipt("p18-receipt-ladder-2x.png", scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptLadderWhy() = ladderReceipt("p19-receipt-ladder-why.png", why = true)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptLadderWhyLargeFont() = ladderReceipt("p19-receipt-ladder-why-2x.png", scale = 2f, why = true)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptLadderWeekCap() = ladderReceipt("p20-receipt-ladder-week-cap.png", why = true, hold = LadderHold.WEEK_CAP)
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptReplanOffer() = ladderReceipt("p21-receipt-replan-offer.png", replan = true)
+
+    private fun keepLadder(name: String, scale: Float = 1f) {
+        render(scale) { Surface(color = MaterialTheme.colorScheme.surface) {
+            CardioNextTimePage(DayEditUiState(cardioBlock = RunWalkLadder.block(1, CardioActivity.ROAD_RUN),
+                cardioLadder = true, cardioProgress = CardioProgress(keepToPlan = true),
+                cardioMeasures = setOf(ProgressMeasure.TIME)),
+                DayEditActions(onSwap = { _, _ -> }, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+                    onRemoveSuperset = {}, onResetToTemplate = {}), {})
+        } }
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun keepLadder() = keepLadder("p22-keep-ladder.png")
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun keepLadderLargeFont() = keepLadder("p22-keep-ladder-2x.png", 2f)
+
+    private fun ladderChip(name: String, scale: Float) {
+        val base = workoutSetCardioFixture()
+        val opening = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val offered = RunWalkLadder.block(2, CardioActivity.ROAD_RUN)
+        render(scale) { WorkoutSetHost(base.copy(cardio = base.cardio!!.copy(block = opening,
+            nextTime = CardioNextTime.Offer(offered, opening, false, CardioIncrease.Level(2), 1)))) }
+        rule.onNodeWithText("Level 2").assertIsDisplayed()
+        capture(name)
+    }
+    @Test fun chipLadder() = ladderChip("p23-chip-ladder-1x.png", 1f)
+    @Test fun chipLadderLargeFont() = ladderChip("p24-chip-ladder-2x.png", 2f)
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun planGoalHours() {
+        render {
+            PlanScreen(PlanUiState(name = "Marathon", hasProgram = true, runPhase = RunPhase.MARATHON_BUILD,
+                goal = PlanGoalUi(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600), null, false,
+                    predictedSeconds = 14449, predictedFrom = RecentRace(21097, 6600)),
+                days = listOf(PlanDay("A", 0, "Easy", 0, 0, true, cardioActivity = CardioActivity.ROAD_RUN))),
+                PlanActions({}, {}, {}))
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Predicted 4:00:49", substring = true))
+        capture("p25-plan-goal-hours.png")
     }
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),

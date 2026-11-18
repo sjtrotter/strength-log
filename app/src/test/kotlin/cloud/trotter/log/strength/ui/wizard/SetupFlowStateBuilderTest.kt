@@ -3,6 +3,20 @@ package cloud.trotter.log.strength.ui.wizard
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.planner.RecentRace
+import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.RunSession
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
@@ -145,5 +159,120 @@ class SetupFlowStateBuilderTest {
         assertEquals(SetStructure.RAMP_TOP_BACKOFF, r.program.days.first().exercises.first().structure)
         assertEquals(5, r.working.getValue(SlotKey("A", 0)).size)
         assertFalse(r.program.days.isEmpty())
+    }
+    @Test fun `run and both steps follow the answers`() {
+        val run = listOf(SetupStep.GOAL, SetupStep.RUN_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        assertEquals(run + listOf(SetupStep.WHERE, SetupStep.PLAN), builder.steps(SetupDraft(branch = PlanBranch.RUN)))
+        RunGoal.entries.filter { it != RunGoal.CARDIO_FITNESS }.forEach { goal ->
+            assertEquals(run + listOf(SetupStep.EVENT, SetupStep.WHERE, SetupStep.PLAN),
+                builder.steps(SetupDraft(branch = PlanBranch.RUN, runGoal = goal)))
+        }
+        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
+            SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        assertEquals(both + listOf(SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
+            builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
+        assertEquals(both + listOf(SetupStep.LIFTS, SetupStep.RECENT, SetupStep.EVENT, SetupStep.WHERE,
+            SetupStep.TOGETHER, SetupStep.PLAN), builder.steps(SetupFlowFixtures.reference.copy(
+                branch = PlanBranch.BOTH, runGoal = RunGoal.HALF_MARATHON)))
+        assertEquals(both + listOf(SetupStep.RECENT, SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
+            builder.steps(SetupDraft(branch = PlanBranch.BOTH, experience = LiftExperience.UNDER_A_YEAR)))
+    }
+
+    @Test fun `Together is offered only where it is a choice`() {
+        for (days in 1..6) for (first in listOf(false, true)) {
+            assertEquals(days >= 3 || days == 2 && first,
+                SetupStep.TOGETHER in builder.steps(SetupDraft(branch = PlanBranch.BOTH, days = days, cardioFirst = first)))
+        }
+        assertFalse(builder.offersTogether(SetupDraft(branch = PlanBranch.RUN)))
+    }
+
+    @Test fun `a hidden Together answer maps to Same visit`() {
+        val draft = SetupDraft(branch = PlanBranch.BOTH, together = BothAnswers.Together.SEPARATE_DAYS)
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, builder.answers(draft).together())
+        val one = draft.copy(days = 1)
+        val answers = builder.answers(one)
+        assertEquals(BothAnswers.Together.SAME_VISIT, answers.both.together)
+        assertTrue(Planner.plan(answers).sessions.isNotEmpty())
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, one.together)
+    }
+
+    @Test fun `run answers drop what RunAnswers rejects`() {
+        val half = SetupDraft(branch = PlanBranch.RUN, runGoal = RunGoal.HALF_MARATHON)
+        val invalid = half.copy(runEvent = RunEvent.K5, marathonBestSeconds = 14400,
+            activity = CardioActivity.STATIONARY_BIKE, recentMetres = 5000, goalSeconds = -1, longestSeconds = 0)
+        assertEquals(RunAnswers(goal = RunGoal.HALF_MARATHON), builder.answers(invalid).run)
+        assertNull(builder.answers(half.copy(recentSeconds = 1500)).run.recent)
+        assertNull(builder.answers(half.copy(recentMetres = 200001, recentSeconds = 1500)).run.recent)
+        assertNull(builder.answers(half.copy(eventDate = Long.MAX_VALUE)).run.dateEpochDay)
+        val test = half.copy(runGoal = RunGoal.FITNESS_TEST, eventDate = 21000)
+        assertNull(builder.answers(test.copy(test = FitnessTest.COOPER)).run.dateEpochDay)
+        assertNull(builder.answers(test.copy(test = FitnessTest.PACER)).run.dateEpochDay)
+        val pacer = builder.answers(test.copy(test = FitnessTest.PACER, testScore = 1000)).run
+        assertNull(pacer.testScore)
+        assertNull(pacer.dateEpochDay)
+        assertEquals(21000L, builder.answers(test.copy(test = FitnessTest.HAMR, testScore = 50)).run.dateEpochDay)
+        assertEquals(SetupAnswers(), builder.answers(invalid.copy(branch = PlanBranch.LIFT)))
+    }
+
+    @Test fun `prefill round trips run and both answers`() {
+        val half = RunAnswers(goal = RunGoal.HALF_MARATHON, experience = RunExperience.SOME,
+            event = RunEvent.HALF, dateEpochDay = 21000, goalSeconds = 7000, recent = RecentRace(5000, 1500),
+            longest = Measure.Time(3600), runningInjury = true, strengthBlocks = 1)
+        listOf(
+            SetupAnswers(branch = PlanBranch.RUN, run = half),
+            SetupAnswers(branch = PlanBranch.RUN, run = half.copy(goal = RunGoal.ULTRA, event = RunEvent.K50,
+                activity = CardioActivity.TRAIL_RUN, marathonBestSeconds = 14400, longest = Measure.Distance(30000))),
+            SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(goal = RunGoal.FITNESS_TEST,
+                goalSeconds = 960, dateEpochDay = 21000)),
+            SetupAnswers(branch = PlanBranch.BOTH, days = 4, run = half.copy(strengthBlocks = 2),
+                both = BothAnswers(true, BothAnswers.Together.SEPARATE_DAYS)),
+        ).forEach { assertEquals(it, builder.answers(builder.draftFrom(it))) }
+    }
+
+    @Test fun `the default run and both plans match what the pilots walk`() {
+        val plan = Planner.plan(builder.answers(SetupDraft(branch = PlanBranch.RUN)))
+        assertEquals(RunPhase.LADDER, plan.phase)
+        assertEquals(listOf("A", "B", "C", "D"), plan.program.days.map { it.id })
+        plan.program.days.take(3).forEach { assertEquals(CardioRule(1), it.cardioRule) }
+        assertEquals(ProgramDayKind.REST, plan.program.days.last().kind)
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
+            SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
+            builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
+    }
+
+    @Test fun `the run plan preview shows its runs and blocks`() {
+        val a = builder.answers(SetupDraft(branch = PlanBranch.RUN, runGoal = RunGoal.HALF_MARATHON,
+            runExperience = RunExperience.SOME, days = 4, longestSeconds = 3600))
+        val plan = Planner.plan(a)
+        val ui = preview(a)
+        assertEquals(4, plan.sessions.size)
+        assertEquals(3, plan.sessions.values.count { it != RunSession.LONG })
+        assertEquals(2, plan.program.days.count { it.exercises.isNotEmpty() })
+        plan.program.days.filter { it.exercises.isNotEmpty() }.forEach {
+            assertTrue(plan.sessions[it.id] in listOf(RunSession.EASY, RunSession.THRESHOLD))
+        }
+        assertTrue(plan.program.days.single { plan.sessions[it.id] == RunSession.LONG }.cardioBlock!!.sets.filter { it.role == cloud.trotter.log.strength.domain.model.CardioRole.WORK }
+            .sumOf { (it.end as? Measure.Time)?.seconds ?: 0 } <= 3960)
+        plan.program.days.zip(ui.rows).forEach { (day, row) -> assertEquals(day.cardioBlock, row.cardio) }
+        assertTrue(preview(a.copy(run = a.run.copy(strengthBlocks = 0))).rows.all { it.lifts == 0 })
+    }
+
+    @Test fun `a New marathoner with no runs starts on the ladder`() {
+        assertEquals(RunPhase.LADDER, Planner.plan(builder.answers(SetupDraft(branch = PlanBranch.RUN,
+            runGoal = RunGoal.MARATHON))).phase)
+    }
+
+    @Test fun `no run gives the no run line and no date line`() {
+        val a = builder.answers(SetupDraft(branch = PlanBranch.BOTH, minutes = 30,
+            runGoal = RunGoal.HALF_MARATHON, eventDate = 21000))
+        val noRun = builder.planPreview(Planner.plan(a, todayEpochDay = 20999), a) as PlanPreviewUi.Ready
+        assertTrue(PlanWhy.NoRun(30) in noRun.why)
+        assertFalse(PlanWhy.DateTooClose in noRun.why)
+        assertTrue(noRun.longerAvailable)
+        val longer = a.copy(minutes = 60)
+        val plan = Planner.plan(longer, todayEpochDay = 20999)
+        assertTrue(plan.sessions.isNotEmpty())
+        assertEquals(PlanReason.DateTooClose in plan.reasons, PlanWhy.DateTooClose in
+            (builder.planPreview(plan, longer) as PlanPreviewUi.Ready).why)
     }
 }

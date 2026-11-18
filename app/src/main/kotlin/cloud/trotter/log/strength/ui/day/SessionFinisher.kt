@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.ui.day.receipt.receiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.data.ReplanAccept
 import cloud.trotter.log.strength.data.UndoResult
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptProgress
@@ -252,8 +253,11 @@ internal class SessionFinisher(
             try {
                 mutationLock.withLock {
                     val identity = receiptProgress.value ?: return@withLock
-                    if (!repo.acceptReplanOffer(identity.sessionId, identity.cardioSessionId)) {
-                        _mutation.value = ReceiptMutation.ReplanFailed
+                    _mutation.value = when (repo.acceptReplanOffer(identity.sessionId, identity.cardioSessionId)) {
+                        ReplanAccept.Moved -> null
+                        ReplanAccept.RunOpen -> ReceiptMutation.ReplanRunOpen
+                        ReplanAccept.Gone -> ReceiptMutation.ReplanGone
+                        ReplanAccept.Waiting -> ReceiptMutation.ReplanFailed
                     }
                 }
             } catch (cancelled: CancellationException) { throw cancelled
@@ -267,6 +271,7 @@ internal class SessionFinisher(
                 mutationLock.withLock {
                     val identity = receiptProgress.value ?: return@withLock
                     _mutation.value = when (write(identity)) {
+                        UndoResult.UndoneReplanKept -> ReceiptMutation.UndoneReplanKept
                         UndoResult.UndoneLadderKept -> ReceiptMutation.UndoneLadderKept
                         UndoResult.Undone -> ReceiptMutation.Undone.takeIf { announceUndo }
                         UndoResult.DayOpen -> if (announceUndo) ReceiptMutation.DayOpen(identity.dayId) else ReceiptMutation.RoughDayOpen(identity.dayId)

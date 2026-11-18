@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.plan
 
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
-import org.junit.Assert.assertNull
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
@@ -19,6 +18,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.RunPhase
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.RecentRace
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.PlanGoal
@@ -237,7 +248,50 @@ class PlanCardioGoalScreenTest {
         rule.onNodeWithText("No attempt yet").assertExists()
         val draft = PlanGoalDraft.from(goal)
         assertEquals(0, draft.underSeconds)
-        assertNull(draft.goal())
+        // PR 7c: blank time saves Just finish
+        assertEquals(goal, draft.goal())
+    }
+
+    @Test fun `marathon goals and predictions show hours`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600)
+        val a = SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.MARATHON, recent = RecentRace(21097, 6600)))
+        val plan = PlanEntity(1, "Marathon", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(a, RunPhase.MARATHON_BUILD), goalJson = PlanGoalJson.encode(goal))
+        val ui = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), ExerciseCatalog(emptyList()), WeightUnit.LB)
+        assertEquals(14449, ui.goal!!.predictedSeconds)
+        var expected = ""
+        var target = ""
+        rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            expected = "Predicted 4:00:49 from ${distanceUnitFor(goal.activity).format(21097)} in 1:50:00"
+            target = "${distanceUnitFor(goal.activity).format(goal.metres)} under 3:30:00"
+            PlanScreen(planScreenFixture().copy(goal = ui.goal), actions())
+        } } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText(expected))
+        rule.onNodeWithText(expected).assertExists()
+        rule.onNodeWithText(target).assertExists()
+    }
+
+    @Test fun `hour long bests and gaps show hours`() {
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600)
+        val state = mutableStateOf(planScreenFixture().copy(goal = PlanGoalUi(goal, 16800, false)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Best 4:40:00 · 1:10:00 over"))
+        rule.onNodeWithText("Best 4:40:00 · 1:10:00 over").assertExists()
+        rule.runOnIdle { state.value = state.value.copy(goal = PlanGoalUi(goal, 8400, true)) }
+        rule.onNodeWithText("Best 2:20:00 · 1:10:00 under").assertExists()
+    }
+
+    @Test fun `the goal editor accepts hours`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 42195)))
+        var saved: PlanGoal? = null
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onSaveGoal = { saved = state.value.goalDraft?.goal() },
+        )) } }
+        rule.onNodeWithText("Target time").performTextReplacement("3:30:00").performImeAction()
+        rule.onNodeWithText("Save").assertIsEnabled().performClick()
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, 12600), saved)
     }
 
     private companion object { const val WINDOW_SIZE = "robolectric.windowManager.useRequestedSize" }

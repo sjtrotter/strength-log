@@ -1,5 +1,13 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
@@ -9,7 +17,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 
 /** Screens in canonical order; [SetupFlowStateBuilder.steps] picks a draft's subset. Stored by name. */
-enum class SetupStep { GOAL, SUB_GOAL, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, PLAN }
+enum class SetupStep { GOAL, ORDER, SUB_GOAL, RUN_GOAL, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, EVENT, WHERE, TOGETHER, PLAN }
 enum class StepRow { BAR, DUMBBELL, STACK }
 data class StepRowState(val row: StepRow, val optionsLb: List<Double>, val selected: Int)
 
@@ -18,7 +26,7 @@ data class LiftRowState(val row: Int, val choices: List<String>, val selectedId:
 data class RecentRowState(val exerciseId: String, val name: String, val perHand: Boolean,
     val weightLb: Double?, val reps: Int?, val effort: Effort)
 data class PlanDayRow(val dayId: String, val title: String, val rest: Boolean, val mainName: String?,
-    val mainLoadLb: Double?, val lifts: Int, val minutes: Int, val overMinutes: Int?)
+    val mainLoadLb: Double?, val lifts: Int, val minutes: Int, val overMinutes: Int?, val cardio: CardioBlock? = null)
 
 sealed interface PlanWhy {
     data class Floor(val dayId: String, val minutes: Int) : PlanWhy
@@ -30,6 +38,11 @@ sealed interface PlanWhy {
     data object RepsLeft : PlanWhy
     data object Calibrating : PlanWhy
     data class LightWeek(val everyCycles: Int) : PlanWhy
+    data class RunCapped(val dayId: String) : PlanWhy
+    data object DateTooClose : PlanWhy
+    data class GoalCheck(val predictedSeconds: Int) : PlanWhy
+    data object Ladder : PlanWhy
+    data class NoRun(val minutes: Int) : PlanWhy
     data object Minutes : PlanWhy
 }
 
@@ -75,6 +88,15 @@ data class SetupFlowUiState(
 
 /** Callbacks forwarded to [SetupFlowViewModel]. */
 data class SetupFlowActions(
+    val onBranch: (PlanBranch) -> Unit = {}, val onCardioFirst: (Boolean) -> Unit = {},
+    val onRunGoal: (RunGoal) -> Unit = {}, val onRunExperience: (RunExperience) -> Unit = {},
+    val onRunningInjury: (Boolean) -> Unit = {}, val onRunEvent: (RunEvent) -> Unit = {},
+    val onEventDate: (Long?) -> Unit = {}, val onGoalSeconds: (Int?) -> Unit = {},
+    val onTest: (FitnessTest) -> Unit = {}, val onTestScore: (Int?) -> Unit = {},
+    val onRecent: (Int?, Int?) -> Unit = { _, _ -> }, val onLongestByDistance: (Boolean) -> Unit = {},
+    val onLongest: (Int?) -> Unit = {}, val onActivity: (CardioActivity) -> Unit = {},
+    val onMarathonBest: (Int?) -> Unit = {}, val onTogether: (BothAnswers.Together) -> Unit = {},
+    val onStrengthBlocks: (Int) -> Unit = {},
     val onNext: () -> Unit = {}, val onBack: () -> Unit = {}, val onExit: () -> Unit = {},
     val onSubGoal: (LiftGoal) -> Unit = {}, val onDays: (Int) -> Unit = {}, val onMinutes: (Int) -> Unit = {},
     val onPreset: (EquipmentPreset) -> Unit = {}, val onChooseExactly: () -> Unit = {},

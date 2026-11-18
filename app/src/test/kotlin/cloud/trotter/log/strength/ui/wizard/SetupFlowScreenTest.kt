@@ -13,6 +13,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
@@ -107,11 +109,13 @@ class SetupFlowScreenTest {
         show(SetupFlowUiState())
         rule.onNodeWithText("Lift").assertDoesNotExist(); rule.onNodeWithText("Next").assertIsNotEnabled(); touchTargets()
     }
-    @Test fun `goal shows Lift alone and restore on a first run`() {
+    @Test fun `goal shows three goals and restore on a first run`() {
         var restores = 0
         show(SetupFlowFixtures.state(firstRun = true), SetupFlowActions(onRestoreFromBackup = { restores++ }))
         rule.onNodeWithText("Lift").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-        listOf("Run", "Sprint", "Both").forEach { rule.onNodeWithText(it).assertDoesNotExist() }
+        // PR 7c: Run and Both are open to users; Sprint remains absent
+        listOf("Run", "Both").forEach { rule.onNodeWithText(it).assertExists() }
+        rule.onNodeWithText("Sprint").assertDoesNotExist()
         rule.onNodeWithText("Have a backup? Restore it").performClick(); assertEquals(1, restores); touchTargets()
         rule.runOnIdle { shown = SetupFlowFixtures.state() }
         rule.onNodeWithText("Have a backup? Restore it").assertDoesNotExist(); touchTargets()
@@ -313,9 +317,60 @@ class SetupFlowScreenTest {
     @Test fun `large font keeps every step usable`() {
         fontScale = 2f; show(SetupFlowFixtures.state(firstRun = true))
         SetupStep.entries.forEach { step ->
-            rule.runOnIdle { shown = state(step, SetupFlowFixtures.reference) }
+            // PR 7c: new step entries need a Both draft that offers them
+            rule.runOnIdle { shown = state(step, if (step in listOf(SetupStep.ORDER, SetupStep.RUN_GOAL,
+                SetupStep.EVENT, SetupStep.WHERE, SetupStep.TOGETHER)) SetupFlowFixtures.reference.copy(
+                    branch = cloud.trotter.log.strength.domain.planner.PlanBranch.BOTH,
+                    runGoal = cloud.trotter.log.strength.domain.planner.RunGoal.HALF_MARATHON) else SetupFlowFixtures.reference) }
             rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).onFirst().assertIsDisplayed()
             rule.onNodeWithText(if (step == SetupStep.PLAN) "Start" else "Next").assertIsDisplayed(); touchTargets()
         }
+    }
+    private fun largeScreen(step: SetupStep, draft: SetupDraft, title: String) {
+        fontScale = 2f
+        show(state(step, draft))
+        rule.onNodeWithText(title).assertIsDisplayed()
+        rule.onNodeWithText(if (step == SetupStep.PLAN) "Start" else "Next")
+            .assertIsDisplayed().assertHeightIsAtLeast(52.dp)
+    }
+
+    @Test @Config(fontScale = 2f) fun largeFontGoalShowsThreeGoals() {
+        largeScreen(SetupStep.GOAL, SetupFlowFixtures.run, "What are you training for?")
+        listOf("Lift", "Run", "Both").forEach { rule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
+    }
+    @Test @Config(fontScale = 2f) fun largeFontWhichFirst() =
+        largeScreen(SetupStep.ORDER, SetupFlowFixtures.both, "Which comes first?")
+    @Test @Config(fontScale = 2f) fun largeFontRunningGoal() =
+        largeScreen(SetupStep.RUN_GOAL, SetupFlowFixtures.run, "What kind of running?")
+    @Test @Config(fontScale = 2f) fun largeFontAboutRun() =
+        largeScreen(SetupStep.ABOUT, SetupFlowFixtures.run, "About your training")
+    @Test @Config(fontScale = 2f) fun largeFontEventHalfWithDateTimeAndRecent() =
+        largeScreen(SetupStep.EVENT, SetupFlowFixtures.half, "Your event")
+    @Test @Config(fontScale = 2f) fun largeFontEventTest() =
+        largeScreen(SetupStep.EVENT, SetupFlowFixtures.test, "Your event")
+    @Test @Config(fontScale = 2f) fun largeFontWhereYouAre() =
+        largeScreen(SetupStep.WHERE, SetupFlowFixtures.run, "Where you are")
+    @Test @Config(fontScale = 2f) fun largeFontTogether() =
+        largeScreen(SetupStep.TOGETHER, SetupFlowFixtures.both, "Lifting and running")
+    @Test @Config(fontScale = 2f) fun largeFontRunPlanWithStrengthBlocks() =
+        largeScreen(SetupStep.PLAN, SetupFlowFixtures.half, "Your plan")
+    @Test @Config(fontScale = 2f) fun largeFontNoRunCard() {
+        largeScreen(SetupStep.PLAN, SetupFlowFixtures.noRun, "Your plan")
+        rule.onNodeWithText("Longer sessions").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Separate days").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+    }
+    @Test fun `the no run card offers only real choices`() {
+        var longer = 0
+        var together: cloud.trotter.log.strength.domain.planner.BothAnswers.Together? = null
+        show(state(SetupStep.PLAN, SetupFlowFixtures.noRun), SetupFlowActions(
+            onLongerSessions = { longer++ }, onTogether = { together = it }))
+        rule.onNodeWithText("Start").assertIsEnabled()
+        rule.onNodeWithText("No run fits in 30 minutes.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Longer sessions").performScrollTo().performClick()
+        rule.onNodeWithText("Separate days").performScrollTo().performClick()
+        assertEquals(1, longer)
+        assertEquals(cloud.trotter.log.strength.domain.planner.BothAnswers.Together.SEPARATE_DAYS, together)
+        rule.runOnIdle { shown = state(SetupStep.PLAN, SetupFlowFixtures.noRun.copy(days = 1)) }
+        rule.onNodeWithText("Separate days").assertDoesNotExist()
     }
 }

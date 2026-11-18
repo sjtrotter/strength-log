@@ -94,6 +94,96 @@ class SetupFlowPreviewShotsTest {
     @Test fun goalLargeFont() = shot("s21-setup-goal-2x.png", state(SetupStep.GOAL), scale = 2f)
     @Test fun planLargeFont() = shot("s22-setup-plan-2x.png", plan(), scale = 2f)
 
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun goalRun() = shot("s23-setup-goal-run.png",
+        state(SetupStep.GOAL, SetupFlowFixtures.run))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun goalRunLargeFont() = shot("s24-setup-goal-run-2x.png",
+        state(SetupStep.GOAL, SetupFlowFixtures.run), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun order() = shot("s25-setup-order.png",
+        state(SetupStep.ORDER, SetupFlowFixtures.both))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun orderLargeFont() = shot("s26-setup-order-2x.png",
+        state(SetupStep.ORDER, SetupFlowFixtures.both), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun runGoal() = shot("s27-setup-run-goal.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.run))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun runGoalLargeFont() = shot("s28-setup-run-goal-2x.png",
+        state(SetupStep.RUN_GOAL, SetupFlowFixtures.run), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun aboutRun() = shot("s29-setup-about-run.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.run))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun aboutRunLargeFont() = shot("s30-setup-about-run-2x.png",
+        state(SetupStep.ABOUT, SetupFlowFixtures.run), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventHalf() = shot("s31-setup-event-half.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.half))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventHalfLargeFont() = shot("s32-setup-event-half-2x.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.half), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventTest() = shot("s33-setup-event-test.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.test))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventTestLargeFont() = shot("s34-setup-event-test-2x.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.test), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventUltra() = shot("s35-setup-event-ultra.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.ultra))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun eventUltraLargeFont() = shot("s36-setup-event-ultra-2x.png",
+        state(SetupStep.EVENT, SetupFlowFixtures.ultra), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun where() = shot("s37-setup-where.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.half))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun whereLargeFont() = shot("s38-setup-where-2x.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.half), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun whereCardio() = shot("s39-setup-where-cardio.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.run))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun whereCardioLargeFont() = shot("s40-setup-where-cardio-2x.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.run), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun together() = shot("s41-setup-together.png",
+        state(SetupStep.TOGETHER, SetupFlowFixtures.both))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun togetherLargeFont() = shot("s42-setup-together-2x.png",
+        state(SetupStep.TOGETHER, SetupFlowFixtures.both), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planLadder() = shot("s43-setup-plan-ladder.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.run))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planLadderLargeFont() = shot("s44-setup-plan-ladder-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.run), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planHalf() = shot("s45-setup-plan-half.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.half))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planHalfLargeFont() = shot("s46-setup-plan-half-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.half), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planBoth() = shot("s47-setup-plan-both.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.both))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planBothLargeFont() = shot("s48-setup-plan-both-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.both), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planNoRun() = shot("s49-setup-plan-no-run.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.noRun))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun planNoRunLargeFont() = shot("s50-setup-plan-no-run-2x.png",
+        state(SetupStep.PLAN, SetupFlowFixtures.noRun), scale = 2f)
+    @Test fun whyEvent() {
+        render { SetupFlowScreen(state(SetupStep.EVENT, SetupFlowFixtures.half), SetupFlowActions()) }
+        rule.onNodeWithText("Why we ask").performClick()
+        capture("s51-setup-why-event.png", true)
+    }
+
     private fun render(fontScale: Float = 1f, light: Boolean = false, content: @Composable () -> Unit) {
         RuntimeEnvironment.setFontScale(fontScale)
         rule.setContent { AppTheme(preference = if (light) ThemePreference.LIGHT else ThemePreference.DARK, content = content) }

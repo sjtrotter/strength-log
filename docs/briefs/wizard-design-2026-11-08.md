@@ -1830,7 +1830,7 @@ No network, compilation, Gradle, builds, tests or subagents were used.
 
 A ruled run Finish stores its judged result inside the existing cardio undo JSON. The chip and receipt use the public `runResult()` decoder. They do not re-judge the current rule: after a first Easy has written credit, re-judging would describe the next Easy's level-up instead of the Finish that earned the credit. Older records default to no result; unreadable records return null. Rule-less and sprint record bytes stay unchanged. The two ruled judgment branches share one private Room-only `cardioPlan` builder; sprint inputs and behavior stay the same.
 
-Ladder Easy repeats name BACKDATED, WEEK_CAP or BUSY only when those rules held them. Credit-earning repeats, Good, no answer and unfinished sessions carry no hold. The receipt explains earned credit, level-up, drop, completion and each hold in its Why sheet. Its next-time line names the level, Alternate kind or resulting block, with held changes marked offered. Sprint receipts and chips remain empty.
+Ladder Easy repeats name BACKDATED, WEEK_CAP or BUSY only when those rules held them. Credit-earning repeats, Good, no answer and unfinished sessions carry no hold. The receipt explains earned credit, level-up, drop, completion and each hold in its Why sheet. Its next-time line names the level, Alternate kind or resulting block, with held changes marked offered. Sprint receipts and chips remain empty. Sprint receipts omit “Next time” until PR 7d (#611 follow-up).
 
 Run change offers live on Today's and the preview's next-time chips. Accept and decline replay the recorded pre-write days through the same guard and Undo as an effort edit. The explicit choice persists in the result and overrides the plan mode during later effort or distance edits. Ask's ordinary write policy remains Repeat credit and a held drop's credit clear. Accepted ladder changes update every ladder rule while kept days retain their block.
 
@@ -1869,3 +1869,58 @@ Production: domain progression `CardioOutcome.kt`, `Progression.kt`; data `Track
 Tests: domain `ProgressionLadderTest.kt` and the revision 49 comment correction in `PlannerBothTest.kt`; data `RunFinishTest.kt`, `RunReplanFinishTest.kt`; app `DayScreenBuilderTest.kt`, `DayViewModelCardioExecutionTest.kt`, `ReceiptScreenTest.kt`, `PlanScreenBuilderTest.kt`, `DayEditSheetTest.kt`, `PlanScreenTest.kt`, `WorkoutSetScreenTest.kt`. Large-font fixtures cover the receipt, Why sheet, Keep page, Plan phase and prediction, and ladder chip, including the new button and chip's 48 dp target.
 
 No network, compilation, Gradle, builds, tests or subagents were used. CI and the ladder receipt and set-screen render artifacts must be checked before merging. Room, backup schema 30, DataStore, SavedStateHandle, Parcelables, setup recipe bytes, cardio rule bytes and watch wire stay unchanged.
+
+
+## 60. Revision 51 (PR 7c, Run and Both setup, 2026-11-18)
+
+### Setup and saved answers
+
+Goal offers Lift, Run and Both, with Lift selected by default. The Lift step list, answer defaults, fitting and balance choices, Start and restore latches, and five-Next pilot stay unchanged. Run walks Goal, Running goal, Your week, Equipment, About your training, optional Your event, Where you are and Your plan. Both adds Which first and Lifting goal before Running goal, keeps the existing conditional Your lifts and Recent numbers, and adds Together before Your plan where it is a real choice. Just cardio fitness skips Your event.
+
+Together is offered at three through six days in either order and at two days running first. Hidden Together answers map to Same visit at one day and at two days lifting first. The saved draft keeps the user's Separate days choice so it returns when the step is offered again. Restores and prefills use the same mapping; a null offered choice uses SetupAnswers.together's default.
+
+SetupDraft keeps version 1 and the existing setup_draft key, with defaulted Run and Both fields appended to its JSON model. No Parcelable, Room schema, DataStore schema, watch message or saved-state key changes. Decoding checks strengthBlocks in 0..2; stale run inputs remain readable. Answer mapping drops events outside the goal, invalid time/count/recent/longest fields, inapplicable marathon bests, surfaces outside the goal, and dates the goal or test cannot use. PACER and HAMR need a target before a date; Cooper's date stays hidden. Run uses default strength-block mains. Both maps two blocks and lets the planner choose their layout. Prefill carries every Run and Both field back.
+
+Your event uses the goal's event choices, Ultra's Road or Trail and optional marathon best, target time/distance/count by test, and Just finish or A time for events. A date uses the M3 picker. Recent distance and time are optional. Where you are asks longest minutes or distance, with activity choices for Just cardio fitness. About adds running experience and the past-year running-injury answer. These screens use the exact PR 7c resource copy and M3 choices and NumberField.
+
+### Preview, goal times and receipts
+
+Your plan carries each stored cardio block into its day row, using the receipt's blockValue formatter. Run exposes zero, one or two strength blocks. No run session shows NoRun(minutes), with Longer sessions when available and Separate days only when Together is offered. Start remains enabled. NoRun replaces DateTooClose when no run fits; RunCapped, GoalCheck and LADDER otherwise follow the planner, and Minutes remains the last Why line.
+
+Run names use the running goal; Both names use “Lifting and” plus that goal. The longest plural name is 39 characters. ClockText.duration formats m:ss below an hour and h:mm:ss from an hour; ClockText.parse accepts both. Setup and the Plan goal editor share them. Plan target, best, clock gaps and both prediction times use duration. The set-screen parser and displays keep their existing format. A blank editor time saves a Timed goal with null underSeconds, retaining event and date; the PlanGoalDraft Parcelable is unchanged.
+
+Re-plan acceptance reports Moved, RunOpen, Gone or Waiting. Undo names UndoneReplanKept when an open workout sits on an inserted day and prevents its removal; that cause precedes the resulting ladder mismatch. Other restoration, including counters, proceeds. The three corresponding receipt messages distinguish an open workout, an ended offer and a kept phase.
+
+Backup v31 carries Run and Both recipe v2, credited/count-dated ladder rules and untimed Timed goals. A raw-payload check rejects those shapes before v31 with “requires schema v31”, before legacy shaping can discard them. v1 through v30 otherwise retain their decoder, and v30 stays explicitly covered. Existing recipe and cardio-rule encoders are unchanged.
+
+### Pilots, render gate and departures
+
+run-to-today taps Run, six Next buttons, Start and expects Start day A. Its default plan is LADDER: A, B and C have CardioRule(1), D is Rest. both-to-today taps Both, eight Next buttons, verifies Lifting and running, then Next and Start. The core CI list includes Run; all includes both pilots. The original wizard-to-today and every other existing pilot are unchanged.
+
+Setup render fixtures s23 through s51 cover each new surface at 1x and 2x, plus the event Why sheet. Progression fixtures p18-receipt-ladder through p25-plan-goal-hours cover the ladder receipt, its Why sheet, weekly hold, Ask re-plan, Keep, the Level 2 chip at both scales and hour goal prediction. Additional 2x receipt, Why and Keep captures meet the lead's entry gate. Existing s01 through s22 fixture calls remain intact; Goal's new choices necessarily appear in its existing screenshots as well. CI already publishes both fixture classes in set-screen-preview. The artifacts must be inspected before merge.
+
+Departures from the 2026-11-08 mock: Runs a week is not asked because it has no planner input; the work-around chips other than running injury have no planner rule and are not asked; Cooper's date is hidden under owner decision 2. Sprint and Both with sprint remain deferred.
+
+### Changed expectations and files
+
+| Existing test | Old → new | Reason |
+|---|---|---|
+| RunReplanFinishTest, an Ask plan offers the re-plan at the wrap | true → ReplanAccept.Moved | The accepted merge was written |
+| RunReplanFinishTest, a ladder only Ask plan offers the goal's own plan | true → ReplanAccept.Moved | The accepted merge was written |
+| RunReplanFinishTest, accepting a re-plan refuses when it cannot move, open workout | false → ReplanAccept.RunOpen | The workout blocks acceptance |
+| Same test, cleared record | false → ReplanAccept.Gone | No offer remains on the record |
+| RunReplanFinishTest, a re-plan guard that now waits keeps the offer | false → ReplanAccept.Waiting | nextPhase cannot move |
+| RunReplanFinishTest, a strength Finish carries an Ask re-plan offer | true → ReplanAccept.Moved | The accepted strength-record merge was written |
+| RunReplanFinishTest, undo keeps a re-plan while a run is open on a day it inserted | UndoneLadderKept → UndoneReplanKept | The inserted open day is the cause |
+| PlanCardioGoalScreenTest, an untimed goal shows its distance and best without a gap | draft.goal() null → the same untimed goal | Blank time saves Just finish |
+| PlanViewModelTest, invalid cardio goal drafts cannot save and cancel leaves storage alone | Blank time 0 treated as invalid → negative time −1 treated as invalid; a new test saves 0 with its date | Blank time saves Just finish |
+| SetupFlowScreenTest, Goal and restore | Run/Both absent → present; Sprint absent unchanged | The requested Goal choices supersede the old Lift-only assertion |
+| SetupFlowScreenTest, large font keeps every step usable | Eight enum entries on a Lift fixture → thirteen entries with a Both fixture for the five new steps | Preserve its every-step subject and the preceding-step fallback |
+
+Every changed assertion has its PR 7c comment. BackupV30Test now explicitly sets version 30 on its partial-profile fixture, keeping its existing 30 expectation and v30 subject. No planner/progression number or pinned §11.2 case changes. The default Lift plan expectation is unchanged.
+
+Production: app wizard SetupDraft, SetupFlowModels, SetupFlowStateBuilder, SetupFlowViewModel, SetupFlowScreen, SetupFlowSteps, SetupFlowPlan, new SetupFlowRun and SetupFlowBoth; AppNavHost callback wiring; plan PlanGoalDraft and PlanCardioGoal; day ReceiptCardioLines, ReceiptProgress, SessionFinisher and SessionReceiptScreen; strings.xml. Domain: units/ClockText. Data: TrackerRepository and FinishUndoState. Transfer: BackupDocument and BackupCodec. Pilots: run-to-today.json, both-to-today.json and playtest.yml. Docs: this revision and DESIGN.md.
+
+Tests: SetupDraftJsonTest, SetupFlowStateBuilderTest, SetupFlowViewModelTest, SetupFlowScreenTest and shared SetupFlowFixtures; SetupFlowPreviewShotsTest and ProgressionPreviewShotsTest; PlanCardioGoalScreenTest, PlanViewModelTest and ReceiptScreenTest; ClockTextTest; PlannedPlanTest and RunReplanFinishTest; BackupV30Test and new BackupV31Test.
+
+No network, compilation, Gradle, builds, tests or subagents were used. CI results, pilot execution and generated render artifacts remain pending.

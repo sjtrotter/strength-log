@@ -44,7 +44,6 @@ import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.NumberField
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import cloud.trotter.log.strength.ui.day.cardioActivityName
-import cloud.trotter.log.strength.ui.day.parseSheetDuration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -67,7 +66,7 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
                 is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
                 is PlanGoal.Timed -> goal.underSeconds?.let { seconds ->
                     stringResource(R.string.plan_goal_timed,
-                        distanceUnitFor(goal.activity).format(goal.metres), ClockText.minutesSeconds(seconds))
+                        distanceUnitFor(goal.activity).format(goal.metres), ClockText.duration(seconds))
                 } ?: distanceUnitFor(goal.activity).format(goal.metres)
                 is PlanGoal.Shuttle -> stringResource(R.string.plan_goal_shuttle, goal.protocol, goal.targetShuttles)
             })
@@ -78,8 +77,8 @@ internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
                 goal.byEpochDay?.let { day -> Text(stringResource(R.string.plan_goal_by, goalDate(day))) }
                 val recent = ui.predictedFrom
                 if (goal is PlanGoal.Timed && ui.predictedSeconds != null && recent != null) {
-                    Text(stringResource(R.string.plan_goal_predicted, ClockText.minutesSeconds(ui.predictedSeconds),
-                        distanceUnitFor(goal.activity).format(recent.metres), ClockText.minutesSeconds(recent.seconds)))
+                    Text(stringResource(R.string.plan_goal_predicted, ClockText.duration(ui.predictedSeconds),
+                        distanceUnitFor(goal.activity).format(recent.metres), ClockText.duration(recent.seconds)))
                 }
             }
         },
@@ -95,10 +94,10 @@ private fun goalProgress(ui: PlanGoalUi): String {
     val gap = when (val goal = ui.goal) {
         is PlanGoal.Sprint -> error("PlanScreenBuilder shows no sprint goal")
         is PlanGoal.Timed -> {
-            val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.minutesSeconds(best))
+            val target = goal.underSeconds ?: return stringResource(R.string.plan_goal_best, ClockText.duration(best))
             val seconds = abs(best - target)
             val amount = if (seconds < 60) stringResource(R.string.plan_goal_seconds, seconds)
-                else ClockText.minutesSeconds(seconds)
+                else ClockText.duration(seconds)
             when {
                 best > target -> stringResource(R.string.plan_goal_over, amount)
                 best < target -> stringResource(R.string.plan_goal_under, amount)
@@ -108,7 +107,7 @@ private fun goalProgress(ui: PlanGoalUi): String {
         is PlanGoal.Shuttle -> if (ui.met) stringResource(R.string.plan_goal_met)
             else stringResource(R.string.plan_goal_shuttles_to_go, goal.targetShuttles - best)
     }
-    val display = if (ui.goal is PlanGoal.Timed) ClockText.minutesSeconds(best) else best.toString()
+    val display = if (ui.goal is PlanGoal.Timed) ClockText.duration(best) else best.toString()
     return stringResource(R.string.plan_goal_progress, stringResource(R.string.plan_goal_best, display), gap)
 }
 
@@ -237,7 +236,7 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
         value = draft.underSeconds.takeIf { it > 0 }?.toDouble(),
         onValueChange = onTime, onDraftChange = onTime,
         label = stringResource(R.string.plan_goal_target_time), minValue = 1.0, maxValue = 86_400.0,
-        format = { ClockText.minutesSeconds(it.toInt()) }, parse = ::parseSheetDuration, keyboardType = KeyboardType.Ascii,
+        format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii,
     )
 }
 

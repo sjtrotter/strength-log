@@ -1,5 +1,12 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.FitnessTest
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
@@ -31,6 +38,25 @@ data class SetupDraft(
     val mains: List<String>? = null,
     val recent: Map<String, RecentDraft> = emptyMap(),
     val balanceDays: Boolean = false,
+    val branch: PlanBranch = PlanBranch.LIFT,
+    val runGoal: RunGoal = RunGoal.CARDIO_FITNESS,
+    val runExperience: RunExperience = RunExperience.NEW,
+    val runEvent: RunEvent? = null,
+    val eventDate: Long? = null,
+    val goalSeconds: Int? = null,
+    val test: FitnessTest = FitnessTest.TWO_MILE,
+    val testScore: Int? = null,
+    val recentMetres: Int? = null,
+    val recentSeconds: Int? = null,
+    val longestByDistance: Boolean = false,
+    val longestSeconds: Int? = null,
+    val longestMetres: Int? = null,
+    val activity: CardioActivity = CardioActivity.ROAD_RUN,
+    val marathonBestSeconds: Int? = null,
+    val runningInjury: Boolean = false,
+    val strengthBlocks: Int = 2,
+    val cardioFirst: Boolean = false,
+    val together: BothAnswers.Together? = null,
 ) {
     companion object { const val VERSION = 1 }
 }
@@ -49,7 +75,7 @@ object SetupDraftJson {
         if (text.isNullOrBlank()) return null
         return try {
             json.decodeFromString<SetupDraft>(text).takeIf { draft ->
-                draft.v == SetupDraft.VERSION && draft.days in 1..6 &&
+                draft.strengthBlocks in 0..2 && draft.v == SetupDraft.VERSION && draft.days in 1..6 &&
                     draft.minutes in SetupFlowStateBuilder.minutesOptions &&
                     draft.barStep in SetupFlowStateBuilder.stepOptionsLb(StepRow.BAR, draft.unit).indices &&
                     draft.dumbbellStep in SetupFlowStateBuilder.stepOptionsLb(StepRow.DUMBBELL, draft.unit).indices &&

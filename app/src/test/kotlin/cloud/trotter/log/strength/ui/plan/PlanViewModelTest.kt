@@ -119,7 +119,8 @@ class PlanViewModelTest {
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
         advanceUntilIdle()
         vm.openGoal()
-        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = 0),
+        // PR 7c: blank time saves Just finish; a negative time remains invalid
+        for (invalid in listOf(PlanGoalDraft(metres = 0), PlanGoalDraft(underSeconds = -1),
             PlanGoalDraft(activity = "UNKNOWN"), PlanGoalDraft(timed = false, protocol = " "))) {
             vm.changeGoalDraft(invalid)
             vm.saveGoal()
@@ -129,6 +130,19 @@ class PlanViewModelTest {
         }
         vm.dismissGoal()
         advanceUntilIdle()
+        assertNull(vm.uiState.value.goalDraft)
+    }
+
+    @Test fun `a blank time saves Just finish with its date`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        vm.openGoal()
+        vm.changeGoalDraft(PlanGoalDraft(metres = 42195, underSeconds = 0, byEpochDay = 21000))
+        vm.saveGoal()
+        advanceUntilIdle()
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 42195, null, 21000),
+            PlanGoalJson.decode(db.planDao().plan(viewed)!!.goalJson))
         assertNull(vm.uiState.value.goalDraft)
     }
 

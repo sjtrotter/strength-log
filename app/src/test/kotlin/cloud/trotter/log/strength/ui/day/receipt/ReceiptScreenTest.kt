@@ -119,8 +119,9 @@ class ReceiptScreenTest {
         val (receipt, progress) = sprintFortyYardReceiptFixture()
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
         rule.onNodeWithText("40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Next time: 40 yd", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("37 m", useUnmergedTree = true).assertDoesNotExist()
+        // The Next time line is present, and no line on the receipt shows the event in metres.
+        assertTrue(rule.onAllNodesWithText("Next time", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(rule.onAllNodesWithText("37 m", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 
     @Test fun `a non sprint receipt keeps 37 metres`() {

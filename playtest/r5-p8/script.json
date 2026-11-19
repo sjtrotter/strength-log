@@ -1,32 +1,144 @@
 {
   "seat": "r5-p8",
   "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "20:00", "zone": "America/Denver"},
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:00",
+    "zone": "America/Denver"
+  },
   "steps": [
-    {"note": "Sunday evening setup. I want a plan for my December 12 department fitness test, with running plus one-minute push-ups and sit-ups."},
-    {"tap": {"text": "Get started"}},
-    {"tap": {"text": "Fitness test"}},
-    {"type": {"text": "Name", "value": "Ray"}},
-    {"type": {"text": "Age", "value": "34"}},
-    {"tap": {"text": "lb"}},
-    {"type": {"text": "Bodyweight", "value": "208"}},
-    {"tap": {"text": "Continue"}},
-    {"type": {"text": "Test date", "value": "12/12/2026"}},
-    {"type": {"text": "Distance", "value": "1.5"}},
-    {"tap": {"text": "mi"}},
-    {"type": {"text": "Target time", "value": "12:59"}},
-    {"type": {"text": "Recent time", "value": "14:05"}},
-    {"type": {"text": "Push-ups", "value": "32"}},
-    {"type": {"text": "Sit-ups", "value": "33"}},
-    {"tap": {"text": "Continue"}},
-    {"tap": {"text": "Tuesday"}},
-    {"tap": {"text": "Thursday"}},
-    {"tap": {"text": "Saturday"}},
-    {"tap": {"text": "Sunday"}},
-    {"tap": {"text": "Create plan"}},
-    {"checkpoint": "fitness-test-plan-created"},
-    {"tap": {"text": "Plan"}},
-    {"scrollTo": {"textContains": "Dec 12"}},
-    {"checkpoint": "plan-through-test-day"}
+    {
+      "note": "Sunday evening setup. I want a plan for my December 12 department fitness test, with running plus one-minute push-ups and sit-ups."
+    },
+    {
+      "tap": {
+        "textContains": "5K to ultra, a fitness test, or regular cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Ray"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "34"
+      }
+    },
+    {
+      "tap": {
+        "text": "lb"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight",
+        "value": "208"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue"
+      }
+    },
+    {
+      "type": {
+        "text": "Test date",
+        "value": "12/12/2026"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance",
+        "value": "1.5"
+      }
+    },
+    {
+      "tap": {
+        "text": "mi"
+      }
+    },
+    {
+      "type": {
+        "text": "Target time",
+        "value": "12:59"
+      }
+    },
+    {
+      "type": {
+        "text": "Recent time",
+        "value": "14:05"
+      }
+    },
+    {
+      "type": {
+        "text": "Push-ups",
+        "value": "32"
+      }
+    },
+    {
+      "type": {
+        "text": "Sit-ups",
+        "value": "33"
+      }
+    },
+    {
+      "tap": {
+        "text": "Continue"
+      }
+    },
+    {
+      "tap": {
+        "text": "Tuesday"
+      }
+    },
+    {
+      "tap": {
+        "text": "Thursday"
+      }
+    },
+    {
+      "tap": {
+        "text": "Saturday"
+      }
+    },
+    {
+      "tap": {
+        "text": "Sunday"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create plan"
+      }
+    },
+    {
+      "checkpoint": "fitness-test-plan-created"
+    },
+    {
+      "tap": {
+        "text": "Plan"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Dec 12"
+      }
+    },
+    {
+      "checkpoint": "plan-through-test-day"
+    }
   ]
 }

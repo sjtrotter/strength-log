@@ -98,6 +98,30 @@
     },
     {
       "tap": {
+        "text": "Continue without distance"
+      }
+    },
+    {
+      "checkpoint": "short-set-distance-prompt-answered"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "short-run-all-sets"
+    },
+    {
+      "tap": {
+        "text": "Finish block"
+      }
+    },
+    {
+      "checkpoint": "short-run-block-ended"
+    },
+    {
+      "tap": {
         "tag": "workout-finish"
       }
     },

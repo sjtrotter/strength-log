@@ -2,23 +2,72 @@
   "seat": "r5-p7",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "19:00",
+    "restore": "start-backup.json",
+    "date": "2026-11-10",
+    "time": "15:30",
     "zone": "America/Los_Angeles"
   },
   "steps": [
     {
-      "note": "Sunday setup. Goal: under 4.85 hand-timed for 40 yd, with heavy lifting. Two days, 60 to 75 minutes. Futsal Wednesdays and pickup Sundays. No February test date yet."
+      "note": "Tuesday Nov 10, first full session. Dynamic warm-up, standing short starts, phone on the ground for two reps, then Javi hand-times three-point 40 yd runs at 5.01 and 4.97. Rest two minutes between reps. Then squat 225 x 5 x 3, Good. Finish the workout."
     },
     {
       "tap": {
-        "textContains": "Sprint",
-        "role": "RadioButton"
+        "text": "Start day A"
       }
     },
     {
+      "checkpoint": "first-workout-open"
+    },
+    {
       "tap": {
-        "text": "Next"
+        "text": "Start sprints"
+      }
+    },
+    {
+      "checkpoint": "sprint-controls"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "2s100ms"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "checkpoint": "first-phone-timed-standing-start"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "2s80ms"
+    },
+    {
+      "tap": {
+        "text": "Stop"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "For the two 40s, Javi uses his stopwatch. Change to 40 yd and three-point start; preserve hand timing as distinct from gates."
+    },
+    {
+      "tap": {
+        "text": "Distance"
       }
     },
     {
@@ -27,163 +76,176 @@
       }
     },
     {
-      "checkpoint": "40-yard-goal"
-    },
-    {
       "tap": {
-        "text": "Next"
+        "text": "Start type"
       }
     },
     {
       "tap": {
-        "text": "2"
+        "text": "Three-point"
       }
     },
     {
       "tap": {
-        "text": "60"
-      }
-    },
-    {
-      "checkpoint": "two-days-one-hour"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "lb"
-      }
-    },
-    {
-      "note": "Full gym is selected by default. Keep it. Keep the displayed equipment increments; I have ordinary 5 lb total bar increases and 5 lb dumbbell steps available."
-    },
-    {
-      "checkpoint": "equipment-and-units"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "A year or more"
-      }
-    },
-    {
-      "tap": {
-        "text": "Under 40"
-      }
-    },
-    {
-      "tap": {
-        "text": "Sprinted all-out in the past month"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hamstring strain in the past 12 months"
-      }
-    },
-    {
-      "checkpoint": "experience-and-hamstring"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "recent-numbers-page"
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-bb_back_squat"
+        "text": "Manual time"
       }
     },
     {
       "type": {
-        "tag": "setup-recent-weight-bb_back_squat",
+        "text": "Time",
+        "value": "5.01",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "javi-first-40"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Manual time"
+      }
+    },
+    {
+      "type": {
+        "text": "Time",
+        "value": "4.97",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "javi-second-40"
+    },
+    {
+      "tap": {
+        "text": "Finish sprints"
+      }
+    },
+    {
+      "note": "After sprints and jumps, lift: squat three work sets of 225 lb for five reps. Keep the effort Good, about two reps left."
+    },
+    {
+      "tap": {
+        "text": "Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
         "value": "225",
         "ime": "done"
       }
     },
     {
       "type": {
-        "tag": "setup-recent-reps-bb_back_squat",
+        "text": "Reps",
         "value": "5",
         "ime": "done"
       }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-trap_dl"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-trap_dl",
-        "value": "275",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-trap_dl",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-bb_bench"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-bb_bench",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-bb_bench",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "note": "These late-October sets had about two reps left. Keep the displayed Good effort. No recent overhead-press or row numbers are supplied, so leave those optional fields blank."
-    },
-    {
-      "checkpoint": "real-recent-lifts-entered"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Good"
       }
-    },
-    {
-      "checkpoint": "corrected-plan-preview"
     },
     {
       "tap": {
-        "text": "Start"
+        "text": "Log set"
       }
     },
     {
-      "expect": {
-        "text": "Set up",
-        "absent": true
-      },
-      "timeoutMs": 60000
+      "advance": "3m"
     },
     {
-      "checkpoint": "setup-finished"
+      "checkpoint": "squat-work-set-1"
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "squat-work-set-2"
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "squat-work-set-3"
+    },
+    {
+      "note": "Finish the day with the performed sprint times and three squat work sets saved. Other coach work only if offered and time permits."
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish workout"
+      }
+    },
+    {
+      "checkpoint": "nov10-session-summary"
     }
   ]
 }

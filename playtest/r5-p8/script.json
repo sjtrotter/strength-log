@@ -3,30 +3,50 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-24",
-    "time": "17:30",
+    "date": "2026-12-05",
+    "time": "07:00",
     "zone": "America/Denver"
   },
   "steps": [
     {
-      "note": "Tuesday Nov 24, after shift at 17:30. Called out at 02:00 for a crash, slept only four hours. Do the offered interval session at a slower effort today, then push-ups 30/25/21, one minute each with two-minute rests. Keep counts on paper until I can find the test-event entry."
+      "note": "Saturday Dec 5, 07:00, academy-style practice at the track. All three events in order. No all-event entry found so far, so keep an independent paper record. Do not pretend script notes are app records."
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "note": "Practice event 1: 38 push-ups in one minute. Paper record."
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "note": "Practice event 2: 37 sit-ups in one minute. Paper record. Now run 1.5 miles continuously in 13:12. The app is currently on rest day D; choose the existing running day C as a workaround."
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "practice-test-other-days"
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "practice-test-selected-running-day"
     },
     {
       "tap": {
         "text": "Start day C"
-      }
-    },
-    {
-      "checkpoint": "poor-sleep-day-c-offered"
-    },
-    {
-      "tap": {
-        "text": "Skip"
       },
       "optional": true
     },
     {
-      "checkpoint": "poor-sleep-ready-to-run"
+      "checkpoint": "practice-test-running-prescription"
     },
     {
       "tap": {
@@ -41,16 +61,16 @@
       }
     },
     {
-      "checkpoint": "poor-sleep-running-after-warm-up-start"
+      "checkpoint": "practice-run-started"
     },
     {
-      "advance": "5m"
+      "note": "Use my own stopwatch and lap count for the real 1.5-mile practice. I run continuously, including while the app labels its 90-second recoveries. This preserves elapsed time but does not turn the offered interval workout into a supported practice-test workout."
+    },
+    {
+      "advance": "4m30s"
     },
     {
       "advance": "90s"
-    },
-    {
-      "checkpoint": "poor-sleep-bout-1"
     },
     {
       "tap": {
@@ -58,13 +78,10 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m30s"
     },
     {
       "advance": "90s"
-    },
-    {
-      "checkpoint": "poor-sleep-bout-2"
     },
     {
       "tap": {
@@ -72,80 +89,77 @@
       }
     },
     {
-      "advance": "5m"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "poor-sleep-bout-3"
+      "advance": "1m12s"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Stop"
       }
     },
     {
-      "advance": "5m"
+      "checkpoint": "practice-run-13m12-stopped"
     },
     {
-      "advance": "90s"
+      "note": "Actual whole run: 1.5 miles in 13:12. Distance entry here belongs to the stopped interval, so do not enter the whole-run distance as that interval. Retain the distance on paper."
     },
     {
-      "checkpoint": "poor-sleep-bout-4"
+      "tap": {
+        "text": "Continue without distance"
+      }
     },
     {
-      "advance": "1m"
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
-      "note": "Push-ups 30 in one minute, paper record. Slower running today because of the four-hour sleep night."
+      "tap": {
+        "desc": "More"
+      }
     },
     {
-      "advance": "2m"
+      "tap": {
+        "text": "End cardio"
+      }
     },
     {
-      "advance": "1m"
+      "tap": {
+        "text": "End and log"
+      }
     },
     {
-      "note": "Push-ups 25 in one minute, paper record. Slower running today because of the four-hour sleep night."
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Push-ups 21 in one minute, paper record. Slower running today because of the four-hour sleep night."
+      "checkpoint": "practice-run-end-and-log-result"
     },
     {
       "tap": {
         "text": "Skip",
         "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "november-24-saved-before-rating"
-    },
-    {
-      "tap": {
-        "tag": "receipt-cardio-effort-HARD"
-      }
-    },
-    {
-      "checkpoint": "poor-sleep-hard-rating-progression"
-    },
-    {
-      "note": "Sleep context and push-up counts remain on paper. No note control is visible on this cardio-only receipt; do not pretend these script notes are saved in the app."
-    },
-    {
-      "tap": {
-        "desc": "4 by 5 minutes. Distance not entered."
       },
       "optional": true
     },
     {
-      "checkpoint": "november-24-rough-session-summary-and-detail"
+      "tap": {
+        "tag": "workout-finish",
+        "enabled": true
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "december-5-practice-summary"
     }
   ]
 }

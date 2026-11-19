@@ -1,22 +1,88 @@
 {
   "seat": "r5-p6",
   "capture": "compact",
-  "start": {"date": "2026-11-08", "time": "21:15", "zone": "America/New_York"},
+  "start": {
+    "date": "2026-11-08",
+    "time": "21:15",
+    "zone": "America/New_York"
+  },
   "steps": [
-    {"note": "Dana: fresh install. Set up a total-beginner run/walk plan for a possible March 20 5K, three days weekly, about 30 minutes."},
-    {"tap": {"text": "Get started"}},
-    {"tap": {"text": "Running"}},
-    {"tap": {"text": "Continue"}},
-    {"tap": {"text": "Beginner"}},
-    {"tap": {"text": "Continue"}},
-    {"tap": {"text": "5K"}},
-    {"tap": {"text": "Continue"}},
-    {"tap": {"text": "3 days"}},
-    {"tap": {"text": "Continue"}},
-    {"tap": {"text": "30 minutes"}},
-    {"tap": {"text": "Continue"}},
-    {"checkpoint": "review-first-weeks-before-accepting"},
-    {"tap": {"text": "Start plan"}},
-    {"checkpoint": "setup-complete"}
+    {
+      "note": "Dana: set up a total-beginner run/walk plan for a possible March 20 5K, three days weekly, about 30 minutes. No recent running or race."
+    },
+    {
+      "tap": {
+        "textContains": "5K to ultra",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "running-setup-page-two"
+    },
+    {
+      "tap": {
+        "text": "Beginner"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "running-setup-page-three"
+    },
+    {
+      "tap": {
+        "text": "5K"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "running-setup-page-four"
+    },
+    {
+      "tap": {
+        "text": "3 days"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "running-setup-page-five"
+    },
+    {
+      "tap": {
+        "text": "30 minutes"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "review-first-weeks-before-accepting"
+    },
+    {
+      "tap": {
+        "text": "Start plan"
+      }
+    },
+    {
+      "checkpoint": "setup-complete"
+    }
   ]
 }

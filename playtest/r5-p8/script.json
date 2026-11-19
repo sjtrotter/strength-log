@@ -130,11 +130,8 @@
     },
     {
       "tap": {
-        "text": "End cardio",
-        "inDialog": true
-      },
-      "optional": true,
-      "timeoutMs": 1000
+        "text": "End and log"
+      }
     },
     {
       "checkpoint": "short-run-end-attempt"

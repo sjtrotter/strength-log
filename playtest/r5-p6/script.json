@@ -36,6 +36,29 @@
       "checkpoint": "turkey-trot-entry-form"
     },
     {
+      "tap": {
+        "text": "11:35"
+      }
+    },
+    {
+      "type": {
+        "text": "Hour",
+        "value": "9"
+      }
+    },
+    {
+      "type": {
+        "text": "Minute",
+        "value": "00"
+      }
+    },
+    {
+      "tap": {
+        "text": "OK",
+        "role": "Button"
+      }
+    },
+    {
       "type": {
         "textContains": "Duration",
         "value": "47:52"

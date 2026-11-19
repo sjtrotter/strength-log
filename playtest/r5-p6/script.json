@@ -3,16 +3,22 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-23",
-    "time": "06:15",
+    "date": "2026-11-26",
+    "time": "12:00",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Monday Nov 23 06:15, 28 degrees and windy. Four rounds of running/walking, then give up because of cold hands and inability to get warm. Four level-1 rounds take ten minutes, plus the five-minute warm-up: about fifteen minutes for the diary's roughly fourteen-minute outing. Do not complete the remaining rounds just to save it."
+      "note": "Thanksgiving, after the Turkey Trot. I did not record live. My sister's watch says 3.1 miles in 47:52; I ran roughly a third. This is my first completed 5K and I want it kept as an extra outing, without pretending I ran the planned ten intervals."
     },
     {
-      "checkpoint": "cold-monday-today"
+      "checkpoint": "turkey-trot-today"
+    },
+    {
+      "tap": {
+        "text": "Skip rest and train",
+        "role": "Button"
+      }
     },
     {
       "tap": {
@@ -21,216 +27,54 @@
       }
     },
     {
-      "checkpoint": "cold-monday-offered-workout"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start timer",
+        "text": "Log past session",
         "role": "Button"
       }
     },
     {
-      "advance": "5m"
+      "checkpoint": "turkey-trot-entry-form"
     },
     {
-      "tap": {
-        "text": "Start",
-        "role": "Button",
-        "index": 1
+      "type": {
+        "textContains": "Duration",
+        "value": "47:52"
       }
     },
     {
-      "checkpoint": "cold-monday-first-run"
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+      "type": {
+        "textContains": "Distance",
+        "value": "3.1"
       }
     },
     {
-      "advance": "2m30s"
+      "type": {
+        "textContains": "Note",
+        "value": "Turkey Trot with my sister and her kids. First 5K! Ran about a third."
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "turkey-trot-entered"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "checkpoint": "four-rounds-cold-stop"
-    },
-    {
-      "expect": {
-        "tag": "workout-finish",
-        "enabled": false
-      }
-    },
-    {
-      "note": "After four full rounds, check whether Finish remains disabled as it did with the shin outing. If so, leave with Back; no discovered partial-save path. I did these four rounds, but will not claim a full ten-round workout."
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "cold-outing-left"
-    },
-    {
-      "advance": "1d23h45m"
-    },
-    {
-      "note": "Wednesday Nov 25 06:15 outside. Normal session, feels like the previous Saturday. Complete the offered level and choose Good. Monday was abandoned, so expect the same plan day, not an advance."
-    },
-    {
-      "checkpoint": "wednesday-week3-today"
-    },
-    {
-      "tap": {
-        "textContains": "Start day",
+        "text": "Save",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "wednesday-week3-offered-workout"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start timer",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "wednesday-week3-first-run"
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "tag": "receipt-cardio-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "wednesday-week3-saved-good"
+      "checkpoint": "turkey-trot-saved"
     },
     {
       "tap": {
         "text": "Done",
         "role": "Button"
-      }
+      },
+      "optional": true
     },
     {
-      "checkpoint": "wednesday-week3-finished"
+      "checkpoint": "turkey-trot-finished"
     }
   ]
 }

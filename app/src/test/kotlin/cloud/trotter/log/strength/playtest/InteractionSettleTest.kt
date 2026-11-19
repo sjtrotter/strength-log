@@ -1,6 +1,13 @@
 package cloud.trotter.log.strength.playtest
 
 import android.content.Context
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.hasAnyAncestor
@@ -36,6 +43,7 @@ import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.day.InertCardioAlarm
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -56,12 +64,45 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w360dp-h720dp-xxhdpi")
 class InteractionSettleTest {
     @get:Rule val compose = createComposeRule()
     @get:Rule val temporary = TemporaryFolder()
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun checkpointCapturesTheSettledFrameOfAnAnimatedChange() {
+        val changed = mutableStateOf(false)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme {
+            AnimatedContent(changed.value, transitionSpec = {
+                fadeIn(tween(600)) togetherWith fadeOut(tween(600))
+            }, label = "Checkpoint") { final -> Text(if (final) "Final text" else "Previous text") }
+        } }
+        val file = temporary.newFile("checkpoint.json").apply {
+            writeText("""{"seat":"checkpoint","steps":[{"checkpoint":"settled"}]}""")
+        }
+        val script = Script.parse(file)
+        val artifacts = RunArtifacts(temporary.newFolder("checkpoint"), 0).apply { this.script = script }
+        val captures = ReplayCaptures(compose, artifacts, script)
+        compose.runOnUiThread { changed.value = true }
+        var waited = false
+        var frames = 0
+        val deadline = StepDeadline(10_000)
+        deadline.run(compose) {
+            settleReplayStep(script.steps.single(), interaction = {
+                compose.settleSemantics(deadline, awaitPendingWork = { waited = true }) { frames++ }
+            }, other = { error("Checkpoint must check pending recomposer and window work") })
+            captures.step(0, script.steps.single(), deadline)
+        }
+        assertTrue(waited)
+        assertTrue(frames >= 6)
+        val capture = File(artifacts.directory, "steps/000-checkpoint-settled.json").readText()
+        assertTrue(capture.contains("Final text"))
+        assertFalse(capture.contains("Previous text"))
+    }
 
     @Test fun immediateAllSetsTapUsesTheDestinationAfterDelayedStorageCompletion() {
         val context = ApplicationProvider.getApplicationContext<Context>()

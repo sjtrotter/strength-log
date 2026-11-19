@@ -16,6 +16,43 @@ import kotlin.test.assertFailsWith
 class ScriptAssertionsTest {
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun optionalParsesOnSelectorStepsOnly() {
+        listOf("tap", "longPress", "type", "scrollTo", "swipe", "expect").forEach { action ->
+            val extra = when (action) {
+                "type" -> ",\"value\":\"12\""
+                "swipe" -> ",\"direction\":\"up\""
+                else -> ""
+            }
+            val step = Step.parse(Json.parseToJsonElement("""{"$action":{"text":"Target"$extra},"optional":true}"""))
+            assertEquals(true, step.optional)
+        }
+        listOf(
+            """{"advance":"1s","optional":true}""",
+            """{"back":true,"optional":true}""",
+            """{"recreate":true,"optional":true}""",
+            """{"checkpoint":"end","optional":true}""",
+            """{"note":"note","optional":true}""",
+            """{"tap":{"text":"Target"},"optional":true,"expectError":"not-visible"}""",
+            """{"tap":{"text":"Target"},"optional":"yes"}""",
+            """{"tap":{"text":"Target"},"optional":false}""",
+            """{"tap":{"text":"Target"},"optional":"true"}""",
+        ).forEach { json ->
+            assertEquals("script", assertFailsWith<PlaytestError> { Step.parse(Json.parseToJsonElement(json)) }.kind)
+        }
+    }
+
+    @Test fun advanceAcceptsMilliseconds() {
+        listOf("500ms" to 500L, "4s880ms" to 4_880L, "1m30s" to 90_000L, "2d" to 172_800_000L).forEach { (text, millis) ->
+            val step = Step.parse(Json.parseToJsonElement("""{"advance":"$text"}"""))
+            assertEquals(millis, requireNotNull(step.duration).toMillis())
+        }
+        listOf("880ms4s", "0ms", "").forEach { text ->
+            assertEquals("script", assertFailsWith<PlaytestError> {
+                Step.parse(Json.parseToJsonElement("""{"advance":"$text"}"""))
+            }.kind)
+        }
+    }
+
     @Test fun captureModesKeepTheirExistingDefaultsAndAcceptCompact() {
         val file = temporary.newFile("capture.json")
         listOf(null, "checkpoints", "compact").forEach { mode ->

@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.playtest
 
 import android.content.Context
-import android.os.SystemClock
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.di.HealthModule
 import cloud.trotter.log.strength.di.TimeModule
@@ -31,6 +30,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 internal class PlaytestTime {
+    @Volatile private var elapsed = 10_000_000L
     @Volatile private var now = Instant.parse("2026-11-09T23:30:00Z")
     @Volatile private var zone = ZoneId.of("America/Chicago")
     private val state = MutableStateFlow(CivilTime.now(now, zone))
@@ -50,7 +50,7 @@ internal class PlaytestTime {
     }
     val cardioClock: CardioClock = object : CardioClock {
         override fun wallMillis(): Long = now.toEpochMilli()
-        override fun elapsedRealtimeMillis(): Long = SystemClock.elapsedRealtime()
+        override fun elapsedRealtimeMillis(): Long = elapsedMillis()
         override fun bootCount(): Int = 1
     }
 
@@ -60,7 +60,10 @@ internal class PlaytestTime {
         civil.refresh()
     }
 
+    fun elapsedMillis(): Long = elapsed
+
     fun advance(duration: Duration) {
+        elapsed += duration.toMillis()
         now = now.plus(duration)
         civil.refresh()
     }
@@ -80,10 +83,13 @@ internal class PlaytestCardioAlarm @Inject constructor() : CardioAlarm {
         pending = null
     }
 
-    fun fireDue(now: Long) {
-        val due = pending?.takeIf { it.deadline <= now } ?: return
+    val pendingDeadline: Long? get() = pending?.deadline
+
+    fun fireDue(now: Long): Boolean {
+        val due = pending?.takeIf { it.deadline <= now } ?: return false
         pending = null
         due.callback()
+        return true
     }
 }
 

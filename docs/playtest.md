@@ -10,7 +10,8 @@ Set `PLAYTEST_BASE` to a commit SHA or tag to pin a phase's build:
 `PLAYTEST_BASE=<sha-or-tag> scripts/playtest.sh <seat> [script.json]`.
 A new seat branch starts at that ref; existing seat branches merge that ref
 instead of `origin/main`. The driver fetches it if it is missing locally and
-exits with status 2 if it cannot resolve to a commit. With `PLAYTEST_BASE` unset,
+exits with status 2 if the fetched ref cannot resolve to a commit.
+An origin fetch failure exits with status 75. With `PLAYTEST_BASE` unset,
 the driver keeps fetching and merging `origin/main`. It prints the resolved base
 commit and writes it to `build.txt` in the downloaded run folder. Use the same
 pin for every run in a phase; an existing seat retains its earlier commits.
@@ -71,7 +72,7 @@ Notes get text diffs in this mode; a final note gets a full capture.
 
 ## Actions
 
-Put exactly one action in each step, plus optional `timeoutMs` or `expectError`. Unknown keys and
+Put exactly one action in each step, plus `timeoutMs`, `expectError`, or `"optional": true` as applicable. Unknown keys and
 malformed payloads fail before the activity launches. For example:
 
 ```json
@@ -118,11 +119,23 @@ the existing `stack` field still includes the exception chain.
 | `scrollTo` | Selector. Scrolls the nearest scrollable ancestor until the target is in view; for one not yet drawn, pages each lazy list on screen until it appears. Each scroll runs the Compose animation clock one second. |
 | `swipe` | Selector plus `"direction": "left"`, `"right"`, `"up"`, or `"down"`. |
 | `back` | `true`. Like the system Back key: an open sheet or dialog closes first, otherwise the screen goes back. |
-| `advance` | Positive duration in days, hours, minutes and seconds, in that order, such as `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
+| `advance` | Positive duration in days, hours, minutes, seconds, and milliseconds, in that order, such as `"500ms"`, `"4s880ms"`, `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. It walks through every armed timer boundary inside the advance in order. Live cardio and sprint timers read the same fake elapsed clock, so a 25:00 set saves 25:00. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
 | `recreate` | `true`. Recreates the activity to exercise saved state. |
-| `checkpoint` | A nonblank name. Always captures a named screen. |
+| `checkpoint` | A nonblank name. It waits for animations and pending saves, up to two seconds of frame time, before it captures. |
 | `expect` | Selector, optionally `"absent": true`. Requires one match, or zero when absent. `index` selects a repeated match. |
 | `note` | A string copied into the log. No capture. |
+
+End a script with a checkpoint when the final capture matters.
+
+A selector action (`tap`, `longPress`, `type`, `scrollTo`, `swipe`, or `expect`)
+can use `"optional": true` beside `timeoutMs`. Only selection failures skip:
+`not-found`, `ambiguous`, `disabled`, `not-clickable`, `not-editable`,
+`not-scrollable`, and `not-visible`. The skipped step stays green, writes a
+`NNN-SKIPPED-<slug>` PNG and JSON pair, and logs `optional_skipped` with its error
+class. The summary's `optional_skipped` array lists skipped step indices, or is
+empty. Timeouts, watchdogs, app crashes, other crashes, and script errors still
+fail. The flag must be the boolean `true`, cannot accompany `expectError`, and
+cannot be used on `advance`, `back`, `recreate`, `checkpoint`, or `note`.
 
 Use `type` for an editable text field. A second click can start a magnifier
 that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor,
@@ -161,6 +174,7 @@ also checks the field's label so a filled field stays selectable.
 | `desc` | Exact accessibility content description. |
 | `tag` | Exact test tag from the JSON dump. |
 | `role` | `Button`, `Checkbox`, `Switch`, `Tab`, `RadioButton`, `DropdownList`, or `Image`. |
+| `enabled` | `true` or `false`; matches the node's enabled state. |
 | `editable` | `true` restricts to editable nodes. Implied for `type`. |
 | `inDialog` | `true` includes only dialog descendants; `false` excludes them. |
 | `index` | Zero-based match number when repeated rows are intentional. |
@@ -177,6 +191,7 @@ reports `disabled` immediately.
 
 | Error class | Usual cause | What to try |
 | --- | --- | --- |
+| Optional step skipped unexpectedly | A selection failure was allowed to skip. | Read `optional_skipped` in the summary and log, then the SKIPPED capture; narrow the selector or remove `optional`. |
 | `not-found` | Text, tag, or index does not match the current tree. | Read the failure capture and nearby candidates; correct the selector or use `scrollTo` for a lazy item. |
 | `ambiguous` | Several nodes match, or an absent expectation still finds a node. | Narrow with a tag, role, or `inDialog`; use `index` for intentional repeats. Check whether `absent` is intended. |
 | `disabled` | The final match is disabled at the deadline, or a scroll target is disabled. | Inspect the capture and preceding steps; satisfy the control's prerequisites before retrying. |
@@ -212,8 +227,23 @@ For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/
 
 CI replays every pilot on a PR that touches the harness, the pilots or the
 playtest workflow. A PR that changes app, data, domain or transfer code replays
-the core four: wizard-to-today, rest-timer-advance, history-day-start and
-dialog-text-field. When an app change breaks one, update the script in the same PR.
+the core six: wizard-to-today, rest-timer-advance, history-day-start,
+dialog-text-field, ladder-day, and sprint-beep-timer. When an app change breaks one, update the script in the same PR.
+
+The round-5 pilots add these checks:
+
+- `optional-step` skips a missing selection and runs the following expectation.
+- `sprint-beep-timer` follows the sprint setup, countdown, and a 12.34-second phone-timed rep.
+- `sprint-typed-time` saves a typed rep time with its timing method and start type.
+- `ladder-day` follows the run setup and finishes all twenty run/walk sets, captures the receipt, then checks Logged 25:00 in History; CI also checks the saved total is exactly 1,500 seconds.
+- `run-typed-distance` finishes a live run with GPS distance off and a typed distance.
+- `cardio-log-past` saves a past session and finds its distance in History.
+- `timed-rep-count` configures reps in time and logs a count after the timer ends.
+- `test-date-picker` enters the setup event date through Material's text input mode.
+- `balance-day` accepts the 65+ balance offer during setup.
+
+A scripts-only PR runs the driver retry check when it changes `playtest.sh` or
+`gh-retry*.sh`; it does not add replay jobs. Workflow changes run both checks.
 
 The second-pass harness regressions have these checks:
 
@@ -243,6 +273,20 @@ Keep flows that test those states inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their
-content and centered, as on a phone. SAF pickers return nothing. Inspect
+content and centered, as on a phone. There are no GPS fixes: an outdoor run
+shows the app's no-signal state. Type distances where the app asks, or switch
+GPS distance off in Settings. The sprint beep makes no sound. The location
+permission request goes unanswered. SAF pickers return nothing. Inspect
 backup and export data through the artifact. Use the harness for plan building
 and workout execution against real storage.
+
+
+## Exit codes
+
+For the host operator: 0 means green (including skipped optional steps); 1 means
+the replay ran and failed, with its artifact downloaded; 2 means bad input; 75
+means infrastructure failed, such as GitHub being unreachable, retry budgets
+running out, a dispatch never appearing, or an artifact download failing.
+`artifact: <dir>` prints only after a successful download. GitHub polls run at
+most once a minute per seat, plus bounded retries; a failed dispatch checks for
+an accepted run before trying again. Origin fetches and pushes retry twice.

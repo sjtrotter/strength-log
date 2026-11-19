@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -62,6 +63,7 @@ import cloud.trotter.log.strength.ui.day.WorkoutConflictDialog
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayScreen
+import cloud.trotter.log.strength.ui.day.LocalSprintElapsedMillis
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
@@ -667,40 +669,42 @@ internal fun DayRoute(
         onBackCardio = viewModel.editor::backCardioBlock,
         onRemoveCardio = viewModel.editor::removeCardioBlock,
     )
-    DayScreen(
-        state = state,
-        actions = actions,
-        dayEditState = dayEditState,
-        dayEditActions = dayEditActions,
-        receipt = receipt,
-        receiptSetCounts = receiptSetCounts,
-        receiptBackoffLabels = receiptBackoffLabels,
-        receiptProgress = receiptProgress, receiptMutation = receiptMutation,
-        onReceiptMutationHandled = viewModel.finisher::mutationHandled,
-        onUndoChanges = viewModel.finisher::undoChanges, onRoughDay = viewModel.finisher::setRoughDay,
-        onCardioEffort = viewModel.finisher::setCardioEffort,
-        onAcceptReplan = viewModel.finisher::acceptReplan,
-        pastCardioEffort = pastCardioEffort, onPastCardioEffort = viewModel::setPastCardioEffort,
-        finish = finish,
-        noteSave = noteSave,
-        onRetryFinish = viewModel.finisher::retry,
-        onBackToWorkout = viewModel.finisher::backToWorkout,
-        onNoteSaveHandled = viewModel.finisher::noteSaveHandled,
-        onShareSession = viewModel.finisher::share,
-        onFinishSession = {
-            if (viewModel.finisher.dismissReceipt()) onFinishSession()
-        },
-        onBack = onBack,
-        nowMillis = viewModel.nowMillis,
-        removedSets = removedSets,
-        pastCardio = pastCardio,
-        sprintTimeDraft = sprintTimeDraft,
-        pastCardioSaveFailed = pastCardioSaveFailed,
-        pastCardioSaving = pastCardioSaving,
-        pastCardioCollision = pastCardioCollision,
-        gpsNotice = gpsNotice,
-        onUndoRemoveSet = viewModel::undoRemoveSet,
-    )
+    CompositionLocalProvider(LocalSprintElapsedMillis provides viewModel.elapsedClock) {
+        DayScreen(
+            state = state,
+            actions = actions,
+            dayEditState = dayEditState,
+            dayEditActions = dayEditActions,
+            receipt = receipt,
+            receiptSetCounts = receiptSetCounts,
+            receiptBackoffLabels = receiptBackoffLabels,
+            receiptProgress = receiptProgress, receiptMutation = receiptMutation,
+            onReceiptMutationHandled = viewModel.finisher::mutationHandled,
+            onUndoChanges = viewModel.finisher::undoChanges, onRoughDay = viewModel.finisher::setRoughDay,
+            onCardioEffort = viewModel.finisher::setCardioEffort,
+            onAcceptReplan = viewModel.finisher::acceptReplan,
+            pastCardioEffort = pastCardioEffort, onPastCardioEffort = viewModel::setPastCardioEffort,
+            finish = finish,
+            noteSave = noteSave,
+            onRetryFinish = viewModel.finisher::retry,
+            onBackToWorkout = viewModel.finisher::backToWorkout,
+            onNoteSaveHandled = viewModel.finisher::noteSaveHandled,
+            onShareSession = viewModel.finisher::share,
+            onFinishSession = {
+                if (viewModel.finisher.dismissReceipt()) onFinishSession()
+            },
+            onBack = onBack,
+            nowMillis = viewModel.nowMillis,
+            removedSets = removedSets,
+            pastCardio = pastCardio,
+            sprintTimeDraft = sprintTimeDraft,
+            pastCardioSaveFailed = pastCardioSaveFailed,
+            pastCardioSaving = pastCardioSaving,
+            pastCardioCollision = pastCardioCollision,
+            gpsNotice = gpsNotice,
+            onUndoRemoveSet = viewModel::undoRemoveSet,
+        )
+    }
 }
 
 @Composable

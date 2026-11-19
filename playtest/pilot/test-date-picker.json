@@ -1,0 +1,142 @@
+{
+  "seat": "test-date-picker",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your event"
+      }
+    },
+    {
+      "tap": {
+        "text": "1.5-mile run"
+      }
+    },
+    {
+      "type": {
+        "text": "Target time",
+        "value": "12:59",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add date"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add date"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Switch to text input mode"
+      }
+    },
+    {
+      "type": {
+        "text": "Date",
+        "value": "12122026",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Dec 12, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "22",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "fitness-test-date-dec-12"
+    }
+  ]
+}

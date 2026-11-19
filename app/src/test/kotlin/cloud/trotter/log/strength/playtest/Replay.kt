@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.playtest
 
 import android.os.Looper
-import android.os.SystemClock
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
@@ -54,6 +53,7 @@ import org.robolectric.Shadows.shadowOf
 internal class RunArtifacts(val directory: File, val captureFrom: Int) {
     var script: Script? = null
     var stepsRun = 0
+    val optionalSkipped = mutableListOf<Int>()
     private var failedStep: Int? = null
     private var errorClass: String? = null
     private var backupError: JsonObject? = null
@@ -107,6 +107,7 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
             put("clock_at_exit_local", time?.clock?.let { LocalDateTime.ofInstant(it.instant(), it.zone).toString() })
             put("clock_zone", script?.start?.zone?.id)
             put("capture_from", captureFrom)
+            put("optional_skipped", JsonArray(optionalSkipped.map(::JsonPrimitive)))
         }.toString() + "\n")
     }
 }
@@ -155,14 +156,16 @@ internal class Replay(
                     artifacts.writeSummary(time)
                 }
             }) {
-                try {
+                runCapturedStep(index, step, artifacts, captures, log = { ok, skipped ->
+                    log(index, step, started, ok, skipped)
+                }) {
                     crashes.step(compose) {
                         if (step.action != "note" || script.compactCapture) {
                             deadline.run(compose) {
                                 if (step.action != "note") {
                                     step.assertExpectedError {
                                         perform(step, deadline)
-                                        if (step.action in INTERACTION_ACTIONS) settleInteraction(deadline) else settle(deadline)
+                                        settleReplayStep(step, interaction = { settleInteraction(deadline) }, other = { settle(deadline) })
                                         if (step.action == "advance") {
                                             deadline.call { shadowOf(Looper.getMainLooper()).idle() }
                                             settle(deadline)
@@ -173,23 +176,18 @@ internal class Replay(
                             }
                         }
                     }
-                    log(index, step, started, ok = true)
-                } catch (error: Throwable) {
-                    artifacts.failure(error.playtestError(), index, step.json)
-                    captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
-                    log(index, step, started, ok = false)
-                    throw error
                 }
             }
         }
     }
 
-    private fun log(index: Int, step: Step, started: Long, ok: Boolean) {
+    private fun log(index: Int, step: Step, started: Long, ok: Boolean, skipped: String? = null) {
         artifacts.log(buildJsonObject {
             put("i", index)
             put("action", step.action)
             put("selector", step.selector?.json ?: JsonNull)
             put("ok", ok)
+            skipped?.let { put("optional_skipped", it) }
             put("ms", (System.nanoTime() - started) / 1_000_000)
             put("settle_frames", settledFrames)
             put("matches", lastMatches)
@@ -370,14 +368,11 @@ internal class Replay(
             }
             scriptCheck(safe, "Advances over one hour require no open workout and no armed rest; finish the workout first")
         }
-        time.advance(duration)
-        var remaining = duration
-        while (!remaining.isZero) {
-            val chunk = remaining.coerceAtMost(Duration.ofSeconds(1))
-            deadline.call { shadowOf(Looper.getMainLooper()).idleFor(chunk) }
-            remaining = remaining.minus(chunk)
-        }
-        deadline.call { compose.runOnUiThread { cardioAlarm.fireDue(SystemClock.elapsedRealtime()) } }
+        advanceClock(time, cardioAlarm, duration, idle = { span ->
+            deadline.call { shadowOf(Looper.getMainLooper()).idleFor(span) }
+        }, fire = { callback ->
+            deadline.call { compose.runOnUiThread { callback() } }
+        })
         deadline.call { compose.mainClock.advanceTimeBy(duration.toMillis().coerceAtMost(5_000)) }
     }
 
@@ -432,4 +427,63 @@ internal fun SemanticsNode.visibleForTouch(): Boolean {
     val bounds = boundsInWindow
     val window = generateSequence(this) { it.parent }.last().boundsInWindow
     return !bounds.isEmpty && bounds.overlaps(window)
+}
+
+internal fun settleReplayStep(step: Step, interaction: () -> Unit, other: () -> Unit) {
+    if (step.action in INTERACTION_ACTIONS || step.action == "checkpoint") interaction() else other()
+}
+
+internal fun runCapturedStep(
+    index: Int,
+    step: Step,
+    artifacts: RunArtifacts,
+    captures: ReplayCaptures,
+    log: (Boolean, String?) -> Unit,
+    action: () -> Unit,
+) {
+    try {
+        action()
+        log(true, null)
+    } catch (error: Throwable) {
+        val failure = error.playtestError()
+        if (step.optional && failure.kind in OPTIONAL_SELECTION_ERRORS) {
+            captures.failure("%03d-SKIPPED-%s".format(index, step.slug), error)
+            artifacts.optionalSkipped += index
+            log(true, failure.kind)
+        } else {
+            artifacts.failure(failure, index, step.json)
+            captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
+            log(false, null)
+            throw error
+        }
+    }
+}
+
+private val OPTIONAL_SELECTION_ERRORS = setOf(
+    "not-found", "ambiguous", "disabled", "not-clickable", "not-editable", "not-scrollable", "not-visible",
+)
+
+internal fun advanceClock(
+    time: PlaytestTime,
+    alarm: PlaytestCardioAlarm,
+    duration: Duration,
+    idle: (Duration) -> Unit,
+    fire: (() -> Unit) -> Unit,
+) {
+    val target = Math.addExact(time.elapsedMillis(), duration.toMillis())
+    while (true) {
+        val next = alarm.pendingDeadline
+        val stop = if (next != null && next <= target) next.coerceAtLeast(time.elapsedMillis()) else target
+        var remaining = Duration.ofMillis(stop - time.elapsedMillis())
+        time.advance(remaining)
+        while (!remaining.isZero) {
+            val chunk = remaining.coerceAtMost(Duration.ofSeconds(1))
+            idle(chunk)
+            remaining = remaining.minus(chunk)
+        }
+        if (next != null && next <= stop) {
+            fire { alarm.fireDue(time.elapsedMillis()) }
+            idle(Duration.ZERO)
+        } else return
+    }
 }

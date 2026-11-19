@@ -7,9 +7,10 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/gh-retry.sh"
 
 git_retry() {
-    local attempt
+    local attempt status
     for attempt in 0 1 2; do
-        if "$@"; then return 0; fi
+        if "$@"; then return 0; else status=$?; fi
+        if [[ ${1:-} == git && ${2:-} == ls-remote && $status == 2 ]]; then return 2; fi
         if (( attempt < 2 )); then sleep 30; fi
     done
     echo 'Git origin operation failed after three attempts' >&2
@@ -48,7 +49,7 @@ fi
 echo "build: $build"
 
 # Preserve the seat's history. Recover a remote seat branch on a new host, too.
-if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+if git_retry git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
     git_retry git fetch -q origin "refs/heads/$branch:refs/remotes/origin/$branch" || exit 75
 else
     remote_status=$?

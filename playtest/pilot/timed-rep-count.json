@@ -188,9 +188,7 @@
       "tap": {
         "text": "Enter reps",
         "tag": "workout-action-filled"
-      },
-      "optional": true,
-      "timeoutMs": 1000
+      }
     },
     {
       "type": {

@@ -84,6 +84,22 @@
       }
     },
     {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "General fitness"
+      }
+    },
+    {
+      "expect": {
+        "text": "Balance"
+      }
+    },
+    {
       "checkpoint": "balance-offer-added"
     }
   ]

@@ -156,7 +156,7 @@ internal class Replay(
                     artifacts.writeSummary(time)
                 }
             }) {
-                runCapturedStep(index, step, artifacts, captures, log = { ok, skipped ->
+                runCapturedStep(index, step, artifacts, captures, checkCrashes = { crashes.step {} }, log = { ok, skipped ->
                     log(index, step, started, ok, skipped)
                 }) {
                     crashes.step(compose) {
@@ -438,30 +438,33 @@ internal fun runCapturedStep(
     step: Step,
     artifacts: RunArtifacts,
     captures: ReplayCaptures,
+    checkCrashes: () -> Unit = {},
     log: (Boolean, String?) -> Unit,
     action: () -> Unit,
 ) {
     try {
-        action()
+        try {
+            action()
+        } catch (error: Throwable) {
+            val failure = error.playtestError()
+            if (!step.optional || failure.kind != "not-found") throw error
+            captures.failure("%03d-SKIPPED-%s".format(index, step.slug), error)
+            checkCrashes()
+            // Failure captures suppress exceptions to preserve the original error; a skipped step has no failure to preserve.
+            error.suppressed.firstOrNull { it.playtestError().kind == "app-crash" }?.let { throw it.playtestError() }
+            artifacts.optionalSkipped += index
+            log(true, failure.kind)
+            return
+        }
         log(true, null)
     } catch (error: Throwable) {
         val failure = error.playtestError()
-        if (step.optional && failure.kind in OPTIONAL_SELECTION_ERRORS) {
-            captures.failure("%03d-SKIPPED-%s".format(index, step.slug), error)
-            artifacts.optionalSkipped += index
-            log(true, failure.kind)
-        } else {
-            artifacts.failure(failure, index, step.json)
-            captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
-            log(false, null)
-            throw error
-        }
+        artifacts.failure(failure, index, step.json)
+        captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
+        log(false, null)
+        throw error
     }
 }
-
-private val OPTIONAL_SELECTION_ERRORS = setOf(
-    "not-found", "ambiguous", "disabled", "not-clickable", "not-editable", "not-scrollable", "not-visible",
-)
 
 internal fun advanceClock(
     time: PlaytestTime,

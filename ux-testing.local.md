@@ -15,6 +15,47 @@ Read by the `ux-testing` skill. Generic method lives in the skill; this file nam
 - **Kit:** personas, phase A answers, the round brief generator, the Astra seat loop, and past round results are in `~/Projects/strength-log-playtest-kit/`.
 - **Builds:** CI only; no local Gradle.
 
+## Harness pilots
+
+The scripts in `playtest/pilot/` cover launch, dialog capture, the wizard to
+Today, rest expiry, the three-second Finish gate after all sets are logged,
+day crossing, scrolling below the fold and through a lazy list, `ime` on a
+sheet field with compound advances, a dialog with a text field, and starting a day
+whose lifts have history. The day-crossing pilot watches History's calendar move
+its today marker from November 9 to November 11 while keeping the session on November 9,
+then checks day B on Today. The wizard has no dialog in this version;
+the dialog pilot opens the workout Finish confirmation after completing it.
+For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/zero-step-launch.json`.
+
+The round-5 pilots add these checks:
+
+- `optional-step` skips a missing selection and runs the following expectation.
+- `sprint-beep-timer` follows the sprint setup, countdown, and a 12.34-second phone-timed rep.
+- `sprint-typed-time` saves a typed rep time with its timing method and start type.
+- `ladder-day` follows the run setup and finishes all twenty run/walk sets, captures the receipt, then checks Logged 25:00 in History; CI also checks the saved total is exactly 1,500 seconds.
+- `run-typed-distance` finishes a live run with GPS distance off and a typed distance.
+- `cardio-log-past` saves a past session and finds its distance in History.
+- `timed-rep-count` configures reps in time and logs a count after the timer ends.
+- `test-date-picker` enters the setup event date through Material's text input mode.
+- `balance-day` accepts the 65+ balance offer during setup and checks for Balance in the saved plan.
+
+The second-pass harness regressions have these checks:
+
+| Item | Pilot or workaround |
+| --- | --- |
+| Swallowed app errors | `history-day-start` covers the history-backed launch path that exposed the clock crash. `AppCrashesTest` injects coroutine and main-looper exceptions and checks step failure details. |
+| H5 | `advance-tap` taps Start day A immediately after a two-day advance. |
+| H6 | Interaction settling replaces the page-naming `expect` workaround. `page-transition-settle` taps a control on the new exercise page immediately after navigation. |
+| H7 | `dropdown-tap` opens Activity in Edit day and selects Trail run. |
+| H8 | `screenshot-stress` writes 1,200 checkpoint screenshots. Run it on demand; it is outside the PR matrix. Long persona scripts can use `"capture": "checkpoints"`. |
+| H9 | `zero-size-tap` expects `not-visible` for an off-screen equipment row on both tap and long press, then scrolls and taps it. |
+| Local clock | `advance-tap` starts at 23:39 in America/Chicago; its summary keeps the local date beside the next-day UTC date. `ScriptAssertionsTest` checks both values and the zone. |
+| Launch budget | `zero-step-launch` captures launch within the 20-second budget. |
+| Compact capture | `compact-capture` covers text diffs, a named checkpoint, a note, and a full final capture. |
+
+GPS location is not available in the harness. Pilots can switch GPS distance off
+in Settings or type distances where the app asks.
+
 ## Personas
 
 Invented people, not based on anyone real. Full diaries, "I want to..." lists and phase A capability answers: `~/Projects/strength-log-playtest-kit/r5/personas/p1.md` through `p9.md`.

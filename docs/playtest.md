@@ -128,30 +128,29 @@ the existing `stack` field still includes the exception chain.
 End a script with a checkpoint when the final capture matters.
 
 A selector action (`tap`, `longPress`, `type`, `scrollTo`, `swipe`, or `expect`)
-can use `"optional": true` beside `timeoutMs`. Only selection failures skip:
-`not-found`, `ambiguous`, `disabled`, `not-clickable`, `not-editable`,
-`not-scrollable`, and `not-visible`. The skipped step stays green, writes a
+can use `"optional": true` beside `timeoutMs`. Only `not-found` skips.
+`ambiguous`, `disabled`, `not-clickable`, `not-editable`, `not-scrollable`, and
+`not-visible` still fail. The skipped step stays green, writes a
 `NNN-SKIPPED-<slug>` PNG and JSON pair, and logs `optional_skipped` with its error
 class. The summary's `optional_skipped` array lists skipped step indices, or is
 empty. Timeouts, watchdogs, app crashes, other crashes, and script errors still
-fail. The flag must be the boolean `true`, cannot accompany `expectError`, and
-cannot be used on `advance`, `back`, `recreate`, `checkpoint`, or `note`.
+fail, including app crashes during the skipped capture. The flag must be the
+boolean `true`, cannot accompany `expectError`, and cannot be used on `advance`,
+`back`, `recreate`, `checkpoint`, or `note`.
 
 Use `type` for an editable text field. A second click can start a magnifier
-that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor,
-such as Activity in Edit day → Edit cardio, allows `tap` to open its menu.
-Plain editable fields still refuse `tap`. Wizard and Settings number fields commit on Done or
-when focus leaves; use `"ime": "done"` to commit at once. Set and prescription sheet
-fields commit as you type. Typing also works in dialogs; there is no keyboard to
-dismiss. Advances over one hour require no open workout and no armed rest. Finish
-before jumping to another day.
+that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor
+allows `tap` to open its menu. Plain editable fields still refuse `tap`.
+Use `"ime": "done"` to commit at once in fields that commit on Done or when focus
+leaves. Fields that commit as you type do not need it. Typing also works in
+dialogs; there is no keyboard to dismiss. Advances over one hour require no
+open workout and no armed rest. Finish before jumping to another day.
 
-Exercise-page navigation settles before the next action. H6's page-naming
-`expect` workaround is no longer needed. Consecutive taps can use the new page:
+Navigation settles before the next action. Consecutive taps can use the new page:
 
 ```json
-{ "tap": { "text": "Next: DB Bench Press" } }
-{ "tap": { "text": "All sets" } }
+{ "tap": { "text": "Next" } }
+{ "tap": { "text": "Continue" } }
 ```
 
 For visibility regression pilots, `tap` and `longPress` accept
@@ -191,7 +190,7 @@ reports `disabled` immediately.
 
 | Error class | Usual cause | What to try |
 | --- | --- | --- |
-| Optional step skipped unexpectedly | A selection failure was allowed to skip. | Read `optional_skipped` in the summary and log, then the SKIPPED capture; narrow the selector or remove `optional`. |
+| Optional step skipped unexpectedly | A `not-found` selection was allowed to skip. | Read `optional_skipped` in the summary and log, then the SKIPPED capture; narrow the selector or remove `optional`. |
 | `not-found` | Text, tag, or index does not match the current tree. | Read the failure capture and nearby candidates; correct the selector or use `scrollTo` for a lazy item. |
 | `ambiguous` | Several nodes match, or an absent expectation still finds a node. | Narrow with a tag, role, or `inDialog`; use `index` for intentional repeats. Check whether `absent` is intended. |
 | `disabled` | The final match is disabled at the deadline, or a scroll target is disabled. | Inspect the capture and preceding steps; satisfy the control's prerequisites before retrying. |
@@ -204,60 +203,24 @@ reports `disabled` immediately.
 | `timeout` | Lookup, an interaction, storage, or capture exhausted a real-time budget. | Check the failing operation and log; reduce capture work or set a larger step `timeoutMs` for a slow operation. |
 | `script` | Invalid JSON, an unsupported action or option, an unreadable restore, or an unsafe advance. | Correct the reported input; use a readable backup with an explicit start date and time, and finish before advances over one hour. |
 
-## Restores and pilots
+## Restores and CI
 
 Optional `start.restore` names a backup, relative to the script's directory or
 absolute. For a CI run, use a file name next to the script: `scripts/playtest.sh`
 commits that file to the seat branch with the script. It imports through the real backup service before launch. Keep the
 backup's sibling `summary.json` to recover its fake clock, or supply explicit
 `start.date` and `start.time`. Current app backups have no export timestamp.
-Restore opens Today with no saved navigation, drafts, rest deadline, undo offer,
-cardio anchors, or watch stamps. A backup from an unfinished workout cannot
+Restore resets navigation and clears drafts, rest deadline, undo offer,
+cardio anchors, and watch stamps. A backup from an unfinished workout cannot
 resume those transient states. Named checkpoints are screen captures, not resumable saves.
-
-The scripts in `playtest/pilot/` cover launch, dialog capture, the wizard to
-Today, rest expiry, the three-second Finish gate after all sets are logged,
-day crossing, scrolling below the fold and through a lazy list, `ime` on a
-sheet field with compound advances, a dialog with a text field, and starting a day
-whose lifts have history. The day-crossing pilot watches History's calendar move
-its today marker from November 9 to November 11 while keeping the session on November 9,
-then checks day B on Today. The wizard has no dialog in this version;
-the dialog pilot opens the workout Finish confirmation after completing it.
-For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/zero-step-launch.json`.
 
 CI replays every pilot on a PR that touches the harness, the pilots or the
 playtest workflow. A PR that changes app, data, domain or transfer code replays
 the core six: wizard-to-today, rest-timer-advance, history-day-start,
 dialog-text-field, ladder-day, and sprint-beep-timer. When an app change breaks one, update the script in the same PR.
 
-The round-5 pilots add these checks:
-
-- `optional-step` skips a missing selection and runs the following expectation.
-- `sprint-beep-timer` follows the sprint setup, countdown, and a 12.34-second phone-timed rep.
-- `sprint-typed-time` saves a typed rep time with its timing method and start type.
-- `ladder-day` follows the run setup and finishes all twenty run/walk sets, captures the receipt, then checks Logged 25:00 in History; CI also checks the saved total is exactly 1,500 seconds.
-- `run-typed-distance` finishes a live run with GPS distance off and a typed distance.
-- `cardio-log-past` saves a past session and finds its distance in History.
-- `timed-rep-count` configures reps in time and logs a count after the timer ends.
-- `test-date-picker` enters the setup event date through Material's text input mode.
-- `balance-day` accepts the 65+ balance offer during setup.
-
 A scripts-only PR runs the driver retry check when it changes `playtest.sh` or
 `gh-retry*.sh`; it does not add replay jobs. Workflow changes run both checks.
-
-The second-pass harness regressions have these checks:
-
-| Item | Pilot or workaround |
-| --- | --- |
-| Swallowed app errors | `history-day-start` covers the history-backed launch path that exposed the clock crash. `AppCrashesTest` injects coroutine and main-looper exceptions and checks step failure details. |
-| H5 | `advance-tap` taps Start day A immediately after a two-day advance. |
-| H6 | Interaction settling replaces the page-naming `expect` workaround. `page-transition-settle` taps a control on the new exercise page immediately after navigation. |
-| H7 | `dropdown-tap` opens Activity in Edit day and selects Trail run. |
-| H8 | `screenshot-stress` writes 1,200 checkpoint screenshots. Run it on demand; it is outside the PR matrix. Long persona scripts can use `"capture": "checkpoints"`. |
-| H9 | `zero-size-tap` expects `not-visible` for an off-screen equipment row on both tap and long press, then scrolls and taps it. |
-| Local clock | `advance-tap` starts at 23:39 in America/Chicago; its summary keeps the local date beside the next-day UTC date. `ScriptAssertionsTest` checks both values and the zone. |
-| Launch budget | `zero-step-launch` captures launch within the 20-second budget. |
-| Compact capture | `compact-capture` covers text diffs, a named checkpoint, a note, and a full final capture. |
 
 ## Sessions as segments
 
@@ -273,10 +236,9 @@ Keep flows that test those states inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their
-content and centered, as on a phone. There are no GPS fixes: an outdoor run
-shows the app's no-signal state. Type distances where the app asks, or switch
-GPS distance off in Settings. The sprint beep makes no sound. The location
-permission request goes unanswered. SAF pickers return nothing. Inspect
+content and centered, as on a phone. GPS location is not available in the
+harness; type distances where the app asks. The sprint beep makes no sound.
+The location permission request goes unanswered. SAF pickers return nothing. Inspect
 backup and export data through the artifact. Use the harness for plan building
 and workout execution against real storage.
 
@@ -289,4 +251,5 @@ means infrastructure failed, such as GitHub being unreachable, retry budgets
 running out, a dispatch never appearing, or an artifact download failing.
 `artifact: <dir>` prints only after a successful download. GitHub polls run at
 most once a minute per seat, plus bounded retries; a failed dispatch checks for
-an accepted run before trying again. Origin fetches and pushes retry twice.
+an accepted run before trying again. Origin fetches, pushes, and remote branch
+lookups retry twice; an absent branch returns at once.

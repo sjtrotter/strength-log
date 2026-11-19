@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.playtest
 
+import android.os.Handler
+import android.os.Looper
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -72,6 +75,86 @@ class OptionalStepTest {
         assertEquals(false, ok)
         artifacts.writeSummary(PlaytestTime())
         val summary = Json.parseToJsonElement(File(artifacts.directory, "summary.json").readText()).jsonObject
+        assertEquals(JsonPrimitive("app-crash"), summary["error_class"])
+        assertEquals(JsonArray(emptyList()), summary["optional_skipped"])
+    }
+
+    @Test fun optionalAmbiguousStepFails() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme { Column { Text("Repeated"); Text("Repeated") } } }
+        val script = script("""{"expect":{"text":"Repeated"},"optional":true,"timeoutMs":1000}""")
+        val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script }
+        val captures = ReplayCaptures(compose, artifacts, script)
+        var ok = true
+        val error = assertFailsWith<PlaytestError> {
+            runCapturedStep(0, script.steps.single(), artifacts, captures, log = { result, _ -> ok = result }) {
+                val deadline = StepDeadline(script.steps.single().timeoutMs, 0)
+                deadline.run(compose) {
+                    Selectors(compose, compose.density.density).await(requireNotNull(script.steps.single().selector), deadline)
+                }
+            }
+        }
+        assertEquals("ambiguous", error.kind)
+        assertEquals(false, ok)
+        artifacts.writeSummary(PlaytestTime())
+        val summary = Json.parseToJsonElement(File(artifacts.directory, "summary.json").readText()).jsonObject
+        assertEquals(JsonPrimitive("ambiguous"), summary["error_class"])
+        assertEquals(JsonArray(emptyList()), summary["optional_skipped"])
+    }
+
+    @Test fun optionalStepStillFailsOnOtherSelectionErrors() {
+        compose.setContent { AppTheme { Text("Visible") } }
+        val script = script("""{"tap":{"text":"Visible"},"optional":true}""")
+        listOf("disabled", "not-clickable", "not-editable", "not-scrollable", "not-visible").forEach { kind ->
+            val artifacts = RunArtifacts(temporary.newFolder(kind), 0).apply { this.script = script }
+            val captures = ReplayCaptures(compose, artifacts, script)
+            val failure = PlaytestError(kind, "Selection failed")
+            var ok = true
+            assertSame(failure, assertFailsWith<PlaytestError> {
+                runCapturedStep(0, script.steps.single(), artifacts, captures, log = { result, _ -> ok = result }) { throw failure }
+            })
+            assertEquals(false, ok)
+            assertTrue(artifacts.optionalSkipped.isEmpty())
+        }
+    }
+
+    @Test fun finalOptionalStepFailsOnPendingAppCrashDuringSkippedCapture() {
+        assertSkippedCaptureCrash(pending = true)
+    }
+
+    @Test fun finalOptionalStepFailsOnMainLooperCrashDuringSkippedCapture() {
+        assertSkippedCaptureCrash(pending = false)
+    }
+
+    private fun assertSkippedCaptureCrash(pending: Boolean) {
+        compose.setContent { AppTheme { Text("Visible") } }
+        val script = script("""{"tap":{"text":"Missing"},"optional":true,"timeoutMs":1000}""")
+        val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script; stepsRun = 1 }
+        val captures = ReplayCaptures(compose, artifacts, script)
+        val crash = IllegalStateException("App failed during skipped capture")
+        var captured = false
+        var ok = true
+        AppCrashes().use { crashes ->
+            val error = assertFailsWith<PlaytestError> {
+                runCapturedStep(0, script.steps.single(), artifacts, captures,
+                    checkCrashes = { crashes.step {} }, log = { result, _ -> ok = result }) {
+                    crashes.step(compose) {
+                        Handler(Looper.getMainLooper()).post {
+                            captured = true
+                            if (pending) crashes.record(crash) else throw crash
+                        }
+                        throw PlaytestError("not-found", "Selection missing")
+                    }
+                }
+            }
+            assertTrue(captured)
+            assertEquals("app-crash", error.kind)
+            assertSame(crash, error.cause)
+        }
+        assertEquals(false, ok)
+        artifacts.writeSummary(PlaytestTime())
+        val summary = Json.parseToJsonElement(File(artifacts.directory, "summary.json").readText()).jsonObject
+        assertEquals(JsonPrimitive(0), summary["failed_step"])
         assertEquals(JsonPrimitive("app-crash"), summary["error_class"])
         assertEquals(JsonArray(emptyList()), summary["optional_skipped"])
     }

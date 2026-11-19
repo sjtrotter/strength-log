@@ -8,26 +8,179 @@
     "zone": "America/New_York"
   },
   "steps": [
-    { "note": "Monday, first outdoor run. Follow the offered beginner run/walk session. Walk part of the final two running bouts because I cannot breathe; calves burning, but OK overall. About 30 minutes including the walk home. No measured distance is available." },
-    { "checkpoint": "monday-ready-to-run" },
-    { "tap": { "textContains": "Start", "role": "Button" } },
-    { "tap": { "text": "Start", "role": "Button" }, "optional": true },
-    { "checkpoint": "first-workout-started" },
-    { "advance": "5m" },
-    { "checkpoint": "after-five-minute-warm-up" },
-    { "advance": "30s" },
-    { "checkpoint": "first-running-countdown" },
-    { "advance": "30s" },
-    { "checkpoint": "first-walk-transition" },
-    { "advance": "90s" },
-    { "checkpoint": "second-run-transition" },
-    { "advance": "17m30s" },
-    { "note": "At the final two running bouts I walk part of each instead. Do not claim an Easy effort or invent a distance." },
-    { "advance": "5m" },
-    { "checkpoint": "monday-time-complete" },
-    { "tap": { "text": "Finish", "role": "Button" }, "optional": true },
-    { "tap": { "text": "OK" } },
-    { "tap": { "text": "Save", "role": "Button" }, "optional": true },
-    { "checkpoint": "monday-saved-summary" }
+    {
+      "note": "Monday, first outdoor run. Follow the offered beginner run/walk session. Walk part of the final two running bouts because I cannot breathe; calves burning, but OK overall. About 30 minutes including the walk home. No measured distance is available."
+    },
+    {
+      "note": "The restored app returned to setup page 1. Re-enter the same truthful answers as a recovery prerequisite to this whole Monday workout; do not edit the backup or discover further setup options."
+    },
+    {
+      "tap": {
+        "textContains": "5K to ultra",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "First 5K",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "30",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bodyweight",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "0",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set up",
+        "absent": true
+      },
+      "timeoutMs": 60000
+    },
+    {
+      "checkpoint": "monday-ready-after-setup-recovery"
+    },
+    {
+      "tap": {
+        "textContains": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "first-workout-started"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "after-five-minute-warm-up"
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "checkpoint": "first-running-countdown"
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "checkpoint": "first-walk-transition"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "second-run-transition"
+    },
+    {
+      "advance": "17m30s"
+    },
+    {
+      "note": "At the final two running bouts I walk part of each instead. Do not claim an Easy effort or invent a distance."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "monday-time-complete"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "OK"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "monday-saved-summary"
+    }
   ]
 }

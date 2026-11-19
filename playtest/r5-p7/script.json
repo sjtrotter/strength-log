@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-17",
-    "time": "15:30",
+    "date": "2026-11-24",
+    "time": "15:00",
     "zone": "America/Los_Angeles"
   },
   "steps": [
     {
-      "note": "Nov 17 field closed by flooded drains: lifts only, no sprints. Nov 15 pickup was 90 minutes, kept in my separate notes."
+      "note": "Nov 24: field booked until 17:00. Lift first at 15:00, sprint at 17:15. Short training day, about 45 active minutes. Use offered ramps; invented work performance 230x5x3 Good, accepting the prior 230 lb recommendation."
     },
     {
       "tap": {
@@ -23,7 +23,7 @@
       }
     },
     {
-      "checkpoint": "nov17-offered-day"
+      "checkpoint": "nov24-offered-day"
     },
     {
       "tap": {
@@ -60,7 +60,7 @@
       "checkpoint": "squat-before-logging"
     },
     {
-      "note": "Nov 17 invented lifting detail: repeat 135x5 and 180x3 ramps, then 225x5x3 Good. Use the same actual performance throughout retries."
+      "note": "Nov 24: accept next-time 230 lb; perform three sets of five Good. Ramps use the app offer, without relabeling work as ramps."
     },
     {
       "tap": {
@@ -92,7 +92,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "225",
+        "value": "230",
         "ime": "done"
       }
     },
@@ -140,7 +140,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "225",
+        "value": "230",
         "ime": "done"
       }
     },
@@ -188,7 +188,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "225",
+        "value": "230",
         "ime": "done"
       }
     },
@@ -224,176 +224,19 @@
       "advance": "3m"
     },
     {
-      "tap": {
-        "text": "Finish"
-      }
+      "checkpoint": "nov24-lifts-done-before-field-opens"
     },
     {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
+      "advance": "1h"
     },
     {
-      "checkpoint": "nov17-lifts-only-summary"
+      "advance": "55m"
     },
     {
-      "tap": {
-        "text": "Done"
-      }
+      "note": "17:15: turf now available. Sprint work outside the app, as after the prior phone timing did not preserve precise results. 25-minute block including full rests; no invented sprint times or distances. Five-minute warmup plus 15 minutes lifting/rest plus 25 minutes turf equals about 45 active minutes; long field-booking gap is inactive."
     },
     {
-      "advance": "2d23h40m"
-    },
-    {
-      "note": "Nov 18 futsal: left hamstring tight at end. Nov 20 still tight: half the sprints at about 90 percent outside app, stopped; skip Nordics and lower-body lifts. Invented details for this short bad day: five-minute warm-up, ten minutes on the turf including rest, then two overhead-press sets of 45x5 Hard with three-minute rests."
-    },
-    {
-      "tap": {
-        "text": "Rest taken"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Max velocity"
-      }
-    },
-    {
-      "checkpoint": "nov20-offered-after-field-skip"
-    },
-    {
-      "tap": {
-        "text": "Start day C"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start timer"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "tap": {
-        "desc": "Day C lifts, 0 of 11 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Overhead Press (Barbell)"
-      }
-    },
-    {
-      "checkpoint": "nov20-upper-body-only"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "45",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Hard"
-      },
-      "timeoutMs": 30000
-    },
-    {
-      "tap": {
-        "text": "Hard"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "45",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Hard"
-      },
-      "timeoutMs": 30000
-    },
-    {
-      "tap": {
-        "text": "Hard"
-      }
-    },
-    {
-      "advance": "3m"
+      "advance": "25m"
     },
     {
       "tap": {
@@ -407,41 +250,50 @@
       }
     },
     {
-      "checkpoint": "nov20-short-hard-day-summary"
+      "checkpoint": "nov24-delayed-sprints-summary"
     },
     {
       "scrollTo": {
         "text": "Add a note"
-      },
-      "optional": true
+      }
     },
     {
       "tap": {
         "text": "Add a note"
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "week2-note-editor"
+      }
     },
     {
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Nov 17 field closed: skipped all sprints. Nov 18 futsal, left hamstring tight at end. Nov 20 stopped halfway through sprints at about 90%; hamstring still tight. Skipped Nordics and lower body, upper body only, hard. Nov 15 pickup 90 min.",
+        "value": "Lift 15:00, field booked; sprints 17:15. 45 active min. Hamstring tight Nov18/20; stopped early Nov20, no Nordics.",
         "ime": "done"
-      },
-      "optional": true
+      }
     },
     {
       "tap": {
-        "text": "Save",
-        "inDialog": true
-      },
-      "optional": true
+        "text": "Save note"
+      }
     },
     {
-      "checkpoint": "week2-note-attempt"
+      "checkpoint": "nov24-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "2d21h50m"
+    },
+    {
+      "note": "Nov 27 at parents: no planned Friday session. Thirty-minute easy jog with Dad outside the app; no distance supplied or invented. Flew home Nov25 and return Nov29. Do not mark the planned lifts/sprints done."
+    },
+    {
+      "advance": "30m"
+    },
+    {
+      "checkpoint": "thanksgiving-no-workout"
     }
   ]
 }

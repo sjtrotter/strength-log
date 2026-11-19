@@ -110,25 +110,39 @@
     },
     {
       "tap": {
-        "textContains": "Start",
+        "text": "Start day A",
         "role": "Button"
       }
     },
     {
       "tap": {
-        "text": "Start",
-        "role": "Button"
-      },
-      "optional": true
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "checkpoint": "first-workout-started"
+      "checkpoint": "monday-warm-up-sheet"
+    },
+    {
+      "tap": {
+        "text": "Start timer",
+        "role": "Button"
+      }
     },
     {
       "advance": "5m"
     },
     {
       "checkpoint": "after-five-minute-warm-up"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "first-workout-started"
     },
     {
       "advance": "30s"
@@ -164,8 +178,7 @@
       "tap": {
         "text": "Finish",
         "role": "Button"
-      },
-      "optional": true
+      }
     },
     {
       "tap": {

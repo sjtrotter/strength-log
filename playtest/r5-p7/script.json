@@ -9,7 +9,7 @@
   },
   "steps": [
     {
-      "note": "Nov 11 futsal was 21:00\u201322:00, lots of sprinting. Kept in my separate notes because I have not found an outside-sport log. Nov 13 full session: sprint first, then conventional deadlift 225 x 5 x 3 because the trap bar is taken, then bodyweight Nordics, hard. Nov 13 added performance assumptions, because the diary gives no times: three phone-timed flying 10 m reps of 1.45, 1.43 and 1.46 seconds; retain these as invented facts, not Javi or coach times."
+      "note": "Nov 11 futsal was 21:00–22:00, lots of sprinting. Kept in my separate notes because I have not found an outside-sport log. Nov 13 full session: sprint first, then conventional deadlift 225 x 5 x 3 because the trap bar is taken, then bodyweight Nordics, hard. Nov 13 added performance assumptions, because the diary gives no times: three phone-timed flying 10 m reps of 1.45, 1.43 and 1.46 seconds; retain these as invented facts, not Javi or coach times."
     },
     {
       "tap": {
@@ -341,46 +341,16 @@
       "checkpoint": "nov13-added-third-deadlift-set"
     },
     {
+      "tap": {
+        "desc": "Conventional Deadlift 3, 225 × 5",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "nov13-third-deadlift-checked-in-list"
+    },
+    {
       "back": true
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Good"
-      }
     },
     {
       "advance": "3m"

@@ -3,57 +3,30 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-19",
-    "time": "21:00",
+    "date": "2026-11-24",
+    "time": "17:30",
     "zone": "America/Denver"
   },
   "steps": [
     {
-      "note": "Thursday Nov 19, 21:00. Mandatory overtime has kept me at work until now. I miss tonight; leave the next session pending and return Friday before court."
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "overtime-missed-thursday-next-day-pending"
-    },
-    {
-      "advance": "9h"
-    },
-    {
-      "note": "Friday Nov 20, 06:00. Do the pending session today. Only fifteen minutes available, no lifting. The test remains December 12."
-    },
-    {
-      "checkpoint": "friday-before-court"
+      "note": "Tuesday Nov 24, after shift at 17:30. Called out at 02:00 for a crash, slept only four hours. Do the offered interval session at a slower effort today, then push-ups 30/25/21, one minute each with two-minute rests. Keep counts on paper until I can find the test-event entry."
     },
     {
       "tap": {
-        "text": "Start day B"
+        "text": "Start day C"
       }
+    },
+    {
+      "checkpoint": "poor-sleep-day-c-offered"
     },
     {
       "tap": {
         "text": "Skip"
-      }
+      },
+      "optional": true
     },
     {
-      "tap": {
-        "desc": "Day B lifts, 0 of 4 sets"
-      }
-    },
-    {
-      "checkpoint": "rescheduled-day-b-offered"
-    },
-    {
-      "tap": {
-        "text": "Road run"
-      }
-    },
-    {
-      "checkpoint": "friday-run-prescription"
+      "checkpoint": "poor-sleep-ready-to-run"
     },
     {
       "tap": {
@@ -67,6 +40,9 @@
       "advance": "90s"
     },
     {
+      "checkpoint": "poor-sleep-bout-1"
+    },
+    {
       "tap": {
         "text": "Start"
       }
@@ -78,72 +54,59 @@
       "advance": "90s"
     },
     {
+      "checkpoint": "poor-sleep-bout-2"
+    },
+    {
       "tap": {
         "text": "Start"
       }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "poor-sleep-bout-3"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "poor-sleep-bout-4"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "note": "Push-ups 30 in one minute, paper record. Slower running today because of the four-hour sleep night."
     },
     {
       "advance": "2m"
     },
     {
-      "checkpoint": "fifteen-minutes-must-leave"
+      "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Stop"
-      }
+      "note": "Push-ups 25 in one minute, paper record. Slower running today because of the four-hour sleep night."
     },
     {
-      "checkpoint": "stopped-short-for-court"
+      "advance": "2m"
     },
     {
-      "tap": {
-        "text": "Continue without distance"
-      }
+      "advance": "1m"
     },
     {
-      "checkpoint": "short-set-distance-prompt-answered"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "short-run-all-sets"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "short-run-more-menu"
-    },
-    {
-      "tap": {
-        "text": "End cardio"
-      }
-    },
-    {
-      "checkpoint": "short-run-end-cardio"
-    },
-    {
-      "tap": {
-        "text": "End and log"
-      }
-    },
-    {
-      "checkpoint": "short-run-end-attempt"
-    },
-    {
-      "expect": {
-        "tag": "workout-finish",
-        "enabled": true
-      }
-    },
-    {
-      "checkpoint": "short-run-block-ended"
+      "note": "Push-ups 21 in one minute, paper record. Slower running today because of the four-hour sleep night."
     },
     {
       "tap": {
@@ -151,16 +114,52 @@
       }
     },
     {
-      "checkpoint": "short-day-finish-confirmation"
-    },
-    {
       "tap": {
         "text": "Finish",
         "inDialog": true
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "november-24-saved-before-rating"
+    },
+    {
+      "tap": {
+        "tag": "receipt-cardio-effort-HARD"
       }
     },
     {
-      "checkpoint": "november-20-short-session-summary"
+      "checkpoint": "poor-sleep-hard-rating-progression"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "poor-sleep-note-editor"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Called out at 2 am for a crash. Slept four hours. Slowed the intervals because of sleep, not fitness. Push-ups: 30, 25, 21, one minute each.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "november-24-rough-session-summary"
     }
   ]
 }

@@ -2,150 +2,32 @@
   "seat": "r5-p6",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "21:15",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "06:15",
     "zone": "America/New_York"
   },
   "steps": [
-    {
-      "note": "Dana: no running since school, no recent race or time trial. Three days weekly and 30 minutes. My spring 5K is tentative, so leave the optional event date unset. No running injury; I am 43, not 65 or older."
-    },
-    {
-      "tap": {
-        "textContains": "5K to ultra",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "First 5K",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "note": "Three days is already selected. Change the visible 60-minute default to 30."
-    },
-    {
-      "tap": {
-        "text": "30",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "three-days-thirty-minutes"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bodyweight",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "checkpoint": "equipment-and-units"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "note": "New is already selected for both lifting and running, and both injury-in-the-past-year and 65-or-older are unchecked. These are my actual facts."
-    },
-    {
-      "checkpoint": "new-runner-no-running-injury"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "note": "Just finish is already selected. No race or time trial to enter."
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Why we ask"
-      }
-    },
-    {
-      "checkpoint": "why-recent-running-matters"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "review-first-weeks-before-accepting"
-    },
-    {
-      "note": "The preview defaults to two strength blocks and exceeds 30 minutes on A and B. Choose zero strength blocks for my running-only month."
-    },
-    {
-      "tap": {
-        "text": "0",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "checkpoint": "running-only-plan"
-    },
-    {
-      "tap": {
-        "text": "Why this plan",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "why-this-beginner-plan"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "setup-actually-complete"
-    }
+    { "note": "Monday, first outdoor run. Follow the offered beginner run/walk session. Walk part of the final two running bouts because I cannot breathe; calves burning, but OK overall. About 30 minutes including the walk home. No measured distance is available." },
+    { "checkpoint": "monday-ready-to-run" },
+    { "tap": { "textContains": "Start", "role": "Button" } },
+    { "tap": { "text": "Start", "role": "Button" }, "optional": true },
+    { "checkpoint": "first-workout-started" },
+    { "advance": "5m" },
+    { "checkpoint": "after-five-minute-warm-up" },
+    { "advance": "30s" },
+    { "checkpoint": "first-running-countdown" },
+    { "advance": "30s" },
+    { "checkpoint": "first-walk-transition" },
+    { "advance": "90s" },
+    { "checkpoint": "second-run-transition" },
+    { "advance": "17m30s" },
+    { "note": "At the final two running bouts I walk part of each instead. Do not claim an Easy effort or invent a distance." },
+    { "advance": "5m" },
+    { "checkpoint": "monday-time-complete" },
+    { "tap": { "text": "Finish", "role": "Button" }, "optional": true },
+    { "tap": { "text": "OK" } },
+    { "tap": { "text": "Save", "role": "Button" }, "optional": true },
+    { "checkpoint": "monday-saved-summary" }
   ]
 }

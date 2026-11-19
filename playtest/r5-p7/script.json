@@ -55,28 +55,7 @@
       "checkpoint": "squat-before-logging"
     },
     {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
+      "note": "Squat warm-up assumption, not a diary fact: perform the offered ramp sets 135 lb x 5 and 180 lb x 3 before the three factual 225 lb x 5 work sets. Do not turn ramp slots into work sets."
     },
     {
       "tap": {
@@ -84,52 +63,30 @@
       }
     },
     {
-      "tap": {
-        "text": "Good"
-      }
+      "checkpoint": "squat-ramp-1-logged"
     },
     {
-      "checkpoint": "squat-work-set-1"
+      "tap": {
+        "text": "Good"
+      },
+      "optional": true
     },
     {
       "advance": "3m"
     },
     {
       "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "tap": {
-        "text": "Good"
-      }
+      "checkpoint": "squat-ramp-2-logged"
     },
     {
-      "checkpoint": "squat-work-set-2"
+      "tap": {
+        "text": "Good"
+      },
+      "optional": true
     },
     {
       "advance": "3m"
@@ -155,13 +112,102 @@
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Save set"
       }
     },
     {
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "checkpoint": "squat-work-set-1-logged-before-effort"
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-1"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-2-logged-before-effort"
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-2"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-3-logged-before-effort"
     },
     {
       "tap": {
@@ -175,7 +221,7 @@
       "advance": "3m"
     },
     {
-      "note": "Three squat work sets completed, 225 lb x 5, Good. Finish today with other unperformed lifts left unlogged. Sprint times remain in my notes because I have not found entry."
+      "note": "Three squat work sets completed, 225 lb x 5, Good, plus the two offered ramps. Finish with other unperformed lifts unlogged. Javi times remain in my separate notes; Track run was visible in the lift list but has not yet been opened."
     },
     {
       "tap": {

@@ -77,7 +77,8 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Stop",
+        "role": "Button"
       }
     },
     {

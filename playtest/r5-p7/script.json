@@ -1,0 +1,40 @@
+{
+  "seat": "r5-p7",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "19:00",
+    "zone": "America/Los_Angeles"
+  },
+  "steps": [
+    { "note": "Sunday evening setup. I want two off-season speed and strength days, with sprint work before lifting. My goal is a hand-timed sub-4.85 40-yard dash by February; no testing date is set." },
+    { "tap": { "text": "Get started" } },
+    { "tap": { "text": "Build a plan" } },
+    { "tap": { "text": "Speed" } },
+    { "tap": { "text": "40-yard dash" } },
+    { "tap": { "text": "Continue" } },
+    { "type": { "text": "Age", "value": "19", "ime": "done" } },
+    { "type": { "text": "Bodyweight", "value": "168", "ime": "done" } },
+    { "tap": { "text": "lb" } },
+    { "tap": { "text": "A year or more" } },
+    { "tap": { "text": "Continue" } },
+    { "tap": { "text": "2 days" } },
+    { "tap": { "text": "Tuesday" } },
+    { "tap": { "text": "Friday" } },
+    { "tap": { "text": "60 minutes" } },
+    { "tap": { "text": "Full gym" } },
+    { "tap": { "text": "Continue" } },
+    { "type": { "text": "Recent 40-yard time", "value": "4.92", "ime": "done" } },
+    { "tap": { "text": "Hand timed" } },
+    { "type": { "text": "Squat", "value": "225", "ime": "done" } },
+    { "type": { "text": "Reps", "index": 0, "value": "5", "ime": "done" } },
+    { "type": { "text": "Bench press", "value": "165", "ime": "done" } },
+    { "type": { "text": "Trap-bar deadlift", "value": "275", "ime": "done" } },
+    { "tap": { "text": "Continue" } },
+    { "type": { "text": "Injuries", "value": "Grade 1 left hamstring strain August 20, 2026. Missed three weeks; fully back since mid-September. All-out match sprints weekly through October 31. Concerned about sprinting hard again.", "ime": "done" } },
+    { "type": { "text": "Other training", "value": "Futsal Wednesday nights for about an hour, lots of sprinting. Pickup soccer most Sundays. Keep these; no conditioning runs needed.", "ime": "done" } },
+    { "tap": { "text": "Create plan" } },
+    { "checkpoint": "setup-plan-review" },
+    { "note": "Review the week before the first workout: Tuesday and Friday, sprint work before heavy lifting, modest sprint volume, and hamstring history considered." }
+  ]
+}

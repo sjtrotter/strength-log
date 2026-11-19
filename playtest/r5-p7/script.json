@@ -66,12 +66,6 @@
       "checkpoint": "squat-ramp-1-logged"
     },
     {
-      "tap": {
-        "text": "Good"
-      },
-      "optional": true
-    },
-    {
       "advance": "3m"
     },
     {
@@ -81,12 +75,6 @@
     },
     {
       "checkpoint": "squat-ramp-2-logged"
-    },
-    {
-      "tap": {
-        "text": "Good"
-      },
-      "optional": true
     },
     {
       "advance": "3m"
@@ -136,6 +124,11 @@
     },
     {
       "tap": {
+        "text": "Next set"
+      }
+    },
+    {
+      "tap": {
         "desc": "Edit set 4"
       }
     },
@@ -176,6 +169,11 @@
     },
     {
       "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
     },
     {
       "tap": {

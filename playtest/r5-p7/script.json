@@ -75,27 +75,33 @@
       "advance": "10m"
     },
     {
+      "note": "Warm-up timer automatically reaches the first 10 m work rep. Attempt phone timing with Start / Stop, accepting the introductory short distance. Three flying 10 m efforts; invented elapsed times 1.45, 1.43, 1.46 seconds. I cannot assess the beep through this harness."
+    },
+    {
       "tap": {
-        "text": "Next"
+        "text": "Start"
       }
     },
     {
-      "note": "Perform the three planned short flying 10 m sprints. Invented Nov 13 phone times are 1.45, 1.43 and 1.46 seconds. Full four-minute recovery between reps."
+      "checkpoint": "nov13-first-sprint-running"
     },
     {
       "advance": "1s450ms"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Stop"
       }
+    },
+    {
+      "checkpoint": "nov13-first-sprint-stopped"
     },
     {
       "advance": "4m"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Start"
       }
     },
     {
@@ -103,15 +109,18 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Stop"
       }
+    },
+    {
+      "checkpoint": "nov13-second-sprint-stopped"
     },
     {
       "advance": "4m"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Start"
       }
     },
     {
@@ -119,22 +128,14 @@
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Stop"
       }
     },
     {
       "checkpoint": "nov13-sprints-complete"
     },
     {
-      "tap": {
-        "text": "Finish"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-summary"
-    },
-    {
-      "back": true
+      "note": "Track run is inside this Day C workout. Continue to the deadlift and Nordics before finishing the workout."
     },
     {
       "tap": {

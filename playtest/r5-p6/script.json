@@ -146,20 +146,16 @@
       "checkpoint": "saturday-run-detail-for-note"
     },
     {
-      "type": {
-        "text": "Note",
-        "value": "shins fine, slow and steady",
-        "ime": "done"
-      }
+      "note": "I tried to write shins fine, slow and steady, but this expanded receipt only lists interval distances. I cannot find a note entry here. Keep the saved Good session and return home."
     },
     {
       "tap": {
-        "text": "Save",
+        "text": "Done",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "saturday-note-saved"
+      "checkpoint": "saturday-finished-note-not-found"
     }
   ]
 }

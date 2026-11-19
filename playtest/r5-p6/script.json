@@ -1,0 +1,22 @@
+{
+  "seat": "r5-p6",
+  "capture": "compact",
+  "start": {"date": "2026-11-08", "time": "21:15", "zone": "America/New_York"},
+  "steps": [
+    {"note": "Dana: fresh install. Set up a total-beginner run/walk plan for a possible March 20 5K, three days weekly, about 30 minutes."},
+    {"tap": {"text": "Get started"}},
+    {"tap": {"text": "Running"}},
+    {"tap": {"text": "Continue"}},
+    {"tap": {"text": "Beginner"}},
+    {"tap": {"text": "Continue"}},
+    {"tap": {"text": "5K"}},
+    {"tap": {"text": "Continue"}},
+    {"tap": {"text": "3 days"}},
+    {"tap": {"text": "Continue"}},
+    {"tap": {"text": "30 minutes"}},
+    {"tap": {"text": "Continue"}},
+    {"checkpoint": "review-first-weeks-before-accepting"},
+    {"tap": {"text": "Start plan"}},
+    {"checkpoint": "setup-complete"}
+  ]
+}

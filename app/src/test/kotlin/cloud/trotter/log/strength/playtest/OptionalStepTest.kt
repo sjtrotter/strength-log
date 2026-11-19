@@ -38,7 +38,7 @@ class OptionalStepTest {
     @Test fun optionalNotFoundSkipsAndTheNextStepRuns() {
         compose.mainClock.autoAdvance = false
         compose.setContent { AppTheme { Text("Visible") } }
-        val script = script("""{"tap":{"text":"Missing"},"optional":true,"timeoutMs":1000},{"expect":{"text":"Visible"}}""")
+        val script = script("""{"tap":{"text":"Missing"},"optional":true,"timeoutMs":5000},{"expect":{"text":"Visible"}}""")
         val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script }
         val captures = ReplayCaptures(compose, artifacts, script)
         val results = mutableListOf<Pair<Boolean, String?>>()
@@ -82,7 +82,7 @@ class OptionalStepTest {
     @Test fun optionalAmbiguousStepFails() {
         compose.mainClock.autoAdvance = false
         compose.setContent { AppTheme { Column { Text("Repeated"); Text("Repeated") } } }
-        val script = script("""{"expect":{"text":"Repeated"},"optional":true,"timeoutMs":1000}""")
+        val script = script("""{"expect":{"text":"Repeated"},"optional":true,"timeoutMs":5000}""")
         val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script }
         val captures = ReplayCaptures(compose, artifacts, script)
         var ok = true
@@ -128,7 +128,7 @@ class OptionalStepTest {
 
     private fun assertSkippedCaptureCrash(pending: Boolean) {
         compose.setContent { AppTheme { Text("Visible") } }
-        val script = script("""{"tap":{"text":"Missing"},"optional":true,"timeoutMs":1000}""")
+        val script = script("""{"tap":{"text":"Missing"},"optional":true,"timeoutMs":5000}""")
         val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script; stepsRun = 1 }
         val captures = ReplayCaptures(compose, artifacts, script)
         val crash = IllegalStateException("App failed during skipped capture")

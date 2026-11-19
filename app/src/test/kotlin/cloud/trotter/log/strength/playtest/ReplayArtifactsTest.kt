@@ -54,7 +54,7 @@ class ReplayArtifactsTest {
         val error = assertFailsWith<PlaytestError> {
             captureSteps(artifacts, """[
                 {"tap":{"text":"Next"}},
-                {"expect":{"text":"Missing control"},"timeoutMs":1000},
+                {"expect":{"text":"Missing control"},"timeoutMs":5000},
                 {"note":"Unreached final step"}
             ]""")
         }

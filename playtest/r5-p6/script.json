@@ -3,124 +3,30 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
-    "time": "06:15",
+    "date": "2026-11-11",
+    "time": "06:00",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Monday, first outdoor run. Follow the offered beginner run/walk session. Walk part of the final two running bouts because I cannot breathe; calves burning, but OK overall. About 30 minutes including the walk home. No measured distance is available."
+      "note": "Wednesday Nov 11, 06:00. Rain: the same run/walk session on the rec center treadmill, running at 4.5 mph and walking at 3.0 mph. The screens seen so far offer Road run without a treadmill switch; use the same interval timer rather than create a different workout. Easier than Monday: rate Easy. No measured distance is supplied by my diary, so do not invent one."
     },
     {
-      "note": "The restored app returned to setup page 1. Re-enter the same truthful answers as a recovery prerequisite to this whole Monday workout; do not edit the backup or discover further setup options."
-    },
-    {
-      "tap": {
-        "textContains": "5K to ultra",
-        "role": "RadioButton"
-      }
+      "checkpoint": "wednesday-today"
     },
     {
       "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "First 5K",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "30",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bodyweight",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "0",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start",
+        "textContains": "Start day",
         "role": "Button"
       }
     },
     {
-      "expect": {
-        "text": "Set up",
-        "absent": true
-      },
-      "timeoutMs": 60000
-    },
-    {
-      "checkpoint": "monday-ready-after-setup-recovery"
-    },
-    {
-      "tap": {
-        "text": "Start day A",
-        "role": "Button"
-      }
+      "checkpoint": "wednesday-offered-workout"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
       }
-    },
-    {
-      "checkpoint": "monday-warm-up-sheet"
     },
     {
       "tap": {
@@ -132,9 +38,6 @@
       "advance": "5m"
     },
     {
-      "checkpoint": "after-five-minute-warm-up"
-    },
-    {
       "tap": {
         "text": "Start",
         "role": "Button",
@@ -142,28 +45,10 @@
       }
     },
     {
-      "checkpoint": "first-workout-started"
+      "checkpoint": "wednesday-first-run"
     },
     {
-      "advance": "30s"
-    },
-    {
-      "checkpoint": "first-running-countdown"
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "checkpoint": "first-walk-transition"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "second-run-transition"
-    },
-    {
-      "note": "The first run and recovery ended at Work set 3 with Start waiting. Start each remaining run/walk round as required on screen; I would prefer these to continue without touching my armband."
+      "advance": "2m30s"
     },
     {
       "tap": {
@@ -174,7 +59,12 @@
       "advance": "2m30s"
     },
     {
-      "checkpoint": "monday-after-round-2"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
     },
     {
       "tap": {
@@ -225,32 +115,12 @@
       "advance": "2m30s"
     },
     {
-      "checkpoint": "monday-after-round-8"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "note": "Walk part of this and the final running bout; calves burning, but overall OK. The timer cannot establish how much of the minute I actually ran."
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
       "advance": "2m30s"
-    },
-    {
-      "checkpoint": "monday-after-round-10"
-    },
-    {
-      "note": "The tenth round saved automatically and opened a four-minute stretching cool-down. I have used my 30 minutes including warm-up and am walking home, so skip the extra stretches."
     },
     {
       "tap": {
@@ -260,11 +130,158 @@
     },
     {
       "tap": {
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "wednesday-saved-easy"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "3d1h30m"
+    },
+    {
+      "note": "Saturday Nov 14, 08:00 outside. Finish every running part. It went fine, but I mistakenly answer Hard because I worked hard; then change to Good. Follow the offered run/walk session, expected still level 1 after one Easy."
+    },
+    {
+      "checkpoint": "saturday-today"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "saturday-offered-workout"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "saturday-first-run"
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "receipt-cardio-effort-HARD"
+      }
+    },
+    {
+      "checkpoint": "saturday-saved-hard"
+    },
+    {
+      "note": "I tapped Hard because I worked hard, then recognized from the explanation that I meant Good. Correct the answer on the same receipt."
+    },
+    {
+      "tap": {
         "tag": "receipt-cardio-effort-GOOD"
       }
     },
     {
-      "checkpoint": "monday-saved-good-summary"
+      "checkpoint": "saturday-corrected-good-summary"
     }
   ]
 }

@@ -1,7 +1,4 @@
-package cloud.trotter.log.strength.domain.generator
-
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
+package cloud.trotter.log.strength.domain.model
 
 /**
  * Rotation, not calendar (spec principle 1). The suggested next day advances

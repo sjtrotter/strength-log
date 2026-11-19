@@ -55,6 +55,7 @@ data class PreviewSet(
     val weightLb: Double,
     val reps: Int,
     val seconds: Int = 0,
+    val rir: Int? = null,
 )
 
 /** A CSV exercise name with no catalog/custom match, and a best-effort

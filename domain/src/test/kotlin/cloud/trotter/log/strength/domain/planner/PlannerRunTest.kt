@@ -11,7 +11,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.PlanGoal
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.model.Rotation
 import cloud.trotter.log.strength.domain.progression.CardioHistory
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.GoalPace

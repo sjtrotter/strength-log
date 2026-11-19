@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.data.insertGeneratedPlan
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import kotlinx.coroutines.flow.map
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.FullSnapshot

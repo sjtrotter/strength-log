@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog

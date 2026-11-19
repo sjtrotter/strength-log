@@ -92,6 +92,7 @@ object CsvHistoryImporter {
                         reps = set.reps,
                         done = true,
                         seconds = set.seconds,
+                        rir = set.rir,
                     )
                 },
             )

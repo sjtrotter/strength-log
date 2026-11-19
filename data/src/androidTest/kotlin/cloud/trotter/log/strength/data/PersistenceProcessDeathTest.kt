@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.domain.model.CardioActivity
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile

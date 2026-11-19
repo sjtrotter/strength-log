@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
-import cloud.trotter.log.strength.domain.generator.CardioIntervals
+import cloud.trotter.log.strength.domain.cardio.CardioIntervals
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.math.roundToLong
 

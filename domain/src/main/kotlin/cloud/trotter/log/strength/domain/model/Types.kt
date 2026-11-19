@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.domain.model
 
-import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.theme.DayAccentColors

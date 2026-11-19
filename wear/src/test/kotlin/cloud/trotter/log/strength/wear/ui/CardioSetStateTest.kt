@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.wear.ui
 
 import androidx.compose.runtime.saveable.SaverScope
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.sync.WatchCardioBlock

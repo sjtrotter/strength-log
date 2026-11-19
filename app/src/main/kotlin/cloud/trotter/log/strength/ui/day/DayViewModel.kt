@@ -51,7 +51,7 @@ import cloud.trotter.log.strength.domain.cardio.CardioExecution
 import cloud.trotter.log.strength.domain.cardio.SetMeter
 import cloud.trotter.log.strength.domain.cardio.BootAnchor
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
-import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.model.Rotation
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity

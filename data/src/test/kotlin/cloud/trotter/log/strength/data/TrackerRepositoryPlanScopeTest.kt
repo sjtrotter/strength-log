@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.data.serialization.V1Recipe
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map

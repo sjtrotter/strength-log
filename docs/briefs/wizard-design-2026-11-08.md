@@ -2167,3 +2167,63 @@ Production files: domain progression CardioRule, Progression, RunWalkLadder, Spr
 Tests: seeding RunReplanTest renamed TrackReseedTest; new progression RunSessionTest; TrackerRepositoryRunEditsTest and RunReplanFinishTest; PlanScreenBuilderTest, PlanScreenTest, PlanCardioGoalScreenTest, PlanViewModelTest, OldPlanMainsTest, ProgressionPreviewShotsTest, PreviewViewModelTest, SetupFlowRestoreTest and SetupFlowStateBuilderTest. Cursor regressions cover Automatic C → closing rest → Undo D, accepted Ask D → closing rest → Undo D, a native two-day program with no rest (accept while due B → A → Undo B), old-shaped records and a cursor moved after a re-plan. No stored rotation edit is needed for the two-day fixture.
 
 Static review covers the weekday guard, imports, named dates, cursor gates, unchanged protected files, renamed bodies and diff whitespace. The weekday guard passes on reading: every training index has a distinct non-null weekday for days 1–6, Sprint/Both + sprint, and both main selections. No network, Gradle, compilation, builds, tests or subagents were used. CI on domain, data, transfer, wear and app, the build and pilots remains pending. The sandbox's read-only Git index rejected git mv; the working-tree renames leave staging to the caller.
+
+
+## 65. Revision 56 (PR 8b, the generator package, the CSV RIR column, docs)
+
+Rotation moves to `domain.model`. It advances a stored Program's cursor, Program.dayToShow calls it, and its
+callers are repositories and the day screen. No planner production file calls it. Lead decision 1 places it beside
+Program; this departs from §8 row 8's `planner/` destination. RotationTest and RunRotationTest keep their class
+names and package, and planner RunReplanTest stays unchanged. The PR 8a rest and Undo cursor rules stay unchanged.
+
+CardioBlocks and CardioIntervals move to `domain.cardio`, beside their domain callers. The interval CardioPlan
+and CardioStep become IntervalPlan and IntervalStep; CardioPlan now means only `data.CardioPlan`. The watch updates
+its imports and interval plan type. Steps, labels, seconds and execution behavior stay unchanged. RotationWrapTest
+moves to `model/`; CardioBlocksTest and CardioIntervalsTest move to `cardio/`. Their names and bodies stay unchanged.
+
+CSV appends RIR after Cardio Mode at index 25. The first 25 columns retain their names, order and contents. Strength
+sets write their recorded reps left or a blank; cardio rows leave RIR blank and ignore it on import. The optional
+strength import cell accepts integers from 0 through EffortScale.MAX_REPS_LEFT (5), rejects other nonblank values
+with MalformedRow, and reaches SessionSetEntity.rir through ParsedRow and PreviewSet. Files without the column
+import with null reps left. RPE export and import behavior and duplicate detection keys stay unchanged.
+
+The briefs index names the tracked wizard, evidence, ladder, sprint and other missing briefs, with raw reports,
+critiques and mockups on their parent's line. Undated briefs have a closing section. The public docs/index.md
+opening describes goal-based lifting and running plans; its two links stay. DESIGN.md moves the existing PR 7c
+and PR 7f rows to the end of Phone layout and copy, in that order. PR 8 adds no design rule or string resource.
+
+### Files
+
+Domain: model/Rotation.kt (from generator/), model/Types.kt; cardio/CardioBlocks.kt and CardioIntervals.kt (from
+generator/), CardioExecution.kt and ManualCardio.kt. Data: PlanRepository.kt, TrackerRepository.kt and
+serialization/LegacyCardio.kt. App: ui/day/DayViewModel.kt and CardioBlockDraft.kt, ui/log/JournalBuilder.kt and
+ui/log/share/ShareCardService.kt. Transfer: csv/HistoryCsvColumns.kt, HistoryCsvWriter.kt, HistoryCsvReader.kt,
+CsvImportPreview.kt and CsvHistoryImporter.kt. Wear: ui/CardioState.kt, DialState.kt and WearApp.kt. Docs:
+docs/briefs/README.md, docs/index.md, DESIGN.md and this revision.
+
+Tests and fixtures update imports in app TodaySnapshotSourceRestTest, WatchSnapshotBuilderTest,
+DayViewModelCardioExecutionTest, DayViewModelTimedRepExecutionTest, DayViewModelWiringTest and DayViewModelWorkoutTest;
+data PersistenceProcessDeathTest, LegacyCardioTest, RunReplanFinishTest, TrackerRepositoryPlanScopeTest,
+TrackerRepositoryRunTest, TypedCardioMigrationTest and testFixtures/OldWizardPlans.kt; domain PlannerRunTest,
+RotationTest, RunRotationTest, ManualCardioTest and ProgressionCardioTest; transfer BackupRoundTripTest,
+RestoreCoordinationTest and CardioCsvTest; wear CardioSetStateTest, CardioStateTest and DeltaContextTest. The three
+moved domain tests change only packages and imports.
+
+### Expectations and verification
+
+CsvHistoryServiceTest adds `strength rows round trip their reps left`. HistoryCsvReaderTest adds
+`a file without an RIR column imports with no reps left` and `an RIR outside zero to five rejects the file`.
+CardioCsvTest adds `cardio rows leave RIR blank`, covering set and summary exports and ignoring a filled RIR cell
+on import. HistoryCsvWriterTest adds `the first twenty five columns keep their order`.
+
+Two existing expectations change, each marked `// PR 8: RIR column`: HistoryCsvWriterTest's
+`header matches Strong's column layout` expects the appended header suffix to end with Cardio Mode, RIR instead
+of Cardio Mode; CardioCsvTest's `hard fiveK exports eleven set rows in position order` expects 26 cells instead
+of 25. No other expectation or pinned §11.2 number changes.
+
+Source review compares moved bodies, checks imports and CSV routing, and verifies protected files and fixtures
+are unchanged. No network, Gradle, compilation, builds, tests or subagents were used. CI unit tests, build,
+instrumented tests, pilots and screenshot comparison remain pending. The read-only Git index rejects git mv;
+the working-tree moves await caller staging, so git ls-files still lists the old generator paths.
+
+§8 row 8 is complete: `:domain` has no `generator/` package.

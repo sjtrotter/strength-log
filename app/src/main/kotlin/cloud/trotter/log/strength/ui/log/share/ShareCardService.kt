@@ -8,7 +8,7 @@ import androidx.core.content.FileProvider
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.ui.day.cardioActivityNameRes

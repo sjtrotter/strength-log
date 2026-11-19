@@ -101,6 +101,27 @@ class CsvHistoryServiceTest {
     }
 
     @Test
+    fun `strength rows round trip their reps left`() = runTest {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, null)
+        val sets = listOf(0, 2, null).mapIndexed { index, rir ->
+            SessionSetEntity(
+                id = index + 1L, sessionId = 1, exerciseId = "bb_back_squat", exerciseName = "Barbell Back Squat",
+                slot = Slot.MAIN, setIndex = index, kind = SetKind.WORK.name, weightLb = 225.0, reps = 5,
+                done = true, rir = rir,
+            )
+        }
+        val text = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB)
+        val rows = Csv.parse(text).drop(1)
+        assertEquals(listOf("0", "2", ""), rows.map { it[HISTORY_CSV_HEADER.indexOf("RIR")] })
+        assertEquals(listOf("", "", ""), rows.map { it[HISTORY_CSV_HEADER.indexOf("RPE")] })
+
+        service.commit(service.preview(ByteArrayInputStream(text.toByteArray(Charsets.UTF_8))))
+
+        val stored = repo.history.exportSessionHistory().sessionSets.sortedBy { it.setIndex }
+        assertEquals(listOf(0, 2, null), stored.map { it.rir })
+    }
+
+    @Test
     fun `export includes all cardio sets or falls back to one summary when any stored set is invalid`() = runTest {
         val sets = listOf(
             CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Time(60)), CardioSetStatus.FINISHED, 60),

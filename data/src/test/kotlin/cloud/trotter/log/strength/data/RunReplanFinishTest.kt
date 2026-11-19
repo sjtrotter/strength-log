@@ -23,7 +23,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.model.Rotation
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.PlanBranch

@@ -64,7 +64,7 @@ import cloud.trotter.log.strength.data.serialization.UndoDayColumnsDto
 import cloud.trotter.log.strength.data.serialization.UndoPlanDto
 import cloud.trotter.log.strength.data.serialization.UndoRowDto
 import cloud.trotter.log.strength.data.serialization.UndoRuleDto
-import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.model.Rotation
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking

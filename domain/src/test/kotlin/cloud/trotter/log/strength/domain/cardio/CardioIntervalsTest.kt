@@ -1,4 +1,4 @@
-package cloud.trotter.log.strength.domain.generator
+package cloud.trotter.log.strength.domain.cardio
 
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import kotlin.test.Test

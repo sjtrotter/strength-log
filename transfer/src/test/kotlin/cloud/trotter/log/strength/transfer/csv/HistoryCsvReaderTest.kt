@@ -124,6 +124,45 @@ class HistoryCsvReaderTest {
     // --- rejection paths --------------------------------------------------------
 
     @Test
+    fun `a file without an RIR column imports with no reps left`() {
+        val header = ("Date,Workout Name,Duration,Exercise Name,Set Order,Set Type,Weight,Weight Unit,Reps," +
+            "Distance,Distance Unit,Seconds,Notes,Workout Notes,RPE,Plan,Activity,Role,Target,Aim,Hard," +
+            "Status,Distance Source,Steps Completed,Cardio Mode").split(',')
+        val rows = listOf(1, 2).map { order ->
+            header.map { column -> when (column) {
+                "Date" -> "2026-07-01 08:00:00"
+                "Workout Name" -> "Day A"
+                "Exercise Name" -> "Barbell Back Squat"
+                "Set Order" -> order.toString()
+                "Weight" -> "225"
+                "Weight Unit" -> "lb"
+                "Reps" -> "5"
+                "RPE" -> "9"
+                else -> ""
+            } }
+        }
+        val text = (listOf(header) + rows).joinToString("\r\n", postfix = "\r\n", transform = Csv::writeRow)
+
+        val sets = HistoryCsvReader.preview(text, catalog, zone).sessions.single().sets
+
+        assertEquals(2, sets.size)
+        assertEquals(listOf<Int?>(null, null), sets.map { it.rir })
+    }
+
+    @Test
+    fun `an RIR outside zero to five rejects the file`() {
+        for (raw in listOf("6", "-1", "x")) {
+            val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps,RIR\n" +
+                "2026-07-01 08:00:00,Day A,Barbell Back Squat,225,lb,5,$raw\n"
+
+            val error = assertFailsWith<CsvImportError.MalformedRow> { HistoryCsvReader.preview(text, catalog, zone) }
+
+            assertEquals(2, error.line)
+            assertEquals("reps left must be 0 to 5: '$raw'", error.detail)
+        }
+    }
+
+    @Test
     fun `a missing required column is rejected`() {
         val text = "Date,Workout Name,Weight,Weight Unit,Reps\n2026-07-01 08:00:00,Day A,225,lb,5\n"
         val e = assertFailsWith<CsvImportError.MissingColumns> { HistoryCsvReader.preview(text, catalog, zone) }

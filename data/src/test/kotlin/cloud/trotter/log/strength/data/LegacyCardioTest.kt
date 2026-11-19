@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.LegacyCardio
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.data.serialization.V1Recipe
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSuggestion

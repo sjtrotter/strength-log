@@ -1,8 +1,5 @@
-package cloud.trotter.log.strength.domain.generator
+package cloud.trotter.log.strength.domain.model
 
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDay
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

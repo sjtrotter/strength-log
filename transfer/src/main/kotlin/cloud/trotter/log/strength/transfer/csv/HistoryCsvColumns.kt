@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * Distance/Distance Unit carrying measured metres (`m`). Activity, Role, Target,
  * Aim, Hard, Status, Distance Source, Steps Completed, and Cardio Mode are
  * appended to preserve cardio prescriptions, results, and legacy summaries.
+ * RIR, the reps left a strength set recorded, follows Cardio Mode; cardio rows leave it blank.
  * Workout Notes is always empty, and imports carry no plan.
  */
 val HISTORY_CSV_HEADER: List<String> = listOf(
@@ -36,13 +37,14 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
     "Distance Source",
     "Steps Completed",
     "Cardio Mode",
+    "RIR",
 )
 
 /** Fields read by the header-driven strength and cardio import paths. */
 internal enum class HistoryField {
     DATE, WORKOUT_NAME, DURATION, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT,
     SET_TYPE, REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE, PLAN,
-    ACTIVITY, ROLE, TARGET, AIM, HARD, STATUS, DISTANCE_SOURCE, STEPS_COMPLETED, CARDIO_MODE,
+    ACTIVITY, ROLE, TARGET, AIM, HARD, STATUS, DISTANCE_SOURCE, STEPS_COMPLETED, CARDIO_MODE, RIR,
 }
 
 /** Header spellings recognized for each field, matched case/whitespace-
@@ -74,6 +76,7 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     HistoryField.DISTANCE_SOURCE to listOf("Distance Source"),
     HistoryField.STEPS_COMPLETED to listOf("Steps Completed"),
     HistoryField.CARDIO_MODE to listOf("Cardio Mode"),
+    HistoryField.RIR to listOf("RIR"),
 )
 
 internal const val CARDIO_MARKER = "cardio"

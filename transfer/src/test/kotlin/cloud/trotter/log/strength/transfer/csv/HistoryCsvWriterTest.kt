@@ -61,8 +61,23 @@ class HistoryCsvWriterTest {
         val header = Csv.parse(csv).first()
         assertEquals(HISTORY_CSV_HEADER, header)
         assertEquals("Plan", header[15])
+        // PR 8: RIR column
         assertEquals(listOf("Activity", "Role", "Target", "Aim", "Hard", "Status", "Distance Source",
-            "Steps Completed", "Cardio Mode"), header.drop(16))
+            "Steps Completed", "Cardio Mode", "RIR"), header.drop(16))
+    }
+
+    @Test
+    fun `the first twenty five columns keep their order`() {
+        assertEquals(
+            listOf(
+                "Date", "Workout Name", "Duration", "Exercise Name", "Set Order", "Set Type",
+                "Weight", "Weight Unit", "Reps", "Distance", "Distance Unit", "Seconds",
+                "Notes", "Workout Notes", "RPE", "Plan", "Activity", "Role", "Target", "Aim",
+                "Hard", "Status", "Distance Source", "Steps Completed", "Cardio Mode",
+            ),
+            HISTORY_CSV_HEADER.take(25),
+        )
+        assertEquals("RIR", HISTORY_CSV_HEADER.last())
     }
 
     @Test

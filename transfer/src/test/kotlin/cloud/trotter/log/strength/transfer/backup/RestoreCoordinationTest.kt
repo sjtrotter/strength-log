@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import android.content.Context

@@ -115,11 +115,11 @@ the existing `stack` field still includes the exception chain.
 | --- | --- |
 | `tap` | Selector. Clicks the matching visible node. Empty or entirely off-screen bounds fail with `not-visible`; use `scrollTo` first. |
 | `longPress` | Selector. Holds the matching visible node, with the same bounds check as `tap`. |
-| `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. With `"ime": "done"`, performs the field's declared IME action. A field that declares none (the set and prescription sheets) commits as you type, so the step skips it and logs `"ime": {"declared": "Default", "performed": false}`. |
+| `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. With `"ime": "done"`, performs the field's declared IME action. A field that declares none commits as you type, so the step skips it and logs `"ime": {"declared": "Default", "performed": false}`. |
 | `scrollTo` | Selector. Scrolls the nearest scrollable ancestor until the target is in view; for one not yet drawn, pages each lazy list on screen until it appears. Each scroll runs the Compose animation clock one second. |
 | `swipe` | Selector plus `"direction": "left"`, `"right"`, `"up"`, or `"down"`. |
 | `back` | `true`. Like the system Back key: an open sheet or dialog closes first, otherwise the screen goes back. |
-| `advance` | Positive duration in days, hours, minutes, seconds, and milliseconds, in that order, such as `"500ms"`, `"4s880ms"`, `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. It walks through every armed timer boundary inside the advance in order. Live cardio and sprint timers read the same fake elapsed clock, so a 25:00 set saves 25:00. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
+| `advance` | Positive duration in days, hours, minutes, seconds, and milliseconds, in that order, such as `"500ms"`, `"4s880ms"`, `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. It walks through every armed timer boundary inside the advance in order. Timers read the same fake elapsed clock, so a 25:00 set saves 25:00. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
 | `recreate` | `true`. Recreates the activity to exercise saved state. |
 | `checkpoint` | A nonblank name. It waits for animations and pending saves, up to two seconds of frame time, before it captures. |
 | `expect` | Selector, optionally `"absent": true`. Requires one match, or zero when absent. `index` selects a repeated match. |
@@ -149,8 +149,8 @@ open workout and no armed rest. Finish before jumping to another day.
 Navigation settles before the next action. Consecutive taps can use the new page:
 
 ```json
-{ "tap": { "text": "Next" } }
-{ "tap": { "text": "Continue" } }
+{ "tap": { "text": "First page's button" } }
+{ "tap": { "text": "Second page's button" } }
 ```
 
 For visibility regression pilots, `tap` and `longPress` accept
@@ -211,13 +211,12 @@ commits that file to the seat branch with the script. It imports through the rea
 backup's sibling `summary.json` to recover its fake clock, or supply explicit
 `start.date` and `start.time`. Current app backups have no export timestamp.
 Restore resets navigation and clears drafts, rest deadline, undo offer,
-cardio anchors, and watch stamps. A backup from an unfinished workout cannot
+timer anchors, and watch stamps. A backup from an unfinished workout cannot
 resume those transient states. Named checkpoints are screen captures, not resumable saves.
 
 CI replays every pilot on a PR that touches the harness, the pilots or the
 playtest workflow. A PR that changes app, data, domain or transfer code replays
-the core six: wizard-to-today, rest-timer-advance, history-day-start,
-dialog-text-field, ladder-day, and sprint-beep-timer. When an app change breaks one, update the script in the same PR.
+a core set of pilots. When an app change breaks one, update the script in the same PR.
 
 A scripts-only PR runs the driver retry check when it changes `playtest.sh` or
 `gh-retry*.sh`; it does not add replay jobs. Workflow changes run both checks.
@@ -236,9 +235,9 @@ Keep flows that test those states inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their
-content and centered, as on a phone. GPS location is not available in the
-harness; type distances where the app asks. The sprint beep makes no sound.
-The location permission request goes unanswered. SAF pickers return nothing. Inspect
+content and centered, as on a phone. Location is not available in the
+harness; type distances where the app asks. Audio cues make no sound.
+Permission requests go unanswered. SAF pickers return nothing. Inspect
 backup and export data through the artifact. Use the harness for plan building
 and workout execution against real storage.
 

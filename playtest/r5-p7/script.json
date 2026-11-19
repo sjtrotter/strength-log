@@ -237,9 +237,13 @@
     },
     {
       "tap": {
-        "text": "Today only"
-      },
-      "optional": true
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
     },
     {
       "checkpoint": "conventional-deadlift-today"
@@ -337,10 +341,17 @@
       "checkpoint": "nov13-added-third-deadlift-set"
     },
     {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
+    },
+    {
       "tap": {
         "desc": "Edit set 3"
-      },
-      "optional": true
+      }
     },
     {
       "type": {

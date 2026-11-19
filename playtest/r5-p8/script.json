@@ -122,28 +122,16 @@
     },
     {
       "tap": {
-        "text": "Finish block"
-      },
-      "optional": true,
-      "timeoutMs": 1000
+        "text": "End cardio"
+      }
+    },
+    {
+      "checkpoint": "short-run-end-cardio"
     },
     {
       "tap": {
-        "text": "Finish early"
-      },
-      "optional": true,
-      "timeoutMs": 1000
-    },
-    {
-      "tap": {
-        "text": "End block"
-      },
-      "optional": true,
-      "timeoutMs": 1000
-    },
-    {
-      "tap": {
-        "text": "Skip remaining sets"
+        "text": "End cardio",
+        "inDialog": true
       },
       "optional": true,
       "timeoutMs": 1000

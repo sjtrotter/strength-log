@@ -20,6 +20,25 @@
       "checkpoint": "first-workout-open"
     },
     {
+      "note": "Complete my dynamic warm-up before looking for sprint controls. The app opened its Warm-up sheet automatically."
+    },
+    {
+      "tap": {
+        "text": "Start timer"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "warmup-complete"
+    },
+    {
       "tap": {
         "text": "Start sprints"
       }

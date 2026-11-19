@@ -8,7 +8,7 @@
   },
   "steps": [
     {
-      "note": "Dana: set up a total-beginner run/walk plan for a possible March 20 5K, three days weekly, about 30 minutes. No recent running or race."
+      "note": "Dana: first 5K, no running since school, no recent race or time trial. Three days per week, about 30 minutes. Review the proposed beginner plan before accepting."
     },
     {
       "tap": {
@@ -26,7 +26,8 @@
     },
     {
       "tap": {
-        "text": "Beginner"
+        "textContains": "First 5K",
+        "role": "RadioButton"
       }
     },
     {
@@ -39,8 +40,10 @@
     },
     {
       "tap": {
-        "text": "5K"
-      }
+        "textContains": "Beginner",
+        "role": "RadioButton"
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -53,7 +56,8 @@
     {
       "tap": {
         "text": "3 days"
-      }
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -66,7 +70,16 @@
     {
       "tap": {
         "text": "30 minutes"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Next"
       }
+    },
+    {
+      "checkpoint": "running-setup-page-six"
     },
     {
       "tap": {

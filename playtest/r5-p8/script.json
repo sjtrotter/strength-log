@@ -26,6 +26,11 @@
       }
     },
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "type": {
         "text": "Name",
         "value": "Ray"

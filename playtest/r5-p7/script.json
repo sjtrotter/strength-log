@@ -9,7 +9,7 @@
   },
   "steps": [
     {
-      "note": "Tuesday Nov 10, first full session. Dynamic warm-up, standing short starts, phone on the ground for two reps, then Javi hand-times three-point 40 yd runs at 5.01 and 4.97. Rest two minutes between reps. Then squat 225 x 5 x 3, Good. Finish the workout."
+      "note": "Nov 10 full session: warm up on the turf, standing short starts and two phone-timing attempts, then three-point 40 yd runs hand-timed by Javi at 5.01 and 4.97. No sprint-entry control found on Today, day detail, or the initial workout screen. Keep those times in my separate notes for now and log the performed squat work."
     },
     {
       "tap": {
@@ -20,124 +20,13 @@
       "checkpoint": "acceleration-day-detail"
     },
     {
-      "note": "Do my five-minute dynamic warm-up on the turf before sprinting."
-    },
-    {
       "advance": "5m"
     },
     {
-      "tap": {
-        "text": "Start sprints"
-      }
+      "note": "Standing short starts, then Javi times the two three-point 40s: 5.01 and 4.97. Full two-minute rests. No guessed phone timer values saved."
     },
     {
-      "checkpoint": "sprint-controls"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "2s100ms"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "checkpoint": "first-phone-timed-standing-start"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "2s80ms"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "For the two 40s, Javi uses his stopwatch. Change to 40 yd and three-point start; preserve hand timing as distinct from gates."
-    },
-    {
-      "tap": {
-        "text": "Distance"
-      }
-    },
-    {
-      "tap": {
-        "text": "40 yd"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start type"
-      }
-    },
-    {
-      "tap": {
-        "text": "Three-point"
-      }
-    },
-    {
-      "tap": {
-        "text": "Manual time"
-      }
-    },
-    {
-      "type": {
-        "text": "Time",
-        "value": "5.01",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "javi-first-40"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Manual time"
-      }
-    },
-    {
-      "type": {
-        "text": "Time",
-        "value": "4.97",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "javi-second-40"
-    },
-    {
-      "tap": {
-        "text": "Finish sprints"
-      }
+      "advance": "12m"
     },
     {
       "tap": {
@@ -145,21 +34,9 @@
       }
     },
     {
-      "checkpoint": "first-workout-open"
-    },
-    {
-      "note": "Already warmed up on the turf before sprints; dismiss the lift warm-up sheet with Done."
-    },
-    {
       "tap": {
         "text": "Done"
       }
-    },
-    {
-      "checkpoint": "warmup-complete"
-    },
-    {
-      "note": "After sprints and jumps, lift: squat three work sets of 225 lb for five reps. Keep the effort Good, about two reps left."
     },
     {
       "tap": {
@@ -167,9 +44,15 @@
       }
     },
     {
+      "checkpoint": "day-a-lift-selector"
+    },
+    {
       "tap": {
-        "text": "Squat"
+        "text": "Barbell Back Squat"
       }
+    },
+    {
+      "checkpoint": "squat-before-logging"
     },
     {
       "tap": {
@@ -192,21 +75,31 @@
     },
     {
       "tap": {
-        "text": "Good"
+        "text": "Save"
       }
     },
     {
       "tap": {
-        "text": "Log set"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "3m"
+      "tap": {
+        "text": "Good"
+      }
     },
     {
       "checkpoint": "squat-work-set-1"
     },
     {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
       "type": {
         "text": "Weight (lb)",
         "value": "225",
@@ -222,21 +115,31 @@
     },
     {
       "tap": {
-        "text": "Good"
+        "text": "Save"
       }
     },
     {
       "tap": {
-        "text": "Log set"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "3m"
+      "tap": {
+        "text": "Good"
+      }
     },
     {
       "checkpoint": "squat-work-set-2"
     },
     {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
       "type": {
         "text": "Weight (lb)",
         "value": "225",
@@ -252,22 +155,27 @@
     },
     {
       "tap": {
-        "text": "Good"
+        "text": "Save"
       }
     },
     {
       "tap": {
-        "text": "Log set"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "3m"
+      "tap": {
+        "text": "Good"
+      }
     },
     {
       "checkpoint": "squat-work-set-3"
     },
     {
-      "note": "Finish the day with the performed sprint times and three squat work sets saved. Other coach work only if offered and time permits."
+      "advance": "3m"
+    },
+    {
+      "note": "Three squat work sets completed, 225 lb x 5, Good. Finish today with other unperformed lifts left unlogged. Sprint times remain in my notes because I have not found entry."
     },
     {
       "tap": {

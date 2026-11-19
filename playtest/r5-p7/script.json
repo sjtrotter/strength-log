@@ -75,7 +75,7 @@
       "advance": "10m"
     },
     {
-      "note": "Warm-up timer automatically reaches the first 10 m work rep. Attempt phone timing with Start / Stop, accepting the introductory short distance. Three flying 10 m efforts; invented elapsed times 1.45, 1.43, 1.46 seconds. I cannot assess the beep through this harness."
+      "note": "Warm-up reaches the first 10 m work rep. Start opens sprint controls; choose Flying and then Start on the beep. A three-second countdown is a script assumption to verify from captures, not a new training fact. Planned phone-timed flying 10 m performances remain 1.45, 1.43 and 1.46 seconds. Cannot assess beep sound in harness."
     },
     {
       "tap": {
@@ -83,40 +83,87 @@
       }
     },
     {
-      "checkpoint": "nov13-first-sprint-running"
+      "tap": {
+        "text": "Flying"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "checkpoint": "nov13-sprint-1-countdown"
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "checkpoint": "nov13-sprint-1-after-countdown"
     },
     {
       "advance": "1s450ms"
     },
     {
       "tap": {
-        "text": "Stop"
+        "text": "Reached 10 m"
       }
     },
     {
-      "checkpoint": "nov13-first-sprint-stopped"
+      "checkpoint": "nov13-sprint-1-recorded"
     },
     {
       "advance": "4m"
     },
     {
       "tap": {
+        "text": "Next set"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
         "text": "Start"
       }
+    },
+    {
+      "tap": {
+        "text": "Flying"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "checkpoint": "nov13-sprint-2-countdown"
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "checkpoint": "nov13-sprint-2-after-countdown"
     },
     {
       "advance": "1s430ms"
     },
     {
       "tap": {
-        "text": "Stop"
+        "text": "Reached 10 m"
       }
     },
     {
-      "checkpoint": "nov13-second-sprint-stopped"
+      "checkpoint": "nov13-sprint-2-recorded"
     },
     {
       "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -124,12 +171,34 @@
       }
     },
     {
+      "tap": {
+        "text": "Flying"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "checkpoint": "nov13-sprint-3-countdown"
+    },
+    {
+      "advance": "3s"
+    },
+    {
+      "checkpoint": "nov13-sprint-3-after-countdown"
+    },
+    {
       "advance": "1s460ms"
     },
     {
       "tap": {
-        "text": "Stop"
+        "text": "Reached 10 m"
       }
+    },
+    {
+      "checkpoint": "nov13-sprint-3-recorded"
     },
     {
       "checkpoint": "nov13-sprints-complete"

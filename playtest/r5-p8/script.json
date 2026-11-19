@@ -13,7 +13,8 @@
     },
     {
       "expect": {
-        "text": "Today"
+        "text": "Today",
+        "role": "Tab"
       }
     },
     {

@@ -13,30 +13,17 @@
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Acceleration"
       }
     },
     {
-      "checkpoint": "first-workout-open"
+      "checkpoint": "acceleration-day-detail"
     },
     {
-      "note": "Complete my dynamic warm-up before looking for sprint controls. The app opened its Warm-up sheet automatically."
-    },
-    {
-      "tap": {
-        "text": "Start timer"
-      }
+      "note": "Do my five-minute dynamic warm-up on the turf before sprinting."
     },
     {
       "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "checkpoint": "warmup-complete"
     },
     {
       "tap": {
@@ -153,11 +140,40 @@
       }
     },
     {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "first-workout-open"
+    },
+    {
+      "note": "Already warmed up on the turf before sprints; dismiss the lift warm-up sheet with Done."
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "warmup-complete"
+    },
+    {
       "note": "After sprints and jumps, lift: squat three work sets of 225 lb for five reps. Keep the effort Good, about two reps left."
     },
     {
       "tap": {
+        "desc": "Day A lifts, 0 of 17 sets"
+      }
+    },
+    {
+      "tap": {
         "text": "Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
       }
     },
     {

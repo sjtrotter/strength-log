@@ -94,8 +94,18 @@
       "checkpoint": "stopped-set-acknowledged"
     },
     {
+      "note": "Finish stayed disabled after Stop and Continue without distance although three running bouts and intervening walking were completed. I am not starting another round with an aching shin. Try Back to leave and save the partial workout; the exit/save control below is a guess until the screen is observed."
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-early-after-disabled-finish"
+    },
+    {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Save",
+        "role": "Button"
       }
     },
     {

@@ -16,6 +16,15 @@
     },
     {
       "tap": {
+        "text": "Rest taken",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "rest-acknowledged-monday-run"
+    },
+    {
+      "tap": {
         "textContains": "Start day",
         "role": "Button"
       }

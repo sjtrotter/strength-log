@@ -91,12 +91,22 @@
       }
     },
     {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
       "tap": {
-        "text": "Skip",
-        "role": "Button"
-      },
-      "optional": true,
-      "timeoutMs": 1000
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
     },
     {
       "expect": {

@@ -207,7 +207,7 @@
     {
       "expect": {
         "text": "38 reps",
-        "tag": "workout-hero"
+        "role": "Button"
       }
     },
     {

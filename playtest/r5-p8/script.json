@@ -21,6 +21,24 @@
     },
     {
       "tap": {
+        "text": "Skip"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 4 sets"
+      }
+    },
+    {
+      "checkpoint": "day-a-workout-overview"
+    },
+    {
+      "tap": {
+        "textContains": "Run/walk"
+      }
+    },
+    {
+      "tap": {
         "text": "Start"
       }
     },

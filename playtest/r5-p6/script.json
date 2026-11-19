@@ -3,20 +3,20 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-26",
-    "time": "12:00",
+    "date": "2026-11-30",
+    "time": "06:15",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Thanksgiving, after the Turkey Trot. I did not record live. My sister's watch says 3.1 miles in 47:52; I ran roughly a third. This is my first completed 5K and I want it kept as an extra outing, without pretending I ran the planned ten intervals."
+      "note": "Monday Nov 30 06:15, outside. I skipped Nov 28 with family at home. Back at it after the Turkey Trot: honestly easy. Complete the offered session, select Easy truthfully, and see what level comes next. The race happened physically but the retrospective entry remains unsaved after harness start-time interaction failures."
     },
     {
-      "checkpoint": "turkey-trot-today"
+      "checkpoint": "monday-week4-today"
     },
     {
       "tap": {
-        "text": "Skip rest and train",
+        "text": "Rest taken",
         "role": "Button"
       }
     },
@@ -27,61 +27,129 @@
       }
     },
     {
+      "checkpoint": "monday-week4-offered-workout"
+    },
+    {
       "tap": {
-        "text": "Log past session",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "turkey-trot-entry-form"
-    },
-    {
-      "type": {
-        "text": "Start time",
-        "value": "09:00",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "textContains": "Duration",
-        "value": "47:52"
-      }
-    },
-    {
-      "type": {
-        "textContains": "Distance",
-        "value": "3.1"
-      }
-    },
-    {
-      "type": {
-        "textContains": "Note",
-        "value": "Turkey Trot with my sister and her kids. First 5K! Ran about a third."
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "turkey-trot-entered"
+      "advance": "5m"
     },
     {
       "tap": {
-        "text": "Save",
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "monday-week4-first-run"
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "text": "Skip",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "turkey-trot-saved"
+      "tap": {
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "monday-week4-saved-easy"
     },
     {
       "tap": {
         "text": "Done",
         "role": "Button"
-      },
-      "optional": true
+      }
     },
     {
-      "checkpoint": "turkey-trot-finished"
+      "checkpoint": "monday-week4-finished"
     }
   ]
 }

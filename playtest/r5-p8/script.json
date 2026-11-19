@@ -114,6 +114,14 @@
     },
     {
       "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "edit-day-to-add-test-events"
+    },
+    {
+      "tap": {
         "text": "Add exercise"
       }
     },

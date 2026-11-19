@@ -2,189 +2,22 @@
   "seat": "r5-p8",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "20:00",
+    "restore": "start-backup.json",
+    "date": "2026-11-10",
+    "time": "17:30",
     "zone": "America/Denver"
   },
   "steps": [
     {
-      "note": "Sunday setup, 20:00. My test is push-ups for one minute, sit-ups for one minute, then a 1.5-mile run on December 12. Use the offered running plan and add the other events later if necessary."
+      "note": "Tuesday Nov 10, 17:30, station gym. Do the running workout offered by the app on the treadmill, then three one-minute max sets each of push-ups (31,26,22) and sit-ups (33,29,27), with two minutes rest. No squat or plank today; the test events come first."
     },
     {
       "tap": {
-        "textContains": "5K to ultra, a fitness test, or regular cardio"
+        "text": "Start day A"
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Fitness test"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 3
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 7
-      }
-    },
-    {
-      "checkpoint": "four-days-45-minutes"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 4
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "index": 6
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "10 lb"
-      }
-    },
-    {
-      "tap": {
-        "text": "10 lb"
-      }
-    },
-    {
-      "checkpoint": "equipment-and-pound-units"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 4
-      }
-    },
-    {
-      "checkpoint": "year-lifting-some-running-no-injury"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "index": 1
-      }
-    },
-    {
-      "type": {
-        "text": "Target time",
-        "value": "12:59",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "1.5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Time",
-        "value": "14:05",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add date"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Switch to text input mode"
-      },
-      "optional": true,
-      "timeoutMs": 1000
-    },
-    {
-      "type": {
-        "text": "Date",
-        "value": "12122026",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "december-12-test-date-entry"
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "test-details"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "22",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "longest-run-22-minutes"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "offered-fitness-test-plan"
+      "checkpoint": "first-workout-offered"
     },
     {
       "tap": {
@@ -192,14 +25,207 @@
       }
     },
     {
-      "expect": {
-        "text": "Today",
-        "index": 0
-      },
-      "timeoutMs": 60000
+      "advance": "26m"
     },
     {
-      "checkpoint": "setup-finished-main-screen"
+      "checkpoint": "run-walk-four-five-minute-repeats"
+    },
+    {
+      "tap": {
+        "text": "Finish run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Search",
+        "value": "push",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-up"
+      }
+    },
+    {
+      "checkpoint": "push-up-logging"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "31",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "26",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "22",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Search",
+        "value": "sit",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Sit-up"
+      }
+    },
+    {
+      "checkpoint": "sit-up-logging"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "33",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "29",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "27",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "60",
+        "ime": "done"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "text": "Log set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish workout"
+      }
+    },
+    {
+      "checkpoint": "november-10-session-summary"
     }
   ]
 }

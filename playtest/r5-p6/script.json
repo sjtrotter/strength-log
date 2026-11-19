@@ -115,13 +115,37 @@
       "checkpoint": "review-first-weeks-before-accepting"
     },
     {
+      "note": "The preview defaults to two strength blocks and exceeds 30 minutes on A and B. Choose zero strength blocks for my running-only month."
+    },
+    {
       "tap": {
-        "textContains": "plan",
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "running-only-plan"
+    },
+    {
+      "tap": {
+        "text": "Why this plan",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "setup-complete"
+      "checkpoint": "why-this-beginner-plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "setup-actually-complete"
     }
   ]
 }

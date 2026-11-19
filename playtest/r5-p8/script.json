@@ -114,7 +114,47 @@
     },
     {
       "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "short-run-more-menu"
+    },
+    {
+      "tap": {
         "text": "Finish block"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "text": "Finish early"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "text": "End block"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "text": "Skip remaining sets"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "checkpoint": "short-run-end-attempt"
+    },
+    {
+      "expect": {
+        "tag": "workout-finish",
+        "enabled": true
       }
     },
     {

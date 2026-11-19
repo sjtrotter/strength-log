@@ -35,7 +35,7 @@
     },
     {
       "tap": {
-        "text": "Start day A"
+        "tag": "workout-start"
       }
     },
     {
@@ -409,7 +409,7 @@
     },
     {
       "tap": {
-        "text": "Start day A"
+        "tag": "workout-start"
       }
     },
     {

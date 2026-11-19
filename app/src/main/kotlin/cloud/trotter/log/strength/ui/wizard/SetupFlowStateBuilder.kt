@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
@@ -80,7 +81,7 @@ object SetupFlowStateBuilder {
 
     internal fun goalTimeFloor(draft: SetupDraft): Int {
         val metres = if (draft.runGoal == RunGoal.FITNESS_TEST) draft.test.metres
-            else (draft.runEvent?.takeIf { it in draft.runGoal.events } ?: draft.runGoal.events.firstOrNull())?.metres
+            else RunAnswers(goal = draft.runGoal, event = runEvent(draft)).resolvedEvent?.metres
         return GoalTime.floorSeconds(metres ?: 0, runActivity(draft))
     }
 
@@ -116,11 +117,13 @@ object SetupFlowStateBuilder {
             together = if (offersTogether(draft)) draft.together else BothAnswers.Together.SAME_VISIT) else BothAnswers(),
     )
 
+    private fun runEvent(draft: SetupDraft): RunEvent? = draft.runEvent?.takeIf { it in draft.runGoal.events }
+
     private fun runAnswers(draft: SetupDraft): RunAnswers {
         val score = draft.testScore?.takeIf { draft.runGoal == RunGoal.FITNESS_TEST && it >= 1 &&
             (draft.test !in listOf(FitnessTest.PACER, FitnessTest.HAMR) || it <= 999) }
         return RunAnswers(goal = draft.runGoal, experience = draft.runExperience,
-            event = draft.runEvent?.takeIf { it in draft.runGoal.events }, test = draft.test,
+            event = runEvent(draft), test = draft.test,
             dateEpochDay = draft.eventDate?.takeIf {
                 (draft.runGoal.events.isNotEmpty() || draft.runGoal == RunGoal.FITNESS_TEST) &&
                     (draft.runGoal != RunGoal.FITNESS_TEST || draft.test != FitnessTest.COOPER &&
@@ -199,7 +202,7 @@ object SetupFlowStateBuilder {
             } else null
             PlanDayRow(day.id, day.title, day.kind == ProgramDayKind.REST, main?.let { it.shortName ?: it.name }, load,
                 day.exercises.sumOf { if (it.superset == null) 1 else 2 },
-                ceil(SessionBudget.seconds(day, if (sprintPlan) answers.slotGoal else answers.goal) / 60.0).toInt(),
+                ceil(SessionBudget.seconds(day, answers.slotGoal) / 60.0).toInt(),
                 over.firstOrNull { it.dayId == day.id }?.let { ceil(it.seconds / 60.0).toInt() }, day.cardioBlock,
                 sprintPlan && restBeforeSprint(draft.program, day.id))
         }

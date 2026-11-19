@@ -2106,3 +2106,64 @@ Production: domain planner Planner, SprintAnswers and SprintLayout; data seriali
 Tests add sprint draft, steps, normalization, prefill, floor, fitting, full-dose, week, high-day, plan-name, recipe and backup coverage, a careful answer reaching Start, and non-sprint 37 m regressions. SetupFlowPreviewShotsTest defines s52 through s68; ProgressionPreviewShotsTest defines p62 through p65. Seven fontScale 2 cases cover the new setup surfaces. The source review includes resource XML, pilot JSON, test names, imports and diff whitespace. No network, builds, compilation, Gradle, tests or subagents were used. CI, pilots, PNG generation and lead inspection remain pending.
 
 PR 7 is complete in scope with this PR. PR 8 carries SetupFlowRestoreTest's 10-second CI waits; remaining #610–#614 copy and SSOT nits (shared running-history filters, RunPhase fallbacks, reset eligibility, held-replan messages, Alternate's source, Ask acceptance and Undo cursor, duplicate Plan time invalidation, resolved-event fallback and time-floor documentation, parser semantics and timer lifecycle); accepted watch rebuild and nine-tenths cleanup notes; per-muscle balancing for Both + sprint Muscle; and the watch. Sprint timing method and best time in setup remain deferred under revision 31.
+
+
+## 64. Revision 55 (PR 8a, cleanup, 2026-11-18)
+
+A1. Ladder credit validation and accumulation read RunWalkLadder.EASY_PER_LEVEL. The current value is two, so every credit, level, cap and outcome stays the same. CardioRule and Progression document the shared count.
+
+A2. CardioHistory owns WEEK_DAYS and weekEnding beside WEEK_MILLIS. The ladder cap, busy guard and sprint allowance use that inclusive local-day window. The busy scan retains its existing endpoints, and the elapsed-time week has the same millisecond value. Files: CardioHistory, Progression, RunWalkLadder and SprintRules.
+
+A3. CardioRule documents steps shared by alternating ranges: a session at its own top or fitted below its stored step can still earn credit and steps for the larger range. TrackerRepository documents that leaving Keep also prevents partial ladder Undo. RunWalkLadder's object comment wraps without changing its words.
+
+A4. CardioJudge's imports are sorted lexicographically, with the same imports.
+
+A5. CardioHistory shares its finished-session and WORK filters between the running-time and running-distance maxima. RunPhase uses longestRecent to choose the log over a typed longest for both units. CardioHistory.known supplies both maps from the same finished sessions. No fixture moved on reading: PlannerRunTest's shared known helper, PlannerRunInvariantsTest and PlannerRunProgressTest either have no typed fallback or already clear the ladder gate by their logged anchor; the explicit running-time fixtures in PlannerRunTest and SetupRecipeJsonTest already supply it. No fixture or expectation was edited for A5; CI still verifies the results.
+
+A6. The seeding RunReplan becomes TrackReseed, including its test class and TrackerRepositoryRunEditsTest references. Its functions and bodies stay the same. TrackerRepository imports the planner RunReplan without the PhaseReplan alias. The planner RunReplanTest keeps its name and contents.
+
+A7. Public PlanEntity.resetDay in data/ResetDay.kt owns Reset day to plan eligibility for both TrackerRepository and app DayEditLogic. Planner.day returns a nullable DayDraft whose day is ProgramDay, so the helper returns ProgramDay as specified. Reset still applies only to generated Lift recipes and training days. Its transaction still checks that the stored day exists, and settings are read before the transaction. DayEditLogicTest's assertions stay unchanged.
+
+A8. RunSession.alternation names the symmetric Threshold/Intervals pair once. RunSessions and ReceiptCardioLines read it, including a held Ask result with no stored rule. RunSessionTest checks every enum entry and the pair's symmetry. Receipt titles already show to the runner; their comment now says so.
+
+A9. PlanScreenBuilder requires todayEpochDay in its existing position. The omitted test arguments become the same named 0L. PlanScreenBuilderTest has 22 calls: 19 needed the argument and three already supplied a date. PlanScreenTest, PlanCardioGoalScreenTest, OldPlanMainsTest and ProgressionPreviewShotsTest also pass the previous default explicitly. No expectation changes.
+
+A10. PlanViewModel combines the existing CivilDay flow with its program inputs, so the taper line updates when the local date changes. The added test derives consecutive dates on opposite sides of Taper.factor's boundary and changes only that flow. The dated 5K goal goes from no taper 11 days out to taper 10 days out. Other clock reads retain their behavior.
+
+A11. PlanGoalDraft.edited owns distance/activity floor invalidation. PlanViewModel stores its result; PlanCardioGoal only reports edits. The screen test callbacks apply the same function. The new view-model regression checks 800 m at 1:41 changing to 1500 m stores INVALID_TIME and that submitting the resulting draft again keeps it. Parcelable fields and saved-state keys are unchanged.
+
+A12. PlanCardioGoal passes the existing invalid-time marker to NumberField. A cleared time stays blank, shows the existing range text, and keeps Save disabled, matching setup after #615. Choosing A time with no input does the same; valid input removes the error. The three existing tests' four floor-change checks are listed below, and the marathon-to-ride test is renamed to say it shows the ride's range. Range strings come from GoalTime.floorSeconds, ClockText.duration and form_time_range; there is no string resource change.
+
+A13. DayScreenBuilder explains that a later Finish clears older undo records and their chips. GoalTime documents the running floor and NumberField documents its time parser. PreviewViewModelTest's three re-plan tests are renamed to disclose that their earlier chip records are restored by hand; bodies stay unchanged.
+
+A14. SetupFlowStateBuilder shares event filtering with runAnswers and reads the fallback through RunAnswers.resolvedEvent. Preview minutes use answers.slotGoal on every branch, as the planner does. Run strength blocks contain Secondary, Accessory, Isolation, Core and optional Balance slots; the applicable rest values match under the prior goal and slotGoal, so the rendered minutes stay the same on reading. No setup fixture or render expectation changes; CI verifies them.
+
+A15. SetupFlowRestoreTest's 22 timeout sites use one named waitFor helper with a 30-second bound and all threads' stacks on expiry. Labels identify restore offers, previews, finish errors, completion, rejected restores, reseeded drafts, restore errors, the settings gate and reconciliation. Assertions stay unchanged.
+
+A16. app/build.gradle.kts creates build/test-gc before each unit-test JVM starts and writes gc-%p.log, one file per fork. The failure artifact step in .github/workflows/ci.yml retains those logs with the XML reports. Heap sizing stays the same.
+
+A17. This revision records A1 through A18, the changed expectations, affected files and source-review limits. No §11.2 number moves. Backup v32, codecs, recipe/rule/goal bytes, storage schemas, watch wire, saved-state keys, Parcelable layouts, setup pilots, generator package and CSV stay unchanged. The only storage amendment is A18's two optional undo fields, which are outside backup.
+
+A18. A re-plan keeps a due rest. Automatic Finish reads Rotation.upNextAfter from the old program; accepting an Ask offer reads the current cursor. If that entry is REST, the new cursor is the new rotation's last REST, falling back to day A if there is none. Otherwise it is day A. UndoReplanDto adds default-null cursorBefore and cursorAfter after days; defaults remain omitted, so old-shaped records retain their encoded bytes and decode with null cursors. Inside the existing program-match gate, Undo restores cursorBefore only while the cursor still equals cursorAfter. A moved cursor, an old record or an inserted day held by an open run keeps its cursor. This supersedes revision 48 §1.6's “Undo does not move the cursor” for re-plans; ordinary Finish Undo still leaves the cursor alone. Files: TrackerRepository.kt, serialization/ProgressionUndoJson.kt and RunReplanFinishTest.kt. Re-plan program, recipe, kept-day merge and ordinary cursor writes are unchanged.
+
+### Existing expectation changes
+
+| Test or helper | Old → new |
+|---|---|
+| PlanCardioGoalScreenTest, switching a valid ride time to running invalidates it | Blank, Error absent, Save off → blank, Error present, “Enter a time between 1:06:40 and 24:00:00”, Save off; floor 40000 / 10 = 4000 s |
+| PlanCardioGoalScreenTest, distance changes clear valid and invalid time drafts at the new floor, 1500 m | Blank, Error absent, Save off → blank, Error present, “Enter a time between 2:30 and 24:00:00”, Save off; floor 1500 / 10 = 150 s |
+| Same distance-change test, return to 800 m | Blank, Error absent, Save off → blank, Error present, “Enter a time between 1:20 and 24:00:00”, Save off; floor 800 / 10 = 80 s |
+| PlanCardioGoalScreenTest, switching a marathon editor to a ride shows the ride's range and accepts one hour | Blank, Error absent, Save off → blank, Error present, “Enter a time between 0:01 and 24:00:00”, Save off; ride floor 1 s |
+| RunReplanFinishTest.assertBase | Cursor A → derived closing REST E; old ladder A/B/C/Rest D is due D, new BASE A/B/C/D/Rest E keeps a rest |
+| RunReplanFinishTest, undo of the wrapping Finish restores the ladder program and phase | Cursor A after Undo → D, the old due rest |
+| RunReplanFinishTest, a strength Finish can wrap and undo a run phase gate | Literal A → derived day A, value still A; old Both rotation is run A/lift B/run C/lift D/run E/Rest F/lift G, so finishing G is due A. Undo also asserts A |
+
+All changed expectation expressions have PR 8 comments. The new 5000 m A time regression derives floor 500 s and “Enter a time between 8:20 and 24:00:00”. No pinned undo-byte expectation existed to update. No other cursor assertion changes, including in PreviewViewModelTest.
+
+### Files and verification
+
+Production files: domain progression CardioRule, Progression, RunWalkLadder, SprintRules, CardioHistory and RunSession; planner RunPhase and RunSessions; seeding RunReplan renamed TrackReseed; model GoalTime. Data CardioJudge, TrackerRepository, new ResetDay and serialization/ProgressionUndoJson. App DayEditLogic, DayScreenBuilder, receipt/ReceiptCardioLines, PlanScreenBuilder, PlanViewModel, PlanGoalDraft, PlanCardioGoal, NumberField and SetupFlowStateBuilder. Build and CI: app/build.gradle.kts and .github/workflows/ci.yml. Documentation: this revision only.
+
+Tests: seeding RunReplanTest renamed TrackReseedTest; new progression RunSessionTest; TrackerRepositoryRunEditsTest and RunReplanFinishTest; PlanScreenBuilderTest, PlanScreenTest, PlanCardioGoalScreenTest, PlanViewModelTest, OldPlanMainsTest, ProgressionPreviewShotsTest, PreviewViewModelTest, SetupFlowRestoreTest and SetupFlowStateBuilderTest. Cursor regressions cover Automatic C → closing rest → Undo D, accepted Ask D → closing rest → Undo D, a native two-day program with no rest (accept while due B → A → Undo B), old-shaped records and a cursor moved after a re-plan. No stored rotation edit is needed for the two-day fixture.
+
+Static review covers the weekday guard, imports, named dates, cursor gates, unchanged protected files, renamed bodies and diff whitespace. The weekday guard passes on reading: every training index has a distinct non-null weekday for days 1–6, Sprint/Both + sprint, and both main selections. No network, Gradle, compilation, builds, tests or subagents were used. CI on domain, data, transfer, wear and app, the build and pilots remains pending. The sandbox's read-only Git index rejected git mv; the working-tree renames leave staging to the caller.

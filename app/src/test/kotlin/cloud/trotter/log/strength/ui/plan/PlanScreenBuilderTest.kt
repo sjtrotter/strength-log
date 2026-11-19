@@ -48,19 +48,19 @@ class PlanScreenBuilderTest {
         val plan = PlanEntity(1, "Running", PlanOrigin.AUTHORED.name, 0, 0, goalJson = PlanGoalJson.encode(goal))
         val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(3219)), CardioSetStatus.FINISHED, 984)
         val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()),
-            ExerciseCatalog.CODE_ONLY, WeightUnit.LB, listOf(CardioActivity.ROAD_RUN to listOf(result)))
+            ExerciseCatalog.CODE_ONLY, WeightUnit.LB, listOf(CardioActivity.ROAD_RUN to listOf(result)), todayEpochDay = 0L)
         assertEquals(PlanGoalUi(goal, 984, false), state.goal)
         assertEquals(PlanGoalUi(goal, null, false), PlanScreenBuilder.buildUiState(
-            plan, Program(emptyList()), ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
+            plan, Program(emptyList()), ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L).goal)
         assertNull(PlanScreenBuilder.buildUiState(plan.copy(goalJson = "junk"), Program(emptyList()),
-            ExerciseCatalog.CODE_ONLY, WeightUnit.LB).goal)
+            ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L).goal)
     }
 
     @Test fun `a sprint goal shows its own goal row`() {
         val plan = PlanEntity(1, "Sprint", PlanOrigin.AUTHORED.name, 0, 0,
             goalJson = PlanGoalJson.encode(PlanGoal.Sprint(100)))
         val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList<ProgramDay>()),
-            ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+            ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L)
         assertNull(state.goal)
         // PR 7e: the sprint row replaces the hidden sprint goal.
         assertEquals(PlanSprintGoalUi(PlanGoal.Sprint(100), null), state.sprintGoal)
@@ -161,7 +161,7 @@ class PlanScreenBuilderTest {
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(OldWizardPlans.DEFAULT))
         val state = PlanScreenBuilder.buildUiState(
-            plan, OldWizardPlans.DEFAULT.program, catalog, WeightUnit.LB,
+            plan, OldWizardPlans.DEFAULT.program, catalog, WeightUnit.LB, todayEpochDay = 0L,
         )
         assertEquals(listOf("Barbell Back Squat", "Barbell Bench Press", "Trap-Bar Deadlift", "Incline DB Press"),
             state.goals.map { it.name })
@@ -173,7 +173,7 @@ class PlanScreenBuilderTest {
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
         for (unit in WeightUnit.entries) {
-            val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, unit)
+            val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, unit, todayEpochDay = 0L)
             val squat = state.goals.single { it.exerciseId == "bb_back_squat" }
             assertEquals(200.0, requireNotNull(squat.goalLb), 0.0)
             assertEquals(if (unit == WeightUnit.LB) "200" else "90.72", squat.display)
@@ -185,7 +185,7 @@ class PlanScreenBuilderTest {
         val answers = SetupAnswers()
         val plan = PlanEntity(1, "Planned", PlanOrigin.GENERATED.name, 0, 0,
             recipeJson = SetupRecipeJson.encode(answers))
-        val state = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, catalog, WeightUnit.LB, todayEpochDay = 0L)
         assertTrue(state.goals.isNotEmpty())
     }
 
@@ -205,7 +205,7 @@ class PlanScreenBuilderTest {
         val program = answers.program
         val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
-        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB, todayEpochDay = 0L)
         val names = state.goals.map { it.name }
         val plannedNames = program.days.flatMap { day -> day.exercises.map { ExerciseLibrary.get(it.exerciseId).name } }
 
@@ -221,7 +221,7 @@ class PlanScreenBuilderTest {
             .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) })
         val plan = PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0)
 
-        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB, todayEpochDay = 0L)
 
         assertTrue(state.hasProgram)
         assertEquals(listOf("Easy", "Intervals", "Long"), state.days.map { it.title })
@@ -233,11 +233,11 @@ class PlanScreenBuilderTest {
     fun authoredAndEmptyGeneratedPlansHideGoals() {
         val plan = PlanEntity(1, "Authored", PlanOrigin.AUTHORED.name, 0, 0)
         val authored = PlanScreenBuilder.buildUiState(
-            plan, Program(listOf(day("A", "Day A"))), catalog, WeightUnit.LB,
+            plan, Program(listOf(day("A", "Day A"))), catalog, WeightUnit.LB, todayEpochDay = 0L,
         )
         assertTrue(authored.goals.isEmpty())
         val empty = PlanScreenBuilder.buildUiState(
-            plan.copy(origin = PlanOrigin.GENERATED.name), Program(emptyList()), catalog, WeightUnit.LB,
+            plan.copy(origin = PlanOrigin.GENERATED.name), Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L,
         )
         assertTrue(empty.goals.isEmpty())
     }
@@ -248,7 +248,7 @@ class PlanScreenBuilderTest {
         val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
 
-        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB, todayEpochDay = 0L)
 
         assertEquals(answers.mains, state.goals.map { it.exerciseId })
         assertEquals("80", state.goals.single { it.exerciseId == "goblet_squat" }.display)
@@ -263,7 +263,7 @@ class PlanScreenBuilderTest {
         ))))
         for (recipe in listOf(null, SetupRecipeJson.encode(SetupAnswers()))) {
             val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0, recipeJson = recipe)
-            val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB)
+            val state = PlanScreenBuilder.buildUiState(plan, program, catalog, WeightUnit.LB, todayEpochDay = 0L)
             assertEquals(listOf("db_bench"), state.goals.map { it.exerciseId })
         }
     }
@@ -273,14 +273,14 @@ class PlanScreenBuilderTest {
             val answers = SetupAnswers(branch = branch, run = RunAnswers(goal = RunGoal.HALF_MARATHON))
             val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0,
                 recipeJson = SetupRecipeJson.encode(answers, phase))
-            val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB)
+            val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L)
             assertEquals(phase, state.runPhase)
             assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.encode(SetupAnswers())),
-                Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+                Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L).runPhase)
             assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.withPhase(plan.recipeJson!!, null)),
-                Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+                Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L).runPhase)
             assertNull(PlanScreenBuilder.buildUiState(plan.copy(recipeJson = null, goalJson = PlanGoalJson.encode(
-                PlanGoal.Sprint(100, 2000))), Program(emptyList()), catalog, WeightUnit.LB).runPhase)
+                PlanGoal.Sprint(100, 2000))), Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L).runPhase)
         }
     }
 
@@ -314,11 +314,11 @@ class PlanScreenBuilderTest {
         val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0,
             recipeJson = SetupRecipeJson.encode(answers, RunPhase.BASE),
             goalJson = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 10_000, 3300)))
-        val goal = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB).goal!!
+        val goal = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L).goal!!
         assertEquals(3127, goal.predictedSeconds)
         assertEquals(RecentRace(5000, 1500), goal.predictedFrom)
         val ultra = PlanScreenBuilder.buildUiState(plan.copy(goalJson = PlanGoalJson.encode(
-            PlanGoal.Timed(CardioActivity.ROAD_RUN, 50_000, null))), Program(emptyList()), catalog, WeightUnit.LB).goal!!
+            PlanGoal.Timed(CardioActivity.ROAD_RUN, 50_000, null))), Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0L).goal!!
         assertNull(ultra.predictedSeconds)
         assertNull(ultra.predictedFrom)
     }

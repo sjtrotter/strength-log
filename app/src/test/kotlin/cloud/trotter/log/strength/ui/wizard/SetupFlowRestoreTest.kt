@@ -58,7 +58,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -79,7 +79,7 @@ import org.robolectric.annotation.Config
  *
  * Unlike [SetupFlowViewModelTest] this fixture runs on real dispatchers —
  * the import genuinely hops to [Dispatchers.IO], so virtual time can't drive
- * it — and every wait is a bounded [withTimeout] on the state the UI reads.
+ * it — and every wait is a bounded [waitFor] on the state the UI reads.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -205,11 +205,11 @@ class SetupFlowRestoreTest {
     }
 
     private suspend fun SetupFlowViewModel.awaitOffered() =
-        withTimeout(TIMEOUT_MS) { uiState.first { it.restore.offered } }
+        waitFor("restore offer") { uiState.first { it.restore.offered } }
 
     private suspend fun SetupFlowViewModel.startFromGoal() {
         repeat(SetupFlowStateBuilder.steps(uiState.first { it.initialized }.draft).size - 1) { onNext() }
-        withTimeout(TIMEOUT_MS) { uiState.first { it.plan is PlanPreviewUi.Ready } }
+        waitFor("plan preview") { uiState.first { it.plan is PlanPreviewUi.Ready } }
         onNext()
     }
 
@@ -220,7 +220,7 @@ class SetupFlowRestoreTest {
         // Fail completion after the plan has been published.
         failCompletion = true
         vm.startFromGoal()
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
+        waitFor("finish error") { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
         val created = handle.get<Long>("setup_created_plan_id")
         assertNotNull(created)
         assertEquals(created, db.planDao().allPlans().single().id)
@@ -229,7 +229,7 @@ class SetupFlowRestoreTest {
 
         repeat(SetupFlowStateBuilder.steps(SetupDraft()).size - 1) { vm.onBack() }
         vm.restoreFromBackup(uri)
-        val rejected = withTimeout(TIMEOUT_MS) {
+        val rejected = waitFor("rejected restore") {
             vm.uiState.first { !it.restore.inFlight && it.restore.error != null }
         }
         assertFalse(rejected.isComplete)
@@ -238,7 +238,7 @@ class SetupFlowRestoreTest {
         assertFalse(settings.wizardCompleteFlow.first())
 
         vm.startFromGoal()
-        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        val completed = waitFor("completion") { vm.uiState.first { it.isComplete } }
 
         val plan = db.planDao().allPlans().single()
         assertEquals(created, plan.id)
@@ -289,7 +289,7 @@ class SetupFlowRestoreTest {
         vm.restoreFromBackup(uri)
 
         // isComplete is what AppNavHost's SetupFlowRoute watches to call onFinished.
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        waitFor("completion") { vm.uiState.first { it.isComplete } }
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
         assertEquals(1, repo.plans.programFlow.first().days.size)
@@ -320,7 +320,7 @@ class SetupFlowRestoreTest {
 
         vm.restoreFromBackup(uri)
 
-        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        val state = waitFor("completion") { vm.uiState.first { it.isComplete } }
         assertNull(state.restore.error)
         assertTrue(settings.wizardCompleteFlow.first())
         val plans = db.planDao().allPlans()
@@ -344,7 +344,7 @@ class SetupFlowRestoreTest {
         vm.restoreFromBackup(uri)
 
         // Wait for the restored draft and progress to settle.
-        val state = withTimeout(TIMEOUT_MS) {
+        val state = waitFor("reseeded draft") {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(state.isComplete)
@@ -364,7 +364,7 @@ class SetupFlowRestoreTest {
 
         vm.restoreFromBackup(uri)
 
-        val state = withTimeout(TIMEOUT_MS) {
+        val state = waitFor("reseeded draft") {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(state.isComplete)
@@ -379,9 +379,9 @@ class SetupFlowRestoreTest {
         val exported = service.export()
         vm.setDays(6)
         vm.setUnit(WeightUnit.LB)
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.draft.unit == WeightUnit.LB } }
+        waitFor("reseeded draft") { vm.uiState.first { it.draft.unit == WeightUnit.LB } }
         vm.restoreFromBackup(pickable(exported))
-        val reseeded = withTimeout(TIMEOUT_MS) {
+        val reseeded = waitFor("reseeded draft") {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertEquals(SetupDraft(unit = WeightUnit.KG), reseeded.draft)
@@ -399,7 +399,7 @@ class SetupFlowRestoreTest {
         // Fail completion after the plan has been published.
         failCompletion = true
         vm.startFromGoal()
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
+        waitFor("finish error") { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
         val created = handle.get<Long>("setup_created_plan_id")
         assertNotNull(created)
         assertTrue(repo.plans.programFlow.first().days.isNotEmpty())
@@ -407,7 +407,7 @@ class SetupFlowRestoreTest {
 
         repeat(SetupFlowStateBuilder.steps(SetupDraft()).size - 1) { vm.onBack() }
         vm.restoreFromBackup(uri)
-        val restored = withTimeout(TIMEOUT_MS) {
+        val restored = waitFor("reseeded draft") {
             vm.uiState.first { !it.restore.inFlight && it.draft.unit == WeightUnit.KG }
         }
         assertFalse(restored.isComplete)
@@ -417,7 +417,7 @@ class SetupFlowRestoreTest {
         assertFalse(settings.wizardCompleteFlow.first())
 
         vm.startFromGoal()
-        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        val completed = waitFor("completion") { vm.uiState.first { it.isComplete } }
 
         val plan = db.planDao().allPlans().single()
         assertEquals(plan.id, handle.get<Long>("setup_created_plan_id"))
@@ -457,7 +457,7 @@ class SetupFlowRestoreTest {
 
         vm.restoreFromBackup(uri)
 
-        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.restore.error != null } }
+        val state = waitFor("restore error") { vm.uiState.first { it.restore.error != null } }
         assertNotNull(state.restore.error)
         assertFalse(state.restore.inFlight)
         assertFalse(state.isComplete)
@@ -475,7 +475,7 @@ class SetupFlowRestoreTest {
 
         // No startup reconcile has run: finish must settle the journal first.
         vm.startFromGoal()
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        waitFor("completion") { vm.uiState.first { it.isComplete } }
 
         val restoredPlan = db.planDao().allPlans().single()
         assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
@@ -497,7 +497,7 @@ class SetupFlowRestoreTest {
         vm.setDays(6)
 
         vm.startFromGoal()
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        waitFor("completion") { vm.uiState.first { it.isComplete } }
 
         // A later startup reconcile must not overwrite the six-day recipe with
         // the staged three-day answers after the wizard has generated its plan.
@@ -524,7 +524,7 @@ class SetupFlowRestoreTest {
         settingsStore.failOnUpdate = 2 // the recovery's settings write
 
         vm.startFromGoal()
-        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null } }
+        val state = waitFor("finish error") { vm.uiState.first { it.finishError != null } }
 
         assertEquals(SetupStep.PLAN, state.step)
         assertTrue(state.finishError is UiText.FileAccessFailure)
@@ -536,7 +536,7 @@ class SetupFlowRestoreTest {
         assertNotNull(db.restoreMarkerDao().nonce())
 
         vm.onNext()
-        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        val completed = waitFor("completion") { vm.uiState.first { it.isComplete } }
         assertNull(completed.finishError)
         assertNull(completed.restore.error)
         assertTrue(settings.wizardCompleteFlow.first())
@@ -565,7 +565,7 @@ class SetupFlowRestoreTest {
         settingsStore.gateOnUpdate = 2
         settingsStore.gate = open
         val reconcile = storeScope.async { service.reconcilePendingRestore() }
-        withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }
+        waitFor("settings gate") { settingsStore.gateReached.await() }
 
         // Finish the wizard while it is parked. Outside the lock this reads
         // wizardComplete=false and generates over the restored program.
@@ -574,8 +574,8 @@ class SetupFlowRestoreTest {
         assertFalse("finish must wait its turn, not read a flag mid-flip", vm.uiState.value.isComplete)
 
         open.complete(Unit)
-        assertTrue("the reconcile had a payload to replay", withTimeout(TIMEOUT_MS) { reconcile.await() })
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        assertTrue("the reconcile had a payload to replay", waitFor("reconcile") { reconcile.await() })
+        waitFor("completion") { vm.uiState.first { it.isComplete } }
 
         assertEquals(
             "the restored program must survive the wizard finishing over it",
@@ -586,7 +586,15 @@ class SetupFlowRestoreTest {
         assertEquals(190.0, settings.lifterProfileFlow.first().bodyweightLb!!, 0.0)
     }
 
+    /** Waits up to [TIMEOUT_MS] for [what]; on expiry fails with every thread's stack, so a CI timeout shows where it
+     *  stuck. */
+    private suspend fun <T : Any> waitFor(what: String, block: suspend () -> T): T =
+        withTimeoutOrNull(TIMEOUT_MS) { block() } ?: throw AssertionError("No $what within $TIMEOUT_MS ms\n" +
+            Thread.getAllStackTraces().entries.joinToString("\n\n") { (thread, stack) ->
+                "${thread.name} (${thread.state})\n" + stack.joinToString("\n") { "    at $it" }
+            })
+
     private companion object {
-        const val TIMEOUT_MS = 10_000L
+        const val TIMEOUT_MS = 30_000L
     }
 }

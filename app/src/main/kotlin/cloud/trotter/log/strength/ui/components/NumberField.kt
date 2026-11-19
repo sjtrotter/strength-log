@@ -35,6 +35,8 @@ internal fun resolveNumberCommit(
 /**
  * M3 fields do not define validation or persistence on focus loss. This shares
  * that policy across forms, using the same validation for Done and focus loss.
+ * @param parse A non-null [parse] makes this a time field: typed text goes through it,
+ * and its range error reads as times (`form_time_range`).
  */
 @Composable
 fun NumberField(

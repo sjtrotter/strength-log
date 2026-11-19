@@ -164,7 +164,7 @@ data class SprintContext(
                 val rule = requireNotNull(day.cardioRule)
                 day.id to SprintRules.workMetres(sprintBlock(requireNotNull(rule.session), rule.steps))
             }
-            val window = todayEpochDay - 6..todayEpochDay
+            val window = CardioHistory.weekEnding(todayEpochDay)
             val recent = maximalMetresByEpochDay?.filterKeys { it in window }?.values?.sum() ?: 0
             val planned = normal.values.sum()
             val largest = normal.values.maxOrNull() ?: 0

@@ -442,6 +442,21 @@ class SetupFlowStateBuilderTest {
         }
     }
 
+    @Test fun `every sprint training day gets its own weekday`() {
+        for (days in 1..6) for (draft in listOf(sprintDraft, bothSprint)) {
+            for (mains in listOf(null, listOf("bb_back_squat"))) {
+                val answers = builder.answers(draft.copy(days = days, mains = mains))
+                val rotation = Planner.plan(answers).program.rotationDays
+                val weekdays = builder.sprintWeekdays(days)
+                val training = rotation.mapIndexedNotNull { index, day ->
+                    if (day.kind == ProgramDayKind.REST) null
+                    else assertNotNull(weekdays.getOrNull(index), "$days days ${draft.branch} $mains ${day.id}")
+                }
+                assertEquals(training.size, training.distinct().size)
+            }
+        }
+    }
+
     @Test fun `the high day line follows the slots`() {
         val full = assertNotNull(preview(builder.answers(sprintDraft)).sprint)
         assertEquals(R.string.setup_flow_high_day_full, sprintHighDayLabel(full.jumps, full.nordic))

@@ -71,6 +71,7 @@ android {
     sourceSets.getByName("test").kotlin.srcDir("../data/src/testFixtures/kotlin")
 
     testOptions {
+        val gcLogDir = layout.buildDirectory.dir("test-gc").get().asFile
         val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
         val recordUiAudit = providers.gradleProperty("uiAudit").orNull == "true"
         val playtestScript = providers.gradleProperty("playtest").orNull
@@ -80,6 +81,8 @@ android {
         val storeShotsDir = layout.buildDirectory.dir("outputs/store").get().asFile
         val listingImagesDir = layout.buildDirectory.dir("outputs/listing").get().asFile
         unitTests.all {
+            it.doFirst { gcLogDir.mkdirs() }
+            it.jvmArgs("-Xlog:gc:file=${gcLogDir.absolutePath}/gc-%p.log")
             it.useJUnitPlatform()
             it.systemProperty("storeShots.dir", storeShotsDir.absolutePath)
             it.systemProperty("previewShots.dir", previewShotsDir.absolutePath)
@@ -91,8 +94,7 @@ android {
             it.systemProperty("playtest.dir", playtestDir.absolutePath)
             it.systemProperty("playtest.captureFrom", providers.gradleProperty("playtestCaptureFrom").orNull ?: "0")
             it.systemProperty("roborazzi.test.record", (recordStoreShots || recordUiAudit || playtestScript != null).toString())
-            // Each Robolectric SDK sandbox adds memory. Repeated stalls right after the suite's only
-            // SDK 30 case (TodayWidgetViewsTest, near the end) at 2 GB suggest heap pressure (#571).
+            // A stall uploads this GC log with the test reports (#607).
             it.maxHeapSize = "3g"
             // An exhausted heap fails the task at once with its error instead of stalling into the job timeout.
             it.jvmArgs("-XX:+ExitOnOutOfMemoryError")

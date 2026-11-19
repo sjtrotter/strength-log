@@ -31,7 +31,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class UndoReplanOfferDto(val phase: String?)
 
-@Serializable data class UndoReplanDto(val recipeBefore: String, val recipeAfter: String, val days: List<UndoReplanDayDto>)
+@Serializable data class UndoReplanDto(val recipeBefore: String, val recipeAfter: String, val days: List<UndoReplanDayDto>,
+                                      val cursorBefore: String? = null, val cursorAfter: String? = null)
 @Serializable data class UndoReplanDayDto(val dayId: String, val before: UndoDayColumnsDto?, val after: UndoDayColumnsDto)
 @Serializable data class UndoDayColumnsDto(val kind: String, val title: String, val position: Int,
                                          val block: String?, val rule: String?, val working: String?)

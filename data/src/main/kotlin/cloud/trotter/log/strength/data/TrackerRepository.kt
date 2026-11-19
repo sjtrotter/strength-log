@@ -2,9 +2,8 @@ package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
-import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
 import cloud.trotter.log.strength.data.serialization.setupAnswers
-import cloud.trotter.log.strength.domain.planner.RunReplan as PhaseReplan
+import cloud.trotter.log.strength.domain.planner.RunReplan
 import cloud.trotter.log.strength.domain.progression.CardioHistory
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -17,7 +16,6 @@ import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
@@ -109,7 +107,7 @@ import cloud.trotter.log.strength.domain.progression.Reason
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
 import cloud.trotter.log.strength.domain.progression.WorkingRows
-import cloud.trotter.log.strength.domain.seeding.RunReplan
+import cloud.trotter.log.strength.domain.seeding.TrackReseed
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.Clock
@@ -367,7 +365,7 @@ class TrackerRepository(
                 else catalog.find(track.exerciseId)?.tracking == TrackingType.TIMED
             if (!track.canReplan(trackIsTimed)) continue
             runDao.updateTrack(track.copy(
-                setsJson = SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)),
+                setsJson = SetJson.encodeSets(TrackReseed.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)),
                 updatedAt = clock.millis(),
             ))
         }
@@ -375,29 +373,29 @@ class TrackerRepository(
         if (!main.canReplan(isTimed)) return
         val current = SetJson.decodeSets(main.setsJson)
         val partner = tracks.firstOrNull { !it.retired && it.slot == Slot.SS }
-        val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
+        val mainRows = if (partner == null) TrackReseed.represcribe(current, seeded) else if (
             partner.exerciseId != row.exerciseIdFor(Slot.SS)
         ) {
             val partnerRows = SetJson.decodeSets(partner.setsJson)
             val partnerSeed = if (partnerRows.isEmpty()) {
                 plans.runSwapRows(row, Slot.SS, partner.exerciseId, maxOf(current.size, seeded.size), unit, catalog) ?: return
             } else emptyList()
-            val alignedSeed = RunReplan.alignPaired(
+            val alignedSeed = TrackReseed.alignPaired(
                 seeded, partnerRows, seeded, partnerSeed,
             ).first
-            val rows = RunReplan.represcribe(current, alignedSeed)
+            val rows = TrackReseed.represcribe(current, alignedSeed)
             if (rows.size > partnerRows.size) {
                 runDao.updateTrack(partner.copy(
-                    setsJson = SetJson.encodeSets(RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second),
+                    setsJson = SetJson.encodeSets(TrackReseed.alignPaired(rows, partnerRows, rows, partnerSeed).second),
                     updatedAt = clock.millis(),
                 ))
             }
             rows
         } else {
             val partnerEntry = catalog.find(partner.exerciseId)
-            if (partnerEntry == null) RunReplan.represcribe(current, seeded) else {
+            if (partnerEntry == null) TrackReseed.represcribe(current, seeded) else {
                 val partnerSeed = requireNotNull(plans.seed(row.planId, slot, Slot.SS, seeded.size, unit, catalog)).rows
-                val paired = RunReplan.represcribePaired(
+                val paired = TrackReseed.represcribePaired(
                     current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
                 )
                 runDao.updateTrack(partner.copy(
@@ -680,12 +678,7 @@ class TrackerRepository(
         plans.ensurePlanSettingsMigrated()
         val planId = targetPlanId ?: plans.selectedPlanId() ?: return
         val plan = planDao.plan(planId) ?: return
-        if (plan.origin != PlanOrigin.GENERATED.name) return
-        if (!plan.hasSetupRecipe) return
-        val unit = settings.unitFlow.first()
-        val answers = plan.setupAnswers(unit)?.takeIf { it.branch == PlanBranch.LIFT } ?: return
-        val day = runCatching { Planner.day(answers, dayId) }.getOrNull()
-            ?.day?.takeIf { it.kind != ProgramDayKind.REST } ?: return
+        val day = plan.resetDay(dayId, settings.unitFlow.first()) ?: return
         db.withTransaction {
             val existing = programDao.day(planId, dayId) ?: return@withTransaction
             for (slot in programDao.exercisesForDay(planId, dayId)) {
@@ -1568,7 +1561,7 @@ class TrackerRepository(
         val secondSeed = seed(second, secondRows)
         if (count > 0 && ((firstRows.isEmpty() && firstSeed.isEmpty()) ||
                 (secondRows.isEmpty() && secondSeed.isEmpty()))) return null
-        return RunReplan.alignPaired(firstRows, secondRows, firstSeed, secondSeed)
+        return TrackReseed.alignPaired(firstRows, secondRows, firstSeed, secondSeed)
     }
 
     /** Atomically edits the addressed run or draft, opening today's draft on the day's next run
@@ -1843,7 +1836,7 @@ class TrackerRepository(
         setsJson = (if (track.openingJson != null) SetJson.decodeSets(track.plannedJson)
             else base)
             ?.takeIf { track.canReplan((it.firstOrNull()?.seconds ?: 0) > 0) }?.let {
-                SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), it))
+                SetJson.encodeSets(TrackReseed.represcribe(SetJson.decodeSets(track.setsJson), it))
             } ?: track.setsJson,
         updatedAt = clock.millis(),
     )
@@ -2362,12 +2355,15 @@ class TrackerRepository(
         if (counters.afterCycles <= counters.beforeCycles) return counters
         val current = planDao.plan(plan.id) ?: return counters
         val (next, recipe) = nextPhase(current, finishedAt, unit) ?: return counters
-        return if (current.autoApply) counters.copy(replan = writeReplan(current, next, recipe))
-            else counters.copy(replanOffer = UndoReplanOfferDto(next.phase?.name))
+        return if (current.autoApply) {
+            val old = assemble(programDao.daysForPlan(current.id), programDao.exercisesForPlan(current.id))
+            val due = Rotation.upNextAfter(old, current.suggestedDayId, dayId)
+            counters.copy(replan = writeReplan(current, next, recipe, due))
+        } else counters.copy(replanOffer = UndoReplanOfferDto(next.phase?.name))
     }
 
     /** Called inside Finish's transaction, with settings frozen by its caller. */
-    private suspend fun nextPhase(plan: PlanEntity, finishedAt: Long, unit: WeightUnit): Pair<PhaseReplan.Replanned, String>? {
+    private suspend fun nextPhase(plan: PlanEntity, finishedAt: Long, unit: WeightUnit): Pair<RunReplan.Replanned, String>? {
         val planId = plan.id
         val answers = plan.setupAnswers(unit)?.takeIf {
             it.branch == PlanBranch.RUN || (it.branch == PlanBranch.BOTH && !it.both.sprint)
@@ -2382,14 +2378,24 @@ class TrackerRepository(
         val known = CardioHistory.known(family, log, finishedAt)
         val week = CardioHistory.lastWeek(log, finishedAt) ?: return null
         val next = runCatching {
-            PhaseReplan.next(program, answers, phase, known, localEpochDay(finishedAt), week, history.secondsPerMetre)
+            RunReplan.next(program, answers, phase, known, localEpochDay(finishedAt), week, history.secondsPerMetre)
         }.getOrNull() ?: return null
         return next to recipe
     }
 
-    private suspend fun writeReplan(plan: PlanEntity, next: PhaseReplan.Replanned, recipe: String): UndoReplanDto {
+    /** Where a re-plan leaves the cursor: a runner due a rest keeps one, the new rotation's closing REST entry;
+     *  everyone else starts at day A (lead, 2026-11-18). */
+    private fun replanCursor(old: Program, due: String?, new: Program): String? {
+        val dayA = Rotation.trainingDayFrom(new, new.rotationDays.first().id)
+        val dueRest = old.days.firstOrNull { it.id == due }?.kind == ProgramDayKind.REST
+        return if (dueRest) new.rotationDays.lastOrNull { it.kind == ProgramDayKind.REST }?.id ?: dayA else dayA
+    }
+
+    private suspend fun writeReplan(plan: PlanEntity, next: RunReplan.Replanned, recipe: String, due: String?): UndoReplanDto {
         val planId = plan.id
         val days = programDao.daysForPlan(planId)
+        val old = assemble(days, programDao.exercisesForPlan(planId))
+        val cursor = replanCursor(old, due, next.program)
         val recipeAfter = SetupRecipeJson.withPhase(recipe, next.phase)
         val records = next.program.days.mapIndexed { index, day ->
             val before = days.firstOrNull { it.dayId == day.id }
@@ -2403,9 +2409,8 @@ class TrackerRepository(
             programDao.upsertDay(after)
             UndoReplanDayDto(day.id, before?.replanColumns(), after.replanColumns())
         }
-        val first = Rotation.trainingDayFrom(next.program, next.program.rotationDays.first().id)
-        planDao.updatePlan(plan.copy(recipeJson = recipeAfter, suggestedDayId = first))
-        return UndoReplanDto(recipe, recipeAfter, records)
+        planDao.updatePlan(plan.copy(recipeJson = recipeAfter, suggestedDayId = cursor))
+        return UndoReplanDto(recipe, recipeAfter, records, cursorBefore = due, cursorAfter = cursor)
     }
 
     /** Accepts the Finish's phase offer from its log date and includes the merge in that Finish's Undo. */
@@ -2424,7 +2429,7 @@ class TrackerRepository(
             val plan = planDao.plan(planId) ?: return@withTransaction ReplanAccept.Gone
             val finishedAt = if (fromStrength) requireNotNull(strength).completedAt else requireNotNull(cardio).completedAt
             val (next, recipe) = nextPhase(plan, finishedAt, unit) ?: return@withTransaction ReplanAccept.Waiting
-            val updated = counter.copy(replan = writeReplan(plan, next, recipe), replanOffer = null)
+            val updated = counter.copy(replan = writeReplan(plan, next, recipe, due = plan.suggestedDayId), replanOffer = null)
             if (fromStrength) {
                 sessionDao.updateProgression(requireNotNull(strength).id,
                     ProgressionUndoJson.encode(requireNotNull(strengthUndo).copy(plan = updated)), strength.roughDay)
@@ -2465,7 +2470,9 @@ class TrackerRepository(
             else programDao.upsertDay(requireNotNull(programDao.day(planId, day.dayId)).withColumns(day.before))
         }
         val plan = requireNotNull(planDao.plan(planId))
-        planDao.updatePlan(plan.copy(recipeJson = record.recipeBefore))
+        val cursor = if (record.cursorAfter != null && plan.suggestedDayId == record.cursorAfter) record.cursorBefore
+            else plan.suggestedDayId
+        planDao.updatePlan(plan.copy(recipeJson = record.recipeBefore, suggestedDayId = cursor))
     }
 
     /** Counts a finished training day down and records a wrap (spec W2b-2a decisions 5 and 6); null when nothing
@@ -2515,7 +2522,8 @@ class TrackerRepository(
     private val CardioDayUndoDto.ladder: Boolean
         get() = CardioRuleJson.decode(ruleBefore)?.ladderLevel != null || CardioRuleJson.decode(ruleAfter)?.ladderLevel != null
 
-    /** A ladder Finish restores its shared credit, dates and level together, or none of them after a later edit. */
+    /** A ladder Finish restores its shared credit, dates and level together, or none of them after a later edit to a
+     *  ladder day, including leaving Keep, which rewrites that day's block. */
     private suspend fun ladderRecordsMatch(planId: Long, dayId: String, undo: CardioUndoDto): Boolean {
         val days = undo.days.filter { it.ladder }
         val rule = undo.rule

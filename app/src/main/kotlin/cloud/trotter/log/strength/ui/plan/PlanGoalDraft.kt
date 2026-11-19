@@ -36,6 +36,10 @@ data class PlanGoalDraft(
         } else this
     }
 
+    /** The draft to store after an edit from [before]: a distance or activity change resets a time below the new floor. */
+    internal fun edited(before: PlanGoalDraft?): PlanGoalDraft =
+        if (before != null && (before.activity != activity || before.metres != metres)) invalidateTimeBelowFloor() else this
+
     companion object {
         fun from(goal: PlanGoal?): PlanGoalDraft = when (goal) {
             is PlanGoal.Timed -> PlanGoalDraft(activity = goal.activity.name, metres = goal.metres,

@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioRuleJson
 import cloud.trotter.log.strength.data.serialization.CardioUndoJson
 import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
+import cloud.trotter.log.strength.data.serialization.UndoReplanDto
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -22,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.PlanBranch
@@ -42,6 +44,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
@@ -142,7 +145,102 @@ class RunReplanFinishTest {
         assertEquals(CardioRule(null, RunSession.THRESHOLD, alternate = RunSession.VO2MAX), rule("B"))
         assertEquals(CardioRule(null, RunSession.LONG, longSeconds = 5400), rule("D"))
         assertEquals(ProgramDayKind.REST.name, day("E").kind)
-        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        // PR 8: a re-plan keeps a due rest (lead, 2026-11-18)
+        assertEquals(closingRest(), db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    private suspend fun closingRest(): String {
+        val rest = repo.plans.programFor(plan).first().rotationDays.last { it.kind == ProgramDayKind.REST }
+        assertEquals(ProgramDayKind.REST, rest.kind)
+        return rest.id
+    }
+
+    @Test fun `an Automatic re-plan at C lands on the new rest day`() = runTest {
+        prepare()
+        val old = repo.plans.programFor(plan).first()
+        assertEquals(listOf("A", "B", "C", "D"), old.rotationDays.map { it.id })
+        assertEquals(ProgramDayKind.REST, old.rotationDays.last().kind)
+        ladder()
+        log("A", 0)
+        log("B", 1)
+        val due = Rotation.upNextAfter(old, db.planDao().plan(plan)?.suggestedDayId, "C")
+        assertEquals("D", due)
+        val session = log("C", 2)
+        assertEquals(RunPhase.BASE, phase())
+        val rest = closingRest()
+        assertEquals(rest, db.planDao().plan(plan)?.suggestedDayId)
+        val record = assertNotNull(undo(session).plan?.replan)
+        assertEquals(due, record.cursorBefore)
+        assertEquals(rest, record.cursorAfter)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals("D", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    @Test fun `an accepted Ask offer with the cursor on D stays on a rest day`() = runTest {
+        prepare()
+        ladder()
+        repo.plans.setAutoApply(plan, false)
+        assertTrue(repo.setRunOfferApplied(log("A", 0), true))
+        log("B", 1)
+        val session = log("C", 2)
+        assertEquals("D", db.planDao().plan(plan)?.suggestedDayId)
+        assertNotNull(undo(session).plan?.replanOffer)
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(null, session))
+        assertEquals(RunPhase.BASE, phase())
+        assertEquals(closingRest(), db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals("D", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    @Test fun `a re-plan with no closing rest lands on A`() = runTest {
+        prepare(run(days = 2))
+        ladder()
+        repo.plans.setAutoApply(plan, false)
+        assertTrue(repo.setRunOfferApplied(log("A", 0), true))
+        val session = log("B", 1)
+        assertNotNull(undo(session).plan?.replanOffer)
+        // The two-day layout has no rest. Select B before accepting to distinguish the due entry from day A.
+        val before = assertNotNull(db.planDao().plan(plan))
+        db.planDao().updatePlan(before.copy(suggestedDayId = "B"))
+        assertEquals(ReplanAccept.Moved, repo.acceptReplanOffer(null, session))
+        val program = repo.plans.programFor(plan).first()
+        assertTrue(program.rotationDays.none { it.kind == ProgramDayKind.REST })
+        val dayA = Rotation.trainingDayFrom(program, program.rotationDays.first().id)
+        assertEquals("A", dayA)
+        assertEquals(dayA, db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    @Test fun `an older re-plan record leaves the cursor alone on Undo`() = runTest {
+        val session = wrap()
+        val undo = undo(session)
+        val counters = assertNotNull(undo.plan)
+        val record = assertNotNull(counters.replan)
+        val legacy = UndoReplanDto(record.recipeBefore, record.recipeAfter, record.days)
+        val encoded = CardioUndoJson.encode(undo.copy(plan = counters.copy(replan = legacy)))
+        assertFalse(encoded.contains("cursorBefore"))
+        assertFalse(encoded.contains("cursorAfter"))
+        val decoded = assertNotNull(CardioUndoJson.decode(encoded)?.plan?.replan)
+        assertNull(decoded.cursorBefore)
+        assertNull(decoded.cursorAfter)
+        val stored = assertNotNull(db.cardioSessionDao().byId(session))
+        db.cardioSessionDao().update(stored.copy(progressionUndoJson = encoded))
+        val before = assertNotNull(db.planDao().plan(plan))
+        db.planDao().updatePlan(before.copy(suggestedDayId = "B"))
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals(RunPhase.LADDER, phase())
+        assertNull(db.programDao().day(plan, "E"))
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+    }
+
+    @Test fun `Undo preserves a cursor moved after the re-plan`() = runTest {
+        val session = wrap()
+        val after = assertNotNull(db.planDao().plan(plan))
+        db.planDao().updatePlan(after.copy(suggestedDayId = "B"))
+        assertEquals(UndoResult.Undone, repo.undoFinish(null, session))
+        assertEquals(RunPhase.LADDER, phase())
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
     }
 
     @Test fun `the wrap after the ladder ends re-plans to base in the same Finish`() = runTest {
@@ -180,7 +278,8 @@ class RunReplanFinishTest {
         assertEquals(oldRecipe, recipe())
         assertEquals(RunPhase.LADDER, phase())
         assertEquals(cycles, db.planDao().plan(plan)!!.cyclesCompleted)
-        assertEquals("A", db.planDao().plan(plan)!!.suggestedDayId)
+        // PR 8: a re-plan keeps a due rest (lead, 2026-11-18)
+        assertEquals("D", db.planDao().plan(plan)!!.suggestedDayId)
     }
 
     @Test fun `undo of a wrap that left the ladder restores the ladder on every day`() = runTest {
@@ -304,6 +403,10 @@ class RunReplanFinishTest {
         prepare(run(days = 6).copy(branch = PlanBranch.BOTH, both = BothAnswers(true, BothAnswers.Together.SEPARATE_DAYS)))
         ladder()
         val days = db.programDao().daysForPlan(plan)
+        val old = repo.plans.programFor(plan).first()
+        val closing = old.rotationDays.last { it.kind != ProgramDayKind.REST }
+        val due = Rotation.upNextAfter(old, closing.id, closing.id)
+        assertEquals("A", due)
         var last = 0L
         for ((index, day) in days.filter { it.kind != ProgramDayKind.REST.name }.withIndex()) {
             if (day.kind == ProgramDayKind.CARDIO.name) log(day.dayId, index)
@@ -314,12 +417,16 @@ class RunReplanFinishTest {
             }
         }
         assertEquals(RunPhase.BASE, phase())
-        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        val next = repo.plans.programFor(plan).first()
+        val dayA = Rotation.trainingDayFrom(next, next.rotationDays.first().id)
+        // PR 8: a re-plan keeps a due rest (lead, 2026-11-18); Both ends at G after rest F and is due A
+        assertEquals(dayA, db.planDao().plan(plan)?.suggestedDayId)
         val record = assertNotNull(ProgressionUndoJson.decode(db.sessionDao().sessionById(last)?.progressionUndoJson))
         assertNotNull(record.plan?.replan)
         assertTrue(repo.finishUndoState(last, null).restorable)
         assertEquals(UndoResult.Undone, repo.undoFinish(last, null))
         assertEquals(RunPhase.LADDER, phase())
+        assertEquals(due, db.planDao().plan(plan)?.suggestedDayId)
         assertFalse(db.programDao().daysForPlan(plan).any { it.dayId !in days.map { old -> old.dayId } })
     }
     @Test fun `an entry ladder plan drops its phase when it leaves the ladder`() = runTest {

@@ -10,6 +10,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.progression.Taper
+import kotlinx.coroutines.flow.MutableStateFlow
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.SprintAttempt
 import cloud.trotter.log.strength.domain.model.SprintTime
@@ -290,6 +296,43 @@ class PlanViewModelTest {
         db.cardioSessionDao().update(session.copy(id = id, activity = "TRACK_RUN"))
         advanceUntilIdle()
         assertEquals(PlanGoalUi(goal, null, false), vm.uiState.value.goal)
+    }
+
+    @Test fun `the taper line follows the day as it turns`() = runTest(dispatcher) {
+        val eventDay = LocalDate.of(2026, 12, 1)
+        val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, 1500, eventDay.toEpochDay())
+        val outside = (1L..30L).first { Taper.factor(goal, eventDay.minusDays(it).toEpochDay()) == null }
+        val dayOne = eventDay.minusDays(outside)
+        val dayTwo = dayOne.plusDays(1)
+        assertNull(Taper.factor(goal, dayOne.toEpochDay()))
+        assertEquals(0.5, Taper.factor(goal, dayTwo.toEpochDay()))
+        val today = MutableStateFlow(dayOne)
+        val viewed = repo.plans.createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K)))
+        repo.plans.setGoal(viewed, goal)
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = PlanViewModel(repo, handle, context, settings = settings, plans = repo.plans,
+            catalog = repo.catalog, today = today)
+        viewModels += vm
+        vm.viewModelScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.loading)
+        assertEquals(false, vm.uiState.value.taper)
+        today.value = dayTwo
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.taper)
+    }
+
+    @Test fun `a distance change resets a time below the new floor once`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Run")
+        val short = PlanGoalDraft(metres = 800, underSeconds = 101)
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString(), "plan_goal_draft" to short))
+        val vm = viewModel(handle)
+        vm.changeGoalDraft(short.copy(metres = 1500))
+        val cleared = handle.get<PlanGoalDraft>("plan_goal_draft")!!
+        assertEquals(INVALID_TIME, cleared.underSeconds)
+        vm.changeGoalDraft(cleared)
+        assertEquals(cleared, handle.get<PlanGoalDraft>("plan_goal_draft"))
     }
 
     private val dispatcher = StandardTestDispatcher()

@@ -214,7 +214,7 @@ class PlanScreenTest {
         val catalog = ExerciseCatalog.CODE_ONLY
         val plan = PlanEntity(1, "Dumbbells", PlanOrigin.GENERATED.name, 0, 0,
             settingsJson = oldSettings(answers))
-        val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, answers.program, catalog, WeightUnit.LB, todayEpochDay = 0L)
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
 
         val list = rule.onNode(hasScrollAction())
@@ -448,7 +448,7 @@ class PlanScreenTest {
         val state = PlanScreenBuilder.buildUiState(
             PlanEntity(1, "Running", PlanOrigin.GENERATED.name, 0, 0),
             Program(OldWizardPlans.CARDIO_FIRST.program.days.filter { it.exercises.isEmpty() }
-            .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) }), ExerciseCatalog.CODE_ONLY, WeightUnit.LB,
+            .mapIndexed { index, day -> day.copy(id = ('A' + index).toString()) }), ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L,
         )
         rule.setContent { AppTheme { PlanScreen(state, actions()) } }
         rule.onNodeWithText("Running").assertExists()

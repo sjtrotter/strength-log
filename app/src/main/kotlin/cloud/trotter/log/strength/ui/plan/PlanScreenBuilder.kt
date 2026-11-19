@@ -41,7 +41,7 @@ object PlanScreenBuilder {
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
-        todayEpochDay: Long = 0,
+        todayEpochDay: Long,
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }

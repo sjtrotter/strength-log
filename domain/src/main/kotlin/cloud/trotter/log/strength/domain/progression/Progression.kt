@@ -268,7 +268,7 @@ object Progression {
     }
 
     /** After Finish: next time's block and rule. A ladder day earns a credit on its first finished
-     *  Easy session and moves up one level on the second (two per level); Good, no word or unfinished repeats and keeps the
+     *  Easy session and moves up one level on the second ([RunWalkLadder.EASY_PER_LEVEL] per level); Good, no word or unfinished repeats and keeps the
      *  credit; Hard or Pain drops one and clears it. With [CardioContext.ladder], an Easy finish counts only while fewer
      *  than three counted finishes fall in the seven local days ending today and it is not dated before the newest stored
      *  ladder date; a level-up or LadderDone waits seven days after the last level-up while the runner is busy (design
@@ -305,9 +305,10 @@ object Progression {
                 !finished || effort != CardioEffort.EASY -> repeat()
                 l != null && l.todayEpochDay < maxOf(rule.ladderCounted.lastOrNull() ?: Long.MIN_VALUE,
                     rule.ladderRaised ?: Long.MIN_VALUE) -> repeat().copy(hold = LadderHold.BACKDATED)
-                l != null && rule.ladderCounted.count { it in l.todayEpochDay - 6..l.todayEpochDay } >=
+                l != null && rule.ladderCounted.count { it in CardioHistory.weekEnding(l.todayEpochDay) } >=
                     RunWalkLadder.COUNTED_PER_WEEK -> repeat().copy(hold = LadderHold.WEEK_CAP)
-                rule.credits == 0 -> CardioOutcome(block, rule.copy(credits = 1, ladderCounted = counted()), CardioChange.Repeat)
+                rule.credits + 1 < RunWalkLadder.EASY_PER_LEVEL -> CardioOutcome(block,
+                    rule.copy(credits = rule.credits + 1, ladderCounted = counted()), CardioChange.Repeat)
                 l != null && rule.ladderRaised != null && l.todayEpochDay - rule.ladderRaised < RunWalkLadder.LEVEL_UP_DAYS &&
                     l.busy -> repeat().copy(hold = LadderHold.BUSY)
                 level == RunWalkLadder.TOP -> CardioOutcome(block, CardioRule(null), CardioChange.LadderDone)

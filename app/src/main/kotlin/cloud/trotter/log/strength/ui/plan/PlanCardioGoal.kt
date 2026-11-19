@@ -224,14 +224,14 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
             CardioActivity.entries.forEach { option ->
                 DropdownMenuItem(text = { Text(cardioActivityName(option)) }, onClick = {
                     focusManager.clearFocus()
-                    onChange(draft.copy(activity = option.name).invalidateTimeBelowFloor())
+                    onChange(draft.copy(activity = option.name))
                     expanded = false
                 })
             }
         }
     }
     val unit = distanceUnitFor(activity)
-    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0).invalidateTimeBelowFloor()) }
+    val onDistance: (Double?) -> Unit = { onChange(draft.copy(metres = it?.let(unit::toMetres) ?: 0)) }
     NumberField(
         value = draft.metres.takeIf { it > 0 }?.let(unit::fromMetres),
         onValueChange = onDistance, onDraftChange = onDistance,
@@ -265,7 +265,7 @@ private fun TimedGoalFields(draft: PlanGoalDraft, onChange: (PlanGoalDraft) -> U
                 label = stringResource(R.string.plan_goal_target_time),
                 minValue = floor.toDouble(), maxValue = 86_400.0,
                 format = { ClockText.duration(it.toInt()) }, parse = { ClockText.parse(it)?.toDouble() },
-                keyboardType = KeyboardType.Ascii,
+                keyboardType = KeyboardType.Ascii, error = draft.underSeconds == INVALID_TIME,
             )
         }
     }

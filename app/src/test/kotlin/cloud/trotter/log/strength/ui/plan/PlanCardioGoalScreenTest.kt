@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.plan
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
 import androidx.compose.runtime.CompositionLocalProvider
@@ -153,7 +157,7 @@ class PlanCardioGoalScreenTest {
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(
                 onOpenCardioGoal = { state.value = state.value.copy(goalDraft = PlanGoalDraft()) },
-                onCardioGoalDraft = { drafts += it; state.value = state.value.copy(goalDraft = it) },
+                onCardioGoalDraft = { drafts += it; state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
                 onSaveGoal = { saved = state.value.goalDraft; state.value = state.value.copy(goalDraft = null) },
                 onDismissGoal = { state.value = state.value.copy(goalDraft = null) },
             ))
@@ -173,7 +177,7 @@ class PlanCardioGoalScreenTest {
     @Test fun `invalid duration disables saving and shuttle fields replace distance fields`() {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft()))
         rule.setContent { AppTheme {
-            PlanScreen(state.value, actions().copy(onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) }))
+            PlanScreen(state.value, actions().copy(onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) }))
         } }
         rule.onNodeWithText("Target time").performTextReplacement("0:00")
         rule.onNodeWithText("Save").assertIsNotEnabled()
@@ -188,7 +192,7 @@ class PlanCardioGoalScreenTest {
     @Test fun `Just finish hides the time and A time needs one`() {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 21_100)))
         rule.setContent { AppTheme {
-            PlanScreen(state.value, actions().copy(onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) }))
+            PlanScreen(state.value, actions().copy(onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) }))
         } }
         rule.onNodeWithText("Just finish").performClick()
         rule.onNodeWithText("Target time").assertDoesNotExist()
@@ -208,7 +212,7 @@ class PlanCardioGoalScreenTest {
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(
                 onOpenCardioGoal = { state.value = state.value.copy(goalDraft = PlanGoalDraft.from(goal)) },
-                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
                 onRemoveGoal = { removed++ },
             ))
         } }
@@ -257,7 +261,7 @@ class PlanCardioGoalScreenTest {
         rule.setContent { AppTheme {
             PlanScreen(state.value, actions().copy(
                 onOpenCardioGoal = { state.value = state.value.copy(goalDraft = PlanGoalDraft.from(restored)) },
-                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
             ))
         } }
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("By $date"))
@@ -312,7 +316,7 @@ class PlanCardioGoalScreenTest {
             run = RunAnswers(goal = RunGoal.MARATHON, recent = RecentRace(21097, 6600)))
         val plan = PlanEntity(1, "Marathon", PlanOrigin.GENERATED.name, 0, 0,
             recipeJson = SetupRecipeJson.encode(a, RunPhase.MARATHON_BUILD), goalJson = PlanGoalJson.encode(goal))
-        val ui = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), ExerciseCatalog(emptyList()), WeightUnit.LB)
+        val ui = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), ExerciseCatalog(emptyList()), WeightUnit.LB, todayEpochDay = 0L)
         assertEquals(14449, ui.goal!!.predictedSeconds)
         var expected = ""
         var target = ""
@@ -340,7 +344,7 @@ class PlanCardioGoalScreenTest {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 42195)))
         var saved: PlanGoal? = null
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
-            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
             onSaveGoal = { saved = state.value.goalDraft?.goal() },
         )) } }
         rule.onNodeWithText("Target time").performTextReplacement("3:30")
@@ -357,7 +361,7 @@ class PlanCardioGoalScreenTest {
     @Test fun `the goal editor accepts a fast 800 m time`() {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 800)))
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
-            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
         )) } }
         rule.onNodeWithText("Target time").performTextReplacement("1:41")
         rule.onNodeWithText("Target time").performImeAction()
@@ -370,7 +374,7 @@ class PlanCardioGoalScreenTest {
             activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)))
         rule.setContent { AppTheme { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.KM) {
             PlanScreen(state.value, actions().copy(
-                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+                onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
             ))
         } } }
         rule.onNodeWithText("Target time").performTextReplacement("1:00:00")
@@ -381,16 +385,17 @@ class PlanCardioGoalScreenTest {
         rule.runOnIdle { assertEquals(3600, state.value.goalDraft!!.underSeconds) }
     }
 
-    @Test fun `switching a marathon editor to a ride clears the error and accepts one hour`() {
+    @Test fun `switching a marathon editor to a ride shows the ride's range and accepts one hour`() {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 42_200, underSeconds = 12600)))
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
-            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
         )) } }
         rule.onNodeWithText("Target time").performTextReplacement("3:30")
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.onNodeWithText("Road run").performClick()
         rule.onNodeWithText("Outdoor ride").performClick()
-        assertBlankPlanTime()
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        assertClearedPlanTime(timeRange(42_200, CardioActivity.OUTDOOR_RIDE))
         rule.onNodeWithText("Target time").performTextReplacement("1:00:00")
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.runOnIdle { assertEquals(PlanGoal.Timed(CardioActivity.OUTDOOR_RIDE, 42_200, 3600), state.value.goalDraft!!.goal()) }
@@ -405,12 +410,13 @@ class PlanCardioGoalScreenTest {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(
             activity = CardioActivity.OUTDOOR_RIDE.name, metres = 40_000, underSeconds = 3600)))
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
-            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
         )) } }
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.onNodeWithText("Outdoor ride").performClick()
         rule.onNodeWithText("Road run").performClick()
-        assertBlankPlanTime()
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        assertClearedPlanTime(timeRange(40_000, CardioActivity.ROAD_RUN))
         rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
     }
 
@@ -418,25 +424,49 @@ class PlanCardioGoalScreenTest {
         val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(
             activity = CardioActivity.TRACK_RUN.name, metres = 800, underSeconds = 101)))
         rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
-            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it) },
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
         )) } }
         rule.onNodeWithText("Target time").performTextReplacement("1:41")
         rule.onNodeWithText("Save").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("1500")
-        assertBlankPlanTime()
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        assertClearedPlanTime(timeRange(1500, CardioActivity.TRACK_RUN))
         rule.runOnIdle { assertEquals(INVALID_TIME, state.value.goalDraft!!.underSeconds) }
         rule.onNodeWithText("Target time").performTextReplacement("1:41")
         rule.onNodeWithText("Save").assertIsNotEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("800")
-        assertBlankPlanTime()
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        assertClearedPlanTime(timeRange(800, CardioActivity.TRACK_RUN))
         rule.onNodeWithText("Target time").performTextReplacement("1:41")
         rule.onNodeWithText("Save").assertIsEnabled()
     }
 
-    private fun assertBlankPlanTime() {
+    @Test fun `choosing A time shows the range until a time is typed`() {
+        val state = mutableStateOf(planScreenFixture().copy(goalDraft = PlanGoalDraft(metres = 5000, underSeconds = 0)))
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onCardioGoalDraft = { state.value = state.value.copy(goalDraft = it.edited(state.value.goalDraft)) },
+        )) } }
+        rule.onNodeWithText("A time").performClick()
+        val range = timeRange(5000, CardioActivity.ROAD_RUN)
+        assertClearedPlanTime(range)
+        rule.onNodeWithText("Target time").performTextReplacement("25:00")
+        val field = rule.onNodeWithText("Target time").fetchSemanticsNode()
+        assertEquals(false, field.config.contains(SemanticsProperties.Error))
+        rule.onNodeWithText(range).assertDoesNotExist()
+        rule.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    private fun timeRange(metres: Int, activity: CardioActivity): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(R.string.form_time_range,
+            ClockText.duration(GoalTime.floorSeconds(metres, activity)), ClockText.duration(86_400))
+
+    private fun assertClearedPlanTime(range: String) {
         val field = rule.onNodeWithText("Target time").fetchSemanticsNode()
         assertEquals("", field.config[SemanticsProperties.EditableText].text)
-        assertEquals(false, field.config.contains(SemanticsProperties.Error))
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        assertEquals(true, field.config.contains(SemanticsProperties.Error))
+        // PR 8: the cleared time shows its range, as setup does (#615)
+        rule.onNodeWithText(range).assertExists()
         rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 

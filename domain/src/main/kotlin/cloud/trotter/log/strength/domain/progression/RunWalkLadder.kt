@@ -6,7 +6,9 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
 
-/** Practice: two counted Easy finishes per level; Good, no word or unfinished keeps credit; Hard or Pain drops and clears it; dated progress counts at most three in seven days and holds busy level-ups a week (design revision 47). */
+/** Practice: two counted Easy finishes per level; Good, no word or unfinished keeps credit; Hard or Pain drops and
+ *  clears it; dated progress counts at most three in seven days and holds busy level-ups a week
+ *  (design revision 47). */
 object RunWalkLadder {
     data class Level(val runSeconds: Int, val walkSeconds: Int, val rounds: Int) {
         /** Planned WORK seconds of one session at this level. */
@@ -34,8 +36,8 @@ object RunWalkLadder {
     /** Whether some 7 consecutive local days within todayEpochDay − 13..todayEpochDay hold more than
      *  [BUSY_RUNS_IN_7_DAYS] of [runEpochDays] (the family's runs by local Start date, this run included). */
     fun busy(runEpochDays: List<Long>, todayEpochDay: Long): Boolean =
-        (todayEpochDay - LOOK_BACK_DAYS + 1..todayEpochDay - 6).any { start ->
-            runEpochDays.count { it in start..start + 6 } > BUSY_RUNS_IN_7_DAYS
+        (todayEpochDay - LOOK_BACK_DAYS + CardioHistory.WEEK_DAYS..todayEpochDay).any { end ->
+            runEpochDays.count { it in CardioHistory.weekEnding(end) } > BUSY_RUNS_IN_7_DAYS
         }
 
     /** The last level; its second counted Easy finish leaves the ladder. */

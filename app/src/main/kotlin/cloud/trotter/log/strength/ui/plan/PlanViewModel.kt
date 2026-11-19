@@ -7,6 +7,9 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cloud.trotter.log.strength.di.CivilDay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.Routes
@@ -45,6 +48,7 @@ class PlanViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val historyRepository: HistoryRepository = repo.history,
     private val clock: Clock = Clock.systemDefaultZone(),
+    @CivilDay private val today: Flow<LocalDate> = flowOf(LocalDate.now(clock)),
 ) : ViewModel() {
     private val mutationLock = Mutex()
     private val dialog = savedState.getStateFlow<String?>(DIALOG, null)
@@ -68,9 +72,9 @@ class PlanViewModel @Inject constructor(
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
-            plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory,
-        ) { program, catalog, unit, cardio ->
-            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, LocalDate.now(clock).toEpochDay())
+            plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory, today,
+        ) { program, catalog, unit, cardio, day ->
+            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, day.toEpochDay())
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
@@ -109,9 +113,7 @@ class PlanViewModel @Inject constructor(
     }
 
     fun changeGoalDraft(draft: PlanGoalDraft) {
-        val before = savedState.get<PlanGoalDraft>(CARDIO_GOAL_DRAFT)
-        savedState[CARDIO_GOAL_DRAFT] = if (before != null &&
-            (before.activity != draft.activity || before.metres != draft.metres)) draft.invalidateTimeBelowFloor() else draft
+        savedState[CARDIO_GOAL_DRAFT] = draft.edited(savedState.get<PlanGoalDraft>(CARDIO_GOAL_DRAFT))
     }
 
     fun removeGoal() {

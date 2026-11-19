@@ -3,25 +3,16 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
-    "time": "06:15",
+    "date": "2026-11-21",
+    "time": "08:00",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Monday Nov 16 06:15, outside. Left shin aches about 12 minutes into the outing, including the five-minute warm-up. Stop immediately and keep the completed running/walking plus any current partial recovery. Walk home. Add note: shin hurt at 12 min. This is an abandoned early workout, not a full ten-round completion."
+      "note": "Saturday Nov 21 08:00, outside. Complete every running part at the offered level. Tired but proud: Good, not Easy. Save the note shins fine, slow and steady."
     },
     {
-      "checkpoint": "monday-week2-today"
-    },
-    {
-      "tap": {
-        "text": "Rest taken",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "rest-acknowledged-monday-run"
+      "checkpoint": "saturday-week2-today"
     },
     {
       "tap": {
@@ -30,7 +21,7 @@
       }
     },
     {
-      "checkpoint": "monday-offered-workout"
+      "checkpoint": "saturday-offered-workout"
     },
     {
       "tap": {
@@ -54,98 +45,7 @@
       }
     },
     {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "checkpoint": "shin-hurt-twelve-minutes"
-    },
-    {
-      "tap": {
-        "text": "Stop",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "stopped-for-shin"
-    },
-    {
-      "tap": {
-        "text": "Continue without distance",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "stopped-set-acknowledged"
-    },
-    {
-      "note": "Finish stayed disabled after Stop and Continue without distance although three running bouts and intervening walking were completed. I am not starting another round with an aching shin. Try Back to leave and save the partial workout; the exit/save control below is a guess until the screen is observed."
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "leave-early-after-disabled-finish"
-    },
-    {
-      "note": "Back returned directly to Today with Last trained Nov 14 and no save prompt. The early-stop outing is abandoned in the app: I could not keep its seven interval minutes or attach my shin note. Do not run more on an aching shin. Wednesday Nov 18 is missed because my son has a fever; no workout is started that day."
-    },
-    {
-      "advance": "2d23h48m"
-    },
-    {
-      "note": "Thursday Nov 19 06:15: do the delayed Wednesday run, shin fine, go slowly. The app still offers Day A because Monday did not save. Follow the offered level, finish all running portions and rate Good."
-    },
-    {
-      "checkpoint": "thursday-delayed-run-today"
-    },
-    {
-      "tap": {
-        "textContains": "Start day",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "thursday-offered-workout"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start timer",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "thursday-first-run"
+      "checkpoint": "saturday-first-run"
     },
     {
       "advance": "2m30s"
@@ -234,7 +134,32 @@
       }
     },
     {
-      "checkpoint": "thursday-delayed-run-saved-good"
+      "checkpoint": "saturday-saved-good"
+    },
+    {
+      "tap": {
+        "desc": "10 by 1 minute. Distance not entered.",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "saturday-run-detail-for-note"
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "shins fine, slow and steady",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "saturday-note-saved"
     }
   ]
 }

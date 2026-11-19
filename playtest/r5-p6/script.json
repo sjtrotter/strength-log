@@ -163,16 +163,106 @@
       "checkpoint": "second-run-transition"
     },
     {
-      "advance": "17m30s"
+      "note": "The first run and recovery ended at Work set 3 with Start waiting. Start each remaining run/walk round as required on screen; I would prefer these to continue without touching my armband."
     },
     {
-      "note": "At the final two running bouts I walk part of each instead. Do not claim an Easy effort or invent a distance."
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "advance": "5m"
+      "advance": "2m30s"
     },
     {
-      "checkpoint": "monday-time-complete"
+      "checkpoint": "monday-after-round-2"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "checkpoint": "monday-after-round-8"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "note": "Walk part of this and the final running bout; calves burning, but overall OK. The timer cannot establish how much of the minute I actually ran."
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "checkpoint": "monday-after-round-10"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "monday-after-timer-log-action"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      },
+      "optional": true
     },
     {
       "tap": {

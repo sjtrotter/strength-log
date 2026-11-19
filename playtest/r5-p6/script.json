@@ -103,46 +103,138 @@
       "checkpoint": "leave-early-after-disabled-finish"
     },
     {
+      "note": "Back returned directly to Today with Last trained Nov 14 and no save prompt. The early-stop outing is abandoned in the app: I could not keep its seven interval minutes or attach my shin note. Do not run more on an aching shin. Wednesday Nov 18 is missed because my son has a fever; no workout is started that day."
+    },
+    {
+      "advance": "2d23h48m"
+    },
+    {
+      "note": "Thursday Nov 19 06:15: do the delayed Wednesday run, shin fine, go slowly. The app still offers Day A because Monday did not save. Follow the offered level, finish all running portions and rate Good."
+    },
+    {
+      "checkpoint": "thursday-delayed-run-today"
+    },
+    {
       "tap": {
-        "text": "Save",
+        "textContains": "Start day",
         "role": "Button"
       }
+    },
+    {
+      "checkpoint": "thursday-offered-workout"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "thursday-first-run"
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
     },
     {
       "tap": {
         "text": "Skip",
         "role": "Button"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "tag": "receipt-cardio-effort-HARD"
-      }
-    },
-    {
-      "checkpoint": "partial-saved-hard"
-    },
-    {
-      "tap": {
-        "text": "Distance not entered"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "shin hurt at 12 min",
-        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Save",
-        "role": "Button"
+        "tag": "receipt-cardio-effort-GOOD"
       }
     },
     {
-      "checkpoint": "partial-with-shin-note"
+      "checkpoint": "thursday-delayed-run-saved-good"
     }
   ]
 }

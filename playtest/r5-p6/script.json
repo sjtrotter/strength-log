@@ -86,6 +86,15 @@
     },
     {
       "tap": {
+        "text": "Continue without distance",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "stopped-set-acknowledged"
+    },
+    {
+      "tap": {
         "tag": "workout-finish"
       }
     },

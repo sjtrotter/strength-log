@@ -176,6 +176,13 @@
       }
     },
     {
+      "expect": {
+        "text": "Set up",
+        "absent": true
+      },
+      "timeoutMs": 60000
+    },
+    {
       "checkpoint": "setup-finished"
     }
   ]

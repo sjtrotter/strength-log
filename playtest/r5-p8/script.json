@@ -46,15 +46,71 @@
       }
     },
     {
-      "advance": "26m"
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "run-work-bout-1-ended"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "run-work-bout-2-ended"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "run-work-bout-3-ended"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "checkpoint": "run-work-bout-4-ended"
+    },
+    {
+      "advance": "90s"
     },
     {
       "checkpoint": "run-walk-four-five-minute-repeats"
     },
     {
       "tap": {
-        "text": "Finish run"
+        "desc": "Day A lifts, 0 of 4 sets"
       }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "workout-exercise-options"
     },
     {
       "tap": {
@@ -242,7 +298,7 @@
     },
     {
       "tap": {
-        "text": "Finish workout"
+        "tag": "workout-finish"
       }
     },
     {

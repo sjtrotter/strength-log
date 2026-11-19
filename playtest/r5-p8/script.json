@@ -3,21 +3,35 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-10",
-    "time": "17:30",
+    "date": "2026-11-19",
+    "time": "21:00",
     "zone": "America/Denver"
   },
   "steps": [
     {
-      "note": "Tuesday Nov 10, 17:30, station gym. Do the running workout offered by the app on the treadmill, then three one-minute max sets each of push-ups (31,26,22) and sit-ups (33,29,27), with two minutes rest. No squat or plank today; the test events come first."
+      "note": "Thursday Nov 19, 21:00. Mandatory overtime has kept me at work until now. I miss tonight; leave the next session pending and return Friday before court."
     },
     {
-      "tap": {
-        "text": "Start day A"
+      "expect": {
+        "text": "Today"
       }
     },
     {
-      "checkpoint": "first-workout-offered"
+      "checkpoint": "overtime-missed-thursday-next-day-pending"
+    },
+    {
+      "advance": "9h"
+    },
+    {
+      "note": "Friday Nov 20, 06:00. Do the pending session today. Only fifteen minutes available, no lifting. The test remains December 12."
+    },
+    {
+      "checkpoint": "friday-before-court"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
     },
     {
       "tap": {
@@ -26,11 +40,11 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 0 of 4 sets"
+        "desc": "Day B lifts, 0 of 4 sets"
       }
     },
     {
-      "checkpoint": "day-a-workout-overview"
+      "checkpoint": "rescheduled-day-b-offered"
     },
     {
       "tap": {
@@ -38,7 +52,7 @@
       }
     },
     {
-      "checkpoint": "road-run-offered"
+      "checkpoint": "friday-run-prescription"
     },
     {
       "tap": {
@@ -47,9 +61,6 @@
     },
     {
       "advance": "5m"
-    },
-    {
-      "checkpoint": "run-work-bout-1-ended"
     },
     {
       "advance": "90s"
@@ -63,9 +74,6 @@
       "advance": "5m"
     },
     {
-      "checkpoint": "run-work-bout-2-ended"
-    },
-    {
       "advance": "90s"
     },
     {
@@ -74,116 +82,18 @@
       }
     },
     {
-      "advance": "5m"
-    },
-    {
-      "checkpoint": "run-work-bout-3-ended"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "checkpoint": "run-work-bout-4-ended"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "checkpoint": "run-walk-four-five-minute-repeats"
-    },
-    {
-      "tap": {
-        "desc": "Day A lifts, 0 of 4 sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "workout-exercise-options"
-    },
-    {
-      "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "checkpoint": "edit-day-to-add-test-events"
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "add-exercise-movement-categories"
-    },
-    {
-      "note": "Cannot find a quick count-entry route tonight: the picker starts with movement categories, not exercise search. Close it and do my test work using a separate one-minute timer and paper record. Do not save these counts as app data."
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Push-ups: 31 in one minute, recorded on paper."
-    },
-    {
       "advance": "2m"
     },
     {
-      "advance": "1m"
+      "checkpoint": "fifteen-minutes-must-leave"
     },
     {
-      "note": "Push-ups: 26 in one minute, recorded on paper."
+      "tap": {
+        "text": "Stop"
+      }
     },
     {
-      "advance": "2m"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Push-ups: 22 in one minute, recorded on paper."
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Sit-ups: 33 in one minute, recorded on paper."
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Sit-ups: 29 in one minute, recorded on paper."
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Sit-ups: 27 in one minute, recorded on paper."
+      "checkpoint": "stopped-short-for-court"
     },
     {
       "tap": {
@@ -191,7 +101,7 @@
       }
     },
     {
-      "checkpoint": "november-10-finish-confirmation"
+      "checkpoint": "short-day-finish-confirmation"
     },
     {
       "tap": {
@@ -200,7 +110,7 @@
       }
     },
     {
-      "checkpoint": "november-10-session-summary"
+      "checkpoint": "november-20-short-session-summary"
     }
   ]
 }

@@ -13,6 +13,14 @@
     },
     {
       "tap": {
+        "text": "Rest taken"
+      }
+    },
+    {
+      "checkpoint": "nov13-after-rest-taken"
+    },
+    {
+      "tap": {
         "text": "Max velocity"
       }
     },

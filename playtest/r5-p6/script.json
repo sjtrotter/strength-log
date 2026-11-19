@@ -3,16 +3,16 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-21",
-    "time": "08:00",
+    "date": "2026-11-23",
+    "time": "06:15",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Saturday Nov 21 08:00, outside. Complete every running part at the offered level. Tired but proud: Good, not Easy. Save the note shins fine, slow and steady."
+      "note": "Monday Nov 23 06:15, 28 degrees and windy. Four rounds of running/walking, then give up because of cold hands and inability to get warm. Four level-1 rounds take ten minutes, plus the five-minute warm-up: about fifteen minutes for the diary's roughly fourteen-minute outing. Do not complete the remaining rounds just to save it."
     },
     {
-      "checkpoint": "saturday-week2-today"
+      "checkpoint": "cold-monday-today"
     },
     {
       "tap": {
@@ -21,7 +21,7 @@
       }
     },
     {
-      "checkpoint": "saturday-offered-workout"
+      "checkpoint": "cold-monday-offered-workout"
     },
     {
       "tap": {
@@ -45,7 +45,94 @@
       }
     },
     {
-      "checkpoint": "saturday-first-run"
+      "checkpoint": "cold-monday-first-run"
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m30s"
+    },
+    {
+      "checkpoint": "four-rounds-cold-stop"
+    },
+    {
+      "expect": {
+        "tag": "workout-finish",
+        "enabled": false
+      }
+    },
+    {
+      "note": "After four full rounds, check whether Finish remains disabled as it did with the shin outing. If so, leave with Back; no discovered partial-save path. I did these four rounds, but will not claim a full ten-round workout."
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "cold-outing-left"
+    },
+    {
+      "advance": "1d23h45m"
+    },
+    {
+      "note": "Wednesday Nov 25 06:15 outside. Normal session, feels like the previous Saturday. Complete the offered level and choose Good. Monday was abandoned, so expect the same plan day, not an advance."
+    },
+    {
+      "checkpoint": "wednesday-week3-today"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "wednesday-week3-offered-workout"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "wednesday-week3-first-run"
     },
     {
       "advance": "2m30s"
@@ -134,19 +221,7 @@
       }
     },
     {
-      "checkpoint": "saturday-saved-good"
-    },
-    {
-      "tap": {
-        "desc": "10 by 1 minute. Distance not entered.",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "saturday-run-detail-for-note"
-    },
-    {
-      "note": "I tried to write shins fine, slow and steady, but this expanded receipt only lists interval distances. I cannot find a note entry here. Keep the saved Good session and return home."
+      "checkpoint": "wednesday-week3-saved-good"
     },
     {
       "tap": {
@@ -155,7 +230,7 @@
       }
     },
     {
-      "checkpoint": "saturday-finished-note-not-found"
+      "checkpoint": "wednesday-week3-finished"
     }
   ]
 }

@@ -34,8 +34,11 @@
     },
     {
       "tap": {
-        "textContains": "Run/walk"
+        "text": "Road run"
       }
+    },
+    {
+      "checkpoint": "road-run-offered"
     },
     {
       "tap": {

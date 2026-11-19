@@ -3,22 +3,16 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
+    "date": "2026-12-02",
     "time": "06:15",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Monday Nov 30 06:15, outside. I skipped Nov 28 with family at home. Back at it after the Turkey Trot: honestly easy. Complete the offered session, select Easy truthfully, and see what level comes next. The race happened physically but the retrospective entry remains unsaved after harness start-time interaction failures."
+      "note": "Wednesday Dec 2 06:15, dark and icy: treadmill. Complete the same offered plan session, rate Good. Monday receipt promised level 2 of 12; its exported plan has nine 1:15 work / 1:30 recovery rounds. Use that prescription, not the old ten one-minute rounds. No treadmill speed or distance is supplied for this date, so do not invent or enter one. Warm-up five minutes then 24:45 intervals."
     },
     {
-      "checkpoint": "monday-week4-today"
-    },
-    {
-      "tap": {
-        "text": "Rest taken",
-        "role": "Button"
-      }
+      "checkpoint": "dec2-treadmill-today"
     },
     {
       "tap": {
@@ -27,7 +21,7 @@
       }
     },
     {
-      "checkpoint": "monday-week4-offered-workout"
+      "checkpoint": "dec2-treadmill-offered-workout"
     },
     {
       "tap": {
@@ -51,18 +45,10 @@
       }
     },
     {
-      "checkpoint": "monday-week4-first-run"
+      "checkpoint": "dec2-treadmill-first-run"
     },
     {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -70,7 +56,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -78,7 +64,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -86,7 +72,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -94,7 +80,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -102,7 +88,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -110,7 +96,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -118,7 +104,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -126,7 +112,7 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m45s"
     },
     {
       "tap": {
@@ -136,11 +122,11 @@
     },
     {
       "tap": {
-        "tag": "receipt-cardio-effort-EASY"
+        "tag": "receipt-cardio-effort-GOOD"
       }
     },
     {
-      "checkpoint": "monday-week4-saved-easy"
+      "checkpoint": "dec2-treadmill-saved-good"
     },
     {
       "tap": {
@@ -149,7 +135,130 @@
       }
     },
     {
-      "checkpoint": "monday-week4-finished"
+      "checkpoint": "dec2-finished"
+    },
+    {
+      "advance": "4d1h45m15s"
+    },
+    {
+      "note": "Sunday Dec 6 08:30 outside. Saturday was missed for my daughter's dance event. Complete every running bit at the level offered after Good on Wednesday; expect level 2 to repeat, not a forced increase. Running is now 1:15 at a time if the saved prescription carries forward. I want to understand how far this is from running a whole 5K. Rate Good because finishing every part does not mean it was Easy. Stop at the saved summary; do not risk the finished month on extra navigation."
+    },
+    {
+      "checkpoint": "dec6-delayed-sunday-today"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "dec6-delayed-sunday-offered-workout"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "dec6-delayed-sunday-first-run"
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m45s"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "receipt-cardio-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec6-delayed-sunday-saved-good"
     }
   ]
 }

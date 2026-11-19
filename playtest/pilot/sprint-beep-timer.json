@@ -1,0 +1,138 @@
+{
+  "seat": "sprint-beep-timer",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Sprint"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 10 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "expect": {
+        "text": "Beep in 5"
+      }
+    },
+    {
+      "advance": "5s"
+    },
+    {
+      "expect": {
+        "text": "0.00",
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "advance": "12s340ms"
+    },
+    {
+      "tap": {
+        "text": "Stop",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "12.34 (Phone-timed)"
+      }
+    },
+    {
+      "checkpoint": "phone-timed-12-34"
+    }
+  ]
+}

@@ -161,6 +161,7 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
+    val elapsedClock: () -> Long = cardioClock::elapsedRealtimeMillis
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val pendingStart = savedState.getStateFlow<PendingStartTick?>(KEY_PENDING_START, null)
 

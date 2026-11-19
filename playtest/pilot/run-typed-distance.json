@@ -1,0 +1,174 @@
+{
+  "seat": "run-typed-distance",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "GPS distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "GPS distance",
+        "role": "Switch"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Just cardio fitness"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
+    },
+    {
+      "type": {
+        "tag": "workout-cardio-distance",
+        "value": "3.1"
+      }
+    },
+    {
+      "advance": "25m"
+    },
+    {
+      "tap": {
+        "text": "Stop",
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "expect": {
+        "desc": "25 minutes. Distance, 3.1 miles."
+      }
+    },
+    {
+      "checkpoint": "typed-distance-3-1-miles"
+    }
+  ]
+}

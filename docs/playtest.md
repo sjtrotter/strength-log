@@ -10,7 +10,8 @@ Set `PLAYTEST_BASE` to a commit SHA or tag to pin a phase's build:
 `PLAYTEST_BASE=<sha-or-tag> scripts/playtest.sh <seat> [script.json]`.
 A new seat branch starts at that ref; existing seat branches merge that ref
 instead of `origin/main`. The driver fetches it if it is missing locally and
-exits with status 2 if it cannot resolve to a commit. With `PLAYTEST_BASE` unset,
+exits with status 2 if the fetched ref cannot resolve to a commit.
+An origin fetch failure exits with status 75. With `PLAYTEST_BASE` unset,
 the driver keeps fetching and merging `origin/main`. It prints the resolved base
 commit and writes it to `build.txt` in the downloaded run folder. Use the same
 pin for every run in a phase; an existing seat retains its earlier commits.
@@ -21,16 +22,16 @@ pin for every run in a phase; an existing seat retains its earlier commits.
   "device": "w360dp-h720dp-night-xxhdpi",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
   "steps": [
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "days-per-week" }
+    { "tap": { "text": "A button's label" } },
+    { "checkpoint": "after-first-tap" }
   ]
 }
 ```
 
 `seat` and `steps` are required. Seat names use letters, numbers, underscores,
 or hyphens. Device and start default to the values above. Locale is pinned to
-`en-US`; the app runs in the script's `start.zone`. A fresh wizard defaults to
-pounds. Each run starts with fresh storage and replays every step.
+`en-US`; the app runs in the script's `start.zone`. Each run starts with fresh
+storage and replays every step.
 Append steps to the script between turns. The last green run's step count controls
 where new captures start. Checkpoints and failures are always captured. If you
 change earlier steps, remove `playtest-runs/<seat>/.last-ok` to capture everything.
@@ -71,11 +72,11 @@ Notes get text diffs in this mode; a final note gets a full capture.
 
 ## Actions
 
-Put exactly one action in each step, plus optional `timeoutMs` or `expectError`. Unknown keys and
+Put exactly one action in each step, plus `timeoutMs`, `expectError`, or `"optional": true` as applicable. Unknown keys and
 malformed payloads fail before the activity launches. For example:
 
 ```json
-{ "expect": { "text": "Start day A" }, "timeoutMs": 20000 }
+{ "expect": { "text": "Text you expect to see" }, "timeoutMs": 20000 }
 ```
 
 Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
@@ -114,31 +115,42 @@ the existing `stack` field still includes the exception chain.
 | --- | --- |
 | `tap` | Selector. Clicks the matching visible node. Empty or entirely off-screen bounds fail with `not-visible`; use `scrollTo` first. |
 | `longPress` | Selector. Holds the matching visible node, with the same bounds check as `tap`. |
-| `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. With `"ime": "done"`, performs the field's declared IME action. A field that declares none (the set and prescription sheets) commits as you type, so the step skips it and logs `"ime": {"declared": "Default", "performed": false}`. |
+| `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. With `"ime": "done"`, performs the field's declared IME action. A field that declares none commits as you type, so the step skips it and logs `"ime": {"declared": "Default", "performed": false}`. |
 | `scrollTo` | Selector. Scrolls the nearest scrollable ancestor until the target is in view; for one not yet drawn, pages each lazy list on screen until it appears. Each scroll runs the Compose animation clock one second. |
 | `swipe` | Selector plus `"direction": "left"`, `"right"`, `"up"`, or `"down"`. |
 | `back` | `true`. Like the system Back key: an open sheet or dialog closes first, otherwise the screen goes back. |
-| `advance` | Positive duration in days, hours, minutes and seconds, in that order, such as `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
+| `advance` | Positive duration in days, hours, minutes, seconds, and milliseconds, in that order, such as `"500ms"`, `"4s880ms"`, `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. It walks through every armed timer boundary inside the advance in order. Timers read the same fake elapsed clock, so a 25:00 set saves 25:00. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
 | `recreate` | `true`. Recreates the activity to exercise saved state. |
-| `checkpoint` | A nonblank name. Always captures a named screen. |
+| `checkpoint` | A nonblank name. It waits for animations and pending saves, up to two seconds of frame time, before it captures. |
 | `expect` | Selector, optionally `"absent": true`. Requires one match, or zero when absent. `index` selects a repeated match. |
 | `note` | A string copied into the log. No capture. |
 
-Use `type` for an editable text field. A second click can start a magnifier
-that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor,
-such as Activity in Edit day → Edit cardio, allows `tap` to open its menu.
-Plain editable fields still refuse `tap`. Wizard and Settings number fields commit on Done or
-when focus leaves; use `"ime": "done"` to commit at once. Set and prescription sheet
-fields commit as you type. Typing also works in dialogs; there is no keyboard to
-dismiss. Advances over one hour require no open workout and no armed rest. Finish
-before jumping to another day.
+End a script with a checkpoint when the final capture matters.
 
-Exercise-page navigation settles before the next action. H6's page-naming
-`expect` workaround is no longer needed. Consecutive taps can use the new page:
+A selector action (`tap`, `longPress`, `type`, `scrollTo`, `swipe`, or `expect`)
+can use `"optional": true` beside `timeoutMs`. Only `not-found` skips.
+`ambiguous`, `disabled`, `not-clickable`, `not-editable`, `not-scrollable`, and
+`not-visible` still fail. The skipped step stays green, writes a
+`NNN-SKIPPED-<slug>` PNG and JSON pair, and logs `optional_skipped` with its error
+class. The summary's `optional_skipped` array lists skipped step indices, or is
+empty. Timeouts, watchdogs, app crashes, other crashes, and script errors still
+fail, including app crashes during the skipped capture. The flag must be the
+boolean `true`, cannot accompany `expectError`, and cannot be used on `advance`,
+`back`, `recreate`, `checkpoint`, or `note`.
+
+Use `type` for an editable text field. A second click can start a magnifier
+that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor
+allows `tap` to open its menu. Plain editable fields still refuse `tap`.
+Use `"ime": "done"` to commit at once in fields that commit on Done or when focus
+leaves. Fields that commit as you type do not need it. Typing also works in
+dialogs; there is no keyboard to dismiss. Advances over one hour require no
+open workout and no armed rest. Finish before jumping to another day.
+
+Navigation settles before the next action. Consecutive taps can use the new page:
 
 ```json
-{ "tap": { "text": "Next: DB Bench Press" } }
-{ "tap": { "text": "All sets" } }
+{ "tap": { "text": "First page's button" } }
+{ "tap": { "text": "Second page's button" } }
 ```
 
 For visibility regression pilots, `tap` and `longPress` accept
@@ -161,6 +173,7 @@ also checks the field's label so a filled field stays selectable.
 | `desc` | Exact accessibility content description. |
 | `tag` | Exact test tag from the JSON dump. |
 | `role` | `Button`, `Checkbox`, `Switch`, `Tab`, `RadioButton`, `DropdownList`, or `Image`. |
+| `enabled` | `true` or `false`; matches the node's enabled state. |
 | `editable` | `true` restricts to editable nodes. Implied for `type`. |
 | `inDialog` | `true` includes only dialog descendants; `false` excludes them. |
 | `index` | Zero-based match number when repeated rows are intentional. |
@@ -177,6 +190,7 @@ reports `disabled` immediately.
 
 | Error class | Usual cause | What to try |
 | --- | --- | --- |
+| Optional step skipped unexpectedly | A `not-found` selection was allowed to skip. | Read `optional_skipped` in the summary and log, then the SKIPPED capture; narrow the selector or remove `optional`. |
 | `not-found` | Text, tag, or index does not match the current tree. | Read the failure capture and nearby candidates; correct the selector or use `scrollTo` for a lazy item. |
 | `ambiguous` | Several nodes match, or an absent expectation still finds a node. | Narrow with a tag, role, or `inDialog`; use `index` for intentional repeats. Check whether `absent` is intended. |
 | `disabled` | The final match is disabled at the deadline, or a scroll target is disabled. | Inspect the capture and preceding steps; satisfy the control's prerequisites before retrying. |
@@ -189,45 +203,22 @@ reports `disabled` immediately.
 | `timeout` | Lookup, an interaction, storage, or capture exhausted a real-time budget. | Check the failing operation and log; reduce capture work or set a larger step `timeoutMs` for a slow operation. |
 | `script` | Invalid JSON, an unsupported action or option, an unreadable restore, or an unsafe advance. | Correct the reported input; use a readable backup with an explicit start date and time, and finish before advances over one hour. |
 
-## Restores and pilots
+## Restores and CI
 
 Optional `start.restore` names a backup, relative to the script's directory or
 absolute. For a CI run, use a file name next to the script: `scripts/playtest.sh`
 commits that file to the seat branch with the script. It imports through the real backup service before launch. Keep the
 backup's sibling `summary.json` to recover its fake clock, or supply explicit
 `start.date` and `start.time`. Current app backups have no export timestamp.
-Restore opens Today with no saved navigation, drafts, rest deadline, undo offer,
-cardio anchors, or watch stamps. A backup from an unfinished workout cannot
-resume those transient states. Named checkpoints are screen captures, not resumable saves.
-
-The scripts in `playtest/pilot/` cover launch, dialog capture, the wizard to
-Today, rest expiry, the three-second Finish gate after all sets are logged,
-day crossing, scrolling below the fold and through a lazy list, `ime` on a
-sheet field with compound advances, a dialog with a text field, and starting a day
-whose lifts have history. The day-crossing pilot watches History's calendar move
-its today marker from November 9 to November 11 while keeping the session on November 9,
-then checks day B on Today. The wizard has no dialog in this version;
-the dialog pilot opens the workout Finish confirmation after completing it.
-For example, the host runs `scripts/playtest.sh zero-step-launch playtest/pilot/zero-step-launch.json`.
+Restore resets navigation and clears transient UI and timer state. A backup
+taken mid-flow cannot resume that state. Named checkpoints are screen captures, not resumable saves.
 
 CI replays every pilot on a PR that touches the harness, the pilots or the
 playtest workflow. A PR that changes app, data, domain or transfer code replays
-the core four: wizard-to-today, rest-timer-advance, history-day-start and
-dialog-text-field. When an app change breaks one, update the script in the same PR.
+a core set of pilots. When an app change breaks one, update the script in the same PR.
 
-The second-pass harness regressions have these checks:
-
-| Item | Pilot or workaround |
-| --- | --- |
-| Swallowed app errors | `history-day-start` covers the history-backed launch path that exposed the clock crash. `AppCrashesTest` injects coroutine and main-looper exceptions and checks step failure details. |
-| H5 | `advance-tap` taps Start day A immediately after a two-day advance. |
-| H6 | Interaction settling replaces the page-naming `expect` workaround. `page-transition-settle` taps a control on the new exercise page immediately after navigation. |
-| H7 | `dropdown-tap` opens Activity in Edit day and selects Trail run. |
-| H8 | `screenshot-stress` writes 1,200 checkpoint screenshots. Run it on demand; it is outside the PR matrix. Long persona scripts can use `"capture": "checkpoints"`. |
-| H9 | `zero-size-tap` expects `not-visible` for an off-screen equipment row on both tap and long press, then scrolls and taps it. |
-| Local clock | `advance-tap` starts at 23:39 in America/Chicago; its summary keeps the local date beside the next-day UTC date. `ScriptAssertionsTest` checks both values and the zone. |
-| Launch budget | `zero-step-launch` captures launch within the 20-second budget. |
-| Compact capture | `compact-capture` covers text diffs, a named checkpoint, a note, and a full final capture. |
+A scripts-only PR runs the driver retry check when it changes `playtest.sh` or
+`gh-retry*.sh`; it does not add replay jobs. Workflow changes run both checks.
 
 ## Sessions as segments
 
@@ -238,11 +229,25 @@ previous green segment's `backup.json` next to the new script as
 of the new segment, remove `playtest-runs/<seat>/.last-ok` so capture starts at
 step 0.
 
-Restores drop transient state, including open sheets, rest timers, and drafts.
-Keep flows that test those states inside one segment.
+Restores drop transient UI and timer state. Keep flows that depend on that state
+inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their
-content and centered, as on a phone. SAF pickers return nothing. Inspect
+content and centered, as on a phone. Location is not available in the
+harness; type distances where the app asks. Audio cues make no sound.
+Permission requests go unanswered. SAF pickers return nothing. Inspect
 backup and export data through the artifact. Use the harness for plan building
 and workout execution against real storage.
+
+
+## Exit codes
+
+For the host operator: 0 means green (including skipped optional steps); 1 means
+the replay ran and failed, with its artifact downloaded; 2 means bad input; 75
+means infrastructure failed, such as GitHub being unreachable, retry budgets
+running out, a dispatch never appearing, or an artifact download failing.
+`artifact: <dir>` prints only after a successful download. GitHub polls run at
+most once a minute per seat, plus bounded retries; a failed dispatch checks for
+an accepted run before trying again. Origin fetches, pushes, and remote branch
+lookups retry twice; an absent branch returns at once.

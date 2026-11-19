@@ -1,0 +1,153 @@
+{
+  "seat": "cardio-log-past",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Just cardio fitness"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "25:00"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (mi)",
+        "value": "3.1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "desc": "25 minutes. Distance, 3.1 miles."
+      }
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "expect": {
+        "text": "3.1 mi"
+      }
+    },
+    {
+      "expect": {
+        "text": "Logged 25:00"
+      }
+    },
+    {
+      "checkpoint": "past-run-in-history"
+    }
+  ]
+}

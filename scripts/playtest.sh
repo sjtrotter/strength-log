@@ -3,15 +3,29 @@
 # Run on the networked host. Testers only edit scripts and read downloaded artifacts.
 set -euo pipefail
 
+# shellcheck source=scripts/gh-retry.sh
+source "$(dirname "${BASH_SOURCE[0]}")/gh-retry.sh"
+
+git_retry() {
+    local attempt status
+    for attempt in 0 1 2; do
+        if "$@"; then return 0; else status=$?; fi
+        if [[ ${1:-} == git && ${2:-} == ls-remote && $status == 2 ]]; then return 2; fi
+        if (( attempt < 2 )); then sleep 30; fi
+    done
+    echo 'Git origin operation failed after three attempts' >&2
+    return 75
+}
+
 if [[ $# -lt 1 || $# -gt 2 || ! $1 =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
     echo 'usage: scripts/playtest.sh <seat> [script.json]; seat uses letters, numbers, _ or -' >&2
     exit 2
 fi
 seat=$1
 script=${2:-playtest/$seat/script.json}
-script=$(realpath "$script")
+script=$(realpath "$script") || exit 2
 [[ -f "$script" ]] || { echo "script not found: $script" >&2; exit 2; }
-steps=$(jq -er '.steps | if type == "array" then length else error("steps must be an array") end' "$script")
+steps=$(jq -er '.steps | if type == "array" then length else error("steps must be an array") end' "$script") || exit 2
 [[ $(jq -er '.seat' "$script") == "$seat" ]] || { echo 'script seat does not match the requested seat' >&2; exit 2; }
 branch=playtest/$seat
 root=$(git rev-parse --show-toplevel)
@@ -21,24 +35,25 @@ worktree="$root/.playtest-wt/$seat"
 base_ref=${PLAYTEST_BASE:-origin/main}
 if [[ -n ${PLAYTEST_BASE:-} ]]; then
     if ! build=$(git rev-parse --verify --end-of-options "$base_ref^{commit}" 2>/dev/null); then
-        if ! git fetch -q -- origin "$base_ref" || ! build=$(git rev-parse --verify 'FETCH_HEAD^{commit}' 2>/dev/null); then
+        git_retry git fetch -q -- origin "$base_ref" || exit 75
+        if ! build=$(git rev-parse --verify 'FETCH_HEAD^{commit}' 2>/dev/null); then
             echo "PLAYTEST_BASE does not resolve to a commit: $base_ref" >&2
             exit 2
         fi
     fi
     base_ref=$build
 else
-    git fetch -q origin main
+    git_retry git fetch -q origin main || exit 75
     build=$(git rev-parse --verify 'origin/main^{commit}')
 fi
 echo "build: $build"
 
 # Preserve the seat's history. Recover a remote seat branch on a new host, too.
-if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-    git fetch -q origin "refs/heads/$branch:refs/remotes/origin/$branch"
+if git_retry git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+    git_retry git fetch -q origin "refs/heads/$branch:refs/remotes/origin/$branch" || exit 75
 else
     remote_status=$?
-    [[ $remote_status == 2 ]] || exit "$remote_status"
+    [[ $remote_status == 2 ]] || exit 75
 fi
 if [[ -e "$worktree" ]]; then
     [[ $(git -C "$worktree" rev-parse --show-toplevel) == "$worktree" ]] || {
@@ -89,7 +104,7 @@ fi
 if ! git -C "$worktree" diff --cached --quiet; then
     git -C "$worktree" commit -q -m "playtest($seat): $steps steps"
 fi
-git -C "$worktree" push -q origin "$branch"
+git_retry git -C "$worktree" push -q origin "$branch" || exit 75
 
 last_ok=0
 if [[ -f "playtest-runs/$seat/.last-ok" ]]; then
@@ -98,26 +113,40 @@ if [[ -f "playtest-runs/$seat/.last-ok" ]]; then
 fi
 before=$(date -u +%FT%TZ)
 head=$(git -C "$worktree" rev-parse HEAD)
-gh workflow run playtest.yml --ref "$branch" -f "script=playtest/$seat/script.json" -f "capture_from=$last_ok"
-run=''
-for _ in $(seq 30); do
-    run=$(gh run list --workflow playtest.yml --branch "$branch" --event workflow_dispatch --created ">=$before" \
-        --json databaseId,headSha -q ".[] | select(.headSha == \"$head\") | .databaseId" | head -1 || true)
-    [[ -n "$run" ]] && break
-    sleep 10
+gh_dispatch_existing_run() {
+    gh_retry gh run list --workflow playtest.yml --branch "$branch" --event workflow_dispatch --created ">=$before" \
+        --json databaseId,headSha -q "[.[] | select(.headSha == \"$head\")] | first | .databaseId // empty"
+}
+dispatch=$(gh_retry gh workflow run playtest.yml --ref "$branch" -f "script=playtest/$seat/script.json" -f "capture_from=$last_ok") || exit 75
+run=$(jq -Rr 'select(test("^[0-9]+$"))' <<<"$dispatch")
+# One GitHub call a minute per seat at most, plus the retries.
+for ((poll = 0; poll < 10; poll++)); do
+    [[ -z "$run" ]] || break
+    sleep 60
+    run=$(gh_dispatch_existing_run) || exit 75
 done
-[[ -n "$run" ]] || { echo 'dispatch not visible after 300 s' >&2; exit 2; }
+[[ -n "$run" ]] || { echo 'dispatch not visible after 10 minutes' >&2; exit 75; }
 
-status=0
-# Ten seats can run at once; a slow poll keeps them under the API rate limit.
-gh run watch "$run" --interval 30 --exit-status >/dev/null || status=$?
+conclusion=''
+for ((poll = 0; poll < 45; poll++)); do
+    sleep 60
+    result=$(gh_retry gh run view "$run" --json status,conclusion) || exit 75
+    if [[ $(jq -r '.status' <<<"$result") == completed ]]; then
+        conclusion=$(jq -r '.conclusion' <<<"$result")
+        break
+    fi
+done
+[[ -n "$conclusion" ]] || { echo 'run not completed after 45 minutes' >&2; exit 75; }
 out="playtest-runs/$seat/$run"
 mkdir -p "$out"
 printf '%s\n' "$build" > "$out/build.txt"
-gh run download "$run" -D "$out" -n "playtest-$run-0"
+sleep 60
+gh_retry gh run download "$run" -D "$out" -n "playtest-$run-0" || exit 75
 summary="$out/summary.json"
-[[ -f "$summary" ]] || { echo "summary not found in $out" >&2; exit 2; }
-if [[ $status == 0 ]] && jq -e '.failed_step == null and .error_class == null' "$summary" >/dev/null; then
+[[ -f "$summary" ]] || { echo "summary not found in $out" >&2; exit 75; }
+status=1
+if [[ $conclusion == success ]] && jq -e '.failed_step == null and .error_class == null' "$summary" >/dev/null; then
+    status=0
     jq -r '.steps_run' "$summary" > "playtest-runs/$seat/.last-ok"
 fi
 cat "$summary"

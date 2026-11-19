@@ -1,0 +1,282 @@
+{
+  "seat": "ladder-day",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Just cardio fitness"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Work, set 1 of 20"
+      }
+    },
+    {
+      "expect": {
+        "text": "1:00",
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "expect": {
+        "text": "Recovery, set 2 of 20"
+      }
+    },
+    {
+      "expect": {
+        "text": "1:30",
+        "tag": "workout-hero"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Continue without distance",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "scrollTo": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "tap": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Next time, level 1 of 12."
+      }
+    },
+    {
+      "checkpoint": "ladder-receipt-level-1"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Logged 25:00"
+      }
+    },
+    {
+      "expect": {
+        "text": "Logged 25:00"
+      }
+    },
+    {
+      "checkpoint": "ladder-saved-25-00"
+    }
+  ]
+}

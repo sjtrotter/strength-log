@@ -154,6 +154,14 @@ class DayViewModelSprintTimerTest {
 
     private suspend fun goal() = PlanGoalJson.decode(db.planDao().plan(planId)?.goalJson) as PlanGoal.Sprint
 
+    @Test fun elapsedClockReadsTheInjectedCardioClock() = test {
+        prepare()
+        val vm = ready()
+        assertEquals(clock.elapsed, vm.elapsedClock())
+        clock.elapsed += 4_880L
+        assertEquals(clock.elapsed, vm.elapsedClock())
+    }
+
     @Test fun `the beep sounds five seconds after arming and the time runs from it`() = test {
         prepare()
         val handle = SavedStateHandle()

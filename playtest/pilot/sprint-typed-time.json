@@ -1,0 +1,160 @@
+{
+  "seat": "sprint-typed-time",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Sprint"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 10 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "tap": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rep time"
+      }
+    },
+    {
+      "type": {
+        "text": "Time (s)",
+        "value": "12.9",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Hand stopwatch",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Hand stopwatch",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Three-point",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-point",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "12.90 (Hand-timed)"
+      }
+    },
+    {
+      "checkpoint": "hand-timed-12-90"
+    }
+  ]
+}

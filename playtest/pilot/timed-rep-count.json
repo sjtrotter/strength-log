@@ -1,0 +1,215 @@
+{
+  "seat": "timed-rep-count",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "General fitness"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Tracking",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reps in time"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "1"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 15 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Enter reps",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "38"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 38 reps",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "38 reps",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "timed-push-up-38-reps"
+    }
+  ]
+}

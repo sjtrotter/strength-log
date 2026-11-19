@@ -70,6 +70,7 @@ internal data class Step(
     val selector: Selector?,
     val duration: Duration?,
     val timeoutMs: Long,
+    val optional: Boolean,
     val json: JsonObject,
 ) {
     val expectedError: String? get() = (json["expectError"] as? JsonPrimitive)?.content
@@ -100,9 +101,15 @@ internal data class Step(
 
         fun parse(value: JsonElement): Step {
             val step = value.objectValue("step")
-            val actionKeys = step.keys - setOf("timeoutMs", "expectError")
-            scriptCheck(actionKeys.size == 1 && actionKeys.single() in actions, "Each step must contain exactly one known action and optional timeoutMs or expectError")
+            val actionKeys = step.keys - setOf("timeoutMs", "expectError", "optional")
+            scriptCheck(actionKeys.size == 1 && actionKeys.single() in actions, "Each step must contain exactly one known action and optional timeoutMs, expectError, or optional")
             val action = actionKeys.single()
+            val optional = "optional" in step
+            if (optional) {
+                scriptCheck(step.boolean("optional"), "optional must be true")
+                scriptCheck(action in selectorActions && "expectError" !in step,
+                    "optional supports selector actions only and cannot accompany expectError")
+            }
             if ("expectError" in step) {
                 scriptCheck(action in setOf("tap", "longPress") && step.string("expectError") == "not-visible",
                     "expectError supports not-visible on tap or longPress")
@@ -139,17 +146,17 @@ internal data class Step(
                 "checkpoint" -> scriptCheck(step.string(action).isNotBlank(), "Checkpoint name must not be blank")
                 "note" -> step.string(action)
             }
-            return Step(action, payload, selector, duration, timeoutMs, step)
+            return Step(action, payload, selector, duration, timeoutMs, optional, step)
         }
 
         private fun parseDuration(text: String): Duration {
-            val match = Regex("(?:([0-9]+)d)?(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?").matchEntire(text)
+            val match = Regex("(?:([0-9]+)d)?(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?(?:([0-9]+)ms)?").matchEntire(text)
                 ?.takeIf { text.isNotEmpty() }
                 ?: throw PlaytestError("script", DURATION_HELP)
-            val (days, hours, minutes, seconds) = match.destructured
+            val (days, hours, minutes, seconds, millis) = match.destructured
             val duration = try {
                 Duration.ZERO.plusDays(days.toLongOrZero()).plusHours(hours.toLongOrZero())
-                    .plusMinutes(minutes.toLongOrZero()).plusSeconds(seconds.toLongOrZero())
+                    .plusMinutes(minutes.toLongOrZero()).plusSeconds(seconds.toLongOrZero()).plusMillis(millis.toLongOrZero())
                     .also { it.toMillis() } // Rejects overflow before launch.
             } catch (error: ArithmeticException) {
                 throw PlaytestError("script", "advance duration is too long", cause = error)
@@ -160,7 +167,7 @@ internal data class Step(
     }
 }
 
-private const val DURATION_HELP = "advance needs a positive duration such as 90s, 15m, 2h, 2d, or 23h8m"
+private const val DURATION_HELP = "advance needs a positive duration such as 500ms, 4s880ms, 90s, 15m, 2h, 2d, or 23h8m"
 
 private fun String.toLongOrZero(): Long =
     if (isEmpty()) 0 else toLongOrNull() ?: throw PlaytestError("script", "advance duration is too long")

@@ -3,21 +3,256 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-13",
+    "date": "2026-11-17",
     "time": "15:30",
     "zone": "America/Los_Angeles"
   },
   "steps": [
     {
-      "note": "Nov 11 futsal was 21:00\u201322:00, lots of sprinting. Kept in my separate notes because I have not found an outside-sport log. Nov 13 full session: sprint first, then conventional deadlift 225 x 5 x 3 because the trap bar is taken, then bodyweight Nordics, hard. Nov 13 added performance assumptions, because the diary gives no times: three phone-timed flying 10 m reps of 1.45, 1.43 and 1.46 seconds; retain these as invented facts, not Javi or coach times."
+      "note": "Nov 17 field closed by flooded drains: lifts only, no sprints. Nov 15 pickup was 90 minutes, kept in my separate notes."
     },
     {
       "tap": {
         "text": "Rest taken"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Acceleration"
       }
     },
     {
-      "checkpoint": "nov13-after-rest-taken"
+      "checkpoint": "nov17-offered-day"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 17 sets"
+      }
+    },
+    {
+      "checkpoint": "day-a-lift-selector"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "squat-before-logging"
+    },
+    {
+      "note": "Nov 17 invented lifting detail: repeat 135x5 and 180x3 ramps, then 225x5x3 Good. Use the same actual performance throughout retries."
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-ramp-1-logged"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-ramp-2-logged"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-1-logged-before-effort"
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-1"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-2-logged-before-effort"
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-2"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-3-logged-before-effort"
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "checkpoint": "squat-work-set-3"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "nov17-lifts-only-summary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "2d23h40m"
+    },
+    {
+      "note": "Nov 18 futsal: left hamstring tight at end. Nov 20 still tight: half the sprints at about 90 percent outside app, stopped; skip Nordics and lower-body lifts. Invented details for this short bad day: five-minute warm-up, ten minutes on the turf including rest, then two overhead-press sets of 45x5 Hard with three-minute rests."
+    },
+    {
+      "tap": {
+        "text": "Rest taken"
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -25,7 +260,7 @@
       }
     },
     {
-      "checkpoint": "nov13-day-preview"
+      "checkpoint": "nov20-offered-after-field-skip"
     },
     {
       "tap": {
@@ -46,207 +281,25 @@
       }
     },
     {
-      "tap": {
-        "desc": "Day C lifts, 0 of 11 sets"
-      }
-    },
-    {
-      "checkpoint": "nov13-lift-list"
-    },
-    {
-      "scrollTo": {
-        "text": "Track run"
-      }
-    },
-    {
-      "tap": {
-        "text": "Track run"
-      }
-    },
-    {
-      "checkpoint": "track-run-before-sprints"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
       "advance": "10m"
     },
     {
-      "note": "Warm-up reaches the first 10 m work rep. Start opens sprint controls; choose Flying and then Start on the beep. A three-second countdown is a script assumption to verify from captures, not a new training fact. Planned phone-timed flying 10 m performances remain 1.45, 1.43 and 1.46 seconds. Cannot assess beep sound in harness."
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "tap": {
-        "text": "Flying"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start on the beep"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-1-countdown"
-    },
-    {
-      "advance": "3s"
-    },
-    {
-      "checkpoint": "nov13-sprint-1-after-countdown"
-    },
-    {
-      "advance": "1s450ms"
-    },
-    {
-      "tap": {
-        "text": "Reached 10 m"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-1-recorded"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "tap": {
-        "text": "Flying"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start on the beep"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-2-countdown"
-    },
-    {
-      "advance": "3s"
-    },
-    {
-      "checkpoint": "nov13-sprint-2-after-countdown"
-    },
-    {
-      "advance": "1s430ms"
-    },
-    {
-      "tap": {
-        "text": "Reached 10 m"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-2-recorded"
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "tap": {
-        "text": "Flying"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start on the beep"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-3-countdown"
-    },
-    {
-      "advance": "3s"
-    },
-    {
-      "checkpoint": "nov13-sprint-3-after-countdown"
-    },
-    {
-      "advance": "1s460ms"
-    },
-    {
-      "tap": {
-        "text": "Reached 10 m"
-      }
-    },
-    {
-      "checkpoint": "nov13-sprint-3-recorded"
-    },
-    {
-      "checkpoint": "nov13-sprints-complete"
-    },
-    {
-      "note": "Track run is inside this Day C workout. Continue to the deadlift and Nordics before finishing the workout."
-    },
-    {
       "tap": {
         "desc": "Day C lifts, 0 of 11 sets"
       }
     },
     {
       "scrollTo": {
-        "textContains": "Trap"
+        "text": "Overhead Press (Barbell)"
       }
     },
     {
       "tap": {
-        "textContains": "Trap"
+        "text": "Overhead Press (Barbell)"
       }
     },
     {
-      "checkpoint": "trap-bar-before-substitution"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "trap-bar-set-options"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Conventional Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "This workout"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "conventional-deadlift-today"
+      "checkpoint": "nov20-upper-body-only"
     },
     {
       "tap": {
@@ -256,7 +309,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "225",
+        "value": "45",
         "ime": "done"
       }
     },
@@ -275,134 +328,6 @@
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Good"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Good"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "checkpoint": "nov13-added-third-deadlift-set"
-    },
-    {
-      "tap": {
-        "desc": "Conventional Deadlift 3, 225 \u00d7 5",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "nov13-third-deadlift-checked-in-list"
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "checkpoint": "nov13-deadlift-225x5x3"
-    },
-    {
-      "tap": {
-        "desc": "Day C lifts, 3 of 12 sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Nordic"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Nordic"
-      }
-    },
-    {
-      "checkpoint": "nordic-bodyweight-prescription"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hard"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "checkpoint": "nov13-nordic-second-set-ready"
-    },
-    {
-      "tap": {
-        "text": "Log 4 reps"
       }
     },
     {
@@ -417,10 +342,58 @@
       }
     },
     {
-      "advance": "2m"
+      "advance": "3m"
     },
     {
-      "checkpoint": "nov13-nordics-hard"
+      "tap": {
+        "text": "Next set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Hard"
+      },
+      "timeoutMs": 30000
+    },
+    {
+      "tap": {
+        "text": "Hard"
+      }
+    },
+    {
+      "advance": "3m"
     },
     {
       "tap": {
@@ -434,7 +407,41 @@
       }
     },
     {
-      "checkpoint": "nov13-session-summary"
+      "checkpoint": "nov20-short-hard-day-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "week2-note-editor"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Nov 17 field closed: skipped all sprints. Nov 18 futsal, left hamstring tight at end. Nov 20 stopped halfway through sprints at about 90%; hamstring still tight. Skipped Nordics and lower body, upper body only, hard. Nov 15 pickup 90 min.",
+        "ime": "done"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "inDialog": true
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "week2-note-attempt"
     }
   ]
 }

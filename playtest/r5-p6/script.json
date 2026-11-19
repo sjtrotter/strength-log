@@ -250,40 +250,21 @@
       "checkpoint": "monday-after-round-10"
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "monday-after-timer-log-action"
+      "note": "The tenth round saved automatically and opened a four-minute stretching cool-down. I have used my 30 minutes including warm-up and am walking home, so skip the extra stretches."
     },
     {
       "tap": {
-        "text": "Save",
-        "role": "Button"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Finish",
+        "text": "Skip",
         "role": "Button"
       }
     },
     {
       "tap": {
-        "text": "OK"
+        "tag": "receipt-cardio-effort-GOOD"
       }
     },
     {
-      "tap": {
-        "text": "Save",
-        "role": "Button"
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "monday-saved-summary"
+      "checkpoint": "monday-saved-good-summary"
     }
   ]
 }

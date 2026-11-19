@@ -3,16 +3,16 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-11",
-    "time": "06:00",
+    "date": "2026-11-16",
+    "time": "06:15",
     "zone": "America/New_York"
   },
   "steps": [
     {
-      "note": "Wednesday Nov 11, 06:00. Rain: the same run/walk session on the rec center treadmill, running at 4.5 mph and walking at 3.0 mph. The screens seen so far offer Road run without a treadmill switch; use the same interval timer rather than create a different workout. Easier than Monday: rate Easy. No measured distance is supplied by my diary, so do not invent one."
+      "note": "Monday Nov 16 06:15, outside. Left shin aches about 12 minutes into the outing, including the five-minute warm-up. Stop immediately and keep the completed running/walking plus any current partial recovery. Walk home. Add note: shin hurt at 12 min. This is an abandoned early workout, not a full ten-round completion."
     },
     {
-      "checkpoint": "wednesday-today"
+      "checkpoint": "monday-week2-today"
     },
     {
       "tap": {
@@ -21,7 +21,7 @@
       }
     },
     {
-      "checkpoint": "wednesday-offered-workout"
+      "checkpoint": "monday-offered-workout"
     },
     {
       "tap": {
@@ -45,9 +45,6 @@
       }
     },
     {
-      "checkpoint": "wednesday-first-run"
-    },
-    {
       "advance": "2m30s"
     },
     {
@@ -64,7 +61,10 @@
       }
     },
     {
-      "advance": "2m30s"
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "shin-hurt-twelve-minutes"
     },
     {
       "tap": {
@@ -72,197 +72,19 @@
       }
     },
     {
-      "advance": "2m30s"
+      "checkpoint": "stopped-for-shin"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "tag": "workout-finish"
       }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
     },
     {
       "tap": {
         "text": "Skip",
         "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "tag": "receipt-cardio-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "wednesday-saved-easy"
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "advance": "3d1h30m"
-    },
-    {
-      "note": "Saturday Nov 14, 08:00 outside. Finish every running part. It went fine, but I mistakenly answer Hard because I worked hard; then change to Good. Follow the offered run/walk session, expected still level 1 after one Easy."
-    },
-    {
-      "checkpoint": "saturday-today"
-    },
-    {
-      "tap": {
-        "textContains": "Start day",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "saturday-offered-workout"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start timer",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "saturday-first-run"
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m30s"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -270,18 +92,28 @@
       }
     },
     {
-      "checkpoint": "saturday-saved-hard"
-    },
-    {
-      "note": "I tapped Hard because I worked hard, then recognized from the explanation that I meant Good. Correct the answer on the same receipt."
+      "checkpoint": "partial-saved-hard"
     },
     {
       "tap": {
-        "tag": "receipt-cardio-effort-GOOD"
+        "text": "Distance not entered"
       }
     },
     {
-      "checkpoint": "saturday-corrected-good-summary"
+      "type": {
+        "text": "Note",
+        "value": "shin hurt at 12 min",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "partial-with-shin-note"
     }
   ]
 }

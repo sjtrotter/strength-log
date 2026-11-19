@@ -8,7 +8,7 @@
   },
   "steps": [
     {
-      "note": "Sunday evening setup. I want a plan for my December 12 department fitness test, with running plus one-minute push-ups and sit-ups."
+      "note": "Sunday setup, 20:00. My test is push-ups for one minute, sit-ups for one minute, then a 1.5-mile run on December 12. Use the offered running plan and add the other events later if necessary."
     },
     {
       "tap": {
@@ -51,128 +51,35 @@
       }
     },
     {
-      "note": "Continue setup page 4: supply my real test details wherever offered, then move on."
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ray",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "34",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "208",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Test date",
-        "value": "12/12/2026",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "1.5",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Target time",
-        "value": "12:59",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Recent time",
-        "value": "14:05",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Push-ups",
-        "value": "32",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Sit-ups",
-        "value": "33",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Longest run (minutes)",
-        "value": "22",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
+      "tap": {
+        "role": "RadioButton",
+        "index": 1
+      }
     },
     {
       "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true,
-      "timeoutMs": 800
+        "role": "RadioButton",
+        "index": 4
+      }
     },
     {
       "tap": {
-        "text": "Thursday"
-      },
-      "optional": true,
-      "timeoutMs": 800
+        "role": "RadioButton",
+        "index": 6
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "10 lb"
+      }
     },
     {
       "tap": {
-        "text": "Saturday"
-      },
-      "optional": true,
-      "timeoutMs": 800
+        "text": "10 lb"
+      }
     },
     {
-      "tap": {
-        "text": "Sunday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "setup-page-4"
+      "checkpoint": "equipment-and-pound-units"
     },
     {
       "tap": {
@@ -180,128 +87,19 @@
       }
     },
     {
-      "note": "Continue setup page 5: supply my real test details wherever offered, then move on."
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ray",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "34",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "208",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Test date",
-        "value": "12/12/2026",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "1.5",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Target time",
-        "value": "12:59",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Recent time",
-        "value": "14:05",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Push-ups",
-        "value": "32",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Sit-ups",
-        "value": "33",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Longest run (minutes)",
-        "value": "22",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
+      "tap": {
+        "role": "Checkbox",
+        "index": 2
+      }
     },
     {
       "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true,
-      "timeoutMs": 800
+        "role": "Checkbox",
+        "index": 4
+      }
     },
     {
-      "tap": {
-        "text": "Thursday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Saturday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Sunday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "setup-page-5"
+      "checkpoint": "year-lifting-some-running-no-injury"
     },
     {
       "tap": {
@@ -309,441 +107,92 @@
       }
     },
     {
-      "note": "Continue setup page 6: supply my real test details wherever offered, then move on."
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ray",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "34",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "208",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Test date",
-        "value": "12/12/2026",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "1.5",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Target time",
-        "value": "12:59",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Recent time",
-        "value": "14:05",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Push-ups",
-        "value": "32",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Sit-ups",
-        "value": "33",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Longest run (minutes)",
-        "value": "22",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
       "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Thursday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Saturday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Sunday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "setup-page-6"
-    },
-    {
-      "tap": {
-        "text": "Next"
+        "role": "Checkbox",
+        "index": 1
       }
     },
     {
-      "note": "Continue setup page 7: supply my real test details wherever offered, then move on."
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ray",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "34",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "208",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Test date",
-        "value": "12/12/2026",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "1.5",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
       "type": {
         "text": "Target time",
         "value": "12:59",
         "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Recent time",
-        "value": "14:05",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Push-ups",
-        "value": "32",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Sit-ups",
-        "value": "33",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Longest run (minutes)",
-        "value": "22",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Thursday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Saturday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Sunday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "setup-page-7"
-    },
-    {
-      "tap": {
-        "text": "Next"
       }
     },
     {
-      "note": "Continue setup page 8: supply my real test details wherever offered, then move on."
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ray",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Age",
-        "value": "34",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Bodyweight (lb)",
-        "value": "208",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Test date",
-        "value": "12/12/2026",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
       "type": {
         "text": "Distance (mi)",
         "value": "1.5",
         "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
+      }
     },
     {
       "type": {
-        "text": "Target time",
-        "value": "12:59",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Recent time",
+        "text": "Time",
         "value": "14:05",
         "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Push-ups",
-        "value": "32",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Sit-ups",
-        "value": "33",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "type": {
-        "text": "Longest run (minutes)",
-        "value": "22",
-        "ime": "done"
-      },
-      "optional": true,
-      "timeoutMs": 800
+      }
     },
     {
       "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true,
-      "timeoutMs": 800
+        "text": "Add date"
+      }
     },
     {
       "tap": {
-        "text": "Thursday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Saturday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Sunday"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "setup-page-8"
-    },
-    {
-      "tap": {
-        "text": "Create plan"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Build plan"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Start training"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Finish"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "tap": {
-        "text": "Next"
-      },
-      "optional": true,
-      "timeoutMs": 800
-    },
-    {
-      "checkpoint": "fitness-test-setup-result"
-    },
-    {
-      "tap": {
-        "text": "Plan"
+        "desc": "Switch to text input mode"
       },
       "optional": true,
       "timeoutMs": 1000
     },
     {
-      "tap": {
-        "text": "Plans"
-      },
-      "optional": true,
-      "timeoutMs": 1000
+      "type": {
+        "text": "Date",
+        "value": "12122026",
+        "ime": "done"
+      }
     },
     {
-      "checkpoint": "plan-after-setup"
+      "checkpoint": "december-12-test-date-entry"
+    },
+    {
+      "tap": {
+        "text": "OK"
+      }
+    },
+    {
+      "checkpoint": "test-details"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "22",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "longest-run-22-minutes"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "offered-fitness-test-plan"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "setup-finished"
     }
   ]
 }

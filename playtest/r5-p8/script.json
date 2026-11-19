@@ -30,8 +30,18 @@
     },
     {
       "tap": {
-        "text": "Start"
+        "tag": "workout-action-filled"
       }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "poor-sleep-running-after-warm-up-start"
     },
     {
       "advance": "5m"
@@ -44,7 +54,7 @@
     },
     {
       "tap": {
-        "text": "Start"
+        "tag": "workout-action-filled"
       }
     },
     {
@@ -58,7 +68,7 @@
     },
     {
       "tap": {
-        "text": "Start"
+        "tag": "workout-action-filled"
       }
     },
     {
@@ -72,7 +82,7 @@
     },
     {
       "tap": {
-        "text": "Start"
+        "tag": "workout-action-filled"
       }
     },
     {

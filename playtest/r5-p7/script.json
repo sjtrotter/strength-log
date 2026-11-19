@@ -9,7 +9,7 @@
   },
   "steps": [
     {
-      "note": "Dec 1 team speed session, coach electronic gates: 40 yd 4.99 and 5.02, then lifts. Missed Nov27 for Thanksgiving, jogged30min with Dad instead. Added facts: three-point starts, five-minute dynamic warmup plus app10-minute track warmup, 230x5x3 Hard squat with three-minute rests. First work set mistakenly Max, immediately correct to Hard. Manual-entry labels and distance/method options are discovery assumptions; never knowingly store40yd as10m."
+      "note": "Dec1 team speed session: coach electronic gates40yd4.99/5.02 then lifts. Nov27 missed for travel, jog30min Dad. Added facts: three-point starts, dynamic5min plus app10min track warmup, two-minute sprint rests, squat230x5x3Hard, three-minute lifting rests. Mistaken Max on first work set; try correcting toHard.40yd results go in saved session notes because current rep is10m and manual sheet has no distance field."
     },
     {
       "tap": {
@@ -96,82 +96,15 @@
       "checkpoint": "dec1-manual-time-1"
     },
     {
-      "type": {
-        "text": "Distance (yd)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Time (s)",
-        "value": "4.99",
-        "ime": "done"
-      }
-    },
-    {
       "tap": {
-        "text": "Electronic gates"
+        "text": "Cancel"
       }
     },
     {
-      "tap": {
-        "text": "Save time"
-      }
+      "note": "The visible Rep time sheet has no distance control and the current rep is 10 m. Keep the coach's actual 40 yd gates results 4.99 and 5.02 in the session note, without saving them as 10 m. Perform team speed work outside app, full two-minute rests."
     },
     {
-      "checkpoint": "dec1-40yd-4.99"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "tap": {
-        "text": "Three-point"
-      }
-    },
-    {
-      "tap": {
-        "text": "Enter time"
-      }
-    },
-    {
-      "checkpoint": "dec1-manual-time-2"
-    },
-    {
-      "type": {
-        "text": "Distance (yd)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Time (s)",
-        "value": "5.02",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Electronic gates"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save time"
-      }
-    },
-    {
-      "checkpoint": "dec1-40yd-5.02"
-    },
-    {
-      "advance": "2m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -242,10 +175,11 @@
     {
       "tap": {
         "text": "Hard"
-      }
+      },
+      "optional": true
     },
     {
-      "checkpoint": "dec1-corrected-to-hard"
+      "checkpoint": "dec1-hard-correction-attempt"
     },
     {
       "advance": "3m"
@@ -362,7 +296,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Coach gates 40yd: 4.99,5.02. Squat Hard, corrected Max. Nov27 travel; jog30min Dad. Nov18/20 hamstring tight.",
+        "value": "Gates 40yd 4.99,5.02; three-point. Squat was Hard; Max tap error. Nov27 travel, jog30min Dad.",
         "ime": "done"
       }
     },
@@ -470,31 +404,12 @@
       "checkpoint": "dec4-manual-time-1"
     },
     {
-      "type": {
-        "text": "Distance (yd)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Time (s)",
-        "value": "4.88",
-        "ime": "done"
-      }
-    },
-    {
       "tap": {
-        "text": "Hand-timed"
+        "text": "Cancel"
       }
     },
     {
-      "tap": {
-        "text": "Save time"
-      }
-    },
-    {
-      "checkpoint": "dec4-40yd-4.88"
+      "note": "Keep Javi's hand-stopwatch 40 yd 4.88 in the session note; the current Track run rep is 10 m and this time sheet cannot change distance. No false 10 m result saved."
     },
     {
       "advance": "2m"
@@ -578,6 +493,32 @@
     },
     {
       "checkpoint": "dec4-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Javi hand stopwatch40yd4.88, three-point. Squat235x5 felt light. Dec2 futsal, hamstring fine.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "dec4-final-summary-with-note"
     }
   ]
 }

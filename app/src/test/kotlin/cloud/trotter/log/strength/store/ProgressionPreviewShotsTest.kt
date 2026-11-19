@@ -418,7 +418,7 @@ class ProgressionPreviewShotsTest {
         }
         val plan = PlanEntity(1, "Sprint", "AUTHORED", 0, 0, suggestedDayId = "A",
             goalJson = PlanGoalJson.encode(PlanGoal.Sprint(100)))
-        val state = PlanScreenBuilder.buildUiState(plan, program, ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+        val state = PlanScreenBuilder.buildUiState(plan, program, ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L)
         render(scale) { PlanScreen(state, PlanActions({}, {}, {})) }
         capture(name)
     }

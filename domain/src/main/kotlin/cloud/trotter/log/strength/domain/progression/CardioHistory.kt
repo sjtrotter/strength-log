@@ -36,7 +36,12 @@ data class CardioHistory(
 ) {
     companion object {
         const val WINDOW_MILLIS = 30L * 24 * 60 * 60 * 1000
-        const val WEEK_MILLIS = 7L * 24 * 60 * 60 * 1000
+        /** Local days in the rolling week the ladder cap, its busy guard and the sprint allowance count. */
+        const val WEEK_DAYS = 7
+        const val WEEK_MILLIS = WEEK_DAYS * 24L * 60 * 60 * 1000
+
+        /** The [WEEK_DAYS] local days ending on [epochDay], inclusive. */
+        fun weekEnding(epochDay: Long): LongRange = epochDay - WEEK_DAYS + 1..epochDay
 
         /** Sessions with asOfMillis − completedAt in 0 until [WEEK_MILLIS]; null when none finished. */
         fun lastWeek(sessions: List<LoggedCardio>, asOfMillis: Long): WeekLoad? {
@@ -64,21 +69,21 @@ data class CardioHistory(
 
         /** The most WORK seconds (secondsAtEnd, else elapsedSeconds) in one finished family session completed within
          *  [WINDOW_MILLIS] before [asOfMillis], RECOVERY excluded; null when none finished. The ladder start's anchor. */
-        fun longestRunning(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = sessions
-            .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
-            .maxOfOrNull { session ->
-                session.results.filter { it.spec.role == CardioRole.WORK }.sumOf { it.secondsAtEnd ?: it.elapsedSeconds }
-            }
+        fun longestRunning(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = finishedWork(sessions, asOfMillis)
+            .maxOfOrNull { work -> work.sumOf { it.secondsAtEnd ?: it.elapsedSeconds } }
 
         /** The most WORK metres in one finished family session within [WINDOW_MILLIS] before [asOfMillis],
          *  RECOVERY excluded. Every WORK set must have a distance ([RunCap.metres]); null when none does.
          *  The ladder gate's distance arm (revision 47). */
-        fun longestRunningMetres(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = sessions
-            .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
-            .mapNotNull { session ->
-                val metres = session.results.filter { it.spec.role == CardioRole.WORK }.map(RunCap::metres)
+        fun longestRunningMetres(sessions: List<LoggedCardio>, asOfMillis: Long): Int? = finishedWork(sessions, asOfMillis)
+            .mapNotNull { work ->
+                val metres = work.map(RunCap::metres)
                 if (metres.all { it != null }) metres.sumOf { requireNotNull(it) } else null
             }.maxOrNull()
+
+        private fun finishedWork(sessions: List<LoggedCardio>, asOfMillis: Long): List<List<CardioSetResult>> = sessions
+            .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
+            .map { session -> session.results.filter { it.spec.role == CardioRole.WORK } }
 
         /** The run anchors setup and the re-plan read for [family] (design revisions 47 and 48), from
          *  [sessions] completed by [asOfMillis]. */

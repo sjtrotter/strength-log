@@ -10,10 +10,12 @@ data class CardioRule(
     val ladderLevel: Int?,
     /** What the day is for; null on ladder days and on every rule written before PR 4b. */
     val session: RunSession? = null,
-    /** Units above the range's low end, shared with [alternate] (design §3.1). */
+    /** Units above the range's low end, shared with [alternate] (design §3.1). Steps climb to the larger range's top,
+     *  so a day held below its step (VO2MAX at its own top, or fitted down to the session budget) can earn credit
+     *  and steps that only THRESHOLD sessions use. */
     val steps: Int = 0,
-    /** Counted sessions toward the next unit, 0 or 1; on the ladder, counted Easy finishes toward the next level
-     *  ([RunWalkLadder.EASY_PER_LEVEL]). */
+    /** Counted sessions toward the next unit, 0 or 1 (two counted sessions per unit); on the ladder, counted Easy
+     *  finishes toward the next level, below [RunWalkLadder.EASY_PER_LEVEL]. */
     val credits: Int = 0,
     /** The kind a lone base-phase threshold day alternates with (§3.1.2). */
     val alternate: RunSession? = null,
@@ -39,7 +41,7 @@ data class CardioRule(
         require(ladderLevel == null || ladderLevel in 1..RunWalkLadder.TOP)
         require(ladderLevel == null || session == null)
         require(session != RunSession.LADDER)
-        require(credits in 0..1)
+        require(credits >= 0 && credits < if (ladderLevel != null) RunWalkLadder.EASY_PER_LEVEL else 2)
         val range = session?.let(RunRange::of)
         require(credits == 0 || range != null || ladderLevel != null)
         require(ladderLevel != null || (ladderCounted.isEmpty() && ladderRaised == null))

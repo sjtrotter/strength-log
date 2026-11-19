@@ -1,14 +1,9 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.resetDay
 import cloud.trotter.log.strength.data.minExercisesPerDay
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.data.db.entity.PlanOrigin
-import cloud.trotter.log.strength.data.serialization.hasSetupRecipe
-import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.model.ProgramDay
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.planner.PlanBranch
-import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseSearch
@@ -37,11 +32,8 @@ object ExercisePicker {
 }
 
 object DayEditRules {
-    fun canResetToTemplate(plan: PlanEntity, day: ProgramDay?, unit: WeightUnit): Boolean {
-        if (plan.origin != PlanOrigin.GENERATED.name || day == null || !plan.hasSetupRecipe) return false
-        val answers = plan.setupAnswers(unit)?.takeIf { it.branch == PlanBranch.LIFT } ?: return false
-        return runCatching { Planner.day(answers, day.id) }.getOrNull()?.day?.kind?.let { it != ProgramDayKind.REST } == true
-    }
+    fun canResetToTemplate(plan: PlanEntity, day: ProgramDay?, unit: WeightUnit): Boolean =
+        day != null && plan.resetDay(day.id, unit) != null
 
     fun canRemove(slotCount: Int, hasCardio: Boolean = false): Boolean =
         slotCount > minExercisesPerDay(hasCardio)

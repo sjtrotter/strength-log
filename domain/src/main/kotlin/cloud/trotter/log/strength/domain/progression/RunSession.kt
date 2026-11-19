@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
-/** What a run or sprint day is for; titles are placeholders until PR 7's copy. Stored by name in [CardioRule];
+/** What a run or sprint day is for. Titles show on receipts. Stored by name in [CardioRule];
  *  new constants go at the end. */
 enum class RunSession(val title: String) {
     LADDER("Run/walk"), EASY("Easy"), LONG("Long"),
@@ -9,6 +9,13 @@ enum class RunSession(val title: String) {
     SHARPENING("Race pace"),
     ACCELERATION("Acceleration"), MAX_VELOCITY("Max velocity"),
     SPRINT_ENDURANCE("Sprint endurance"), SPRINT_TEMPO("Tempo");
+
+    /** The kind this one takes turns with on a lone base-phase quality day (design §3.1.2); null for every other kind. */
+    val alternation: RunSession? get() = when (this) {
+        THRESHOLD -> VO2MAX
+        VO2MAX -> THRESHOLD
+        else -> null
+    }
 
     /** A sprint branch day (design §3.1.3): stepped by [SprintRules], exempt from the run cap. */
     val sprint: Boolean get() = this == ACCELERATION || this == MAX_VELOCITY ||

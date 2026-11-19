@@ -64,15 +64,15 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
-    @Test fun `an Automatic re-plan hides wrapping and earlier run chips and retains receipt results`() = runTest(dispatcher) {
+    @Test fun `an Automatic re-plan hides the wrapping chip and a hand restored earlier chip`() = runTest(dispatcher) {
         assertReplannedRun(autoApply = true)
     }
 
-    @Test fun `an accepted Ask re-plan hides the run chip and retains the receipt result`() = runTest(dispatcher) {
+    @Test fun `an accepted Ask re-plan hides the run chip and a hand restored earlier chip`() = runTest(dispatcher) {
         assertReplannedRun(autoApply = false)
     }
 
-    @Test fun `an Automatic Both strength re-plan hides an earlier run chip and retains its receipt result`() = runTest(dispatcher) {
+    @Test fun `an Automatic Both strength re-plan hides a hand restored earlier run chip`() = runTest(dispatcher) {
         assertReplannedRun(autoApply = true, both = true)
     }
 

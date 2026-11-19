@@ -223,7 +223,8 @@ object DayScreenBuilder {
 
     /** Ruled chips read the Finish's stored result: judging a credited ladder again would predict the next Finish.
      *  Rule-less chips use history and the current block. Ask plans follow their Offer switch.
-     *  Receipts retain stored results for their read-only increase explanations. */
+     *  Receipts retain stored results for their read-only increase explanations. A later Finish on the plan clears
+     *  older undo records, so an older day's chip goes with its record. */
     fun cardioNextTime(day: ProgramDay, plan: PlanEntity, sessions: List<CardioSessionEntity>,
                        sets: Map<Long, List<CardioSetResult>>, readOnly: Boolean = false): CardioNextTime? {
         if (!NextTimeGate.cardio(plan)) return null

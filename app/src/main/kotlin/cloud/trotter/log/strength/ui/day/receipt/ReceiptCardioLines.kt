@@ -6,7 +6,6 @@ import androidx.compose.ui.res.pluralStringResource
 import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.LadderHold
-import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.R
@@ -150,7 +149,7 @@ private fun runWhyLine(state: ReceiptProgressState, name: String): String? {
                 stringResource(if (result.held) R.string.receipt_why_offered else R.string.receipt_why_next_time))
         }
         is CardioChange.Alternate -> stringResource(R.string.receipt_why_run_alternate,
-            if (change.to == RunSession.VO2MAX) RunSession.THRESHOLD.title else RunSession.VO2MAX.title, change.to.title)
+            change.to.alternation?.title ?: return null, change.to.title)
         is CardioChange.Increase -> {
             val offer = state.cardioNext as? CardioNextTime.Offer ?: return null
             val unit = distanceUnitFor(offer.offered.activity)

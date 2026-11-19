@@ -83,7 +83,7 @@ class OldPlanMainsTest {
             assertEquals(listOf(60f), card.points.map { it.value })
             assertEquals(80f, card.goalValue)
             val state = PlanScreenBuilder.buildUiState(assertNotNull(db.planDao().plan(id)), stored,
-                ExerciseCatalog.CODE_ONLY, WeightUnit.LB)
+                ExerciseCatalog.CODE_ONLY, WeightUnit.LB, todayEpochDay = 0L)
             assertEquals("80", state.goals.single { it.exerciseId == "goblet_squat" }.display)
             assertEquals(before, db.programDao().exercisesForPlan(id))
         }

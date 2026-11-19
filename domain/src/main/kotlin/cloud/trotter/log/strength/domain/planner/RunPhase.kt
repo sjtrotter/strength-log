@@ -31,10 +31,13 @@ internal fun ladderMet(anchor: RecentMaxima?, runningSeconds: Int?, runningMetre
  *  (0.36 s/m) is slow so sessions fit their minutes; it would overplace runners faster than 6:00 per km. */
 internal const val TYPED_START_SECONDS_PER_METRE = 0.24
 
-/** The longest WORK metres in one logged session, else the typed longest when the family has no log. */
+/** Whether [run]'s family has a finished session in the window; the log then wins over the typed longest. */
+private fun hasLog(run: RunAnswers, known: KnownLoads): Boolean = CardioFamily.of(run.activity) in known.longestRecent
+
+/** The longest WORK metres in the window when the family has a finished log, else the typed longest. */
 internal fun runningMetres(run: RunAnswers, known: KnownLoads): Int? {
     val family = CardioFamily.of(run.activity)
-    return if (family in known.longestRecent) known.longestRunningMetres[family] else run.seed()?.metres
+    return if (hasLog(run, known)) known.longestRunningMetres[family] else run.seed()?.metres
 }
 
 internal fun startPhase(run: RunAnswers, anchor: RecentMaxima?, week: RecentMaxima?, running: Int?, runningMetres: Int?,
@@ -71,8 +74,10 @@ internal fun weeksNeeded(goal: RunGoal, start: RunPhase, ladderWeeks: Int?): Int
     return phases.sumOf { if (it == RunPhase.LADDER) requireNotNull(ladderWeeks) else requireNotNull(it.minWeeks) }
 }
 
+/** The longest WORK seconds in the window when the family has a finished log; otherwise the typed time or
+ *  distance estimated with [TYPED_START_SECONDS_PER_METRE]. */
 internal fun runningSeconds(run: RunAnswers, known: KnownLoads): Int? =
-    known.longestRunning[CardioFamily.of(run.activity)] ?: run.seed()?.seconds
+    if (hasLog(run, known)) known.longestRunning[CardioFamily.of(run.activity)] else run.seed()?.seconds
         ?: run.seed()?.metres?.let { (it * TYPED_START_SECONDS_PER_METRE).toInt() }
 
 internal fun ladderStart(runningSeconds: Int?, injury: Boolean): Int {

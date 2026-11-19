@@ -113,7 +113,7 @@ internal fun runRule(
         CardioRule(null, session, longMetres = metres, longSeconds = seconds)
     }
     else -> CardioRule(null, session,
-        alternate = RunSession.VO2MAX.takeIf { session == RunSession.THRESHOLD && phase == RunPhase.BASE && lone })
+        alternate = session.alternation.takeIf { session == RunSession.THRESHOLD && phase == RunPhase.BASE && lone })
 }
 
 private fun longTarget(run: RunAnswers, phase: RunPhase?, distance: Boolean): Pair<Int?, Int?> = when {

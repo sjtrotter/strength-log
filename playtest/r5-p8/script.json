@@ -120,15 +120,9 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Skip",
+        "role": "Button"
       }
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      },
-      "optional": true
     },
     {
       "checkpoint": "november-24-saved-before-rating"
@@ -142,34 +136,16 @@
       "checkpoint": "poor-sleep-hard-rating-progression"
     },
     {
-      "scrollTo": {
-        "text": "Add a note"
-      }
+      "note": "Sleep context and push-up counts remain on paper. No note control is visible on this cardio-only receipt; do not pretend these script notes are saved in the app."
     },
     {
       "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "checkpoint": "poor-sleep-note-editor"
-    },
-    {
-      "type": {
-        "editable": true,
-        "index": 0,
-        "value": "Called out at 2 am for a crash. Slept four hours. Slowed the intervals because of sleep, not fitness. Push-ups: 30, 25, 21, one minute each.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
+        "desc": "4 by 5 minutes. Distance not entered."
       },
       "optional": true
     },
     {
-      "checkpoint": "november-24-rough-session-summary"
+      "checkpoint": "november-24-rough-session-summary-and-detail"
     }
   ]
 }

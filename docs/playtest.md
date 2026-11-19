@@ -22,16 +22,16 @@ pin for every run in a phase; an existing seat retains its earlier commits.
   "device": "w360dp-h720dp-night-xxhdpi",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
   "steps": [
-    { "tap": { "text": "Next" } },
-    { "checkpoint": "days-per-week" }
+    { "tap": { "text": "A button's label" } },
+    { "checkpoint": "after-first-tap" }
   ]
 }
 ```
 
 `seat` and `steps` are required. Seat names use letters, numbers, underscores,
 or hyphens. Device and start default to the values above. Locale is pinned to
-`en-US`; the app runs in the script's `start.zone`. A fresh wizard defaults to
-pounds. Each run starts with fresh storage and replays every step.
+`en-US`; the app runs in the script's `start.zone`. Each run starts with fresh
+storage and replays every step.
 Append steps to the script between turns. The last green run's step count controls
 where new captures start. Checkpoints and failures are always captured. If you
 change earlier steps, remove `playtest-runs/<seat>/.last-ok` to capture everything.
@@ -76,7 +76,7 @@ Put exactly one action in each step, plus `timeoutMs`, `expectError`, or `"optio
 malformed payloads fail before the activity launches. For example:
 
 ```json
-{ "expect": { "text": "Start day A" }, "timeoutMs": 20000 }
+{ "expect": { "text": "Text you expect to see" }, "timeoutMs": 20000 }
 ```
 
 Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
@@ -210,9 +210,8 @@ absolute. For a CI run, use a file name next to the script: `scripts/playtest.sh
 commits that file to the seat branch with the script. It imports through the real backup service before launch. Keep the
 backup's sibling `summary.json` to recover its fake clock, or supply explicit
 `start.date` and `start.time`. Current app backups have no export timestamp.
-Restore resets navigation and clears drafts, rest deadline, undo offer,
-timer anchors, and watch stamps. A backup from an unfinished workout cannot
-resume those transient states. Named checkpoints are screen captures, not resumable saves.
+Restore resets navigation and clears transient UI and timer state. A backup
+taken mid-flow cannot resume that state. Named checkpoints are screen captures, not resumable saves.
 
 CI replays every pilot on a PR that touches the harness, the pilots or the
 playtest workflow. A PR that changes app, data, domain or transfer code replays
@@ -230,8 +229,8 @@ previous green segment's `backup.json` next to the new script as
 of the new segment, remove `playtest-runs/<seat>/.last-ok` so capture starts at
 step 0.
 
-Restores drop transient state, including open sheets, rest timers, and drafts.
-Keep flows that test those states inside one segment.
+Restores drop transient UI and timer state. Keep flows that depend on that state
+inside one segment.
 
 There is no system UI, notification display, IME, share sheet, watch, Health
 Connect, haptics, or real animation timing. Dialogs and menus are sized to their

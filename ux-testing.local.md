@@ -13,6 +13,7 @@ Read by the `ux-testing` skill. Generic method lives in the skill; this file nam
 - **Design rules:** CLAUDE.md principle 5 (Material 3 as the component system, the app's own identity in the theme) and DESIGN.md.
 - **Devices:** the owner's Pixel 7 is real hardware. Agents never send input to it. Install and launch, or a passive screencap loop, only when the owner asks. No local emulator (RAM).
 - **Kit:** personas, phase A answers, the round brief generator, the Astra seat loop, and past round results are in `~/Projects/strength-log-playtest-kit/`.
+- **Operator notes kept out of the tester guide:** a fresh install opens setup, which defaults to pounds; restores clear drafts, the rest deadline, the undo offer, timer anchors and watch stamps.
 - **Builds:** CI only; no local Gradle.
 
 ## Harness pilots

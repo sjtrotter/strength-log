@@ -117,12 +117,6 @@
     },
     {
       "tap": {
-        "text": "Next set"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
         "text": "Start"
       }
     },
@@ -158,12 +152,6 @@
     },
     {
       "advance": "4m"
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      },
-      "optional": true
     },
     {
       "tap": {
@@ -244,13 +232,14 @@
     },
     {
       "tap": {
-        "text": "Barbell Deadlift"
+        "textContains": "Conventional Deadlift"
       }
     },
     {
       "tap": {
         "text": "Today only"
-      }
+      },
+      "optional": true
     },
     {
       "checkpoint": "conventional-deadlift-today"
@@ -336,13 +325,22 @@
     },
     {
       "tap": {
-        "text": "Next set"
+        "text": "All sets"
       }
     },
     {
       "tap": {
-        "desc": "Edit set 3"
+        "text": "Add a set"
       }
+    },
+    {
+      "checkpoint": "nov13-added-third-deadlift-set"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      },
+      "optional": true
     },
     {
       "type": {

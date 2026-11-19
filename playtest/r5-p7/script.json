@@ -228,7 +228,8 @@
     },
     {
       "tap": {
-        "text": "Finish workout"
+        "text": "Finish",
+        "inDialog": true
       }
     },
     {

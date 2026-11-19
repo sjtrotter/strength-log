@@ -8,7 +8,7 @@
   },
   "steps": [
     {
-      "note": "Dana: first 5K, no running since school, no recent race or time trial. Three days per week, about 30 minutes. Review the proposed beginner plan before accepting."
+      "note": "Dana: no running since school, no recent race or time trial. Three days weekly and 30 minutes. My spring 5K is tentative, so leave the optional event date unset. No running injury; I am 43, not 65 or older."
     },
     {
       "tap": {
@@ -22,9 +22,6 @@
       }
     },
     {
-      "checkpoint": "running-setup-page-two"
-    },
-    {
       "tap": {
         "textContains": "First 5K",
         "role": "RadioButton"
@@ -36,14 +33,36 @@
       }
     },
     {
-      "checkpoint": "running-setup-page-three"
+      "note": "Three days is already selected. Change the visible 60-minute default to 30."
     },
     {
       "tap": {
-        "textContains": "Beginner",
+        "text": "30",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "three-days-thirty-minutes"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bodyweight",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "lb",
         "role": "RadioButton"
-      },
-      "optional": true
+      }
+    },
+    {
+      "checkpoint": "equipment-and-units"
     },
     {
       "tap": {
@@ -51,27 +70,10 @@
       }
     },
     {
-      "checkpoint": "running-setup-page-four"
+      "note": "New is already selected for both lifting and running, and both injury-in-the-past-year and 65-or-older are unchecked. These are my actual facts."
     },
     {
-      "tap": {
-        "text": "3 days"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "running-setup-page-five"
-    },
-    {
-      "tap": {
-        "text": "30 minutes"
-      },
-      "optional": true
+      "checkpoint": "new-runner-no-running-injury"
     },
     {
       "tap": {
@@ -79,7 +81,30 @@
       }
     },
     {
-      "checkpoint": "running-setup-page-six"
+      "note": "Just finish is already selected. No race or time trial to enter."
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "0",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "checkpoint": "why-recent-running-matters"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -91,7 +116,8 @@
     },
     {
       "tap": {
-        "text": "Start plan"
+        "textContains": "plan",
+        "role": "Button"
       }
     },
     {

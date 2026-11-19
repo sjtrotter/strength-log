@@ -8,7 +8,7 @@
   },
   "steps": [
     {
-      "note": "Sunday evening setup. Choose Sprint because the explicit 40-yard goal matters; still want heavy lifting twice weekly. No February test date is set."
+      "note": "Sunday setup. Goal: under 4.85 hand-timed for 40 yd, with heavy lifting. Two days, 60 to 75 minutes. Futsal Wednesdays and pickup Sundays. No February test date yet."
     },
     {
       "tap": {
@@ -22,35 +22,12 @@
       }
     },
     {
-      "checkpoint": "setup-sprint-options"
-    },
-    {
       "tap": {
-        "text": "40-yard dash"
-      },
-      "optional": true
+        "text": "40 yd"
+      }
     },
     {
-      "type": {
-        "text": "Goal time",
-        "value": "4.85",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Recent 40-yard time",
-        "value": "4.92",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Hand timed"
-      },
-      "optional": true
+      "checkpoint": "40-yard-goal"
     },
     {
       "tap": {
@@ -58,35 +35,61 @@
       }
     },
     {
-      "checkpoint": "setup-about-me"
+      "tap": {
+        "text": "2"
+      }
     },
     {
-      "type": {
-        "text": "Age",
-        "value": "19",
-        "ime": "done"
-      },
-      "optional": true
+      "tap": {
+        "text": "60"
+      }
     },
     {
-      "type": {
-        "text": "Bodyweight",
-        "value": "168",
-        "ime": "done"
-      },
-      "optional": true
+      "checkpoint": "two-days-one-hour"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {
         "text": "lb"
-      },
-      "optional": true
+      }
+    },
+    {
+      "note": "Full gym is selected by default. Keep it. Keep the displayed equipment increments; I have ordinary 5 lb total bar increases and 5 lb dumbbell steps available."
+    },
+    {
+      "checkpoint": "equipment-and-units"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
     },
     {
       "tap": {
         "text": "A year or more"
-      },
-      "optional": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Under 40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Sprinted all-out in the past month"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hamstring strain in the past 12 months"
+      }
+    },
+    {
+      "checkpoint": "experience-and-hamstring"
     },
     {
       "tap": {
@@ -94,131 +97,26 @@
       }
     },
     {
-      "checkpoint": "setup-schedule"
+      "checkpoint": "corrected-plan-preview"
     },
     {
       "tap": {
-        "text": "2 days"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Tuesday"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Friday"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "60 minutes"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Full gym"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Next"
+        "text": "Why this plan"
       }
     },
     {
-      "checkpoint": "setup-training-history"
+      "checkpoint": "plan-explanation"
     },
     {
-      "type": {
-        "text": "Squat",
-        "value": "225",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Bench press",
-        "value": "165",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Trap-bar deadlift",
-        "value": "275",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Recent 40-yard time",
-        "value": "4.92",
-        "ime": "done"
-      },
-      "optional": true
+      "back": true
     },
     {
       "tap": {
-        "text": "Hand timed"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Injuries",
-        "value": "Grade 1 left hamstring strain on August 20, 2026. Missed three weeks, fully back since mid-September. All-out match sprints weekly through October 31, 2026. Concerned about sprinting hard again.",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "type": {
-        "text": "Other training",
-        "value": "Futsal Wednesday nights about an hour, plus pickup soccer most Sundays. No conditioning runs needed.",
-        "ime": "done"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Next"
+        "text": "Start"
       }
     },
     {
-      "checkpoint": "setup-review"
-    },
-    {
-      "tap": {
-        "text": "Create plan"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Finish"
-      },
-      "optional": true
-    },
-    {
-      "tap": {
-        "text": "Next"
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "setup-plan-review"
-    },
-    {
-      "note": "End intended setup. Review for two days, speed before strength, modest sprint volume and hamstring consideration. Optional factual entries only apply if those fields are actually offered; inspect skipped captures before judging setup."
+      "checkpoint": "setup-finished"
     }
   ]
 }

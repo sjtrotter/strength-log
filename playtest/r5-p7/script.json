@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-24",
-    "time": "15:00",
+    "date": "2026-12-01",
+    "time": "15:30",
     "zone": "America/Los_Angeles"
   },
   "steps": [
     {
-      "note": "Nov 24: field booked until 17:00. Lift first at 15:00, sprint at 17:15. Short training day, about 45 active minutes. Use offered ramps; invented work performance 230x5x3 Good, accepting the prior 230 lb recommendation."
+      "note": "Dec 1 team speed session, coach electronic gates: 40 yd 4.99 and 5.02, then lifts. Missed Nov27 for Thanksgiving, jogged30min with Dad instead. Added facts: three-point starts, five-minute dynamic warmup plus app10-minute track warmup, 230x5x3 Hard squat with three-minute rests. First work set mistakenly Max, immediately correct to Hard. Manual-entry labels and distance/method options are discovery assumptions; never knowingly store40yd as10m."
     },
     {
       "tap": {
@@ -19,11 +19,19 @@
     },
     {
       "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "dec1-other-days"
+    },
+    {
+      "tap": {
         "text": "Acceleration"
       }
     },
     {
-      "checkpoint": "nov24-offered-day"
+      "checkpoint": "dec1-offered-day"
     },
     {
       "tap": {
@@ -49,7 +57,126 @@
       }
     },
     {
-      "checkpoint": "day-a-lift-selector"
+      "scrollTo": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Track run"
+      }
+    },
+    {
+      "checkpoint": "dec1-track-run"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-point"
+      }
+    },
+    {
+      "tap": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "checkpoint": "dec1-manual-time-1"
+    },
+    {
+      "type": {
+        "text": "Distance (yd)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Time (s)",
+        "value": "4.99",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Electronic gates"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save time"
+      }
+    },
+    {
+      "checkpoint": "dec1-40yd-4.99"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-point"
+      }
+    },
+    {
+      "tap": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "checkpoint": "dec1-manual-time-2"
+    },
+    {
+      "type": {
+        "text": "Distance (yd)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Time (s)",
+        "value": "5.02",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Electronic gates"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save time"
+      }
+    },
+    {
+      "checkpoint": "dec1-40yd-5.02"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 17 sets"
+      }
     },
     {
       "tap": {
@@ -57,18 +184,12 @@
       }
     },
     {
-      "checkpoint": "squat-before-logging"
-    },
-    {
-      "note": "Nov 24: accept next-time 230 lb; perform three sets of five Good. Ramps use the app offer, without relabeling work as ramps."
+      "checkpoint": "dec1-squat-offer"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
       }
-    },
-    {
-      "checkpoint": "squat-ramp-1-logged"
     },
     {
       "advance": "3m"
@@ -77,9 +198,6 @@
       "tap": {
         "tag": "workout-action-filled"
       }
-    },
-    {
-      "checkpoint": "squat-ramp-2-logged"
     },
     {
       "advance": "3m"
@@ -114,15 +232,20 @@
       }
     },
     {
-      "checkpoint": "squat-work-set-1-logged-before-effort"
-    },
-    {
       "tap": {
-        "text": "Good"
+        "text": "Max"
       }
     },
     {
-      "checkpoint": "squat-work-set-1"
+      "checkpoint": "dec1-wrong-max-tap"
+    },
+    {
+      "tap": {
+        "text": "Hard"
+      }
+    },
+    {
+      "checkpoint": "dec1-corrected-to-hard"
     },
     {
       "advance": "3m"
@@ -162,15 +285,9 @@
       }
     },
     {
-      "checkpoint": "squat-work-set-2-logged-before-effort"
-    },
-    {
       "tap": {
-        "text": "Good"
+        "text": "Hard"
       }
-    },
-    {
-      "checkpoint": "squat-work-set-2"
     },
     {
       "advance": "3m"
@@ -210,33 +327,12 @@
       }
     },
     {
-      "checkpoint": "squat-work-set-3-logged-before-effort"
-    },
-    {
       "tap": {
-        "text": "Good"
+        "text": "Hard"
       }
     },
     {
-      "checkpoint": "squat-work-set-3"
-    },
-    {
       "advance": "3m"
-    },
-    {
-      "checkpoint": "nov24-lifts-done-before-field-opens"
-    },
-    {
-      "advance": "1h"
-    },
-    {
-      "advance": "55m"
-    },
-    {
-      "note": "17:15: turf now available. Sprint work outside the app, as after the prior phone timing did not preserve precise results. 25-minute block including full rests; no invented sprint times or distances. Five-minute warmup plus 15 minutes lifting/rest plus 25 minutes turf equals about 45 active minutes; long field-booking gap is inactive."
-    },
-    {
-      "advance": "25m"
     },
     {
       "tap": {
@@ -250,7 +346,7 @@
       }
     },
     {
-      "checkpoint": "nov24-delayed-sprints-summary"
+      "checkpoint": "dec1-summary"
     },
     {
       "scrollTo": {
@@ -266,7 +362,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Lift 15:00, field booked; sprints 17:15. 45 active min. Hamstring tight Nov18/20; stopped early Nov20, no Nordics.",
+        "value": "Coach gates 40yd: 4.99,5.02. Squat Hard, corrected Max. Nov27 travel; jog30min Dad. Nov18/20 hamstring tight.",
         "ime": "done"
       }
     },
@@ -276,7 +372,7 @@
       }
     },
     {
-      "checkpoint": "nov24-note-saved"
+      "checkpoint": "dec1-saved-note"
     },
     {
       "tap": {
@@ -284,16 +380,204 @@
       }
     },
     {
-      "advance": "2d21h50m"
+      "advance": "2d23h26m"
     },
     {
-      "note": "Nov 27 at parents: no planned Friday session. Thirty-minute easy jog with Dad outside the app; no distance supplied or invented. Flew home Nov25 and return Nov29. Do not mark the planned lifts/sprints done."
+      "note": "Dec2 futsal: hamstring fine. Dec4 best sprint day: Javi hand-timed40yd4.88, then factual235x5 squat felt light. Added facts: three-point start, offered squat ramps, Good effort, five-minute dynamic plus app10-minute track warmup, three-minute rests. Finish after this performed work; later look-around belongs in a separate segment."
     },
     {
-      "advance": "30m"
+      "tap": {
+        "text": "Rest taken"
+      },
+      "optional": true
     },
     {
-      "checkpoint": "thanksgiving-no-workout"
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "dec4-other-days"
+    },
+    {
+      "tap": {
+        "text": "Acceleration"
+      }
+    },
+    {
+      "checkpoint": "dec4-offered-day"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 17 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Track run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Track run"
+      }
+    },
+    {
+      "checkpoint": "dec4-track-run"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-point"
+      }
+    },
+    {
+      "tap": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "checkpoint": "dec4-manual-time-1"
+    },
+    {
+      "type": {
+        "text": "Distance (yd)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Time (s)",
+        "value": "4.88",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hand-timed"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save time"
+      }
+    },
+    {
+      "checkpoint": "dec4-40yd-4.88"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 17 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "dec4-squat-offer"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "235",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Good"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "dec4-summary"
     }
   ]
 }

@@ -3,163 +3,54 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-05",
-    "time": "07:00",
+    "date": "2026-12-06",
+    "time": "08:00",
     "zone": "America/Denver"
   },
   "steps": [
     {
-      "note": "Saturday Dec 5, 07:00, academy-style practice at the track. All three events in order. No all-event entry found so far, so keep an independent paper record. Do not pretend script notes are app records."
+      "note": "Sunday Dec 6: rest, as planned. Final look at the record and the plan for the test next Saturday. Training month is already saved; all look-around selectors are optional."
     },
     {
-      "advance": "1m"
-    },
-    {
-      "note": "Practice event 1: 38 push-ups in one minute. Paper record."
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "note": "Practice event 2: 37 sit-ups in one minute. Paper record. Now run 1.5 miles continuously in 13:12. The app is currently on rest day D; choose the existing running day C as a workaround."
+      "checkpoint": "december-6-rest-day"
     },
     {
       "tap": {
-        "text": "Other days"
-      }
-    },
-    {
-      "checkpoint": "practice-test-other-days"
-    },
-    {
-      "tap": {
-        "desc": "Day C"
-      }
-    },
-    {
-      "checkpoint": "practice-test-selected-running-day"
-    },
-    {
-      "tap": {
-        "text": "Start day C"
+        "text": "Rest taken"
       },
       "optional": true
     },
     {
-      "checkpoint": "practice-test-running-prescription"
+      "checkpoint": "rest-recorded-today"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "practice-run-started"
-    },
-    {
-      "note": "Use my own stopwatch and lap count for the real 1.5-mile practice. I run continuously, including while the app labels its 90-second recoveries. This preserves elapsed time but does not turn the offered interval workout into a supported practice-test workout."
-    },
-    {
-      "advance": "4m30s"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "4m30s"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1m12s"
-    },
-    {
-      "tap": {
-        "text": "Stop"
-      }
-    },
-    {
-      "checkpoint": "practice-run-13m12-stopped"
-    },
-    {
-      "note": "Actual whole run: 1.5 miles in 13:12. Distance entry here belongs to the stopped interval, so do not enter the whole-run distance as that interval. Retain the distance on paper."
-    },
-    {
-      "tap": {
-        "text": "Continue without distance"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "End cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "End and log"
-      }
-    },
-    {
-      "checkpoint": "practice-run-end-and-log-result"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
+        "text": "History",
+        "role": "Tab"
       },
       "optional": true
     },
     {
+      "checkpoint": "month-history"
+    },
+    {
       "tap": {
-        "tag": "workout-finish",
-        "enabled": true
+        "text": "Plans",
+        "role": "Tab"
       },
       "optional": true
     },
     {
+      "checkpoint": "plans-before-test-week"
+    },
+    {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Fitness test, 4 days"
       },
       "optional": true
     },
     {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "december-5-practice-summary"
+      "checkpoint": "fitness-test-plan-before-test-week"
     }
   ]
 }

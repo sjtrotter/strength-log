@@ -132,9 +132,7 @@
       "note": "Cannot find a quick count-entry route tonight: the picker starts with movement categories, not exercise search. Close it and do my test work using a separate one-minute timer and paper record. Do not save these counts as app data."
     },
     {
-      "tap": {
-        "desc": "Close sheet"
-      }
+      "back": true
     },
     {
       "advance": "1m"
@@ -190,6 +188,15 @@
     {
       "tap": {
         "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "november-10-finish-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
       }
     },
     {

@@ -3,35 +3,34 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-10",
+    "date": "2026-11-13",
     "time": "15:30",
     "zone": "America/Los_Angeles"
   },
   "steps": [
     {
-      "note": "Nov 10 full session: warm up on the turf, standing short starts and two phone-timing attempts, then three-point 40 yd runs hand-timed by Javi at 5.01 and 4.97. No sprint-entry control found on Today, day detail, or the initial workout screen. Keep those times in my separate notes for now and log the performed squat work."
+      "note": "Nov 11 futsal was 21:00\u201322:00, lots of sprinting. Kept in my separate notes because I have not found an outside-sport log. Nov 13 full session: sprint first, then conventional deadlift 225 x 5 x 3 because the trap bar is taken, then bodyweight Nordics, hard. Nov 13 added performance assumptions, because the diary gives no times: three phone-timed flying 10 m reps of 1.45, 1.43 and 1.46 seconds; retain these as invented facts, not Javi or coach times."
     },
     {
       "tap": {
-        "text": "Acceleration"
+        "text": "Max velocity"
       }
     },
     {
-      "checkpoint": "acceleration-day-detail"
+      "checkpoint": "nov13-day-preview"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start timer"
+      }
     },
     {
       "advance": "5m"
-    },
-    {
-      "note": "Standing short starts, then Javi times the two three-point 40s: 5.01 and 4.97. Full two-minute rests. No guessed phone timer values saved."
-    },
-    {
-      "advance": "12m"
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
     },
     {
       "tap": {
@@ -40,22 +39,167 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 0 of 17 sets"
+        "desc": "Day C lifts, 0 of 11 sets"
       }
     },
     {
-      "checkpoint": "day-a-lift-selector"
+      "checkpoint": "nov13-lift-list"
+    },
+    {
+      "scrollTo": {
+        "text": "Track run"
+      }
     },
     {
       "tap": {
-        "text": "Barbell Back Squat"
+        "text": "Track run"
       }
     },
     {
-      "checkpoint": "squat-before-logging"
+      "checkpoint": "track-run-before-sprints"
     },
     {
-      "note": "Squat warm-up assumption, not a diary fact: perform the offered ramp sets 135 lb x 5 and 180 lb x 3 before the three factual 225 lb x 5 work sets. Do not turn ramp slots into work sets."
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "note": "Perform the three planned short flying 10 m sprints. Invented Nov 13 phone times are 1.45, 1.43 and 1.46 seconds. Full four-minute recovery between reps."
+    },
+    {
+      "advance": "1s450ms"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "advance": "1s430ms"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "advance": "1s460ms"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "nov13-sprints-complete"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "nov13-sprint-summary"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 0 of 11 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Trap"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Trap"
+      }
+    },
+    {
+      "checkpoint": "trap-bar-before-substitution"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "trap-bar-set-options"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Today only"
+      }
+    },
+    {
+      "checkpoint": "conventional-deadlift-today"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
     },
     {
       "tap": {
@@ -63,10 +207,41 @@
       }
     },
     {
-      "checkpoint": "squat-ramp-1-logged"
+      "tap": {
+        "text": "Good"
+      }
     },
     {
       "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
     },
     {
       "tap": {
@@ -74,10 +249,17 @@
       }
     },
     {
-      "checkpoint": "squat-ramp-2-logged"
+      "tap": {
+        "text": "Good"
+      }
     },
     {
       "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set"
+      }
     },
     {
       "tap": {
@@ -109,18 +291,46 @@
       }
     },
     {
-      "checkpoint": "squat-work-set-1-logged-before-effort"
-    },
-    {
       "tap": {
         "text": "Good"
       }
     },
     {
-      "checkpoint": "squat-work-set-1"
+      "advance": "3m"
     },
     {
-      "advance": "3m"
+      "checkpoint": "nov13-deadlift-225x5x3"
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 3 of 12 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Nordic"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Nordic"
+      }
+    },
+    {
+      "checkpoint": "nordic-bodyweight-prescription"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hard"
+      }
+    },
+    {
+      "advance": "2m"
     },
     {
       "tap": {
@@ -129,97 +339,19 @@
     },
     {
       "tap": {
-        "desc": "Edit set 4"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "squat-work-set-2-logged-before-effort"
-    },
-    {
       "tap": {
-        "text": "Good"
+        "text": "Hard"
       }
     },
     {
-      "checkpoint": "squat-work-set-2"
+      "advance": "2m"
     },
     {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "text": "Next set"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 5"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "squat-work-set-3-logged-before-effort"
-    },
-    {
-      "tap": {
-        "text": "Good"
-      }
-    },
-    {
-      "checkpoint": "squat-work-set-3"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "note": "Three squat work sets completed, 225 lb x 5, Good, plus the two offered ramps. Finish with other unperformed lifts unlogged. Javi times remain in my separate notes; Track run was visible in the lift list but has not yet been opened."
+      "checkpoint": "nov13-nordics-hard"
     },
     {
       "tap": {
@@ -233,7 +365,7 @@
       }
     },
     {
-      "checkpoint": "nov10-session-summary"
+      "checkpoint": "nov13-session-summary"
     }
   ]
 }

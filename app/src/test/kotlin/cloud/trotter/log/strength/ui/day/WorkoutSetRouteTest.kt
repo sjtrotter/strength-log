@@ -124,10 +124,10 @@ class WorkoutSetRouteTest {
         }
         rule.onNodeWithText("Beep in 5").assertExists()
         rule.runOnIdle { elapsed += 5_000L }
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250))
+        rule.mainClock.advanceTimeBy(250L)
         rule.onNodeWithText("0.00").assertExists()
         rule.runOnIdle { elapsed += 4_880L }
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32))
+        rule.mainClock.advanceTimeBy(32L)
         rule.onNodeWithText("4.88").assertExists()
     }
 

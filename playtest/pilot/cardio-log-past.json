@@ -71,7 +71,29 @@
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Just cardio fitness"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
       }
     },
     {

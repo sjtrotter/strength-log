@@ -96,6 +96,9 @@
       }
     },
     {
+      "advance": "1s"
+    },
+    {
       "tap": {
         "text": "Start on the beep"
       }

@@ -126,183 +126,66 @@
       }
     },
     {
-      "type": {
-        "text": "Search",
-        "value": "push",
-        "ime": "done"
-      }
+      "checkpoint": "add-exercise-movement-categories"
+    },
+    {
+      "note": "Cannot find a quick count-entry route tonight: the picker starts with movement categories, not exercise search. Close it and do my test work using a separate one-minute timer and paper record. Do not save these counts as app data."
     },
     {
       "tap": {
-        "text": "Push-up"
-      }
-    },
-    {
-      "checkpoint": "push-up-logging"
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "31",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
+        "desc": "Close sheet"
       }
     },
     {
       "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Log set"
-      }
+      "note": "Push-ups: 31 in one minute, recorded on paper."
     },
     {
       "advance": "2m"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "26",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
-      }
-    },
-    {
       "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Log set"
-      }
+      "note": "Push-ups: 26 in one minute, recorded on paper."
     },
     {
       "advance": "2m"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "22",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
-      }
-    },
-    {
       "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Log set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Search",
-        "value": "sit",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Sit-up"
-      }
-    },
-    {
-      "checkpoint": "sit-up-logging"
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "33",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
-      }
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "tap": {
-        "text": "Log set"
-      }
+      "note": "Push-ups: 22 in one minute, recorded on paper."
     },
     {
       "advance": "2m"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "29",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
-      }
-    },
-    {
       "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Log set"
-      }
+      "note": "Sit-ups: 33 in one minute, recorded on paper."
     },
     {
       "advance": "2m"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "27",
-        "ime": "done"
-      }
+      "advance": "1m"
     },
     {
-      "type": {
-        "text": "Seconds",
-        "value": "60",
-        "ime": "done"
-      }
+      "note": "Sit-ups: 29 in one minute, recorded on paper."
+    },
+    {
+      "advance": "2m"
     },
     {
       "advance": "1m"
     },
     {
-      "tap": {
-        "text": "Log set"
-      }
+      "note": "Sit-ups: 27 in one minute, recorded on paper."
     },
     {
       "tap": {

@@ -14,7 +14,7 @@ import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import kotlinx.coroutines.flow.map

@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
-import cloud.trotter.log.strength.domain.generator.CardioIntervals
+import cloud.trotter.log.strength.domain.cardio.CardioIntervals
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchAlternate

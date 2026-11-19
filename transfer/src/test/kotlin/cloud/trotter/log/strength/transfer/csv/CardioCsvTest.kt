@@ -4,7 +4,7 @@ import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -21,6 +21,23 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CardioCsvTest {
+    @Test
+    fun `cardio rows leave RIR blank`() {
+        val sets = mixedSets()
+        val withSets = setSession(sets)
+        val summary = cardio("Easy Zone 2").copy(id = 2)
+        val csv = HistoryCsvWriter.export(
+            emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(withSets, summary),
+            mapOf(withSets.id to sets),
+        )
+        val rows = Csv.parse(csv).drop(1)
+
+        assertEquals(4, rows.size)
+        assertTrue(rows.all { cell(it, "RIR").isEmpty() })
+        val withRir = rows.indices.fold(csv) { text, index -> changeCell(text, index + 1, "RIR", "x") }
+        assertEquals(preview(csv), preview(withRir))
+    }
+
     @Test
     fun `cardio round-trip routes before exercise matching`() {
         val source = cardio("Easy Zone 2")
@@ -163,7 +180,7 @@ class CardioCsvTest {
         val rows = Csv.parse(exportSets(sets)).drop(1)
         assertEquals(11, rows.size)
         rows.forEachIndexed { index, row ->
-            assertEquals(25, row.size)
+            assertEquals(26, row.size) // PR 8: RIR column
             assertEquals("cardio", cell(row, "Set Type"))
             assertEquals((index + 1).toString(), cell(row, "Set Order"))
             assertEquals(if (index == 0) "5:00" else "2:00", cell(row, "Target"))

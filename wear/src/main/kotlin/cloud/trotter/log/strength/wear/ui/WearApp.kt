@@ -34,7 +34,7 @@ import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import androidx.wear.remote.interactions.RemoteActivityHelper
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.CardioDelta
-import cloud.trotter.log.strength.domain.generator.CardioIntervals
+import cloud.trotter.log.strength.domain.cardio.CardioIntervals
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot

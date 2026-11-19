@@ -3,13 +3,14 @@ package cloud.trotter.log.strength.transfer.csv
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -377,6 +378,7 @@ object HistoryCsvReader {
         val weightLb: Double,
         val reps: Int,
         val seconds: Int,
+        val rir: Int?,
     )
 
     /**
@@ -479,7 +481,12 @@ object HistoryCsvReader {
             parsed
         }
 
-        return ParsedRow(completedAt, dayTitle, exerciseName, setOrder, weightLb, reps, seconds)
+        val rir = rawCell(HistoryField.RIR).takeIf { it.isNotBlank() }?.let { raw ->
+            raw.toIntOrNull()?.takeIf { it in 0..EffortScale.MAX_REPS_LEFT }
+                ?: throw CsvImportError.MalformedRow(line, "reps left must be 0 to ${EffortScale.MAX_REPS_LEFT}: '$raw'")
+        }
+
+        return ParsedRow(completedAt, dayTitle, exerciseName, setOrder, weightLb, reps, seconds, rir)
     }
 
     private fun parseDate(text: String, zone: ZoneId): Long? {
@@ -519,6 +526,7 @@ object HistoryCsvReader {
                     weightLb = row.weightLb,
                     reps = row.reps,
                     seconds = row.seconds,
+                    rir = row.rir,
                 )
             }
             PreviewSession(dayTitle = dayTitle, completedAt = completedAt, sets = sets)

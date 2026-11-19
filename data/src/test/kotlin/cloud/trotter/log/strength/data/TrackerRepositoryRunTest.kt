@@ -1574,7 +1574,7 @@ class TrackerRepositoryRunTest {
 
     @Test fun `explicit Start refuses a day with no strength slots`() = runTest {
         val plan = repo.plans.createAuthoredPlan("Cardio", "Running")
-        repo.setCardioBlock(plan, "A", cloud.trotter.log.strength.domain.generator.CardioBlocks.fromLegacy(
+        repo.setCardioBlock(plan, "A", cloud.trotter.log.strength.domain.cardio.CardioBlocks.fromLegacy(
             cloud.trotter.log.strength.domain.model.CardioSuggestion("Easy", "", false),
             false, cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN,
         ))

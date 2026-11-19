@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
-import cloud.trotter.log.strength.domain.generator.CardioPlan
+import cloud.trotter.log.strength.domain.cardio.IntervalPlan
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 
 /** Minimal, saveable device-local session state. Everything visible derives
@@ -25,7 +25,7 @@ data class CardioProgress(
 )
 
 fun cardioProgress(
-    plan: CardioPlan,
+    plan: IntervalPlan,
     anchors: CardioAnchors,
     nowElapsedMillis: Long,
     nowWallMillis: Long? = null,

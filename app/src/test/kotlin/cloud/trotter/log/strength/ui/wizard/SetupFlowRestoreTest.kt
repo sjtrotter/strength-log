@@ -205,7 +205,8 @@ class SetupFlowRestoreTest {
     }
 
     private suspend fun SetupFlowViewModel.awaitOffered() =
-        waitFor("restore offer") { uiState.first { it.restore.offered } }
+        // The offer shows before init's last write; guarded calls such as restoreFromBackup are dropped until it lands.
+        waitFor("restore offer") { uiState.first { it.initialized && it.restore.offered } }
 
     private suspend fun SetupFlowViewModel.startFromGoal() {
         repeat(SetupFlowStateBuilder.steps(uiState.first { it.initialized }.draft).size - 1) { onNext() }

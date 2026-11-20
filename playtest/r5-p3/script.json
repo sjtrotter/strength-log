@@ -27,7 +27,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block \u2014 Nov 9 to Dec 5"
+        "value": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
@@ -1151,7 +1151,7 @@
       "checkpoint": "logged-set-16"
     },
     {
-      "note": "Cool-down Done returns to the completed workout. Tap the visible Finish day A action next; a receipt is still required before counting this session saved."
+      "note": "All 16 actual sets are complete, but Done then Finish day A did not save. Add one unperformed placeholder set so the separate Finish control can record the 16 real sets; explain the extra blank set in the receipt note."
     },
     {
       "tap": {
@@ -1165,12 +1165,38 @@
     },
     {
       "tap": {
-        "text": "Finish day A",
+        "text": "All sets",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "after-explicit-finish-following-cooldown-done"
+      "checkpoint": "final-ab-wheel-all-sets"
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "extra-unperformed-set-to-recover-finish"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-real-work-with-placeholder-left"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "role": "Button",
+        "inDialog": true
+      }
     },
     {
       "expect": {
@@ -1196,7 +1222,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Sq RPE7; last7.5. Bench first stiff then fine. Video Nov9 squat side: depth good. Curl: lying machine A 45kg.",
+        "value": "16 real sets; blank17 escapes stuck Finish. Sq RPE7,last7.5; bench stiff then fine; video Nov9 side; curl A45kg.",
         "ime": "done"
       }
     },

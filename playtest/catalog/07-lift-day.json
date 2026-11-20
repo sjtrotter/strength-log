@@ -1,0 +1,336 @@
+{
+  "seat": "catalog-07-lift-day",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Up next"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, lift day"
+    },
+    {
+      "tap": {
+        "textContains": "· Day A"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "Today · Day A, detail"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "checkpoint": "Workout · Warm-up, lift day"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, first set"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "Workout · Set 1, edit"
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Save set",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, after Save set"
+    },
+    {
+      "tap": {
+        "textContains": "Log ",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rest"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, rest timer"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 2"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, next set"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "expect": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, All sets"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "expect": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, More menu"
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "expect": {
+        "text": "Swap Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "Workout · Swap Barbell Back Squat"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "front"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "This workout"
+      }
+    },
+    {
+      "checkpoint": "Workout · Front Squat, swap choice"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Add a set",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 3"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, added set"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "Finish with",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Finish with sets left, lift day"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Full Body, saved."
+      }
+    },
+    {
+      "checkpoint": "Receipt · Full Body, saved."
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "expect": {
+        "text": "Note",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Receipt · Note"
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "seat": "catalog-10-sprint-day",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Sprint"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "checkpoint": "Workout · Warm-up, sprint day"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 10 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "0 of 8"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "0 of 8"
+      }
+    },
+    {
+      "checkpoint": "Workout · Day A, sprint row"
+    },
+    {
+      "tap": {
+        "textContains": "0 of 8"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "Warm-up, set 1 of"
+      }
+    },
+    {
+      "checkpoint": "Workout · Track run, warm-up"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "checkpoint": "Workout · Track run, WORK rep"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "text": "Start on the beep"
+      }
+    },
+    {
+      "expect": {
+        "text": "Beep in 5"
+      }
+    },
+    {
+      "checkpoint": "Workout · Track run, beep countdown"
+    },
+    {
+      "advance": "5s"
+    },
+    {
+      "advance": "12s340ms"
+    },
+    {
+      "tap": {
+        "text": "Stop",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "12.34 (Phone-timed)"
+      }
+    },
+    {
+      "checkpoint": "Workout · Track run, phone time"
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "tap": {
+        "text": "Enter time"
+      }
+    },
+    {
+      "expect": {
+        "text": "Rep time"
+      }
+    },
+    {
+      "checkpoint": "Workout · Rep time"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "expect": {
+        "text": "End cardio"
+      }
+    },
+    {
+      "checkpoint": "Workout · Track run, More menu"
+    }
+  ]
+}

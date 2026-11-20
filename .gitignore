@@ -28,8 +28,9 @@ Thumbs.db
 
 __pycache__/
 
-# Playtest seat scripts and host artifacts (pilots stay checked in)
+# Playtest seat scripts and host artifacts (pilots and catalog walks stay checked in)
 playtest/*/
 !playtest/pilot/
+!playtest/catalog/
 playtest-runs/
 .playtest-wt/

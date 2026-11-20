@@ -1,0 +1,130 @@
+{
+  "seat": "catalog-04-setup-run-test",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your event"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your event, fitness tests"
+    },
+    {
+      "tap": {
+        "text": "1.5-mile run"
+      }
+    },
+    {
+      "type": {
+        "text": "Target time",
+        "value": "12:59",
+        "ime": "done"
+      }
+    },
+    {
+      "expect": {
+        "text": "12:59"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your event, 1.5-mile target"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Where you are"
+      }
+    },
+    {
+      "checkpoint": "Setup · Where you are, fitness test"
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "22",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your plan, fitness test"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Up next"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, fitness test setup"
+    }
+  ]
+}

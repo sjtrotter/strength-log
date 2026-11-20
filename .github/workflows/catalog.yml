@@ -1,0 +1,135 @@
+name: Screen catalog
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit to catalog (a round's pinned build)
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - 'playtest/catalog/**'
+      - 'app/src/test/kotlin/cloud/trotter/log/strength/playtest/**'
+      - 'scripts/catalog*.sh'
+      - '.github/workflows/catalog.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-${{ github.ref }}-${{ inputs.ref || 'pr' }}
+  cancel-in-progress: true
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    outputs:
+      scripts: ${{ steps.pick.outputs.scripts }}
+      seats: ${{ steps.pick.outputs.seats }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
+      - name: Check catalog merger
+        run: bash scripts/catalog-test.sh
+      - id: pick
+        shell: bash
+        run: |
+          set -euo pipefail
+          walks=(playtest/catalog/*.json)
+          scripts=$(printf '%s\n' "${walks[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')
+          echo "scripts=$scripts" >> "$GITHUB_OUTPUT"
+          seats=$(jq -sc 'map(.seat)' "${walks[@]}")
+          echo "seats=$seats" >> "$GITHUB_OUTPUT"
+
+  walk:
+    needs: pick
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        script: ${{ fromJSON(needs.pick.outputs.scripts) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
+      - name: Replay
+        id: replay
+        continue-on-error: true
+        env:
+          PLAYTEST_SCRIPT: ${{ matrix.script }}
+          PLAYTEST_CAPTURE_FROM: '0'
+        run: >-
+          ./gradlew :app:testDebugUnitTest
+          --tests 'cloud.trotter.log.strength.playtest.PlaytestReplayTest'
+          -Pplaytest="$GITHUB_WORKSPACE/$PLAYTEST_SCRIPT"
+          -PplaytestCaptureFrom="$PLAYTEST_CAPTURE_FROM"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: catalog-walk-${{ strategy.job-index }}
+          path: app/build/outputs/playtest/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Report
+        if: always()
+        env:
+          REPLAY_OUTCOME: ${{ steps.replay.outcome }}
+        run: |
+          set -euo pipefail
+          cat app/build/outputs/playtest/summary.json
+          test "$REPLAY_OUTCOME" = success
+
+  merge:
+    needs: [pick, walk]
+    if: always() && needs.pick.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: catalog-walk-*
+          path: walks/
+      - name: Merge listings
+        if: always()
+        env:
+          WALK_SEATS: ${{ needs.pick.outputs.seats }}
+        run: |
+          set -euo pipefail
+          mkdir -p walks
+          status=0
+          bash scripts/catalog.sh walks "$(git rev-parse HEAD)" "$WALK_SEATS" > catalog.md || status=$?
+          cat catalog.md
+          exit "$status"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: catalog
+          path: catalog.md
+          if-no-files-found: error
+          retention-days: 30
+      - name: Report walk failures
+        if: always()
+        env:
+          WALK_RESULT: ${{ needs.walk.result }}
+        run: |
+          set -euo pipefail
+          echo "Walk jobs: $WALK_RESULT"
+          test "$WALK_RESULT" = success

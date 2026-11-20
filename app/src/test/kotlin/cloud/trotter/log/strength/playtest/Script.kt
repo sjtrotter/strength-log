@@ -64,6 +64,20 @@ internal data class Selector(val json: JsonObject) {
     }
 }
 
+internal fun String.quoted(): String = "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+private fun Selector.describe(): String = buildList {
+    text("text")?.let { add(it.quoted()) }
+    text("textContains")?.let { add("…$it…".quoted()) }
+    text("desc")?.let { add("desc ${it.quoted()}") }
+    text("tag")?.let { add("tag $it") }
+    text("role")?.let { add("role $it") }
+    flag("editable")?.takeIf { it }?.let { add("editable") }
+    flag("enabled")?.let { add(if (it) "enabled" else "disabled") }
+    flag("inDialog")?.let { add(if (it) "in dialog" else "outside dialogs") }
+    index?.let { add("#$it") }
+}.joinToString(" ")
+
 internal data class Step(
     val action: String,
     val payload: JsonElement,
@@ -74,6 +88,22 @@ internal data class Step(
     val json: JsonObject,
 ) {
     val expectedError: String? get() = (json["expectError"] as? JsonPrimitive)?.content
+
+    fun describe(): String {
+        val target = selector?.describe().orEmpty()
+        return when (action) {
+            "tap" -> "tap $target"
+            "longPress" -> "long-press $target"
+            "scrollTo" -> "scroll to $target"
+            "type" -> "type $target = ${(payload as JsonObject).string("value").quoted()}"
+            "swipe" -> "swipe ${(payload as JsonObject).string("direction")} on $target"
+            "expect" -> "expect ${if ((payload as JsonObject)["absent"] == JsonPrimitive(true)) "no " else ""}$target"
+            "back", "recreate", "note" -> action
+            "advance" -> "wait ${(payload as JsonPrimitive).content}"
+            "checkpoint" -> "checkpoint ${(payload as JsonPrimitive).content.quoted()}"
+            else -> error("Unknown action: $action")
+        }
+    }
 
     fun assertExpectedError(block: () -> Unit) {
         val expected = expectedError
@@ -179,15 +209,17 @@ internal data class Script(
     val checkpointsOnly: Boolean,
     val steps: List<Step>,
     val compactCapture: Boolean,
+    val probe: Boolean = false,
 ) {
     companion object {
         fun parse(file: File): Script = try {
             val root = Json.parseToJsonElement(file.readText()).objectValue("script")
-            root.keysOnly(setOf("seat", "device", "start", "capture", "steps"), "script")
+            root.keysOnly(setOf("seat", "device", "start", "capture", "steps", "probe"), "script")
             val seat = root.string("seat")
             scriptCheck(seat.matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]*")), "seat must use letters, numbers, underscores, or hyphens")
             val start = root["start"]?.objectValue("start") ?: JsonObject(emptyMap())
             start.keysOnly(setOf("date", "time", "zone", "restore"), "start")
+            val probe = if ("probe" in root) root.boolean("probe") else false
             val capture = root.optionalString("capture")
             scriptCheck(capture == null || capture == "checkpoints" || capture == "compact", "capture must be checkpoints or compact when supplied")
             val device = root.optionalString("device") ?: "w360dp-h720dp-night-xxhdpi"
@@ -213,7 +245,7 @@ internal data class Script(
                     restore,
                     restoreInstant,
                 ),
-                capture == "checkpoints",
+                capture == "checkpoints" && !probe,
                 steps.mapIndexed { index, value ->
                     try {
                         Step.parse(value)
@@ -224,7 +256,8 @@ internal data class Script(
                         }, error)
                     }
                 },
-                capture == "compact",
+                capture == "compact" || probe,
+                probe,
             )
         } catch (error: PlaytestError) {
             throw error

@@ -1,0 +1,213 @@
+{
+  "seat": "catalog-03-setup-run-5k",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "What kind of running?"
+      }
+    },
+    {
+      "checkpoint": "Setup · What kind of running?"
+    },
+    {
+      "tap": {
+        "text": "First 5K"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your week"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your week, First 5K"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Equipment"
+      }
+    },
+    {
+      "checkpoint": "Setup · Equipment, First 5K"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "About your training"
+      }
+    },
+    {
+      "checkpoint": "Setup · About your training, First 5K"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your event"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your event, First 5K"
+    },
+    {
+      "scrollTo": {
+        "text": "Add date"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add date"
+      }
+    },
+    {
+      "expect": {
+        "text": "Selected date"
+      }
+    },
+    {
+      "checkpoint": "Setup · Select date"
+    },
+    {
+      "tap": {
+        "desc": "Switch to text input mode"
+      }
+    },
+    {
+      "expect": {
+        "text": "Entered date"
+      }
+    },
+    {
+      "checkpoint": "Setup · Select date, text input"
+    },
+    {
+      "type": {
+        "text": "Date",
+        "value": "12122026",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Dec 12, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Where you are"
+      }
+    },
+    {
+      "expect": {
+        "text": "Minutes",
+        "editable": true
+      }
+    },
+    {
+      "checkpoint": "Setup · Where you are, minutes"
+    },
+    {
+      "tap": {
+        "text": "Distance",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "expect": {
+        "text": "Distance (mi)"
+      }
+    },
+    {
+      "checkpoint": "Setup · Where you are, distance"
+    },
+    {
+      "tap": {
+        "text": "Minutes",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your plan, First 5K"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Up next"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, First 5K setup"
+    }
+  ]
+}

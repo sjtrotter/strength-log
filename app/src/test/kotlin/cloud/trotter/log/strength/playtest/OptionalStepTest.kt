@@ -35,6 +35,53 @@ class OptionalStepTest {
         writeText("""{"seat":"optional","steps":[$steps]}""")
     })
 
+    @Test fun probeSkipsEverySelectionFailure() {
+        compose.setContent { AppTheme { Text("Visible") } }
+        val kinds = listOf("not-found", "ambiguous", "disabled", "not-clickable", "not-editable", "not-scrollable", "not-visible")
+        val file = temporary.newFile("probe.json").apply {
+            writeText("""{"seat":"probe","probe":true,"steps":[${kinds.joinToString(",") { """{"tap":{"text":"Missing"}}""" }}]}""")
+        }
+        val script = Script.parse(file)
+        val artifacts = RunArtifacts(temporary.newFolder("artifacts"), 0).apply { this.script = script }
+        val captures = ReplayCaptures(compose, artifacts, script)
+        kinds.forEachIndexed { index, kind ->
+            artifacts.stepsRun++
+            runCapturedStep(index, script.steps[index], artifacts, captures, log = { ok, skipped ->
+                assertTrue(ok)
+                assertEquals(kind, skipped)
+            }) { throw PlaytestError(kind, "Selection failed") }
+            val listing = File(artifacts.directory, "steps/%03d-SKIPPED-tap-missing.screen.txt".format(index))
+            assertEquals("## Step $index skipped ($kind): tap \"Missing\"", listing.readLines().first())
+        }
+        assertEquals((0..6).toList(), artifacts.optionalSkipped)
+        artifacts.writeSummary(PlaytestTime())
+        val summary = Json.parseToJsonElement(File(artifacts.directory, "summary.json").readText()).jsonObject
+        assertEquals(JsonNull, summary["error_class"])
+        assertEquals(JsonPrimitive(true), summary["probe"])
+    }
+
+    @Test fun probeStillFailsOnAppCrashTimeoutAndScript() {
+        compose.setContent { AppTheme { Text("Visible") } }
+        val file = temporary.newFile("probe.json").apply {
+            writeText("""{"seat":"probe","probe":true,"steps":[{"tap":{"text":"Visible"}}]}""")
+        }
+        val script = Script.parse(file)
+        listOf("app-crash", "timeout", "script", "crash").forEach { kind ->
+            val artifacts = RunArtifacts(temporary.newFolder(kind), 0).apply { this.script = script }
+            val captures = ReplayCaptures(compose, artifacts, script)
+            val error = PlaytestError(kind, "Run failed")
+            assertSame(error, assertFailsWith<PlaytestError> {
+                runCapturedStep(0, script.steps.single(), artifacts, captures, log = { ok, _ -> assertEquals(false, ok) }) {
+                    throw error
+                }
+            })
+            assertTrue(artifacts.optionalSkipped.isEmpty())
+            artifacts.writeSummary(PlaytestTime())
+            val summary = Json.parseToJsonElement(File(artifacts.directory, "summary.json").readText()).jsonObject
+            assertEquals(JsonPrimitive(kind), summary["error_class"])
+        }
+    }
+
     @Test fun optionalNotFoundSkipsAndTheNextStepRuns() {
         compose.mainClock.autoAdvance = false
         compose.setContent { AppTheme { Text("Visible") } }

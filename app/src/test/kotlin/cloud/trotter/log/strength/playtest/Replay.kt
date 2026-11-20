@@ -98,6 +98,7 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
     fun writeSummary(time: PlaytestTime?) {
         File(directory, "summary.json").writeText(buildJsonObject {
             put("seat", script?.seat)
+            put("probe", script?.probe ?: false)
             put("steps_total", script?.steps?.size ?: 0)
             put("steps_run", stepsRun)
             put("failed_step", failedStep?.let(::JsonPrimitive) ?: JsonNull)
@@ -139,7 +140,7 @@ internal class Replay(
                 }
             }
         } catch (error: Throwable) {
-            captures.failure("000-FAILED-launch", error)
+            captures.failure("000-FAILED-launch", error, "Launch failed (${error.playtestError().kind})")
             throw error
         }
         script.steps.forEachIndexed { index, step ->
@@ -433,6 +434,10 @@ internal fun settleReplayStep(step: Step, interaction: () -> Unit, other: () -> 
     if (step.action in INTERACTION_ACTIONS || step.action == "checkpoint") interaction() else other()
 }
 
+private val SELECTION_FAILURES = setOf(
+    "not-found", "ambiguous", "disabled", "not-clickable", "not-editable", "not-scrollable", "not-visible",
+)
+
 internal fun runCapturedStep(
     index: Int,
     step: Step,
@@ -447,8 +452,11 @@ internal fun runCapturedStep(
             action()
         } catch (error: Throwable) {
             val failure = error.playtestError()
-            if (!step.optional || failure.kind != "not-found") throw error
-            captures.failure("%03d-SKIPPED-%s".format(index, step.slug), error)
+            val skip = (step.optional && failure.kind == "not-found") ||
+                (artifacts.script?.probe == true && failure.kind in SELECTION_FAILURES)
+            if (!skip) throw error
+            captures.failure("%03d-SKIPPED-%s".format(index, step.slug), error,
+                "Step $index skipped (${failure.kind}): ${step.describe()}")
             checkCrashes()
             // Failure captures suppress exceptions to preserve the original error; a skipped step has no failure to preserve.
             error.suppressed.firstOrNull { it.playtestError().kind == "app-crash" }?.let { throw it.playtestError() }
@@ -460,7 +468,8 @@ internal fun runCapturedStep(
     } catch (error: Throwable) {
         val failure = error.playtestError()
         artifacts.failure(failure, index, step.json)
-        captures.failure("%03d-FAILED-%s".format(index, step.slug), error)
+        captures.failure("%03d-FAILED-%s".format(index, step.slug), error,
+            "Step $index failed (${failure.kind}): ${step.describe()}")
         log(false, null)
         throw error
     }

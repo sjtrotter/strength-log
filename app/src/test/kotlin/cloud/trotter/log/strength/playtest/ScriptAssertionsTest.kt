@@ -16,6 +16,40 @@ import kotlin.test.assertFailsWith
 class ScriptAssertionsTest {
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun probeIsATopLevelBoolean() {
+        val file = temporary.newFile("probe.json")
+        file.writeText("""{"seat":"probe","probe":true,"capture":"checkpoints","steps":[]}""")
+        val probe = Script.parse(file)
+        assertEquals(true, probe.probe)
+        assertEquals(true, probe.compactCapture)
+        assertEquals(false, probe.checkpointsOnly)
+        file.writeText("""{"seat":"probe","steps":[]}""")
+        assertEquals(false, Script.parse(file).probe)
+        file.writeText("""{"seat":"probe","probe":"yes","steps":[]}""")
+        assertEquals("script", assertFailsWith<PlaytestError> { Script.parse(file) }.kind)
+    }
+
+    @Test fun stepDescriptionsUseUserWords() {
+        listOf(
+            """{"tap":{"text":"Next"}}""" to "tap \"Next\"",
+            """{"longPress":{"textContains":"day"}}""" to "long-press \"…day…\"",
+            """{"scrollTo":{"tag":"finish"}}""" to "scroll to tag finish",
+            """{"type":{"text":"Weight","value":"135"}}""" to "type \"Weight\" = \"135\"",
+            """{"swipe":{"desc":"Days","direction":"left"}}""" to "swipe left on desc \"Days\"",
+            """{"expect":{"text":"Finish","role":"Button","enabled":false,"inDialog":true,"index":1}}""" to
+                "expect \"Finish\" role Button disabled in dialog #1",
+            """{"expect":{"text":"Missing","absent":true,"enabled":true,"inDialog":false}}""" to
+                "expect no \"Missing\" enabled outside dialogs",
+            """{"back":true}""" to "back",
+            """{"recreate":true}""" to "recreate",
+            """{"advance":"1m30s"}""" to "wait 1m30s",
+            """{"checkpoint":"Today"}""" to "checkpoint \"Today\"",
+            """{"note":"A note"}""" to "note",
+        ).forEach { (json, description) ->
+            assertEquals(description, Step.parse(Json.parseToJsonElement(json)).describe())
+        }
+    }
+
     @Test fun optionalParsesOnSelectorStepsOnly() {
         listOf("tap", "longPress", "type", "scrollTo", "swipe", "expect").forEach { action ->
             val extra = when (action) {

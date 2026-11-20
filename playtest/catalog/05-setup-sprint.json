@@ -1,0 +1,102 @@
+{
+  "seat": "catalog-05-setup-sprint",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Sprint"
+      }
+    },
+    {
+      "expect": {
+        "text": "What are you training for?"
+      }
+    },
+    {
+      "checkpoint": "Setup · What are you training for? Sprint"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Which sprint?"
+      }
+    },
+    {
+      "checkpoint": "Setup · Which sprint?"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your week"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your week, sprint"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Equipment"
+      }
+    },
+    {
+      "checkpoint": "Setup · Equipment, sprint"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "About your training"
+      }
+    },
+    {
+      "checkpoint": "Setup · About your training, sprint"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your plan, sprint"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Up next"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, sprint setup"
+    }
+  ]
+}

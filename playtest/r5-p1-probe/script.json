@@ -1,0 +1,194 @@
+{
+  "seat": "r5-p1-probe",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Lift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "General fitness"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "3",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "expect": {
+        "text": "60",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose exactly"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-BARBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-TRAP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "equipment-no-barbell-pounds"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "New",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "suggested-plan"
+    },
+    {
+      "tap": {
+        "text": "Why this plan"
+      }
+    },
+    {
+      "checkpoint": "why-this-plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-complete"
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "checkpoint": "generated-day-a"
+    },
+    {
+      "tap": {
+        "text": "Edit",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "generated-day-a-editor"
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-picker"
+    }
+  ],
+  "probe": true
+}

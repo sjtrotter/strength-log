@@ -631,7 +631,8 @@
       "type": {
         "text": "Reps",
         "value": "8",
-        "ime": "done"
+        "ime": "done",
+        "index": 1
       }
     },
     {

@@ -69,19 +69,42 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal pull",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "remaining-movement-categories"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
       "tap": {
         "text": "Hinge"
       }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "romanian",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "romanian-choices"
     },
     {
       "type": {
@@ -91,10 +114,29 @@
       }
     },
     {
-      "checkpoint": "bridge-choices"
+      "checkpoint": "floor-bridge-search-results"
+    },
+    {
+      "scrollTo": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "checkpoint": "create-exercise-fields"
     },
     {
       "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "editor-after-create-cancel"
     },
     {
       "scrollTo": {
@@ -112,138 +154,114 @@
       }
     },
     {
-      "checkpoint": "single-leg-top"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "lunge",
-        "ime": "done"
+      "tap": {
+        "text": "Reverse Lunge"
       }
     },
     {
-      "checkpoint": "lunge-choices"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "step",
-        "ime": "done"
+      "scrollTo": {
+        "text": "Reverse Lunge"
       }
     },
     {
-      "checkpoint": "step-up-choices"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "",
-        "ime": "done"
+      "tap": {
+        "text": "Reverse Lunge"
       }
     },
     {
-      "checkpoint": "single-leg-unfiltered"
+      "checkpoint": "reverse-lunge-prescription"
     },
     {
       "back": true
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Reverse Lunge"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "desc": "More options for Reverse Lunge"
       }
     },
     {
       "tap": {
-        "text": "Knee flexion (leg curl)"
-      }
-    },
-    {
-      "checkpoint": "leg-curl-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
+        "text": "Remove"
       }
     },
     {
       "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "movement-list-lower"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A"
+        "text": "Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Edit"
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Edit cardio"
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Bench Press"
       }
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
-      }
-    },
-    {
-      "checkpoint": "cardio-set-prescription-fields"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day B"
+        "desc": "More options for Barbell Bench Press"
       }
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
       }
     },
     {
@@ -257,19 +275,11 @@
       }
     },
     {
-      "checkpoint": "plank-prescription"
-    },
-    {
-      "tap": {
-        "text": "Tracking",
-        "role": "DropdownList"
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
       }
-    },
-    {
-      "checkpoint": "tracking-options"
-    },
-    {
-      "back": true
     },
     {
       "tap": {
@@ -278,10 +288,9 @@
       }
     },
     {
-      "checkpoint": "plank-each-side-fields"
-    },
-    {
-      "back": true
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "back": true
@@ -298,7 +307,18 @@
       }
     },
     {
-      "checkpoint": "strength-start-current"
+      "checkpoint": "timed-each-side-start"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "timed-each-side-edit"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -306,17 +326,21 @@
       }
     },
     {
-      "tap": {
-        "desc": "More"
-      }
+      "checkpoint": "timed-each-side-all-sets"
     },
     {
       "tap": {
-        "text": "Note"
+        "tag": "lift-check-main-0"
       }
     },
     {
-      "checkpoint": "lift-note-fields"
+      "checkpoint": "timed-side-checkbox-result"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "timed-side-current-after-checkbox"
     }
   ]
 }

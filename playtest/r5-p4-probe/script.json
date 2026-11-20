@@ -59,10 +59,143 @@
       }
     },
     {
-      "checkpoint": "lower-movement-categories"
+      "tap": {
+        "text": "Vertical pull"
+      }
+    },
+    {
+      "checkpoint": "vertical-pull-choices"
     },
     {
       "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "minimal-lift-block"
+    },
+    {
+      "tap": {
+        "textContains": "Barbell Back Squat",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "1",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "scrollTo": {
@@ -91,9 +224,6 @@
       }
     },
     {
-      "checkpoint": "rower-editor"
-    },
-    {
       "tap": {
         "text": "Set 1 \u00b7 Work"
       }
@@ -108,9 +238,6 @@
       "tap": {
         "desc": "Aim"
       }
-    },
-    {
-      "checkpoint": "rower-aim-fields"
     },
     {
       "type": {
@@ -143,31 +270,31 @@
       }
     },
     {
-      "checkpoint": "mixed-workout-start"
+      "checkpoint": "mixed-session-one-lift"
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "mixed-workout-list"
-    },
-    {
-      "scrollTo": {
-        "text": "Rower",
-        "inDialog": true
+        "tag": "workout-action-filled"
       }
     },
     {
       "tap": {
-        "text": "Rower",
-        "inDialog": true
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "rower-in-workout"
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "last-lift-logged"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "after-last-lift-next-action"
     },
     {
       "tap": {
@@ -175,7 +302,7 @@
       }
     },
     {
-      "checkpoint": "rower-result-form"
+      "checkpoint": "rower-past-result-form"
     },
     {
       "back": true
@@ -186,10 +313,13 @@
       }
     },
     {
+      "checkpoint": "rower-started"
+    },
+    {
       "advance": "15m"
     },
     {
-      "checkpoint": "rower-timer-complete"
+      "checkpoint": "rower-timer-completed"
     }
   ]
 }

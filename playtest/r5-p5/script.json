@@ -771,6 +771,9 @@
       "checkpoint": "squat-typing-corrected"
     },
     {
+      "advance": "30s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
@@ -804,6 +807,9 @@
       "tap": {
         "text": "Save set"
       }
+    },
+    {
+      "advance": "30s"
     },
     {
       "tap": {
@@ -846,6 +852,9 @@
       }
     },
     {
+      "advance": "30s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
@@ -880,22 +889,7 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
+      "advance": "30s"
     },
     {
       "tap": {
@@ -914,6 +908,30 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
     },
     {
       "tap": {
@@ -966,6 +984,9 @@
       }
     },
     {
+      "advance": "30s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
@@ -982,6 +1003,9 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "advance": "30s"
     },
     {
       "tap": {
@@ -1007,22 +1031,7 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
+      "advance": "30s"
     },
     {
       "tap": {
@@ -1041,6 +1050,30 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
     },
     {
       "tap": {
@@ -1093,12 +1126,20 @@
       }
     },
     {
+      "advance": "60s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
       "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
       "tap": {
@@ -1118,12 +1159,15 @@
       }
     },
     {
+      "advance": "54s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "14m45s"
+      "advance": "7m21s"
     },
     {
       "checkpoint": "all-strength-a-sets-logged"

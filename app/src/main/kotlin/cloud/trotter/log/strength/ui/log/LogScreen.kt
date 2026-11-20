@@ -148,6 +148,9 @@ fun LogScreen(
                 items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
                     TrajectoryCardView(card)
                 }
+                items(state.journal.cardioTrends, key = { "cardio-trend-${it.activity}-${it.end}" }) { card ->
+                    CardioTrendCardView(card)
+                }
                 if (state.journal.weeklyDistance.isNotEmpty()) {
                     item(key = "distance-header") { LogSectionHeader(stringResource(R.string.log_distance_section)) }
                     items(state.journal.weeklyDistance, key = { "distance-${it.family}" }) { WeeklyDistanceRow(it) }
@@ -338,6 +341,7 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long, trendsExpanded: 
     var index = 1 // leading spacer
     if (state.health.available && state.health.publishing && state.health.backfill != null) index += 1
     index += state.journal.trajectories.size
+    index += state.journal.cardioTrends.size
     if (state.journal.weeklyDistance.isNotEmpty()) index += 1 + state.journal.weeklyDistance.size
     index += 1 // disclosure
     if (trendsExpanded) {

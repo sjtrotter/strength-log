@@ -1,5 +1,13 @@
 package cloud.trotter.log.strength.store
 
+import cloud.trotter.log.strength.ui.day.receipt.CardioLastTime
+import cloud.trotter.log.strength.ui.day.receipt.rowerPaceReceiptFixture
+import cloud.trotter.log.strength.ui.log.JournalBuilder
+import cloud.trotter.log.strength.ui.log.JournalUiState
+import cloud.trotter.log.strength.ui.log.LogScreenBuilder
+import cloud.trotter.log.strength.ui.log.cardioTrendHistoryFixture
+import cloud.trotter.log.strength.audit.auditHistoryFixture
+
 import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -601,6 +609,54 @@ class ProgressionPreviewShotsTest {
     @Test fun swapOtherExercises() = swapOtherExercises("p76-swap-other-exercises.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun swapOtherExercisesLargeFont() = swapOtherExercises("p77-swap-other-exercises-2x.png", 2f)
+
+    private fun receiptCardioPace(name: String, scale: Float, record: Boolean) {
+        render(scale) {
+            SessionReceiptScreen(rowerPaceReceiptFixture(record), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(null, 3412, true))))
+        }
+        rule.onNodeWithText("Pace 2:10 /500 m", useUnmergedTree = true).assertIsDisplayed()
+        capture(name)
+    }
+    @Test fun receiptCardioPaceLastTime() = receiptCardioPace("p78-receipt-cardio-pace-last-time.png", 1f, false)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun receiptCardioPaceLastTimeLargeFont() = receiptCardioPace("p79-receipt-cardio-pace-last-time-2x.png", 2f, false)
+    @Test fun receiptCardioRecordPace() = receiptCardioPace("p80-receipt-cardio-record-pace.png", 1f, true)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun receiptCardioRecordPaceLargeFont() = receiptCardioPace("p81-receipt-cardio-record-pace-2x.png", 2f, true)
+
+    private fun historyCardioPace(name: String, scale: Float) {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1800)),
+            CardioSetStatus.FINISHED, 1800, 5000, DistanceSource.MANUAL)
+        val session = cloud.trotter.log.strength.data.db.entity.CardioSessionEntity(
+            id = 1, dayId = "B", mode = "OUTDOOR_RUN", activity = "ROAD_RUN", hard = false, label = "Road run",
+            startedAt = 1_794_657_600_000L, completedAt = 1_794_659_400_000L, seconds = 1800, stepsCompleted = 1)
+        render(scale) { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            LogScreen(LogUiState(sessions = listOf(LogScreenBuilder.cardioItem(session, listOf(result)))),
+                LogActions({}, {}, {}, {}, {}, {}, {}, onStartSession = {}, onSetUpProgram = {}))
+        } }
+        rule.onNodeWithText("Pace 9:39 /mi").assertIsDisplayed()
+        capture(name)
+    }
+    @Test fun historyCardioPace() = historyCardioPace("p82-history-cardio-pace.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun historyCardioPaceLargeFont() = historyCardioPace("p83-history-cardio-pace-2x.png", 2f)
+
+    private fun historyCardioTrends(name: String, scale: Float) {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val history = auditHistoryFixture()
+        val journal = JournalUiState(trajectories = history.journal.trajectories.take(1),
+            cardioTrends = JournalBuilder.cardioTrends(sessions, sets, java.time.ZoneOffset.UTC))
+        render(scale) {
+            LogScreen(LogUiState(sessions = history.sessions, journal = journal),
+                LogActions({}, {}, {}, {}, {}, {}, {}, onStartSession = {}, onSetUpProgram = {}))
+        }
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun historyCardioTrends() = historyCardioTrends("p84-history-cardio-trends.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun historyCardioTrendsLargeFont() = historyCardioTrends("p85-history-cardio-trends-2x.png", 2f)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

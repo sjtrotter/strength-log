@@ -12,11 +12,13 @@ import cloud.trotter.log.strength.data.CardioJudge
 import android.os.Parcelable
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.resolvedActivity
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -39,6 +41,9 @@ data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val li
 
 data class ReceiptReplan(val phase: RunPhase?, val offered: Boolean)
 
+/** The last comparable session's reading for one receipt cardio row (#531). Not saved; rebuilt from history. */
+data class CardioLastTime(val previousSeconds: Int?, val previousMetres: Int?, val improved: Boolean)
+
 data class ReceiptProgressState(
     val lifts: List<ReceiptLiftProgress> = emptyList(),
     val undoVisible: Boolean = false,
@@ -57,6 +62,7 @@ data class ReceiptProgressState(
     val run: RunResult? = null,
     val runLadder: Boolean = false,
     val replan: ReceiptReplan? = null,
+    val cardioLastTimes: List<CardioLastTime?> = emptyList(),
 ) {
     val whyVisible: Boolean get() = lifts.isNotEmpty() || lightRemaining > 0 || lightEnded || cardioNext is CardioNextTime.Offer ||
         run?.let { it.credit || it.hold != null || it.change != CardioChange.Repeat || it.introLeft != null ||
@@ -87,10 +93,18 @@ internal object ReceiptProgressBuilder {
             ?: cardio.filter { plan != null && it.planId == plan.id && it.dayId == identity.dayId &&
                 Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == date }
                 .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
-        val cardioSets = entry?.id?.let {
-            ReceiptBuilder.cardioGroups(history.cardioSetsFor(it)).map { group -> group.sets }
-        }.orEmpty()
-        if (plan == null) return ReceiptProgressState(cardioSets = cardioSets)
+        val results = entry?.id?.let { history.cardioSetsFor(it) }.orEmpty()
+        val cardioSets = ReceiptBuilder.cardioGroups(results).map { it.sets }
+        val activity = entry?.resolvedActivity()
+        val cardioLastTimes = if (entry != null && activity != null) {
+            val previous = cardio.filter { session ->
+                session.resolvedActivity() == activity && (session.completedAt < entry.completedAt ||
+                    session.completedAt == entry.completedAt && session.id < entry.id)
+            }.sortedWith(compareBy({ it.completedAt }, { it.id }))
+            val latest = CardioBests.latest(activity, previous.map { sets[it.id].orEmpty() })
+            ReceiptBuilder.cardioLastTimes(activity, results, latest)
+        } else emptyList<CardioLastTime?>()
+        if (plan == null) return ReceiptProgressState(cardioSets = cardioSets, cardioLastTimes = cardioLastTimes)
         val undo = repo.finishUndoState(identity.sessionId, identity.cardioSessionId)
         val sessions = history.slotSessionsById(plan.id, identity.dayId)
         val lifts = identity.slots.mapNotNull { ref ->
@@ -128,6 +142,7 @@ internal object ReceiptProgressBuilder {
             next, day?.cardioToRun.takeIf { identity.cardioSessionId != null && (day?.cardioRule == null || run != null) }, capped,
             cardioSets, run, day?.cardioRule?.ladderLevel != null || run?.from != null,
             counter?.replan?.let { ReceiptReplan(SetupRecipeJson.phase(it.recipeAfter), offered = false) }
-                ?: counter?.replanOffer?.let { ReceiptReplan(it.phase?.let(RunPhase::valueOf), offered = true) })
+                ?: counter?.replanOffer?.let { ReceiptReplan(it.phase?.let(RunPhase::valueOf), offered = true) },
+            cardioLastTimes = cardioLastTimes)
     }
 }

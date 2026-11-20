@@ -7,6 +7,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.cardio.Pace
+import cloud.trotter.log.strength.domain.cardio.PacePer
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
@@ -62,6 +64,16 @@ internal fun spokenDuration(seconds: Int): String = buildList {
     if (minutes > 0) add(pluralStringResource(R.plurals.receipt_say_minutes, minutes, minutes))
     if (remainder > 0 || minutes == 0) add(pluralStringResource(R.plurals.receipt_say_seconds, remainder, remainder))
 }.joinToString(" ")
+
+@Composable
+internal fun spokenPace(pace: Pace): String {
+    val per = stringResource(when (pace.per) {
+        PacePer.FIVE_HUNDRED_M -> R.string.receipt_say_per_500_meters
+        PacePer.KM -> R.string.receipt_say_per_kilometer
+        PacePer.MI -> R.string.receipt_say_per_mile
+    })
+    return stringResource(R.string.receipt_say_pace, spokenDuration(pace.seconds), per)
+}
 
 @Composable
 internal fun spokenSet(set: ReceiptSet, tracking: TrackingType, unit: WeightUnit): String = when (tracking) {
@@ -220,11 +232,33 @@ internal fun cardioPrevious(mark: CardioRecordMark, unit: DistanceUnit): String 
     ?: visibleDistance(requireNotNull(mark.previousMetres), unit)
 
 @Composable
+internal fun cardioLastValue(lastTime: CardioLastTime, unit: DistanceUnit): String =
+    lastTime.previousSeconds?.let(ClockText::minutesSeconds)
+        ?: visibleDistance(requireNotNull(lastTime.previousMetres), unit)
+
+@Composable
+internal fun cardioLastLine(lastTime: CardioLastTime, unit: DistanceUnit, spoken: Boolean = false): String {
+    val key = when {
+        lastTime.improved && lastTime.previousMetres != null ->
+            if (spoken) R.string.receipt_say_cardio_last_up else R.string.receipt_cardio_last_up
+        lastTime.improved && lastTime.previousSeconds != null ->
+            if (spoken) R.string.receipt_say_cardio_last_faster else R.string.receipt_cardio_last_faster
+        else -> if (spoken) R.string.receipt_say_cardio_last else R.string.receipt_cardio_last
+    }
+    val seconds = lastTime.previousSeconds
+    val value = if (!spoken) cardioLastValue(lastTime, unit)
+        else if (seconds != null) spokenDuration(seconds)
+        else spokenDistance(requireNotNull(lastTime.previousMetres), unit)
+    return stringResource(key, value)
+}
+
+@Composable
 private fun spokenCardioPrevious(mark: CardioRecordMark, unit: DistanceUnit): String = mark.previousSeconds?.let { spokenDuration(it) }
     ?: spokenDistance(requireNotNull(mark.previousMetres), unit)
 
 @Composable
-internal fun spokenCardioRow(row: CardioReceiptRow, unit: DistanceUnit, sprint: Boolean = false): String {
+internal fun spokenCardioRow(row: CardioReceiptRow, unit: DistanceUnit, sprint: Boolean = false,
+    pace: Pace? = null, lastTime: CardioLastTime? = null): String {
     if (row.intervals.all { it.status == CardioSetStatus.SKIPPED }) return stringResource(R.string.receipt_say_skipped, cardioRowName(row, unit, sprint))
     if (row.intervals.size == 1 && row.intervals.single().status == CardioSetStatus.SHORTENED) {
         return stringResource(R.string.receipt_say_cardio_value, cardioRowName(row, unit, sprint), shortenedInterval(row, row.intervals.single(), unit, spoken = true, sprint = sprint))
@@ -247,7 +281,9 @@ internal fun spokenCardioRow(row: CardioReceiptRow, unit: DistanceUnit, sprint: 
     } else stringResource(R.string.receipt_say_cardio_value, cardioValueLabel(row),
         if (row.endMetres != null) spokenDuration(best.elapsedSeconds) else spokenDistance(requireNotNull(best.metres), unit))
     val record = row.record?.let { stringResource(R.string.receipt_say_record_up_from, spokenRecord(it.kind), spokenCardioPrevious(it, unit)) }
-    return listOfNotNull(stringResource(R.string.receipt_say_cardio_measure, name), value, record).joinToString(" ")
+    val paceLine = pace?.let { spokenPace(it) }
+    val lastLine = lastTime?.takeIf { row.record == null }?.let { cardioLastLine(it, unit, spoken = true) }
+    return listOfNotNull(stringResource(R.string.receipt_say_cardio_measure, name), value, record, paceLine, lastLine).joinToString(" ")
 }
 
 @Composable

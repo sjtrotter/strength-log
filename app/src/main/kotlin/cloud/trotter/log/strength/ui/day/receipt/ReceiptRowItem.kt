@@ -65,7 +65,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.cardio.CardioPace
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.day.CardioLegs
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -320,6 +323,7 @@ private fun ReceiptAfter(text: String, spoken: String) {
 internal fun CardioReceiptRowItem(
     row: CardioReceiptRow, dayIndex: Int, rowKey: String, roll: () -> Float, unit: DistanceUnit,
     sets: List<CardioSetResult> = emptyList(), sprint: Boolean = false,
+    activity: CardioActivity? = null, lastTime: CardioLastTime? = null,
 ) {
     val resources = LocalContext.current.resources
     val legs = sets.map { CardioLegs.of(it, unit, resources) }
@@ -329,7 +333,16 @@ internal fun CardioReceiptRowItem(
         SkippedReceiptRow(name)
         return
     }
-    val spoken = spokenCardioRow(row, unit, sprint) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
+    val pace = if (activity != null && row.role == CardioRole.WORK && bestInterval(row) != null) {
+        CardioPace.of(activity, row.intervals.mapIndexedNotNull { index, interval ->
+            val set = sets.getOrNull(index)
+            if (interval.status == CardioSetStatus.SKIPPED || set?.timing != null) null
+            else if (interval.metres == null && interval.status == CardioSetStatus.FINISHED && set != null) {
+                CardioPace.Effort(set.secondsAtEnd ?: interval.elapsedSeconds, row.endMetres)
+            } else CardioPace.Effort(interval.elapsedSeconds, interval.metres)
+        }, LocalDistanceUnit.current)
+    } else null
+    val spoken = spokenCardioRow(row, unit, sprint, pace, lastTime) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()
     val expandable = row.intervals.size > 1 && (row.role == CardioRole.WORK || legs.any { it != null })
     ExpandableReceiptRow(rowKey, name, spoken, expandable,
         dayIndex, row.record?.kind, values = {
@@ -343,6 +356,10 @@ internal fun CardioReceiptRowItem(
                         translationY = roll() * 0.6f * size.height; alpha = 1 - roll()
                     } else Modifier))
                 row.record?.let { OldBest(cardioPrevious(it, unit), Modifier.alignByBaseline()) }
+                pace?.let { ValueLabel(stringResource(R.string.cardio_pace, it.text), Modifier.alignByBaseline()) }
+            }
+            if (row.record == null && lastTime != null) {
+                ReceiptAfter(cardioLastLine(lastTime, unit), cardioLastLine(lastTime, unit, spoken = true))
             }
             singleLeg?.let {
                 ReceiptAfter(it.at, it.at)

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -41,6 +42,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.ClockText
+import cloud.trotter.log.strength.ui.day.cardioActivityName
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
@@ -110,7 +114,9 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
                     dateFormat.format(last.date), WeightStepper.format(last.value.toDouble()), unit,
                 )
             }
-            TrajectoryPlot(card, Modifier.fillMaxWidth().height(128.dp).semantics { contentDescription = description })
+            TrajectoryPlot(card.points, card.axisMin, card.axisMax, accentEmphasis(card.dayIndex),
+                card.goalValue, if (card.goalMet) Done else MaterialTheme.colorScheme.onSurfaceVariant,
+                inverted = false, modifier = Modifier.fillMaxWidth().height(128.dp).semantics { contentDescription = description })
             Text(
                 stringResource(R.string.log_top_set_date_range, dateFormat.format(first.date), dateFormat.format(last.date)),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -122,18 +128,22 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
 
 /** Material 3 has no trajectory plot. Canvas contains only the series and goal marks. */
 @Composable
-private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
-    val lineColor = accentEmphasis(card.dayIndex)
-    val goalColor = if (card.goalMet) Done else MaterialTheme.colorScheme.onSurfaceVariant
+private fun TrajectoryPlot(
+    points: List<TrajectoryPoint>, axisMin: Float, axisMax: Float, lineColor: Color,
+    goalValue: Float?, goalColor: Color, inverted: Boolean, modifier: Modifier,
+) {
     Canvas(modifier) {
         val inset = 4.dp.toPx()
         val left = inset
         val right = size.width - inset
         val top = inset
         val bottom = size.height - inset
-        val span = (card.axisMax - card.axisMin).takeIf { it > 0f } ?: 1f
-        fun y(value: Float) = bottom - (value - card.axisMin) / span * (bottom - top)
-        card.goalValue?.let { goal ->
+        val span = (axisMax - axisMin).takeIf { it > 0f } ?: 1f
+        fun y(value: Float): Float {
+            val offset = (value - axisMin) / span * (bottom - top)
+            return if (inverted) top + offset else bottom - offset
+        }
+        goalValue?.let { goal ->
             val goalY = y(goal)
             drawLine(
                 color = goalColor,
@@ -143,9 +153,9 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
             )
         }
-        val step = (right - left) / (card.points.size - 1)
-        val xs = card.points.indices.map { left + it * step }
-        val ys = card.points.map { y(it.value) }
+        val step = (right - left) / (points.size - 1)
+        val xs = points.indices.map { left + it * step }
+        val ys = points.map { y(it.value) }
         val path = Path().apply {
             moveTo(xs.first(), ys.first())
             for (i in 1 until xs.size) {
@@ -154,9 +164,35 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
             }
         }
         drawPath(path, lineColor, style = Stroke(width = 2.dp.toPx()))
-        card.points.forEachIndexed { i, point ->
+        points.forEachIndexed { i, point ->
             if (point.newHigh) drawCircle(lineColor, radius = 4.dp.toPx(), center = Offset(xs[i], ys[i]))
         }
+    }
+}
+
+@Composable
+internal fun CardioTrendCardView(card: CardioTrendCard) {
+    val dateFormat = shortDateFormatter()
+    val unit = distanceUnitFor(card.activity)
+    val end = when (val end = card.end) {
+        is Measure.Time -> ClockText.duration(end.seconds)
+        is Measure.Distance -> unit.format(end.metres)
+    }
+    val heading = stringResource(R.string.log_cardio_trend_heading, cardioActivityName(card.activity), end)
+    fun value(reading: Int): String = if (card.inverted) ClockText.duration(reading) else unit.format(reading)
+    val first = card.points.first()
+    val last = card.points.last()
+    val description = stringResource(R.string.log_cardio_trend_description, heading,
+        dateFormat.format(first.date), value(card.first), dateFormat.format(last.date), value(card.latest))
+    Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(heading, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.log_cardio_trend_latest, value(card.latest)),
+            color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+        TrajectoryPlot(card.points, card.axisMin, card.axisMax, accentEmphasis(card.dayIndex),
+            goalValue = null, goalColor = MaterialTheme.colorScheme.onSurfaceVariant, inverted = card.inverted,
+            modifier = Modifier.fillMaxWidth().height(128.dp).semantics { contentDescription = description })
+        Text(stringResource(R.string.log_top_set_date_range, dateFormat.format(first.date), dateFormat.format(last.date)),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
     }
 }
 

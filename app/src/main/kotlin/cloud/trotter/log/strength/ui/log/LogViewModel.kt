@@ -234,6 +234,7 @@ class LogViewModel @Inject constructor(
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
             calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
             weeklyDistance = JournalBuilder.weeklyDistance(history.cardio, sets, now.date, now.zone),
+            cardioTrends = JournalBuilder.cardioTrends(history.cardio, sets, now.zone),
         )
     }
 

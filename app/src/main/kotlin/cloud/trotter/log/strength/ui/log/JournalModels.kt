@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
@@ -10,7 +12,23 @@ data class JournalUiState(
     val volume: VolumeChart? = null,
     val calendar: CalendarMonth? = null,
     val weeklyDistance: List<WeeklyDistance> = emptyList(),
+    val cardioTrends: List<CardioTrendCard> = emptyList(),
 )
+
+/** One activity at one planned end (#532), using the records rule's reading per session, oldest first.
+ *  At least two points; distance ends plot inverted because lower is better. */
+data class CardioTrendCard(
+    val activity: CardioActivity,
+    val end: Measure,
+    val dayIndex: Int,
+    val points: List<TrajectoryPoint>,
+    val first: Int,
+    val latest: Int,
+    val axisMin: Float,
+    val axisMax: Float,
+) {
+    val inverted: Boolean get() = end is Measure.Distance
+}
 
 /** This ISO week's recorded distance for one activity group. [missing] counts sessions with a performed set and no distance. */
 data class WeeklyDistance(val family: CardioFamily, val metres: Long, val missing: Int)

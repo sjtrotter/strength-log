@@ -1479,4 +1479,18 @@
         <item quantity="other">%1$s, %2$s and %3$d lifts</item>
     </plurals>
     <string name="sheet_other_exercises">Other exercises</string>
+    <string name="cardio_pace">Pace %1$s</string>
+    <string name="receipt_cardio_last_up">Up from %1$s last time</string>
+    <string name="receipt_cardio_last_faster">Faster than %1$s last time</string>
+    <string name="receipt_cardio_last">Last time %1$s</string>
+    <string name="receipt_say_pace">Pace %1$s per %2$s.</string>
+    <string name="receipt_say_per_500_meters">500 meters</string>
+    <string name="receipt_say_per_kilometer">kilometer</string>
+    <string name="receipt_say_per_mile">mile</string>
+    <string name="receipt_say_cardio_last_up">Up from %1$s last time.</string>
+    <string name="receipt_say_cardio_last_faster">Faster than %1$s last time.</string>
+    <string name="receipt_say_cardio_last">Last time %1$s.</string>
+    <string name="log_cardio_trend_heading">%1$s %2$s</string>
+    <string name="log_cardio_trend_latest">Latest %1$s</string>
+    <string name="log_cardio_trend_description">%1$s: %2$s, %3$s; %4$s, %5$s.</string>
 </resources>

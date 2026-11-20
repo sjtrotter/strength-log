@@ -5,6 +5,11 @@ import cloud.trotter.log.strength.data.RunTrack
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -117,3 +122,16 @@ internal fun finishingFixture(): DayUiState {
             partnerTitle = if (index == 2) "Barbell Row" else null, rows = source.rows.take(3))
     })
 }
+
+internal fun rowerPaceReceiptFixture(record: Boolean = false): WorkoutReceipt {
+    val activity = CardioActivity.ROWER
+    val previous = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(900)),
+        CardioSetStatus.FINISHED, 900, 3412, DistanceSource.MANUAL)
+    val current = previous.copy(elapsedSeconds = 904, metres = 3485, metresAtEnd = 3470, secondsAtEnd = 900)
+    return cardioReceiptFixture().copy(dayTitle = "Rower", activity = activity, minutes = 15,
+        cardioRows = ReceiptBuilder.cardio(activity, listOf(current),
+            if (record) CardioBests.bests(activity, listOf(previous)) else emptyMap()))
+}
+
+internal fun legacyDistancePaceResultFixture(): CardioSetResult = CardioSetResult(
+    CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)), CardioSetStatus.FINISHED, 477)

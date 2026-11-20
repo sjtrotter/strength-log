@@ -87,6 +87,25 @@ the current month):
 
 Unchanged, below the new sections.
 
+### 1.5 Cardio trend (#532)
+
+History shows one card per activity and planned end (`CardioRecordKey`) with at
+least two sessions that have counting results. Each point uses the best counting
+result of its session, read through `FinishedRule.reading` and compared through
+`CardioBests`. The first point is a new high; later points earn a marker only when
+they beat every earlier point. The latest session orders the cards, newest first,
+with four cards at most.
+
+Distance ends compare seconds, so those plots are inverted: up means better.
+Time ends compare meters. Each chart has one series in the latest session's day
+accent (`Program.accentIndex`, or 0 without a day). There are no y-axis labels.
+
+The cardio card uses the lift card's layout: a `titleMedium` heading naming the
+activity and planned end, a `bodyMedium` Latest line, a 128 dp plot with a spoken
+description, and a `bodySmall` date range. Both cards use `TrajectoryPlot`, which
+takes points, bounds, line color, an optional goal and inversion. The lift card
+keeps its existing values, goal and plot direction.
+
 ## 2. Cascade ceremony
 
 When DONE-advance fires a cascade (goal met → new goal, new ramp), that is the

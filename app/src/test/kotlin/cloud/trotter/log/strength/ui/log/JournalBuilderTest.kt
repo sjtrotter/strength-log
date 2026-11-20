@@ -76,6 +76,68 @@ class JournalBuilderTest {
     private val squat = JournalBuilder.MainLift("bb_back_squat", "Barbell Back Squat", dayIndex = 0, goalLb = 235.0)
     private val bench = JournalBuilder.MainLift("bb_bench", "Barbell Bench Press", dayIndex = 1, goalLb = 195.0)
 
+    @Test fun `cardio trends follow each activity and planned end`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val cards = JournalBuilder.cardioTrends(sessions.reversed(), sets, zone)
+        assertEquals(listOf(Measure.Time(900), Measure.Distance(2000)), cards.map { it.end })
+        assertEquals(listOf(3412f, 3470f), cards[0].points.map { it.value })
+        assertEquals(listOf(true, true), cards[0].points.map { it.newHigh })
+        assertEquals(listOf(492f, 485f, 477f), cards[1].points.map { it.value })
+        assertEquals(listOf(true, true, true), cards[1].points.map { it.newHigh })
+        assertEquals(3412, cards[0].first)
+        assertEquals(3470, cards[0].latest)
+        assertEquals(2, cards[0].dayIndex)
+        assertEquals(LocalDate.of(2026, 11, 4), cards[0].points.first().date)
+        assertTrue(cards[0].axisMin < 3412f && cards[0].axisMax > 3470f)
+        val different = sessions.last().copy(id = 10, activity = "ROAD_RUN")
+        assertEquals(cards, JournalBuilder.cardioTrends(sessions + different,
+            sets + (10L to sets.getValue(4)), zone))
+    }
+
+    @Test fun `the trend skips results that do not count`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val extra = sessions[4].copy(id = 10, completedAt = sessions.last().completedAt + 1)
+        val short = sets.getValue(5).single().copy(status = CardioSetStatus.SHORTENED)
+        val cards = JournalBuilder.cardioTrends(sessions + extra, sets + (10L to listOf(short)), zone)
+        assertEquals(listOf(3412f, 3470f), cards.first().points.map { it.value })
+        val worse = short.copy(status = CardioSetStatus.FINISHED, metresAtEnd = 3400)
+        val tied = extra.copy(id = 11)
+        val continued = JournalBuilder.cardioTrends(sessions + extra + tied,
+            sets + (10L to listOf(worse)) + (11L to sets.getValue(5)), zone).first()
+        assertEquals(listOf(true, true, false, false), continued.points.map { it.newHigh })
+    }
+
+    @Test fun `trend cards stop at four`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val ends = (1..6).flatMap { minutes ->
+            List(2) { sets.getValue(4).single().copy(spec = CardioSetSpec(CardioRole.WORK, Measure.Time(minutes * 60)),
+                elapsedSeconds = minutes * 60, secondsAtEnd = minutes * 60) }
+        }
+        val many = ends.mapIndexed { index, result ->
+            sessions.first().copy(id = index + 1L, completedAt = index.toLong(), seconds = result.elapsedSeconds)
+        }
+        val cards = JournalBuilder.cardioTrends(many,
+            ends.mapIndexed { index, result -> index + 1L to listOf(result) }.toMap(), zone)
+        assertEquals(listOf(360, 300, 240, 180), cards.map { (it.end as Measure.Time).seconds })
+    }
+
+    @Test fun `cardio trends share the legacy activity fallback`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val legacy = sessions.take(2).map { it.copy(activity = null, mode = "OUTDOOR_RUN", dayId = null) }
+        val card = JournalBuilder.cardioTrends(legacy, sets, zone).single()
+        assertEquals(CardioActivity.ROAD_RUN, card.activity)
+        assertEquals(0, card.dayIndex)
+        assertEquals(listOf(492f, 485f), card.points.map { it.value })
+        assertTrue(JournalBuilder.cardioTrends(legacy.map { it.copy(mode = "NONE") }, sets, zone).isEmpty())
+    }
+
+    @Test fun `a distance end card is inverted`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val cards = JournalBuilder.cardioTrends(sessions, sets, zone)
+        assertTrue(cards.single { it.end is Measure.Distance }.inverted)
+        assertFalse(cards.single { it.end is Measure.Time }.inverted)
+    }
+
     // --- main lifts -----------------------------------------------------------
 
     @Test

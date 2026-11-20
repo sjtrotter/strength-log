@@ -33,7 +33,17 @@
       }
     },
     {
-      "checkpoint": "nov30-plan-light-week-after"
+      "checkpoint": "nov30-plan-light-week-options"
+    },
+    {
+      "tap": {
+        "text": "Off",
+        "role": "RadioButton",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "nov30-plan-light-week-off-selected"
     },
     {
       "scrollTo": {
@@ -261,7 +271,7 @@
     },
     {
       "expect": {
-        "text": "235 lb \u00d7 5",
+        "text": "235 lb × 5",
         "desc": "Edit set 1"
       }
     },

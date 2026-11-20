@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -36,6 +37,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class HistoryRepositoryNotesTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var repo: HistoryRepository
     private lateinit var backupRepository: BackupRepository
@@ -48,12 +50,15 @@ class HistoryRepositoryNotesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + Job())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("HistoryRepositoryNotesTest-cardio", ".preferences_pb")
+        })
         store = PreferenceDataStoreFactory.create(scope = scope) { File.createTempFile("notes", ".preferences_pb") }
         settings = SettingsStore(store)
         val plans = PlanRepository(db, settings)
         repo = HistoryRepository(db, settings, plans)
         tracker = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = repo)
-        backupRepository = BackupRepository(db, settings, tracker.plans, tracker.history)
+        backupRepository = BackupRepository(db, settings, tracker.plans, tracker.history, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }

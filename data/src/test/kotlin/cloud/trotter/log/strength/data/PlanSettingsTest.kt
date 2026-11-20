@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanSettings
@@ -60,6 +61,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanSettingsTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var store: FlakyDataStore
     private lateinit var settings: SettingsStore
@@ -75,6 +77,9 @@ class PlanSettingsTest {
             .allowMainThreadQueries()
             .build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("PlanSettingsTest-cardio", ".preferences_pb")
+        })
         store = FlakyDataStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
                 File.createTempFile("plan-settings", ".preferences_pb")
@@ -86,9 +91,10 @@ class PlanSettingsTest {
                 File.createTempFile("plan-settings-journal", ".preferences_pb")
             },
             settings,
+            cardioRunPrefs = cardioRunPrefs,
         )
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After
@@ -118,7 +124,7 @@ class PlanSettingsTest {
                 store.updateData(transform)
         })
         val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
-        val importingBackup = BackupRepository(db, gatedSettings, repository.plans, repository.history)
+        val importingBackup = BackupRepository(db, gatedSettings, repository.plans, repository.history, cardioRunPrefs = cardioRunPrefs)
         val snapshot = FullSnapshot(
             profile = LifterProfile(), unit = WeightUnit.LB, wizardComplete = true,
             suggestedDay = null, selectedPlanId = 2, restSettings = RestSettings(),

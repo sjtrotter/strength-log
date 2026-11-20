@@ -129,8 +129,9 @@ internal fun CardioBlock.plannedTimeDetail(): String {
 }
 
 /** The day's cardio session committed on the civil day of [nowMillis]: what the day screen shows as logged. */
-internal fun List<CardioSessionEntity>.loggedToday(planId: Long?, dayId: String?, nowMillis: Long): CardioSessionEntity? {
-    val zone = ZoneId.systemDefault()
+internal fun List<CardioSessionEntity>.loggedToday(
+    planId: Long?, dayId: String?, nowMillis: Long, zone: ZoneId,
+): CardioSessionEntity? {
     val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
     return firstOrNull {
         it.planId == planId && it.dayId == dayId &&

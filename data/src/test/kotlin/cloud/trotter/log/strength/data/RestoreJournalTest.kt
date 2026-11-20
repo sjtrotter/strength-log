@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -82,6 +83,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class RestoreJournalTest {
 
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var storeScope: CoroutineScope
     private lateinit var settingsStore: FlakyDataStore
@@ -98,6 +100,9 @@ class RestoreJournalTest {
             .allowMainThreadQueries()
             .build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("RestoreJournalTest-cardio", ".preferences_pb")
+        })
         settingsStore = FlakyDataStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
                 File.createTempFile("restore-journal-settings", ".preferences_pb")
@@ -109,7 +114,7 @@ class RestoreJournalTest {
             },
         )
         settings = SettingsStore(settingsStore)
-        journal = RestoreJournal(journalStore, settings)
+        journal = RestoreJournal(journalStore, settings, cardioRunPrefs = cardioRunPrefs)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -117,7 +122,7 @@ class RestoreJournalTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After

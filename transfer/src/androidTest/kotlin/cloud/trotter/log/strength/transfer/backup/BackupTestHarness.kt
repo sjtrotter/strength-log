@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -33,6 +34,7 @@ abstract class BackupTestHarness {
     private val dbName = "backup_test.db"
     private val prefsName = "backup_test_prefs"
     private val journalName = "backup_test_journal"
+    private val cardioRunsName = "backup_test_cardio_runs"
 
     protected lateinit var db: StrengthDatabase
     private lateinit var dataStoreScope: CoroutineScope
@@ -54,6 +56,10 @@ abstract class BackupTestHarness {
             produceFile = { context().preferencesDataStoreFile(prefsName) },
         )
         settings = SettingsStore(dataStore)
+        val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { context().preferencesDataStoreFile(cardioRunsName) },
+        ))
         repository = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -61,13 +67,15 @@ abstract class BackupTestHarness {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        backupRepository = BackupRepository(db, settings, repository.plans, repository.history)
+        backupRepository = BackupRepository(db, settings, repository.plans, repository.history,
+            cardioRunPrefs = cardioRunPrefs)
         journal = RestoreJournal(
             PreferenceDataStoreFactory.create(
                 scope = dataStoreScope,
                 produceFile = { context().preferencesDataStoreFile(journalName) },
             ),
             settings,
+            cardioRunPrefs,
         )
         service = BackupService(backupRepository, journal)
     }
@@ -102,6 +110,7 @@ abstract class BackupTestHarness {
         context.deleteDatabase(dbName)
         context.preferencesDataStoreFile(prefsName).delete()
         context.preferencesDataStoreFile(journalName).delete()
+        context.preferencesDataStoreFile(cardioRunsName).delete()
     }
 
     /** The program without slot rules. Conversion gives slots rules at launch and after a restore, at a time the

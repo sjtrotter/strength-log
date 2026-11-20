@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -63,6 +64,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class SetEditApplierTest {
 
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
@@ -87,6 +89,9 @@ class SetEditApplierTest {
             .allowMainThreadQueries()
             .build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("SetEditApplierTest-cardio", ".preferences_pb")
+        })
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-settings", ".preferences_pb")
         }
@@ -98,7 +103,7 @@ class SetEditApplierTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
         markers = RecordingMarkers()
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-edit-acks", ".preferences_pb")

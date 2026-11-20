@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -35,6 +36,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class KeepScreenOnSettingsTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var dataStore: DataStore<Preferences>
@@ -47,6 +49,9 @@ class KeepScreenOnSettingsTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("KeepScreenOnSettingsTest-cardio", ".preferences_pb")
+        })
         dataStore = PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("keep-screen-settings", ".preferences_pb")
         }
@@ -54,9 +59,9 @@ class KeepScreenOnSettingsTest {
         journalStore = PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("keep-screen-journal", ".preferences_pb")
         }
-        journal = RestoreJournal(journalStore, settings)
+        journal = RestoreJournal(journalStore, settings, cardioRunPrefs = cardioRunPrefs)
         val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        backup = BackupRepository(db, settings, repo.plans, repo.history)
+        backup = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }

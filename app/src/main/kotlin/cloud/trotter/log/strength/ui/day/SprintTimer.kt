@@ -9,6 +9,7 @@ import android.os.SystemClock
 import androidx.compose.runtime.staticCompositionLocalOf
 import javax.inject.Inject
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
 /** Practice (design call 1): time to set the phone hand at the start line and settle. */
 internal const val SPRINT_BEEP_DELAY_MILLIS = 5_000L
@@ -20,6 +21,7 @@ internal val LocalSprintElapsedMillis = staticCompositionLocalOf<() -> Long> { S
 @Parcelize
 data class SprintTimerState(val runId: String, val position: Int, val beepElapsedMillis: Long, val bootCount: Int) : Parcelable
 
+@Serializable
 @Parcelize
 data class CardioSprintTime(val runId: String, val position: Int, val centis: Int, val method: String, val protocol: String) : Parcelable
 

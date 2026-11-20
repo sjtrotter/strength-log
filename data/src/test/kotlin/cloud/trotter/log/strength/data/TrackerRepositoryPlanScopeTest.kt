@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -77,6 +78,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 @Config(sdk = [35])
 @OptIn(ExperimentalCoroutinesApi::class)
 class TrackerRepositoryPlanScopeTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
@@ -92,6 +94,9 @@ class TrackerRepositoryPlanScopeTest {
             .allowMainThreadQueries()
             .build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("TrackerRepositoryPlanScopeTest-cardio", ".preferences_pb")
+        })
         settings = SettingsStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
                 File.createTempFile("plan-scope-settings", ".preferences_pb")
@@ -100,7 +105,7 @@ class TrackerRepositoryPlanScopeTest {
         val journalStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("plan-scope-journal", ".preferences_pb")
         }
-        journal = RestoreJournal(journalStore, settings)
+        journal = RestoreJournal(journalStore, settings, cardioRunPrefs = cardioRunPrefs)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -109,7 +114,7 @@ class TrackerRepositoryPlanScopeTest {
             settings = settings,
             clock = clock,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, clock)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, clock, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After

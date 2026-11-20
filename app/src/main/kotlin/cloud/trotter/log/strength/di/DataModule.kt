@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.Module
@@ -14,12 +16,20 @@ import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.rest.PhoneRestRuntime
 import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.ui.day.CardioRunStore
+import cloud.trotter.log.strength.ui.day.PrefsCardioRunStore
 import java.time.Clock
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class CardioRunData
 
 /**
  * The data layer's object graph — the one place the Room DB and Preferences
@@ -37,6 +47,7 @@ object DataModule {
      *  see [RestoreJournal]: a restore clears the settings store wholesale, so a
      *  marker kept there would be erased by the write it guards. */
     private const val RESTORE_JOURNAL_FILE = "restore_journal"
+    private const val CARDIO_RUNS_FILE = "cardio_runs"
 
     @Provides
     @Singleton
@@ -54,12 +65,32 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun restoreJournal(@ApplicationContext context: Context, settings: SettingsStore): RestoreJournal =
+    @CardioRunData
+    fun cardioRunData(@ApplicationContext context: Context): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile(CARDIO_RUNS_FILE) },
+        )
+
+    @Provides
+    @Singleton
+    fun cardioRunPrefs(@CardioRunData dataStore: DataStore<Preferences>): CardioRunPrefs = CardioRunPrefs(dataStore)
+
+    @Provides
+    fun cardioRunStore(store: PrefsCardioRunStore): CardioRunStore = store
+
+    @Provides
+    @Singleton
+    fun restoreJournal(
+        @ApplicationContext context: Context,
+        settings: SettingsStore,
+        cardioRunPrefs: CardioRunPrefs,
+    ): RestoreJournal =
         RestoreJournal(
             PreferenceDataStoreFactory.create(
                 produceFile = { context.preferencesDataStoreFile(RESTORE_JOURNAL_FILE) },
             ),
             settings,
+            cardioRunPrefs,
         )
 
     @Provides
@@ -84,7 +115,8 @@ object DataModule {
         plans: PlanRepository,
         history: HistoryRepository,
         clock: Clock,
-    ): BackupRepository = BackupRepository(db, settings, plans, history, clock)
+        cardioRunPrefs: CardioRunPrefs,
+    ): BackupRepository = BackupRepository(db, settings, plans, history, clock, cardioRunPrefs = cardioRunPrefs)
 
     @Provides
     @Singleton

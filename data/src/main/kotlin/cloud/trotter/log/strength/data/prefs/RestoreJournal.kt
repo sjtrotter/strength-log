@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.first
 class RestoreJournal(
     private val dataStore: DataStore<Preferences>,
     private val settings: SettingsStore,
+    private val cardioRunPrefs: CardioRunPrefs,
 ) {
 
     /** The staged payload, in the same keys it will be replayed into. */
@@ -135,6 +136,7 @@ class RestoreJournal(
             effortScale = staged.effortScaleFlow.first(),
             onTodayFixupDone = prefs[Keys.TODAY_MEMBERSHIP] == true,
         )
+        cardioRunPrefs.clear()
         clear()
         return true
     }

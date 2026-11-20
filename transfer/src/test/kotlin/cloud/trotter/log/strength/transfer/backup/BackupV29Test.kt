@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanSettings
@@ -77,16 +78,19 @@ class BackupV29Test {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("BackupV29Test-cardio", ".preferences_pb")
+        })
         try {
             val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v29-restore", ".preferences_pb")
             })
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v29-journal", ".preferences_pb")
-            }, settings)
+            }, settings, cardioRunPrefs = cardioRunPrefs)
             settings.setLifterProfile(LifterProfile(235.0, 40))
             val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-            val backup = BackupRepository(db, settings, repo.plans, repo.history)
+            val backup = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
             val novice = OldWizardPlans.MACHINE_NOVICE
             val id = db.insertRuledOldWizardPlan(novice, settings)
             db.runLaunchFixups(settings)
@@ -113,16 +117,19 @@ class BackupV29Test {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("BackupV29Test-cardio", ".preferences_pb")
+        })
         try {
             val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v18-restore", ".preferences_pb")
             })
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v18-journal", ".preferences_pb")
-            }, settings)
+            }, settings, cardioRunPrefs = cardioRunPrefs)
             settings.setLifterProfile(LifterProfile(235.0, 40))
             val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-            val backup = BackupRepository(db, settings, repo.plans, repo.history)
+            val backup = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
             val fixture = OldWizardPlans.DUMBBELL_NOVICE
             val id = db.insertRuledOldWizardPlan(fixture, settings, "Dumbbells")
             val squats = db.programDao().exercisesForPlan(id).filter { it.exerciseId == "goblet_squat" }

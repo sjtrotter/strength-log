@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -123,12 +124,15 @@ class BackupExportTest {
             val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
                 File(temporary.root, "settings.preferences_pb")
             })
+            val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+                File(temporary.root, "cardio_runs.preferences_pb")
+            })
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File(temporary.root, "journal.preferences_pb")
-            }, settings)
+            }, settings, cardioRunPrefs = cardioRunPrefs)
             val repo = TrackerRepository(database, database.programDao(), database.sessionDao(),
                 database.customExerciseDao(), settings)
-            val backup = BackupService(BackupRepository(database, settings, repo.plans, repo.history), journal)
+            val backup = BackupService(BackupRepository(database, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs), journal)
             compose.mainClock.autoAdvance = false
             compose.setContent { Text("Export") }
             block(backup, settings, repo, scope)

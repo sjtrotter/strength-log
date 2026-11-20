@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
@@ -86,6 +87,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class SetupFlowRestoreTest {
 
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var settingsStore: FlakyDataStore
@@ -115,6 +117,9 @@ class SetupFlowRestoreTest {
         context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("SetupFlowRestoreTest-cardio", ".preferences_pb")
+        })
         appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         settingsStore = FlakyDataStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
@@ -138,11 +143,11 @@ class SetupFlowRestoreTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
         journalStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("wizard-restore-journal", ".preferences_pb")
         }
-        journal = RestoreJournal(journalStore, settings)
+        journal = RestoreJournal(journalStore, settings, cardioRunPrefs = cardioRunPrefs)
         service = BackupService(backupRepository, journal)
     }
 

@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
@@ -62,6 +63,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class BackupViewModelRestoreTest {
 
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var storeScope: CoroutineScope
@@ -80,6 +82,9 @@ class BackupViewModelRestoreTest {
         context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("BackupViewModelRestoreTest-cardio", ".preferences_pb")
+        })
         appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         settingsStore = FlakyDataStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
@@ -99,10 +104,10 @@ class BackupViewModelRestoreTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        val backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        val backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
         viewModel = BackupViewModel(
             context,
-            BackupService(backupRepository, RestoreJournal(journalStore, settings)),
+            BackupService(backupRepository, RestoreJournal(journalStore, settings, cardioRunPrefs = cardioRunPrefs)),
             CsvHistoryService(repo.history, catalog = repo.catalog),
             settings,
             appScope,

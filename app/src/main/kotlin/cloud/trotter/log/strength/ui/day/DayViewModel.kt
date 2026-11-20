@@ -90,6 +90,8 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -137,8 +139,10 @@ import kotlinx.coroutines.sync.withLock
  * ([SetEditor]) — never reimplemented here.
  *
  * Cardio runs persist their frozen prescriptions, per-set outcomes and clock anchors
- * as one saved value. Logged distance drafts have separate saved state and never
- * retain execution ownership. Set-end alarms are shared with timed reps.
+ * as one saved value. Each mutation also mirrors the run to [CardioRunStore], keyed
+ * by plan and day, so the next Day screen for that day starts where this one stopped
+ * (#627). Logged distance drafts have separate saved state and never retain execution
+ * ownership. Set-end alarms are shared with timed reps.
  * Outdoor runs measure distance through [GpsDistance]; its stamps have their own saved key.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -159,6 +163,7 @@ class DayViewModel @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val gps: GpsDistance = GpsDistance.None,
     private val sprintBeeper: SprintBeeper = object : SprintBeeper { override fun beep() = Unit },
+    private val cardioRunStore: CardioRunStore = CardioRunStore.None,
 ) : ViewModel() {
 
     val nowMillis: () -> Long = clock::millis
@@ -630,13 +635,13 @@ class DayViewModel @Inject constructor(
             },
             executionActive = { executionActive },
             loggedCardio = { planId, dayId ->
-                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis())
+                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis(), repo.zone)
             },
         )
 
         viewModelScope.launch {
             combine(dayState, historyRepository.cardioSessionsFlow) { state, history ->
-                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis(), repo.zone)
                 state.copy(cardio = state.cardio?.copy(loggedSeconds = logged?.seconds))
             }.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
@@ -708,6 +713,12 @@ class DayViewModel @Inject constructor(
                     refreshGpsWarmup(uiState.value)
                 }
             }
+        }
+        if (savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) != true) viewModelScope.launch {
+            dayState.map { state -> state.planId?.takeIf { !state.loading }?.let { plan -> state.viewDayId?.let { plan to it } } }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { (planId, dayId) -> mutationLock.withLock { restoreCardioRun(planId, dayId) } }
         }
     }
 
@@ -851,6 +862,13 @@ class DayViewModel @Inject constructor(
     private fun saveCardioRun(run: CardioRun) {
         savedState[KEY_CARDIO_RUN] = run
         watchCardioDistance(run)
+        persistCardioRun()
+    }
+
+    private fun persistCardioRun() {
+        val run = cardioRun.value ?: return
+        cardioRunStore.save(StoredCardioRun(cardioClock.wallMillis(), run, gpsSetsFor(run), sprintTimesFor(run),
+            readingInputs.value.filter { it.runId == run.runId }, runDistance.value?.takeIf { it.runId == run.runId }))
     }
 
     private fun watchCardioDistance(run: CardioRun) {
@@ -980,6 +998,7 @@ class DayViewModel @Inject constructor(
         if (acceptsDistanceText(text, distanceUnitFor(run))) {
             savedState[KEY_CARDIO_RUN_DISTANCE] = CardioRunDistance(run.runId, run.position,
                 saveDistanceInput(run, run.position, text))
+            persistCardioRun()
         }
     }
 
@@ -1071,6 +1090,7 @@ class DayViewModel @Inject constructor(
             CardioSprintTime(run.runId, run.position, centis, method.name, protocol.name))
         savedState[KEY_SPRINT_PROTOCOL] = protocol.name
         savedState[KEY_SPRINT_TIME_DRAFT] = null
+        persistCardioRun()
         clearSprintTimer()
         reachCardioTarget(action)
     }
@@ -1249,6 +1269,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_CARDIO_READING_INPUTS] = ArrayList(readingInputs.value.filterNot {
             it.runId == run.runId && it.position == action.setIndex
         } + CardioReadingInput(run.runId, action.setIndex, text, unit))
+        persistCardioRun()
     }
 
     fun saveCardioDistance(action: CardioSetAction) {
@@ -2739,6 +2760,34 @@ class DayViewModel @Inject constructor(
         if (event.dayId == dayId && event.programExerciseId == programExerciseId) clearTimedRep()
     }
 
+    /** Seeds an empty execution slot with the day's durable run (#627). [validateCardioRun] and the next state build own it from there. */
+    private suspend fun restoreCardioRun(planId: Long, dayId: String) {
+        if (cardioRun.value != null) return
+        val stored = cardioRunStore.load(planId, dayId) ?: return
+        val run = stored.run
+        val now = cardioClock.wallMillis()
+        val sessions = historyRepository.cardioSessionsFlow.first()
+        val logged = run.startedAt?.let { started -> sessions.any { it.dayId == run.dayId && it.startedAt == started } }
+            ?: (sessions.loggedToday(planId, dayId, now, repo.zone) != null)
+        if (run.planId != planId || run.dayId != dayId || localDate(stored.savedAt) < localDate(now) || logged) {
+            return cardioRunStore.delete(planId, dayId)
+        }
+        if (cardioRun.value != null) return
+        savedState[KEY_CARDIO_GPS_SETS] = ArrayList(gpsSets.value.filterNot { it.runId == run.runId } + stored.gpsSets)
+        savedState[KEY_SPRINT_TIMES] = ArrayList(sprintTimes.value.filterNot { it.runId == run.runId } + stored.sprintTimes)
+        savedState[KEY_CARDIO_READING_INPUTS] =
+            ArrayList(readingInputs.value.filterNot { it.runId == run.runId } + stored.readingInputs)
+        stored.runDistance?.let { savedState[KEY_CARDIO_RUN_DISTANCE] = it }
+        savedState[KEY_CARDIO_RUN] = run
+        if (cardioScreenLive && run.running && run.block.activity.usesGps && gpsEnabled.value && gps.meter(run.runId) == null) {
+            beginCardioGps(run)
+        }
+        lastCardioValidationContext?.let(::validateCardioRun)
+        cardioTick.value++
+    }
+
+    private fun localDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(repo.zone).toLocalDate()
+
     private fun validateCardioRun(ctx: DayContext) {
         val contextChanged = ctx != lastCardioValidationContext
         lastCardioValidationContext = ctx
@@ -2781,7 +2830,7 @@ class DayViewModel @Inject constructor(
                 block = savedRun.block, run = savedRun, canAddSet = false, finishesDay = savedRun.finishesDay,
                 distanceUnit = distanceUnit.value)
         }
-        val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+        val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis(), repo.zone)
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
         val activeRun = savedRun?.takeIf {
             it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId
@@ -2911,6 +2960,7 @@ class DayViewModel @Inject constructor(
     }
 
     private fun clearCardioExecution(keepDistanceSheet: Boolean = false, keepRecordState: Boolean = false) {
+        cardioRun.value?.let { cardioRunStore.delete(it.planId, it.dayId) }
         cardioRun.value?.takeIf { it.block.activity.usesGps }?.let {
             gps.end(it.runId)
             gps.keepRoute(it.runId, false)

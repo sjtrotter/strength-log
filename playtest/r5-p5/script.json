@@ -101,17 +101,7 @@
       }
     },
     {
-      "tap": {
-        "desc": "More options for Pallof Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "nov-27-cleared-generated-b"
+      "checkpoint": "nov-27-one-generated-lift-retained"
     },
     {
       "scrollTo": {
@@ -184,6 +174,24 @@
       "tap": {
         "text": "Save"
       }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Pallof Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Pallof Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "nov-27-generated-lifts-replaced"
     },
     {
       "scrollTo": {

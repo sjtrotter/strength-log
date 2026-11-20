@@ -33,174 +33,6 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Vertical pull"
-      }
-    },
-    {
-      "checkpoint": "vertical-pull-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "expect": {
-        "text": "Edit day A"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Plank"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "minimal-lift-block"
-    },
-    {
-      "tap": {
-        "textContains": "Barbell Back Squat",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "1",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "185",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
         "text": "Add cardio"
       }
     },
@@ -217,13 +49,21 @@
     },
     {
       "scrollTo": {
-        "text": "Rower"
+        "text": "Stationary bike"
       }
     },
     {
       "tap": {
-        "text": "Rower"
+        "text": "Stationary bike"
       }
+    },
+    {
+      "tap": {
+        "text": "Intervals 5 \u00d7 2:00"
+      }
+    },
+    {
+      "checkpoint": "bike-interval-block"
     },
     {
       "tap": {
@@ -231,20 +71,36 @@
       }
     },
     {
+      "checkpoint": "bike-work-editor"
+    },
+    {
       "type": {
         "text": "Duration",
-        "value": "15:00"
+        "value": "0:30"
       }
     },
     {
       "tap": {
-        "desc": "Aim"
+        "desc": "Hard"
       }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 2 \u00b7 Recovery"
+      }
+    },
+    {
+      "checkpoint": "bike-recovery-editor"
     },
     {
       "type": {
-        "text": "Distance (m)",
-        "value": "3400"
+        "text": "Duration",
+        "value": "1:30"
       }
     },
     {
@@ -253,75 +109,36 @@
       }
     },
     {
+      "checkpoint": "bike-edited-interval-block"
+    },
+    {
       "tap": {
-        "text": "Save"
+        "text": "Cancel"
       }
     },
     {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "mixed-session-one-lift"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+      "scrollTo": {
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "desc": "More options for Barbell Back Squat"
       }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "checkpoint": "last-lift-logged"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "Lift options"
       }
-    },
-    {
-      "checkpoint": "after-last-lift-next-action"
     },
     {
       "tap": {
-        "text": "Log past session"
+        "textContains": "Increase",
+        "index": 0
       }
     },
     {
-      "checkpoint": "rower-past-result-form"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "rower-started"
-    },
-    {
-      "advance": "15m"
-    },
-    {
-      "checkpoint": "rower-timer-completed"
+      "checkpoint": "progression-increase-form"
     }
   ]
 }

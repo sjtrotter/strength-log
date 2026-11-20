@@ -27,7 +27,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block — Nov 9 to Dec 5"
+        "value": "Meet block \u2014 Nov 9 to Dec 5"
       }
     },
     {
@@ -312,14 +312,24 @@
       }
     },
     {
+      "checkpoint": "ab-wheel-movement-dialog"
+    },
+    {
       "scrollTo": {
-        "text": "Core: anti-extension"
+        "text": "Core: anti-extension",
+        "inDialog": true,
+        "role": "RadioButton"
       }
     },
     {
       "tap": {
-        "text": "Core: anti-extension"
+        "text": "Core: anti-extension",
+        "inDialog": true,
+        "role": "RadioButton"
       }
+    },
+    {
+      "checkpoint": "ab-wheel-movement-selected"
     },
     {
       "tap": {

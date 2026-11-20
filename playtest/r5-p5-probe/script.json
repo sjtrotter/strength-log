@@ -70,13 +70,7 @@
     },
     {
       "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
+        "text": "Horizontal pull"
       }
     },
     {
@@ -86,7 +80,34 @@
       }
     },
     {
-      "checkpoint": "remaining-movement-categories"
+      "checkpoint": "lower-movements-1"
+    },
+    {
+      "swipe": {
+        "text": "Horizontal pull",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "lower-movements-2"
+    },
+    {
+      "swipe": {
+        "text": "Horizontal pull",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "lower-movements-3"
+    },
+    {
+      "swipe": {
+        "text": "Horizontal pull",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "lower-movements-4"
     },
     {
       "back": true
@@ -114,9 +135,6 @@
       }
     },
     {
-      "checkpoint": "floor-bridge-search-results"
-    },
-    {
       "scrollTo": {
         "text": "Create exercise"
       }
@@ -127,7 +145,12 @@
       }
     },
     {
-      "checkpoint": "create-exercise-fields"
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "checkpoint": "custom-movement-options"
     },
     {
       "back": true
@@ -136,211 +159,70 @@
       "back": true
     },
     {
-      "checkpoint": "editor-after-create-cancel"
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-leg"
-      }
-    },
-    {
-      "tap": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "tap": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "checkpoint": "reverse-lunge-prescription"
-    },
-    {
       "back": true
     },
     {
-      "scrollTo": {
-        "text": "Reverse Lunge"
-      }
+      "checkpoint": "editor-after-custom-pattern-inspection"
     },
     {
-      "tap": {
-        "desc": "More options for Reverse Lunge"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Barbell Row"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Plank"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Each side",
-        "role": "Switch"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day B"
+        "desc": "Day A"
       }
     },
     {
       "tap": {
-        "text": "Skip",
-        "role": "Button"
+        "text": "Edit"
       }
-    },
-    {
-      "checkpoint": "timed-each-side-start"
     },
     {
       "tap": {
-        "desc": "Edit set 1"
+        "text": "Edit cardio"
       }
     },
     {
-      "checkpoint": "timed-each-side-edit"
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "tap": {
+        "text": "Distance",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "distance-ended-run-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "All sets"
+        "text": "Start day A"
       }
     },
     {
-      "checkpoint": "timed-each-side-all-sets"
+      "checkpoint": "standalone-cardio-before-start"
     },
     {
       "tap": {
-        "tag": "lift-check-main-0"
+        "text": "Log past session"
       }
     },
     {
-      "checkpoint": "timed-side-checkbox-result"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "timed-side-current-after-checkbox"
+      "checkpoint": "past-cardio-with-mixed-units"
     }
   ]
 }

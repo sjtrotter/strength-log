@@ -3,14 +3,38 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-10",
-    "time": "06:00",
+    "date": "2026-11-11",
+    "time": "09:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "desc": "Day B"
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Strength, 4 days"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "added-cardio-day-f"
+    },
+    {
+      "scrollTo": {
+        "desc": "Day F"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day F"
       }
     },
     {
@@ -19,1175 +43,113 @@
       }
     },
     {
-      "checkpoint": "generated-upper-a"
-    },
-    {
       "scrollTo": {
-        "desc": "More options for Barbell Bench Press"
+        "text": "Add cardio"
       }
     },
     {
       "tap": {
-        "desc": "More options for Barbell Bench Press"
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "easy-road-run-editor"
+    },
+    {
+      "tap": {
+        "text": "Easy 25:00"
       }
     },
     {
       "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "tap": {
-        "text": "Straight sets"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "175",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-bench-175-3x5"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Barbell Row"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "checkpoint": "swapped-one-arm-db-row"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "70",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-one-arm-db-row"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "checkpoint": "swapped-seated-db-shoulder-press"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-seated-db-shoulder-press"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Pull-Up / Chin-Up"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Pull-Up / Chin-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "checkpoint": "swapped-weighted-pull-up"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-weighted-pull-up"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "note": "Plain DB curl not found in this movement-specific picker; Hammer Curl is an explicit recording approximation for my diary curls, not evidence that the app has no plain DB curl elsewhere."
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Incline DB Curl"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Incline DB Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "checkpoint": "swapped-hammer-curl"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "12",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-hammer-curl"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for DB Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "expect": {
-        "text": "Edit day B"
-      }
-    },
-    {
-      "checkpoint": "removed-db-lateral-raise"
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Suitcase Carry"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Suitcase Carry"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "expect": {
-        "text": "Edit day B"
-      }
-    },
-    {
-      "checkpoint": "removed-suitcase-carry"
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for One-Arm DB Row"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for One-Arm DB Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rest"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rest"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Weighted Pull-Up"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Weighted Pull-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rest"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Hammer Curl"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Hammer Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "checkpoint": "hammer-curl-options-with-superset"
-    },
-    {
-      "tap": {
-        "text": "Rest"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Seconds",
-        "value": "0",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "upper-a-configured"
-    },
-    {
-      "checkpoint": "my-upper-a"
-    },
-    {
-      "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
+        "text": "Save",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "bench-first-set"
-    },
-    {
-      "note": "Physical workout follows bench, belt pullups, seated DB press, rows and curls. Recording follows the app list. Bench rests are actually two minutes despite the three-minute target. Warm up bar x10,95x5,135x5,155x2; curls are30s2x12 as in my plan."
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-tonal"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-tonal"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-MAX"
-      }
-    },
-    {
-      "checkpoint": "bench-175-5-5-4"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-tonal"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "One-Arm DB Row",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-one-arm-db-row"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-one-arm-db-row"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Seated DB Shoulder Press",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-seated-db-shoulder-press"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "7",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-seated-db-shoulder-press"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Weighted Pull-Up",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-weighted-pull-up"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-weighted-pull-up"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Hammer Curl",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-hammer-curl"
-    },
-    {
-      "note": "The generated triceps superset survived the curl swap. I did curls only. Mark the two main curl sets in All sets, leave the triceps sets unlogged, and finish with those sets left. This avoids inventing triceps work; removal controls are still untested."
-    },
-    {
-      "tap": {
-        "tag": "workout-all-sets-main"
-      }
-    },
-    {
-      "checkpoint": "curl-superset-all-sets"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-0"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "checkpoint": "two-curl-sets-no-triceps"
+      "checkpoint": "saved-easy-road-run-plan"
     },
     {
       "back": true
     },
     {
-      "advance": "1005s"
+      "checkpoint": "cardio-day-detail"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Start day F",
+        "role": "Button"
       }
+    },
+    {
+      "checkpoint": "road-run-ready-for-past-entry"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Log past session"
       }
     },
     {
-      "checkpoint": "upper-a-receipt"
+      "checkpoint": "past-run-form-default-date-time"
     },
     {
-      "scrollTo": {
-        "text": "Add a note"
+      "note": "Nov11 easy run was 28min, about2.9mi. Assumed actual start09:00, logging09:30. Harness cannot edit Date or Start time; leave both shown values, inspect saved artifact. No GPS or watch test."
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "28:00",
+        "ime": "done"
       }
     },
     {
-      "tap": {
-        "text": "Add a note"
+      "type": {
+        "text": "Distance (mi)",
+        "value": "2.9",
+        "ime": "done"
       }
     },
     {
       "type": {
         "text": "Note",
-        "value": "Bench175 last set4 again; stalled2in off chest, rolled to hips. Rested2min, not3. DB press50:8/8/7. Curls30s.",
+        "value": "Veterans Day, off work. Easy run, about 2.9 miles. Actual start 09:00.",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Save note"
+        "tag": "past-cardio-effort-EASY"
       }
     },
     {
-      "checkpoint": "bench-miss-note-saved"
+      "checkpoint": "past-run-28min-2point9mi-easy"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "past-run-save-result"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button",
+        "inDialog": true
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "nov11-run-receipt"
     },
     {
       "tap": {
         "text": "Done",
-        "role": "Button"
+        "role": "Button",
+        "inDialog": false
       }
     },
     {
@@ -1197,7 +159,7 @@
       }
     },
     {
-      "checkpoint": "nov10-finished-today"
+      "checkpoint": "nov11-run-finished"
     }
   ]
 }

@@ -25,7 +25,6 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.sync.Mutex
 import org.junit.Assert.assertNotEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -103,11 +102,7 @@ class PlaytestReplayTest {
                 if (!this::backup.isInitialized) hilt.inject()
                 val deadline = StepDeadline(60_000, operation = "Backup export")
                 deadline.run(compose) {
-                    val locks = deadline.call {
-                        var pending = emptyList<Mutex>()
-                        scenario?.onActivity { pending = it.viewModelStore.workoutMutationLocks() }
-                        pending
-                    }
+                    val locks = deadline.call { scenario?.workoutMutationLocks().orEmpty() }
                     artifacts.writeBackup(backup, deadline) { awaitWorkoutMutations(locks) }
                 }
             } catch (exportError: Throwable) {

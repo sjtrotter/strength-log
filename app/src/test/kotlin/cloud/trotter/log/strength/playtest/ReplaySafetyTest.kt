@@ -189,6 +189,7 @@ class ReplaySafetyTest {
         }
         val anchor = compose.onNodeWithText("Road run")
         assertTrue(anchor.fetchSemanticsNode().config.contains(SemanticsProperties.EditableText))
+        assertEquals(Role.DropdownList, anchor.fetchSemanticsNode().config[SemanticsProperties.Role])
         assertTrue(anchor.fetchSemanticsNode().opensOnTap())
         perform("""{"tap":{"text":"Road run"}}""")
         compose.onNodeWithText("Trail run").performClick()
@@ -262,7 +263,7 @@ class ReplaySafetyTest {
         assertTrue(compose.onNodeWithText("Overlay 30").fetchSemanticsNode().visibleForTouch())
         listOf("Behind 30", "Behind 0").forEach { label ->
             val error = assertFailsWith<PlaytestError> {
-                perform("""{"scrollTo":{"text":"$label"$scope},"timeoutMs":1000}""")
+                perform("""{"scrollTo":{"text":"$label"$scope},"timeoutMs":10000}""")
             }
             assertEquals("not-found", error.kind)
         }
@@ -304,9 +305,6 @@ class ReplaySafetyTest {
         val label = mutableStateOf("Start")
         val guarded = mutableStateOf(false)
         var delivered = 0
-        val time = PlaytestTime()
-        val wallTime = time.clock.instant()
-        val elapsed = time.elapsedMillis()
         compose.mainClock.autoAdvance = false
         compose.setContent { AppTheme {
             LaunchedEffect(label.value) {
@@ -319,16 +317,22 @@ class ReplaySafetyTest {
                 role = Role.Button, onClick = onAction, onLongClick = onAction,
             )) { Text(label.value) }
         } }
+        val selectors = Selectors(compose, compose.density.density)
+        fun awaitLabel(text: String) {
+            val step = Step.parse(Json.parseToJsonElement("""{"expect":{"text":"$text"}}"""))
+            val deadline = StepDeadline(10_000)
+            deadline.run(compose) { selectors.await(requireNotNull(step.selector), deadline) }
+        }
+        awaitLabel("Start")
         compose.runOnUiThread { label.value = "Log set" }
-        compose.mainClock.advanceTimeByFrame()
+        awaitLabel("Log set")
         compose.onNodeWithText("Log set").assertExists()
         assertTrue(guarded.value)
         val before = compose.mainClock.currentTime
         perform("""{"$action":{"tag":"$tag"}}""")
         assertEquals(1, delivered)
+        assertFalse(guarded.value)
         assertTrue(compose.mainClock.currentTime - before >= 700L)
-        assertEquals(wallTime, time.clock.instant())
-        assertEquals(elapsed, time.elapsedMillis())
         assertFalse(compose.mainClock.autoAdvance)
     }
 

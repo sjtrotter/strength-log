@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.playtest
 
 import android.os.Looper
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.requestFocus
@@ -40,7 +42,6 @@ import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -268,11 +269,7 @@ internal class Replay(
 
     private fun settleInteraction(deadline: StepDeadline) {
         val shapes = compose.settleSemantics(deadline, awaitPendingWork = {
-            val locks = deadline.call {
-                var pending = emptyList<Mutex>()
-                scenario.onActivity { pending = it.viewModelStore.workoutMutationLocks() }
-                pending
-            }
+            val locks = deadline.call { scenario.workoutMutationLocks() }
             deadline.io { awaitWorkoutMutations(locks) }
         }) { settledFrames++ }
         screen = shapes.asSequence().flatMap { it.texts.asSequence() }
@@ -300,7 +297,14 @@ internal class ReplayActions(private val compose: ComposeTestRule, private val s
         when (step.action) {
             "tap" -> {
                 requireAction(node.config.contains(SemanticsActions.OnClick), "not-clickable", "Node has no click action")
-                deadline.call { target.performClick() }
+                deadline.call {
+                    if (node.config.contains(SemanticsProperties.EditableText) && node.opensOnTap() &&
+                        node.config.getOrNull(SemanticsProperties.Role) != Role.DropdownList) {
+                        target.performSemanticsAction(SemanticsActions.OnClick) { it() }
+                    } else {
+                        target.performClick()
+                    }
+                }
             }
             "longPress" -> {
                 requireAction(node.config.contains(SemanticsActions.OnLongClick), "not-clickable", "Node has no long-click action")

@@ -3,15 +3,15 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-27",
+    "date": "2026-11-30",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "role": "Tab",
-        "text": "Plans"
+        "text": "Plans",
+        "role": "Tab"
       }
     },
     {
@@ -21,16 +21,16 @@
     },
     {
       "scrollTo": {
-        "desc": "Day D"
+        "desc": "Day B"
       }
     },
     {
       "tap": {
-        "desc": "Day D"
+        "desc": "Day B"
       }
     },
     {
-      "checkpoint": "nov-27-generated-b-before-edit"
+      "checkpoint": "nov-30-lift-offered-before-edits"
     },
     {
       "tap": {
@@ -38,109 +38,85 @@
       }
     },
     {
-      "checkpoint": "nov-27-generated-editor"
-    },
-    {
-      "tap": {
-        "desc": "More options for Trap-Bar Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Bulgarian Split Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Pull-Up / Chin-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for EZ-Bar Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "nov-27-one-generated-lift-retained"
-    },
-    {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Goblet Squat"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
       }
     },
     {
       "scrollTo": {
-        "text": "Single-leg"
+        "text": "DB Romanian Deadlift"
       }
     },
     {
       "tap": {
-        "text": "Single-leg"
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
       }
     },
     {
       "scrollTo": {
-        "text": "Step-Up"
+        "text": "Reverse Lunge"
       }
     },
     {
       "tap": {
-        "text": "Step-Up"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Step-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Step-Up"
+        "text": "Reverse Lunge"
       }
     },
     {
@@ -166,401 +142,23 @@
     },
     {
       "tap": {
-        "desc": "Each side",
-        "role": "Switch"
-      }
-    },
-    {
-      "tap": {
         "text": "Save"
       }
     },
     {
       "scrollTo": {
-        "desc": "More options for Pallof Press"
+        "text": "Standing DB Calf Raise"
       }
     },
     {
       "tap": {
-        "desc": "More options for Pallof Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "nov-27-generated-lifts-replaced"
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Single-leg"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-leg"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Single-leg RDL (one dumbbell)",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "text": "Single-leg"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (lb)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (lb)",
-        "value": "20",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Dumbbell",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "text": "Dumbbell"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "created-single-leg-rdl-(one-dumbbell)"
-    },
-    {
-      "scrollTo": {
-        "text": "Single-leg RDL (one dumbbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-leg RDL (one dumbbell)"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Single-leg RDL (one dumbbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-leg RDL (one dumbbell)"
+        "text": "Standing DB Calf Raise"
       }
     },
     {
       "type": {
         "text": "Sets",
         "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Each side",
-        "role": "Switch"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Knee flexion (leg curl)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Knee flexion (leg curl)"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Calf: soleus"
-      }
-    },
-    {
-      "tap": {
-        "text": "Calf: soleus"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Seated Calf Raise (added load)",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical pull",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical pull",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Rear deltoid",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "text": "Calf: soleus"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (lb)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (lb)",
-        "value": "45",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Machine",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "text": "Machine"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "created-seated-calf-raise-(added-load)"
-    },
-    {
-      "scrollTo": {
-        "text": "Seated Calf Raise (added load)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Calf Raise (added load)"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated Calf Raise (added load)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated Calf Raise (added load)"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
         "ime": "done"
       }
     },
@@ -574,7 +172,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "45",
+        "value": "20",
         "ime": "done"
       }
     },
@@ -585,167 +183,12 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Side Plank"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Core: anti-rotation"
-      }
-    },
-    {
-      "tap": {
-        "text": "Core: anti-rotation"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Pallof Press (cable)",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical push",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical pull",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Vertical pull",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Rear deltoid",
-        "role": "RadioButton",
-        "inDialog": true,
-        "direction": "up"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "text": "Core: anti-rotation"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Starting weight (lb)"
-      }
-    },
-    {
-      "type": {
-        "text": "Starting weight (lb)",
-        "value": "15",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Cable",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "text": "Cable"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "created-pallof-press-(cable)"
-    },
-    {
-      "scrollTo": {
-        "text": "Pallof Press (cable)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Pallof Press (cable)"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Pallof Press (cable)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Pallof Press (cable)"
+        "text": "Side Plank"
       }
     },
     {
@@ -757,22 +200,9 @@
     },
     {
       "type": {
-        "text": "Reps",
-        "value": "10",
+        "text": "Duration",
+        "value": "0:30",
         "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "15",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Each side",
-        "role": "Switch"
       }
     },
     {
@@ -781,92 +211,14 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Floor Bridges (bodyweight)",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "text": "Hinge"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "text": "Reps"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Bodyweight",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "role": "Checkbox",
-        "text": "Bodyweight"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "created-floor-bridges-(bodyweight)"
-    },
-    {
       "back": true
     },
     {
-      "back": true
-    },
-    {
-      "checkpoint": "nov-27-strength-b-prescription"
+      "checkpoint": "nov-30-lift-prescription"
     },
     {
       "tap": {
-        "text": "Start day D"
+        "text": "Start day B"
       }
     },
     {
@@ -874,188 +226,114 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "text": "Done"
+        "text": "Done",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "nov-27-strength-b-start"
+      "checkpoint": "nov-30-lift-start-previous-actuals"
     },
     {
       "expect": {
-        "text": "Step-Up"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Single-leg RDL (one dumbbell)"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Seated Leg Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Floor Bridges (bodyweight)",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "nov-27-bridge-swap-results"
-    },
-    {
-      "scrollTo": {
-        "text": "Floor Bridges (bodyweight)",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "index": 1,
-        "text": "Floor Bridges (bodyweight)"
-      }
-    },
-    {
-      "tap": {
-        "role": "RadioButton",
-        "text": "This workout"
-      }
-    },
-    {
-      "tap": {
-        "role": "Button",
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "nov-27-bridge-swap-this-workout"
-    },
-    {
-      "expect": {
-        "text": "Floor Bridges (bodyweight)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "15",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
+        "text": "Goblet Squat"
       }
     },
     {
       "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "advance": "60s"
     },
     {
       "tap": {
@@ -1082,14 +360,43 @@
     },
     {
       "type": {
-        "text": "Reps",
-        "value": "15",
+        "text": "Weight (lb)",
+        "value": "10",
         "ime": "done"
       }
     },
     {
       "tap": {
         "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "nov-30-second-lunge-lighter"
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Standing DB Calf Raise"
       }
     },
     {
@@ -1114,27 +421,6 @@
       }
     },
     {
-      "checkpoint": "nov-27-two-bridge-sets"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip this set"
-      }
-    },
-    {
-      "checkpoint": "nov-27-remaining-bridge-set-skipped"
-    },
-    {
-      "expect": {
-        "text": "Seated Calf Raise (added load)"
-      }
-    },
-    {
       "advance": "30s"
     },
     {
@@ -1148,24 +434,60 @@
       }
     },
     {
-      "advance": "5m30s"
-    },
-    {
-      "checkpoint": "nov-27-seven-actual-sets-25-min"
+      "advance": "90s"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "nov-27-finish-with-sets-left"
+      "expect": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "advance": "60s"
     },
     {
       "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
         "role": "Button",
-        "inDialog": true,
-        "text": "Finish"
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Finish day B",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "3m30s"
+    },
+    {
+      "checkpoint": "nov-30-ten-sets-29-min"
+    },
+    {
+      "tap": {
+        "text": "Finish day B",
+        "role": "Button"
       }
     },
     {
@@ -1176,7 +498,7 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov-27-short-session-saved"
+      "checkpoint": "nov-30-easier-strength-a-saved"
     },
     {
       "scrollTo": {
@@ -1191,7 +513,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "25 min; curl busy: bridges BW 2x15. Calves 1/3; no Pallof. Left to pick someone up; unfinished, not forgotten.",
+        "value": "Easier week: two sets each. Lunges 15 then 10 each hand: clumsy and harder than wanted. Planks 30 each side.",
         "ime": "done"
       }
     },
@@ -1202,19 +524,18 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "text": "Done"
+        "text": "Done",
+        "role": "Button"
       }
     },
     {
       "expect": {
         "text": "Today",
         "role": "Tab"
-      },
-      "timeoutMs": 20000
+      }
     },
     {
-      "checkpoint": "nov-27-short-session-finished"
+      "checkpoint": "nov-30-easier-strength-a-finished"
     }
   ]
 }

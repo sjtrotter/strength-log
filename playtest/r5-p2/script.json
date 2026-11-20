@@ -1117,7 +1117,7 @@
     },
     {
       "tap": {
-        "text": "All sets"
+        "tag": "workout-all-sets-main"
       }
     },
     {

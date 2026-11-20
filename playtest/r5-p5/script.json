@@ -1138,11 +1138,6 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
         "desc": "Edit set 2"
       }
     },
@@ -1167,6 +1162,18 @@
       }
     },
     {
+      "tap": {
+        "text": "Skip",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "All 13 sets logged"
+      }
+    },
+    {
       "advance": "7m21s"
     },
     {
@@ -1174,7 +1181,8 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day B",
+        "role": "Button"
       }
     },
     {

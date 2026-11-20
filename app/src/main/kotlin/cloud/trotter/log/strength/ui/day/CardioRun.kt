@@ -17,7 +17,9 @@ import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Parcelize
 data class SavedCardioResult(
     val status: String,
@@ -26,6 +28,7 @@ data class SavedCardioResult(
 ) : Parcelable
 
 /** Text under the original saved keys stays in meters, including restored drafts. */
+@Serializable
 @Parcelize
 data class CardioDistanceDraft(
     val position: Int,
@@ -41,6 +44,7 @@ data class CardioDistanceDraft(
 }
 
 /** Text under the original saved key stays in meters, including restored drafts. */
+@Serializable
 @Parcelize
 data class CardioRunDistance(val runId: String, val position: Int, val text: String) : Parcelable {
     fun metres(): Int? = text.toIntOrNull()?.takeIf { it > 0 }
@@ -57,11 +61,13 @@ data class CardioDistanceInput(
 
 /** The reading at a set's planned end as typed in the after-run entry, under its own saved key: a distance in
  *  [unit] for a time end, `m:ss` for a distance end. */
+@Serializable
 @Parcelize
 data class CardioReadingInput(val runId: String, val position: Int, val text: String, val unit: DistanceUnit) : Parcelable
 
 /** GPS measurements of a run's finished sets. Their own key, so `CardioRun` never
  *  changes shape; [typed] records the user's edit so the log never infers the source. */
+@Serializable
 @Parcelize
 data class CardioGpsSet(
     val runId: String, val position: Int, val metres: Int, val metresAtEnd: Int?, val secondsAtEnd: Int?,
@@ -69,6 +75,7 @@ data class CardioGpsSet(
 ) : Parcelable
 
 /** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
+@Serializable
 @Parcelize
 data class CardioRun(
     val planId: Long,

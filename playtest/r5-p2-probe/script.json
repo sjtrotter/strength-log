@@ -1,0 +1,25 @@
+{
+  "seat": "r5-p2-probe",
+  "probe": true,
+  "capture": "compact",
+  "start": {"date": "2026-11-08", "time": "20:30", "zone": "America/Chicago"},
+  "steps": [
+    {"tap": {"text": "Lift", "role": "RadioButton"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "Strength", "role": "RadioButton"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "4", "role": "Checkbox"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "Home barbell", "role": "Checkbox"}},
+    {"tap": {"text": "Choose exactly"}},
+    {"checkpoint": "home-barbell-exact-equipment"},
+    {"scrollTo": {"tag": "setup-equipment-KETTLEBELL"}},
+    {"checkpoint": "remaining-equipment-and-units"},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "A year or more"}},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "strength-four-days-recent-numbers"},
+    {"scrollTo": {"tag": "setup-recent-weight-ohp"}},
+    {"checkpoint": "recent-numbers-lower-fields"}
+  ]
+}

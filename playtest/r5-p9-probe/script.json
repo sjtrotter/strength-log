@@ -1,6 +1,5 @@
 {
   "seat": "r5-p9-probe",
-  "probe": true,
   "capture": "compact",
   "start": {
     "date": "2026-11-08",
@@ -112,18 +111,14 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "5 lb",
-        "role": "RadioButton",
-        "index": 2
-      }
-    },
-    {
       "tap": {
         "text": "5 lb",
         "role": "RadioButton",
-        "index": 2
+        "index": 1
       }
+    },
+    {
+      "checkpoint": "equipment-and-stack-step"
     },
     {
       "tap": {
@@ -149,7 +144,24 @@
       }
     },
     {
-      "checkpoint": "machine-recent-or-plan"
+      "scrollTo": {
+        "tag": "setup-recent-weight-db_shoulder"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-weight-db_shoulder",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-reps-db_shoulder",
+        "value": "10"
+      }
+    },
+    {
+      "checkpoint": "trainer-shoulder-number"
     },
     {
       "tap": {
@@ -157,7 +169,7 @@
       }
     },
     {
-      "checkpoint": "setup-explanation"
+      "checkpoint": "recent-number-explanation"
     },
     {
       "back": true
@@ -168,7 +180,7 @@
       }
     },
     {
-      "checkpoint": "plan-or-following-state"
+      "checkpoint": "generated-plan"
     },
     {
       "tap": {
@@ -183,11 +195,90 @@
     },
     {
       "tap": {
-        "tag": "setup-plan-day-A"
+        "text": "Add",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "plan-day-a-detail"
+      "checkpoint": "balance-day-added"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-complete"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "plans-list"
+    },
+    {
+      "tap": {
+        "textContains": "General fitness, 2 days"
+      }
+    },
+    {
+      "checkpoint": "plan-details"
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "day-a-editor"
+    },
+    {
+      "tap": {
+        "textContains": "Hack Squat"
+      }
+    },
+    {
+      "checkpoint": "hack-squat-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "movement-groups"
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "checkpoint": "squat-exercises"
     }
-  ]
+  ],
+  "probe": true
 }

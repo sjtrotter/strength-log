@@ -674,46 +674,6 @@
     },
     {
       "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 2
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
         "desc": "Hard"
       }
     },
@@ -734,32 +694,12 @@
     },
     {
       "scrollTo": {
-        "textContains": "Set ",
-        "index": 3
+        "text": "Add set"
       }
     },
     {
       "tap": {
-        "textContains": "Set ",
-        "index": 3
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
+        "text": "Add set"
       }
     },
     {
@@ -774,37 +714,12 @@
     },
     {
       "scrollTo": {
-        "textContains": "Set ",
-        "index": 4
+        "text": "Add set"
       }
     },
     {
       "tap": {
-        "textContains": "Set ",
-        "index": 4
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
+        "text": "Add set"
       }
     },
     {
@@ -819,32 +734,12 @@
     },
     {
       "scrollTo": {
-        "textContains": "Set ",
-        "index": 5
+        "text": "Add set"
       }
     },
     {
       "tap": {
-        "textContains": "Set ",
-        "index": 5
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
+        "text": "Add set"
       }
     },
     {
@@ -858,419 +753,7 @@
       }
     },
     {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 6
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 6
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 7
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 7
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 8
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 8
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 9
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 9
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 10
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 10
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 11
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 11
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 12
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 12
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 13
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 13
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 14
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 14
-      }
-    },
-    {
-      "tap": {
-        "text": "Work",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Hard"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Set ",
-        "index": 15
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Set ",
-        "index": 15
-      }
-    },
-    {
-      "tap": {
-        "text": "Recovery",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "1:30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
+      "checkpoint": "bike-eight-pairs-configured"
     },
     {
       "tap": {
@@ -1745,6 +1228,11 @@
     {
       "expect": {
         "text": "Stationary bike"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Work, set 1 of 16"
       }
     },
     {

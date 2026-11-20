@@ -76,15 +76,10 @@
       "advance": "2m"
     },
     {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. I time the holds myself."
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. Light week offers only two balance records; I still do my third pair and time it myself, without logging it against the next machine."
     },
     {
       "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
     },
     {
       "advance": "2m"
@@ -524,7 +519,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Bike 5m; pulldown 50 lb 2x10; rail calf raises. Row first-set Max was a wrong tap, corrected to Good."
+        "value": "Bike 5m; pulldown 50 lb 2x10; calf raises; balance 3 pairs, 2 logged. Row Max wrong tap, corrected Good."
       }
     },
     {

@@ -1,0 +1,193 @@
+{
+  "seat": "r5-p9-probe",
+  "probe": true,
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "15:00",
+    "zone": "America/Phoenix"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Lift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "2",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "45",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose exactly"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-BARBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-BARBELL"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-TRAP_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-TRAP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "10 lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "5 lb",
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "5 lb",
+        "role": "RadioButton",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Under a year"
+      }
+    },
+    {
+      "tap": {
+        "text": "65 or older"
+      }
+    },
+    {
+      "checkpoint": "age-and-experience"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "machine-recent-or-plan"
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "checkpoint": "setup-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "plan-or-following-state"
+    },
+    {
+      "tap": {
+        "text": "Why this plan"
+      }
+    },
+    {
+      "checkpoint": "plan-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "setup-plan-day-A"
+      }
+    },
+    {
+      "checkpoint": "plan-day-a-detail"
+    }
+  ]
+}

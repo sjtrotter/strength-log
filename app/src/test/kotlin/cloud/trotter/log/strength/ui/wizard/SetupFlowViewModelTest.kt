@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -101,6 +102,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SetupFlowViewModelTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private val dispatcher = StandardTestDispatcher()
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
@@ -123,6 +125,9 @@ class SetupFlowViewModelTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries()
             .setQueryCoroutineContext(dispatcher).build()
         storeScope = CoroutineScope(dispatcher + Job())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("SetupFlowViewModelTest-cardio", ".preferences_pb")
+        })
         appScope = CoroutineScope(dispatcher + SupervisorJob())
         val delegate = PreferenceDataStoreFactory.create(scope = storeScope) { File.createTempFile("setup-flow", ".preferences_pb") }
         settings = SettingsStore(object : DataStore<Preferences> {
@@ -138,7 +143,7 @@ class SetupFlowViewModelTest {
         })
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("setup-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         val programDao = object : ProgramDao by db.programDao() {
             override suspend fun upsertDay(day: ProgramDayEntity) {
                 if (day.position == 0) calls += "createPlannedPlan"
@@ -179,7 +184,9 @@ class SetupFlowViewModelTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle(), repository: TrackerRepository = repo,
         defaultUnit: WeightUnit = WeightUnit.LB, preferences: SettingsStore = settings) = SetupFlowViewModel(
-        repository.plans, handle, context, BackupService(BackupRepository(db, preferences, repository.plans, repository.history), journal),
+        repository.plans, handle, context,
+        BackupService(BackupRepository(db, preferences, repository.plans, repository.history,
+            cardioRunPrefs = cardioRunPrefs), journal),
         appScope, DeviceWeightUnitProvider { defaultUnit }, preferences,
     ).also { vm -> vms += vm; vm.viewModelScope.launch { vm.uiState.collect {} } }
     private fun answers(vm: SetupFlowViewModel) = SetupFlowStateBuilder.answers(vm.uiState.value.draft)

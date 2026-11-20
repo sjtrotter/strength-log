@@ -2,13 +2,10 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.di.ApplicationScope
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -47,9 +44,6 @@ class PrefsCardioRunStore @Inject constructor(
     private val prefs: CardioRunPrefs,
     @ApplicationScope private val scope: CoroutineScope,
 ) : CardioRunStore {
-    private val lock = Mutex()
-    private val pending = LinkedHashMap<Pair<Long, String>, String?>()
-
     override fun save(stored: StoredCardioRun) {
         val json = CardioRunJson.encodeToString(StoredCardioRun.serializer(), stored)
         enqueue(stored.run.planId to stored.run.dayId, json)
@@ -60,33 +54,12 @@ class PrefsCardioRunStore @Inject constructor(
     }
 
     private fun enqueue(key: Pair<Long, String>, json: String?) {
-        synchronized(pending) {
-            pending.remove(key)
-            pending[key] = json
-        }
-        scope.launch { lock.withLock { flushLocked() } }
-    }
-
-    private suspend fun flushLocked() {
-        while (true) {
-            val (key, json) = synchronized(pending) {
-                pending.entries.firstOrNull()?.let { entry ->
-                    (entry.key to entry.value).also { pending.remove(entry.key) }
-                }
-            } ?: return
-            try {
-                prefs.set(key.first, key.second, json)
-            } catch (_: IOException) {
-                synchronized(pending) {
-                    if (!pending.containsKey(key)) pending[key] = json
-                }
-                return
-            }
-        }
+        prefs.enqueue(key.first, key.second, json)
+        scope.launch { prefs.flush() }
     }
 
     override suspend fun load(planId: Long, dayId: String): StoredCardioRun? {
-        val json = lock.withLock { flushLocked(); prefs.get(planId, dayId) } ?: return null
+        val json = prefs.get(planId, dayId) ?: return null
         return runCatching { CardioRunJson.decodeFromString(StoredCardioRun.serializer(), json) }.getOrNull()
     }
 }

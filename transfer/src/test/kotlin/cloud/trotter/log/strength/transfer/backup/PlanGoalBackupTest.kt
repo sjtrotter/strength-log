@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -34,6 +35,7 @@ import kotlin.test.assertFailsWith
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanGoalBackupTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var settings: SettingsStore
@@ -45,14 +47,18 @@ class PlanGoalBackupTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("PlanGoalBackupTest-cardio", ".preferences_pb")
+        })
         settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("plan-goal-backup", ".preferences_pb")
         })
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("plan-goal-backup-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        service = BackupService(BackupRepository(db, settings, repository.plans, repository.history), journal)
+        service = BackupService(BackupRepository(db, settings, repository.plans, repository.history,
+            cardioRunPrefs = cardioRunPrefs), journal)
     }
 
     @After

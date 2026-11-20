@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
@@ -40,6 +41,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class BackupRepositoryRunRestoreTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var journal: RestoreJournal
     private lateinit var repo: TrackerRepository
@@ -52,18 +54,21 @@ class BackupRepositoryRunRestoreTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("BackupRepositoryRunRestoreTest-cardio", ".preferences_pb")
+        })
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("run-settings", ".preferences_pb")
         }
         val settings = SettingsStore(dataStore)
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("run-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         val mintRunId = { ids.removeFirst() }
         repo = TrackerRepository(
             db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, clock, mintRunId,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, clock, mintRunId)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, clock, mintRunId, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After fun tearDown() {

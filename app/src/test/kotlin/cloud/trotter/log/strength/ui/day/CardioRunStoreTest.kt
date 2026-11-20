@@ -1,14 +1,27 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.BackupRepository
+import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -25,14 +38,16 @@ import org.robolectric.annotation.Config
 class CardioRunStoreTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var storeScope: CoroutineScope
+    private lateinit var dataStore: FailingDataStore
     private lateinit var prefs: CardioRunPrefs
     private lateinit var store: PrefsCardioRunStore
 
     @Before fun setUp() {
         storeScope = CoroutineScope(dispatcher + Job())
-        prefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+        dataStore = FailingDataStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("cardio-run-store", ".preferences_pb")
         })
+        prefs = CardioRunPrefs(dataStore)
         store = PrefsCardioRunStore(prefs, storeScope)
     }
 
@@ -85,6 +100,66 @@ class CardioRunStoreTest {
     @Test fun `an unreadable copy loads as nothing`() = runTest(dispatcher) {
         prefs.set(1L, "A", "{")
         assertNull(store.load(1L, "A"))
+    }
+
+    @Test fun `a failed delete hides the saved copy`() = runTest(dispatcher) {
+        store.save(stored())
+        assertEquals(stored(), store.load(1L, "A"))
+        dataStore.failWrites = true
+        store.delete(1L, "A")
+        runCurrent()
+        assertNull(store.load(1L, "A"))
+        assertEquals(1, dataStore.data.first().asMap().size)
+    }
+
+    @Test fun `a failed save loads the pending value`() = runTest(dispatcher) {
+        val first = stored()
+        store.save(first)
+        assertEquals(first, store.load(1L, "A"))
+        val latest = first.copy(savedAt = 2L, run = first.run.copy(saveFailed = true))
+        dataStore.failWrites = true
+        store.save(latest)
+        runCurrent()
+        assertEquals(latest, store.load(1L, "A"))
+        dataStore.failWrites = false
+        assertEquals(latest, store.load(1L, "A"))
+    }
+
+    @Test fun `a backup restore drops a retained failed save`() = runTest(dispatcher) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
+            .allowMainThreadQueries().setQueryCoroutineContext(dispatcher).build()
+        try {
+            val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+                File.createTempFile("cardio-store-settings", ".preferences_pb")
+            })
+            val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+            val backup = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = prefs)
+            val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
+                File.createTempFile("cardio-store-journal", ".preferences_pb")
+            }, settings, prefs)
+            val snapshot = backup.exportSnapshot()
+            dataStore.failWrites = true
+            store.save(stored())
+            runCurrent()
+            dataStore.failWrites = false
+
+            backup.importSnapshot(snapshot, journal)
+            assertNull(store.load(1L, "A"))
+            runCurrent()
+            assertNull(store.load(1L, "A"))
+        } finally {
+            db.close()
+        }
+    }
+
+    private class FailingDataStore(private val delegate: DataStore<Preferences>) : DataStore<Preferences> by delegate {
+        var failWrites = false
+
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            if (failWrites) throw IOException("cardio write failed")
+            return delegate.updateData(transform)
+        }
     }
 
     private fun stored() = StoredCardioRun(1L, CardioRun(

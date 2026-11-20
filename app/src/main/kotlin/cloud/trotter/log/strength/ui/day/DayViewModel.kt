@@ -139,9 +139,10 @@ import kotlinx.coroutines.sync.withLock
  * ([SetEditor]) — never reimplemented here.
  *
  * Cardio runs persist their frozen prescriptions, per-set outcomes and clock anchors
- * as one saved value. Each mutation also mirrors the run to [CardioRunStore], keyed by plan and day,
- * so the next Day screen for that day starts where this one stopped (#627).
- * Logged distance drafts have separate saved state and never retain execution ownership. Set-end alarms are shared with timed reps.
+ * as one saved value. Each mutation also mirrors the run to [CardioRunStore], keyed
+ * by plan and day, so the next Day screen for that day starts where this one stopped
+ * (#627). Logged distance drafts have separate saved state and never retain execution
+ * ownership. Set-end alarms are shared with timed reps.
  * Outdoor runs measure distance through [GpsDistance]; its stamps have their own saved key.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -634,13 +635,13 @@ class DayViewModel @Inject constructor(
             },
             executionActive = { executionActive },
             loggedCardio = { planId, dayId ->
-                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis())
+                historyRepository.cardioSessionsFlow.first().loggedToday(planId, dayId, cardioClock.wallMillis(), repo.zone)
             },
         )
 
         viewModelScope.launch {
             combine(dayState, historyRepository.cardioSessionsFlow) { state, history ->
-                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis(), repo.zone)
                 state.copy(cardio = state.cardio?.copy(loggedSeconds = logged?.seconds))
             }.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
@@ -2767,7 +2768,7 @@ class DayViewModel @Inject constructor(
         val now = cardioClock.wallMillis()
         val sessions = historyRepository.cardioSessionsFlow.first()
         val logged = run.startedAt?.let { started -> sessions.any { it.dayId == run.dayId && it.startedAt == started } }
-            ?: (sessions.loggedToday(planId, dayId, now) != null)
+            ?: (sessions.loggedToday(planId, dayId, now, repo.zone) != null)
         if (run.planId != planId || run.dayId != dayId || localDate(stored.savedAt) < localDate(now) || logged) {
             return cardioRunStore.delete(planId, dayId)
         }
@@ -2829,7 +2830,7 @@ class DayViewModel @Inject constructor(
                 block = savedRun.block, run = savedRun, canAddSet = false, finishesDay = savedRun.finishesDay,
                 distanceUnit = distanceUnit.value)
         }
-        val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+        val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis(), repo.zone)
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
         val activeRun = savedRun?.takeIf {
             it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId

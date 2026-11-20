@@ -321,7 +321,7 @@ class DayViewModelManualCardioTest {
         assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
         assertNull(vm.finisher.receipt.value)
         val session = repo.history.cardioSessionsFlow.first().single()
-        assertEquals(session, repo.history.cardioSessionsFlow.first().loggedToday(plan, "A", now))
+        assertEquals(session, repo.history.cardioSessionsFlow.first().loggedToday(plan, "A", now, repo.zone))
         assertTrue(vm.uiState.value.canFinish)
         vm.completeDay()
         runCurrent()

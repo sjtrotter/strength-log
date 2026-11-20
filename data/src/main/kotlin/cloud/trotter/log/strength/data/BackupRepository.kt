@@ -36,7 +36,7 @@ class BackupRepository(
     private val programDao: ProgramDao = db.programDao(),
     private val sessionDao: SessionDao = db.sessionDao(),
     private val customExerciseDao: CustomExerciseDao = db.customExerciseDao(),
-    private val cardioRunPrefs: CardioRunPrefs? = null,
+    private val cardioRunPrefs: CardioRunPrefs,
 ) {
     /** Taken off [db] rather than injected like the other DAOs on purpose: the
      *  restore marker is this class's own crash bookkeeping — never data a
@@ -253,7 +253,7 @@ class BackupRepository(
                     effortScale = snapshot.effortScale,
                     onTodayFixupDone = true,
                 )
-                cardioRunPrefs?.clear()
+                cardioRunPrefs.clear()
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)
             }

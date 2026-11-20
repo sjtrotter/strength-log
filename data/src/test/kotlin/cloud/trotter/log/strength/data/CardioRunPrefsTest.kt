@@ -1,9 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -11,14 +9,18 @@ import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -32,7 +34,7 @@ import org.robolectric.annotation.Config
 class CardioRunPrefsTest {
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
-    private lateinit var dataStore: DataStore<Preferences>
+    private lateinit var dataStore: FlakyDataStore
     private lateinit var prefs: CardioRunPrefs
     private lateinit var backup: BackupRepository
     private lateinit var journal: RestoreJournal
@@ -44,9 +46,9 @@ class CardioRunPrefsTest {
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-prefs-settings", ".preferences_pb")
         })
-        dataStore = PreferenceDataStoreFactory.create(scope = scope) {
+        dataStore = FlakyDataStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-prefs", ".preferences_pb")
-        }
+        })
         prefs = CardioRunPrefs(dataStore)
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-prefs-journal", ".preferences_pb")
@@ -82,5 +84,35 @@ class CardioRunPrefsTest {
         assertTrue(journal.reconcile("nonce", {}, { _, _, id -> id }))
         assertNull(prefs.get(1L, "B"))
         assertTrue(dataStore.data.first().asMap().keys.none { it.name.startsWith("cardio_run:") })
+    }
+
+    @Test fun `restore drops queued cardio runs`() = runTest {
+        val snapshot = backup.exportSnapshot()
+        prefs.enqueue(1L, "A", "queued before restore")
+        backup.importSnapshot(snapshot, journal)
+        assertNull(prefs.get(1L, "A"))
+
+        prefs.enqueue(1L, "B", "queued before recovery")
+        journal.stage(snapshot, "nonce")
+        assertTrue(journal.reconcile("nonce", {}, { _, _, id -> id }))
+        assertNull(prefs.get(1L, "B"))
+        assertTrue(dataStore.data.first().asMap().isEmpty())
+    }
+
+    @Test fun `clear waits for an in flight write`() = runTest {
+        val open = CompletableDeferred<Unit>()
+        dataStore.gateOnUpdate = 1
+        dataStore.gate = open
+        val writing = async { prefs.set(1L, "A", "before clear") }
+        dataStore.gateReached.await()
+        val clearing = async(start = CoroutineStart.UNDISPATCHED) { prefs.clear() }
+        try {
+            assertFalse(clearing.isCompleted)
+        } finally {
+            open.complete(Unit)
+        }
+        writing.await()
+        clearing.await()
+        assertNull(prefs.get(1L, "A"))
     }
 }

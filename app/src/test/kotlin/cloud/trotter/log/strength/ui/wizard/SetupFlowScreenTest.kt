@@ -48,6 +48,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -231,10 +232,16 @@ class SetupFlowScreenTest {
         val database = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         db = database
         val stores = CoroutineScope(Dispatchers.IO + SupervisorJob()); scope = stores
+        val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = stores) {
+            File.createTempFile("SetupFlowScreenTest-cardio", ".preferences_pb")
+        })
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = stores) { File.createTempFile("setup-fields", ".preferences_pb") })
-        val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = stores) { File.createTempFile("setup-fields-journal", ".preferences_pb") }, settings)
+        val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = stores) {
+            File.createTempFile("setup-fields-journal", ".preferences_pb")
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         val repo = TrackerRepository(database, database.programDao(), database.sessionDao(), database.customExerciseDao(), settings)
-        val service = BackupService(BackupRepository(database, settings, repo.plans, repo.history), journal)
+        val service = BackupService(BackupRepository(database, settings, repo.plans, repo.history,
+            cardioRunPrefs = cardioRunPrefs), journal)
         val factory = { h: SavedStateHandle -> SetupFlowViewModel(repo.plans, h, context, service, stores,
             DeviceWeightUnitProvider { WeightUnit.LB }, settings).also { vms += it } }
         lateinit var vm: SetupFlowViewModel

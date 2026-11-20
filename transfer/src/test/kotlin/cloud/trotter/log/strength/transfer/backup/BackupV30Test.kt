@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.LifterProfile
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.io.File
@@ -86,6 +87,9 @@ class BackupV30Test {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("BackupV30Test-cardio", ".preferences_pb")
+        })
         try {
             val store = PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v30-restore", ".preferences_pb")
@@ -94,9 +98,9 @@ class BackupV30Test {
             store.edit { it[stringPreferencesKey("level")] = "NOVICE" }
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("v30-journal", ".preferences_pb")
-            }, settings)
+            }, settings, cardioRunPrefs = cardioRunPrefs)
             val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-            val backup = BackupRepository(db, settings, repo.plans, repo.history)
+            val backup = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
             BackupService(backup, journal).import(codec.encode(document()))
             assertNull(store.data.first()[stringPreferencesKey("level")])
             assertEquals(LifterProfile(200.0, 40), settings.lifterProfileFlow.first())

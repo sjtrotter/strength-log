@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
@@ -45,6 +46,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TypedCardioMigrationTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var store: DataStore<Preferences>
@@ -59,12 +61,15 @@ class TypedCardioMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("TypedCardioMigrationTest-cardio", ".preferences_pb")
+        })
         store = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio", ".preferences_pb")
         }
         settings = SettingsStore(store)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After
@@ -210,7 +215,7 @@ class TypedCardioMigrationTest {
             plans = snapshot.plans.map { it.copy(recipeJson = answers) }) }
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         assertFalse(snapshot.profile.bodyweightLb != null)
 
         backupRepository.importSnapshot(snapshot, journal)
@@ -228,7 +233,7 @@ class TypedCardioMigrationTest {
         val snapshot = backupRepository.exportSnapshot().copy(days = listOf(legacyDay))
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-reconcile-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         journal.stage(snapshot, "restored-prose")
         db.withTransaction {
             db.programDao().upsertDay(legacyDay)
@@ -267,7 +272,7 @@ class TypedCardioMigrationTest {
                 }
         })
         val failingRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings)
-        val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history)
+        val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history, cardioRunPrefs = cardioRunPrefs)
         val exported = failingBackup.exportSnapshot()
         assertFalse(exported.profile.bodyweightLb != null)
         val snapshot = exported.copy(
@@ -277,7 +282,7 @@ class TypedCardioMigrationTest {
         )
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")
-        }, failingSettings)
+        }, failingSettings, cardioRunPrefs = cardioRunPrefs)
         armOnRestore = true
 
         val failure = runCatching { failingBackup.importSnapshot(snapshot, journal) }.exceptionOrNull()

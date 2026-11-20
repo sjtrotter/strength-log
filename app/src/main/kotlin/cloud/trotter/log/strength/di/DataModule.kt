@@ -47,6 +47,7 @@ object DataModule {
      *  see [RestoreJournal]: a restore clears the settings store wholesale, so a
      *  marker kept there would be erased by the write it guards. */
     private const val RESTORE_JOURNAL_FILE = "restore_journal"
+    private const val CARDIO_RUNS_FILE = "cardio_runs"
 
     @Provides
     @Singleton
@@ -67,7 +68,7 @@ object DataModule {
     @CardioRunData
     fun cardioRunData(@ApplicationContext context: Context): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
-            produceFile = { context.preferencesDataStoreFile("cardio_runs") },
+            produceFile = { context.preferencesDataStoreFile(CARDIO_RUNS_FILE) },
         )
 
     @Provides

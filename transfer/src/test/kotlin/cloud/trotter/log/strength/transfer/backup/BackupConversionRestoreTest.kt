@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -46,6 +47,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class BackupConversionRestoreTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var service: BackupService
@@ -55,14 +57,17 @@ class BackupConversionRestoreTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("BackupConversionRestoreTest-cardio", ".preferences_pb")
+        })
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("conversion-restore", ".preferences_pb")
         })
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("conversion-restore-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        service = BackupService(BackupRepository(db, settings, repo.plans, repo.history), journal)
+        service = BackupService(BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs), journal)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }

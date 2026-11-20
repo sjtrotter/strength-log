@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.FlakyDataStore
@@ -72,6 +73,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class RestoreCoordinationTest {
 
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var storeScope: CoroutineScope
     private lateinit var settingsStore: FlakyDataStore
@@ -88,6 +90,9 @@ class RestoreCoordinationTest {
             .allowMainThreadQueries()
             .build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("RestoreCoordinationTest-cardio", ".preferences_pb")
+        })
         settingsStore = FlakyDataStore(
             PreferenceDataStoreFactory.create(scope = storeScope) {
                 File.createTempFile("restore-coordination-settings", ".preferences_pb")
@@ -99,6 +104,7 @@ class RestoreCoordinationTest {
                 File.createTempFile("restore-coordination-journal", ".preferences_pb")
             },
             settings,
+            cardioRunPrefs = cardioRunPrefs,
         )
         repo = TrackerRepository(
             db = db,
@@ -107,7 +113,7 @@ class RestoreCoordinationTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, cardioRunPrefs = cardioRunPrefs)
         service = BackupService(backupRepository, journal)
     }
 
@@ -132,6 +138,7 @@ class RestoreCoordinationTest {
             val importingPlans = PlanRepository(db, importingSettings)
             val importingRepo = BackupRepository(
                 db, importingSettings, importingPlans, HistoryRepository(db, importingSettings, importingPlans),
+                cardioRunPrefs = cardioRunPrefs,
             )
             val importing = storeScope.async { importingRepo.importSnapshot(snapshot, journal) }
             withTimeout(TIMEOUT_MS) { gatedSettings.gateReached.await() }
@@ -198,7 +205,7 @@ class RestoreCoordinationTest {
             val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings,
                 clock = clock, mintRunId = { "restored-A" })
             val restoringBackup = BackupRepository(db, settings, repository.plans, repository.history,
-                clock = clock, mintRunId = { "restored-A" })
+                clock = clock, mintRunId = { "restored-A" }, cardioRunPrefs = cardioRunPrefs)
             restoringBackup.importSnapshot(snapshot, journal)
             val open = repository.openRunFlow.first()
             if (date == "2026-10-19") {

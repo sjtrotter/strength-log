@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -45,6 +46,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class CardioHistoryRestoreTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var backupRepository: BackupRepository
@@ -62,14 +64,17 @@ class CardioHistoryRestoreTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("CardioHistoryRestoreTest-cardio", ".preferences_pb")
+        })
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-backup", ".preferences_pb")
         })
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-backup-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
         repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        backupRepository = BackupRepository(db, settings, repository.plans, repository.history)
+        backupRepository = BackupRepository(db, settings, repository.plans, repository.history, cardioRunPrefs = cardioRunPrefs)
         service = BackupService(backupRepository, journal)
     }
 
@@ -119,9 +124,10 @@ class CardioHistoryRestoreTest {
             })
             val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
                 File.createTempFile("cardio-fresh-journal", ".preferences_pb")
-            }, settings)
+            }, settings, cardioRunPrefs = cardioRunPrefs)
             val repo = TrackerRepository(fresh, fresh.programDao(), fresh.sessionDao(), fresh.customExerciseDao(), settings)
-            val freshService = BackupService(BackupRepository(fresh, settings, repo.plans, repo.history), journal)
+            val freshService = BackupService(BackupRepository(fresh, settings, repo.plans, repo.history,
+                cardioRunPrefs = cardioRunPrefs), journal)
             freshService.import(backup)
             assertTrue(fresh.cardioSessionDao().all().isEmpty())
             assertEquals(block(1260), CardioBlockJson.decode(fresh.programDao().day(plan, "A")!!.cardioWorkingJson))

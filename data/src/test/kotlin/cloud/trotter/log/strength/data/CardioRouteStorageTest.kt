@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.prefs.CardioRunPrefs
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
@@ -30,6 +31,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class CardioRouteStorageTest {
+    private lateinit var cardioRunPrefs: CardioRunPrefs
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var repo: TrackerRepository
@@ -48,16 +50,19 @@ class CardioRouteStorageTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        cardioRunPrefs = CardioRunPrefs(PreferenceDataStoreFactory.create(scope = scope) {
+            File.createTempFile("CardioRouteStorageTest-cardio", ".preferences_pb")
+        })
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-route", ".preferences_pb")
         })
         val plans = PlanRepository(db, settings)
         history = HistoryRepository(db, settings, plans)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = history)
-        backup = BackupRepository(db, settings, plans, history)
+        backup = BackupRepository(db, settings, plans, history, cardioRunPrefs = cardioRunPrefs)
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-route-journal", ".preferences_pb")
-        }, settings)
+        }, settings, cardioRunPrefs = cardioRunPrefs)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }

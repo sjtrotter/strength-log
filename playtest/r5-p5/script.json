@@ -107,6 +107,30 @@
     },
     {
       "expect": {
+        "text": "Recent numbers"
+      }
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "checkpoint": "recent-lift-fields-do-not-match-my-lifts"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "My recent sets were goblet squat and dumbbell RDL. These fields are for other lifts, so leave them blank."
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
         "text": "Longest run in the past 30 days"
       }
     },

@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
-    "time": "09:00",
+    "date": "2026-11-10",
+    "time": "09:30",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -21,12 +21,17 @@
     },
     {
       "tap": {
-        "desc": "Day B"
+        "desc": "Day A"
       }
     },
     {
       "tap": {
         "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Farmer's Carry"
       }
     },
     {
@@ -40,7 +45,292 @@
       }
     },
     {
-      "checkpoint": "remove-carry-for-counter-only-session"
+      "scrollTo": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "110"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "gym-leg-press-110-baseline"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "chest"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Machine Chest Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-chest"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Row"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Machine Row"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Machine Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-row"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Machine Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Machine Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "shoulder"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-shoulder"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Single-Leg Stance"
+      }
     },
     {
       "tap": {
@@ -66,82 +356,23 @@
       }
     },
     {
-      "checkpoint": "three-ten-second-holds-each-side"
-    },
-    {
       "tap": {
-        "text": "Save",
-        "role": "Button"
+        "text": "Save"
       }
     },
     {
       "back": true
     },
     {
-      "checkpoint": "customized-home-day"
+      "checkpoint": "trainer-card-machines-ready"
     },
     {
       "tap": {
-        "text": "Start day B",
-        "role": "Button"
+        "text": "Start day A"
       }
     },
     {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "home-balance-start"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 1. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 2. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 3. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-3-logged"
+      "note": "Five minutes on the recumbent bike. Warm-up offers 2:00 bike or rower and unsuitable floor work; use my usual bike warm-up."
     },
     {
       "advance": "5m"
@@ -153,18 +384,320 @@
       }
     },
     {
+      "checkpoint": "tuesday-first-gym-start"
+    },
+    {
+      "note": "Counter/rail support, manually hold left 10 seconds and right 10 seconds, pair 1."
+    },
+    {
+      "advance": "20s"
+    },
+    {
       "tap": {
-        "text": "Finish day B",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Counter/rail support, manually hold left 10 seconds and right 10 seconds, pair 2."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Counter/rail support, manually hold left 10 seconds and right 10 seconds, pair 3."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "leg-press-offered-110"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "leg-press-set-1-100-for-stiff-knee"
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "leg-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "leg-press-set-2-100-for-stiff-knee"
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "leg-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "machine-chest-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "machine-chest-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "machine-row-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "machine-row-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "seated-db-shoulder-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "seated-db-shoulder-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Pulldown 50 lb, two sets of 10, and rail-supported calf raises three times each side done using trainer card; I have not found their Add exercise groups yet. Record this explicitly in session note."
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Skip",
         "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
       }
     },
     {
-      "expect": {
-        "text": "Balance, done."
+      "checkpoint": "tuesday-full-body-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
       }
     },
     {
-      "checkpoint": "home-balance-saved"
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "textContains": "Note",
+        "value": "Bike 5m. Pulldown 50 lb 2x10; rail calf raises 3 each side. Leg press 100 today: stiff knee."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
     },
     {
       "tap": {
@@ -179,7 +712,7 @@
       }
     },
     {
-      "checkpoint": "monday-home-session-finished"
+      "checkpoint": "tuesday-gym-saved"
     }
   ]
 }

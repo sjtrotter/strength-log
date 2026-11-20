@@ -101,4 +101,28 @@ class RunPhaseTest {
         assertFalse(ladderMet(null, null, null))
     }
 
+    @Test fun `the short gate is for testers and middle distance runners who are not New`() {
+        for (goal in RunGoal.entries) for (experience in RunExperience.entries) {
+            assertEquals(experience != RunExperience.NEW && goal in listOf(RunGoal.FITNESS_TEST, RunGoal.MIDDLE_DISTANCE),
+                RunAnswers(goal, experience).shortLadderGate, "$goal $experience")
+        }
+    }
+
+    @Test fun `the short gate reads one bout`() {
+        val run = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME)
+        assertFalse(shortLadderMet(run, RecentMaxima(null, 1199)))
+        assertTrue(shortLadderMet(run, RecentMaxima(null, 1200)))
+        assertFalse(shortLadderMet(run, RecentMaxima(3218, null)))
+        assertTrue(shortLadderMet(run, RecentMaxima(3219, null)))
+        assertFalse(shortLadderMet(run, null))
+        assertFalse(shortLadderMet(run.copy(experience = RunExperience.NEW), RecentMaxima(3219, 1200)))
+    }
+
+    @Test fun `a ladder only goal adds four event weeks`() {
+        assertEquals(12, weeksNeeded(RunGoal.FITNESS_TEST, RunPhase.LADDER, 8))
+        assertEquals(8, weeksNeeded(RunGoal.MIDDLE_DISTANCE, RunPhase.LADDER, 4))
+        assertNull(weeksNeeded(RunGoal.FITNESS_TEST, RunPhase.LADDER, null))
+        assertEquals(4, EVENT_WEEKS_AFTER_LADDER)
+    }
+
 }

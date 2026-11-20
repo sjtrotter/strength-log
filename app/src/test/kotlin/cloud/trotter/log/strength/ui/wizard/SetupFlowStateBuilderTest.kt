@@ -476,4 +476,41 @@ class SetupFlowStateBuilderTest {
             SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.PLAN), builder.steps(bothSprint))
     }
 
+    @Test fun `a New tester too close for the ladder and event gets the ladder date line`() {
+        val answers = builder.answers(SetupFlowFixtures.test.copy(eventDate = SetupFlowFixtures.TODAY + 56))
+        val draft = Planner.plan(answers, todayEpochDay = SetupFlowFixtures.TODAY)
+        val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
+        assertTrue(PlanWhy.LadderDateTooClose(true) in why)
+        assertTrue(PlanWhy.Ladder(8) in why)
+        assertFalse(PlanWhy.DateTooClose in why)
+    }
+
+    @Test fun `a New middle distance runner gets the race line`() {
+        val answers = builder.answers(SetupFlowFixtures.run.copy(runGoal = RunGoal.MIDDLE_DISTANCE,
+            runEvent = RunEvent.M1500, eventDate = SetupFlowFixtures.TODAY + 56))
+        val draft = Planner.plan(answers, todayEpochDay = SetupFlowFixtures.TODAY)
+        val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
+        assertTrue(PlanWhy.LadderDateTooClose(false) in why)
+        assertTrue(PlanWhy.Ladder(8) in why)
+        assertFalse(PlanWhy.DateTooClose in why)
+    }
+
+    @Test fun `a phased ladder plan keeps the generic date line`() {
+        val answers = builder.answers(SetupFlowFixtures.half.copy(longestSeconds = 1000,
+            eventDate = SetupFlowFixtures.TODAY + 84))
+        val draft = Planner.plan(answers, todayEpochDay = SetupFlowFixtures.TODAY)
+        val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
+        assertTrue(PlanWhy.DateTooClose in why)
+        assertTrue(PlanWhy.Ladder(5) in why)
+    }
+
+    @Test fun `the ladder row follows the start phase`() {
+        for (fixture in listOf(SetupFlowFixtures.run, SetupFlowFixtures.half, SetupFlowFixtures.test, SetupFlowFixtures.both)) {
+            val answers = builder.answers(fixture)
+            val draft = Planner.plan(answers, todayEpochDay = SetupFlowFixtures.TODAY)
+            val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
+            assertEquals(draft.phase == RunPhase.LADDER, why.any { it is PlanWhy.Ladder })
+        }
+    }
+
 }

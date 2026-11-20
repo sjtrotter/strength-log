@@ -347,4 +347,18 @@ class PlanScreenBuilderTest {
         assertEquals(CardioActivity.TRACK_RUN, rows.first().cardioActivity)
     }
 
+    @Test fun `a ladder plan in the taper window shows the ladder not Taper`() {
+        for ((phase, goal) in listOf(RunPhase.LADDER to RunGoal.FIRST_5K,
+            RunPhase.BASE to RunGoal.FIVE_TO_TEN_K, null to RunGoal.FITNESS_TEST)) {
+            val answers = SetupAnswers(branch = PlanBranch.RUN, run = RunAnswers(goal = goal))
+            val plan = PlanEntity(1, "Run", PlanOrigin.GENERATED.name, 0, 0,
+                recipeJson = SetupRecipeJson.encode(answers, phase),
+                goalJson = PlanGoalJson.encode(PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, null, 20_005)))
+            val state = PlanScreenBuilder.buildUiState(plan, Program(emptyList()), catalog, WeightUnit.LB,
+                todayEpochDay = 20_000)
+            assertEquals(phase, state.runPhase)
+            assertEquals(phase != RunPhase.LADDER, state.taper)
+        }
+    }
+
 }

@@ -39,6 +39,7 @@ The dated sections in this `README.md` index later briefs.
 - `wizard-evidence-2026-11-08/` — research for a short setup wizard and a generator that adapts from the log.
 - `wizard-evidence-audit-2026-11-13/` — evidence audit of planner and progression rules, with lead decisions distinguishing evidence from practice.
 - `run-ladder-2026-11-17/` — two Easy sessions per level, a re-stepped run/walk table, and at most three credited sessions in seven days.
+- `ladder-date-2026-11-19/` — a short-event ladder gate for Some testers and middle-distance runners, read from one continuous run; ladder weeks plus four on dated ladder-only plans; the council check and the owner's decision.
 - `sprint-week-2026-11-17/` — high/low layouts for Sprint and Both with sprint goals, and weekly sprint decisions.
 
 ## 2026-11-03

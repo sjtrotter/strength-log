@@ -1,17 +1,21 @@
 {
   "seat": "r5-p2-probe",
+  "probe": true,
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
+    "date": "2026-11-10",
     "time": "06:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "desc": "Day A"
+        "desc": "Day B"
       }
+    },
+    {
+      "checkpoint": "upper-a-generated-detail"
     },
     {
       "tap": {
@@ -19,56 +23,65 @@
       }
     },
     {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
+      "checkpoint": "upper-a-generated-editor"
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
       }
+    },
+    {
+      "checkpoint": "upper-a-editor-all-exercises"
     },
     {
       "tap": {
-        "text": "Lift options"
+        "text": "Add cardio"
       }
     },
     {
-      "tap": {
-        "text": "Straight sets"
-      }
+      "checkpoint": "add-cardio-choices"
     },
     {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
+      "back": true
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
+      "checkpoint": "after-cardio-back"
     },
     {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "squat-straight-saved"
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Strength, 4 days"
+      }
+    },
+    {
+      "checkpoint": "all-plan-days"
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "lower-b-generated-detail"
+    },
+    {
+      "tap": {
         "text": "Edit"
       }
+    },
+    {
+      "checkpoint": "lower-b-generated-editor"
     },
     {
       "tap": {
@@ -81,695 +94,104 @@
       }
     },
     {
-      "type": {
-        "text": "Search exercises",
-        "value": "Romanian",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Romanian Deadlift"
-      }
-    },
-    {
-      "checkpoint": "swap-to-romanian-deadlift"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "text": "Romanian Deadlift"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "185",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-romanian-deadlift"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Bulgarian Split Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
+      "checkpoint": "deadlift-swap-picker"
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "lunge",
+        "value": "pull",
         "ime": "done"
       }
     },
     {
-      "tap": {
-        "text": "Walking Lunge"
-      }
-    },
-    {
-      "checkpoint": "swap-to-walking-lunge"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "text": "Walking Lunge"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "saved-walking-lunge"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Swiss Ball Leg Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
+      "checkpoint": "exercise-search-pull"
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "hanging",
+        "value": "press",
         "ime": "done"
       }
     },
     {
-      "tap": {
-        "text": "Hanging Leg Raise"
+      "checkpoint": "exercise-search-press"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row",
+        "ime": "done"
       }
     },
     {
-      "checkpoint": "swap-to-hanging-leg-raise"
+      "checkpoint": "exercise-search-row"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "curl",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "exercise-search-curl"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "goblet",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "exercise-search-goblet"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "chin",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "exercise-search-chin"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "rear",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "exercise-search-rear"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "text": "Edit"
-      }
+      "checkpoint": "after-search-back"
     },
     {
       "tap": {
-        "text": "Hanging Leg Raise"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done",
-        "index": 1
+        "desc": "More options for Conventional Deadlift"
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Lift options"
       }
     },
     {
-      "checkpoint": "saved-hanging-leg-raise"
-    },
-    {
-      "back": true
+      "checkpoint": "deadlift-options"
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Ramp, top set, back-off"
       }
     },
     {
-      "tap": {
-        "desc": "More options for Single-Leg Calf Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "expect": {
-        "text": "Edit day A"
-      }
-    },
-    {
-      "checkpoint": "removed-single-leg-calf-raise"
-    },
-    {
-      "tap": {
-        "desc": "More options for Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "expect": {
-        "text": "Edit day A"
-      }
-    },
-    {
-      "checkpoint": "removed-plank"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "my-lower-a"
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "tap": {
-        "role": "Button",
-        "text": "Skip"
-      }
-    },
-    {
-      "checkpoint": "squat-225-first-set"
-    },
-    {
-      "note": "Warm up bar x10 twice in the cold garage, 95x5, 135x5, 185x3, 205x1. Belt on work sets."
-    },
-    {
-      "advance": "12m"
-    },
-    {
-      "expect": {
-        "text": "Barbell Back Squat",
-        "inDialog": false
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "first-set-saved-before-finish"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "checkpoint": "first-set-survives-recreate"
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-barbell-back-squat"
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Romanian Deadlift",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-romanian-deadlift"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-romanian-deadlift"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Walking Lunge",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-walking-lunge"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-walking-lunge"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Hanging Leg Raise",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "starting-hanging-leg-raise"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-hanging-leg-raise"
-    },
-    {
-      "advance": "1428s"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "after-cooldown-skip"
-    },
-    {
-      "tap": {
-        "text": "Finish day A",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "after-finish-day-a"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Garage was 41 degrees; cold bar, extra empty-bar warm-up. Belt on squat; straps on RDL.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "finish-probe-note"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "finish-probe-landing"
+      "checkpoint": "deadlift-top-backoff-form"
     }
-  ],
-  "probe": true
+  ]
 }

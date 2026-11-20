@@ -4,7 +4,7 @@
   "start": {
     "restore": "start-backup.json",
     "date": "2026-12-04",
-    "time": "18:16",
+    "time": "18:17",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -16,99 +16,13 @@
     },
     {
       "scrollTo": {
-        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb."
-      }
-    },
-    {
-      "checkpoint": "deadlift-and-following-trends"
-    },
-    {
-      "swipe": {
-        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "trends-middle-1"
-    },
-    {
-      "swipe": {
-        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "trends-middle-2"
-    },
-    {
-      "swipe": {
-        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "trends-middle-3"
-    },
-    {
-      "scrollTo": {
-        "text": "Rower 15:00"
-      }
-    },
-    {
-      "checkpoint": "rower-trend-and-neighbors"
-    },
-    {
-      "scrollTo": {
         "text": "Trends and calendar"
       }
-    },
-    {
-      "checkpoint": "end-of-trends"
     },
     {
       "tap": {
         "text": "Trends and calendar"
       }
-    },
-    {
-      "scrollTo": {
-        "text": "Calendar"
-      }
-    },
-    {
-      "checkpoint": "december-before-selection"
-    },
-    {
-      "tap": {
-        "desc": "December 2, day B, 2 sessions"
-      }
-    },
-    {
-      "checkpoint": "dec2-whole-visit-history"
-    },
-    {
-      "scrollTo": {
-        "desc": "Day B",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day B",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "dec2-lifting-history-expanded"
-    },
-    {
-      "scrollTo": {
-        "text": "Share",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "dec2-expanded-history-bottom"
     },
     {
       "scrollTo": {
@@ -126,7 +40,92 @@
       }
     },
     {
-      "checkpoint": "november-calendar-review"
+      "tap": {
+        "desc": "November 23, day A, 2 sessions"
+      }
+    },
+    {
+      "checkpoint": "nov23-whole-visit-history"
+    },
+    {
+      "scrollTo": {
+        "desc": "Day A",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "nov23-lifts-and-row-expanded"
+    },
+    {
+      "scrollTo": {
+        "text": "Share",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "nov23-expanded-history-bottom"
+    },
+    {
+      "scrollTo": {
+        "text": "Calendar"
+      }
+    },
+    {
+      "tap": {
+        "desc": "November 18, day B, 2 sessions"
+      }
+    },
+    {
+      "checkpoint": "nov18-short-bike-history"
+    },
+    {
+      "scrollTo": {
+        "desc": "Day B",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day B",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "nov18-tired-note-and-sets"
+    },
+    {
+      "scrollTo": {
+        "text": "Share",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "nov18-expanded-history-bottom"
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "final-review-finished"
     }
   ]
 }

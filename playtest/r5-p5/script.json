@@ -399,8 +399,21 @@
       }
     },
     {
+      "swipe": {
+        "text": "Vertical push",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "custom-movement-picker-scrolled"
+    },
+    {
       "scrollTo": {
-        "text": "Calf: gastrocnemius"
+        "text": "Calf: gastrocnemius",
+        "role": "RadioButton",
+        "inDialog": true
       }
     },
     {

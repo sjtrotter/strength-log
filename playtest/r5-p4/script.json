@@ -331,25 +331,39 @@
     },
     {
       "scrollTo": {
-        "text": "Move up"
+        "desc": "More options for Lat Pulldown (wide)"
       }
     },
     {
       "tap": {
-        "text": "Move up"
+        "desc": "More options for Lat Pulldown (wide)"
       }
     },
     {
-      "back": true
+      "tap": {
+        "text": "Lift options"
+      }
     },
     {
       "scrollTo": {
-        "text": "Plank"
+        "text": "Move up"
       }
     },
     {
       "tap": {
-        "text": "Plank"
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Plank",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Plank",
+        "index": 0
       }
     },
     {

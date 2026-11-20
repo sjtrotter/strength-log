@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollTo
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -59,6 +60,21 @@ class DayEditSheetTest {
     private fun ladderActions(onKeep: (Boolean) -> Unit = {}) = DayEditActions(
         onSwap = { _, _ -> }, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
         onRemoveSuperset = {}, onResetToTemplate = {}, onCardioKeepToPlanChange = onKeep)
+
+    @Test fun `searching overhead from a bench slot lists Overhead Press under Other exercises`() {
+        val catalog = ExerciseCatalog.CODE_ONLY
+        var picked: String? = null
+        composeTestRule.setContent { AppTheme {
+            ExercisePickerScreen("bench", "Swap Bench Press", cloud.trotter.log.strength.domain.model.MovementPattern.H_PUSH,
+                catalog.substitutionsFor("bb_bench"), cloud.trotter.log.strength.domain.model.Equipment.entries.toSet(),
+                Color.White, { picked = it.id }, {}, {}, allCandidates = catalog.entries)
+        } }
+        composeTestRule.onNodeWithText("Search exercises").performTextReplacement("overhead")
+        composeTestRule.onNodeWithText("Other exercises").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No matching exercises").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Overhead Press (Barbell)").assertIsDisplayed().performClick()
+        composeTestRule.runOnIdle { assertEquals("ohp", picked) }
+    }
 
     @Test fun `ladder Keep copy follows Plan and hides Progress by`() {
         val state = mutableStateOf(ladderPage())

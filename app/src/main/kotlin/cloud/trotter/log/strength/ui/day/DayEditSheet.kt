@@ -70,6 +70,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.ui.log.LogSectionHeader
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
@@ -1049,6 +1050,9 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
         ExercisePicker.filter(searchCandidates, query, equipmentFilter)
     }
 
+    val fallback = if (results.isEmpty() && allCandidates != null && !searchAll)
+        ExercisePicker.fallback(candidates, allCandidates, query, equipmentFilter) else emptyList<ExerciseEntry>()
+
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PickerHeader(title = title, onBack = onBack)
@@ -1062,7 +1066,8 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
             )
         }
         LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
-            if (results.isEmpty()) item {
+            if (fallback.isNotEmpty()) item { LogSectionHeader(stringResource(R.string.sheet_other_exercises)) }
+            if (results.isEmpty() && fallback.isEmpty()) item {
                 Column(Modifier.padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.sheet_no_matching_exercises), style = MaterialTheme.typography.bodyMedium)
                     if (allCandidates != null && !searchAll) TextButton(onClick = { searchAll = true }) {
@@ -1073,7 +1078,7 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
                     }
                 }
             }
-            items(results, key = { it.id }) { entry ->
+            items(results + fallback, key = { it.id }) { entry ->
                 ListItem(
                     headlineContent = { Text(entry.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                     supportingContent = { Text(entry.equipment.joinToString(", ") { equipmentLabel(it) }) },

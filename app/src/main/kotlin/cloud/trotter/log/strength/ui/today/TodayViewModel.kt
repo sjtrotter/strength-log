@@ -69,6 +69,8 @@ class TodayViewModel @Inject constructor(
                         Program.accentIndex(day.id), day.title,
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
                             (day.exercises.isEmpty() && day.cardioBlock != null),
+                        cardioActivity = day.cardioBlock?.activity.takeIf { day.kind == ProgramDayKind.CARDIO },
+                        liftCount = if (day.kind == ProgramDayKind.CARDIO) day.exercises.size else 0,
                         rest = day.kind == ProgramDayKind.REST,
                         beforeSprint = restBeforeSprint(program, day.id),
                         trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST },

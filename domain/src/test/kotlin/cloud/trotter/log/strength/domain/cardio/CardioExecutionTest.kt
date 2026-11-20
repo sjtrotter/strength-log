@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,6 +29,89 @@ class CardioExecutionTest {
 
     private fun execution(vararg sets: CardioSetSpec): CardioExecution =
         CardioExecution(CardioBlock(CardioActivity.TRACK_RUN, sets.toList()), allowOpenEnded = true)
+
+    @Test
+    fun `a timed work set starts when its recovery ends`() {
+        val run = execution(time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90),
+            time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90))
+            .start(start).reconcile(start.advance(150_000L))
+        assertEquals(2, run.position)
+        assertTrue(run.running)
+        assertEquals(BootAnchor(start.wallMillis + 150_000L, start.elapsedMillis + 150_000L, start.bootCount), run.anchor)
+        val complete = run.reconcile(start.advance(300_000L))
+        assertTrue(complete.complete)
+        assertEquals(listOf(60, 90, 60, 90), complete.results.map { it.elapsedSeconds })
+        assertTrue(complete.results.all { it.status == CardioSetStatus.FINISHED })
+    }
+
+    @Test
+    fun `the run walk ladder runs every round from one Start`() {
+        val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        var run = CardioExecution(block).start(start)
+        var total = 0L
+        block.sets.forEach { spec ->
+            total += (spec.end as Measure.Time).seconds * 1_000L
+            run = run.reconcile(start.advance(total + 1_000L))
+        }
+        assertTrue(run.complete)
+        assertTrue(run.results.all { it.status == CardioSetStatus.FINISHED })
+        assertEquals(block.sets.map { (it.end as Measure.Time).seconds }, run.results.map { it.elapsedSeconds })
+        assertEquals(start.wallMillis + total, run.completedAt)
+    }
+
+    @Test
+    fun `an abandoned ladder is not logged as run`() {
+        val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val total = block.sets.sumOf { (it.end as Measure.Time).seconds }
+        val run = CardioExecution(block).start(start).reconcile(start.advance((total + 600) * 1_000L))
+        assertEquals(2, run.position)
+        assertFalse(run.running)
+        assertEquals(block.sets.take(2), run.results.map { it.spec })
+        assertTrue(run.results.all { it.status == CardioSetStatus.FINISHED })
+        assertNull(run.completedAt)
+    }
+
+    @Test
+    fun `coming back mid interval picks it up`() {
+        val run = execution(time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90), time(CardioRole.WORK, 60))
+            .start(start).reconcile(start.advance(170_000L))
+        assertEquals(2, run.position)
+        assertTrue(run.running)
+        assertEquals(BootAnchor(start.wallMillis + 150_000L, start.elapsedMillis + 150_000L, start.bootCount), run.anchor)
+    }
+
+    @Test
+    fun `work whose planned end is now stays ready`() {
+        val run = execution(time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90), time(CardioRole.WORK, 60))
+            .start(start).reconcile(start.advance(210_000L))
+        assertEquals(2, run.position)
+        assertFalse(run.running)
+        assertEquals(2, run.results.size)
+    }
+
+    @Test
+    fun `distance work still waits after its recovery`() {
+        val run = execution(distance(), time(CardioRole.RECOVERY, 90), distance())
+            .start(start).reachTarget(start.advance(105_000L)).reconcile(start.advance(195_000L))
+        assertEquals(2, run.position)
+        assertFalse(run.running)
+    }
+
+    @Test
+    fun `a tapped recovery end leaves the next work ready`() {
+        val run = execution(time(CardioRole.RECOVERY, 90), time(CardioRole.WORK, 60)).start(start)
+            .finishStep(CardioSetStatus.SHORTENED, 20, start.advance(20_000L))
+        assertEquals(1, run.position)
+        assertFalse(run.running)
+    }
+
+    @Test
+    fun `warm up then timed work still waits`() {
+        val run = execution(time(CardioRole.WARMUP, 10), time(CardioRole.WORK, 10))
+            .start(start).reconcile(start.advance(30_000L))
+        assertEquals(1, run.position)
+        assertFalse(run.running)
+    }
 
     @Test
     fun `a lone timed set never finishes by itself`() {
@@ -148,8 +232,9 @@ class CardioExecutionTest {
 
     @Test
     fun `missed boundaries stop at unstarted work and waiting is not elapsed work`() {
+        // #536: timed work after recovery now starts on its own; a distance work set keeps the original intent
         val run = execution(time(CardioRole.WARMUP, 10), time(CardioRole.RECOVERY, 10),
-            time(CardioRole.WORK, 10)).start(start).reconcile(start.advance(45_000L))
+            distance()).start(start).reconcile(start.advance(45_000L))
 
         assertEquals(2, run.position)
         assertFalse(run.running)

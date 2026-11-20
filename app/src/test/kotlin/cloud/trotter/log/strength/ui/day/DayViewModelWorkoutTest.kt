@@ -208,6 +208,37 @@ class DayViewModelWorkoutTest {
         runCurrent()
     }
 
+    @Test fun `Start on a run day with a strength block shows the run first`() = test {
+        prepare(cardio = true)
+        val program = repo.plans.programFlow.first()
+        repo.replaceProgram(Program(program.days.map { it.copy(kind = cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) }))
+        val vm = readyVm()
+        assertTrue(vm.uiState.value.cardioLeads)
+        assertEquals("cardio", vm.uiState.value.pages.first().key)
+        assertEquals(0, vm.uiState.value.currentPage)
+        vm.startWorkout()
+        runCurrent()
+        assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
+        assertNull(vm.uiState.value.cardio?.run)
+        assertTrue(vm.uiState.value.cardioStartEnabled)
+    }
+
+    @Test fun `All sets keeps the planned target after a lighter set is logged`() = test {
+        prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(35.0, 8)))))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        val rows = track(vm, card.programExerciseId).mapIndexed { index, row ->
+            row.copy(weightLb = if (index == 2) 30.0 else 35.0, reps = if (index == 1) 6 else 8, done = true)
+        }
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", card.programExerciseId, Slot.MAIN, rows)
+        runCurrent()
+        val logged = vm.uiState.value.exercises.single()
+        assertEquals(listOf(8, 6, 8), logged.rows.map { it.reps })
+        assertEquals("3 × 8 · 35 lb", logged.workingHeading)
+    }
+
     @Test fun `★ a button log holds the set for effort and refuses a second log`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()

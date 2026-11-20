@@ -864,7 +864,7 @@
     <string name="cardio_log_past">Log past session</string>
     <string name="cardio_entry_date">Date</string>
     <string name="cardio_entry_start">Start time</string>
-    <string name="cardio_entry_ends_later">Ends after now</string>
+    <string name="cardio_entry_ends_later">Ends at %1$s, after now</string>
     <string name="cardio_entry_save_failed">Couldn\'t save the session.</string>
     <string name="cardio_entry_collision">Start time collision</string>
     <string name="settings_distance">Distance</string>
@@ -1460,4 +1460,11 @@
         <item quantity="one">%1$s sprint, %2$d day</item>
         <item quantity="other">%1$s sprint, %2$d days</item>
     </plurals>
+    <string name="workout_cardio_next_starts">The next interval starts on its own.</string>
+    <string name="today_cardio_day">%1$s, %2$s</string>
+    <plurals name="today_cardio_day_lifts">
+        <item quantity="one">%1$s, %2$s and %3$d lift</item>
+        <item quantity="other">%1$s, %2$s and %3$d lifts</item>
+    </plurals>
+    <string name="sheet_other_exercises">Other exercises</string>
 </resources>

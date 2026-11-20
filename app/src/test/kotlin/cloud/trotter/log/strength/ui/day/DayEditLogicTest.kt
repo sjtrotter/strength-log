@@ -21,6 +21,18 @@ import kotlin.test.assertTrue
 
 class DayEditLogicTest {
 
+    @Test fun `fallback lists library matches only when the pattern list has none`() {
+        val candidates = catalog.substitutionsFor("bb_bench")
+        val equipment = Equipment.entries.toSet()
+        val expected = ExercisePicker.filter(catalog.entries, "overhead", equipment)
+            .filterNot { entry -> candidates.any { it.id == entry.id } }
+        assertTrue(expected.any { it.id == "ohp" })
+        assertEquals(expected, ExercisePicker.fallback(candidates, catalog.entries, "overhead", equipment))
+        assertTrue(ExercisePicker.fallback(candidates, catalog.entries, "", equipment).isEmpty())
+        assertTrue(ExercisePicker.fallback(candidates, catalog.entries, "press", equipment).isEmpty())
+        assertTrue(ExercisePicker.fallback(candidates, catalog.entries, "overhead", emptySet()).isEmpty())
+    }
+
     @Test fun cardio_options_back_returns_to_the_slot_list() {
         assertEquals(DayEditPage.CARDIO_OPTIONS, dayEditBackTarget(false, false, false, false, false, false, cardioOptions = true))
     }

@@ -43,6 +43,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TodayViewModelWiringTest : OverviewFixture() {
+    @Test fun `a cardio day carries its activity and lift count`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val program = repo.plans.programFor(plan).first()
+        val day = program.days.first()
+        repo.replaceProgram(Program(program.days.map {
+            if (it.id == day.id) it.copy(kind = ProgramDayKind.CARDIO,
+                cardioBlock = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)))))
+            else it
+        }))
+        val vm = today()
+        advanceUntilIdle()
+        val shown = vm.uiState.value.upNext.single { it.dayId == day.id }
+        assertEquals(CardioActivity.ROAD_RUN, shown.cardioActivity)
+        assertEquals(day.exercises.size, shown.liftCount)
+        assertTrue(shown.cardioOnly)
+    }
+
     @Test fun lighterTodayHidesDuringALightWeekDraftOrRun() = runTest(dispatcher) {
         insertProgram()
         db.convertTestPlans(settings)

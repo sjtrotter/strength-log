@@ -89,6 +89,25 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutSetScreenTest {
+    @Test fun `recovery before timed work says the next interval starts on its own`() {
+        val initial = workoutSetCardioRunningFixture()
+        val current = requireNotNull(initial.cardio)
+        val original = requireNotNull(current.run)
+        val recovery = CardioSetSpec(CardioRole.RECOVERY, Measure.Time(90))
+        val timed = CardioSetSpec(CardioRole.WORK, Measure.Time(60))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(recovery, timed))
+        var state by mutableStateOf(initial.copy(cardio = current.copy(block = block,
+            run = original.copy(blockJson = CardioBlockJson.encode(block), results = emptyList()), stepSecondsLeft = 40)))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("The next interval starts on its own.").assertIsDisplayed()
+        rule.runOnIdle {
+            val distance = block.copy(sets = listOf(recovery, timed.copy(end = Measure.Distance(400))))
+            state = state.copy(cardio = current.copy(block = distance,
+                run = original.copy(blockJson = CardioBlockJson.encode(distance), results = emptyList()), stepSecondsLeft = 40))
+        }
+        rule.onNodeWithText("The next interval starts on its own.").assertDoesNotExist()
+    }
+
     @Test fun `a sprint rep offers the beep timer typed time and start protocols`() {
         val base = sprintRepFixture()
         val run = requireNotNull(base.cardio?.run)

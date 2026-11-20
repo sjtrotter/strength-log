@@ -148,6 +148,8 @@ You, wizard, custom exercise and History corrections use labeled M3
 `OutlinedTextField`s; rest durations open a minutes/seconds dialog. Custom
 exercises require a name and an explicit movement-pattern choice.
 
+| 2026-11-20, cardio A | Timed intervals start after their recovery; a run day opens on its run; past-session errors sit by the start time | #536, #533 and playtest r5-p6 |
+
 ### Watch
 
 Follow the Wear OS design guidelines (developer.android.com/design/ui/wear) and Material for

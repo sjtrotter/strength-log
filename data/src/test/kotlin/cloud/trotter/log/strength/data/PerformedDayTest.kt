@@ -33,6 +33,17 @@ class PerformedDayTest {
             subRank = ExerciseCatalog.CUSTOM_SUBRANK),
     ))
 
+    @Test fun `a performed track keeps its run plan separate from actual rows`() {
+        val planned = List(3) { LoggedSet(35.0, 8, SetKind.WORK) }
+        val actual = planned.mapIndexed { index, row -> row.copy(reps = if (index == 1) 6 else 8, done = true) }
+        val slot = ProgramSlot(1, 0, ProgramExercise("ez_curl"))
+        val track = day(listOf(slot), DayTracks("run", true,
+            listOf(LoggedSlot(1, Slot.MAIN, actual, planned = planned)))).slots.single().main
+        assertSame(planned, track.planned)
+        assertSame(actual, track.sets)
+        assertNull(day(listOf(slot)).slots.single().main.planned)
+    }
+
     @Test fun `stored rows win including a deliberately empty track`() {
         val rows = listOf(LoggedSet(37.5, 9, SetKind.EXTRA, done = true))
         val partnerRows = listOf(LoggedSet(20.0, 12, SetKind.WORK))

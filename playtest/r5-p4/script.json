@@ -3,7 +3,7 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
+    "date": "2026-11-18",
     "time": "17:30",
     "zone": "America/Chicago"
   },
@@ -22,8 +22,11 @@
     },
     {
       "tap": {
-        "desc": "Day A"
+        "desc": "Day B"
       }
+    },
+    {
+      "checkpoint": "nov18-offered-day-b"
     },
     {
       "tap": {
@@ -31,17 +34,42 @@
       }
     },
     {
-      "checkpoint": "nov16-offered-day-a"
+      "checkpoint": "nov18-base-prescriptions"
     },
     {
       "scrollTo": {
-        "textContains": "Barbell Back Squat",
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Conventional Deadlift",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Barbell Back Squat",
+        "textContains": "Conventional Deadlift",
         "index": 0
       }
     },
@@ -62,7 +90,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "195",
+        "value": "235",
         "ime": "done"
       }
     },
@@ -73,13 +101,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "Barbell Bench Press",
+        "textContains": "Overhead Press (Barbell)",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Barbell Bench Press",
+        "textContains": "Overhead Press (Barbell)",
         "index": 0
       }
     },
@@ -100,7 +128,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "155",
+        "value": "100",
         "ime": "done"
       }
     },
@@ -111,13 +139,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "Lat Pulldown (wide)",
+        "textContains": "Leg Press",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Lat Pulldown (wide)",
+        "textContains": "Leg Press",
         "index": 0
       }
     },
@@ -138,7 +166,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "130",
+        "value": "290",
         "ime": "done"
       }
     },
@@ -149,13 +177,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "One-Arm DB Row",
+        "textContains": "Seated Cable Row",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "One-Arm DB Row",
+        "textContains": "Seated Cable Row",
         "index": 0
       }
     },
@@ -176,7 +204,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "60",
+        "value": "110",
         "ime": "done"
       }
     },
@@ -196,26 +224,20 @@
       }
     },
     {
-      "checkpoint": "nov16-offered-row-target"
+      "checkpoint": "nov18-offered-bike-target"
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Add set"
       }
     },
     {
-      "type": {
-        "text": "Duration",
-        "value": "15:00",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (m)",
-        "value": "3516",
-        "ime": "done"
-      }
+      "checkpoint": "nov18-nine-pairs-target"
     },
     {
       "tap": {
@@ -223,19 +245,14 @@
       }
     },
     {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "nov16-corrected-prescriptions"
+      "checkpoint": "nov18-corrected-plan"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Start day B"
       }
     },
     {
@@ -245,139 +262,12 @@
       }
     },
     {
-      "checkpoint": "nov16-first-squat"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+      "expect": {
+        "text": "Conventional Deadlift"
       }
     },
     {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov16-squat-done"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov16-bench-done"
+      "checkpoint": "nov18-deadlift-start"
     },
     {
       "advance": "35s"
@@ -453,7 +343,83 @@
       }
     },
     {
-      "checkpoint": "nov16-pulldown-done"
+      "checkpoint": "nov18-deadlift-done"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov18-ohp-done"
     },
     {
       "advance": "35s"
@@ -519,18 +485,10 @@
       }
     },
     {
-      "checkpoint": "nov16-row-done"
+      "checkpoint": "nov18-leg-press-done"
     },
     {
-      "expect": {
-        "text": "Plank"
-      }
-    },
-    {
-      "checkpoint": "nov16-first-plank"
-    },
-    {
-      "advance": "45s"
+      "advance": "35s"
     },
     {
       "tap": {
@@ -538,53 +496,20 @@
       }
     },
     {
-      "expect": {
-        "text": "Set 2 of 3"
-      }
-    },
-    {
-      "checkpoint": "nov16-plank-one-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "45s"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Set 3 of 3"
-      }
-    },
-    {
-      "checkpoint": "nov16-plank-two-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
       "advance": "2m"
     },
     {
-      "checkpoint": "nov16-plank-done"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "expect": {
-        "text": "Rower"
-      }
+      "advance": "35s"
     },
     {
       "tap": {
@@ -592,20 +517,122 @@
       }
     },
     {
-      "advance": "15m"
-    },
-    {
-      "type": {
-        "tag": "workout-cardio-distance",
-        "value": "3470"
+      "tap": {
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov16-steady-row"
+      "advance": "2m"
     },
     {
       "tap": {
-        "tag": "workout-action-tonal"
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov18-cable-row-done"
+    },
+    {
+      "tap": {
+        "desc": "All sets, Rope Pushdown"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip for this workout"
+      }
+    },
+    {
+      "expect": {
+        "text": "Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip for this workout"
+      }
+    },
+    {
+      "expect": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Work, set 1 of 18"
+      }
+    },
+    {
+      "checkpoint": "nov18-curls-skipped-bike-start"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "checkpoint": "nov18-six-rounds-done"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "End cardio"
+      }
+    },
+    {
+      "checkpoint": "nov18-end-cardio-confirmation"
+    },
+    {
+      "tap": {
+        "text": "End and log"
       }
     },
     {
@@ -617,8 +644,17 @@
       "optional": true
     },
     {
+      "expect": {
+        "text": "Finish day B",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov18-short-bike-saved"
+    },
+    {
       "tap": {
-        "text": "Finish day A",
+        "text": "Finish day B",
         "tag": "workout-action-filled"
       }
     },
@@ -629,7 +665,32 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov16-summary"
+      "checkpoint": "nov18-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "tired. Slept 5 hours. Bike 6 rounds; only two near 290 W.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "nov18-tired-note-saved"
     },
     {
       "tap": {
@@ -644,7 +705,7 @@
       }
     },
     {
-      "checkpoint": "nov16-finished"
+      "checkpoint": "nov18-finished"
     }
   ]
 }

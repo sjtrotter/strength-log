@@ -3,7 +3,7 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-01",
+    "date": "2026-12-04",
     "time": "09:30",
     "zone": "America/Phoenix"
   },
@@ -25,7 +25,7 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-plan-and-last-session"
+      "checkpoint": "dec4-plan-and-last-session"
     },
     {
       "tap": {
@@ -33,7 +33,7 @@
       }
     },
     {
-      "note": "Tuesday Dec1: poor sleep, tired and low. Five minutes bike, then about half the sets and leave. Stop at twenty minutes; no extra third balance pair or pulldown/calves today."
+      "note": "Friday Dec4: a good day. Chest press 45 lb for both sets of 10, proud of that. Other machines as on trainer card; five-minute bike and three balance pairs."
     },
     {
       "advance": "5m"
@@ -45,7 +45,7 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-balance-start"
+      "checkpoint": "dec4-balance-start"
     },
     {
       "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
@@ -76,12 +76,26 @@
       "advance": "2m"
     },
     {
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. I time the holds myself."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
       "expect": {
         "text": "Leg Press"
       }
     },
     {
-      "checkpoint": "dec1-half-session-leg-press-offer-after-light-week-notice"
+      "checkpoint": "dec4-leg-press-offer-after-rough-day"
     },
     {
       "tap": {
@@ -119,7 +133,7 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-leg-press-set-1-logged"
+      "checkpoint": "dec4-leg-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -165,7 +179,7 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-leg-press-set-2-logged"
+      "checkpoint": "dec4-leg-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -176,7 +190,12 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-chest-press-offered"
+      "checkpoint": "dec4-chest-press-offered"
+    },
+    {
+      "expect": {
+        "text": "seat on 5"
+      }
     },
     {
       "expect": {
@@ -191,7 +210,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "40"
+        "value": "45"
       }
     },
     {
@@ -219,43 +238,266 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-chest-press-set-1-logged"
+      "checkpoint": "dec4-chest-press-set-1-logged"
     },
     {
-      "advance": "4m20s"
-    },
-    {
-      "note": "Two balance records, two leg press sets and one chest set: five of ten in the current light session. I am tired and going home; no second chest set, rows or shoulder press."
+      "advance": "2m"
     },
     {
       "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "checkpoint": "dec1-half-sets-finish-confirmation"
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "dec1-short-session-before-rough-day"
-    },
-    {
-      "scrollTo": {
-        "text": "Rough day"
+        "tag": "workout-action-filled"
       }
     },
     {
       "tap": {
-        "text": "Rough day"
+        "desc": "Edit set 2"
       }
     },
     {
-      "checkpoint": "dec1-rough-day-selected"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-chest-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "dec4-row-offered"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-row-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-row-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "dec4-shoulder-press-offered"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-shoulder-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-shoulder-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Pulldown 50 lb 2x10 and rail calf raises done from trainer card; still in session note rather than separate entries. Ten minutes includes rests and moving around the gym."
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "dec4-full-body-summary"
     },
     {
       "scrollTo": {
@@ -270,7 +512,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Poor sleep, tired and low. Bike 5m, 2 balance pairs, leg 110 2x10, chest 40 1x10. Half sets then home. Rough day."
+        "value": "Good day. Chest 45 lb 2x10, proud! Bike 5m; pulldown 50 lb 2x10; calf raises; balance 3 pairs left/right 10s."
       }
     },
     {
@@ -291,7 +533,7 @@
       }
     },
     {
-      "checkpoint": "dec1-half-session-saved"
+      "checkpoint": "dec4-gym-saved"
     }
   ]
 }
